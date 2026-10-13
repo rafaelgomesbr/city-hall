@@ -46,6 +46,26 @@ describe("frases da pausa", () => {
     }
   });
 
+  it("senha provisória manda definir a senha no painel e não manda procurar a coordenação", () => {
+    const senha = frasesDaPausa("troca_de_senha_obrigatoria");
+    expect(senha.titulo).toMatch(/senha provisória/i);
+    expect(senha.detalhe).toMatch(/continuam guardadas/i);
+    expect(senha.detalhe).toMatch(/painel/i);
+    expect(senha.faixaDetalhe).toMatch(/guardadas/i);
+    expect(senha.doCartao).toMatch(/guardada/i);
+    expect(senha.doCartao).toMatch(/definir a sua senha/i);
+    expect(senha.detalhe).not.toMatch(/procure a coordenação/i);
+    for (const texto of Object.values(senha)) expect(texto).not.toContain(String.fromCharCode(0x2014));
+  });
+
+  it("as três pausas têm frases diferentes", () => {
+    const todas = (["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const)
+      .map((m) => frasesDaPausa(m));
+    expect(new Set(todas.map((f) => f.titulo)).size).toBe(3);
+    expect(new Set(todas.map((f) => f.faixaTitulo)).size).toBe(3);
+    expect(new Set(todas.map((f) => f.doCartao)).size).toBe(3);
+  });
+
   it("com a fila parada o laço espera mais que o piso normal de 15 s", () => {
     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
   });

@@ -1,0 +1,286 @@
+$ (cd dc360/packages/campo) npx vitest run test/pausa-por-senha-provisoria.test.ts
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/packages/campo[39m
+
+ [31m❯[39m test/pausa-por-senha-provisoria.test.ts [2m([22m[2m35 tests[22m[2m | [22m[31m12 failed[39m[2m)[22m[32m 45[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 nao_autenticado: as quatro rotas da fila classificam igual[32m 3[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 nao_autenticado: o item termina no estado certo na fila[32m 2[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 sessao_encerrada: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 sessao_encerrada: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 sem código: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 sem código: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 de código fora do catálogo: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m401 de código fora do catálogo: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 conta_desativada: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 conta_desativada: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+[31m   [31m×[31m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 troca_de_senha_obrigatoria: as quatro rotas da fila classificam igual[39m[32m 7[2mms[22m[39m
+[31m     → expected FalhaPermanente: Você entrou com uma senh… { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 troca_de_senha_obrigatoria: o item termina no estado certo na fila[39m[32m 3[2mms[22m[39m
+[31m     → expected 'bloqueado' to be 'pendente' // Object.is equality[39m
+[31m   [31m×[31m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 acesso_suspenso: as quatro rotas da fila classificam igual[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Suspenso. { …(2) } to be an instance of FalhaTemporaria[39m
+[31m   [31m×[31m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 acesso_suspenso: o item termina no estado certo na fila[39m[32m 1[2mms[22m[39m
+[31m     → expected 'bloqueado' to be 'pendente' // Object.is equality[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 sem_permissao: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 sem_permissao: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 sem código: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 sem código: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m409 autor_divergente: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m409 autor_divergente: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m409 ja_encerrada: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m409 ja_encerrada: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m429: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m429: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m503: as quatro rotas da fila classificam igual[32m 0[2mms[22m[39m
+   [32m✓[39m Matriz de classificação: status e código contra o transporte e a fila reais[2m > [22m503: o item termina no estado certo na fila[32m 0[2mms[22m[39m
+[31m   [31m×[31m 403 troca_de_senha_obrigatoria: a fila PAUSA e nenhuma coleta é perdida[2m > [22mtrês coletas: zero bloqueadas, tentativas inalteradas, o dreno para na primeira chamada[39m[32m 12[2mms[22m[39m
+[31m     → expected [ 'bloqueado', 'bloqueado', …(1) ] to deeply equal [ 'pendente', 'pendente', 'pendente' ][39m
+[31m   [31m×[31m 403 troca_de_senha_obrigatoria: a fila PAUSA e nenhuma coleta é perdida[2m > [22ma pausa nova SUBSTITUI a velha: de sessão encerrada para senha provisória, e depois sobe tudo[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'troca_de_senha_obrigatoria' // Object.is equality[39m
+   [32m✓[39m 403 troca_de_senha_obrigatoria: a fila PAUSA e nenhuma coleta é perdida[2m > [22ma devolução de tarefa e a foto também esperam, sem bloquear[32m 1[2mms[22m[39m
+[31m   [31m×[31m Corridas de troca de conta com o dreno em voo[2m > [22ma pausa é do AUTOR do item, e não de quem está logado quando a resposta chega[39m[32m 0[2mms[22m[39m
+[31m     → expected 'conta_desativada' to be null[39m
+[31m   [31m×[31m Corridas de troca de conta com o dreno em voo[2m > [22mcancelar, trocar de conta e a resposta tardia 403: a pausa não aparece para o outro agente[39m[32m 2[2mms[22m[39m
+[31m     → o A leu a pausa do B: expected 'conta_desativada' to be null[39m
+[31m   [31m×[31m Corridas de troca de conta com o dreno em voo[2m > [22mdois drenos: o 401 tardio do primeiro NÃO devolve a pendente o item que o segundo confirmou[39m[32m 6[2mms[22m[39m
+[31m     → o item confirmado regrediu: expected 'pendente' to be 'confirmado' // Object.is equality[39m
+[31m   [31m×[31m Corridas de troca de conta com o dreno em voo[2m > [22mtrocar de conta com a foto em voo: nenhum pedido seguinte sai com a conta nova[39m[32m 1[2mms[22m[39m
+[31m     → expected [ …(7) ] to deeply equal [ Array(1) ][39m
+[31m   [31m×[31m Corridas de troca de conta com o dreno em voo[2m > [22mcancelar() com a foto em voo: o item para antes do próximo pedido e a coleta continua guardada[39m[32m 1[2mms[22m[39m
+[31m     → expected [ 'autorizar', 'bytes', …(2) ] to deeply equal [ 'autorizar' ][39m
+[31m   [31m×[31m Corridas de troca de conta com o dreno em voo[2m > [22mo pedido de autorização da foto declara quem coletou (o servidor confere com o token)[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'u-ana' // Object.is equality[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m12 failed[39m[22m[2m | [22m[1m[32m23 passed[39m[22m[90m (35)[39m
+[2m   Start at [22m 05:46:47
+[2m   Duration [22m 1.18s[2m (transform 153ms, setup 0ms, collect 734ms, tests 45ms, environment 0ms, prepare 150ms)[22m
+
+
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 12 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mMatriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 troca_de_senha_obrigatoria: as quatro rotas da fila classificam igual
+[31m[1mAssertionError[22m: expected FalhaPermanente: Você entrou com uma senh… { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m173:24[22m[39m
+    [90m171| [39m      [35mfor[39m ([35mconst[39m erro [35mof[39m erros) {
+    [90m172| [39m        [35mif[39m (esperado[33m.[39mclasse [33m===[39m [32m"sessao"[39m) {
+    [90m173| [39m          [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m174| [39m          [34mexpect[39m((erro [35mas[39m [33mFalhaDeSessao[39m)[33m.[39mmotivo)[33m.[39m[34mtoBe[39m(esperado[33m.[39mmotivo)[33m;[39m
+    [90m175| [39m        } [35melse[39m [35mif[39m (esperado[33m.[39mclasse [33m===[39m [32m"permanente"[39m) {
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mMatriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 troca_de_senha_obrigatoria: o item termina no estado certo na fila
+[31m[1mAssertionError[22m: expected 'bloqueado' to be 'pendente' // Object.is equality[39m
+
+Expected: [32m"pendente"[39m
+Received: [31m"bloqueado"[39m
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m192:30[22m[39m
+    [90m190| [39m      [35mconst[39m [item] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m191| [39m      [35mif[39m (esperado[33m.[39mclasse [33m===[39m [32m"sessao"[39m) {
+    [90m192| [39m        [34mexpect[39m(item[33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m193| [39m        [34mexpect[39m(item[33m![39m[33m.[39mtentativas)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m194| [39m        [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m(esperado[33m.[39mmotivo)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mMatriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 acesso_suspenso: as quatro rotas da fila classificam igual
+[31m[1mAssertionError[22m: expected FalhaPermanente: Suspenso. { …(2) } to be an instance of FalhaTemporaria[39m
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m179:24[22m[39m
+    [90m177| [39m          expect((erro as FalhaPermanente).codigo).toBe(esperado.codig…
+    [90m178| [39m        } [35melse[39m {
+    [90m179| [39m          [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaTemporaria[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m180| [39m        }
+    [90m181| [39m      }
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mMatriz de classificação: status e código contra o transporte e a fila reais[2m > [22m403 acesso_suspenso: o item termina no estado certo na fila
+[31m[1mAssertionError[22m: expected 'bloqueado' to be 'pendente' // Object.is equality[39m
+
+Expected: [32m"pendente"[39m
+Received: [31m"bloqueado"[39m
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m202:30[22m[39m
+    [90m200| [39m        [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+    [90m201| [39m      } [35melse[39m {
+    [90m202| [39m        [34mexpect[39m(item[33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m203| [39m        [34mexpect[39m(item[33m![39m[33m.[39mtentativas)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m204| [39m        [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22m403 troca_de_senha_obrigatoria: a fila PAUSA e nenhuma coleta é perdida[2m > [22mtrês coletas: zero bloqueadas, tentativas inalteradas, o dreno para na primeira chamada
+[31m[1mAssertionError[22m: expected [ 'bloqueado', 'bloqueado', …(1) ] to deeply equal [ 'pendente', 'pendente', 'pendente' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   "pendente",[39m
+[32m-   "pendente",[39m
+[32m-   "pendente",[39m
+[31m+   "bloqueado",[39m
+[31m+   "bloqueado",[39m
+[31m+   "bloqueado",[39m
+[2m  ][22m
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m233:40[22m[39m
+    [90m231| [39m
+    [90m232| [39m    [35mconst[39m itens [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m233| [39m    expect(itens.map((i) => i.estado)).toEqual(["pendente", "pendente"…
+    [90m   | [39m                                       [31m^[39m
+    [90m234| [39m    [34mexpect[39m(itens[33m.[39m[34mmap[39m((i) [33m=>[39m i[33m.[39mtentativas))[33m.[39m[34mtoEqual[39m([[34m0[39m[33m,[39m [34m0[39m[33m,[39m [34m0[39m])[33m;[39m
+    [90m235| [39m    [34mexpect[39m(itens[33m.[39m[34mevery[39m((i) [33m=>[39m i[33m.[39multimaFalha [33m===[39m [35mnull[39m))[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22m403 troca_de_senha_obrigatoria: a fila PAUSA e nenhuma coleta é perdida[2m > [22ma pausa nova SUBSTITUI a velha: de sessão encerrada para senha provisória, e depois sobe tudo
+[31m[1mAssertionError[22m: expected undefined to be 'troca_de_senha_obrigatoria' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"troca_de_senha_obrigatoria"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m267:45[22m[39m
+    [90m265| [39m
+    [90m266| [39m    fase [33m=[39m [32m"provisoria"[39m[33m;[39m
+    [90m267| [39m    expect((await fila.drenar()).paradaPor).toBe("troca_de_senha_obrig…
+    [90m   | [39m                                            [31m^[39m
+    [90m268| [39m    // Não fica "Sessão encerrada" por cima: a pausa nova trocou a vel…
+    [90m269| [39m    expect((await fila.resumo()).pausadaPor).toBe("troca_de_senha_obri…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mCorridas de troca de conta com o dreno em voo[2m > [22ma pausa é do AUTOR do item, e não de quem está logado quando a resposta chega
+[31m[1mAssertionError[22m: expected 'conta_desativada' to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+"conta_desativada"
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m324:46[22m[39m
+    [90m322| [39m
+    [90m323| [39m    [90m// O B entrou depois e não tem nada a ver com a conta do A.[39m
+    [90m324| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mresumo[39m())[33m.[39mpausadaPor)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m                                             [31m^[39m
+    [90m325| [39m    [90m// O A volta: a pausa é dele.[39m
+    [90m326| [39m    sessao[33m.[39matual [33m=[39m [33mAGENTE_A[39m[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mCorridas de troca de conta com o dreno em voo[2m > [22mcancelar, trocar de conta e a resposta tardia 403: a pausa não aparece para o outro agente
+[31m[1mAssertionError[22m: o A leu a pausa do B: expected 'conta_desativada' to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+"conta_desativada"
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m348:55[22m[39m
+    [90m346| [39m
+    [90m347| [39m    [35mconst[39m resumo [33m=[39m [35mawait[39m fila[33m.[39m[34mresumo[39m()[33m;[39m
+    [90m348| [39m    [34mexpect[39m(resumo[33m.[39mpausadaPor[33m,[39m [32m"o A leu a pausa do B"[39m)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m                                                      [31m^[39m
+    [90m349| [39m    [34mexpect[39m(resumo[33m.[39mdeOutroAutor)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m350| [39m    [35mconst[39m [item] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mCorridas de troca de conta com o dreno em voo[2m > [22mdois drenos: o 401 tardio do primeiro NÃO devolve a pendente o item que o segundo confirmou
+[31m[1mAssertionError[22m: o item confirmado regrediu: expected 'pendente' to be 'confirmado' // Object.is equality[39m
+
+Expected: [32m"confirmado"[39m
+Received: [31m"pendente"[39m
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m379:56[22m[39m
+    [90m377| [39m
+    [90m378| [39m    [35mconst[39m [item] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m379| [39m    expect(item!.estado, "o item confirmado regrediu").toBe("confirmad…
+    [90m   | [39m                                                       [31m^[39m
+    [90m380| [39m    expect((await fila.resumo()).pausadaPor, "pausa falsa depois de um…
+    [90m381| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mCorridas de troca de conta com o dreno em voo[2m > [22mtrocar de conta com a foto em voo: nenhum pedido seguinte sai com a conta nova
+[31m[1mAssertionError[22m: expected [ …(7) ] to deeply equal [ Array(1) ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "autorizar:ffffffff-1111-4111-8111-000000000001:u-ana",[22m
+[31m+   "bytes:ffffffff-1111-4111-8111-000000000001:u-bruno",[39m
+[31m+   "confirmar:ev-ffffffff-1111-4111-8111-000000000001:u-bruno",[39m
+[31m+   "autorizar:ffffffff-2222-4222-8222-000000000002:u-bruno",[39m
+[31m+   "bytes:ffffffff-2222-4222-8222-000000000002:u-bruno",[39m
+[31m+   "confirmar:ev-ffffffff-2222-4222-8222-000000000002:u-bruno",[39m
+[31m+   "enviar:u-bruno",[39m
+[2m  ][22m
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m406:22[22m[39m
+    [90m404| [39m
+    [90m405| [39m    [90m// Só a chamada que já estava em voo. Nada mais sai com o B logado.[39m
+    [90m406| [39m    expect(chamadas).toEqual([`autorizar:${FOTO_A}:${AGENTE_A.usuarioI…
+    [90m   | [39m                     [31m^[39m
+    [90m407| [39m    [34mexpect[39m(r[33m.[39minterrompido)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m408| [39m    [34mexpect[39m(r[33m.[39mbloqueados)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mCorridas de troca de conta com o dreno em voo[2m > [22mcancelar() com a foto em voo: o item para antes do próximo pedido e a coleta continua guardada
+[31m[1mAssertionError[22m: expected [ 'autorizar', 'bytes', …(2) ] to deeply equal [ 'autorizar' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "autorizar",[22m
+[31m+   "bytes",[39m
+[31m+   "confirmar",[39m
+[31m+   "enviar",[39m
+[2m  ][22m
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m439:22[22m[39m
+    [90m437| [39m    [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m438| [39m
+    [90m439| [39m    [34mexpect[39m(chamadas)[33m.[39m[34mtoEqual[39m([[32m"autorizar"[39m])[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m440| [39m    [35mconst[39m [item] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m441| [39m    [34mexpect[39m(item[33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-por-senha-provisoria.test.ts[2m > [22mCorridas de troca de conta com o dreno em voo[2m > [22mo pedido de autorização da foto declara quem coletou (o servidor confere com o token)
+[31m[1mAssertionError[22m: expected undefined to be 'u-ana' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"u-ana"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-por-senha-provisoria.test.ts:[2m475:39[22m[39m
+    [90m473| [39m
+    [90m474| [39m    [34mexpect[39m(corpos)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m475| [39m    [34mexpect[39m(corpos[[34m0[39m][33m![39m[[32m"coletadaPor"[39m])[33m.[39m[34mtoBe[39m([33mAGENTE_A[39m[33m.[39musuarioId)[33m;[39m
+    [90m   | [39m                                      [31m^[39m
+    [90m476| [39m  })[33m;[39m
+    [90m477| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯[22m[39m
+
+
+[codigo de saida: 1]

@@ -63,6 +63,11 @@ const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
     titulo: "Conta desativada",
     detalhe: "Suas coletas continuam guardadas neste aparelho, procure a coordenação",
   },
+  troca_de_senha_obrigatoria: {
+    chave: "troca_de_senha_obrigatoria", fundo: "#FDEBEB", cor: "#C92A2A", sinalTexto: "!",
+    titulo: "Defina a sua senha",
+    detalhe: "Suas coletas continuam guardadas neste aparelho",
+  },
   /*
     A coleta que o servidor recusou e espera o dedo do agente. Existe pelo
     mesmo motivo do estado acima: em 15/09/2026 a vistoria 000009/2026 parou
@@ -337,6 +342,19 @@ describe("a faixa quando a fila esta parada pela sessao", () => {
       "suas coletas continuam guardadas neste aparelho, procure a coordenação",
     );
     expect(r.detalhe).not.toContain("Entre de novo");
+  });
+
+  it("senha provisória manda definir a senha e promete a coleta guardada, sem mandar entrar de novo", async () => {
+    const r = faixa({
+      temSinal: true, pendentes: 3, bloqueados: 0, deOutroAutor: 0,
+      sincronizando: false, pausadaPor: "troca_de_senha_obrigatoria",
+    });
+    expect(r.chave).toBe("troca_de_senha_obrigatoria");
+    expect(r.titulo).toBe("Defina a sua senha");
+    expect(r.detalhe).toContain("continuam guardadas");
+    expect(r.detalhe).not.toContain("Entre de novo");
+    expect(r.sinalTexto).toBe("!");
+    expect(r.fundo).toBe(temaEscuro.perigoFundo);
   });
 
   it("a pausa vem antes de 'Enviando', que piscaria a cada tentativa recusada", async () => {

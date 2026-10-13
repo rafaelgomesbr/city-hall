@@ -124,6 +124,17 @@ export const pedidoDeEvidenciaSchema = z.object({
     .min(0, "A ordem da fotografia não pode ser negativa.")
     .max(200, "Uma vistoria não pode ter mais de 200 fotografias.")
     .default(0),
+  /**
+   * Quem fez a coleta a que a foto pertence, como o aparelho a carimbou.
+   *
+   * OPCIONAL, pelo mesmo motivo de `coletadaPor` no envelope da vistoria:
+   * aparelho em campo com coleta gravada antes deste campo não tem como
+   * declará-lo. Quando vem, o servidor o confere com o token e responde 409
+   * `autor_divergente` se forem pessoas diferentes. O portão de cliente não é
+   * controle de acesso; este campo existe para o servidor poder recusar a troca
+   * de conta que acontece com a foto em voo, e não para confiar no aparelho.
+   */
+  coletadaPor: uuidSchema.optional(),
 });
 
 export type PedidoDeEvidencia = z.infer<typeof pedidoDeEvidenciaSchema>;

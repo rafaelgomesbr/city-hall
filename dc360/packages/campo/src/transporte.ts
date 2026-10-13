@@ -30,7 +30,13 @@ import {
  *     - 401 `sessao_encerrada`: a pessoa entra de novo, e a fila espera.
  *     - 403 `conta_desativada`: entrar de novo não resolve, e a fila espera a
  *       coordenação.
- *   Nos dois casos a fila para e MANTÉM o item pendente. Até a E06 isso era
+ *     - 403 `troca_de_senha_obrigatoria`: a pessoa entrou com a senha
+ *       provisória e precisa defini-la; a fila espera ela fazer isso. Foi o
+ *       código que a rodada 1 da validação provou cair em permanente e bloquear
+ *       toda a fila (correção 1).
+ *     - 403 `acesso_suspenso`: o contrato do município; temporário, a coleta
+ *       espera.
+ *   Nos casos de sessão e de conta a fila para e MANTÉM o item pendente. Até a E06 isso era
  *   `FalhaPermanente`: o item virava `bloqueado` com "Descartar" ao lado, e a
  *   vistoria feita no morro por quem foi desativado (ou cuja sessão caiu) ficava
  *   marcada como recusada.
@@ -76,10 +82,30 @@ async function lerCorpo(resposta: Response): Promise<Record<string, unknown>> {
 function falhaDaResposta(
   status: number,
   corpo: Record<string, unknown>,
-): FalhaPermanente | FalhaDeSessao {
+): FalhaPermanente | FalhaDeSessao | FalhaTemporaria {
   if (status === 401) return falhaDeSessao("sessao_encerrada", corpo);
-  if (status === 403 && acaoParaOCodigo(corpo["erro"]) === "parar_e_avisar") {
-    return falhaDeSessao("conta_desativada", corpo);
+  if (status === 403) {
+    /*
+      O 403 é lido pela AÇÃO que o catálogo manda o cliente tomar, e não por
+      uma lista de códigos escrita aqui: foi uma lista que deixou
+      `troca_de_senha_obrigatoria` cair em `FalhaPermanente` e bloquear a fila
+      inteira (correção 1 da E06). Toda ação do catálogo, menos `nenhuma`
+      (`sem_permissao`, que é do PAPEL e continua recusa do dado), é um estado da
+      CONTA ou do CONTRATO, e nunca da coleta.
+    */
+    const acao = acaoParaOCodigo(corpo["erro"]);
+    if (acao === "parar_e_avisar") return falhaDeSessao("conta_desativada", corpo);
+    if (acao === "trocar_a_senha") return falhaDeSessao("troca_de_senha_obrigatoria", corpo);
+    /*
+      A suspensão do contrato: a API já responde 503 nas rotas da fila (que o
+      cliente trata como temporário), e este ramo é a defesa em profundidade
+      para o dia em que um 403 `acesso_suspenso` chegar a elas. A coleta espera
+      o contrato voltar; bloqueá-la convidaria a apagar prova por um problema
+      que não é dela.
+    */
+    if (acao === "aguardar_o_contrato") {
+      return new FalhaTemporaria(String(corpo["mensagem"] ?? "O acesso está suspenso."));
+    }
   }
 
   const brutos = Array.isArray(corpo["campos"]) ? corpo["campos"] : [];
@@ -204,7 +230,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
   }
 
   return {
-    async autorizarFoto({ ocorrenciaId, foto }): Promise<AutorizacaoFoto> {
+    async autorizarFoto({ ocorrenciaId, foto, coletadaPor }): Promise<AutorizacaoFoto> {
       /*
         O corpo é montado por `pedidoDeEvidenciaDaFoto`, a MESMA função que a
         conferência de antes de enfileirar valida com o esquema do servidor.
@@ -214,7 +240,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
       const r = await chamar<{
         evidenciaId: string; chave: string; url: string;
         cabecalhos: Record<string, string>; jaEnviada: boolean;
-      }>("/evidencias/autorizar-envio", pedidoDeEvidenciaDaFoto(ocorrenciaId, foto));
+      }>("/evidencias/autorizar-envio", pedidoDeEvidenciaDaFoto(ocorrenciaId, foto, coletadaPor));
       return r;
     },
 

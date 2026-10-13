@@ -28,6 +28,8 @@ import { construirServidor } from "../src/servidor.js";
  */
 
 const SENHA = "defesa-civil-2026";
+const HASH_DA_SEMENTE =
+  "scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk";
 const AGENTE = "diego.alves@serraalta.exemplo.gov.br";
 
 let mem: BancoEmMemoria;
@@ -516,6 +518,81 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
     expect(await vistoriasComAChave(chave)).toBe(1);
   }, 120_000);
 
+  it("senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez", async () => {
+    /*
+      O roteiro ordinário de recuperação de conta, e o que a rodada 1 da
+      validação provou que perdia dado: a coordenação redefine a senha (as
+      sessões do agente caem), o agente entra com a senha provisória e o app
+      dispara o dreno. Antes da correção, o 403 `troca_de_senha_obrigatoria`
+      virava `FalhaPermanente`, o item ficava `bloqueado` e o cartão oferecia
+      "Descartar" sobre uma coleta que o servidor nunca recebeu.
+    */
+    const alvo = await prepararOcorrenciaEmCampo("Rua das Bromélias, 52, Alto da Serra");
+    const chave = "bbbbbbbb-0000-4000-8000-000000000007";
+    const loja = lojaEmMemoria();
+    let tokenAtual = await entrarComoAgente();
+    const fila = filaCom(loja, async () => tokenAtual);
+    await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
+
+    try {
+      const redefinicao = await app.inject({
+        method: "POST", url: `/usuarios/${SESSAO_DO_DIEGO.usuarioId}/redefinir-senha`,
+        headers: { authorization: `Bearer ${tokenCoordenador}` },
+      });
+      expect(redefinicao.statusCode, redefinicao.body).toBe(200);
+      const provisoria = redefinicao.json().senhaTemporaria as string;
+
+      // (a) A sessão que o aparelho tinha caiu: pausa por sessão encerrada.
+      const velha = await fila.drenar();
+      expect(velha.paradaPor).toBe("sessao_encerrada");
+      expect((await fila.itens())[0]!.estado).toBe("pendente");
+
+      // (b) O agente entra com a senha provisória. O dreno recebe o 403 do servidor de verdade.
+      const entrada = await app.inject({
+        method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: provisoria },
+      });
+      expect(entrada.statusCode, entrada.body).toBe(200);
+      expect(entrada.json().trocaDeSenhaObrigatoria).toBe(true);
+      tokenAtual = entrada.json().acesso as string;
+
+      const comProvisoria = await fila.drenar();
+
+      expect(comProvisoria.paradaPor).toBe("troca_de_senha_obrigatoria");
+      expect(comProvisoria.bloqueados).toBe(0);
+      const [guardado] = await fila.itens();
+      expect(guardado!.estado).toBe("pendente");
+      expect(guardado!.tentativas).toBe(0);
+      expect(guardado!.ultimaFalha).toBeNull();
+      const resumo = await fila.resumo();
+      expect(resumo.bloqueados).toBe(0);
+      expect(resumo.pausadaPor, "a pausa velha ficou por cima da nova").toBe("troca_de_senha_obrigatoria");
+      expect(await vistoriasComAChave(chave), "nada pode ter chegado ao banco").toBe(0);
+
+      // (c) A senha é trocada (no painel). A MESMA coleta sobe, uma vez só.
+      const troca = await app.inject({
+        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${tokenAtual}` },
+        payload: { senhaAtual: provisoria, senha: SENHA },
+      });
+      expect(troca.statusCode, troca.body).toBe(200);
+      tokenAtual = troca.json().acesso as string;
+
+      const subiu = await fila.drenar();
+
+      expect(subiu.enviados).toBe(1);
+      expect(subiu.paradaPor).toBeUndefined();
+      expect((await fila.resumo()).pausadaPor).toBeNull();
+      expect(await vistoriasComAChave(chave)).toBe(1);
+    } finally {
+      // A redefinição derrubou a sessão compartilhada dos outros testes. Mesmo que
+      // uma asserção acima tenha falhado no meio, a senha volta à da semente.
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_hash = $1, senha_provisoria_ate = NULL WHERE id = $2",
+        [HASH_DA_SEMENTE, SESSAO_DO_DIEGO.usuarioId],
+      );
+      tokenAcesso = await entrarComoAgente();
+    }
+  }, 120_000);
+
   it("token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar", async () => {
     const alvo = await prepararOcorrenciaEmCampo("Rua das Orquídeas, 15, Alto da Serra");
     const chave = "bbbbbbbb-0000-4000-8000-000000000003";
@@ -675,6 +752,61 @@ describe("Foto de campo do aparelho ao banco", () => {
     expect(bytes.statusCode).toBe(200);
     expect(Buffer.from(PIXEL).equals(bytes.rawPayload)).toBe(true);
   }, 60_000);
+
+  it("a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez", async () => {
+    /*
+      A corrida que a rodada 1 da validação provou: o item é do Diego, a fila
+      ainda o tem como autor, mas o token que sai pelo fio já é de outra pessoa
+      (a troca de conta aconteceu entre o portão de autoria e o pedido). O
+      servidor é o último portão: a declaração do autor da coleta confere com o
+      token, e a foto não chega a existir.
+    */
+    const ANA = "11111111-1111-4111-8111-0000000000d9";
+    await mem.bruto.query(
+      `INSERT INTO usuarios (id, organizacao_id, nome, matricula, email, papel, equipe_id, senha_hash)
+       SELECT $1, organizacao_id, 'Ana Ribeiro Gouveia', 'SA-3392',
+              'ana.gouveia@serraalta.exemplo.gov.br', 'agente_campo', equipe_id, senha_hash
+         FROM usuarios WHERE id = $2
+       ON CONFLICT (id) DO NOTHING`,
+      [ANA, SESSAO_DO_DIEGO.usuarioId],
+    );
+    const entradaDaAna = await app.inject({
+      method: "POST", url: "/auth/entrar",
+      payload: { email: "ana.gouveia@serraalta.exemplo.gov.br", senha: SENHA },
+    });
+    expect(entradaDaAna.statusCode, entradaDaAna.body).toBe(200);
+    const tokenDaAna = entradaDaAna.json().acesso as string;
+
+    const alvo = await prepararOcorrenciaEmCampo("Rua da Troca de Turno, 300");
+    const fila = criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(lojaEmMemoria()),
+      transporte: transporteHttp({ baseUrl: endereco, obterToken: async () => tokenDaAna }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
+      arquivos,
+      dormir: async () => undefined,
+    });
+    const base = envelopeDe(alvo.id, "aaaaaaaa-0000-4000-8000-00000000000c");
+    await fila.enfileirar(
+      { ...base, vistoria: { ...base.vistoria, fotos: [] } },
+      { protocolo: alvo.protocolo, fotos: [fotoDe("bbbbbbbb-0000-4000-8000-00000000000c")] },
+    );
+
+    const r = await fila.drenar();
+
+    expect(r.enviados).toBe(0);
+    const [item] = await fila.itens();
+    expect(item!.estado).toBe("bloqueado");
+    expect(item!.ultimaFalha!.codigo).toBe("autor_divergente");
+    const evidencias = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM evidencias WHERE ocorrencia_id = $1", [alvo.id],
+    );
+    expect(evidencias.rows[0]!.n, "a foto foi reservada em nome de outra pessoa").toBe("0");
+    const anexos = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM trilha_eventos WHERE ocorrencia_id = $1 AND tipo = 'evidencia_anexada'",
+      [alvo.id],
+    );
+    expect(anexos.rows[0]!.n).toBe("0");
+  }, 120_000);
 
   it("reenviar a coleta inteira não duplica a foto", async () => {
     const alvo = await prepararOcorrenciaEmCampo("Rua do Reenvio, 200");

@@ -1,0 +1,223 @@
+$ (cd dc360/apps/api) npx vitest run test/evidencia-so-do-autor.test.ts test/campo-integracao.test.ts --testTimeout=120000
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/apps/api[39m
+
+ [31m❯[39m test/evidencia-so-do-autor.test.ts [2m([22m[2m11 tests[22m[2m | [22m[31m7 failed[39m[2m)[22m[33m 3788[2mms[22m[39m
+[31m   [31m×[31m Autorizar o envio: o autor declarado é o do token[2m > [22mcoletadaPor de OUTRA pessoa é recusado com 409 autor_divergente, e nada fica reservado[39m[32m 50[2mms[22m[39m
+[31m     → {"evidenciaId":"25b1ef45-e5eb-45fe-a5b5-57f1bb097d25","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/1ec5806f-5f8d-4f4b-ad41-61034e47540c/mv6ft70w-b2ec2ff3-IMG_0001.png","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1791882115&assinatura=EB0BE23B8issxgO8g8U8KyHdYwzKTuTo8bKBCia9JxA&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F1ec5806f-5f8d-4f4b-ad41-61034e47540c%2Fmv6ft70w-b2ec2ff3-IMG_0001.png","cabecalhos":{"content-type":"image/png","content-length":"70","if-none-match":"*"},"expiraEm":"2026-10-13T09:01:55.955Z","armazenamento":{"bytesUsados":70,"tetoBytes":null,"margemBytes":null,"situacao":"sem_teto"}}: expected 201 to be 409 // Object.is equality[39m
+   [32m✓[39m Autorizar o envio: o autor declarado é o do token[2m > [22mcoletadaPor igual ao token é aceito, e anexada_por é o do token[32m 48[2mms[22m[39m
+   [32m✓[39m Autorizar o envio: o autor declarado é o do token[2m > [22maparelho de versão anterior, sem coletadaPor, continua entrando[32m 45[2mms[22m[39m
+[31m   [31m×[31m Autorizar o envio: o autor declarado é o do token[2m > [22ma mesma chave pedida por OUTRA pessoa não devolve a evidência do autor[39m[32m 43[2mms[22m[39m
+[31m     → {"evidenciaId":"d8967ac7-f500-47d0-89e5-e69ce87f0ca0","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/967406e7-957b-46e6-b1db-f28a4c3a9191/mv6ft74l-623e6b13-IMG_0001.png","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1791882116&assinatura=ktPUVKgcN42J7VUrYBz2h0UAWhLUf_u8bltSgoF0QRA&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F967406e7-957b-46e6-b1db-f28a4c3a9191%2Fmv6ft74l-623e6b13-IMG_0001.png","cabecalhos":{"content-type":"image/png","content-length":"70","if-none-match":"*"},"expiraEm":"2026-10-13T09:01:56.098Z"}: expected 201 to be 409 // Object.is equality[39m
+[31m   [31m×[31m Autorizar o envio: o autor declarado é o do token[2m > [22ma reautorização com os bytes já no armazenamento não confirma em nome de outra pessoa[39m[32m 43[2mms[22m[39m
+[31m     → {"evidenciaId":"a0c827d6-7cb0-47a2-a9f7-0d1b9c4a3a50","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/2d05103b-2674-4590-860f-f5ff377137a8/mv6ft75s-738ec107-IMG_0001.png","jaEnviada":true}: expected 201 to be 409 // Object.is equality[39m
+   [32m✓[39m Autorizar o envio: o autor declarado é o do token[2m > [22mocorrência de outro município continua 404, com ou sem autor declarado (o dele)[32m 31[2mms[22m[39m
+[31m   [31m×[31m Autorizar o envio: o autor declarado é o do token[2m > [22ma recusa por autor não depende de a ocorrência existir: não vira oráculo[39m[32m 33[2mms[22m[39m
+[31m     → expected 201 to be 409 // Object.is equality[39m
+[31m   [31m×[31m Confirmar o envio: só quem autorizou confirma[2m > [22ma confirmação com o token de OUTRA pessoa é recusada: nada na trilha, nada marcado[39m[32m 37[2mms[22m[39m
+[31m     → {"evidenciaId":"03ce4c80-0719-46f2-8018-ea95cdd67569","confirmada":true,"jaEstava":false}: expected 200 to be 409 // Object.is equality[39m
+[31m   [31m×[31m Confirmar o envio: só quem autorizou confirma[2m > [22ma confirmação do autor continua valendo, e a trilha diz Diego[39m[32m 45[2mms[22m[39m
+[31m     → expected 200 to be 409 // Object.is equality[39m
+[31m   [31m×[31m Confirmar o envio: só quem autorizou confirma[2m > [22mreconfirmar depois de enviada, por outra pessoa, também é recusado[39m[32m 55[2mms[22m[39m
+[31m     → {"evidenciaId":"7b05efae-7812-4cd5-a667-4de044ba6dd2","confirmada":true,"jaEstava":true}: expected 200 to be 409 // Object.is equality[39m
+   [32m✓[39m Confirmar o envio: só quem autorizou confirma[2m > [22mevidência de outro município: 404, nunca 403 nem 409[32m 32[2mms[22m[39m
+ [31m❯[39m test/campo-integracao.test.ts [2m([22m[2m17 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 6951[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22muma coleta offline sobe e vira laudo com as duas marcas de tempo[32m 84[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22ma mesma coleta enviada dez vezes vira um laudo só[32m 130[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22mas fotos entram com a chave de storage prefixada pelo município[32m 1[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22mservidor fora do ar mantém a coleta na fila, e ela sobe quando ele volta[32m 39[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22mtoken recusado e sem renovação possível pausa a fila: o item NÃO é bloqueado nem descartado[32m 32[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22mpapel sem permissão bloqueia sem gastar bateria repetindo[32m 25[2mms[22m[39m
+   [32m✓[39m Fila de campo contra a API[2m > [22mcada envio grava uma vez só no armazenamento local[32m 41[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mconta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação [33m 785[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada [33m 765[2mms[22m[39m
+[31m   [31m×[31m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msenha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez[39m[33m 1487[2mms[22m[39m
+[31m     → expected undefined to be 'troca_de_senha_obrigatoria' // Object.is equality[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mtoken vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar [33m 435[2mms[22m[39m
+   [32m✓[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mtoken vencido e a renovação não muda nada: a fila PAUSA, sem laço contra o servidor[32m 31[2mms[22m[39m
+   [32m✓[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mpapel sem permissão (403 sem_permissao) continua BLOQUEANDO: só a sessão é poupada[32m 27[2mms[22m[39m
+   [32m✓[39m Foto de campo do aparelho ao banco[2m > [22ma foto sobe, é confirmada e fica amarrada à vistoria[32m 52[2mms[22m[39m
+   [32m✓[39m Foto de campo do aparelho ao banco[2m > [22mo coordenador consegue ver a foto que o agente enviou[32m 4[2mms[22m[39m
+[31m   [31m×[31m Foto de campo do aparelho ao banco[2m > [22ma conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez[39m[33m 407[2mms[22m[39m
+[31m     → a foto foi reservada em nome de outra pessoa: expected '1' to be '0' // Object.is equality[39m
+   [32m✓[39m Foto de campo do aparelho ao banco[2m > [22mreenviar a coleta inteira não duplica a foto[32m 75[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m19 passed[39m[22m[90m (28)[39m
+[2m   Start at [22m 05:46:50
+[2m   Duration [22m 9.57s[2m (transform 452ms, setup 50ms, collect 4.36s, tests 10.74s, environment 0ms, prepare 287ms)[22m
+
+
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 9 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/campo-integracao.test.ts[2m > [22mFila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msenha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez
+[31m[1mAssertionError[22m: expected undefined to be 'troca_de_senha_obrigatoria' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"troca_de_senha_obrigatoria"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/campo-integracao.test.ts:[2m560:39[22m[39m
+    [90m558| [39m      [35mconst[39m comProvisoria [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m559| [39m
+    [90m560| [39m      expect(comProvisoria.paradaPor).toBe("troca_de_senha_obrigatoria…
+    [90m   | [39m                                      [31m^[39m
+    [90m561| [39m      [34mexpect[39m(comProvisoria[33m.[39mbloqueados)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m562| [39m      [35mconst[39m [guardado] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/campo-integracao.test.ts[2m > [22mFoto de campo do aparelho ao banco[2m > [22ma conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez
+[31m[1mAssertionError[22m: a foto foi reservada em nome de outra pessoa: expected '1' to be '0' // Object.is equality[39m
+
+Expected: [32m"0"[39m
+Received: [31m"1"[39m
+
+[36m [2m❯[22m test/campo-integracao.test.ts:[2m803:83[22m[39m
+    [90m801| [39m      "SELECT count(*)::text AS n FROM evidencias WHERE ocorrencia_id …
+    [90m802| [39m    )[33m;[39m
+    [90m803| [39m    expect(evidencias.rows[0]!.n, "a foto foi reservada em nome de out…
+    [90m   | [39m                                                                                  [31m^[39m
+    [90m804| [39m    [35mconst[39m anexos [33m=[39m [35mawait[39m mem[33m.[39mbruto[33m.[39mquery[33m<[39m{ n[33m:[39m string }[33m>[39m(
+    [90m805| [39m      "SELECT count(*)::text AS n FROM trilha_eventos WHERE ocorrencia…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mAutorizar o envio: o autor declarado é o do token[2m > [22mcoletadaPor de OUTRA pessoa é recusado com 409 autor_divergente, e nada fica reservado
+[31m[1mAssertionError[22m: {"evidenciaId":"25b1ef45-e5eb-45fe-a5b5-57f1bb097d25","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/1ec5806f-5f8d-4f4b-ad41-61034e47540c/mv6ft70w-b2ec2ff3-IMG_0001.png","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1791882115&assinatura=EB0BE23B8issxgO8g8U8KyHdYwzKTuTo8bKBCia9JxA&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F1ec5806f-5f8d-4f4b-ad41-61034e47540c%2Fmv6ft70w-b2ec2ff3-IMG_0001.png","cabecalhos":{"content-type":"image/png","content-length":"70","if-none-match":"*"},"expiraEm":"2026-10-13T09:01:55.955Z","armazenamento":{"bytesUsados":70,"tetoBytes":null,"margemBytes":null,"situacao":"sem_teto"}}: expected 201 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 201[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m171:34[22m[39m
+    [90m169| [39m    [35mconst[39m r [33m=[39m [35mawait[39m [34mautorizar[39m(tokenAna[33m,[39m corpo)[33m;[39m
+    [90m170| [39m
+    [90m171| [39m    [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                                 [31m^[39m
+    [90m172| [39m    [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m([32m"autor_divergente"[39m)[33m;[39m
+    [90m173| [39m    expect(r.json().mensagem).toContain("conta de quem fez a vistoria"…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mAutorizar o envio: o autor declarado é o do token[2m > [22ma mesma chave pedida por OUTRA pessoa não devolve a evidência do autor
+[31m[1mAssertionError[22m: {"evidenciaId":"d8967ac7-f500-47d0-89e5-e69ce87f0ca0","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/967406e7-957b-46e6-b1db-f28a4c3a9191/mv6ft74l-623e6b13-IMG_0001.png","jaEnviada":false,"url":"http://api.local/armazenamento/objeto?expira=1791882116&assinatura=ktPUVKgcN42J7VUrYBz2h0UAWhLUf_u8bltSgoF0QRA&chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F967406e7-957b-46e6-b1db-f28a4c3a9191%2Fmv6ft74l-623e6b13-IMG_0001.png","cabecalhos":{"content-type":"image/png","content-length":"70","if-none-match":"*"},"expiraEm":"2026-10-13T09:01:56.098Z"}: expected 201 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 201[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m204:42[22m[39m
+    [90m202| [39m    [35mconst[39m daAna [33m=[39m [35mawait[39m [34mautorizar[39m(tokenAna[33m,[39m corpo)[33m;[39m
+    [90m203| [39m
+    [90m204| [39m    [34mexpect[39m(daAna[33m.[39mstatusCode[33m,[39m daAna[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                                         [31m^[39m
+    [90m205| [39m    [34mexpect[39m(daAna[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m([32m"autor_divergente"[39m)[33m;[39m
+    [90m206| [39m    [34mexpect[39m(daAna[33m.[39m[34mjson[39m())[33m.[39mnot[33m.[39m[34mtoHaveProperty[39m([32m"evidenciaId"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mAutorizar o envio: o autor declarado é o do token[2m > [22ma reautorização com os bytes já no armazenamento não confirma em nome de outra pessoa
+[31m[1mAssertionError[22m: {"evidenciaId":"a0c827d6-7cb0-47a2-a9f7-0d1b9c4a3a50","chave":"tenant/11111111-1111-4111-8111-000000000001/ocorrencias/2d05103b-2674-4590-860f-f5ff377137a8/mv6ft75s-738ec107-IMG_0001.png","jaEnviada":true}: expected 201 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 201[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m220:42[22m[39m
+    [90m218| [39m    [35mconst[39m daAna [33m=[39m [35mawait[39m [34mautorizar[39m(tokenAna[33m,[39m corpo)[33m;[39m
+    [90m219| [39m
+    [90m220| [39m    [34mexpect[39m(daAna[33m.[39mstatusCode[33m,[39m daAna[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                                         [31m^[39m
+    [90m221| [39m    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.enviada_em)…
+    [90m222| [39m    [34mexpect[39m([35mawait[39m [34meventosDeAnexo[39m(ocorrencia))[33m.[39m[34mtoHaveLength[39m([34m0[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mAutorizar o envio: o autor declarado é o do token[2m > [22ma recusa por autor não depende de a ocorrência existir: não vira oráculo
+[31m[1mAssertionError[22m: expected 201 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 201[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m245:26[22m[39m
+    [90m243| [39m    const b = await autorizar(tokenAna, pedido(inventada, { coletadaPo…
+    [90m244| [39m
+    [90m245| [39m    [34mexpect[39m(a[33m.[39mstatusCode)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                         [31m^[39m
+    [90m246| [39m    [34mexpect[39m(b[33m.[39mstatusCode)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m247| [39m    [34mexpect[39m(a[33m.[39m[34mjson[39m())[33m.[39m[34mtoEqual[39m(b[33m.[39m[34mjson[39m())[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mConfirmar o envio: só quem autorizou confirma[2m > [22ma confirmação com o token de OUTRA pessoa é recusada: nada na trilha, nada marcado
+[31m[1mAssertionError[22m: {"evidenciaId":"03ce4c80-0719-46f2-8018-ea95cdd67569","confirmada":true,"jaEstava":false}: expected 200 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 200[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m261:34[22m[39m
+    [90m259| [39m    [35mconst[39m r [33m=[39m [35mawait[39m [34mconfirmar[39m(tokenAna[33m,[39m autorizacao[33m.[39mevidenciaId)[33m;[39m
+    [90m260| [39m
+    [90m261| [39m    [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                                 [31m^[39m
+    [90m262| [39m    [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m([32m"autor_divergente"[39m)[33m;[39m
+    [90m263| [39m    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.enviada_em)…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mConfirmar o envio: só quem autorizou confirma[2m > [22ma confirmação do autor continua valendo, e a trilha diz Diego
+[31m[1mAssertionError[22m: expected 200 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 200[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m274:77[22m[39m
+    [90m272| [39m
+    [90m273| [39m    // Primeiro a Ana tenta e é recusada; depois o Diego volta e concl…
+    [90m274| [39m    expect((await confirmar(tokenAna, autorizacao.evidenciaId)).status…
+    [90m   | [39m                                                                            [31m^[39m
+    [90m275| [39m    [35mconst[39m r [33m=[39m [35mawait[39m [34mconfirmar[39m(tokenDiego[33m,[39m autorizacao[33m.[39mevidenciaId)[33m;[39m
+    [90m276| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/evidencia-so-do-autor.test.ts[2m > [22mConfirmar o envio: só quem autorizou confirma[2m > [22mreconfirmar depois de enviada, por outra pessoa, também é recusado
+[31m[1mAssertionError[22m: {"evidenciaId":"7b05efae-7812-4cd5-a667-4de044ba6dd2","confirmada":true,"jaEstava":true}: expected 200 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 200[39m
+
+[36m [2m❯[22m test/evidencia-so-do-autor.test.ts:[2m294:34[22m[39m
+    [90m292| [39m    [35mconst[39m r [33m=[39m [35mawait[39m [34mconfirmar[39m(tokenAna[33m,[39m autorizacao[33m.[39mevidenciaId)[33m;[39m
+    [90m293| [39m
+    [90m294| [39m    [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                                 [31m^[39m
+    [90m295| [39m    [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m([32m"autor_divergente"[39m)[33m;[39m
+    [90m296| [39m  }[33m,[39m [34m60_000[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯[22m[39m
+
+
+[codigo de saida: 1]

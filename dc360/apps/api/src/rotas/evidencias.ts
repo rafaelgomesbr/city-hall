@@ -66,6 +66,26 @@ type EvidenciaPendente = {
   id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
 };
 
+/**
+ * A recusa de quem não é o autor da coleta a que a foto pertence.
+ *
+ * A MESMA `autor_divergente` (409) que a vistoria e a devolução já respondem
+ * (`rotas/sincronizacao.ts`), pelo que o aplicativo faz com ela: 409 cai em
+ * falha permanente e o item espera a conta de quem fez a coleta. Existe aqui
+ * porque a fila do aparelho atravessa a troca de turno, e a foto do agente da
+ * manhã podia ser autorizada ou confirmada com o token do agente da noite. A
+ * trilha é append-only: `evidencia_anexada` gravada com o autor errado não tem
+ * correção possível depois (V2-F00-E06, correção 1).
+ */
+function autorDivergente(): RegraDeNegocio {
+  return new RegraDeNegocio(
+    "autor_divergente",
+    "Esta foto foi feita por outro agente. Entre neste aparelho com a conta de "
+    + "quem fez a vistoria para poder enviá-la.",
+    409,
+  );
+}
+
 export async function rotasEvidencias(
   app: FastifyInstance,
   { banco, armazenamento }: { banco: Banco; armazenamento: Armazenamento },
@@ -211,6 +231,26 @@ export async function rotasEvidencias(
     const quem = await autorizar(app, req, "registrar_vistoria");
     const dados = pedidoSchema.parse(req.body);
 
+    /*
+      O AUTOR DECLARADO CONFERE COM O TOKEN, e vem antes de qualquer leitura do
+      banco, pelos mesmos motivos do portão da vistoria: a comparação não toca
+      em nada que o município guarda, então não vira oráculo de existência (a
+      ocorrência de outro município continua 404, e o 404 sai depois), e vem
+      antes da idempotência porque a reautorização de uma foto já gravada, com
+      a credencial de outra pessoa, devolveria a evidência dela.
+
+      Opcional por causa do aparelho de versão anterior: sem o campo, o autor
+      é quem apresentou o token, e a trilha diz a verdade sobre ele. O que o
+      campo impede é a troca de conta no meio da fila escrever o nome errado.
+    */
+    if (dados.coletadaPor && dados.coletadaPor !== quem.usuarioId) {
+      req.log.warn(
+        { usuarioId: quem.usuarioId },
+        "autorizacao de foto com autor declarado diferente do token",
+      );
+      throw autorDivergente();
+    }
+
     const resultado = await banco.comTenant(quem.organizacaoId, async (c) => {
       /*
         Já autorizada antes: devolve a MESMA linha. Uma URL pré-assinada vence
@@ -238,14 +278,24 @@ export async function rotasEvidencias(
       if (dados.idempotencyKey) {
         const anterior = await c.query<{
           id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
-          enviada_em: string | null; abandonada_em: string | null;
+          enviada_em: string | null; abandonada_em: string | null; anexada_por: string | null;
         }>(
-          `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, abandonada_em
+          `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, abandonada_em,
+                  anexada_por
              FROM evidencias WHERE idempotency_key = $1`,
           [dados.idempotencyKey],
         );
         const achada = anterior.rows[0];
         if (achada) {
+          /*
+            A chave é de outra pessoa: nem devolve a evidência dela, nem a
+            confirma em nome de quem pediu (o ramo `pendente` abaixo grava
+            `evidencia_anexada` com o autor do TOKEN). `anexada_por` nulo é a
+            linha de antes da migração 024, que não tinha dono: segue valendo.
+          */
+          if (achada.anexada_por !== null && achada.anexada_por !== quem.usuarioId) {
+            throw autorDivergente();
+          }
           /*
             RESSUSCITA a autorização que a varredura de órfão deu por perdida.
 
@@ -485,8 +535,10 @@ export async function rotasEvidencias(
     const dados = confirmacaoSchema.parse(req.body);
 
     const evidencia = await banco.comTenant(quem.organizacaoId, async (c) => {
-      const r = await c.query<EvidenciaPendente & { enviada_em: string | null }>(
-        `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em
+      const r = await c.query<EvidenciaPendente & {
+        enviada_em: string | null; anexada_por: string | null;
+      }>(
+        `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, anexada_por
            FROM evidencias WHERE id = $1`,
         [dados.evidenciaId],
       );
@@ -494,6 +546,20 @@ export async function rotasEvidencias(
       if (!achada) throw new RegraDeNegocio("nao_encontrada", "Evidência não encontrada.", 404);
       return achada;
     });
+
+    /*
+      SÓ QUEM AUTORIZOU CONFIRMA, e vem antes do atalho de "já estava
+      confirmada": a confirmação é o que escreve `evidencia_anexada` na trilha
+      append-only, com o autor do token. Com a conta trocada no meio do envio, o
+      token da pessoa que entrou depois gravava ali uma fotografia que ela nunca
+      viu, e não há como corrigir a linha. Depois da leitura por RLS (a evidência
+      de outro município já respondeu 404 acima), para a recusa não distinguir
+      o que o município do token não enxerga. `anexada_por` nulo é a linha de
+      antes da migração 024, que não tinha dono.
+    */
+    if (evidencia.anexada_por !== null && evidencia.anexada_por !== quem.usuarioId) {
+      throw autorDivergente();
+    }
 
     // Reconfirmar é inofensivo e acontece: o aparelho pode ter perdido a
     // resposta da primeira confirmação.

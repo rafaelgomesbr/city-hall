@@ -1,0 +1,20 @@
+$ (cd dc360/apps/api) npx vitest run test/evidencia-so-do-autor.test.ts test/campo-integracao.test.ts --testTimeout=120000
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/apps/api[39m
+
+ [32m✓[39m test/evidencia-so-do-autor.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 3887[2mms[22m[39m
+ [32m✓[39m test/campo-integracao.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 7907[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mconta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação [33m 859[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada [33m 864[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msenha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez [33m 2321[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mtoken vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar [33m 424[2mms[22m[39m
+   [33m[2m✓[22m[39m Foto de campo do aparelho ao banco[2m > [22ma conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez [33m 375[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m28 passed[39m[22m[90m (28)[39m
+[2m   Start at [22m 05:47:29
+[2m   Duration [22m 10.46s[2m (transform 451ms, setup 52ms, collect 4.22s, tests 11.79s, environment 0ms, prepare 268ms)[22m
+
+
+
+[codigo de saida: 0]

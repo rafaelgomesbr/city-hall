@@ -258,6 +258,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     `api.test.ts` que esperava 401 foi reescrito no lugar, sem mudar a conta.
   */
   "V2-F00-E05-correcao-1": { total: 6, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E06, correcao 1: `apps/api/test/evidencia-so-do-autor.test.ts` e novo,
+    com 11 casos (autorizar e confirmar o envio da foto conferem o autor: 409
+    `autor_divergente`, autor certo aceito, outro municipio 404, a recusa nao
+    vira oraculo), e `campo-integracao.test.ts` ganha 2 (a senha redefinida de
+    ponta a ponta e a troca de conta com a foto em voo). Nenhuma falha nem pulo.
+  */
+  "V2-F00-E06-correcao-1": { total: 13, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -380,6 +388,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E06": { total: 28, falhas: 0 },
   // V2-F00-E05, correcao 1: o obtentor lanca a falha de sessao da conta desativada.
   "V2-F00-E05-correcao-1": { total: 1, falhas: 0 },
+  // V2-F00-E06, correcao 1: `pausa-por-senha-provisoria.test.ts` (matriz de classificacao, senha provisoria, corridas de troca de conta).
+  "V2-F00-E06-correcao-1": { total: 35, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -393,6 +403,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E16": { total: 4, falhas: -7 },
   // V2-F00-E05, correcao 1: seis casos em `token.test.ts` (renovacao recusada por conta desativada).
   "V2-F00-E05-correcao-1": { total: 6, falhas: 0 },
+  // V2-F00-E06, correcao 1: 13 casos (falha-de-atualizacao 5, pausa-da-fila 2, tela da fila 3, faixa 1, fila real com troca de conta 2).
+  "V2-F00-E06-correcao-1": { total: 13, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

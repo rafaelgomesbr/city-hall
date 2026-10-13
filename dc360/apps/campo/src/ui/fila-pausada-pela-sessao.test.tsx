@@ -169,6 +169,33 @@ describe("conta desativada", () => {
   });
 });
 
+describe("senha provisória (correção 1)", () => {
+  it("diz o fato, manda definir a senha no painel e promete que a coleta continua guardada", async () => {
+    await abrirComPausa("troca_de_senha_obrigatoria");
+
+    expect(screen.getByText("Você entrou com uma senha provisória e o envio está parado")).toBeTruthy();
+    expect(screen.getByText(/Suas coletas continuam guardadas neste aparelho e nada foi apagado/)).toBeTruthy();
+    expect(screen.getByText(/Defina a sua senha no painel/)).toBeTruthy();
+  });
+
+  it("NÃO traz 'Entrar de novo': entrar com a provisória volta ao mesmo lugar", async () => {
+    await abrirComPausa("troca_de_senha_obrigatoria");
+
+    expect(screen.queryByText("Entrar de novo")).toBeNull();
+  });
+
+  it("o cartão guarda a coleta, e NENHUM botão de apagar aparece (o defeito era 'Descartar')", async () => {
+    await abrirComPausa("troca_de_senha_obrigatoria");
+
+    expect(screen.getAllByText("Guardada")).toHaveLength(2);
+    expect(screen.getAllByText(/Só sobe depois que você definir a sua senha/)).toHaveLength(2);
+    expect(screen.queryByText(/Descartar/)).toBeNull();
+    expect(screen.queryByText(/Tentar de novo/)).toBeNull();
+    expect(screen.queryByText(/precisa de atenção|precisam de atenção/i)).toBeNull();
+    expect(mockFila.descartar).not.toHaveBeenCalled();
+  });
+});
+
 describe("sem pausa", () => {
   it("a tela é a de sempre: nada de aviso de pausa, e o cartão continua prometendo o envio", async () => {
     await abrirComPausa(null);

@@ -220,6 +220,21 @@ export function esperaAteProximaTentativa(tentativas: number, ruido = Math.rando
   return Math.round(cheia / 2 + ruido() * (cheia / 2));
 }
 
+/**
+ * O pedido que ia sair não pode sair mais: o dreno foi cancelado, ou a conta
+ * que está no aparelho já não é a do autor da coleta.
+ *
+ * Interna, de propósito: não é falha do servidor, da rede nem da sessão, e
+ * nada dela vai para o cartão do item. Quem a recebe devolve o item ao estado
+ * em que estava e para.
+ */
+class PedidoCancelado extends Error {
+  constructor() {
+    super("O pedido foi cancelado antes de sair.");
+    this.name = "PedidoCancelado";
+  }
+}
+
 export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   const {
     deposito,
@@ -262,6 +277,44 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   function pausadaPeloUsuarioAtual(): MotivoDeSessao | null {
     if (!pausa) return null;
     return pausa.usuarioId === (sessaoAtual()?.usuarioId ?? null) ? pausa.motivo : null;
+  }
+
+  /**
+   * O transporte, visto por UM item, e é ele que fecha a janela da troca de
+   * conta com o dreno em voo.
+   *
+   * O portão de autoria de `prontos` decide no começo do dreno, e um item com
+   * foto faz várias chamadas ao longo de vários segundos de rede de campo. Se a
+   * conta trocasse no meio, o token que o transporte busca a cada chamada já
+   * seria o da outra pessoa, e a autorização, os bytes e a confirmação da foto
+   * do agente da manhã sairiam com a credencial do agente da noite (a trilha,
+   * append-only, passaria a dizer que ele anexou uma foto que nunca viu).
+   *
+   * Então a pergunta é refeita ANTES DE CADA CHAMADA: o dreno ainda é este e a
+   * sessão ainda é do autor do item. A chamada que já estava na rua termina; é
+   * o servidor, que confere o autor declarado com o token, quem fecha o resto
+   * (`rotas/evidencias.ts`). Esta checagem só impede que o aparelho abra a
+   * janela de graça.
+   */
+  function transporteDoItem(item: ItemFila, minhaMarca: number): Transporte {
+    const conferir = (): void => {
+      if (minhaMarca !== marcaAtual || autoriaDaColeta(item, sessaoAtual()) !== "propria") {
+        throw new PedidoCancelado();
+      }
+    };
+    return {
+      enviar: async (envelope) => { conferir(); return transporte.enviar(envelope); },
+      devolver: async (devolucao) => { conferir(); return transporte.devolver(devolucao); },
+      autorizarFoto: async (pedido) => { conferir(); return transporte.autorizarFoto(pedido); },
+      enviarBytes: async (url, cabecalhos, corpo) => {
+        conferir();
+        return transporte.enviarBytes(url, cabecalhos, corpo);
+      },
+      confirmarFoto: async (evidenciaId) => {
+        conferir();
+        return transporte.confirmarFoto(evidenciaId);
+      },
+    };
   }
 
   const ouvintes = new Set<(r: ResumoFila) => void>();
@@ -607,6 +660,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
             igual para os dois, porque é a mesma rua e a mesma conexão indo e
             vindo. O que muda é só o que sai pelo fio.
           */
+          const t = transporteDoItem(item, minhaMarca);
           let duplicada: boolean;
           if (item.tipo === "devolucao") {
             /*
@@ -614,7 +668,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
               de que a vistoria NÃO aconteceu. Por isso vai direto, sem o passo
               de arquivos.
             */
-            const recibo = await transporte.devolver(
+            const recibo = await t.devolver(
               devolucaoComAutoria(item.devolucao, item.autor),
             );
             duplicada = recibo.duplicada;
@@ -628,10 +682,10 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
              * fotos falhasse depois disso o laudo ficaria permanentemente
              * incompleto, sem nada na fila indicando o que faltou.
              */
-            const comFotos = await subirFotos(item);
+            const comFotos = await subirFotos(item, t);
             resultado.fotosEnviadas += comFotos.enviadasAgora;
 
-            const recibo = await transporte.enviar(
+            const recibo = await t.enviar(
               envelopeComAutoria(comFotos.envelope, item.autor),
             );
             duplicada = recibo.duplicada;
@@ -670,8 +724,20 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
             o mesmo 401 ou 403. Os itens seguintes nem sao tocados.
           */
           if (erro instanceof FalhaDeSessao) {
-            await guardarPausaDeSessao(item, erro);
+            await guardarPausaDeSessao(item, erro, minhaMarca);
             resultado.paradaPor = erro.motivo;
+            resultado.interrompido = true;
+            await avisar();
+            break;
+          }
+          /*
+            O dreno foi cancelado, ou a conta trocou, no meio do item. Nada foi
+            recusado por ninguém: o item volta como estava e o dreno para. Os
+            itens seguintes são do mesmo autor, e a conta que está no aparelho
+            não é a dele.
+          */
+          if (erro instanceof PedidoCancelado) {
+            await devolverAoEstadoAnterior(item, minhaMarca);
             resultado.interrompido = true;
             await avisar();
             break;
@@ -709,6 +775,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   async function subirFotos(
     item: ItemDeVistoria,
+    t: Transporte,
   ): Promise<{ envelope: EnvelopeSincronizacao; enviadasAgora: number }> {
     if (item.fotos.length === 0) {
       return { envelope: item.envelope, enviadasAgora: 0 };
@@ -722,6 +789,12 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
     let enviadasAgora = 0;
     const atualizadas = [...item.fotos];
+    /*
+      QUEM FEZ A COLETA vai em todo pedido de autorização, para o servidor
+      conferir com o token. Ausente (e nunca o dono da sessão) quando a coleta
+      não tem autor: coleta gravada por versão anterior.
+    */
+    const doAutor = item.autor ? { coletadaPor: item.autor.usuarioId } : {};
     /*
       O DRENO NAO PARA NA PRIMEIRA FOTO QUE FALTA, e essa e a diferenca entre
       uma pergunta e uma sequencia de perguntas no barranco.
@@ -814,7 +887,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
           honesta para um arquivo que nao existe em lugar nenhum.
         */
         const talvez = foto.tamanhoBytes > 0
-          ? await transporte.autorizarFoto({ ocorrenciaId: item.ocorrenciaId, foto })
+          ? await t.autorizarFoto({ ocorrenciaId: item.ocorrenciaId, foto, ...doAutor })
           : null;
         if (talvez?.jaEnviada) {
           atualizadas[i] = {
@@ -836,16 +909,17 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       }
 
       const medida: FotoNaFila = { ...foto, tamanhoBytes: corpo.length };
-      const autorizacao = await transporte.autorizarFoto({
+      const autorizacao = await t.autorizarFoto({
         ocorrenciaId: item.ocorrenciaId,
         foto: medida,
+        ...doAutor,
       });
 
       // `jaEnviada` cobre o caso de o aparelho ter enviado os bytes e perdido
       // a resposta: reenviar seria gastar rede a toa.
       if (!autorizacao.jaEnviada) {
-        await transporte.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
-        await transporte.confirmarFoto(autorizacao.evidenciaId);
+        await t.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
+        await t.confirmarFoto(autorizacao.evidenciaId);
         enviadasAgora += 1;
       }
 
@@ -961,23 +1035,50 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   }
 
   /**
-   * Devolve o item ao estado anterior ao envio e registra a pausa da fila.
+   * Devolve o item ao estado anterior ao envio, se ele ainda é deste dreno.
    *
-   * O progresso das fotos que subiram nesta rodada fica (e e o que torna a
+   * O progresso das fotos que subiram nesta rodada fica (e o que torna a
    * retomada barata); `tentativas` e `liberadoEm` voltam ao que eram, porque a
    * tentativa nao foi culpa do item; `ultimaFalha` nao muda, porque a pausa e da
    * fila e nao da coleta, e o cartao nao deve passar a dizer que a coleta
    * falhou.
+   *
+   * NAO REESCREVE O QUE JA FOI RESOLVIDO POR OUTRO CAMINHO, e esta e a metade
+   * da correcao 1 da E06 que vem das corridas. Esta funcao grava o item como
+   * `pendente` na hora em que a resposta chega, e a resposta pode chegar tarde:
+   * o aparelho perdeu o sinal, o dreno foi cancelado, outro dreno subiu o MESMO
+   * item e o confirmou, e so entao o 401 do primeiro pedido volta. Gravar o
+   * retrato velho desfazia o `confirmado` (o proximo dreno reenviava e recebia
+   * `duplicada`: sem duplicar no servidor, mas o estado local regredia). Por
+   * isso o estado ATUAL e relido, e so `enviando` ou `pendente` voltam; e um
+   * dreno cancelado nao toca no item enquanto houver outro dreno em andamento,
+   * porque o item e dele agora.
+   *
+   * Devolve se o item foi devolvido (ou seja, se a decisao ainda era deste dreno).
    */
-  async function guardarPausaDeSessao(item: ItemFila, erro: FalhaDeSessao): Promise<void> {
+  async function devolverAoEstadoAnterior(item: ItemFila, minhaMarca: number): Promise<boolean> {
     const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
-    await deposito.salvar({
-      ...item,
-      fotos: atual.fotos,
-      estado: "pendente",
-      tentativas: item.tentativas,
-    });
-    pausa = { motivo: erro.motivo, usuarioId: sessaoAtual()?.usuarioId ?? null };
+    if (atual.estado !== "enviando" && atual.estado !== "pendente") return false;
+    if (minhaMarca !== marcaAtual && drenando) return false;
+    await deposito.salvar({ ...atual, estado: "pendente", tentativas: item.tentativas });
+    return true;
+  }
+
+  /**
+   * Registra a pausa da fila, de quem e o item.
+   *
+   * A pausa e do AUTOR do item, e nao de quem esta logado quando a resposta
+   * chega: com a troca de conta no meio do pedido, a leitura da sessao naquele
+   * instante atribuia a recusa ao agente errado (a pessoa que entrou lia
+   * "Conta desativada" por causa da conta de quem saiu).
+   */
+  async function guardarPausaDeSessao(
+    item: ItemFila,
+    erro: FalhaDeSessao,
+    minhaMarca: number,
+  ): Promise<void> {
+    if (!(await devolverAoEstadoAnterior(item, minhaMarca))) return;
+    pausa = { motivo: erro.motivo, usuarioId: item.autor?.usuarioId ?? null };
   }
 
   async function tratarFalha(
@@ -987,6 +1088,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     const tentativas = item.tentativas + 1;
     // Rele do deposito para nao descartar as fotos que subiram nesta rodada.
     const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
+    // Resposta tardia de um dreno cancelado: o item ja foi confirmado por outro
+    // caminho, e gravar a falha por cima o faria regredir (ver `devolverAoEstadoAnterior`).
+    if (atual.estado === "confirmado") return "adiado";
     const comProgresso = { ...item, fotos: atual.fotos };
 
     if (erro instanceof FalhaPermanente) {

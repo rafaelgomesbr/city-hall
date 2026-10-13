@@ -1,0 +1,55 @@
+$ (cd dc360) npm run test:isolamento
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/db[39m
+
+ [32m✓[39m test/ancora-de-confianca.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m test/teto-de-coordenada.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 4008[2mms[22m[39m
+ [32m✓[39m test/varredura-de-prazo-sem-bypassrls.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 4031[2mms[22m[39m
+ [32m✓[39m test/familia-da-sessao.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 4079[2mms[22m[39m
+ [32m✓[39m test/minimizacao-do-relato-e-da-trilha.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 4226[2mms[22m[39m
+ [32m✓[39m test/recuperacao-do-console.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 4449[2mms[22m[39m
+ [32m✓[39m test/carga.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 4772[2mms[22m[39m
+ [32m✓[39m test/eliminacao-de-municipio.test.ts [2m([22m[2m39 tests[22m[2m)[22m[33m 5526[2mms[22m[39m
+ [32m✓[39m test/busca.test.ts [2m([22m[2m40 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 6158[2mms[22m[39m
+ [32m✓[39m test/ambiente-do-aparelho.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 6541[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22mrecebem o APNS_AMBIENTE posto na sessão pelo aplicador [33m 1476[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22me producao quando ninguém pôs nada, que é o padrão da própria variável [33m 1130[2mms[22m[39m
+ [32m✓[39m test/migrar.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 14141[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica na ordem, mesmo recebendo fora de ordem [33m 3248[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mrodar de novo não faz nada [33m 1228[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica só o que falta quando uma migração nova aparece [33m 908[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mregistra quando cada uma foi aplicada [33m 788[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mdesfaz a migração que falhou e mantém as anteriores [33m 650[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mretoma da que falhou depois que ela é corrigida [33m 538[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22ma mensagem diz qual migração falhou [33m 580[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mpara quando uma migração já aplicada muda de conteúdo [33m 537[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22ma mensagem explica o que fazer, não só que deu erro [33m 595[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mreindentar não conta como alterar [33m 557[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mdiz o que falta e não muda nada [33m 617[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mesquema em dia devolve lista vazia [33m 553[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicam do zero, na ordem, sem erro [33m 862[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicar duas vezes é seguro, que é o caso de todo redeploy [33m 845[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22mos nomes começam com número, senão a ordem alfabética não serve [33m 546[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mexplica que o papel não pode criar tabela, em vez de repetir o erro do Postgres [33m 546[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mo papel certo continua migrando sem nenhum aviso novo [33m 539[2mms[22m[39m
+ [32m✓[39m test/isolamento.test.ts [2m([22m[2m137 tests[22m[2m)[22m[33m 25223[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura enxerga o papel de aplicacao onde ele realmente tem privilegio [33m 1171[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio [33m 846[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura acusa cada um dos seis caminhos de privilegio [33m 17746[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m      Tests [22m [1m[32m327 passed[39m[22m[2m | [22m[33m3 skipped[39m[90m (330)[39m
+[2m   Start at [22m 05:41:22
+[2m   Duration [22m 26.02s[2m (transform 919ms, setup 0ms, collect 2.74s, tests 83.16s, environment 3ms, prepare 2.64s)[22m
+
+
+
+[codigo de saida: 0]

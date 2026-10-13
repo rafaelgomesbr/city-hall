@@ -65,6 +65,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
 | painel, e2e contra a API no Firefox: miniatura com `loading="lazy"` e os abortos de propósito no console | 1 verificação e o portão de console | E18 | feito e provado na V2-F00-E18 |
 | API e app: renovação de conta desativada, provada só por UPDATE direto | 1 asserção reescrita (`api.test.ts`), mais 1 acréscimo (6 casos na API, 6 no app, 1 no pacote do campo, 1 seção no e2e do painel) | E05, correção 1 | feito e provado na correção 1 da V2-F00-E05 |
+| fila do campo: 403 `troca_de_senha_obrigatoria` e a autoria da foto | 0 reescritos, 61 acrescentados (35 no pacote do campo, 13 na API, 13 no app) | E06, correção 1 | feito e provado na correção 1 da V2-F00-E06 |
 
 ## Registros
 
@@ -359,3 +360,13 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Depois:** seis casos novos na API desativam e reativam pelo ENDPOINT real: renovação 403 `conta_desativada` sem par novo e repetível; token já rotacionado; negativos (token desconhecido e conta ativa encerrada com corpos idênticos; encerrada por quem administra sem desativar continua `sessao_encerrada`; desativada e reativada volta a `sessao_encerrada`; entrar continua com a recusa genérica). No app, a renovação recusada por conta desativada passa a ser lida pelo obtentor de token (seis casos em `token.test.ts` e um em `pausa-de-sessao.test.ts`). No painel, a seção 23c do e2e vence o token de acesso e prova a frase pela renovação.
 - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E05/correcao-1/saidas/` (antes: 4 dos 22 casos de `codigos-de-erro.test.ts` e 5 dos 6 casos novos do app reprovam; depois: todos passam, e `api.test.ts` só passa com o `403` novo).
 - **Etapa e data:** V2-F00-E05, correção 1, 2026-10-13.
+
+### Fila do campo: o 403 `troca_de_senha_obrigatoria` e a autoria da foto (nenhum teste reescrito)
+
+- **Teste reescrito:** nenhum. Nenhuma asserção existente mudou nem foi enfraquecida.
+- **Teste acrescentado:** `packages/campo/test/pausa-por-senha-provisoria.test.ts` (35 casos: a matriz status x código x rota x estado final do item, a senha provisória, as corridas de troca de conta), `apps/api/test/evidencia-so-do-autor.test.ts` (11), dois casos em `apps/api/test/campo-integracao.test.ts`, e 13 casos no aplicativo (`falha-de-atualizacao.test.ts`, `pausa-da-fila.test.ts`, `fila-pausada-pela-sessao.test.tsx`, `faixa-de-sincronizacao.test.tsx` e `troca-de-conta-com-pedido-em-voo.test.ts`).
+- **Antes:** a suíte da E06 (86 casos no motor) ficava verde com o 403 `troca_de_senha_obrigatoria` bloqueando toda a fila: a mutação inversa da rodada 1 da validação (classificar `trocar_a_senha` como pausa) deixava 187 de 187 casos passando, ou seja, nenhum teste fixava a classificação desse código. Nenhum teste cobria a corrida de troca de conta com o envio em voo, nem a conferência de autor na autorização e na confirmação da foto.
+- **Decisão que o torna velho:** a validação da E06 (SHA `7005a60`) provou, contra a API e o motor reais, que o procedimento padrão de recuperação de conta (a coordenação redefine a senha, o agente entra com a provisória) bloqueava todas as coletas com "Descartar" ao lado. A decisão da E07 registrada em `apps/campo/PENDENCIAS.md` (item 14), de deixar esse 403 como recusa permanente, foi invertida: ele pausa a fila, como `conta_desativada`. E a foto de campo passou a ter o autor conferido pelo servidor (409 `autor_divergente`), como a vistoria e a devolução já tinham.
+- **Depois:** o 403 de CONTA pausa (`conta_desativada`, `troca_de_senha_obrigatoria`), o 403 do PAPEL (`sem_permissao`) e o 409 `autor_divergente` continuam permanentes por desenho, e `acesso_suspenso` é temporário. A matriz inteira está em um teste só, pelo transporte real e pela fila real.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E06/correcao-1/saidas/` (antes: 12 dos 35 casos do motor, 9 dos 28 da API e 11 dos 68 do aplicativo reprovam; depois: todos passam).
+- **Etapa e data:** V2-F00-E06, correção 1, 2026-10-13.

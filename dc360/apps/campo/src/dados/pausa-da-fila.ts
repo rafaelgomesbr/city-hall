@@ -3,13 +3,19 @@ import type { MotivoDeSessao } from "@dc360/campo";
 /**
  * O que a tela diz quando a FILA está parada pela sessão (V2-F00-E06).
  *
- * São duas pausas e dois atos opostos, e por isso duas frases que não se
+ * São três pausas e três atos diferentes, e por isso três frases que não se
  * misturam:
  *
  * | Motivo | O que resolve | O que NÃO resolve |
  * | --- | --- | --- |
  * | `sessao_encerrada` | entrar de novo | esperar |
  * | `conta_desativada` | a coordenação reativar a conta | entrar de novo |
+ * | `troca_de_senha_obrigatoria` | a própria pessoa definir a senha no painel | entrar de novo com a provisória |
+ *
+ * A terceira entrou na correção 1 da E06. O aplicativo não tem tela de troca de
+ * senha (quem entrou com a senha provisória define a sua no painel, no
+ * computador), então a frase diz onde fazer e o que fazer depois, e não traz
+ * botão: nenhum ato dentro do aparelho resolve.
  *
  * Mora fora das telas porque três superfícies dizem a mesma coisa em três
  * tamanhos: a faixa do topo (uma linha), o aviso no alto da fila (um parágrafo)
@@ -55,6 +61,18 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
     doCartao:
       "Guardada neste aparelho. Só sobe depois que a coordenação reativar a sua "
       + "conta e você entrar.",
+  },
+  troca_de_senha_obrigatoria: {
+    faixaTitulo: "Defina a sua senha",
+    faixaDetalhe: "Suas coletas continuam guardadas neste aparelho",
+    titulo: "Você entrou com uma senha provisória e o envio está parado",
+    detalhe:
+      "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
+      + "Defina a sua senha no painel, no computador (a tela de entrada pede isso), "
+      + "e depois entre aqui de novo: assim que você entrar, elas sobem sozinhas.",
+    doCartao:
+      "Guardada neste aparelho. Só sobe depois que você definir a sua senha no "
+      + "painel e entrar de novo.",
   },
 };
 

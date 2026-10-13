@@ -381,25 +381,63 @@ Duas decisões que o próximo precisa conhecer:
   (`ESPERA_COM_A_FILA_PAUSADA_MS`): cada volta é uma requisição que o servidor já
   recusou. Entrar de novo reinicia o laço na hora.
 
-**Decisão da V2-F00-E07 sobre o 403 `troca_de_senha_obrigatoria`:** fica FORA da
-etapa e continua recusa permanente do item, por três razões. (1) A E07 só mexe
-na vigência da API (papel, cadeia da sessão e senha provisória vencida), e a
-classificação desse 403 na fila é do motor offline, que a E06 fechou para os três
-códigos de acesso. (2) O aparelho praticamente não chega a ele: quem entra com a
-senha provisória é mandado ao painel para trocá-la (`src/dados/api.ts`,
-`ErroDaApi`), e redefinir a senha de alguém derruba as sessões dele (401
-`sessao_encerrada`, que já é pausa, não bloqueio). (3) Tratá-lo como pausa sem
-haver tela de troca de senha no aplicativo deixaria o item parado sem saída.
-Reabrir quando o aplicativo ganhar a tela de troca de senha.
+**Correção 1 da V2-F00-E06 (2026-10-13): o 403 `troca_de_senha_obrigatoria` agora
+PAUSA a fila.** A decisão que a E07 tinha registrado aqui (deixá-lo como recusa
+permanente, "porque o aparelho praticamente não chega a ele") foi derrubada pela
+validação: redefinir a senha derruba as sessões (401, pausa), o agente entra com a
+senha provisória, o aplicativo ignora `trocaDeSenhaObrigatoria` e o dreno recebia
+403 em toda escrita. Todas as coletas viravam `bloqueado`, o dreno não parava e o
+cartão oferecia "Descartar", que apaga coleta que o servidor nunca recebeu. É
+perda de dado, e o caso é o procedimento padrão de recuperação de conta.
+
+Matriz final do transporte (`falhaDaResposta`), lida pela AÇÃO do catálogo e não
+por lista de códigos:
+
+| Resposta | Fila |
+| --- | --- |
+| 401 de qualquer código (inclui sem código) | pausa `sessao_encerrada` (antes renova UMA vez no `nao_autenticado`) |
+| 403 `conta_desativada` (ação `parar_e_avisar`) | pausa `conta_desativada` |
+| 403 `troca_de_senha_obrigatoria` (ação `trocar_a_senha`) | pausa `troca_de_senha_obrigatoria` |
+| 403 `acesso_suspenso` (ação `aguardar_o_contrato`) | temporária (a API já responde 503 à fila; este é o cinto) |
+| 403 `sem_permissao` e 403 sem código | permanente: recusa do papel, bloqueia |
+| 409 `autor_divergente` | permanente por desenho (a coleta espera a conta de quem a fez) |
+| 409 `ja_encerrada` | arquivada |
+| 5xx, 429, rede | temporária |
+
+Como o aplicativo NÃO tem tela de troca de senha, a pausa não traz botão: a frase
+(`src/dados/pausa-da-fila.ts`, `troca_de_senha_obrigatoria`) manda definir a senha
+no painel, no computador, e entrar aqui de novo, e promete que as coletas continuam
+guardadas. A mesma classificação vale para as telas que vão à rede
+(`falha-de-atualizacao.ts`, motivo `troca-de-senha`). **A frase é texto de produto e
+precisa da aprovação do Rafael.** Quando o aplicativo ganhar a tela de troca de
+senha, o ato certo passa a ser levar a pessoa a ela na entrada
+(`trocaDeSenhaObrigatoria` do login), e a pausa vira o cinto.
+
+Na mesma correção, a pausa passou a ser do AUTOR do item (e não de quem está
+logado quando a resposta chega), um 401 tardio de um dreno cancelado não devolve a
+`pendente` item que outro dreno já confirmou, e o motor refaz a pergunta "ainda é a
+conta do autor?" antes de CADA chamada do item (autorização, bytes, confirmação,
+envelope). O servidor fecha o resto: autorizar e confirmar o envio de foto conferem
+o autor (409 `autor_divergente`).
 
 **O que falta** (validação humana): ver a frase e a coleta preservada em
 aparelho ou emulador, desativando o agente no painel durante uma coleta na fila,
-e a reativação seguida de nova entrada. O ambiente desta etapa não renderiza o
-app Expo; a prova foi por teste de componente (`src/ui/fila-pausada-pela-sessao.test.tsx`),
-e a foto do aparelho continua pendente. Fora do escopo e ainda aberto: o 403
-`troca_de_senha_obrigatoria` (senha provisória) e o 403 `acesso_suspenso` nas
-rotas que não são da fila ainda são lidos como recusa permanente do item pelo
-transporte; a API responde 503 à fila no caso da suspensão, que é temporário.
+e a reativação seguida de nova entrada; e redefinindo a senha do agente. O ambiente
+não renderiza o app Expo; a prova foi por teste de componente
+(`src/ui/fila-pausada-pela-sessao.test.tsx`), e a foto do aparelho continua pendente.
+
+**Ainda aberto, anotado pela validação e fora desta correção:**
+
+- Rebaixar o PAPEL de um agente com coleta na fila (403 `sem_permissao`) bloqueia
+  tudo, com "Descartar". É o que o bloco da E06 manda ("continua permanente"), mas
+  o efeito para a coleta é o mesmo que a etapa eliminou para a desativação. Decisão
+  do Rafael: pausar ou continuar bloqueando.
+- `descartar` aceita item de outro autor em qualquer estado (aparelho compartilhado:
+  o agente A pode apagar a coleta guardada do agente B, com confirmação nominal).
+- A recusa por autor divergente na FOTO não deixa evento na trilha (a da vistoria e
+  a da devolução deixam, com tipo próprio). Fica só o aviso no log do servidor.
+- 401 `nao_autenticado` dentro do piso de 60 s do obtentor pausa como
+  `sessao_encerrada` quando só faltava esperar; corrige sozinho no próximo dreno.
 
 ## 15. Sair da conta avisa o que apaga, e o GPS bom conclui (V2-F00-E15). Falta ver no aparelho
 

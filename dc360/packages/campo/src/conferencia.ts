@@ -43,6 +43,7 @@ export type ConferenciaDaColeta =
 export function pedidoDeEvidenciaDaFoto(
   ocorrenciaId: string,
   foto: FotoLocal,
+  coletadaPor?: string,
 ): PedidoDeEvidenciaBruto {
   return {
     ocorrenciaId,
@@ -54,6 +55,8 @@ export function pedidoDeEvidenciaDaFoto(
     ...(foto.legenda !== undefined ? { legenda: foto.legenda } : {}),
     ...(foto.coordenada !== undefined ? { coordenada: foto.coordenada } : {}),
     ordem: foto.ordem,
+    // Ausente (e não nulo) quando a coleta não tem autor: ver `Transporte.autorizarFoto`.
+    ...(coletadaPor !== undefined ? { coletadaPor } : {}),
   };
 }
 
