@@ -16,7 +16,6 @@
 - Próxima etapa acionável na ordem da tabela: nenhuma
 
 ## Checkpoints ABERTOS ou PARCIAIS citados (fase atual e próxima)
-- CP-19 ABERTO: Contratação para uso externo (e-mail, storage, banco... (F00: cabeçalho da fase, F00-E10)
 - CP-04 ABERTO: Entidade, domínio, contas de loja, marca e bundle ids (F01: cabeçalho da fase, F01-E10,...)
 - CP-05 ABERTO: Contratação do ambiente de homologação (F01: cabeçalho da fase, F01-E11)
 - CP-06 ABERTO: Ferramenta de erro e de log, residência do dado (F01: cabeçalho da fase, F01-E14)

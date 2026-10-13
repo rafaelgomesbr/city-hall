@@ -1,7 +1,7 @@
 # Roteiro de aprovação humana da F00 (para o Rafael aprovar o G00)
 
 - **Para quem:** Rafael, sozinho, passo a passo.
-- **Escrito em:** 2026-10-13, sobre o candidato `18abaee` (o CI completo do anterior, `4e0ccd3`, deu 9 de 9; o deste foi pedido).
+- **Escrito em:** 2026-10-13, sobre o candidato `4b96ea7` (o CI completo do anterior, `18abaee`, deu 9 de 9; o deste foi pedido).
 - **Como aprovar:** responda aqui no chat com o código do item e a palavra "aprovo" ou "reprovo, porque ...". Exemplo: "D1 a, D2 ok, T3 aprovo, T5 reprovo, o botão cortou". Quem registra no STATUS sou eu. Você não edita arquivo nenhum.
 - **Regra para sempre:** toda vez que algo terminar e precisar de aprovação humana, eu entrego um roteiro neste formato (o que abrir, o que fazer, o que deve acontecer, o que reprova, como responder).
 
@@ -21,7 +21,9 @@ Por que a parte 2 espera: as 12 etapas corrigidas ainda vão passar por uma segu
 
 ---
 
-## Parte 1. Decisões e leituras (agora)
+## Parte 1. Decisões e leituras (FEITA em 2026-10-13)
+
+O Rafael respondeu D1 a D4 uma por uma e mandou fazer o recomendado nas demais. Resultado: D1 Expo atualizado; D2 prazo de teste pulado 5 dias; D3 Q1 a Q4 sim e Q5 aviso do `vitest` aceito com dono e prazo; D4 isenções aprovadas e folga fechada; D5 premissa D-25 mantida, **confirmação da Alyson ainda pendente**; D6 CP-19 adiado para a fase 2; D7 e D8 aprovados por instrução, **sem leitura individual**. A tabela abaixo fica como registro do que foi perguntado.
 
 | Código | O que decidir | Onde ler | Minha recomendação |
 | --- | --- | --- | --- |
@@ -34,7 +36,7 @@ Por que a parte 2 espera: as 12 etapas corrigidas ainda vão passar por uma segu
 | **D7** | Textos que o usuário vê: as três frases de sessão (E05), as frases da fila e da senha provisória no campo (E06), as frases finais de sessão (E14) e as 12 frases que trocaram a promessa de segundo plano (E16). | `docs/evidencias-v2/G00/V2-F00-E05/RESUMO.md` (seção "Frases mostradas ao usuário"), `docs/evidencias-v2/G00/V2-F00-E06/correcao-1/RESUMO.md` (frase da pausa por senha provisória) e `docs/evidencias-v2/G00/V2-F00-E16/correcao-1/RESUMO.md` (tabela antes e depois) | Ler com olho de quem usa. Responda "D7 aprovo" ou "D7 troque a frase X por Y". |
 | **D8** (E22) | Ler a tabela "afirmação, o que o código faz, ação" e confirmar que nada ficou prometido sem existir. | `docs/evidencias-v2/G00/V2-F00-E22/correcao-1/RESUMO.md` e `docs/evidencias-v2/G00/V2-F00-E12/correcao-1/RESUMO.md` | Responda "D8 aprovo". |
 
-Depois de D1 a D8, o próximo passo é a segunda validação, numa sessão nova: `Valide a F00 no SHA 18abaee`.
+Depois de D1 a D8, o próximo passo é a segunda validação, numa sessão nova: `Valide a F00 no SHA 4b96ea7`.
 
 ---
 
