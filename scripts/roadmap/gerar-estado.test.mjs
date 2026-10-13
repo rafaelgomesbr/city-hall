@@ -324,15 +324,20 @@ test("repositório real: o estado gerado passa no conferir logo em seguida, com 
   }
 });
 
-test("repositório real: hoje a F00 é a fase atual e a pendência humana é das 25 etapas", () => {
+test("repositório real: hoje a F00 é a fase atual e as contagens de status somam as 25 etapas", () => {
   const status = lerStatusDoRepositorio(RAIZ_REAL);
   const atual = faseAtual(status);
   // Só vale enquanto o G00 não for aprovado; quando for, este teste é o primeiro a avisar que o estado andou.
   assert.equal(atual.fase, "F00");
   const t = gerarEstado(RAIZ_REAL);
   assert.match(t, /Etapas da F00 \(25\)/);
-  assert.match(t, /EM ANDAMENTO 25/);
-  assert.match(t, /V2-F00-E01 \(EM ANDAMENTO\)/);
+  // O status de cada etapa muda a cada rodada de validação e de correção, de propósito (2026-10-13:
+  // cravar "EM ANDAMENTO 25" quebrou o CI do registro da rodada 1). O que não pode mudar é a soma.
+  const contagens = /## Etapas da F00 \(25\)\r?\n- (.+)/.exec(t);
+  assert.ok(contagens, "linha de contagens por status ausente");
+  const soma = [...contagens[1].matchAll(/(\d+)(?:,|$)/g)].reduce((s, m) => s + Number(m[1]), 0);
+  assert.equal(soma, 25, `contagens por status não somam 25: ${contagens[1]}`);
+  assert.match(t, /Próxima etapa acionável na ordem da tabela: (nenhuma|V2-F00-E\d\d \([A-ZÀ-Ú ]+\))/);
   assert.doesNotMatch(t, /CP-03 ABERTO/); // decidido por Rafael em 2026-10-07
 });
 
