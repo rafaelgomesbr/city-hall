@@ -21,7 +21,7 @@ import {
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HOJE = "2026-10-05";
 const texto = (...linhas) => linhas.join("\n");
-const MARCA = "// T42 dono=rafael issue=V2-F00-E04 ate=2026-11-05";
+const MARCA = "// T42 dono=rafael issue=V2-F00-E04 ate=2026-10-10";
 
 // ---- A árvore de verdade ---------------------------------------------------
 
@@ -75,8 +75,8 @@ test("skip, todo, xit, xdescribe e t.skip incondicionais sem marca reprovam", ()
 
 test("marca sem dono, sem issue ou sem ate reprova", () => {
   for (const [marca, faltando] of [
-    ["// T42 issue=V2-F00-E04 ate=2026-11-05", "dono"],
-    ["// T42 dono=rafael ate=2026-11-05", "issue"],
+    ["// T42 issue=V2-F00-E04 ate=2026-10-10", "dono"],
+    ["// T42 dono=rafael ate=2026-10-10", "issue"],
     ["// T42 dono=rafael issue=V2-F00-E04", "ate"],
   ]) {
     const r = analisarTexto(texto(marca, 'it.skip("x", () => {});'), HOJE);
@@ -165,9 +165,10 @@ test("o fim de linha CRLF não atrapalha a leitura da marca", () => {
 });
 
 test("conferirMarca aceita o limite exato do prazo e rejeita um dia a mais que a folga de fuso", () => {
-  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-11-04", HOJE).ok, true);
-  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-11-05", HOJE).ok, true);
-  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-11-06", HOJE).ok, false);
+  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-10-09", HOJE).ok, true);
+  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-10-10", HOJE).ok, true);
+  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-10-11", HOJE).ok, true);
+  assert.equal(conferirMarca("// T42 dono=a issue=b ate=2026-10-12", HOJE).ok, false);
 });
 
 // ---- Em disco --------------------------------------------------------------

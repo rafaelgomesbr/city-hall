@@ -142,10 +142,10 @@ O portão reprova: skip incondicional sem marca; marca sem `dono`, `issue` ou
 `ate`; `ate` que não é data real; `ate` vencido (hoje é o último dia válido);
 `ate` com prazo acima do máximo.
 
-**Prazo máximo: 30 dias corridos** a contar de hoje, com um dia de folga porque o
-relógio do portão é UTC e a marca é escrita no horário de Brasília. É PREMISSA
-assumida na V2-F00-E02, à espera da escolha de Rafael (registrada no STATUS,
-seção 9). Para mudar, altere `PRAZO_MAXIMO_EM_DIAS` em `scripts/portao-de-skip.mjs`.
+**Prazo máximo: 5 dias corridos** a contar de hoje, com um dia de folga porque o
+relógio do portão é UTC e a marca é escrita no horário de Brasília. DECIDIDO por
+Rafael em 2026-10-13 (D2 do roteiro de aprovação da F00); o dono padrão continua
+sendo `rafael`. Para mudar, altere `PRAZO_MAXIMO_EM_DIAS` em `scripts/portao-de-skip.mjs`.
 
 ## `.only` nunca passa
 
