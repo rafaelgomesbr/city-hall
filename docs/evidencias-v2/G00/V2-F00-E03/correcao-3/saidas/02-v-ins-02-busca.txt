@@ -1,0 +1,17 @@
+apps/api/test/desinterdicao.test.ts:207:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/desinterdicao.test.ts:384:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/desinterdicao.test.ts:508:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/fotos-do-documento.test.ts:178:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/fotos-do-documento.test.ts:205:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/identificador-da-emissao.test.ts:150:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/identificador-da-emissao.test.ts:169:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/segunda-via-nao-reinterdita.test.ts:172:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/segunda-via-nao-reinterdita.test.ts:257:    await new Promise((r) => setTimeout(r, 20));
+apps/api/test/segunda-via-nao-reinterdita.test.ts:277:    await new Promise((r) => setTimeout(r, 20));
+---
+apps/api/test/push-rodada-diz-o-que-fez.test.ts:48:    await new Promise((pronto) => { setTimeout(pronto, 10); });
+apps/api/test/push-rodada-diz-o-que-fez.test.ts:242:      await new Promise((pronto) => { setTimeout(pronto, 50); });
+apps/api/test/push-rodada-diz-o-que-fez.test.ts:248:      await new Promise((pronto) => { setTimeout(pronto, 100); });
+apps/api/test/push-rodada-diz-o-que-fez.test.ts:289:      await new Promise((pronto) => { setTimeout(pronto, 100); });
+apps/api/test/push-sem-resposta.test.ts:252:        await new Promise((pronto) => { setTimeout(pronto, 10); });
+apps/api/test/recuperacao-sem-oraculo.test.ts:129:    await new Promise((ok) => setTimeout(ok, 50));
