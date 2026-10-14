@@ -1,0 +1,43 @@
+$ (em dc360/apps/api, arvore de hoje) npx vitest run test/saida-de-municipio.test.ts --reporter=verbose
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/saida-de-municipio.test.ts > O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz 99ms
+ ✓ test/saida-de-municipio.test.ts > O pacote leva tudo que é do município > tabela nova de migração futura obriga alguém a decidir se ela sai 4ms
+ ✓ test/saida-de-municipio.test.ts > Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação 80ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais 73ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais 73ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido 71ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote 71ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele 70ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita 68ms
+ ✓ test/saida-de-municipio.test.ts > O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade 69ms
+ ✓ test/saida-de-municipio.test.ts > Isolamento entre municípios > o pacote de um município não carrega nada do outro 70ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > exige administrador: quem só exporta relatório não tira a base inteira 6ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > recusa operador e recusa quem não apresenta token 2ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada 69ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > a organização vem do token, e não de parâmetro nenhum 2ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > escreve um pacote que um leitor independente abre 0ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > o caminho ZIP64 funciona, exercitado com o teto rebaixado 0ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > recusa caminho repetido, que sobrescreveria arquivo em silêncio 1ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > não deixa um nome de arquivo escapar da pasta do pacote 0ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos 76ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso 75ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe 75ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso 136ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência 74ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote 70ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção) 74ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem duas seções que a rota tem 77ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote 76ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2) 86ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo 76ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência 69ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz "Assinatura não coletada" e o pacote diz que não conferiu 75ms
+
+ Test Files  1 passed (1)
+      Tests  32 passed (32)
+   Start at  13:30:29
+   Duration  4.12s (transform 210ms, setup 15ms, collect 343ms, tests 3.60s, environment 0ms, prepare 29ms)
+

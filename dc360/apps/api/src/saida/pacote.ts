@@ -345,6 +345,43 @@ function citar(nome: string): string {
   return `"${nome.replace(/"/g, '""')}"`;
 }
 
+/**
+ * A assinatura declarada entra no laudo do pacote só se o arquivo existe
+ * (V2-F00-E12, correção 2).
+ *
+ * A chave diz que o aparelho colheu o traço; o envio do arquivo é outro passo,
+ * que pode ter falhado. Montar o caminho só pela chave imprimia um quadro
+ * quebrado em cima do nome de quem estava no local, que no papel pode ser lido
+ * como assinatura que houve, enquanto o laudo da rota, para a mesma vistoria,
+ * dizia "Assinatura não coletada". As duas conferências são as de
+ * `enderecoDaAssinatura` (`rotas/documentos.ts`): o prefixo do município antes
+ * de tocar o armazenamento, e o objeto descrito.
+ *
+ * UMA DIFERENÇA, de propósito: se o armazenamento não responde (a descrição
+ * LANÇA), o pacote não afirma que não há assinatura, e também não imprime a
+ * imagem. A primeira versão desta correção mantinha a imagem nesse caso, e
+ * com o provedor caído a cópia do arquivo falha junto: o pacote voltava a
+ * imprimir o quadro quebrado. Agora o bloco diz o que houve, "Não foi possível
+ * conferir a assinatura no armazenamento ao montar este pacote"
+ * (`assinaturaNaoConferida` em `documentos/laudo.ts`), e a cópia mais abaixo
+ * leva o arquivo ou o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO.
+ * A rota, no mesmo caso, imprime "Assinatura não coletada"; a diferença está na
+ * tabela de `docs/SAIDA-DE-MUNICIPIO.md`. Só a resposta "não existe" vira
+ * "Assinatura não coletada" aqui.
+ */
+async function conferirAssinatura(
+  armazenamento: Armazenamento,
+  organizacaoId: string,
+  chave: string,
+): Promise<"presente" | "ausente" | "nao_conferida"> {
+  if (!chave.startsWith(`tenant/${organizacaoId}/`)) return "ausente";
+  try {
+    return (await armazenamento.descrever(chave)).existe ? "presente" : "ausente";
+  } catch {
+    return "nao_conferida";
+  }
+}
+
 export async function* montarPacoteDeSaida(
   opcoes: OpcoesDoPacote,
 ): AsyncGenerator<EntradaZip> {
@@ -520,11 +557,17 @@ export async function* montarPacoteDeSaida(
 
       A COORDENADA DA VISTORIA (`v.latitude`, `v.longitude`) também vem daqui,
       como em `rotas/documentos.ts`: sem ela o laudo do pacote imprimia "não
-      registrada" para uma vistoria que tem ponto. As DUAS consultas continuam
-      diferindo em três pontos que a V2-F09-E02 resolve com o montador único
-      (fotos de todas as vistorias, sem a seção das avulsas, sem a seção dos
-      registros perdidos); `test/saida-de-municipio.test.ts` (bloco "campo por
-      campo") trava essa lista, e reprova se ela mudar sem a documentação.
+      registrada" para uma vistoria que tem ponto. A assinatura declarada que
+      falta no armazenamento também sai igual desde a correção 2 da E12
+      (`conferirAssinatura`, acima). Os DOIS laudos continuam diferindo em três
+      pontos que a V2-F09-E02 resolve com o montador único (fotos de todas as
+      vistorias, sem a seção das avulsas, sem a seção dos registros perdidos),
+      e num quarto que é deliberado: com o armazenamento sem resposta na
+      conferência da assinatura, a rota diz "Assinatura não coletada" e o
+      pacote diz que não conseguiu conferir.
+      `test/saida-de-municipio.test.ts` (bloco "campo por campo") trava as
+      quatro e reprova se uma delas mudar sem a documentação. Ele não compara
+      o laudo inteiro: diferença nova em outro campo passa por ele.
     */
 
     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(
@@ -696,7 +739,10 @@ export async function* montarPacoteDeSaida(
       capturadaEm: e.capturada_em,
     }));
 
-    const assinaturaUrl = vistoria.assinatura_chave
+    const assinatura = vistoria.assinatura_chave
+      ? await conferirAssinatura(armazenamento, organizacaoId, vistoria.assinatura_chave)
+      : "ausente";
+    const assinaturaUrl = vistoria.assinatura_chave && assinatura === "presente"
       ? `../../evidencias/${item.pasta}/${nomeDoArquivo(vistoria.assinatura_chave, "assinatura.png")}`
       : null;
 
@@ -706,6 +752,7 @@ export async function* montarPacoteDeSaida(
       vistoria: {
         ...vistoria,
         assinaturaUrl,
+        ...(assinatura === "nao_conferida" ? { assinaturaNaoConferida: true } : {}),
         orgaosIndicados: indicadosPorVistoria.get(vistoria.id) ?? [],
       },
       fotos,

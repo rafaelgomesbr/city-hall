@@ -752,7 +752,7 @@ describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", (
 });
 
 /* ==========================================================================
-   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correção 1).
+   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correções 1 e 2).
 
    Existem DOIS montadores de dados do laudo (`rotas/documentos.ts` e
    `saida/pacote.ts`), e a documentação chegou a responder "Sim" a "o laudo do
@@ -761,13 +761,18 @@ describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", (
    e achou quatro diferenças, e a de 4b96ea7 achou a quinta (a assinatura
    declarada e ausente no armazenamento). Este bloco prende o estado REAL:
 
-     - a coordenada da vistoria foi consertada (era trivial: duas colunas na
-       consulta do pacote) e tem de ser igual nos dois;
-     - as outras quatro diferenças continuam, são da V2-F09-E02 (montador
+     - a coordenada da vistoria (correção 1) e a assinatura declarada e ausente
+       no armazenamento (correção 2) foram consertadas e têm de sair iguais
+       nos dois;
+     - as outras três diferenças continuam, são da V2-F09-E02 (montador
        único), e estão TRAVADAS como diferenças conhecidas. Se alguém conserta
        uma delas, o teste reprova de propósito: é o aviso para apagar a
        ressalva de `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md`
-       no mesmo commit, em vez de a documentação envelhecer sozinha.
+       no mesmo commit, em vez de a documentação envelhecer sozinha;
+     - uma quarta é deliberada (correção 2, revisão): com o armazenamento sem
+       resposta na conferência da assinatura, a rota imprime "Assinatura não
+       coletada" e o pacote imprime que não conseguiu conferir, sem imagem
+       quebrada. Também está TRAVADA e na tabela da documentação.
 
    O QUE ESTE BLOCO NÃO FAZ: comparar o laudo inteiro. Ele olha os títulos das
    seções, a coordenada, a posição da foto avulsa e o bloco da assinatura de
@@ -871,10 +876,12 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
     return html.slice(html.lastIndexOf('<div class="assinatura">', papel), papel);
   }
 
-  it("DIFERENÇA CONHECIDA (F09-E02): assinatura declarada e ausente no armazenamento", async () => {
+  it("a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: \"Assinatura não coletada\" (consertada na correção 2)", async () => {
     // A vistoria diz que há traço, e o armazenamento não tem o arquivo (envio
-    // interrompido, objeto apagado). A rota descreve o objeto antes de
-    // imprimir; o pacote monta o caminho só pela chave.
+    // interrompido, objeto apagado). Os dois laudos conferem o objeto antes de
+    // imprimir (`enderecoDaAssinatura` na rota, `conferirAssinatura` no pacote).
+    // Antes da correção 2 o pacote montava o caminho só pela chave e imprimia
+    // um quadro quebrado em cima do nome da pessoa.
     const fantasma = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/assinatura-fantasma.png`;
     await mem.bruto.exec(`UPDATE vistorias SET assinatura_chave = '${fantasma}' WHERE id = '${VISTORIA_F1}'`);
     try {
@@ -882,19 +889,84 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
       const pacote = await baixarPacote(tokenAdministradora);
       const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
 
-      // A rota afirma que não há traço.
       expect(daRota).toContain('<div class="traco-ausente">Assinatura não coletada</div>');
       expect(daRota).not.toContain('<img class="traco"');
-      // O pacote imprime uma imagem que aponta para um arquivo que ele não leva:
-      // no papel, um quadro quebrado em cima do nome da pessoa.
-      expect(doPacote).toContain('<img class="traco" src="../../evidencias/000473-2026/assinatura-fantasma.png"');
-      expect(doPacote).not.toContain("Assinatura não coletada");
+      expect(doPacote, "o laudo do pacote imprime imagem para uma assinatura que ele não leva").not.toContain('<img class="traco"');
+      expect(doPacote).toBe(daRota);
       expect(pacote.has("evidencias/000473-2026/assinatura-fantasma.png")).toBe(false);
-      // A falta fica escrita, e é só ali que o pacote a declara.
+      // A falta continua escrita no arquivo de pendências do pacote.
       expect(pacote.get("PENDENCIAS-DA-EXTRACAO.txt")!.toString("utf8"))
         .toContain(`Assinatura ausente no armazenamento: protocolo 000473/2026, chave ${fantasma}`);
     } finally {
       await mem.bruto.exec(`UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}' WHERE id = '${VISTORIA_F1}'`);
+    }
+  }, 60_000);
+
+  it("a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo", async () => {
+    // O controle positivo do caso acima: a conferência não pode apagar a
+    // assinatura que existe.
+    const daRota = assinaturaNoLocal(await laudoDaRota());
+    const pacote = await baixarPacote(tokenAdministradora);
+    const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
+    expect(daRota).toContain('<img class="traco"');
+    expect(doPacote).toContain('<img class="traco" src="../../evidencias/000473-2026/assinatura-f1.png"');
+    expect(pacote.get("evidencias/000473-2026/assinatura-f1.png")).toEqual(BYTES_DA_ASSINATURA);
+  }, 60_000);
+
+  /** A frase do pacote quando o armazenamento não respondeu à conferência. */
+  const NAO_CONFERIDA = "Não foi possível conferir a assinatura no armazenamento ao montar este pacote";
+
+  it("armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência", async () => {
+    // O caso que a revisão da correção 2 achou: com o provedor caído, a
+    // conferência lança e a cópia do arquivo também falha. A primeira versão
+    // desta correção mantinha a imagem quando a conferência lançava, e o
+    // pacote voltava a imprimir `<img class="traco">` para um arquivo que ele
+    // não leva, o mesmo defeito da rodada 2. Agora o bloco diz o que houve:
+    // ninguém conferiu. E não diz "não coletada", porque o próprio pacote, em
+    // `PENDENCIAS-DA-EXTRACAO.txt`, avisa que não ter resposta não é o mesmo
+    // que o arquivo não existir.
+    const descrever = armazenamento.descrever;
+    const baixar = armazenamento.baixar;
+    armazenamento.descrever = async () => { throw new Error("provedor fora do ar na conferência"); };
+    armazenamento.baixar = async (chave: string) => {
+      if (chave === CHAVE_ASSINATURA) throw new Error("provedor fora do ar na cópia");
+      return baixar(chave);
+    };
+    try {
+      const pacote = await baixarPacote(tokenAdministradora);
+      const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
+      expect(doPacote, "o laudo do pacote imprime imagem para uma assinatura que ele não leva").not.toContain('<img class="traco"');
+      expect(doPacote).toContain(`<div class="traco-ausente">${NAO_CONFERIDA}</div>`);
+      expect(doPacote).not.toContain("Assinatura não coletada");
+      expect(pacote.has("evidencias/000473-2026/assinatura-f1.png")).toBe(false);
+      expect(pacote.get("PENDENCIAS-DA-EXTRACAO.txt")!.toString("utf8"))
+        .toContain(`Assinatura NÃO LIDA: protocolo 000473/2026, chave ${CHAVE_ASSINATURA}`);
+    } finally {
+      armazenamento.descrever = descrever;
+      armazenamento.baixar = baixar;
+    }
+  }, 60_000);
+
+  it("DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz \"Assinatura não coletada\" e o pacote diz que não conferiu", async () => {
+    // A rota trata a exceção da conferência como ausência
+    // (`enderecoDaAssinatura`, `.catch(() => ({ existe: false }))`); o pacote
+    // não, porque é o registro que fica com o município depois que as nossas
+    // cópias são eliminadas. Aqui só a conferência falha e a cópia funciona:
+    // o pacote leva o arquivo e o laudo dele continua sem imagem, porque o
+    // laudo é montado antes da cópia. A diferença está na tabela de
+    // `docs/SAIDA-DE-MUNICIPIO.md`; quem a mudar reprova aqui de propósito.
+    const descrever = armazenamento.descrever;
+    armazenamento.descrever = async () => { throw new Error("provedor fora do ar na conferência"); };
+    try {
+      const daRota = assinaturaNoLocal(await laudoDaRota());
+      const pacote = await baixarPacote(tokenAdministradora);
+      const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
+      expect(daRota).toContain('<div class="traco-ausente">Assinatura não coletada</div>');
+      expect(doPacote).toContain(`<div class="traco-ausente">${NAO_CONFERIDA}</div>`);
+      expect(doPacote).not.toContain('<img class="traco"');
+      expect(pacote.get("evidencias/000473-2026/assinatura-f1.png")).toEqual(BYTES_DA_ASSINATURA);
+    } finally {
+      armazenamento.descrever = descrever;
     }
   }, 60_000);
 });

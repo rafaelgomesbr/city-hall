@@ -1,0 +1,70 @@
+$ (em apps/api de uma copia de cea7837, com src/saida/pacote.ts de cea7837 e o arquivo de teste de hoje) npx vitest run test/saida-de-municipio.test.ts --reporter=verbose
+# codigo sem a conferencia da assinatura no pacote
+
+
+ RUN  v3.2.7 /private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/checkpoint/dc360/apps/api
+
+ ✓ test/saida-de-municipio.test.ts > O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz 100ms
+ ✓ test/saida-de-municipio.test.ts > O pacote leva tudo que é do município > tabela nova de migração futura obriga alguém a decidir se ela sai 4ms
+ ✓ test/saida-de-municipio.test.ts > Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação 79ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais 74ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais 74ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido 70ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote 73ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele 76ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita 72ms
+ ✓ test/saida-de-municipio.test.ts > O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade 70ms
+ ✓ test/saida-de-municipio.test.ts > Isolamento entre municípios > o pacote de um município não carrega nada do outro 70ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > exige administrador: quem só exporta relatório não tira a base inteira 6ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > recusa operador e recusa quem não apresenta token 2ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada 71ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > a organização vem do token, e não de parâmetro nenhum 2ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > escreve um pacote que um leitor independente abre 0ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > o caminho ZIP64 funciona, exercitado com o teto rebaixado 0ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > recusa caminho repetido, que sobrescreveria arquivo em silêncio 1ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > não deixa um nome de arquivo escapar da pasta do pacote 0ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos 79ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso 75ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe 79ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso 142ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência 74ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote 70ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção) 75ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem duas seções que a rota tem 77ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote 76ms
+ × test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2) 82ms
+   → o laudo do pacote imprime imagem para uma assinatura que ele não leva: expected '<div class="assinatura">\n    <img cl…' not to contain '<img class="traco"'
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo 75ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > armazenamento que não responde à conferência não vira "Assinatura não coletada" no pacote 72ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2)
+AssertionError: o laudo do pacote imprime imagem para uma assinatura que ele não leva: expected '<div class="assinatura">\n    <img cl…' not to contain '<img class="traco"'
+
+- Expected
++ Received
+
+- <img class="traco"
++ <div class="assinatura">
++     <img class="traco" src="../../evidencias/000473-2026/assinatura-fantasma.png" alt="Assinatura de Cleuza Ramos de Andrade">
++     <div class="linha"></div>
++     <div class="nome">Cleuza Ramos de Andrade</div>
++     
+
+ ❯ test/saida-de-municipio.test.ts:890:101
+    888|       expect(daRota).toContain('<div class="traco-ausente">Assinatura …
+    889|       expect(daRota).not.toContain('<img class="traco"');
+    890|       expect(doPacote, "o laudo do pacote imprime imagem para uma assi…
+       |                                                                                                     ^
+    891|       expect(doPacote).toBe(daRota);
+    892|       expect(pacote.has("evidencias/000473-2026/assinatura-fantasma.pn…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 30 passed (31)
+   Start at  12:18:24
+   Duration  4.10s (transform 214ms, setup 15ms, collect 326ms, tests 3.60s, environment 0ms, prepare 33ms)
+

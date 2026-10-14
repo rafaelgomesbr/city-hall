@@ -1,0 +1,96 @@
+$ (em dc360/apps/api, arvore no inicio da rodada de conserto: src/saida/pacote.ts com assinaturaPresente devolvendo true quando descrever lanca, e o arquivo de teste de hoje) npx vitest run test/saida-de-municipio.test.ts
+# primeira versao da correcao 2: com a conferencia sem resposta o pacote mantinha a imagem
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/saida-de-municipio.test.ts (32 tests | 2 failed) 3780ms
+   ✓ O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz 126ms
+   ✓ O pacote leva tudo que é do município > tabela nova de migração futura obriga alguém a decidir se ela sai 4ms
+   ✓ Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação 79ms
+   ✓ Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais 76ms
+   ✓ Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais 74ms
+   ✓ Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido 72ms
+   ✓ Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote 70ms
+   ✓ Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele 71ms
+   ✓ Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita 68ms
+   ✓ O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade 71ms
+   ✓ Isolamento entre municípios > o pacote de um município não carrega nada do outro 70ms
+   ✓ É ato administrativo grave > exige administrador: quem só exporta relatório não tira a base inteira 6ms
+   ✓ É ato administrativo grave > recusa operador e recusa quem não apresenta token 2ms
+   ✓ É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada 69ms
+   ✓ É ato administrativo grave > a organização vem do token, e não de parâmetro nenhum 2ms
+   ✓ O escritor de ZIP > escreve um pacote que um leitor independente abre 0ms
+   ✓ O escritor de ZIP > o caminho ZIP64 funciona, exercitado com o teto rebaixado 0ms
+   ✓ O escritor de ZIP > recusa caminho repetido, que sobrescreveria arquivo em silêncio 1ms
+   ✓ O escritor de ZIP > não deixa um nome de arquivo escapar da pasta do pacote 0ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos 76ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso 74ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe 75ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso 140ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência 79ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote 74ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção) 86ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem duas seções que a rota tem 83ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote 89ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2) 87ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo 83ms
+   × O laudo do pacote e o da rota, campo por campo > armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência 86ms
+     → o laudo do pacote imprime imagem para uma assinatura que ele não leva: expected '<div class="assinatura">\n    <img cl…' not to contain '<img class="traco"'
+   × O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz "Assinatura não coletada" e o pacote diz que não conferiu 89ms
+     → expected '<div class="assinatura">\n    <img cl…' to contain '<div class="traco-ausente">Não foi po…'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência
+AssertionError: o laudo do pacote imprime imagem para uma assinatura que ele não leva: expected '<div class="assinatura">\n    <img cl…' not to contain '<img class="traco"'
+
+- Expected
++ Received
+
+- <img class="traco"
++ <div class="assinatura">
++     <img class="traco" src="../../evidencias/000473-2026/assinatura-f1.png" alt="Assinatura de Cleuza Ramos de Andrade">
++     <div class="linha"></div>
++     <div class="nome">Cleuza Ramos de Andrade</div>
++     
+
+ ❯ test/saida-de-municipio.test.ts:934:101
+    932|       const pacote = await baixarPacote(tokenAdministradora);
+    933|       const doPacote = assinaturaNoLocal(pacote.get("documentos/000473…
+    934|       expect(doPacote, "o laudo do pacote imprime imagem para uma assi…
+       |                                                                                                     ^
+    935|       expect(doPacote).toContain(`<div class="traco-ausente">${NAO_CON…
+    936|       expect(doPacote).not.toContain("Assinatura não coletada");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz "Assinatura não coletada" e o pacote diz que não conferiu
+AssertionError: expected '<div class="assinatura">\n    <img cl…' to contain '<div class="traco-ausente">Não foi po…'
+
+- Expected
++ Received
+
+- <div class="traco-ausente">Não foi possível conferir a assinatura no armazenamento ao montar este pacote</div>
++ <div class="assinatura">
++     <img class="traco" src="../../evidencias/000473-2026/assinatura-f1.png" alt="Assinatura de Cleuza Ramos de Andrade">
++     <div class="linha"></div>
++     <div class="nome">Cleuza Ramos de Andrade</div>
++     
+
+ ❯ test/saida-de-municipio.test.ts:961:24
+    959|       const doPacote = assinaturaNoLocal(pacote.get("documentos/000473…
+    960|       expect(daRota).toContain('<div class="traco-ausente">Assinatura …
+    961|       expect(doPacote).toContain(`<div class="traco-ausente">${NAO_CON…
+       |                        ^
+    962|       expect(doPacote).not.toContain('<img class="traco"');
+    963|       expect(pacote.get("evidencias/000473-2026/assinatura-f1.png")).t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 30 passed (32)
+   Start at  13:28:14
+   Duration  4.34s (transform 208ms, setup 16ms, collect 365ms, tests 3.78s, environment 0ms, prepare 41ms)
+
