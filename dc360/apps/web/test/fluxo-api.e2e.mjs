@@ -1702,6 +1702,24 @@ const respostaDeQuemTemConta = (await paginaE10.locator(".aviso--sucesso").textC
 // O link do alvo e lido AGORA, antes dos outros pedidos: o arquivo e o mesmo para todos.
 const linkDoAlvoE10 = await esperarLinkNovoE10(paginaE10, antesDoPedidoE10);
 await capturarE10(paginaE10, "pedido-enviado");
+/*
+  Foco depois do envio (WCAG 2.4.3): o formulário sumiu, e o foco tem de estar na
+  confirmação, e não em BODY. UM mecanismo só: a confirmação com foco não é região
+  viva (nem status nem alert), senão o leitor a diria duas vezes.
+*/
+const focoDoEnviadoE10 = await paginaE10.evaluate(() => {
+  const a = document.activeElement;
+  return { classe: a?.className ?? "", tab: a?.getAttribute("tabindex") ?? null, papel: a?.getAttribute("role") ?? null,
+           vivas: document.querySelectorAll(".entrada [role=status], .entrada [role=alert]").length };
+});
+ok("depois de enviar o pedido o foco está na confirmação, sem ser região viva",
+   focoDoEnviadoE10.classe.includes("aviso--sucesso") && focoDoEnviadoE10.tab === "-1"
+   && focoDoEnviadoE10.papel === null && focoDoEnviadoE10.vivas === 0,
+   JSON.stringify(focoDoEnviadoE10));
+await paginaE10.getByRole("button", { name: "Pedir de novo" }).click();
+await paginaE10.waitForSelector("#recuperar-email", { timeout: 10_000 });
+ok("e ao pedir de novo o foco volta para o campo do email",
+   (await paginaE10.evaluate(() => document.activeElement?.id)) === "recuperar-email");
 
 await paginaE10.goto(`${BASE}/recuperar-senha`, { waitUntil: "networkidle" });
 await paginaE10.locator("#recuperar-email").fill("ninguem-existe-aqui@exemplo.gov.br");
@@ -1767,10 +1785,28 @@ await paginaE10.getByRole("button", { name: "Definir nova senha" }).click();
 await paginaE10.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
 ok("redefine a senha e confirma",
    (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."));
-ok("a confirmação é anunciada como região de status",
-   (await paginaE10.locator(".aviso--sucesso").getAttribute("role")) === "status");
+/*
+  Foco e anúncio (WCAG 2.4.3 e 4.1.3): o formulário sumiu, o foco tem de estar na
+  confirmação (tabindex -1) e ela NÃO é região viva: o foco é o único mecanismo, e
+  uma região inserida já com o texto nem sempre é anunciada.
+*/
+const focoDoProntoE10 = await paginaE10.evaluate(() => {
+  const a = document.activeElement;
+  return { classe: a?.className ?? "", tab: a?.getAttribute("tabindex") ?? null, papel: a?.getAttribute("role") ?? null,
+           vivas: document.querySelectorAll(".entrada [role=status], .entrada [role=alert]").length,
+           acoes: document.querySelectorAll(".entrada a, .entrada button").length };
+});
+ok("depois de redefinir o foco está na confirmação, que não é região viva",
+   focoDoProntoE10.classe.includes("aviso--sucesso") && focoDoProntoE10.tab === "-1"
+   && focoDoProntoE10.papel === null && focoDoProntoE10.vivas === 0,
+   JSON.stringify(focoDoProntoE10));
 ok("a tela oferece o botão Entrar",
    (await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).count()) === 1);
+ok("e é a única ação: sem o segundo link 'Voltar para a entrada' para o mesmo lugar",
+   focoDoProntoE10.acoes === 1 && (await paginaE10.getByRole("link", { name: "Voltar para a entrada" }).count()) === 0,
+   `(${focoDoProntoE10.acoes} ações)`);
+ok("e o texto não se repete: sem a frase de apoio",
+   !(await paginaE10.locator(".entrada").textContent()).includes("Quando quiser, vá para a entrada"));
 /*
   V2-F00-E10, correção 2 (WCAG 2.2.1): a tela NÃO redireciona por tempo. Antes
   ela levava sozinha para a entrada em cerca de 2,5 s, e a entrada não repetia a
@@ -1786,6 +1822,37 @@ ok("e a confirmação de sucesso continua na tela",
    && (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."),
    `(${Date.now() - inicioDaEspera} ms depois)`);
 await capturarE10(paginaE10, "definir-sucesso");
+/*
+  O botão Entrar é um link, e `a:hover` já fez o texto dele ficar da cor do
+  fundo (rótulo invisível ao passar o mouse, nos dois temas). Mede nos dois temas:
+  com o ponteiro em cima, a razão de contraste entre texto e fundo (luminância
+  relativa da WCAG 2.x) tem de ser de pelo menos 4,5. "Diferente do fundo" não
+  basta: duas cores quase iguais passariam.
+*/
+const botaoEntrarE10 = paginaE10.getByRole("link", { name: "Entrar com a nova senha" });
+for (const [tema, atributo] of [["claro", "light"], ["escuro", "dark"]]) {
+  await paginaE10.evaluate((t) => { document.documentElement.dataset.theme = t; }, atributo);
+  await botaoEntrarE10.hover();
+  await paginaE10.waitForTimeout(400);
+  const sobre = await botaoEntrarE10.evaluate((e) => {
+    const c = getComputedStyle(e);
+    // O navegador devolve `rgb()`/`rgba()` ou `color(srgb r g b)`; os dois viram canais 0..1.
+    const canais = (css) => {
+      const n = css.match(/-?\d*\.?\d+/g).map(Number);
+      return css.startsWith("color(") ? n.slice(0, 3) : n.slice(0, 3).map((v) => v / 255);
+    };
+    const lum = (css) => {
+      const [r, g, b] = canais(css).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const [a, b] = [lum(c.color), lum(c.backgroundColor)];
+    return { texto: c.color, fundo: c.backgroundColor, razao: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
+  });
+  ok(`o botão Entrar não perde o rótulo com o mouse em cima (tema ${tema}): contraste >= 4,5`,
+     sobre.razao >= 4.5, `(texto ${sobre.texto} sobre fundo ${sobre.fundo}, razão ${sobre.razao.toFixed(2)})`);
+}
+await paginaE10.mouse.move(2, 2);
+await paginaE10.evaluate(() => { document.documentElement.dataset.theme = "light"; });
 await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).click();
 await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 });
 ok("o botão Entrar leva à entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");

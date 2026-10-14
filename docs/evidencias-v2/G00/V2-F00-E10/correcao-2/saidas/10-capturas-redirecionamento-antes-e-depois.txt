@@ -1,0 +1,16 @@
+$ node capturar.mjs (ROTULO=antes contra o painel da 4b96ea7; ROTULO=depois contra o painel corrigido)
+situacao=informativo: foco em BODY antes, em DIV da confirmacao depois
+
+criadas 201 201
+antes 320 px foco depois de encerrar: BODY Pular para o conteúdoDefesa Civil 360Serra Alta, M
+antes 390 px foco depois de encerrar: BODY Pular para o conteúdoDefesa Civil 360Serra Alta, M
+aviso: demorou além de 1,8 s
+aviso: demorou além de 1,8 s
+antes E10: passados 3 s de relógio da página, a URL é /entrar (redirecionou sozinha)
+antes E10: 5 s depois do sucesso a URL é /entrar; confirmação na tela: 0
+antes eventos de console: nenhum
+criadas 201 201
+depois 320 px foco depois de encerrar: DIV As outras 3 sessões foram encerradas. Esta continu
+depois 390 px foco depois de encerrar: DIV As outras 2 sessões foram encerradas. Esta continu
+depois E10: 5 s depois do sucesso a URL é /redefinir-senha; confirmação na tela: 1
+depois eventos de console: nenhum

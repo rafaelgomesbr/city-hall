@@ -1,0 +1,12 @@
+$ node sondas/capturar-rodada.mjs (ROTULO=depois-2)
+# foco medido em document.activeElement, envios pelo teclado
+
+criadas 201 201
+depois-2 320 px foco depois de encerrar: DIV class=aviso aviso--sucesso tabindex=-1 role=null "As outras 3 sessões foram encerradas. Esta continu"
+depois-2 390 px foco depois de encerrar: DIV class=aviso aviso--sucesso tabindex=-1 role=null "As outras 2 sessões foram encerradas. Esta continu"
+depois-2 1280 px foco depois de encerrar: DIV class=aviso aviso--sucesso tabindex=-1 role=null "As outras 2 sessões foram encerradas. Esta continu"
+depois-2 E10 foco depois de enviar o pedido: DIV class=aviso aviso--sucesso tabindex=-1 role=null
+depois-2 E10 foco depois de redefinir: DIV class=aviso aviso--sucesso tabindex=-1 role=null
+depois-2 E10 ações na tela de sucesso: 1
+depois-2 E10: 5 s depois do sucesso a URL é /redefinir-senha; confirmação na tela: 1
+depois-2 eventos de console: nenhum

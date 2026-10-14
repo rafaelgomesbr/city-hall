@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MODO, pedirRecuperacao, redefinirSenha, situacaoDaRecuperacao } from "../dados/repositorio";
@@ -35,10 +35,12 @@ import {
  * login, e o mapa do Google (cuja chave é restrita por referenciador) pararia
  * de carregar até a próxima recarga. Recarregar é barato aqui e fecha isso.
  */
-function Moldura({ titulo, subtitulo, children }: {
+function Moldura({ titulo, subtitulo, children, comVolta = true }: {
   titulo: string;
   subtitulo: string;
   children: ReactNode;
+  /** Falso na confirmação da senha nova: o botão "Entrar" já é a ida à entrada, e um segundo link para o mesmo lugar só repetiria. */
+  comVolta?: boolean;
 }) {
   return (
     <div className="entrada">
@@ -53,9 +55,11 @@ function Moldura({ titulo, subtitulo, children }: {
         <section className="cartao">
           <div className="cartao__corpo">{children}</div>
         </section>
-        <p className="entrada__rodape">
-          <a href="/entrar">{FRASES.voltar}</a>
-        </p>
+        {comVolta && (
+          <p className="entrada__rodape">
+            <a href="/entrar">{FRASES.voltar}</a>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -100,6 +104,24 @@ export type PropsDoPedido = {
 };
 
 export function TelaDoPedido(p: PropsDoPedido) {
+  /*
+    O FOCO ACOMPANHA A TROCA DE TELA (WCAG 2.4.3 e 4.1.3).
+
+    Enviar o pedido faz o formulário (e o botão que tinha o foco) sumir, e o
+    foco caía em `BODY`. Agora ele vai para a confirmação. UM mecanismo só: o
+    foco. A confirmação (`Aviso` com `foco`) não é região viva, porque uma
+    região inserida já com o texto pode nem ser anunciada, e com o foco em cima
+    seria lida duas vezes. Ao "Pedir de novo" o botão também some, e o foco
+    volta para o campo de email.
+  */
+  const confirmacao = useRef<HTMLDivElement>(null);
+  const faseAnterior = useRef(p.fase);
+  useEffect(() => {
+    if (p.fase === "enviado") confirmacao.current?.focus();
+    else if (faseAnterior.current === "enviado") document.getElementById("recuperar-email")?.focus();
+    faseAnterior.current = p.fase;
+  }, [p.fase]);
+
   const subtitulo = p.fase === "desligada" ? FRASES.desligadaSubtitulo : FRASES.pedidoSubtitulo;
   return (
     <Moldura titulo={FRASES.pedidoTitulo} subtitulo={subtitulo}>
@@ -114,7 +136,7 @@ export function TelaDoPedido(p: PropsDoPedido) {
 
       {p.fase === "enviado" && (
         <>
-          <Aviso tom="sucesso">{FRASES.pedidoEnviado}</Aviso>
+          <Aviso tom="sucesso" foco={confirmacao}>{FRASES.pedidoEnviado}</Aviso>
           <p className="entrada__texto entrada__texto--apoio">{FRASES.pedidoEnviadoApoio}</p>
           <button type="button" className="botao botao--secundario"
                   style={{ width: "100%" }} onClick={p.aoPedirDeNovo}>
@@ -221,6 +243,23 @@ export type PropsDaRedefinicao = {
 };
 
 export function TelaDaRedefinicao(p: PropsDaRedefinicao) {
+  /*
+    O FOCO VAI PARA A CONFIRMAÇÃO DEPOIS DE REDEFINIR (WCAG 2.4.3 e 4.1.3).
+
+    "Definir nova senha" faz o formulário sumir e o foco caía em `BODY`; a
+    confirmação, além disso, entrava no DOM já com o texto, e região viva
+    inserida assim pode não ser anunciada (quem lê devagar ou usa leitor de tela
+    perdia a mensagem, o mesmo motivo da retirada do relógio). Escolha: UM
+    mecanismo, o FOCO. O foco no `Aviso` faz o leitor ler a frase inteira, vale
+    para teclado e para toque, e não depende de a região já existir antes do
+    texto. Por isso o aviso com `foco` não é `role="status"`: os dois juntos
+    seriam lidos duas vezes. Os hooks ficam antes dos retornos antecipados.
+  */
+  const confirmacao = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (p.fase === "pronto") confirmacao.current?.focus();
+  }, [p.fase]);
+
   if (p.fase === "sem-link") {
     return (
       <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.semLinkSubtitulo}>
@@ -255,11 +294,12 @@ export function TelaDaRedefinicao(p: PropsDaRedefinicao) {
     <Moldura
       titulo={FRASES.novaTitulo}
       subtitulo={p.fase === "pronto" ? FRASES.novaProntaSubtitulo : FRASES.novaSubtitulo}
+      comVolta={p.fase !== "pronto"}
     >
       {p.fase === "pronto" ? (
         <>
-          <Aviso tom="sucesso">{FRASES.novaPronta}</Aviso>
-          <p className="entrada__texto entrada__texto--apoio">{FRASES.novaProntaApoio}</p>
+          {/* Uma ação (o botão) e um texto (o aviso): o rodapé "Voltar" e a frase de apoio repetiam os dois. */}
+          <Aviso tom="sucesso" foco={confirmacao}>{FRASES.novaPronta}</Aviso>
           <a className="botao botao--primario entrada__acao" href="/entrar">
             {FRASES.novaProntaBotao}
           </a>

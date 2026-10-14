@@ -107,7 +107,6 @@ export const FRASES = {
   novaFalhou: "Não foi possível redefinir a senha agora. Tente de novo em instantes.",
   novaProntaSubtitulo: "Sua senha foi alterada",
   novaPronta: "Senha redefinida. Entre com a nova senha.",
-  novaProntaApoio: "Quando quiser, vá para a entrada e use a senha nova.",
   novaProntaBotao: "Entrar com a nova senha",
 
   // ---- Link que não serve ----
