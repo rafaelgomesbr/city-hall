@@ -1,0 +1,24 @@
+$ (sonda-049.mjs copiada para o scratchpad, DC360_RAIZ=<dc360 de hoje>, Postgres 17.5 descartavel; o comando de cada passo esta na linha seguinte)
+
+== node sonda-049.mjs conferir <url-superusuario>
+1. sessoes preservadas pela 049: true (4 linhas)
+2. funcoes SECURITY DEFINER no public: 27
+    abrir_sessao definer: true dono: dc360_setup config: ["search_path=public, pg_temp"] PUBLIC: false dc360_app: true dc360_console: false
+    console_suspender_municipio definer: true dono: dc360_setup config: ["search_path=public, pg_temp","row_security=off"] PUBLIC: false dc360_app: false dc360_console: true
+    consumir_recuperacao definer: true dono: dc360_setup config: ["search_path=public, pg_temp"] PUBLIC: false dc360_app: true dc360_console: false
+    revogar_sessoes_do_usuario definer: true dono: dc360_setup config: ["search_path=public, pg_temp"] PUBLIC: false dc360_app: true dc360_console: false
+    travar_sessoes_do_usuario definer: false dono: dc360_setup config: ["search_path=public, pg_temp"] PUBLIC: false dc360_app: true dc360_console: false
+    trocar_senha definer: true dono: dc360_setup config: ["search_path=public, pg_temp"] PUBLIC: false dc360_app: true dc360_console: false
+3. familia encerrada: recusada com DC369 - A familia de sessao informada nao existe para este usuario.
+   familia viva rotacionada: herdou, sessoes vivas na familia: 1
+4. quem administra (trava e UPDATE de auth/sessoes.ts): B esperando (Lock/advisory) enquanto A segurava; B encerrou 3 sessao(oes); vivas na cadeia depois das duas: 0
+4. reuso e desativacao (revogar_sessoes_do_usuario): B esperando (Lock/advisory) enquanto A segurava; B encerrou 1 sessao(oes); vivas na cadeia depois das duas: 0
+4. troca de senha (trocar_senha): B esperando (Lock/advisory) enquanto A segurava; B encerrou (a funcao nao devolve contagem); vivas na cadeia depois das duas: 0
+4. CONTROLE sem trava (o UPDATE de antes da correcao): B esperando (Lock/transactionid) enquanto A segurava; B encerrou 0 sessao(oes); vivas na cadeia depois das duas: 1
+   com a trava, vivas por disputa: [0,0,0] | controle sem trava: 1
+4. suspensao pelo console (console_suspender_municipio da 049): B esperando (Lock/advisory) enquanto A segurava; B encerrou 2 sessao(oes); vivas na cadeia depois das duas: 0
+4. CONTROLE suspensao sem trava (a escrita da 038): B esperando (Lock/transactionid) enquanto A segurava; B encerrou 0 sessao(oes); vivas na cadeia depois das duas: 1
+   suspensao, vivas na cadeia: com a trava 0 | controle sem trava: 1
+6. troca de senha (trocar_senha da 049) contra a redefinicao: B esperando (Lock/transactionid); erros: nenhum
+6. CONTROLE trava antes do UPDATE de usuarios: B esperando (Lock/transactionid); erros: B 40P01
+   impasse, transacoes abortadas: com a ordem da 049 0 | controle: 1

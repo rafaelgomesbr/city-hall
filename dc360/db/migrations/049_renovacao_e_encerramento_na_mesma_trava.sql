@@ -26,10 +26,23 @@
 --      espera, e o `revogar_sessao` dela devolve zero (a sessao ja foi
 --      encerrada), o que a faz desistir sem emitir par.
 --      Tomam a trava aqui dentro: `revogar_sessoes_do_usuario` (reuso de
---      token, desativacao), `trocar_senha` (troca pela propria pessoa) e
---      `consumir_recuperacao` (link de email). O UPDATE direto de
+--      token, desativacao), `trocar_senha` (troca pela propria pessoa),
+--      `consumir_recuperacao` (link de email) e `console_suspender_municipio`
+--      (suspensao pelo fornecedor, que revoga o municipio inteiro e por isso
+--      toma a trava de cada pessoa com sessao de pe). O UPDATE direto de
 --      `auth/sessoes.ts` (quem administra, a propria pessoa, a redefinicao
 --      por quem administra) a toma pela API, no comando anterior.
+--
+--      A ORDEM DAS TRAVAS, para nao haver impasse (deadlock): quem atualiza a
+--      linha da pessoa em `usuarios` o faz ANTES de tomar a trava, em todo
+--      caminho. A desativacao e a redefinicao por quem administra ja eram
+--      assim (UPDATE de `usuarios` e depois o encerramento); `trocar_senha` e
+--      `consumir_recuperacao` tomavam a trava primeiro, e a troca de senha pela
+--      propria pessoa no mesmo instante da redefinicao por quem administra
+--      terminava em `deadlock detected` (40P01, um 500), provado em Postgres
+--      17. A renovacao toma a trava e nao atualiza `usuarios` (a chave
+--      estrangeira de `sessoes` so pede FOR KEY SHARE, que nao conflita com o
+--      UPDATE de quem esta na frente).
 --   2. `abrir_sessao` recusa herdar familia ENCERRADA: a que tem sessao
 --      revogada por qualquer motivo que nao seja a rotacao. Com a trava isso
 --      nao acontece; a recusa e a segunda barreira, no banco, para o dia em
@@ -45,7 +58,7 @@
 --     mais o instante em que a familia fica sem sessao viva: a escrita com o
 --     token anterior que caia nesse instante deixa de levar 401.
 --   - Nenhuma funcao SECURITY DEFINER nova: a trava e uma funcao comum
---     (SECURITY INVOKER) e as outras quatro sao recriadas com a mesma
+--     (SECURITY INVOKER) e as outras cinco sao recriadas com a mesma
 --     assinatura, o mesmo dono e as mesmas permissoes (`CREATE OR REPLACE`
 --     preserva o GRANT). O teto de 27 de `db/test/isolamento.test.ts` nao
 --     muda.
@@ -112,7 +125,8 @@ BEGIN
 END;
 $$;
 
--- Troca de senha pela propria pessoa (005).
+-- Troca de senha pela propria pessoa (005). A trava vem DEPOIS do UPDATE de
+-- `usuarios` e antes do de `sessoes` (a ordem do cabecalho).
 CREATE OR REPLACE FUNCTION trocar_senha(
   p_usuario_id uuid,
   p_senha_hash text,
@@ -123,11 +137,11 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
-  PERFORM travar_sessoes_do_usuario(p_usuario_id);
-
   UPDATE usuarios
      SET senha_hash = p_senha_hash, falhas_login = 0, bloqueado_ate = NULL
    WHERE id = p_usuario_id;
+
+  PERFORM travar_sessoes_do_usuario(p_usuario_id);
 
   UPDATE sessoes
      SET revogada_em = now(), motivo_revogacao = 'senha trocada pelo proprio usuario'
@@ -137,8 +151,8 @@ BEGIN
 END;
 $$;
 
--- Redefinicao pelo link de email (005). A trava entra logo depois de saber de
--- quem e o link, antes de qualquer escrita.
+-- Redefinicao pelo link de email (005). A trava entra depois do UPDATE de
+-- `usuarios` e antes do de `sessoes` (a ordem do cabecalho).
 CREATE OR REPLACE FUNCTION consumir_recuperacao(p_token_hash text, p_senha_hash text)
 RETURNS TABLE (usuario_id uuid, organizacao_id uuid)
 LANGUAGE plpgsql
@@ -158,8 +172,6 @@ BEGIN
     RETURN;
   END IF;
 
-  PERFORM travar_sessoes_do_usuario(v_rec.usuario_id);
-
   UPDATE recuperacoes_senha SET usada_em = now() WHERE id = v_rec.id;
 
   UPDATE usuarios
@@ -168,11 +180,99 @@ BEGIN
          bloqueado_ate = NULL
    WHERE id = v_rec.usuario_id;
 
+  PERFORM travar_sessoes_do_usuario(v_rec.usuario_id);
+
   UPDATE sessoes
      SET revogada_em = now(), motivo_revogacao = 'senha redefinida'
    WHERE sessoes.usuario_id = v_rec.usuario_id AND revogada_em IS NULL;
 
   RETURN QUERY SELECT v_rec.usuario_id, v_rec.organizacao_id;
+END;
+$$;
+
+-- Suspensao do municipio pelo fornecedor (038). A mesma funcao, mais a trava
+-- de cada pessoa que tem sessao de pe, num comando ANTERIOR ao UPDATE de
+-- `sessoes`. Sem ela, o UPDATE esbarrava na sessao antiga que uma renovacao
+-- estava rotacionando, esperava a renovacao confirmar, pulava a antiga (ja
+-- revogada) e nao enxergava a nova: a sessao nova sobrevivia a suspensao e,
+-- no dia da reativacao, renovava como se nada tivesse acontecido (provado em
+-- Postgres 17). A pergunta "quem tem sessao de pe" ve a sessao antiga ainda
+-- viva (a rotacao nao confirmou), entao a pessoa que esta renovando sempre
+-- entra na lista. A ordem e a do id, e duas suspensoes do mesmo municipio ja
+-- se enfileiram antes, no UPDATE de `organizacoes`.
+CREATE OR REPLACE FUNCTION console_suspender_municipio(p_org uuid, p_motivo text)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+SET row_security = off
+AS $$
+DECLARE
+  v_motivo    text := trim(p_motivo);
+  v_email     text;
+  v_nome      text;
+  v_ja_estava timestamptz;
+  v_revogadas integer;
+BEGIN
+  IF NOT console_operador_e_dono() THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'insufficient_privilege',
+      MESSAGE = 'So o dono do console suspende o acesso de um municipio.',
+      DETAIL  = 'O operador da sessao nao e o dono, ou nao ha operador no contexto.';
+  END IF;
+  IF v_motivo IS NULL OR v_motivo = '' THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'DC361',
+      MESSAGE = 'Suspender exige motivo.',
+      DETAIL  = 'O motivo vai para a trilha do municipio e para a tela de quem for reativar.';
+  END IF;
+
+  SELECT email INTO v_email FROM console_operadores WHERE id = console_operador_atual();
+
+  SELECT municipio || '/' || uf, acesso_suspenso_em INTO v_nome, v_ja_estava
+    FROM organizacoes WHERE id = p_org AND eliminada_em IS NULL;
+  IF v_nome IS NULL THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'DC364',
+      MESSAGE = format('Nao ha municipio ativo com o id %s.', p_org);
+  END IF;
+
+  /*
+    Idempotente: suspender de novo mantem a data original e atualiza o motivo.
+    `console_agendar_eliminacao` chama esta funcao, e o municipio pode ja
+    estar suspenso quando o dono decide eliminar.
+  */
+  UPDATE organizacoes
+     SET acesso_suspenso_em = COALESCE(acesso_suspenso_em, now()),
+         suspensao_motivo   = v_motivo
+   WHERE id = p_org;
+
+  PERFORM travar_sessoes_do_usuario(s.usuario_id)
+     FROM (SELECT DISTINCT usuario_id FROM sessoes
+            WHERE organizacao_id = p_org AND revogada_em IS NULL
+            ORDER BY usuario_id) s;
+
+  /*
+    Revoga TODAS as sessoes do municipio, para ninguem continuar renovando
+    token. Mesma escrita de `revogar_sessoes_do_usuario` (002), so que pela
+    organizacao inteira. `abrir_sessao` recusa sessao nova enquanto a
+    suspensao durar (ver a parte 6).
+  */
+  UPDATE sessoes
+     SET revogada_em = now(), motivo_revogacao = 'acesso suspenso pelo fornecedor'
+   WHERE organizacao_id = p_org AND revogada_em IS NULL;
+  GET DIAGNOSTICS v_revogadas = ROW_COUNT;
+
+  IF v_ja_estava IS NULL THEN
+    INSERT INTO trilha_administrativa
+      (organizacao_id, autor_id, autor_nome, autor_papel, acao, alvo_tipo, alvo_id, alvo_nome, depois)
+    VALUES
+      (p_org, NULL, v_email, 'operador_da_plataforma', 'acesso_suspenso_pelo_fornecedor',
+       'organizacao', p_org, v_nome,
+       jsonb_build_object('motivo', v_motivo, 'sessoes_revogadas', v_revogadas));
+  END IF;
+
+  RETURN v_revogadas;
 END;
 $$;
 
@@ -251,3 +351,5 @@ REVOKE ALL ON FUNCTION trocar_senha(uuid, text, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION trocar_senha(uuid, text, uuid) TO dc360_app;
 REVOKE ALL ON FUNCTION consumir_recuperacao(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION consumir_recuperacao(text, text) TO dc360_app;
+REVOKE ALL ON FUNCTION console_suspender_municipio(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION console_suspender_municipio(uuid, text) TO dc360_console;

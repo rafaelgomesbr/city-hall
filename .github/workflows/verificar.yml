@@ -670,6 +670,26 @@ jobs:
           cat "$RUNNER_TEMP/artefatos/07-saude.json"
           node -e "const s=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')); process.exit(s.status==='ok'&&s.banco==='ok'?0:1)" "$RUNNER_TEMP/artefatos/07-saude.json"
 
+      # A corrida entre renovar e "encerrar sessões" (V2-F00-E07, correção 2,
+      # migração 049) só se reproduz com conexões de verdade disputando: o
+      # PGlite tem uma conexão só e serializa tudo, então na suíte comum o bloco
+      # é pulado por ambiente. Aqui ele roda contra o Postgres do serviço, com o
+      # superusuário só para o teste criar e apagar o próprio banco descartável
+      # (`prova_c2_<sorteio>`). Pulado aqui é vermelho: sem esta linha a prova
+      # que fecha o item 2 da seção 7 de `28` nunca rodaria no CI.
+      - name: Corrida de renovação contra encerramento, em Postgres real
+        env:
+          DC360_POSTGRES_DE_PROVA: postgres://postgres:postgres@localhost:5432/postgres
+        run: |
+          npm run build --workspace @dc360/campo
+          npx vitest run --root apps/api test/renovacao-contra-encerramento.test.ts 2>&1 | tee "$RUNNER_TEMP/artefatos/08-corrida-renovacao.txt"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then exit "$status"; fi
+          if grep -Eq "Tests .*skipped" "$RUNNER_TEMP/artefatos/08-corrida-renovacao.txt"; then
+            echo "o bloco de Postgres real foi pulado: a prova da corrida nao rodou"
+            exit 1
+          fi
+
       - name: Redigir segredo dos artefatos
         if: ${{ always() }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
@@ -716,7 +736,7 @@ jobs:
     #
     # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
     # de rede e da base de avisos do dia. O `expo-doctor` espera 21 de 21 e hoje
-    # dá 21 de 21 (a deriva V-DEP-4 foi fechada em 2026-10-13); os dois `npm audit` esperam vermelho por
+    # deu 21 de 21 num Mac em 2026-10-14, depois da E19 correção 4 (a deriva V-DEP-4 foi fechada em 2026-10-13 e voltou na manhã de 2026-10-14 com cinco patches novos; o primeiro run deste job com os pacotes novos é o que confirma em Linux); os dois `npm audit` esperam vermelho por
     # desenho (a política do CP-03 está em `npm run auditar`, que espera 0). Um
     # `npm audit` que fechar em 0, ou um advisory que derrube o `auditar`, faz o
     # job FALHAR: é o que se quer, alguém precisa explicar.

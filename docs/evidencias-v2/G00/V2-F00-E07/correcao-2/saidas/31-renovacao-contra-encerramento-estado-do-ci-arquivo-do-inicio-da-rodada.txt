@@ -1,0 +1,22 @@
+$ (em dc360, depois do 30) DC360_POSTGRES_DE_PROVA=<postgres 16.13 descartavel, superusuario postgres, banco postgres, como o servico do job implantavel> npx vitest run --root apps/api test/renovacao-contra-encerramento.test.ts
+# o arquivo de teste do inicio desta rodada (13 casos), no estado que o job implantavel monta: papeis ja criados e banco dc360 ja migrado; nenhum skipped
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/renovacao-contra-encerramento.test.ts (13 tests) 24730ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  485ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1202ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  576ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  800ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1527ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive  546ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  14432ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse  1492ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  818ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  13:34:05
+   Duration  25.32s (transform 219ms, setup 16ms, collect 378ms, tests 24.73s, environment 0ms, prepare 36ms)
+

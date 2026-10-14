@@ -17,6 +17,15 @@
  *  - cada encerramento em massa que mora no banco (`revogar_sessoes_do_usuario`,
  *    `trocar_senha`, `consumir_recuperacao`) toma a MESMA trava que a função
  *    de trava toma, e a trava some no fim da transação;
+ *  - `trocar_senha` e `consumir_recuperacao` atualizam `usuarios` ANTES de
+ *    tomar a trava (a ordem que evita o impasse com a redefinição por quem
+ *    administra; o impasse em si só aparece com duas conexões, no bloco de
+ *    Postgres real do teste da API);
+ *  - a suspensão pelo console toma a trava de cada pessoa com sessão de pé e
+ *    continua executável só pelo papel do console;
+ *  - a ORDEM, medida durante a execução por um gatilho de comando: no instante
+ *    do UPDATE de `sessoes` a trava já está tomada, e no do UPDATE de
+ *    `usuarios` ainda não (revisão da correção 2);
  *  - `abrir_sessao` herda a família só rotacionada e recusa a encerrada, com
  *    o mesmo código e a mesma mensagem das recusas da 047, sem gravar nada.
  */
@@ -191,6 +200,145 @@ describe("A trava e as permissões", () => {
     });
     expect(deOutro).toHaveLength(1);
     expect(deOutro).not.toEqual(chave);
+  });
+
+  it("quem atualiza a linha de usuarios o faz ANTES de tomar a trava (sem impasse com a redefinição por quem administra)", async () => {
+    for (const funcao of ["trocar_senha(uuid,text,uuid)", "consumir_recuperacao(text,text)"]) {
+      const def = (await db.query<{ def: string }>(
+        `SELECT pg_get_functiondef('${funcao}'::regprocedure) AS def`,
+      )).rows[0]!.def;
+      const atualiza = def.indexOf("UPDATE usuarios");
+      const trava = def.indexOf("travar_sessoes_do_usuario(");
+      const encerra = def.indexOf("UPDATE sessoes");
+      expect(atualiza, funcao).toBeGreaterThan(-1);
+      expect(trava, `${funcao}: a trava vem antes do UPDATE de usuarios`).toBeGreaterThan(atualiza);
+      expect(encerra, `${funcao}: a trava vem depois do UPDATE de sessoes`).toBeGreaterThan(trava);
+    }
+  });
+
+  it("a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console", async () => {
+    const r = await db.query<{ console: boolean; app: boolean; publico: boolean; definer: boolean }>(
+      `SELECT has_function_privilege('dc360_console', 'console_suspender_municipio(uuid,text)', 'EXECUTE') AS console,
+              has_function_privilege('dc360_app', 'console_suspender_municipio(uuid,text)', 'EXECUTE') AS app,
+              has_function_privilege('public', 'console_suspender_municipio(uuid,text)', 'EXECUTE') AS publico,
+              (SELECT prosecdef FROM pg_proc WHERE oid = 'console_suspender_municipio(uuid,text)'::regprocedure) AS definer`,
+    );
+    expect(r.rows[0]).toEqual({ console: true, app: false, publico: false, definer: true });
+
+    const chaveDe = (quem: string) => db.transaction(async (tx) => {
+      await tx.query("SELECT travar_sessoes_do_usuario($1)", [quem]);
+      return travasSeguras(tx);
+    });
+    const chaveDoUsuario = await chaveDe(usuario);
+    const chaveDoOutro = await chaveDe(outro);
+    // As duas pessoas com sessão de pé (o teste anterior encerrou as da primeira).
+    await abrir("sessao-do-usuario", null, usuario);
+    await abrir("sessao-do-outro", null, outro);
+
+    const dono = (await db.query<{ id: string }>(
+      `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel)
+       VALUES ('dono.da.prova@fornecedor.exemplo', 'scrypt$' || repeat('a', 90), 'v1.prova', 'dono') RETURNING id`,
+    )).rows[0]!.id;
+    try {
+      const seguras = await db.transaction(async (tx) => {
+        await tx.query("SELECT set_config('app.console_operador', $1, true)", [dono]);
+        await tx.query("SELECT console_suspender_municipio($1, 'prova da trava')", [org]);
+        return travasSeguras(tx);
+      });
+      expect(seguras).toEqual([...chaveDoUsuario, ...chaveDoOutro].sort());
+      expect(await travasSeguras(db), "a trava sobreviveu ao COMMIT da suspensão").toEqual([]);
+    } finally {
+      await db.query(
+        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+      );
+    }
+  });
+
+  /*
+    A ORDEM, medida durante a execução, e não só no texto da função (revisão
+    da correção 2). Os casos acima conferem quais travas a transação segura NO
+    FIM; isso passaria também com a trava tomada DEPOIS do UPDATE de
+    `sessoes`, e aí ela não serve para nada: o UPDATE já rodou com a
+    fotografia que não enxerga a sessão que a renovação vai confirmar. Aqui um
+    gatilho de comando (BEFORE UPDATE ... FOR EACH STATEMENT, que dispara
+    mesmo quando o UPDATE não acha linha) anota as travas consultivas que a
+    conexão segura no instante exato de cada UPDATE de `sessoes` e de
+    `usuarios`. O gatilho é da prova e sai no fim.
+  */
+  it("a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios", async () => {
+    // O dono do console que o caso anterior cadastrou (há um só).
+    const dono = (await db.query<{ id: string }>(
+      "SELECT id FROM console_operadores WHERE papel = 'dono'",
+    )).rows[0]!.id;
+    await db.exec(`
+      CREATE TABLE prova_ordem_das_travas (n serial PRIMARY KEY, tabela text NOT NULL, travas text[] NOT NULL);
+      CREATE FUNCTION prova_anotar_travas() RETURNS trigger LANGUAGE plpgsql
+      SET search_path = public, pg_temp AS $$
+      BEGIN
+        INSERT INTO prova_ordem_das_travas (tabela, travas)
+        SELECT TG_TABLE_NAME, coalesce(array_agg(classid::text || '/' || objid::text || '/' || objsubid::text ORDER BY 1), '{}')
+          FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid();
+        RETURN NULL;
+      END $$;
+      CREATE TRIGGER prova_anotar_travas_sessoes BEFORE UPDATE ON sessoes
+        FOR EACH STATEMENT EXECUTE FUNCTION prova_anotar_travas();
+      CREATE TRIGGER prova_anotar_travas_usuarios BEFORE UPDATE ON usuarios
+        FOR EACH STATEMENT EXECUTE FUNCTION prova_anotar_travas();
+    `);
+    const chaveDe = async (quem: string) => (await db.transaction(async (tx) => {
+      await tx.query("SELECT travar_sessoes_do_usuario($1)", [quem]);
+      return travasSeguras(tx);
+    }))[0]!;
+    const chave = await chaveDe(usuario);
+    const chaveDoOutro = await chaveDe(outro);
+    const anotacoes = async () => (await db.query<{ tabela: string; travas: string[] }>(
+      "SELECT tabela, travas FROM prova_ordem_das_travas ORDER BY n",
+    )).rows.map((l) => ({ tabela: l.tabela, travas: [...l.travas].sort() }));
+    const medir = async (consulta: string, valores: unknown[]) => {
+      await db.exec("TRUNCATE prova_ordem_das_travas");
+      await db.transaction(async (tx) => {
+        await tx.query("SELECT set_config('app.console_operador', $1, true)", [dono]);
+        await tx.query(consulta, valores);
+      });
+      return anotacoes();
+    };
+
+    try {
+      await abrir("ordem-1", null, usuario);
+      expect(await medir("SELECT revogar_sessoes_do_usuario($1, 'usuario desativado')", [usuario]))
+        .toEqual([{ tabela: "sessoes", travas: [chave] }]);
+
+      await abrir("ordem-2", null, usuario);
+      expect(await medir("SELECT trocar_senha($1, 'hash-da-ordem', NULL)", [usuario])).toEqual([
+        { tabela: "usuarios", travas: [] },
+        { tabela: "sessoes", travas: [chave] },
+      ]);
+
+      await abrir("ordem-3", null, usuario);
+      await db.query(
+        `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
+         VALUES ($1, $2, 'link-da-ordem', now() + interval '1 hour')`, [org, usuario],
+      );
+      expect(await medir("SELECT * FROM consumir_recuperacao('link-da-ordem', 'hash-do-link-da-ordem')", [])).toEqual([
+        { tabela: "usuarios", travas: [] },
+        { tabela: "sessoes", travas: [chave] },
+      ]);
+
+      await abrir("ordem-4", null, usuario);
+      await abrir("ordem-5", null, outro);
+      expect(await medir("SELECT console_suspender_municipio($1, 'prova da ordem')", [org]))
+        .toEqual([{ tabela: "sessoes", travas: [chave, chaveDoOutro].sort() }]);
+    } finally {
+      await db.exec(`
+        DROP TRIGGER prova_anotar_travas_sessoes ON sessoes;
+        DROP TRIGGER prova_anotar_travas_usuarios ON usuarios;
+        DROP FUNCTION prova_anotar_travas();
+        DROP TABLE prova_ordem_das_travas;
+      `);
+      await db.query(
+        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+      );
+    }
   });
 });
 

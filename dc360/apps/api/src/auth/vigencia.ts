@@ -31,8 +31,12 @@ import { FalhaAutenticacao } from "./servico.js";
  * quem cai é a sessão NOVA, e a antiga, já revogada por rotação, continuava
  * contando como viva. Desde a migração 047 as sessões de uma cadeia
  * compartilham `familia_id`, e a rotacionada só vale se a família ainda tem
- * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram: todos
- * atingem a sessão viva, e isso derruba a cadeia inteira.
+ * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram com a
+ * 047: todos atingem a sessão viva, e isso derruba a cadeia inteira. Desde a
+ * migração 049 eles e a renovação tomam a mesma trava por pessoa
+ * (`travar_sessoes_do_usuario`, ver `auth/sessoes.ts`), e a renovação é uma
+ * transação só: nenhum encerramento cai no meio de uma renovação sem ver a
+ * sessão nova, e a família nunca fica sem sessão de pé no meio da rotação.
  *
  * O PAPEL DIFERENTE DO TOKEN NÃO É SESSÃO ENCERRADA. O token continua
  * legítimo e a sessão está de pé: o que mudou foi o cadastro. A resposta é

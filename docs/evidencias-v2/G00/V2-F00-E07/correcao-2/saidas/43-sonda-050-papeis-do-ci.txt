@@ -1,0 +1,30 @@
+$ bash sonda-050.sh   (sondas/revisao/; no banco dc360 do 30, Postgres 16.13)
+# o primeiro --conferir sai com codigo 1 porque a 050 falta (a mensagem ficou fora do tail -3)
+
++ DATABASE_URL=postgres://[REDIGIDO]@.../dc360 npm run migrar -- --conferir   (antes: a 050 falta)
+npm error location /Users/[usuario]/Documents/city-hall/dc360/db
+npm error command failed
+npm error command sh -c tsx src/cli.ts --conferir
++ DATABASE_URL=postgres://[REDIGIDO]@.../dc360 npm run migrar
+aplicando 050_login_e_suspensao_na_mesma_linha.sql
+Aplicadas: ... 050_login_e_suspensao_na_mesma_linha.sql
++ DATABASE_URL=postgres://[REDIGIDO]@.../dc360 npm run migrar -- --conferir
+Esquema em dia.
++ [dc360_setup:setup] SELECT p.proname, pg_get_userbyid(p.proowner) AS dono, p.prosecdef FROM pg_proc p WHERE p.proname = 'abrir_sessao'
+SELECT [{"proname":"abrir_sessao","dono":"dc360_setup","prosecdef":true}]
++ [dc360_setup:setup] SELECT count(*)::int AS definers FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.prosecdef
+SELECT [{"definers":27}]
++ [dc360_setup:setup] INSERT INTO organizacoes (id, nome, municipio, uf) VALUES ('22222222-2222-4222-8222-000000000050','DC Sonda','Sonda Alta','MG') ON CONFLICT DO NOTHING
+INSERT 
++ [dc360_setup:setup] INSERT INTO usuarios (id, organizacao_id, nome, matricula, email, papel, senha_hash) VALUES ('22222222-2222-4222-8222-0000000000a5','22222222-2222-4222-8222-000000000050','Pessoa da Sonda','S-50','sonda50@exemplo.gov.br','coordenador','x') ON CONFLICT DO NOTHING
+INSERT 
++ [dc360_api:api] SET ROLE dc360_app; SELECT current_user, abrir_sessao('22222222-2222-4222-8222-000000000050','22222222-2222-4222-8222-0000000000a5','sonda-050-login', interval '1 day', NULL, NULL, NULL) IS NOT NULL AS abriu
+SET 
+SELECT [{"current_user":"dc360_app","abriu":true}]
++ [dc360_setup:setup] UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'sonda 050' WHERE id = '22222222-2222-4222-8222-000000000050'
+UPDATE 
++ [dc360_api:api] SET ROLE dc360_app; SELECT abrir_sessao('22222222-2222-4222-8222-000000000050','22222222-2222-4222-8222-0000000000a5','sonda-050-suspenso', interval '1 day', NULL, NULL, NULL)
+ERRO: O acesso deste municipio esta suspenso pelo fornecedor.
+(recusa esperada acima: DC367)
++ [dc360_setup:setup] SELECT token_hash, revogada_em IS NULL AS de_pe FROM sessoes WHERE organizacao_id = '22222222-2222-4222-8222-000000000050' ORDER BY 1
+SELECT [{"token_hash":"sonda-050-login","de_pe":true}]

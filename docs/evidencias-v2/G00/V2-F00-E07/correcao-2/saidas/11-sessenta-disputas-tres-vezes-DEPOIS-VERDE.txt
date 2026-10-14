@@ -1,0 +1,8 @@
+$ (em dc360/apps/api, tres vezes seguidas) DC360_POSTGRES_DE_PROVA=<postgres 17.5 descartavel> npx vitest run test/renovacao-contra-encerramento.test.ts --testTimeout=120000 --reporter=verbose -t 'sessenta disputas' --testTimeout=300000 | grep -E 'sessenta|Tests '
+
+ ✓ test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas 14162ms
+      Tests  1 passed | 12 skipped (13)
+ ✓ test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas 13970ms
+      Tests  1 passed | 12 skipped (13)
+ ✓ test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas 13948ms
+      Tests  1 passed | 12 skipped (13)

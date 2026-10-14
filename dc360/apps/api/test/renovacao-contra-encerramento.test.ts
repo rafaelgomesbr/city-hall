@@ -9,7 +9,7 @@ import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import { derivarSenha } from "../src/auth/senha.js";
-import { hashDoToken } from "../src/auth/tokens.js";
+import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
 
 /**
  * A RENOVAÇÃO NÃO SOBREVIVE A UM ENCERRAMENTO QUE CHEGA NO MEIO DELA
@@ -34,10 +34,24 @@ import { hashDoToken } from "../src/auth/tokens.js";
  *    verdade: em READ COMMITTED, o UPDATE de quem encerra não enxerga a linha
  *    que uma transação ainda aberta inseriu. A renovação e todo encerramento
  *    em massa (quem administra, a própria pessoa, a troca de senha, o reuso de
- *    token, a desativação, o link de recuperação) tomam a mesma trava
- *    (`travar_sessoes_do_usuario`, migração 049) num comando ANTERIOR ao
- *    UPDATE, e o UPDATE seguinte enxerga a sessão nova. É o que o segundo
- *    bloco prova, com conexões reais disputando.
+ *    token, a desativação, o link de recuperação, a suspensão do município
+ *    pelo console) tomam a mesma trava (`travar_sessoes_do_usuario`, migração
+ *    049) num comando ANTERIOR ao UPDATE, e o UPDATE seguinte enxerga a sessão
+ *    nova. É o que o segundo bloco prova, com conexões reais disputando. Ele
+ *    prova também que a trava não traz impasse (deadlock) entre a troca de
+ *    senha pela própria pessoa e a redefinição por quem administra.
+ * 3. O LOGIN NO MESMO INSTANTE DA SUSPENSÃO (migração 050, revisão da
+ *    correção 2). O login não passa pela trava por pessoa (abre família
+ *    nova), e lia a suspensão do município sem trava: a sessão dele podia
+ *    escapar da suspensão e voltar a valer na reativação. A 050 faz o login
+ *    ler a suspensão com `FOR SHARE`; o caso 9 do segundo bloco disputa as
+ *    duas ordens.
+ *
+ * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
+ * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
+ * `pg_locks`, a outra conexão parada esperando trava. Antes ela era solta
+ * depois de um tempo fixo, e numa máquina carregada o caso podia passar verde
+ * sem ter disputado nada.
  *
  * O QUE NÃO PODE MUDAR, e também é cobrado aqui: a rotação não é expulsão. O
  * token de acesso emitido antes da renovação continua escrevendo pelos seus
@@ -108,10 +122,6 @@ const rotacionou = (chamadas: Chamada[]) =>
 
 /** A consulta abre a sessão nova HERDANDO uma família (só a renovação faz isso). */
 const abreHerdando = (c: Chamada) => c.sql.includes("abrir_sessao(") && c.params?.[6] != null;
-
-/** A consulta é o encerramento concorrente chegando ao banco (ou à trava dele). */
-const ehEncerramento = (c: Chamada) =>
-  /travar_sessoes_do_usuario\(|trocar_senha\(|revogar_sessoes_do_usuario\(|UPDATE sessoes/.test(c.sql);
 
 function esperar(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -441,39 +451,88 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
     }
   });
 
+  /** Quantas conexões DESTE banco estão paradas esperando trava agora. */
+  async function esperandoTrava(tipo: "advisory" | null): Promise<number> {
+    const r = await cen.bruto(
+      `SELECT count(*)::int AS n FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
+        WHERE NOT l.granted AND a.datname = current_database()
+          AND ($1::text IS NULL OR l.locktype = $1::text)`,
+      [tipo],
+    );
+    return Number(r.rows[0]!.n);
+  }
+
+  /**
+   * O que aconteceu primeiro com o pedido disputado: ele ficou PARADO numa
+   * trava (alguma conexão deste banco com `granted = false` em `pg_locks`) ou
+   * TERMINOU sem esperar ninguém. "nenhum" depois do prazo.
+   *
+   * É o que faz uma disputa segurada provar alguma coisa. Até a revisão da
+   * correção 2 a renovação era solta 300 ms depois de o encerramento ENVIAR o
+   * comando (ou 10 s depois, calada, se ele nem chegasse); numa máquina
+   * carregada o encerramento podia chegar à trava depois de a renovação já
+   * ter confirmado, e o caso passava verde sem ter disputado nada.
+   */
+  async function travouOuTerminou(
+    pedido: Promise<unknown>, tipo: "advisory" | null, prazoMs = 15_000,
+  ): Promise<"travou" | "terminou" | "nenhum"> {
+    let terminou = false;
+    void pedido.then(() => { terminou = true; }, () => { terminou = true; });
+    const ate = Date.now() + prazoMs;
+    while (Date.now() < ate) {
+      if (await esperandoTrava(tipo) > 0) return "travou";
+      if (terminou) return "terminou";
+      await esperar(20);
+    }
+    return "nenhum";
+  }
+
+  /** Reprova se o pedido disputado não ficou parado na trava. */
+  async function exigirQueTravou(quem: string, pedido: Promise<unknown>, tipo: "advisory" | null): Promise<void> {
+    const desfecho = await travouOuTerminou(pedido, tipo);
+    expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esperando trava enquanto o outro lado estava segurado`)
+      .toBe("travou");
+  }
+
   /*
     A DISPUTA, segurando a renovação DENTRO da transação, entre revogar a
     antiga e abrir a nova (com tudo o que ela já travou). O encerramento é
-    disparado nesse instante, e a renovação só segue quando ele chegou ao
-    banco (o comando dele foi enviado) e teve 300 ms para terminar ou ficar
-    preso na trava. Sem a trava, ele termina sem ver a sessão que ainda vai
-    nascer; com ela, ele espera a renovação confirmar e a encerra.
+    disparado nesse instante, e a renovação só é solta quando o teste VÊ o
+    encerramento parado na trava consultiva da pessoa (`pg_locks`). Sem a
+    trava ele terminaria sem ver a sessão que ainda vai nascer, e o caso
+    reprova por isso; com ela, ele espera a renovação confirmar e a encerra.
   */
   for (const [i, enc] of a.encerramentos.entries()) {
     it(`${i + 1}. ${enc.nome}: nenhuma sessão da cadeia sobrevive`, async () => {
       const h = await a.entrar();
       const disputa = await enc.preparar(h);
       const janela = sinal();
-      const chegou = sinal();
+      const solta = sinal();
       let segurando = false;
       grampo.atual = {
         antes: async (chamada) => {
-          if (segurando && ehEncerramento(chamada)) chegou.disparar();
           if (!abreHerdando(chamada) || segurando) return;
           segurando = true;
           janela.disparar();
-          await Promise.race([chegou.disparado.then(() => esperar(300)), esperar(10_000)]);
+          await solta.disparado;
         },
       };
+      const pendentes: Promise<unknown>[] = [];
       try {
         const renovacao = a.pedirRenovacao(disputa.renovar);
+        pendentes.push(renovacao);
         await janela.disparado;
-        const encerramento = await disputa.disparar();
-        const r = await renovacao;
+        const encerramento = disputa.disparar();
+        pendentes.push(encerramento);
+        await exigirQueTravou(`o encerramento (${enc.nome})`, encerramento, "advisory");
+        solta.disparar();
+        const [e, r] = await Promise.all([encerramento, renovacao]);
         grampo.atual = null;
-        await a.exigirCadeiaMorta(encerramento, enc.esperado, r, h);
+        await a.exigirCadeiaMorta(e, enc.esperado, r, h);
       } finally {
+        solta.disparar();
         grampo.atual = null;
+        await Promise.allSettled(pendentes);
         await enc.depois?.();
       }
     }, 120_000);
@@ -536,4 +595,225 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
     }
     expect(sobreviventes, `rodadas com sessão viva depois do encerrar: ${sobreviventes.join(", ")}`).toEqual([]);
   }, 300_000);
+
+  /*
+    A TRAVA NÃO PODE TRAZER IMPASSE (deadlock). Quem administra redefine a
+    senha da pessoa: atualiza `usuarios` e só depois encerra as sessões (toma
+    a trava). Se `trocar_senha` tomasse a trava ANTES de atualizar `usuarios`,
+    as duas transações se esperariam em ordem inversa e o Postgres mataria uma
+    delas (40P01, um 500 para quem clicou). A ordem que vale em todo caminho é
+    a linha de `usuarios` primeiro e a trava depois. A disputa segura a
+    redefinição entre o UPDATE de `usuarios` e a trava, dispara a troca de
+    senha pela própria pessoa, e só solta quando o teste VÊ a troca parada
+    esperando a linha de `usuarios` que a redefinição segura (`pg_locks`).
+    Desde a revisão da correção 2 o caso exige que a disputa aconteça: sem a
+    trava da 049 não há onde segurar a redefinição, e ele reprova.
+  */
+  it("7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse", async () => {
+    const quemTroca = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurando = false;
+    let viuUpdate = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (/UPDATE usuarios\s+SET senha_hash/.test(chamada.sql)) viuUpdate = true;
+        if (!viuUpdate || segurando || !chamada.sql.includes("travar_sessoes_do_usuario(")) return;
+        segurando = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const redefinicao = cen.app.inject({
+        method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`,
+        headers: { authorization: `Bearer ${cen.tokenRita}` },
+      });
+      pendentes.push(redefinicao);
+      const primeiro = await Promise.race([
+        janela.disparado.then(() => "segurou" as const),
+        redefinicao.then(() => "terminou" as const),
+      ]);
+      expect(primeiro, "a disputa não aconteceu: a redefinição terminou sem passar pela trava da pessoa").toBe("segurou");
+      const troca = cen.app.inject({
+        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${quemTroca.acesso}` },
+        payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
+      });
+      pendentes.push(troca);
+      // A troca passa pela vigência com a sessão de pé e para na linha de
+      // `usuarios` que a redefinição segura (trava de transação, não consultiva).
+      await exigirQueTravou("a troca de senha pela própria pessoa", troca, null);
+      solta.disparar();
+      const [r1, r2] = await Promise.all([redefinicao, troca]);
+      grampo.atual = null;
+      expect(r1.statusCode, `redefinição: ${r1.body}`).toBe(200);
+      expect(r2.statusCode, `troca de senha: ${r2.body}`).toBe(200);
+      expect(await a.sessoesVivasDaCadeia(quemTroca), "a sessão de quem trocou sobreviveu à redefinição").toBe(0);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+
+  /** O dono do console (há um só), cadastrado na primeira vez que um caso pede. */
+  async function donoDoConsole(): Promise<string> {
+    const dono = await cen.bruto(
+      `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel)
+       VALUES ('dono.da.prova@fornecedor.exemplo', 'scrypt$' || repeat('a', 90), 'v1.prova', 'dono')
+       ON CONFLICT DO NOTHING RETURNING id`,
+    );
+    return String(dono.rows[0]?.id
+      ?? (await cen.bruto("SELECT id FROM console_operadores WHERE papel = 'dono'")).rows[0]!.id);
+  }
+
+  async function municipioDaHelena(): Promise<string> {
+    return String((await cen.bruto("SELECT organizacao_id FROM usuarios WHERE id = $1", [HELENA])).rows[0]!.organizacao_id);
+  }
+
+  /*
+    A SUSPENSÃO DO MUNICÍPIO PELO CONSOLE também é encerramento em massa
+    (`console_suspender_municipio`, migração 038): revoga toda sessão do
+    município. Sem a trava, ela tem o mesmo buraco que o "encerrar sessões":
+    o UPDATE dela esbarra na sessão antiga que a renovação está rotacionando,
+    espera, e quando a renovação confirma ele pula a antiga (já revogada) e não
+    enxerga a nova. A nova sobrevive à suspensão, e no dia da reativação
+    renova como se nada tivesse acontecido. Este caso e o 9 ficam no fim do
+    bloco porque a suspensão derruba também a sessão da administradora (o
+    `finally` entra de novo com ela).
+  */
+  it("8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova", async () => {
+    const h = await a.entrar();
+    const operador = await donoDoConsole();
+    const org = await municipioDaHelena();
+    const janela = sinal();
+    const solta = sinal();
+    let segurando = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (!abreHerdando(chamada) || segurando) return;
+        segurando = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const consoleDb = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
+    await consoleDb.connect();
+    try {
+      const renovacao = a.pedirRenovacao(h.renovacao);
+      await janela.disparado;
+      const suspensao = (async () => {
+        await consoleDb.query("BEGIN");
+        await consoleDb.query("SELECT set_config('app.console_operador', $1, true)", [operador]);
+        await consoleDb.query("SELECT console_suspender_municipio($1, 'prova da corrida com a renovacao')", [org]);
+        await consoleDb.query("COMMIT");
+      })();
+      // A suspensão chega ao banco e fica presa na trava da pessoa que está
+      // renovando. Sem a trava ela esbarraria na sessão antiga (trava de
+      // linha, não consultiva) e o caso reprova aqui.
+      await exigirQueTravou("a suspensão pelo console", suspensao, "advisory");
+      solta.disparar();
+      const r = await renovacao;
+      await suspensao;
+      grampo.atual = null;
+      expect(await a.sessoesVivasDaCadeia(h), "sobrou sessão viva depois da suspensão").toBe(0);
+
+      await cen.bruto(
+        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+      );
+      if (r.statusCode === 200) {
+        const depois = await a.pedirRenovacao(r.json().renovacao);
+        expect(depois.statusCode, "o par entregue no meio da suspensão renova depois da reativação").toBe(401);
+      }
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await consoleDb.end();
+      await cen.bruto(
+        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+      );
+      cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
+    }
+  }, 120_000);
+
+  /*
+    O LOGIN NO MESMO INSTANTE DA SUSPENSÃO (migração 050). O login abre
+    família nova e não passa pela trava por pessoa; até a 050 `abrir_sessao`
+    lia a suspensão do município com um SELECT comum, que não espera ninguém
+    (a chave estrangeira de `sessoes` só pede FOR KEY SHARE na linha do
+    município, e isso não conflita com o UPDATE da suspensão). Nas duas ordens
+    a sessão do login escapava da suspensão e, depois da reativação, renovava.
+
+    A disputa é feita direto no banco, em duas conexões, porque o instante que
+    importa é DENTRO da transação do login (entre abrir a sessão e confirmar),
+    e o login da API é uma transação de uma consulta só. A conexão do login
+    faz o que `emitirPar` (`auth/servico.ts`) faz: `abrir_sessao` sem família,
+    com o hash de um token de renovação de verdade, que no fim o teste tenta
+    renovar pela API.
+
+    O caso exige que a disputa aconteça: com a 050, quem chega segundo fica
+    parado na linha do município (e o teste VÊ isso em `pg_locks`); sem ela,
+    ninguém espera ninguém, a sessão sobrevive e o caso reprova pela renovação.
+  */
+  it("9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova", async () => {
+    const operador = await donoDoConsole();
+    const org = await municipioDaHelena();
+    const login = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
+    const consoleDb = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
+    await login.connect();
+    await consoleDb.connect();
+    const abrir = (token: string) => login.query(
+      "SELECT abrir_sessao($1,$2,$3, interval '14 days', NULL, NULL, NULL) AS id", [org, HELENA, hashDoToken(token)],
+    );
+    const suspender = () => consoleDb.query(
+      "SELECT console_suspender_municipio($1, 'prova do login no mesmo instante')", [org],
+    );
+    const reativar = () => cen.bruto(
+      "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+    );
+    try {
+      for (const ordem of ["o login abre primeiro", "a suspensão chega primeiro"] as const) {
+        const token = gerarTokenRenovacao();
+        await consoleDb.query("BEGIN");
+        await consoleDb.query("SELECT set_config('app.console_operador', $1, true)", [operador]);
+        await login.query("BEGIN");
+        let desfecho: Awaited<ReturnType<typeof travouOuTerminou>>;
+        if (ordem === "o login abre primeiro") {
+          await abrir(token);
+          // A suspensão tem de parar na linha do município que o login travou.
+          const suspensao = suspender();
+          desfecho = await travouOuTerminou(suspensao, null);
+          await login.query("COMMIT");
+          await suspensao;
+          await consoleDb.query("COMMIT");
+        } else {
+          await suspender();
+          // O login tem de parar na linha do município que a suspensão travou,
+          // e, quando ela confirma, ler a suspensão e recusar (DC367).
+          const tentativa = abrir(token).then(() => "abriu", (e: { code?: string }) => e.code ?? "erro");
+          desfecho = await travouOuTerminou(tentativa, null);
+          await consoleDb.query("COMMIT");
+          const resultado = await tentativa;
+          await login.query(resultado === "abriu" ? "COMMIT" : "ROLLBACK");
+          if (resultado !== "abriu") expect(resultado, `${ordem}: a recusa do login`).toBe("DC367");
+        }
+
+        await reativar();
+        const depois = await a.pedirRenovacao(token);
+        expect(depois.statusCode, `${ordem}: a sessão aberta no instante da suspensão renovou depois da reativação`)
+          .toBe(401);
+        expect(desfecho, `${ordem}: a disputa não aconteceu (ninguém ficou esperando a linha do município)`)
+          .toBe("travou");
+      }
+    } finally {
+      await login.query("ROLLBACK").catch(() => undefined);
+      await consoleDb.query("ROLLBACK").catch(() => undefined);
+      await login.end();
+      await consoleDb.end();
+      await reativar();
+      cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
+    }
+  }, 120_000);
 });

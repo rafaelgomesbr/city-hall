@@ -1,0 +1,2593 @@
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index 9e2d411..c548bce 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -23,7 +23,6 @@ que resta, numa linha cada:
+ | --- | --- | --- |
+ | O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
+ | A vigência (conta, papel, sessão) vale na escrita e nos GET marcados como com efeito; a LEITURA PURA confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
+-| A janela de milissegundos entre revogar e abrir sessão na renovação | "A vigência de conta, papel e sessão" | F03-E02 |
+ | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
+ | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
+ | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
+@@ -116,12 +115,45 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
+   coleta na fila.
+ - **Cadeia da sessão:** o token de acesso emitido antes de uma renovação só
+   escreve enquanto a família (`sessoes.familia_id`, migração 047) tem sessão
+-  não revogada. Limite conhecido: entre `revogar_sessao` (a antiga) e
+-  `abrir_sessao` (a nova) da própria renovação a família não tem sessão viva
+-  por alguns milissegundos, e uma escrita com o token antigo nessa janela leva
+-  401 `sessao_encerrada`. A fila do campo (E06) mantém o item pendente e a
+-  pessoa entra de novo; fechar a janela exige renovar numa só transação
+-  (F03-E02, claims enxutas e rotação).
++  não revogada.
++- **Renovação contra encerramento (correção 2 da E07, migração 049):** até
++  aqui a renovação revogava a antiga e abria a nova em DUAS transações, e o
++  instante entre elas tinha dois efeitos. O grave: quem administra (ou a
++  própria pessoa, a troca de senha, o reuso de token) encerrava as sessões
++  nesse instante, não achava nada da cadeia para encerrar, e a renovação abria
++  a nova herdando a família encerrada (a validação de 4b96ea7 viu sessão viva
++  sobrar em 5 de 60 corridas). O benigno: a escrita com o token antigo nesse
++  instante levava 401 `sessao_encerrada`. Uma transação só fecha o benigno,
++  mas NÃO o grave: em READ COMMITTED o UPDATE de quem encerra não enxerga a
++  linha que a renovação inseriu e ainda não confirmou. Por isso a renovação é
++  uma transação só E toma `travar_sessoes_do_usuario` antes de revogar, e
++  todo encerramento em massa toma a mesma trava num comando anterior ao UPDATE
++  (`auth/sessoes.ts`, `revogar_sessoes_do_usuario`, `trocar_senha`,
++  `consumir_recuperacao` e a suspensão do município pelo console,
++  `console_suspender_municipio`, que toma a trava de cada pessoa com sessão
++  de pé). `abrir_sessao` também recusa herdar família encerrada. A ordem das
++  travas é uma só em todo caminho: quem atualiza a linha de `usuarios` o faz
++  antes de tomar a trava; sem isso, a troca de senha pela própria pessoa no
++  mesmo instante da redefinição por quem administra terminava em impasse
++  (`deadlock detected`, um 500), provado em Postgres 17. Provado em
++  `test/renovacao-contra-encerramento.test.ts`: o bloco de PGlite roda
++  sempre; o de Postgres real só com `DC360_POSTGRES_DE_PROVA`, que o job
++  `implantavel` do CI define contra o Postgres 16 do serviço (e reprova se o
++  bloco sair pulado). As disputas seguradas desse bloco só soltam a renovação
++  depois de VER a outra conexão parada na trava (`pg_locks`), e reprovam se
++  ela não parar.
++- **Entrar no mesmo instante da suspensão (consertado na migração 050):** o
++  login abre sessão sem família e não passa pela trava por pessoa, e
++  `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
++  real nas duas ordens (o login primeiro, a suspensão primeiro): a sessão do
++  login escapava da suspensão e, depois da reativação, renovava. A 050 faz o
++  login (só ele) ler a suspensão com `FOR SHARE`, que conflita com o UPDATE de
++  `organizacoes` da suspensão: quem chega segundo espera, e o login ou é
++  recusado (DC367) ou tem a sessão revogada pela suspensão. A renovação
++  continua lendo sem trava de linha, porque ela já segura a trava por pessoa
++  e a linha depois dela fecharia ciclo com a suspensão (que toma a linha
++  antes da trava). Provado no caso 9 de `test/renovacao-contra-encerramento.test.ts`
++  e em `db/test/login-e-suspensao-na-mesma-linha.test.ts`.
+ - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
+   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
+   Entrar e renovar já recusavam.
+@@ -250,10 +282,13 @@ seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
+ mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
+ 
+ **As diferenças entre os dois laudos, para a MESMA vistoria** (a validação de
+-7005a60 gerou os dois e comparou; o bloco "campo por campo" de
+-`test/saida-de-municipio.test.ts` trava o estado abaixo, e reprova se uma
+-diferença some ou se aparece outra, para este texto e o de
+-`docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto):
++7005a60 gerou os dois e comparou, e a de 4b96ea7 achou a assinatura; o bloco
++"campo por campo" de `test/saida-de-municipio.test.ts` trava as diferenças
++abaixo, e reprova se uma das que continuam some, se a deliberada muda ou se
++uma das consertadas volta, para este texto e o de `docs/SAIDA-DE-MUNICIPIO.md` serem atualizados
++junto. Ele NÃO compara o laudo inteiro: olha os títulos das seções, a
++coordenada, a posição da foto avulsa e o bloco da assinatura de quem estava no
++local, e uma diferença nova noutro campo passa por ele):
+ 
+ | Campo | Rota | Pacote | Estado |
+ | --- | --- | --- | --- |
+@@ -262,14 +297,17 @@ diferença some ou se aparece outra, para este texto e o de
+ | Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
+ | Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
+ | Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime | não existe | **continua**, F09-E02 |
+-| Assinatura | confere o prefixo do município e descreve no armazenamento | usa só a chave (a falta vira `PENDENCIAS-DA-EXTRACAO.txt`) | diferença de mecanismo, sem efeito no papel |
++| Assinatura declarada (`assinatura_chave`) e AUSENTE no armazenamento | confere o prefixo do município, descreve o objeto e imprime "Assinatura não coletada" | imprimia uma imagem quebrada em cima do nome de quem estava no local (montava o caminho só pela chave); agora faz as mesmas duas conferências (`conferirAssinatura`) e imprime "Assinatura não coletada", e a falta continua registrada em `PENDENCIAS-DA-EXTRACAO.txt` | **consertada na correção 2 da E12** |
++| Assinatura declarada e o armazenamento SEM RESPOSTA na conferência (`descrever` lança) | trata como ausente (`.catch(() => ({ existe: false }))`) e imprime "Assinatura não coletada" | imprime "Não foi possível conferir a assinatura no armazenamento ao montar este pacote", sem imagem; leva o arquivo se a cópia funcionar, senão o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO | **diferente de propósito** (correção 2 da E12, revisão): a primeira versão mantinha a imagem, e com o provedor caído a cópia falhava junto e o quadro quebrado voltava; afirmar "não coletada" contradiria o próprio pacote, que diz que falta de resposta não é arquivo inexistente |
+ 
+ A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
+ pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
+ defeito que a rota já tinha consertado), e a seção dos registros perdidos
+ some, então o laudo do pacote parece completo sendo incompleto. Por isso
+-`docs/SAIDA-DE-MUNICIPIO.md` não afirma mais que o laudo do pacote diz o mesmo
+-que o emitido: só o aviso de equipe e a coordenada estão provados iguais.
++`docs/SAIDA-DE-MUNICIPIO.md` não afirma que o laudo do pacote diz o mesmo
++que o emitido: só o aviso de equipe, a coordenada e a assinatura que falta no
++armazenamento estão provados iguais, e a do armazenamento sem resposta difere
++de propósito, com a tabela pública dizendo isso.
+ 
+ ## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
+ 
+diff --git a/dc360/apps/api/src/auth/servico.ts b/dc360/apps/api/src/auth/servico.ts
+index 818da3e..5214a78 100644
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts
+@@ -1,6 +1,6 @@
+ import type { Papel } from "@dc360/shared";
+ import type { Config } from "../config.js";
+-import type { Banco } from "../banco/tipos.js";
++import type { Banco, Consulta } from "../banco/tipos.js";
+ import { conferirSenha, gastarTempoEquivalente } from "./senha.js";
+ import {
+   DESAFIO_MINUTOS, emitirAcesso, emitirDesafio, gerarTokenRenovacao, hashDoToken,
+@@ -528,33 +528,49 @@ export function servicoDeAutenticacao(
+   }
+ 
+   /**
+-   * Abre a sessão e emite o par de tokens. `familiaId` só a renovação informa:
+-   * a sessão nova entra na cadeia da que acabou de ser rotacionada. Sem ele é
+-   * um login, e o banco abre uma família nova (migração 047).
++   * Abre a sessão no banco, na transação de quem chama. `familiaId` só a
++   * renovação informa: a sessão nova entra na cadeia da que acabou de ser
++   * rotacionada. Sem ele é um login, e o banco abre uma família nova
++   * (migração 047).
+    */
++  async function abrirSessao(
++    c: Consulta,
++    linha: LinhaCredencial,
++    contexto: { userAgent?: string; ip?: string },
++    renovacao: string,
++    familiaId: string | null,
++  ): Promise<string> {
++    const r = await c.query<{ abrir_sessao: string }>(
++      "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
++      [
++        linha.organizacao_id,
++        linha.usuario_id,
++        hashDoToken(renovacao),
++        `${config.RENOVACAO_DIAS} days`,
++        contexto.userAgent ?? null,
++        contexto.ip ?? null,
++        familiaId,
++      ],
++    );
++    return r.rows[0]!.abrir_sessao;
++  }
++
++  /** Login: abre a sessão (família nova) e emite o par de tokens. */
+   async function emitirPar(
+     linha: LinhaCredencial,
+     contexto: { userAgent?: string; ip?: string },
+-    familiaId: string | null = null,
+   ): Promise<Autenticado> {
+     const renovacao = gerarTokenRenovacao();
++    const sessaoId = await banco.semTenant((c) => abrirSessao(c, linha, contexto, renovacao, null));
++    return montarPar(linha, sessaoId, renovacao);
++  }
+ 
+-    const sessaoId = await banco.semTenant(async (c) => {
+-      const r = await c.query<{ abrir_sessao: string }>(
+-        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
+-        [
+-          linha.organizacao_id,
+-          linha.usuario_id,
+-          hashDoToken(renovacao),
+-          `${config.RENOVACAO_DIAS} days`,
+-          contexto.userAgent ?? null,
+-          contexto.ip ?? null,
+-          familiaId,
+-        ],
+-      );
+-      return r.rows[0]!.abrir_sessao;
+-    });
+-
++  /** O par de tokens de uma sessão já aberta. */
++  async function montarPar(
++    linha: LinhaCredencial,
++    sessaoId: string,
++    renovacao: string,
++  ): Promise<Autenticado> {
+     // Vencida não chega aqui: `entrar` e `renovar` recusam antes. O que sobra
+     // é "provisória e no prazo", que vira a marca no token.
+     const provisoria = linha.senha_provisoria_ate !== null;
+@@ -659,56 +675,85 @@ export function servicoDeAutenticacao(
+       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
+-    /*
+-      A FAMÍLIA da sessão que vai ser rotacionada, lida ANTES da rotação e sob
+-      tenant (`sessoes` está sob RLS, e `sessao_por_token` não a devolve: a
+-      função da 046 não mudou). A sessão nova entra na mesma cadeia, e é isso
+-      que permite à vigência saber que o token de acesso emitido na antiga
+-      ainda pertence a uma cadeia viva (migração 047).
+-    */
+-    const familiaId = await banco.comTenant(sessao.organizacao_id, async (c) => {
+-      const r = await c.query<{ familia_id: string }>(
+-        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
+-      );
+-      return r.rows[0]?.familia_id ?? null;
+-    });
++    const linha: LinhaCredencial = {
++      usuario_id: sessao.usuario_id,
++      organizacao_id: sessao.organizacao_id,
++      nome: sessao.nome,
++      matricula: sessao.matricula,
++      papel: sessao.papel,
++      senha_hash: null,
++      ativo: true,
++      bloqueado_ate: null,
++      senha_provisoria_ate: sessao.senha_provisoria_ate,
++      organizacao_nome: sessao.organizacao_nome,
++      municipio: sessao.municipio,
++      uf: sessao.uf,
++    };
++    const renovacao = gerarTokenRenovacao();
+ 
+     /*
+-      H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leem a sessão
+-      de pé acima; só um consegue revogá-la. `revogar_sessao` devolve quantas
+-      linhas mudou, e ZERO significa que outro pedido acabou de rotacionar
+-      este token. O perdedor ABORTA aqui, sem emitir par nenhum: emitir seria
+-      entregar duas sessões vivas para um token só, e a segunda para quem
+-      chegou depois, que é exatamente o cenário do token roubado.
++      A ROTAÇÃO É UMA TRANSAÇÃO SÓ, E SOB A TRAVA DA PESSOA (V2-F00-E07,
++      correção 2). Até aqui revogar a antiga e abrir a nova eram duas
++      transações, e entre elas a família ficava sem sessão viva: quem
++      administra encerrava as sessões nesse instante, não achava nada da
++      cadeia para encerrar (respondia 200), e a renovação abria a sessão nova
++      herdando a família encerrada. A validação de 4b96ea7 viu sobrar sessão
++      viva em 5 de 60 corridas.
++
++      Uma transação só não basta: em READ COMMITTED o UPDATE de quem encerra
++      não enxerga a linha que esta transação inseriu e ainda não confirmou.
++      Por isso a trava (`travar_sessoes_do_usuario`, migração 049) vem
++      primeiro e só sai no COMMIT, com a sessão nova já aberta, e todo
++      encerramento em massa toma a mesma trava num comando anterior ao UPDATE
++      (`auth/sessoes.ts` e as funções da 049). Quem chega depois espera e
++      encerra também a sessão nova; quem chegou antes faz o `revogar_sessao`
++      abaixo devolver zero, e a renovação desiste sem emitir par.
++
++      De brinde, a escrita com o token de acesso anterior à renovação deixa de
++      cair num instante sem sessão viva na família (a "janela na renovação"
++      que `apps/api/PENDENCIAS.md` registrava): quem lê vê a antiga de pé ou a
++      nova de pé, nunca nenhuma.
+     */
+-    const revogadas = await banco.semTenant(async (c) => {
+-      const r = await c.query<{ revogar_sessao: number }>(
++    const sessaoNova = await banco.comTenant(sessao.organizacao_id, async (c) => {
++      await c.query("SELECT travar_sessoes_do_usuario($1)", [sessao.usuario_id]);
++
++      /*
++        H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leram a
++        sessão de pé acima; só um consegue revogá-la. `revogar_sessao` devolve
++        quantas linhas mudou, e ZERO significa que outro pedido acabou de
++        rotacionar este token (ou que um encerramento chegou antes). O perdedor
++        ABORTA aqui, sem emitir par nenhum: emitir seria entregar duas sessões
++        vivas para um token só, e a segunda para quem chegou depois, que é
++        exatamente o cenário do token roubado.
++      */
++      const revogada = await c.query<{ revogar_sessao: number }>(
+         "SELECT revogar_sessao($1, $2) AS revogar_sessao", [hash, "rotacionada na renovacao"],
+       );
+-      return Number(r.rows[0]?.revogar_sessao ?? 0);
++      if (Number(revogada.rows[0]?.revogar_sessao ?? 0) === 0) return null;
++
++      /*
++        A FAMÍLIA da sessão rotacionada, lida sob tenant (`sessoes` está sob
++        RLS, e `sessao_por_token` não a devolve: a função da 046 não mudou). A
++        sessão nova entra na mesma cadeia, e é isso que permite à vigência
++        saber que o token de acesso emitido na antiga ainda pertence a uma
++        cadeia viva (migração 047).
++      */
++      const familia = await c.query<{ familia_id: string }>(
++        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
++      );
++      return abrirSessao(c, linha, contexto, renovacao, familia.rows[0]?.familia_id ?? null);
++    }).catch((erro: unknown) => {
++      // A segunda barreira (migração 049): `abrir_sessao` recusa herdar família
++      // encerrada. Com a trava não acontece; se acontecer, é sessão encerrada,
++      // e a transação inteira voltou atrás.
++      if ((erro as { code?: unknown }).code === "DC369") return null;
++      throw erro;
+     });
+-    if (revogadas === 0) {
++    if (sessaoNova === null) {
+       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
+-    return emitirPar(
+-      {
+-        usuario_id: sessao.usuario_id,
+-        organizacao_id: sessao.organizacao_id,
+-        nome: sessao.nome,
+-        matricula: sessao.matricula,
+-        papel: sessao.papel,
+-        senha_hash: null,
+-        ativo: true,
+-        bloqueado_ate: null,
+-        senha_provisoria_ate: sessao.senha_provisoria_ate,
+-        organizacao_nome: sessao.organizacao_nome,
+-        municipio: sessao.municipio,
+-        uf: sessao.uf,
+-      },
+-      contexto,
+-      familiaId,
+-    );
++    return montarPar(linha, sessaoNova, renovacao);
+   }
+ 
+   /** Migração 046: provisória e já no passado. */
+diff --git a/dc360/apps/api/src/auth/sessoes.ts b/dc360/apps/api/src/auth/sessoes.ts
+index 5f3a97f..6034a63 100644
+--- a/dc360/apps/api/src/auth/sessoes.ts
++++ b/dc360/apps/api/src/auth/sessoes.ts
+@@ -33,6 +33,18 @@ import type { Consulta } from "../banco/tipos.js";
+  * renovacao so escreve enquanto a cadeia tem sessao viva. Conferido contra
+  * `servidor.ts` e `auth/vigencia.ts` na V2-F00-E22.
+  *
++ * A TRAVA ANTES DO UPDATE (V2-F00-E07, correcao 2, migracao 049)
++ *
++ * Uma renovacao no meio deste encerramento revoga a sessao antiga e abre a
++ * nova. Sem trava comum, o UPDATE abaixo nao via nem uma nem outra (a antiga
++ * ja rotacionada, a nova ainda nao confirmada), respondia que encerrou, e a
++ * renovacao entregava um par novo numa cadeia encerrada. Agora a renovacao
++ * roda numa transacao so sob `travar_sessoes_do_usuario`, e este caminho toma
++ * a mesma trava num comando ANTERIOR ao UPDATE: em READ COMMITTED o UPDATE
++ * seguinte tira fotografia nova e enxerga a sessao que a renovacao acabou de
++ * confirmar. A trava tem de ser outro comando; no mesmo comando do UPDATE a
++ * fotografia ja estaria tirada. Ela so sai no fim da transacao de quem chama.
++ *
+  * @returns quantas sessoes estavam abertas e foram encerradas agora.
+  */
+ export async function encerrarSessoes(
+@@ -53,6 +65,7 @@ export async function encerrarSessoes(
+     preservarSessaoId?: string | null;
+   },
+ ): Promise<number> {
++  await c.query("SELECT travar_sessoes_do_usuario($1)", [alvo.usuarioId]);
+   const r = await c.query<{ id: string }>(
+     `UPDATE sessoes
+         SET revogada_em = now(), motivo_revogacao = $2
+diff --git a/dc360/apps/api/src/auth/vigencia.ts b/dc360/apps/api/src/auth/vigencia.ts
+index 077dbaa..61fa41e 100644
+--- a/dc360/apps/api/src/auth/vigencia.ts
++++ b/dc360/apps/api/src/auth/vigencia.ts
+@@ -31,8 +31,12 @@ import { FalhaAutenticacao } from "./servico.js";
+  * quem cai é a sessão NOVA, e a antiga, já revogada por rotação, continuava
+  * contando como viva. Desde a migração 047 as sessões de uma cadeia
+  * compartilham `familia_id`, e a rotacionada só vale se a família ainda tem
+- * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram: todos
+- * atingem a sessão viva, e isso derruba a cadeia inteira.
++ * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram com a
++ * 047: todos atingem a sessão viva, e isso derruba a cadeia inteira. Desde a
++ * migração 049 eles e a renovação tomam a mesma trava por pessoa
++ * (`travar_sessoes_do_usuario`, ver `auth/sessoes.ts`), e a renovação é uma
++ * transação só: nenhum encerramento cai no meio de uma renovação sem ver a
++ * sessão nova, e a família nunca fica sem sessão de pé no meio da rotação.
+  *
+  * O PAPEL DIFERENTE DO TOKEN NÃO É SESSÃO ENCERRADA. O token continua
+  * legítimo e a sessão está de pé: o que mudou foi o cadastro. A resposta é
+@@ -45,9 +49,10 @@ import { FalhaAutenticacao } from "./servico.js";
+  * papel do banco, então o token velho não escreve com o papel antigo.
+  *
+  * LEITURA PURA NÃO PASSA POR AQUI, e a troca continua a de `auth/suspensao.ts`:
+- * quinze minutos de leitura com token vivo não produzem registro, e o custo
+- * de uma ida ao banco em cada leitura de uma noite de chuva é o que se
+- * compra. As leituras do agente de campo já consultam `usuarios` pela equipe
++ * quinze minutos de leitura com token vivo não praticam ato nem mudam dado do
++ * município (o dossiê e a busca gravam só o registro de que foram lidos, ver
++ * abaixo), e o custo de uma ida ao banco em cada leitura de uma noite de chuva
++ * é o que se compra. As leituras do agente de campo já consultam `usuarios` pela equipe
+  * (`rotas/recorte-do-agente.ts`), mas não a sessão. Fica declarado.
+  *
+  * MAS GET QUE ESCREVE PASSA, e quem decide é a rota, não o método. As rotas
+diff --git a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+new file mode 100644
+index 0000000..949b917
+--- /dev/null
++++ b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+@@ -0,0 +1,819 @@
++import type { FastifyInstance } from "fastify";
++import pg from "pg";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { aplicarMigracoes, carregarMigracoes, carregarSemente } from "@dc360/db";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { bancoPostgres } from "../src/banco/postgres.js";
++import type { Banco, Consulta } from "../src/banco/tipos.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import { derivarSenha } from "../src/auth/senha.js";
++import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
++
++/**
++ * A RENOVAÇÃO NÃO SOBREVIVE A UM ENCERRAMENTO QUE CHEGA NO MEIO DELA
++ * (V2-F00-E07, correção 2).
++ *
++ * O DEFEITO, provado pela validação de 4b96ea7 contra Postgres 18.3: `renovar`
++ * revogava a sessão antiga numa transação e abria a nova em OUTRA. Se quem
++ * administra encerrava as sessões entre as duas, o UPDATE dele não via sessão
++ * viva nenhuma (a antiga já estava rotacionada e a nova ainda não existia),
++ * respondia 200, e a renovação abria a sessão nova herdando a família que
++ * acabara de ser encerrada. Quem tinha o token saía com um par que renovava
++ * por catorze dias, e o token de acesso anterior à renovação voltava a
++ * escrever. Sobrou sessão viva em 5 de 60 corridas.
++ *
++ * O CONSERTO tem duas metades, e este arquivo cobra as duas:
++ *
++ * 1. UMA TRANSAÇÃO. Revogar a antiga e abrir a nova são confirmadas juntas:
++ *    não existe mais o instante em que a família está sem sessão viva. É o
++ *    que o primeiro bloco prova, no Postgres em WebAssembly, que serializa as
++ *    transações e por isso não precisa de nada além disso para passar.
++ * 2. UMA TRAVA POR PESSOA. Só a transação única não basta no Postgres de
++ *    verdade: em READ COMMITTED, o UPDATE de quem encerra não enxerga a linha
++ *    que uma transação ainda aberta inseriu. A renovação e todo encerramento
++ *    em massa (quem administra, a própria pessoa, a troca de senha, o reuso de
++ *    token, a desativação, o link de recuperação, a suspensão do município
++ *    pelo console) tomam a mesma trava (`travar_sessoes_do_usuario`, migração
++ *    049) num comando ANTERIOR ao UPDATE, e o UPDATE seguinte enxerga a sessão
++ *    nova. É o que o segundo bloco prova, com conexões reais disputando. Ele
++ *    prova também que a trava não traz impasse (deadlock) entre a troca de
++ *    senha pela própria pessoa e a redefinição por quem administra.
++ * 3. O LOGIN NO MESMO INSTANTE DA SUSPENSÃO (migração 050, revisão da
++ *    correção 2). O login não passa pela trava por pessoa (abre família
++ *    nova), e lia a suspensão do município sem trava: a sessão dele podia
++ *    escapar da suspensão e voltar a valer na reativação. A 050 faz o login
++ *    ler a suspensão com `FOR SHARE`; o caso 9 do segundo bloco disputa as
++ *    duas ordens.
++ *
++ * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
++ * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
++ * `pg_locks`, a outra conexão parada esperando trava. Antes ela era solta
++ * depois de um tempo fixo, e numa máquina carregada o caso podia passar verde
++ * sem ter disputado nada.
++ *
++ * O QUE NÃO PODE MUDAR, e também é cobrado aqui: a rotação não é expulsão. O
++ * token de acesso emitido antes da renovação continua escrevendo pelos seus
++ * quinze minutos, inclusive DURANTE a renovação (antes, a escrita que caía na
++ * janela entre as duas transações levava 401 `sessao_encerrada`).
++ *
++ * POR QUE O SEGUNDO BLOCO SÓ RODA COM POSTGRES: o PGlite tem uma conexão só e
++ * serializa as transações, então ele não reproduz a corrida que a trava
++ * resolve. O bloco pede `DC360_POSTGRES_DE_PROVA` com a URL de um servidor
++ * descartável onde o teste possa criar banco (`CREATE DATABASE`): cria um
++ * `prova_c2_<sorteio>`, aplica as migrações, semeia, roda e apaga no fim. Sem
++ * a variável ele é pulado por ambiente (política T42, `skipIf`).
++ */
++
++const SENHA = "defesa-civil-2026";
++const SENHA_NOVA = "outra-senha-bem-forte-2026";
++const HELENA = "11111111-1111-4111-8111-0000000000d1";
++const OC_ALFA_1 = "11111111-1111-4111-8111-0000000000c1";
++const EMAIL_HELENA = "helena.coutinho@serraalta.exemplo.gov.br";
++const EMAIL_RITA = "rita.lopes@serraalta.exemplo.gov.br";
++const URL_DE_PROVA = process.env.DC360_POSTGRES_DE_PROVA ?? "";
++
++type Par = { acesso: string; renovacao: string };
++type Chamada = { sql: string; params?: readonly unknown[] };
++
++/**
++ * O GRAMPO: uma casca sobre o `Banco` que deixa o teste segurar a renovação
++ * num ponto exato, sem mexer em uma linha do código de produção.
++ *
++ * - `antes` roda antes de cada consulta, e pode segurar ali (dentro da
++ *   transação, com o que ela já travou).
++ * - `depois` roda depois do COMMIT de cada transação, com o que ela executou,
++ *   e pode segurar ali (fora de qualquer transação).
++ */
++type Grampo = {
++  antes?: (chamada: Chamada) => Promise<void>;
++  depois?: (chamadas: Chamada[]) => Promise<void>;
++};
++
++function grampear(banco: Banco, grampo: { atual: Grampo | null }): Banco {
++  function embrulhar<T>(
++    abrir: (execucao: (c: Consulta) => Promise<T>) => Promise<T>,
++    execucao: (c: Consulta) => Promise<T>,
++  ): Promise<T> {
++    const chamadas: Chamada[] = [];
++    const resultado = abrir((c) => execucao({
++      query: async <R>(sql: string, params?: readonly unknown[]) => {
++        chamadas.push({ sql, params });
++        await grampo.atual?.antes?.({ sql, params });
++        return c.query<R>(sql, params);
++      },
++    }));
++    return resultado.then(async (r) => {
++      await grampo.atual?.depois?.(chamadas);
++      return r;
++    });
++  }
++  return {
++    comTenant: (org, execucao) => embrulhar((e) => banco.comTenant(org, e), execucao),
++    semTenant: (execucao) => embrulhar((e) => banco.semTenant(e), execucao),
++    encerrar: () => banco.encerrar(),
++  };
++}
++
++/** A transação revogou um token por rotação (é a renovação). */
++const rotacionou = (chamadas: Chamada[]) =>
++  chamadas.some((c) => c.sql.includes("revogar_sessao(") && c.params?.[1] === "rotacionada na renovacao");
++
++/** A consulta abre a sessão nova HERDANDO uma família (só a renovação faz isso). */
++const abreHerdando = (c: Chamada) => c.sql.includes("abrir_sessao(") && c.params?.[6] != null;
++
++function esperar(ms: number): Promise<void> {
++  return new Promise((r) => setTimeout(r, ms));
++}
++
++function sinal() {
++  let disparar!: () => void;
++  const disparado = new Promise<void>((r) => { disparar = r; });
++  return { disparado, disparar };
++}
++
++/** O cenário montado, igual para os dois bancos: muda só de onde vêm as conexões. */
++type Cenario = {
++  app: FastifyInstance;
++  grampo: { atual: Grampo | null };
++  bruto: (sql: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
++  tokenRita: string;
++};
++
++function auxiliares(cenario: () => Cenario) {
++  const com = (t: string) => ({ authorization: `Bearer ${t}` });
++
++  async function entrar(email = EMAIL_HELENA, senha = SENHA): Promise<Par> {
++    const r = await cenario().app.inject({ method: "POST", url: "/auth/entrar", payload: { email, senha } });
++    if (r.statusCode !== 200) throw new Error(`login falhou: ${r.body}`);
++    return { acesso: r.json().acesso, renovacao: r.json().renovacao };
++  }
++
++  function pedirRenovacao(renovacao: string) {
++    return cenario().app.inject({ method: "POST", url: "/auth/renovar", payload: { renovacao } });
++  }
++
++  function escrever(token: string) {
++    return cenario().app.inject({
++      method: "POST", url: `/ocorrencias/${OC_ALFA_1}/coordenada`, headers: com(token),
++      payload: { coordenada: { lat: -22.41, lng: -45.45 }, motivo: "Ponto conferido no local pela equipe." },
++    });
++  }
++
++  /**
++   * Sessões de pé na CADEIA de quem renovou (a família do login `h`). Conta
++   * a cadeia, e não a pessoa, porque dois dos encerramentos preservam de
++   * propósito a sessão de quem clicou (encerrar as outras e trocar a senha).
++   */
++  async function sessoesVivasDaCadeia(h: Par): Promise<number> {
++    const r = await cenario().bruto(
++      `SELECT count(*)::int AS n FROM sessoes
++        WHERE revogada_em IS NULL
++          AND familia_id = (SELECT familia_id FROM sessoes WHERE token_hash = $1)`,
++      [hashDoToken(h.renovacao)],
++    );
++    return Number(r.rows[0]!.n);
++  }
++
++  async function restaurarHelena(): Promise<void> {
++    await cenario().bruto(
++      "UPDATE usuarios SET ativo = true, senha_provisoria_ate = NULL, senha_hash = $2, falhas_login = 0, bloqueado_ate = NULL WHERE id = $1",
++      [HELENA, await derivarSenha(SENHA)],
++    );
++  }
++
++  /**
++   * Os quatro encerramentos em massa que a renovação disputa. `preparar` roda
++   * antes da disputa (e devolve o que o encerramento precisa); `disparar` é o
++   * pedido concorrente; `esperado` é o status dele.
++   */
++  type Encerramento = {
++    nome: string;
++    preparar: (h: Par) => Promise<{ disparar: () => ReturnType<FastifyInstance["inject"]>; renovar: string }>;
++    esperado: number;
++    depois?: () => Promise<void>;
++  };
++
++  const encerramentos: Encerramento[] = [
++    {
++      nome: "quem administra encerra as sessões da pessoa",
++      preparar: async (h) => ({
++        renovar: h.renovacao,
++        disparar: () => cenario().app.inject({
++          method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: com(cenario().tokenRita),
++        }),
++      }),
++      esperado: 200,
++    },
++    {
++      nome: "a própria pessoa encerra as outras sessões, de outro aparelho",
++      preparar: async (h) => {
++        const painel = await entrar();
++        return {
++          renovar: h.renovacao,
++          disparar: () => cenario().app.inject({
++            method: "POST", url: "/auth/encerrar-sessoes", headers: com(painel.acesso),
++          }),
++        };
++      },
++      esperado: 200,
++    },
++    {
++      nome: "a pessoa troca a senha em outro aparelho",
++      preparar: async (h) => {
++        const quemTroca = await entrar();
++        return {
++          renovar: h.renovacao,
++          disparar: () => cenario().app.inject({
++            method: "POST", url: "/auth/trocar-senha", headers: com(quemTroca.acesso),
++            payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
++          }),
++        };
++      },
++      esperado: 200,
++      depois: restaurarHelena,
++    },
++    {
++      nome: "um token de renovação já gasto reaparece (reuso)",
++      preparar: async (h) => {
++        // A cadeia já rotacionou uma vez: `h.renovacao` é o token gasto.
++        const legitimo = await pedirRenovacao(h.renovacao);
++        if (legitimo.statusCode !== 200) throw new Error(`renovação de preparo falhou: ${legitimo.body}`);
++        return {
++          renovar: legitimo.json().renovacao,
++          disparar: () => pedirRenovacao(h.renovacao),
++        };
++      },
++      esperado: 401,
++    },
++  ];
++
++  /**
++   * O que tem de valer depois da disputa, qualquer que tenha sido a ordem: o
++   * encerramento respondeu o que promete, nenhuma sessão da pessoa ficou de
++   * pé, o par que a renovação eventualmente entregou não renova nem escreve,
++   * e o token de acesso de antes da renovação também não escreve.
++   */
++  async function exigirCadeiaMorta(
++    encerramento: { statusCode: number; body: string },
++    esperado: number,
++    renovacao: { statusCode: number; json: () => { acesso: string; renovacao: string } },
++    h: Par,
++  ): Promise<void> {
++    expect(encerramento.statusCode, encerramento.body).toBe(esperado);
++    expect(await sessoesVivasDaCadeia(h), "sobrou sessão viva numa cadeia encerrada").toBe(0);
++    if (renovacao.statusCode === 200) {
++      const par = renovacao.json();
++      const outra = await pedirRenovacao(par.renovacao);
++      expect(outra.statusCode, "o par entregue no meio do encerramento ainda renova").toBe(401);
++      const escrita = await escrever(par.acesso);
++      expect(escrita.statusCode, "o token entregue no meio do encerramento ainda escreve").toBe(401);
++    }
++    const antiga = await escrever(h.acesso);
++    expect(antiga.statusCode, "o token de antes da renovação voltou a escrever").toBe(401);
++  }
++
++  return { entrar, pedirRenovacao, escrever, sessoesVivasDaCadeia, restaurarHelena, encerramentos, exigirCadeiaMorta };
++}
++
++function configDeTeste() {
++  return carregarConfig({
++    NODE_ENV: "test",
++    JWT_SEGREDO: "segredo-da-renovacao-contra-encerramento-32b!",
++    LOGIN_POR_IP: "10000",
++  } as NodeJS.ProcessEnv);
++}
++
++// ---------------------------------------------------------------------------
++// 1. Postgres em WebAssembly: a transação única.
++// ---------------------------------------------------------------------------
++
++describe("Renovação e encerramento no mesmo instante: a renovação é UMA transação", () => {
++  let mem: BancoEmMemoria;
++  let cen: Cenario;
++  const grampo: { atual: Grampo | null } = { atual: null };
++  const a = auxiliares(() => cen);
++
++  beforeAll(async () => {
++    mem = await bancoEmMemoria({ semear: true });
++    const app = await construirServidor({
++      banco: grampear(mem.banco, grampo), config: configDeTeste(),
++      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++    });
++    await app.ready();
++    cen = {
++      app, grampo, tokenRita: "",
++      bruto: async (sql, params) => {
++        const r = await mem.bruto.query<Record<string, unknown>>(sql, params);
++        return { rows: r.rows };
++      },
++    };
++    cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
++  }, 180_000);
++
++  afterAll(async () => {
++    await cen?.app.close();
++    await mem?.banco.encerrar();
++  });
++
++  /*
++    A DISPUTA, em ordem fixa: a renovação confirma a transação em que
++    rotacionou e é SEGURADA logo depois do COMMIT; o encerramento roda inteiro
++    nesse instante; só então a renovação segue. Com revogar e abrir em
++    transações separadas, esse instante é exatamente o buraco (a família sem
++    sessão viva) e o encerramento não acha o que encerrar. Com a transação
++    única, quando a renovação confirma a sessão nova já existe, e o
++    encerramento a derruba.
++  */
++  for (const [i, enc] of a.encerramentos.entries()) {
++    it(`${i + 1}. ${enc.nome}: nenhuma sessão da cadeia sobrevive`, async () => {
++      const h = await a.entrar();
++      const disputa = await enc.preparar(h);
++      const janela = sinal();
++      const solta = sinal();
++      grampo.atual = {
++        depois: async (chamadas) => {
++          if (!rotacionou(chamadas)) return;
++          janela.disparar();
++          await solta.disparado;
++        },
++      };
++      try {
++        const renovacao = a.pedirRenovacao(disputa.renovar);
++        await janela.disparado;
++        const encerramento = await disputa.disparar();
++        solta.disparar();
++        grampo.atual = null;
++        await a.exigirCadeiaMorta(encerramento, enc.esperado, await renovacao, h);
++      } finally {
++        solta.disparar();
++        grampo.atual = null;
++        await enc.depois?.();
++      }
++    }, 120_000);
++  }
++
++  it("5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar", async () => {
++    const h = await a.entrar();
++    const janela = sinal();
++    const solta = sinal();
++    grampo.atual = {
++      depois: async (chamadas) => {
++        if (!rotacionou(chamadas)) return;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    try {
++      const renovacao = a.pedirRenovacao(h.renovacao);
++      await janela.disparado;
++      // Antes: a antiga já revogada, a nova ainda não aberta, e a escrita
++      // legítima levava 401 `sessao_encerrada` (a "janela na renovação").
++      const escrita = await a.escrever(h.acesso);
++      solta.disparar();
++      grampo.atual = null;
++      expect(escrita.statusCode, escrita.body).toBe(200);
++      const r = await renovacao;
++      expect(r.statusCode, r.body).toBe(200);
++      expect((await a.escrever(r.json().acesso)).statusCode).toBe(200);
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++    }
++  });
++});
++
++// ---------------------------------------------------------------------------
++// 2. Postgres de verdade: a trava comum.
++// ---------------------------------------------------------------------------
++
++describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a trava comum por pessoa", () => {
++  let cen: Cenario;
++  let banco: Banco;
++  let cliente: pg.Client;
++  let nomeDoBanco = "";
++  const grampo: { atual: Grampo | null } = { atual: null };
++  const a = auxiliares(() => cen);
++
++  function urlDoBanco(nome: string): string {
++    const u = new URL(URL_DE_PROVA);
++    u.pathname = `/${nome}`;
++    return u.toString();
++  }
++
++  beforeAll(async () => {
++    nomeDoBanco = `prova_c2_${Math.random().toString(36).slice(2, 10)}`;
++    const admin = new pg.Client({ connectionString: URL_DE_PROVA });
++    await admin.connect();
++    await admin.query(`CREATE DATABASE ${nomeDoBanco}`);
++    await admin.end();
++
++    cliente = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
++    await cliente.connect();
++    await aplicarMigracoes(
++      {
++        query: async <T>(sql: string, params?: readonly unknown[]) => {
++          const r = await cliente.query(sql, params ? [...params] : undefined);
++          return { rows: r.rows as T[] };
++        },
++        exec: (sql: string) => cliente.query(sql),
++      },
++      carregarMigracoes(),
++    );
++    await cliente.query(carregarSemente());
++
++    banco = bancoPostgres(urlDoBanco(nomeDoBanco), { maximoConexoes: 8 });
++    const app = await construirServidor({
++      banco: grampear(banco, grampo), config: configDeTeste(),
++      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++    });
++    await app.ready();
++    cen = {
++      app, grampo, tokenRita: "",
++      bruto: async (sql, params) => {
++        const r = await cliente.query(sql, params);
++        return { rows: r.rows };
++      },
++    };
++    cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
++  }, 180_000);
++
++  afterAll(async () => {
++    await cen?.app.close();
++    await banco?.encerrar();
++    await cliente?.end();
++    if (nomeDoBanco) {
++      const admin = new pg.Client({ connectionString: URL_DE_PROVA });
++      await admin.connect();
++      await admin.query(`DROP DATABASE IF EXISTS ${nomeDoBanco} WITH (FORCE)`);
++      await admin.end();
++    }
++  });
++
++  /** Quantas conexões DESTE banco estão paradas esperando trava agora. */
++  async function esperandoTrava(tipo: "advisory" | null): Promise<number> {
++    const r = await cen.bruto(
++      `SELECT count(*)::int AS n FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
++        WHERE NOT l.granted AND a.datname = current_database()
++          AND ($1::text IS NULL OR l.locktype = $1::text)`,
++      [tipo],
++    );
++    return Number(r.rows[0]!.n);
++  }
++
++  /**
++   * O que aconteceu primeiro com o pedido disputado: ele ficou PARADO numa
++   * trava (alguma conexão deste banco com `granted = false` em `pg_locks`) ou
++   * TERMINOU sem esperar ninguém. "nenhum" depois do prazo.
++   *
++   * É o que faz uma disputa segurada provar alguma coisa. Até a revisão da
++   * correção 2 a renovação era solta 300 ms depois de o encerramento ENVIAR o
++   * comando (ou 10 s depois, calada, se ele nem chegasse); numa máquina
++   * carregada o encerramento podia chegar à trava depois de a renovação já
++   * ter confirmado, e o caso passava verde sem ter disputado nada.
++   */
++  async function travouOuTerminou(
++    pedido: Promise<unknown>, tipo: "advisory" | null, prazoMs = 15_000,
++  ): Promise<"travou" | "terminou" | "nenhum"> {
++    let terminou = false;
++    void pedido.then(() => { terminou = true; }, () => { terminou = true; });
++    const ate = Date.now() + prazoMs;
++    while (Date.now() < ate) {
++      if (await esperandoTrava(tipo) > 0) return "travou";
++      if (terminou) return "terminou";
++      await esperar(20);
++    }
++    return "nenhum";
++  }
++
++  /** Reprova se o pedido disputado não ficou parado na trava. */
++  async function exigirQueTravou(quem: string, pedido: Promise<unknown>, tipo: "advisory" | null): Promise<void> {
++    const desfecho = await travouOuTerminou(pedido, tipo);
++    expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esperando trava enquanto o outro lado estava segurado`)
++      .toBe("travou");
++  }
++
++  /*
++    A DISPUTA, segurando a renovação DENTRO da transação, entre revogar a
++    antiga e abrir a nova (com tudo o que ela já travou). O encerramento é
++    disparado nesse instante, e a renovação só é solta quando o teste VÊ o
++    encerramento parado na trava consultiva da pessoa (`pg_locks`). Sem a
++    trava ele terminaria sem ver a sessão que ainda vai nascer, e o caso
++    reprova por isso; com ela, ele espera a renovação confirmar e a encerra.
++  */
++  for (const [i, enc] of a.encerramentos.entries()) {
++    it(`${i + 1}. ${enc.nome}: nenhuma sessão da cadeia sobrevive`, async () => {
++      const h = await a.entrar();
++      const disputa = await enc.preparar(h);
++      const janela = sinal();
++      const solta = sinal();
++      let segurando = false;
++      grampo.atual = {
++        antes: async (chamada) => {
++          if (!abreHerdando(chamada) || segurando) return;
++          segurando = true;
++          janela.disparar();
++          await solta.disparado;
++        },
++      };
++      const pendentes: Promise<unknown>[] = [];
++      try {
++        const renovacao = a.pedirRenovacao(disputa.renovar);
++        pendentes.push(renovacao);
++        await janela.disparado;
++        const encerramento = disputa.disparar();
++        pendentes.push(encerramento);
++        await exigirQueTravou(`o encerramento (${enc.nome})`, encerramento, "advisory");
++        solta.disparar();
++        const [e, r] = await Promise.all([encerramento, renovacao]);
++        grampo.atual = null;
++        await a.exigirCadeiaMorta(e, enc.esperado, r, h);
++      } finally {
++        solta.disparar();
++        grampo.atual = null;
++        await Promise.allSettled(pendentes);
++        await enc.depois?.();
++      }
++    }, 120_000);
++  }
++
++  it("5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve", async () => {
++    const h = await a.entrar();
++    const janela = sinal();
++    const solta = sinal();
++    let segurando = false;
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (!abreHerdando(chamada) || segurando) return;
++        segurando = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    try {
++      const renovacao = a.pedirRenovacao(h.renovacao);
++      await janela.disparado;
++      const escrita = await a.escrever(h.acesso);
++      solta.disparar();
++      expect(escrita.statusCode, escrita.body).toBe(200);
++      const r = await renovacao;
++      expect(r.statusCode, r.body).toBe(200);
++      expect((await a.escrever(r.json().acesso)).statusCode).toBe(200);
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++    }
++  });
++
++  /*
++    Sem grampo nenhum: a disputa do validador (renovar e encerrar ao mesmo
++    tempo, com atraso sorteado de 0 a 3,5 ms), repetida 60 vezes. Em 4b96ea7
++    sobrou sessão viva em 5 de 60.
++  */
++  it("6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas", async () => {
++    const sobreviventes: number[] = [];
++    for (let rodada = 0; rodada < 60; rodada += 1) {
++      const h = await a.entrar();
++      const atraso = Math.random() * 3.5;
++      const [, enc] = await Promise.all([
++        a.pedirRenovacao(h.renovacao),
++        esperar(atraso).then(() => cen.app.inject({
++          method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`,
++          headers: { authorization: `Bearer ${cen.tokenRita}` },
++        })),
++      ]);
++      expect(enc.statusCode, enc.body).toBe(200);
++      if (await a.sessoesVivasDaCadeia(h) > 0) {
++        sobreviventes.push(rodada);
++        // Limpa para a rodada seguinte medir só ela.
++        await cen.bruto(
++          "UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'limpeza do teste' WHERE usuario_id = $1 AND revogada_em IS NULL",
++          [HELENA],
++        );
++      }
++    }
++    expect(sobreviventes, `rodadas com sessão viva depois do encerrar: ${sobreviventes.join(", ")}`).toEqual([]);
++  }, 300_000);
++
++  /*
++    A TRAVA NÃO PODE TRAZER IMPASSE (deadlock). Quem administra redefine a
++    senha da pessoa: atualiza `usuarios` e só depois encerra as sessões (toma
++    a trava). Se `trocar_senha` tomasse a trava ANTES de atualizar `usuarios`,
++    as duas transações se esperariam em ordem inversa e o Postgres mataria uma
++    delas (40P01, um 500 para quem clicou). A ordem que vale em todo caminho é
++    a linha de `usuarios` primeiro e a trava depois. A disputa segura a
++    redefinição entre o UPDATE de `usuarios` e a trava, dispara a troca de
++    senha pela própria pessoa, e só solta quando o teste VÊ a troca parada
++    esperando a linha de `usuarios` que a redefinição segura (`pg_locks`).
++    Desde a revisão da correção 2 o caso exige que a disputa aconteça: sem a
++    trava da 049 não há onde segurar a redefinição, e ele reprova.
++  */
++  it("7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse", async () => {
++    const quemTroca = await a.entrar();
++    const janela = sinal();
++    const solta = sinal();
++    let segurando = false;
++    let viuUpdate = false;
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (/UPDATE usuarios\s+SET senha_hash/.test(chamada.sql)) viuUpdate = true;
++        if (!viuUpdate || segurando || !chamada.sql.includes("travar_sessoes_do_usuario(")) return;
++        segurando = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    const pendentes: Promise<unknown>[] = [];
++    try {
++      const redefinicao = cen.app.inject({
++        method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`,
++        headers: { authorization: `Bearer ${cen.tokenRita}` },
++      });
++      pendentes.push(redefinicao);
++      const primeiro = await Promise.race([
++        janela.disparado.then(() => "segurou" as const),
++        redefinicao.then(() => "terminou" as const),
++      ]);
++      expect(primeiro, "a disputa não aconteceu: a redefinição terminou sem passar pela trava da pessoa").toBe("segurou");
++      const troca = cen.app.inject({
++        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${quemTroca.acesso}` },
++        payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
++      });
++      pendentes.push(troca);
++      // A troca passa pela vigência com a sessão de pé e para na linha de
++      // `usuarios` que a redefinição segura (trava de transação, não consultiva).
++      await exigirQueTravou("a troca de senha pela própria pessoa", troca, null);
++      solta.disparar();
++      const [r1, r2] = await Promise.all([redefinicao, troca]);
++      grampo.atual = null;
++      expect(r1.statusCode, `redefinição: ${r1.body}`).toBe(200);
++      expect(r2.statusCode, `troca de senha: ${r2.body}`).toBe(200);
++      expect(await a.sessoesVivasDaCadeia(quemTroca), "a sessão de quem trocou sobreviveu à redefinição").toBe(0);
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++      await Promise.allSettled(pendentes);
++      await a.restaurarHelena();
++    }
++  }, 120_000);
++
++  /** O dono do console (há um só), cadastrado na primeira vez que um caso pede. */
++  async function donoDoConsole(): Promise<string> {
++    const dono = await cen.bruto(
++      `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel)
++       VALUES ('dono.da.prova@fornecedor.exemplo', 'scrypt$' || repeat('a', 90), 'v1.prova', 'dono')
++       ON CONFLICT DO NOTHING RETURNING id`,
++    );
++    return String(dono.rows[0]?.id
++      ?? (await cen.bruto("SELECT id FROM console_operadores WHERE papel = 'dono'")).rows[0]!.id);
++  }
++
++  async function municipioDaHelena(): Promise<string> {
++    return String((await cen.bruto("SELECT organizacao_id FROM usuarios WHERE id = $1", [HELENA])).rows[0]!.organizacao_id);
++  }
++
++  /*
++    A SUSPENSÃO DO MUNICÍPIO PELO CONSOLE também é encerramento em massa
++    (`console_suspender_municipio`, migração 038): revoga toda sessão do
++    município. Sem a trava, ela tem o mesmo buraco que o "encerrar sessões":
++    o UPDATE dela esbarra na sessão antiga que a renovação está rotacionando,
++    espera, e quando a renovação confirma ele pula a antiga (já revogada) e não
++    enxerga a nova. A nova sobrevive à suspensão, e no dia da reativação
++    renova como se nada tivesse acontecido. Este caso e o 9 ficam no fim do
++    bloco porque a suspensão derruba também a sessão da administradora (o
++    `finally` entra de novo com ela).
++  */
++  it("8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova", async () => {
++    const h = await a.entrar();
++    const operador = await donoDoConsole();
++    const org = await municipioDaHelena();
++    const janela = sinal();
++    const solta = sinal();
++    let segurando = false;
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (!abreHerdando(chamada) || segurando) return;
++        segurando = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    const consoleDb = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
++    await consoleDb.connect();
++    try {
++      const renovacao = a.pedirRenovacao(h.renovacao);
++      await janela.disparado;
++      const suspensao = (async () => {
++        await consoleDb.query("BEGIN");
++        await consoleDb.query("SELECT set_config('app.console_operador', $1, true)", [operador]);
++        await consoleDb.query("SELECT console_suspender_municipio($1, 'prova da corrida com a renovacao')", [org]);
++        await consoleDb.query("COMMIT");
++      })();
++      // A suspensão chega ao banco e fica presa na trava da pessoa que está
++      // renovando. Sem a trava ela esbarraria na sessão antiga (trava de
++      // linha, não consultiva) e o caso reprova aqui.
++      await exigirQueTravou("a suspensão pelo console", suspensao, "advisory");
++      solta.disparar();
++      const r = await renovacao;
++      await suspensao;
++      grampo.atual = null;
++      expect(await a.sessoesVivasDaCadeia(h), "sobrou sessão viva depois da suspensão").toBe(0);
++
++      await cen.bruto(
++        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++      );
++      if (r.statusCode === 200) {
++        const depois = await a.pedirRenovacao(r.json().renovacao);
++        expect(depois.statusCode, "o par entregue no meio da suspensão renova depois da reativação").toBe(401);
++      }
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++      await consoleDb.end();
++      await cen.bruto(
++        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++      );
++      cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
++    }
++  }, 120_000);
++
++  /*
++    O LOGIN NO MESMO INSTANTE DA SUSPENSÃO (migração 050). O login abre
++    família nova e não passa pela trava por pessoa; até a 050 `abrir_sessao`
++    lia a suspensão do município com um SELECT comum, que não espera ninguém
++    (a chave estrangeira de `sessoes` só pede FOR KEY SHARE na linha do
++    município, e isso não conflita com o UPDATE da suspensão). Nas duas ordens
++    a sessão do login escapava da suspensão e, depois da reativação, renovava.
++
++    A disputa é feita direto no banco, em duas conexões, porque o instante que
++    importa é DENTRO da transação do login (entre abrir a sessão e confirmar),
++    e o login da API é uma transação de uma consulta só. A conexão do login
++    faz o que `emitirPar` (`auth/servico.ts`) faz: `abrir_sessao` sem família,
++    com o hash de um token de renovação de verdade, que no fim o teste tenta
++    renovar pela API.
++
++    O caso exige que a disputa aconteça: com a 050, quem chega segundo fica
++    parado na linha do município (e o teste VÊ isso em `pg_locks`); sem ela,
++    ninguém espera ninguém, a sessão sobrevive e o caso reprova pela renovação.
++  */
++  it("9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova", async () => {
++    const operador = await donoDoConsole();
++    const org = await municipioDaHelena();
++    const login = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
++    const consoleDb = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
++    await login.connect();
++    await consoleDb.connect();
++    const abrir = (token: string) => login.query(
++      "SELECT abrir_sessao($1,$2,$3, interval '14 days', NULL, NULL, NULL) AS id", [org, HELENA, hashDoToken(token)],
++    );
++    const suspender = () => consoleDb.query(
++      "SELECT console_suspender_municipio($1, 'prova do login no mesmo instante')", [org],
++    );
++    const reativar = () => cen.bruto(
++      "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++    );
++    try {
++      for (const ordem of ["o login abre primeiro", "a suspensão chega primeiro"] as const) {
++        const token = gerarTokenRenovacao();
++        await consoleDb.query("BEGIN");
++        await consoleDb.query("SELECT set_config('app.console_operador', $1, true)", [operador]);
++        await login.query("BEGIN");
++        let desfecho: Awaited<ReturnType<typeof travouOuTerminou>>;
++        if (ordem === "o login abre primeiro") {
++          await abrir(token);
++          // A suspensão tem de parar na linha do município que o login travou.
++          const suspensao = suspender();
++          desfecho = await travouOuTerminou(suspensao, null);
++          await login.query("COMMIT");
++          await suspensao;
++          await consoleDb.query("COMMIT");
++        } else {
++          await suspender();
++          // O login tem de parar na linha do município que a suspensão travou,
++          // e, quando ela confirma, ler a suspensão e recusar (DC367).
++          const tentativa = abrir(token).then(() => "abriu", (e: { code?: string }) => e.code ?? "erro");
++          desfecho = await travouOuTerminou(tentativa, null);
++          await consoleDb.query("COMMIT");
++          const resultado = await tentativa;
++          await login.query(resultado === "abriu" ? "COMMIT" : "ROLLBACK");
++          if (resultado !== "abriu") expect(resultado, `${ordem}: a recusa do login`).toBe("DC367");
++        }
++
++        await reativar();
++        const depois = await a.pedirRenovacao(token);
++        expect(depois.statusCode, `${ordem}: a sessão aberta no instante da suspensão renovou depois da reativação`)
++          .toBe(401);
++        expect(desfecho, `${ordem}: a disputa não aconteceu (ninguém ficou esperando a linha do município)`)
++          .toBe("travou");
++      }
++    } finally {
++      await login.query("ROLLBACK").catch(() => undefined);
++      await consoleDb.query("ROLLBACK").catch(() => undefined);
++      await login.end();
++      await consoleDb.end();
++      await reativar();
++      cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
++    }
++  }, 120_000);
++});
+diff --git a/dc360/db/migrations/049_renovacao_e_encerramento_na_mesma_trava.sql b/dc360/db/migrations/049_renovacao_e_encerramento_na_mesma_trava.sql
+new file mode 100644
+index 0000000..8b3eb9f
+--- /dev/null
++++ b/dc360/db/migrations/049_renovacao_e_encerramento_na_mesma_trava.sql
+@@ -0,0 +1,355 @@
++-- =====================================================================
++-- 049: a renovacao e todo encerramento em massa das sessoes de uma pessoa
++--      passam pela MESMA trava, e `abrir_sessao` recusa herdar familia
++--      encerrada.
++--
++-- O DEFEITO (V2-F00-E07, rodada 2 da validacao, provado em Postgres 18.3).
++-- A renovacao revoga a sessao antiga (`revogar_sessao`) e abre a nova
++-- (`abrir_sessao`, migracao 047) herdando a familia. Se quem administra
++-- encerra as sessoes da pessoa no meio, o UPDATE dele procura sessao com
++-- `revogada_em IS NULL` e nao acha nada daquela cadeia: a antiga ja foi
++-- rotacionada e a nova ainda nao existe (ou existe numa transacao que ainda
++-- nao confirmou, e em READ COMMITTED o UPDATE nao a enxerga). Ele responde
++-- 200, a renovacao abre a sessao nova, e quem tinha o token sai com um par
++-- que renova por catorze dias. Sobrou sessao viva em 5 de 60 corridas.
++--
++-- A CORRECAO, em duas pecas que so funcionam juntas:
++--
++--   1. `travar_sessoes_do_usuario(uuid)`: uma trava consultiva de transacao
++--      (`pg_advisory_xact_lock`) por pessoa. A renovacao a toma ANTES de
++--      revogar a antiga e so a solta no COMMIT, com a nova ja aberta (a API
++--      faz as tres coisas numa transacao so, `auth/servico.ts`). Todo
++--      encerramento em massa a toma num comando ANTERIOR ao UPDATE: em READ
++--      COMMITTED cada comando de uma funcao VOLATILE tira fotografia nova, e
++--      o UPDATE que vem depois da trava enxerga a sessao que a renovacao
++--      acabou de confirmar. Se o encerramento chega primeiro, a renovacao
++--      espera, e o `revogar_sessao` dela devolve zero (a sessao ja foi
++--      encerrada), o que a faz desistir sem emitir par.
++--      Tomam a trava aqui dentro: `revogar_sessoes_do_usuario` (reuso de
++--      token, desativacao), `trocar_senha` (troca pela propria pessoa),
++--      `consumir_recuperacao` (link de email) e `console_suspender_municipio`
++--      (suspensao pelo fornecedor, que revoga o municipio inteiro e por isso
++--      toma a trava de cada pessoa com sessao de pe). O UPDATE direto de
++--      `auth/sessoes.ts` (quem administra, a propria pessoa, a redefinicao
++--      por quem administra) a toma pela API, no comando anterior.
++--
++--      A ORDEM DAS TRAVAS, para nao haver impasse (deadlock): quem atualiza a
++--      linha da pessoa em `usuarios` o faz ANTES de tomar a trava, em todo
++--      caminho. A desativacao e a redefinicao por quem administra ja eram
++--      assim (UPDATE de `usuarios` e depois o encerramento); `trocar_senha` e
++--      `consumir_recuperacao` tomavam a trava primeiro, e a troca de senha pela
++--      propria pessoa no mesmo instante da redefinicao por quem administra
++--      terminava em `deadlock detected` (40P01, um 500), provado em Postgres
++--      17. A renovacao toma a trava e nao atualiza `usuarios` (a chave
++--      estrangeira de `sessoes` so pede FOR KEY SHARE, que nao conflita com o
++--      UPDATE de quem esta na frente).
++--   2. `abrir_sessao` recusa herdar familia ENCERRADA: a que tem sessao
++--      revogada por qualquer motivo que nao seja a rotacao. Com a trava isso
++--      nao acontece; a recusa e a segunda barreira, no banco, para o dia em
++--      que um caminho novo abrir sessao herdando familia sem a trava. A
++--      mensagem e a mesma das outras recusas da 047 (DC369): nao diz qual
++--      condicao falhou.
++--
++-- O QUE NAO MUDA
++--
++--   - A rotacao nao e expulsao: a sessao rotacionada continua valendo para o
++--     token de acesso emitido nela enquanto a cadeia tem sessao de pe
++--     (`auth/vigencia.ts`). E, com a renovacao numa transacao so, nao existe
++--     mais o instante em que a familia fica sem sessao viva: a escrita com o
++--     token anterior que caia nesse instante deixa de levar 401.
++--   - Nenhuma funcao SECURITY DEFINER nova: a trava e uma funcao comum
++--     (SECURITY INVOKER) e as outras cinco sao recriadas com a mesma
++--     assinatura, o mesmo dono e as mesmas permissoes (`CREATE OR REPLACE`
++--     preserva o GRANT). O teto de 27 de `db/test/isolamento.test.ts` nao
++--     muda.
++--   - Nenhuma tabela, coluna ou policy nova.
++--
++-- ORDEM DE IMPLANTACAO: migre ANTES de implantar a API nova. A API nova chama
++-- `travar_sessoes_do_usuario`, que nao existe num banco sem a 049: todo
++-- encerramento e toda renovacao falhariam. O contrario e seguro: a API antiga
++-- contra o banco migrado continua funcionando (as funcoes tem a mesma
++-- assinatura e a renovacao normal nunca herda familia encerrada), so que sem
++-- o conserto da corrida ate a API nova subir.
++--
++-- Idempotente: so `CREATE OR REPLACE`, `REVOKE` e `GRANT`. Migracao aplicada
++-- nunca e editada (`HistoricoAlterado`): reverter e uma migracao nova.
++-- =====================================================================
++
++-- ---------------------------------------------------------------------
++-- 1. A trava.
++--
++-- Duas chaves inteiras (o espaco de `pg_advisory_xact_lock(int, int)`), e nao
++-- uma `bigint`: a trava do varredor de push (`push/trava.ts`) usa a forma de
++-- uma chave so, e as duas formas nunca colidem. A primeira chave diz de que e
++-- a trava; a segunda, de quem. Colisao de `hashtext` entre duas pessoas so
++-- faz uma esperar a outra por milissegundos, nunca libera nada indevido.
++-- ---------------------------------------------------------------------
++CREATE OR REPLACE FUNCTION travar_sessoes_do_usuario(p_usuario_id uuid)
++RETURNS void
++LANGUAGE plpgsql
++VOLATILE
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  PERFORM pg_advisory_xact_lock(hashtext('dc360.sessoes_do_usuario'), hashtext(p_usuario_id::text));
++END;
++$$;
++
++COMMENT ON FUNCTION travar_sessoes_do_usuario(uuid) IS
++  'Trava de transacao por pessoa que serializa a renovacao de sessao e todo encerramento em massa das sessoes dela (migracao 049). Tomada num comando anterior ao UPDATE, para o UPDATE enxergar a sessao que uma renovacao acabou de confirmar.';
++
++REVOKE ALL ON FUNCTION travar_sessoes_do_usuario(uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION travar_sessoes_do_usuario(uuid) TO dc360_app;
++
++-- ---------------------------------------------------------------------
++-- 2. Os encerramentos em massa que moram no banco tomam a trava.
++-- ---------------------------------------------------------------------
++
++-- Reuso de token roubado e desativacao da conta (002).
++CREATE OR REPLACE FUNCTION revogar_sessoes_do_usuario(p_usuario_id uuid, p_motivo text)
++RETURNS integer
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_afetadas integer;
++BEGIN
++  PERFORM travar_sessoes_do_usuario(p_usuario_id);
++
++  UPDATE sessoes
++     SET revogada_em = now(), motivo_revogacao = p_motivo
++   WHERE usuario_id = p_usuario_id AND revogada_em IS NULL;
++  GET DIAGNOSTICS v_afetadas = ROW_COUNT;
++  RETURN v_afetadas;
++END;
++$$;
++
++-- Troca de senha pela propria pessoa (005). A trava vem DEPOIS do UPDATE de
++-- `usuarios` e antes do de `sessoes` (a ordem do cabecalho).
++CREATE OR REPLACE FUNCTION trocar_senha(
++  p_usuario_id uuid,
++  p_senha_hash text,
++  p_sessao_preservada uuid
++) RETURNS void
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  UPDATE usuarios
++     SET senha_hash = p_senha_hash, falhas_login = 0, bloqueado_ate = NULL
++   WHERE id = p_usuario_id;
++
++  PERFORM travar_sessoes_do_usuario(p_usuario_id);
++
++  UPDATE sessoes
++     SET revogada_em = now(), motivo_revogacao = 'senha trocada pelo proprio usuario'
++   WHERE sessoes.usuario_id = p_usuario_id
++     AND revogada_em IS NULL
++     AND (p_sessao_preservada IS NULL OR id <> p_sessao_preservada);
++END;
++$$;
++
++-- Redefinicao pelo link de email (005). A trava entra depois do UPDATE de
++-- `usuarios` e antes do de `sessoes` (a ordem do cabecalho).
++CREATE OR REPLACE FUNCTION consumir_recuperacao(p_token_hash text, p_senha_hash text)
++RETURNS TABLE (usuario_id uuid, organizacao_id uuid)
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_rec recuperacoes_senha%ROWTYPE;
++BEGIN
++  SELECT * INTO v_rec FROM recuperacoes_senha r
++   WHERE r.token_hash = p_token_hash
++     AND r.usada_em IS NULL
++     AND r.expira_em > now()
++   FOR UPDATE;
++
++  IF NOT FOUND THEN
++    RETURN;
++  END IF;
++
++  UPDATE recuperacoes_senha SET usada_em = now() WHERE id = v_rec.id;
++
++  UPDATE usuarios
++     SET senha_hash = p_senha_hash,
++         falhas_login = 0,
++         bloqueado_ate = NULL
++   WHERE id = v_rec.usuario_id;
++
++  PERFORM travar_sessoes_do_usuario(v_rec.usuario_id);
++
++  UPDATE sessoes
++     SET revogada_em = now(), motivo_revogacao = 'senha redefinida'
++   WHERE sessoes.usuario_id = v_rec.usuario_id AND revogada_em IS NULL;
++
++  RETURN QUERY SELECT v_rec.usuario_id, v_rec.organizacao_id;
++END;
++$$;
++
++-- Suspensao do municipio pelo fornecedor (038). A mesma funcao, mais a trava
++-- de cada pessoa que tem sessao de pe, num comando ANTERIOR ao UPDATE de
++-- `sessoes`. Sem ela, o UPDATE esbarrava na sessao antiga que uma renovacao
++-- estava rotacionando, esperava a renovacao confirmar, pulava a antiga (ja
++-- revogada) e nao enxergava a nova: a sessao nova sobrevivia a suspensao e,
++-- no dia da reativacao, renovava como se nada tivesse acontecido (provado em
++-- Postgres 17). A pergunta "quem tem sessao de pe" ve a sessao antiga ainda
++-- viva (a rotacao nao confirmou), entao a pessoa que esta renovando sempre
++-- entra na lista. A ordem e a do id, e duas suspensoes do mesmo municipio ja
++-- se enfileiram antes, no UPDATE de `organizacoes`.
++CREATE OR REPLACE FUNCTION console_suspender_municipio(p_org uuid, p_motivo text)
++RETURNS integer
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++SET row_security = off
++AS $$
++DECLARE
++  v_motivo    text := trim(p_motivo);
++  v_email     text;
++  v_nome      text;
++  v_ja_estava timestamptz;
++  v_revogadas integer;
++BEGIN
++  IF NOT console_operador_e_dono() THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'insufficient_privilege',
++      MESSAGE = 'So o dono do console suspende o acesso de um municipio.',
++      DETAIL  = 'O operador da sessao nao e o dono, ou nao ha operador no contexto.';
++  END IF;
++  IF v_motivo IS NULL OR v_motivo = '' THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC361',
++      MESSAGE = 'Suspender exige motivo.',
++      DETAIL  = 'O motivo vai para a trilha do municipio e para a tela de quem for reativar.';
++  END IF;
++
++  SELECT email INTO v_email FROM console_operadores WHERE id = console_operador_atual();
++
++  SELECT municipio || '/' || uf, acesso_suspenso_em INTO v_nome, v_ja_estava
++    FROM organizacoes WHERE id = p_org AND eliminada_em IS NULL;
++  IF v_nome IS NULL THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC364',
++      MESSAGE = format('Nao ha municipio ativo com o id %s.', p_org);
++  END IF;
++
++  /*
++    Idempotente: suspender de novo mantem a data original e atualiza o motivo.
++    `console_agendar_eliminacao` chama esta funcao, e o municipio pode ja
++    estar suspenso quando o dono decide eliminar.
++  */
++  UPDATE organizacoes
++     SET acesso_suspenso_em = COALESCE(acesso_suspenso_em, now()),
++         suspensao_motivo   = v_motivo
++   WHERE id = p_org;
++
++  PERFORM travar_sessoes_do_usuario(s.usuario_id)
++     FROM (SELECT DISTINCT usuario_id FROM sessoes
++            WHERE organizacao_id = p_org AND revogada_em IS NULL
++            ORDER BY usuario_id) s;
++
++  /*
++    Revoga TODAS as sessoes do municipio, para ninguem continuar renovando
++    token. Mesma escrita de `revogar_sessoes_do_usuario` (002), so que pela
++    organizacao inteira. `abrir_sessao` recusa sessao nova enquanto a
++    suspensao durar (ver a parte 6).
++  */
++  UPDATE sessoes
++     SET revogada_em = now(), motivo_revogacao = 'acesso suspenso pelo fornecedor'
++   WHERE organizacao_id = p_org AND revogada_em IS NULL;
++  GET DIAGNOSTICS v_revogadas = ROW_COUNT;
++
++  IF v_ja_estava IS NULL THEN
++    INSERT INTO trilha_administrativa
++      (organizacao_id, autor_id, autor_nome, autor_papel, acao, alvo_tipo, alvo_id, alvo_nome, depois)
++    VALUES
++      (p_org, NULL, v_email, 'operador_da_plataforma', 'acesso_suspenso_pelo_fornecedor',
++       'organizacao', p_org, v_nome,
++       jsonb_build_object('motivo', v_motivo, 'sessoes_revogadas', v_revogadas));
++  END IF;
++
++  RETURN v_revogadas;
++END;
++$$;
++
++-- ---------------------------------------------------------------------
++-- 3. abrir_sessao: a mesma da 047, mais a recusa de familia encerrada.
++-- ---------------------------------------------------------------------
++CREATE OR REPLACE FUNCTION abrir_sessao(
++  p_organizacao_id uuid,
++  p_usuario_id uuid,
++  p_token_hash text,
++  p_duracao interval,
++  p_user_agent text,
++  p_ip text,
++  p_familia_id uuid DEFAULT NULL
++) RETURNS uuid
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_id uuid := gen_random_uuid();
++  v_suspenso timestamptz;
++BEGIN
++  SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id;
++  IF v_suspenso IS NOT NULL THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC367',
++      MESSAGE = 'O acesso deste municipio esta suspenso pelo fornecedor.',
++      DETAIL  = format('Suspenso desde %s. Nenhuma sessao nova abre ate a reativacao.', v_suspenso);
++  END IF;
++
++  -- Herdar familia so da familia que existe, do mesmo usuario e do mesmo
++  -- municipio, E que nao foi encerrada. Encerrada e a familia com alguma
++  -- sessao revogada por motivo que nao seja a rotacao: a renovacao so revoga
++  -- por rotacao, e qualquer outro motivo (quem administra, a propria pessoa,
++  -- sair, reuso, troca de senha, desativacao, suspensao) encerra a cadeia
++  -- inteira. A mensagem nao diz qual das condicoes falhou. O usuario e o
++  -- municipio repetidos na segunda pergunta nao mudam a resposta (uma familia
++  -- e sempre de uma pessoa so, e esta funcao e a unica que herda), mas deixam
++  -- o indice `sessoes_usuario_idx` (002) atender a busca, em vez de varrer a
++  -- tabela inteira a cada renovacao.
++  IF p_familia_id IS NOT NULL AND (
++       NOT EXISTS (
++         SELECT 1 FROM sessoes
++          WHERE familia_id = p_familia_id
++            AND usuario_id = p_usuario_id
++            AND organizacao_id = p_organizacao_id
++       )
++    OR EXISTS (
++         SELECT 1 FROM sessoes
++          WHERE familia_id = p_familia_id
++            AND usuario_id = p_usuario_id
++            AND organizacao_id = p_organizacao_id
++            AND revogada_em IS NOT NULL
++            AND motivo_revogacao IS DISTINCT FROM 'rotacionada na renovacao'
++       )
++  ) THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC369',
++      MESSAGE = 'A familia de sessao informada nao existe para este usuario.';
++  END IF;
++
++  INSERT INTO sessoes (id, organizacao_id, usuario_id, token_hash, expira_em, user_agent, ip, familia_id)
++  VALUES (v_id, p_organizacao_id, p_usuario_id, p_token_hash, now() + p_duracao,
++          left(coalesce(p_user_agent, ''), 400), nullif(p_ip, '')::inet,
++          coalesce(p_familia_id, v_id));
++  RETURN v_id;
++END;
++$$;
++
++REVOKE ALL ON FUNCTION abrir_sessao(uuid, uuid, text, interval, text, text, uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION abrir_sessao(uuid, uuid, text, interval, text, text, uuid) TO dc360_app;
++REVOKE ALL ON FUNCTION revogar_sessoes_do_usuario(uuid, text) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION revogar_sessoes_do_usuario(uuid, text) TO dc360_app;
++REVOKE ALL ON FUNCTION trocar_senha(uuid, text, uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION trocar_senha(uuid, text, uuid) TO dc360_app;
++REVOKE ALL ON FUNCTION consumir_recuperacao(text, text) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION consumir_recuperacao(text, text) TO dc360_app;
++REVOKE ALL ON FUNCTION console_suspender_municipio(uuid, text) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION console_suspender_municipio(uuid, text) TO dc360_console;
+diff --git a/dc360/db/test/renovacao-e-encerramento-na-mesma-trava.test.ts b/dc360/db/test/renovacao-e-encerramento-na-mesma-trava.test.ts
+new file mode 100644
+index 0000000..0b90292
+--- /dev/null
++++ b/dc360/db/test/renovacao-e-encerramento-na-mesma-trava.test.ts
+@@ -0,0 +1,393 @@
++/**
++ * A MIGRAÇÃO 049: a renovação e todo encerramento em massa passam pela mesma
++ * trava, e `abrir_sessao` recusa herdar família encerrada (V2-F00-E07,
++ * correção 2).
++ *
++ * A disputa de verdade (duas conexões, uma segurando a trava) não cabe aqui:
++ * o PGlite tem uma conexão só. Ela está em
++ * `apps/api/test/renovacao-contra-encerramento.test.ts` (bloco de Postgres
++ * real) e na sonda arquivada na evidência da correção. Este arquivo cobra do
++ * BANCO o que dá para cobrar sem concorrência:
++ *
++ *  - a migração aplica sobre um banco que já tem sessões, sem tocar nelas;
++ *  - `travar_sessoes_do_usuario` existe, NÃO é SECURITY DEFINER, fixa o
++ *    `search_path`, e só o papel de aplicação a executa;
++ *  - o número de funções SECURITY DEFINER não mudou (teto de 27 de
++ *    `isolamento.test.ts`);
++ *  - cada encerramento em massa que mora no banco (`revogar_sessoes_do_usuario`,
++ *    `trocar_senha`, `consumir_recuperacao`) toma a MESMA trava que a função
++ *    de trava toma, e a trava some no fim da transação;
++ *  - `trocar_senha` e `consumir_recuperacao` atualizam `usuarios` ANTES de
++ *    tomar a trava (a ordem que evita o impasse com a redefinição por quem
++ *    administra; o impasse em si só aparece com duas conexões, no bloco de
++ *    Postgres real do teste da API);
++ *  - a suspensão pelo console toma a trava de cada pessoa com sessão de pé e
++ *    continua executável só pelo papel do console;
++ *  - a ORDEM, medida durante a execução por um gatilho de comando: no instante
++ *    do UPDATE de `sessoes` a trava já está tomada, e no do UPDATE de
++ *    `usuarios` ainda não (revisão da correção 2);
++ *  - `abrir_sessao` herda a família só rotacionada e recusa a encerrada, com
++ *    o mesmo código e a mesma mensagem das recusas da 047, sem gravar nada.
++ */
++import { PGlite } from "@electric-sql/pglite";
++import { readFileSync, readdirSync } from "node:fs";
++import { fileURLToPath } from "node:url";
++import { dirname, join } from "node:path";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++
++const aqui = dirname(fileURLToPath(import.meta.url));
++const pasta = join(aqui, "..", "migrations");
++const arquivos = readdirSync(pasta).filter((f) => f.endsWith(".sql")).sort();
++const ARQUIVO_049 = "049_renovacao_e_encerramento_na_mesma_trava.sql";
++const ate048 = arquivos.filter((f) => f < ARQUIVO_049);
++const sql = (f: string) => readFileSync(join(pasta, f), "utf8");
++
++let db: PGlite;
++let org = "";
++let usuario = "";
++let outro = "";
++let sessoesAntes: unknown[] = [];
++let definersAntes = 0;
++
++async function contarDefiners(): Promise<number> {
++  const r = await db.query<{ n: number }>(
++    `SELECT count(*)::int AS n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
++      WHERE n.nspname = 'public' AND p.prosecdef`,
++  );
++  return r.rows[0]!.n;
++}
++
++async function lerSessoes(): Promise<unknown[]> {
++  return (await db.query(
++    "SELECT id, familia_id, revogada_em, motivo_revogacao FROM sessoes ORDER BY token_hash",
++  )).rows;
++}
++
++async function abrir(hash: string, familia: string | null = null, quem = usuario): Promise<string> {
++  const r = await db.query<{ id: string }>(
++    "SELECT abrir_sessao($1,$2,$3, interval '1 day', NULL, NULL, $4) AS id", [org, quem, hash, familia],
++  );
++  return r.rows[0]!.id;
++}
++
++async function recusa(consulta: string, valores: unknown[]): Promise<{ code?: string; message: string }> {
++  try {
++    await db.query(consulta, valores);
++  } catch (erro) {
++    return erro as { code?: string; message: string };
++  }
++  throw new Error("a consulta deveria ter sido recusada");
++}
++
++/** As travas consultivas que ESTA conexão segura agora, como texto comparável. */
++async function travasSeguras(tx: { query: PGlite["query"] }): Promise<string[]> {
++  const r = await tx.query<{ chave: string }>(
++    `SELECT classid::text || '/' || objid::text || '/' || objsubid::text AS chave
++       FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid() ORDER BY 1`,
++  );
++  return r.rows.map((l) => l.chave);
++}
++
++beforeAll(async () => {
++  db = new PGlite();
++  for (const f of ate048) await db.exec(sql(f));
++
++  org = (await db.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('DC A','Serra Alta','MG') RETURNING id",
++  )).rows[0]!.id;
++  const criar = async (email: string, matricula: string) => (await db.query<{ id: string }>(
++    `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, senha_hash)
++     VALUES ($1, 'Pessoa de Teste', $2, $3, 'coordenador', 'x') RETURNING id`,
++    [org, matricula, email],
++  )).rows[0]!.id;
++  usuario = await criar("a1@exemplo.gov.br", "A-1");
++  outro = await criar("a2@exemplo.gov.br", "A-2");
++
++  // Sessões que existem ANTES da 049: uma cadeia viva, uma rotacionada, uma encerrada.
++  await abrir("antes-viva");
++  const raiz = await abrir("antes-raiz");
++  await db.query("SELECT revogar_sessao('antes-raiz', 'rotacionada na renovacao')");
++  await abrir("antes-renovada", raiz);
++  await abrir("antes-encerrada");
++  await db.query("SELECT revogar_sessao('antes-encerrada', 'sessoes encerradas por quem administra')");
++
++  sessoesAntes = await lerSessoes();
++  definersAntes = await contarDefiners();
++  await db.exec(sql(ARQUIVO_049));
++}, 180_000);
++
++afterAll(async () => { await db.close(); });
++
++describe("A migração 049 sobre um banco que já tem sessões", () => {
++  it("não toca em sessão nenhuma", async () => {
++    expect(await lerSessoes()).toEqual(sessoesAntes);
++  });
++
++  it("é idempotente: rodar o texto de novo não falha nem muda nada", async () => {
++    await db.exec(sql(ARQUIVO_049));
++    expect(await lerSessoes()).toEqual(sessoesAntes);
++    expect(await contarDefiners()).toBe(definersAntes);
++  });
++});
++
++describe("A trava e as permissões", () => {
++  it("o número de funções SECURITY DEFINER não mudou", async () => {
++    expect(await contarDefiners()).toBe(definersAntes);
++  });
++
++  it("travar_sessoes_do_usuario não é privilegiada, fixa o search_path e só o papel de aplicação a executa", async () => {
++    const f = await db.query<{ prosecdef: boolean; config: string[] | null }>(
++      "SELECT prosecdef, proconfig AS config FROM pg_proc WHERE proname = 'travar_sessoes_do_usuario'",
++    );
++    expect(f.rows).toHaveLength(1);
++    expect(f.rows[0]!.prosecdef).toBe(false);
++    expect((f.rows[0]!.config ?? []).join(";")).toMatch(/search_path=/);
++    const pode = async (papel: string) => (await db.query<{ pode: boolean }>(
++      `SELECT has_function_privilege('${papel}', 'travar_sessoes_do_usuario(uuid)', 'EXECUTE') AS pode`,
++    )).rows[0]!.pode;
++    expect(await pode("dc360_app")).toBe(true);
++    expect(await pode("public")).toBe(false);
++    expect(await pode("dc360_console")).toBe(false);
++  });
++
++  it("as quatro funções recriadas continuam executáveis só pelo papel de aplicação", async () => {
++    for (const assinatura of [
++      "abrir_sessao(uuid,uuid,text,interval,text,text,uuid)",
++      "revogar_sessoes_do_usuario(uuid,text)",
++      "trocar_senha(uuid,text,uuid)",
++      "consumir_recuperacao(text,text)",
++    ]) {
++      const r = await db.query<{ app: boolean; publico: boolean; definer: boolean }>(
++        `SELECT has_function_privilege('dc360_app', '${assinatura}', 'EXECUTE') AS app,
++                has_function_privilege('public', '${assinatura}', 'EXECUTE') AS publico,
++                (SELECT prosecdef FROM pg_proc WHERE oid = '${assinatura}'::regprocedure) AS definer`,
++      );
++      expect(r.rows[0], assinatura).toEqual({ app: true, publico: false, definer: true });
++    }
++  });
++
++  it("cada encerramento em massa do banco toma a MESMA trava da renovação, e ela some no COMMIT", async () => {
++    // A chave que a renovação toma (pela função de trava, como a API chama).
++    const chave = await db.transaction(async (tx) => {
++      await tx.query("SELECT travar_sessoes_do_usuario($1)", [usuario]);
++      return travasSeguras(tx);
++    });
++    expect(chave).toHaveLength(1);
++    expect(await travasSeguras(db), "a trava sobreviveu ao fim da transação").toEqual([]);
++
++    await db.query(
++      `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
++       VALUES ($1, $2, 'link-da-prova', now() + interval '1 hour')`, [org, usuario],
++    );
++    const encerramentos: [string, string, unknown[]][] = [
++      ["revogar_sessoes_do_usuario", "SELECT revogar_sessoes_do_usuario($1, 'reuso de token de renovacao')", [usuario]],
++      ["trocar_senha", "SELECT trocar_senha($1, 'hash-novo', NULL)", [usuario]],
++      ["consumir_recuperacao", "SELECT * FROM consumir_recuperacao('link-da-prova', 'hash-do-link')", []],
++    ];
++    for (const [nome, consulta, valores] of encerramentos) {
++      const seguras = await db.transaction(async (tx) => {
++        await tx.query(consulta, valores);
++        return travasSeguras(tx);
++      });
++      expect(seguras, `${nome} não toma a trava da renovação`).toEqual(chave);
++      expect(await travasSeguras(db), `${nome}: a trava sobreviveu ao COMMIT`).toEqual([]);
++    }
++
++    // A trava é por pessoa: a de outra pessoa é outra chave.
++    const deOutro = await db.transaction(async (tx) => {
++      await tx.query("SELECT travar_sessoes_do_usuario($1)", [outro]);
++      return travasSeguras(tx);
++    });
++    expect(deOutro).toHaveLength(1);
++    expect(deOutro).not.toEqual(chave);
++  });
++
++  it("quem atualiza a linha de usuarios o faz ANTES de tomar a trava (sem impasse com a redefinição por quem administra)", async () => {
++    for (const funcao of ["trocar_senha(uuid,text,uuid)", "consumir_recuperacao(text,text)"]) {
++      const def = (await db.query<{ def: string }>(
++        `SELECT pg_get_functiondef('${funcao}'::regprocedure) AS def`,
++      )).rows[0]!.def;
++      const atualiza = def.indexOf("UPDATE usuarios");
++      const trava = def.indexOf("travar_sessoes_do_usuario(");
++      const encerra = def.indexOf("UPDATE sessoes");
++      expect(atualiza, funcao).toBeGreaterThan(-1);
++      expect(trava, `${funcao}: a trava vem antes do UPDATE de usuarios`).toBeGreaterThan(atualiza);
++      expect(encerra, `${funcao}: a trava vem depois do UPDATE de sessoes`).toBeGreaterThan(trava);
++    }
++  });
++
++  it("a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console", async () => {
++    const r = await db.query<{ console: boolean; app: boolean; publico: boolean; definer: boolean }>(
++      `SELECT has_function_privilege('dc360_console', 'console_suspender_municipio(uuid,text)', 'EXECUTE') AS console,
++              has_function_privilege('dc360_app', 'console_suspender_municipio(uuid,text)', 'EXECUTE') AS app,
++              has_function_privilege('public', 'console_suspender_municipio(uuid,text)', 'EXECUTE') AS publico,
++              (SELECT prosecdef FROM pg_proc WHERE oid = 'console_suspender_municipio(uuid,text)'::regprocedure) AS definer`,
++    );
++    expect(r.rows[0]).toEqual({ console: true, app: false, publico: false, definer: true });
++
++    const chaveDe = (quem: string) => db.transaction(async (tx) => {
++      await tx.query("SELECT travar_sessoes_do_usuario($1)", [quem]);
++      return travasSeguras(tx);
++    });
++    const chaveDoUsuario = await chaveDe(usuario);
++    const chaveDoOutro = await chaveDe(outro);
++    // As duas pessoas com sessão de pé (o teste anterior encerrou as da primeira).
++    await abrir("sessao-do-usuario", null, usuario);
++    await abrir("sessao-do-outro", null, outro);
++
++    const dono = (await db.query<{ id: string }>(
++      `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel)
++       VALUES ('dono.da.prova@fornecedor.exemplo', 'scrypt$' || repeat('a', 90), 'v1.prova', 'dono') RETURNING id`,
++    )).rows[0]!.id;
++    try {
++      const seguras = await db.transaction(async (tx) => {
++        await tx.query("SELECT set_config('app.console_operador', $1, true)", [dono]);
++        await tx.query("SELECT console_suspender_municipio($1, 'prova da trava')", [org]);
++        return travasSeguras(tx);
++      });
++      expect(seguras).toEqual([...chaveDoUsuario, ...chaveDoOutro].sort());
++      expect(await travasSeguras(db), "a trava sobreviveu ao COMMIT da suspensão").toEqual([]);
++    } finally {
++      await db.query(
++        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++      );
++    }
++  });
++
++  /*
++    A ORDEM, medida durante a execução, e não só no texto da função (revisão
++    da correção 2). Os casos acima conferem quais travas a transação segura NO
++    FIM; isso passaria também com a trava tomada DEPOIS do UPDATE de
++    `sessoes`, e aí ela não serve para nada: o UPDATE já rodou com a
++    fotografia que não enxerga a sessão que a renovação vai confirmar. Aqui um
++    gatilho de comando (BEFORE UPDATE ... FOR EACH STATEMENT, que dispara
++    mesmo quando o UPDATE não acha linha) anota as travas consultivas que a
++    conexão segura no instante exato de cada UPDATE de `sessoes` e de
++    `usuarios`. O gatilho é da prova e sai no fim.
++  */
++  it("a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios", async () => {
++    // O dono do console que o caso anterior cadastrou (há um só).
++    const dono = (await db.query<{ id: string }>(
++      "SELECT id FROM console_operadores WHERE papel = 'dono'",
++    )).rows[0]!.id;
++    await db.exec(`
++      CREATE TABLE prova_ordem_das_travas (n serial PRIMARY KEY, tabela text NOT NULL, travas text[] NOT NULL);
++      CREATE FUNCTION prova_anotar_travas() RETURNS trigger LANGUAGE plpgsql
++      SET search_path = public, pg_temp AS $$
++      BEGIN
++        INSERT INTO prova_ordem_das_travas (tabela, travas)
++        SELECT TG_TABLE_NAME, coalesce(array_agg(classid::text || '/' || objid::text || '/' || objsubid::text ORDER BY 1), '{}')
++          FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid();
++        RETURN NULL;
++      END $$;
++      CREATE TRIGGER prova_anotar_travas_sessoes BEFORE UPDATE ON sessoes
++        FOR EACH STATEMENT EXECUTE FUNCTION prova_anotar_travas();
++      CREATE TRIGGER prova_anotar_travas_usuarios BEFORE UPDATE ON usuarios
++        FOR EACH STATEMENT EXECUTE FUNCTION prova_anotar_travas();
++    `);
++    const chaveDe = async (quem: string) => (await db.transaction(async (tx) => {
++      await tx.query("SELECT travar_sessoes_do_usuario($1)", [quem]);
++      return travasSeguras(tx);
++    }))[0]!;
++    const chave = await chaveDe(usuario);
++    const chaveDoOutro = await chaveDe(outro);
++    const anotacoes = async () => (await db.query<{ tabela: string; travas: string[] }>(
++      "SELECT tabela, travas FROM prova_ordem_das_travas ORDER BY n",
++    )).rows.map((l) => ({ tabela: l.tabela, travas: [...l.travas].sort() }));
++    const medir = async (consulta: string, valores: unknown[]) => {
++      await db.exec("TRUNCATE prova_ordem_das_travas");
++      await db.transaction(async (tx) => {
++        await tx.query("SELECT set_config('app.console_operador', $1, true)", [dono]);
++        await tx.query(consulta, valores);
++      });
++      return anotacoes();
++    };
++
++    try {
++      await abrir("ordem-1", null, usuario);
++      expect(await medir("SELECT revogar_sessoes_do_usuario($1, 'usuario desativado')", [usuario]))
++        .toEqual([{ tabela: "sessoes", travas: [chave] }]);
++
++      await abrir("ordem-2", null, usuario);
++      expect(await medir("SELECT trocar_senha($1, 'hash-da-ordem', NULL)", [usuario])).toEqual([
++        { tabela: "usuarios", travas: [] },
++        { tabela: "sessoes", travas: [chave] },
++      ]);
++
++      await abrir("ordem-3", null, usuario);
++      await db.query(
++        `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
++         VALUES ($1, $2, 'link-da-ordem', now() + interval '1 hour')`, [org, usuario],
++      );
++      expect(await medir("SELECT * FROM consumir_recuperacao('link-da-ordem', 'hash-do-link-da-ordem')", [])).toEqual([
++        { tabela: "usuarios", travas: [] },
++        { tabela: "sessoes", travas: [chave] },
++      ]);
++
++      await abrir("ordem-4", null, usuario);
++      await abrir("ordem-5", null, outro);
++      expect(await medir("SELECT console_suspender_municipio($1, 'prova da ordem')", [org]))
++        .toEqual([{ tabela: "sessoes", travas: [chave, chaveDoOutro].sort() }]);
++    } finally {
++      await db.exec(`
++        DROP TRIGGER prova_anotar_travas_sessoes ON sessoes;
++        DROP TRIGGER prova_anotar_travas_usuarios ON usuarios;
++        DROP FUNCTION prova_anotar_travas();
++        DROP TABLE prova_ordem_das_travas;
++      `);
++      await db.query(
++        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++      );
++    }
++  });
++});
++
++describe("abrir_sessao recusa herdar família encerrada", () => {
++  it("a família só rotacionada (a renovação no mesmo instante) é herdada", async () => {
++    const raiz = await abrir("cadeia-viva-raiz");
++    await db.query("SELECT revogar_sessao('cadeia-viva-raiz', 'rotacionada na renovacao')");
++    const filha = await abrir("cadeia-viva-filha", raiz);
++    const r = await db.query<{ familia_id: string }>("SELECT familia_id FROM sessoes WHERE id = $1", [filha]);
++    expect(r.rows[0]!.familia_id).toBe(raiz);
++  });
++
++  it("a família encerrada por qualquer outro motivo é recusada com a mesma mensagem da família que não existe, e nada é gravado", async () => {
++    const inexistente = await recusa(
++      "SELECT abrir_sessao($1,$2,'invasora-0', interval '1 day', NULL, NULL, $3)",
++      [org, usuario, "99999999-9999-4999-8999-999999999999"],
++    );
++    expect(inexistente.code).toBe("DC369");
++
++    for (const motivo of [
++      "sessoes encerradas por quem administra",
++      "encerradas pelo proprio usuario",
++      "saida do usuario",
++      "reuso de token de renovacao",
++      "senha trocada pelo proprio usuario",
++      "usuario desativado",
++      "acesso suspenso pelo fornecedor",
++    ]) {
++      const hash = `encerrada-${motivo.replace(/\s+/g, "-")}`;
++      const raiz = await abrir(`${hash}-raiz`);
++      await db.query("SELECT revogar_sessao($1, 'rotacionada na renovacao')", [`${hash}-raiz`]);
++      const viva = await abrir(`${hash}-viva`, raiz);
++      await db.query("UPDATE sessoes SET revogada_em = now(), motivo_revogacao = $2 WHERE id = $1", [viva, motivo]);
++
++      const e = await recusa(
++        "SELECT abrir_sessao($1,$2,$3, interval '1 day', NULL, NULL, $4)", [org, usuario, `${hash}-ressuscitada`, raiz],
++      );
++      expect(e.code, motivo).toBe("DC369");
++      expect(e.message, motivo).toBe(inexistente.message);
++    }
++    const gravadas = await db.query<{ n: number }>(
++      "SELECT count(*)::int AS n FROM sessoes WHERE token_hash LIKE '%ressuscitada' OR token_hash LIKE 'invasora-%'",
++    );
++    expect(gravadas.rows[0]!.n).toBe(0);
++  });
++
++  it("login (sem família) continua abrindo família nova, mesmo com cadeias encerradas da pessoa", async () => {
++    const id = await abrir("login-depois-de-tudo");
++    const r = await db.query<{ familia_id: string }>("SELECT familia_id FROM sessoes WHERE id = $1", [id]);
++    expect(r.rows[0]!.familia_id).toBe(id);
++  });
++});
+diff --git a/docs/evidencias-v2/G00/V2-F00-E07/correcao-2/sondas/sonda-049.mjs b/docs/evidencias-v2/G00/V2-F00-E07/correcao-2/sondas/sonda-049.mjs
+new file mode 100644
+index 0000000..7c0ad36
+--- /dev/null
++++ b/docs/evidencias-v2/G00/V2-F00-E07/correcao-2/sondas/sonda-049.mjs
+@@ -0,0 +1,293 @@
++/**
++ * Sonda da migração 049 em Postgres real (V2-F00-E07, correção 2).
++ *
++ * Uso (com um servidor Postgres DESCARTÁVEL e a URL de um superusuário dele):
++ *
++ *   node sonda-049.mjs preparar <url-superusuario>   banco prova_c2_migrar até a 048, papéis como o job implantavel, sessões
++ *   (aqui o `npm run migrar` de verdade, com DATABASE_URL do dc360_setup: --conferir, aplicar, --conferir, aplicar)
++ *   node sonda-049.mjs conferir <url-superusuario>   catálogo, sessões preservadas, recusa de família encerrada, disputa em duas conexões
++ *                                                    (encerramentos, suspensão pelo console e impasse, cada um com o controle sem a correção)
++ *   node sonda-049.mjs apagar <url-superusuario>     apaga o banco e os papéis
++ *
++ * Papéis como o job `implantavel` do CI: `dc360_setup` (CREATEROLE, BYPASSRLS,
++ * NOSUPERUSER) cria e migra; `dc360_api` é login restrito, membro de
++ * `dc360_app`. As senhas são sorteadas a cada `preparar` e ficam só no arquivo
++ * `.senhas-prova` ao lado do script, que `apagar` remove.
++ */
++import { createRequire } from "node:module";
++import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { dirname, join } from "node:path";
++import { fileURLToPath, pathToFileURL } from "node:url";
++import { randomBytes } from "node:crypto";
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++// A pasta do produto: seis niveis acima desta (sondas, correcao-2, etapa, G00,
++// evidencias-v2, docs), ou a que `DC360_RAIZ` disser.
++const RAIZ = process.env.DC360_RAIZ ?? join(AQUI, "..", "..", "..", "..", "..", "..", "dc360");
++const require = createRequire(join(RAIZ, "apps/api/package.json"));
++const pg = require("pg");
++const db = await import(pathToFileURL(join(RAIZ, "db/dist/index.js")).href);
++
++const [, , fase, urlSuper] = process.argv;
++const BANCO = "prova_c2_migrar";
++const ARQ_SENHAS = join(AQUI, ".senhas-prova");
++const HELENA = "11111111-1111-4111-8111-0000000000d1";
++const SERRA_ALTA = "11111111-1111-4111-8111-000000000001";
++
++function url(base, { usuario, senha, banco }) {
++  const u = new URL(base);
++  if (usuario) { u.username = usuario; u.password = senha; }
++  if (banco) u.pathname = `/${banco}`;
++  return u.toString();
++}
++
++async function conectar(endereco) {
++  const c = new pg.Client({ connectionString: endereco });
++  await c.connect();
++  return c;
++}
++
++function linha(...partes) { console.log(partes.join(" ")); }
++
++async function preparar() {
++  const senhas = { setup: randomBytes(12).toString("hex"), api: randomBytes(12).toString("hex") };
++  writeFileSync(ARQ_SENHAS, JSON.stringify(senhas));
++  const sup = await conectar(urlSuper);
++  await sup.query(`DROP DATABASE IF EXISTS ${BANCO} WITH (FORCE)`);
++  await sup.query(`CREATE DATABASE ${BANCO}`);
++  for (const [papel, extra] of [["dc360_setup", "CREATEROLE BYPASSRLS NOSUPERUSER"], ["dc360_api", "NOSUPERUSER"]]) {
++    const existe = await sup.query("SELECT 1 FROM pg_roles WHERE rolname = $1", [papel]);
++    const senha = papel === "dc360_setup" ? senhas.setup : senhas.api;
++    // A senha vai citada por `escapeLiteral` do driver, nunca colada no texto.
++    await sup.query(`${existe.rows.length ? "ALTER" : "CREATE"} ROLE ${papel} LOGIN PASSWORD ${sup.escapeLiteral(senha)} ${extra}`);
++  }
++  // Num servidor que já rodou a suíte, os papéis que as migrações criam já
++  // existem (são do servidor, não do banco). O `dc360_setup` os teria criado
++  // num servidor novo, e quem cria um papel o administra: aqui isso é dado.
++  for (const papel of ["dc360_app", "dc360_console"]) {
++    const existe = await sup.query("SELECT 1 FROM pg_roles WHERE rolname = $1", [papel]);
++    if (existe.rows.length) await sup.query(`GRANT ${papel} TO dc360_setup WITH ADMIN OPTION`);
++  }
++  await sup.end();
++  const supDoBanco = await conectar(url(urlSuper, { banco: BANCO }));
++  await supDoBanco.query("ALTER SCHEMA public OWNER TO dc360_setup");
++  await supDoBanco.query("GRANT ALL ON SCHEMA public TO dc360_setup");
++  await supDoBanco.query(`GRANT CREATE ON DATABASE ${BANCO} TO dc360_setup`);
++  await supDoBanco.end();
++
++  const setup = await conectar(url(urlSuper, { usuario: "dc360_setup", senha: senhas.setup, banco: BANCO }));
++  const executor = {
++    query: async (sql, params) => ({ rows: (await setup.query(sql, params ? [...params] : undefined)).rows }),
++    exec: (sql) => setup.query(sql),
++  };
++  const ate048 = db.carregarMigracoes().filter((m) => m.versao < "049");
++  const r = await db.aplicarMigracoes(executor, ate048);
++  linha("aplicadas ate a 048:", r.aplicadas.length, "ultima:", r.aplicadas.at(-1));
++  await setup.query(db.carregarSemente());
++
++  // Três cadeias da Helena ANTES da 049: viva de um login, rotacionada uma vez, encerrada por quem administra.
++  const abrir = async (hash, familia = null) => (await setup.query(
++    "SELECT abrir_sessao($1,$2,$3,interval '1 day',NULL,NULL,$4) AS id", [SERRA_ALTA, HELENA, hash, familia],
++  )).rows[0].id;
++  const f1 = await abrir("sonda-f1-viva");
++  const f2raiz = await abrir("sonda-f2-raiz");
++  await setup.query("SELECT revogar_sessao('sonda-f2-raiz','rotacionada na renovacao')");
++  await abrir("sonda-f2-viva", f2raiz);
++  const f3 = await abrir("sonda-f3-encerrada");
++  await setup.query("UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'sessoes encerradas por quem administra' WHERE id = $1", [f3]);
++  const antes = await setup.query("SELECT id, familia_id, revogada_em IS NULL AS viva, motivo_revogacao FROM sessoes ORDER BY token_hash");
++  writeFileSync(join(AQUI, ".sessoes-antes.json"), JSON.stringify(antes.rows));
++  linha("sessoes antes da 049:", antes.rows.length, "familias da sonda:", [f1, f2raiz, f3].length);
++  await setup.end();
++
++  const sup2 = await conectar(url(urlSuper, { banco: BANCO }));
++  await sup2.query("GRANT dc360_app TO dc360_api WITH SET TRUE");
++  await sup2.end();
++  linha("DATABASE_URL do setup (para o npm run migrar):", url(urlSuper, { usuario: "dc360_setup", senha: "<sorteada>", banco: BANCO }));
++}
++
++async function conferir() {
++  const senhas = JSON.parse(readFileSync(ARQ_SENHAS, "utf8"));
++  const sup = await conectar(url(urlSuper, { banco: BANCO }));
++  const q = async (sql, p) => (await sup.query(sql, p)).rows;
++
++  // 1. As sessões que existiam continuam como estavam.
++  const antes = JSON.parse(readFileSync(join(AQUI, ".sessoes-antes.json"), "utf8"));
++  const depois = await q("SELECT id, familia_id, revogada_em IS NULL AS viva, motivo_revogacao FROM sessoes ORDER BY token_hash");
++  linha("1. sessoes preservadas pela 049:", JSON.stringify(antes) === JSON.stringify(depois), `(${depois.length} linhas)`);
++
++  // 2. Catálogo.
++  const definers = await q("SELECT count(*)::int AS n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.prosecdef");
++  linha("2. funcoes SECURITY DEFINER no public:", definers[0].n);
++  const funcoes = await q(`SELECT p.proname, p.prosecdef, pg_get_userbyid(p.proowner) AS dono, p.proconfig,
++      has_function_privilege('public', p.oid, 'EXECUTE') AS public_executa,
++      has_function_privilege('dc360_app', p.oid, 'EXECUTE') AS app_executa,
++      has_function_privilege('dc360_console', p.oid, 'EXECUTE') AS console_executa
++    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
++   WHERE n.nspname = 'public' AND p.proname IN ('travar_sessoes_do_usuario','revogar_sessoes_do_usuario','trocar_senha','consumir_recuperacao','abrir_sessao','console_suspender_municipio')
++   ORDER BY p.proname`);
++  for (const f of funcoes) {
++    linha("   ", f.proname, "definer:", f.prosecdef, "dono:", f.dono, "config:", JSON.stringify(f.proconfig),
++      "PUBLIC:", f.public_executa, "dc360_app:", f.app_executa, "dc360_console:", f.console_executa);
++  }
++
++  // 3. Recusa de família encerrada, e herança da família viva, como a API chama (papel de aplicação).
++  const api = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
++  const comoApp = async (fn) => {
++    await api.query("BEGIN");
++    try {
++      await api.query("SET LOCAL ROLE dc360_app");
++      await api.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
++      const r = await fn(api);
++      await api.query("COMMIT");
++      return r;
++    } catch (e) { await api.query("ROLLBACK"); throw e; }
++  };
++  const familiaDe = async (hash) => (await q("SELECT familia_id FROM sessoes WHERE token_hash = $1", [hash]))[0].familia_id;
++  const f3 = await familiaDe("sonda-f3-encerrada");
++  try {
++    await comoApp((c) => c.query("SELECT abrir_sessao($1,$2,'sonda-f3-ressuscitada',interval '1 day',NULL,NULL,$3)", [SERRA_ALTA, HELENA, f3]));
++    linha("3. familia encerrada: ACEITOU a heranca (defeito)");
++  } catch (e) {
++    linha("3. familia encerrada: recusada com", e.code, "-", e.message);
++  }
++  const f2 = await familiaDe("sonda-f2-viva");
++  await comoApp(async (c) => {
++    await c.query("SELECT travar_sessoes_do_usuario($1)", [HELENA]);
++    await c.query("SELECT revogar_sessao('sonda-f2-viva','rotacionada na renovacao')");
++    await c.query("SELECT abrir_sessao($1,$2,'sonda-f2-renovada',interval '1 day',NULL,NULL,$3)", [SERRA_ALTA, HELENA, f2]);
++  });
++  linha("   familia viva rotacionada: herdou, sessoes vivas na familia:",
++    (await q("SELECT count(*)::int AS n FROM sessoes WHERE familia_id = $1 AND revogada_em IS NULL", [f2]))[0].n);
++
++  // 4. A disputa em duas conexões: A renova (trava, revoga, abre) e para antes do COMMIT; B encerra.
++  async function disputa(rotulo, encerrar, { bComoSuper = false } = {}) {
++    const hashViva = `sonda-disputa-${rotulo}`;
++    const raiz = (await q("SELECT abrir_sessao($1,$2,$3,interval '1 day',NULL,NULL) AS id", [SERRA_ALTA, HELENA, hashViva]))[0].id;
++    const a = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
++    const b = await conectar(bComoSuper
++      ? url(urlSuper, { banco: BANCO })
++      : url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
++    await a.query("BEGIN");
++    await a.query("SET LOCAL ROLE dc360_app");
++    await a.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
++    await a.query("SELECT travar_sessoes_do_usuario($1)", [HELENA]);
++    await a.query("SELECT revogar_sessao($1,'rotacionada na renovacao')", [hashViva]);
++
++    await b.query("BEGIN");
++    if (!bComoSuper) {
++      await b.query("SET LOCAL ROLE dc360_app");
++      await b.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
++    }
++    const pidB = (await b.query("SELECT pg_backend_pid() AS pid")).rows[0].pid;
++    const encerrou = encerrar(b).then(async (n) => { await b.query("COMMIT"); return n; });
++    await new Promise((r) => setTimeout(r, 400));
++    const espera = (await q("SELECT wait_event_type, wait_event FROM pg_stat_activity WHERE pid = $1", [pidB]))[0];
++
++    await a.query("SELECT abrir_sessao($1,$2,$3,interval '1 day',NULL,NULL,$4)", [SERRA_ALTA, HELENA, `${hashViva}-nova`, raiz]);
++    await a.query("COMMIT");
++    const n = await encerrou;
++    const vivas = (await q("SELECT count(*)::int AS n FROM sessoes WHERE familia_id = $1 AND revogada_em IS NULL", [raiz]))[0].n;
++    linha(`4. ${rotulo}: B esperando (${espera.wait_event_type ?? "nao esperava"}/${espera.wait_event ?? "-"}) enquanto A segurava;`,
++      `B encerrou ${n < 0 ? "(a funcao nao devolve contagem)" : n + " sessao(oes)"}; vivas na cadeia depois das duas: ${vivas}`);
++    await a.end(); await b.end();
++    return vivas;
++  }
++  const encerrarPelaApi = (b) => b.query("SELECT travar_sessoes_do_usuario($1)", [HELENA])
++    .then(() => b.query(`UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'sessoes encerradas por quem administra'
++                          WHERE usuario_id = $1 AND revogada_em IS NULL RETURNING id`, [HELENA]))
++    .then((r) => r.rows.length);
++  const resultados = [
++    await disputa("quem administra (trava e UPDATE de auth/sessoes.ts)", encerrarPelaApi),
++    await disputa("reuso e desativacao (revogar_sessoes_do_usuario)", (b) =>
++      b.query("SELECT revogar_sessoes_do_usuario($1, 'reuso de token de renovacao') AS n", [HELENA]).then((r) => r.rows[0].n)),
++    await disputa("troca de senha (trocar_senha)", (b) =>
++      b.query("SELECT trocar_senha($1, 'hash-da-sonda', NULL)", [HELENA]).then(() => -1)),
++  ];
++  // Controle: o UPDATE do código ANTERIOR, sem a trava. A transação única sozinha não basta.
++  const controle = await disputa("CONTROLE sem trava (o UPDATE de antes da correcao)", (b) =>
++    b.query(`UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'sessoes encerradas por quem administra'
++              WHERE usuario_id = $1 AND revogada_em IS NULL RETURNING id`, [HELENA]).then((r) => r.rows.length));
++  linha("   com a trava, vivas por disputa:", JSON.stringify(resultados), "| controle sem trava:", controle);
++
++  // 5. A suspensao pelo console no meio da renovacao (a funcao da 049, que toma
++  //    a trava de cada pessoa com sessao de pe), e o controle com a escrita da
++  //    038, sem trava.
++  const dono = (await q(
++    `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel)
++     VALUES ('dono.da.sonda@fornecedor.exemplo', 'scrypt$' || repeat('a', 90), 'v1.sonda', 'dono')
++     ON CONFLICT DO NOTHING RETURNING id`))[0]?.id
++    ?? (await q("SELECT id FROM console_operadores WHERE papel = 'dono'"))[0].id;
++  const reativar = () => q("UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [SERRA_ALTA]);
++  async function suspensao(rotulo, suspender) {
++    // B e o console: conexao de superusuario com o operador dono no contexto
++    // (o papel `dc360_console` so executa a funcao; quem a roda e o dono dela).
++    const v = await disputa(rotulo, async (b) => {
++      await b.query("SELECT set_config('app.console_operador', $1, true)", [dono]);
++      return suspender(b);
++    }, { bComoSuper: true }).catch(async (e) => { await reativar(); throw e; });
++    await reativar();
++    return v;
++  }
++  const suspTrava = await suspensao("suspensao pelo console (console_suspender_municipio da 049)", (b) =>
++    b.query("SELECT console_suspender_municipio($1, 'sonda da 049') AS n", [SERRA_ALTA]).then((r) => r.rows[0].n));
++  const suspControle = await suspensao("CONTROLE suspensao sem trava (a escrita da 038)", (b) =>
++    b.query("UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'sonda' WHERE id = $1", [SERRA_ALTA])
++      .then(() => b.query(`UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'acesso suspenso pelo fornecedor'
++                            WHERE organizacao_id = $1 AND revogada_em IS NULL RETURNING id`, [SERRA_ALTA]))
++      .then((r) => r.rows.length));
++  linha("   suspensao, vivas na cadeia: com a trava", suspTrava, "| controle sem trava:", suspControle);
++
++  // 6. Impasse (deadlock): A redefine a senha como a API de quem administra
++  //    (UPDATE de usuarios, depois a trava e o UPDATE de sessoes); B troca a
++  //    senha pela propria pessoa no meio. Controle: B na ordem da primeira
++  //    versao da 049 (trava antes do UPDATE de usuarios).
++  async function impasse(rotulo, trocar) {
++    const a = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
++    const b = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
++    const comoAppEm = async (c) => {
++      await c.query("BEGIN");
++      await c.query("SET LOCAL ROLE dc360_app");
++      await c.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
++    };
++    await comoAppEm(a);
++    await a.query("UPDATE usuarios SET senha_hash = 'hash-da-redefinicao', falhas_login = 0, bloqueado_ate = NULL, senha_provisoria_ate = now() + interval '72 hours' WHERE id = $1", [HELENA]);
++    await comoAppEm(b);
++    const pidB = (await b.query("SELECT pg_backend_pid() AS pid")).rows[0].pid;
++    const erros = [];
++    const daB = trocar(b).then(() => b.query("COMMIT"), async (e) => { erros.push(`B ${e.code}`); await b.query("ROLLBACK"); });
++    await new Promise((r) => setTimeout(r, 400));
++    const espera = (await q("SELECT wait_event_type, wait_event FROM pg_stat_activity WHERE pid = $1", [pidB]))[0];
++    const daA = a.query("SELECT travar_sessoes_do_usuario($1)", [HELENA])
++      .then(() => a.query("UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'senha redefinida por quem administra' WHERE usuario_id = $1 AND revogada_em IS NULL", [HELENA]))
++      .then(() => a.query("COMMIT"), async (e) => { erros.push(`A ${e.code}`); await a.query("ROLLBACK"); });
++    await Promise.all([daA, daB]);
++    linha(`6. ${rotulo}: B esperando (${espera.wait_event_type ?? "nao esperava"}/${espera.wait_event ?? "-"});`,
++      `erros: ${erros.length ? erros.join(", ") : "nenhum"}`);
++    await a.end(); await b.end();
++    return erros.length;
++  }
++  const impasseHoje = await impasse("troca de senha (trocar_senha da 049) contra a redefinicao", (b) =>
++    b.query("SELECT trocar_senha($1, 'hash-da-troca', NULL)", [HELENA]));
++  const impasseControle = await impasse("CONTROLE trava antes do UPDATE de usuarios", (b) =>
++    b.query("SELECT travar_sessoes_do_usuario($1)", [HELENA])
++      .then(() => b.query("UPDATE usuarios SET senha_hash = 'hash-da-troca' WHERE id = $1", [HELENA])));
++  linha("   impasse, transacoes abortadas: com a ordem da 049", impasseHoje, "| controle:", impasseControle);
++
++  await api.end();
++  await sup.end();
++}
++
++async function apagar() {
++  const sup = await conectar(urlSuper);
++  await sup.query(`DROP DATABASE IF EXISTS ${BANCO} WITH (FORCE)`);
++  for (const papel of ["dc360_api"]) await sup.query(`DROP ROLE IF EXISTS ${papel}`);
++  await sup.end();
++  for (const f of [ARQ_SENHAS, join(AQUI, ".sessoes-antes.json")]) if (existsSync(f)) rmSync(f);
++  linha("banco", BANCO, "apagado");
++}
++
++if (fase === "preparar") await preparar();
++else if (fase === "conferir") await conferir();
++else if (fase === "apagar") await apagar();
++else { console.error("fase: preparar | conferir | apagar"); process.exit(2); }
+diff --git a/dc360/db/migrations/050_login_e_suspensao_na_mesma_linha.sql b/dc360/db/migrations/050_login_e_suspensao_na_mesma_linha.sql
+new file mode 100644
+index 0000000..1907dfb
+--- /dev/null
++++ b/dc360/db/migrations/050_login_e_suspensao_na_mesma_linha.sql
+@@ -0,0 +1,133 @@
++-- =====================================================================
++-- 050: o LOGIN le a suspensao do municipio com trava de linha, e a sessao
++--      que ele abre nao sobrevive a uma suspensao do mesmo instante.
++--
++-- O DEFEITO (V2-F00-E07, revisao da correcao 2). A 049 pos a renovacao e
++-- todo encerramento em massa na mesma trava por pessoa, mas o login nao
++-- passa por ela: ele abre sessao sem familia, e `abrir_sessao` le
++-- `organizacoes.acesso_suspenso_em` com um SELECT comum. Em READ COMMITTED
++-- essa leitura nao espera ninguem, e a chave estrangeira de `sessoes` so
++-- pede FOR KEY SHARE na linha do municipio, que nao conflita com o UPDATE
++-- da suspensao. Duas ordens deixavam sessao de pe:
++--
++--   1. A suspensao chega primeiro e ainda nao confirmou: o login le a linha
++--      antiga (sem suspensao), abre a sessao e confirma; o UPDATE de
++--      `sessoes` da suspensao ja tinha rodado e nao a viu.
++--   2. O login le primeiro e ainda nao confirmou: a suspensao atualiza o
++--      municipio, toma as travas e revoga as sessoes com uma fotografia que
++--      nao enxerga a sessao ainda nao confirmada do login.
++--
++-- Nos dois casos a sessao nova nao escreve nem renova enquanto a suspensao
++-- durar (a vigencia e `abrir_sessao` leem a suspensao), mas volta a valer se
++-- o municipio for reativado dentro do prazo dela, que e o que a suspensao
++-- promete impedir ("as sessoes abertas caem", `docs/SAIDA-DE-MUNICIPIO.md`).
++--
++-- A CORRECAO: no login (familia nula), a leitura da suspensao leva
++-- `FOR SHARE`. FOR SHARE conflita com o FOR NO KEY UPDATE que o UPDATE de
++-- `organizacoes` da suspensao toma:
++--
++--   1. Suspensao primeiro: o login espera ela confirmar e, em READ
++--      COMMITTED, le a versao nova da linha, ja suspensa. Recusa com DC367.
++--   2. Login primeiro: a suspensao espera o login confirmar no UPDATE de
++--      `organizacoes`; os comandos seguintes dela tiram fotografia nova, e
++--      o UPDATE de `sessoes` enxerga e revoga a sessao do login.
++--
++-- POR QUE SO NO LOGIN, e nao na renovacao: a renovacao segura a trava por
++-- pessoa da 049 desde antes de chamar `abrir_sessao`, e a suspensao toma a
++-- linha de `organizacoes` ANTES dessa trava (a ordem do cabecalho da 049).
++-- Se a renovacao tambem pedisse FOR SHARE, as duas se esperariam em ordem
++-- inversa (renovacao: trava, depois linha; suspensao: linha, depois trava) e
++-- o Postgres mataria uma delas com 40P01. A renovacao nao precisa: a
++-- suspensao toma a trava de quem tem sessao de pe, e quem esta renovando tem
++-- (a antiga, cuja rotacao ainda nao confirmou), entao a 049 ja a serializa.
++-- O login nao segura trava nenhuma, entao esperar a linha nao fecha ciclo.
++--
++-- O QUE NAO MUDA: o corpo e o da 049 (familia que nao existe ou encerrada
++-- recusada com DC369, suspensao recusada com DC367, as mesmas mensagens), a
++-- assinatura, o dono, SECURITY DEFINER e as permissoes (`CREATE OR REPLACE`
++-- preserva o GRANT, repetido abaixo como nas outras). Nenhuma funcao
++-- SECURITY DEFINER nova (teto de 27 de `db/test/isolamento.test.ts`),
++-- nenhuma tabela, coluna ou policy nova. O custo e uma trava compartilhada
++-- na linha do municipio a cada login, que dois logins nao disputam entre si
++-- (FOR SHARE nao conflita com FOR SHARE) e que um UPDATE de `organizacoes`
++-- espera pelo tempo de um login (a transacao do login e so esta funcao,
++-- `auth/servico.ts`, `emitirPar`).
++--
++-- ORDEM DE IMPLANTACAO: indiferente. A API nao muda; esta migracao so troca
++-- a leitura dentro da funcao.
++--
++-- Por que 050 e nao uma edicao da 049: a 049 ja esta no historico enviado ao
++-- remoto (commit cea7837), e migracao aplicada nunca e editada
++-- (`HistoricoAlterado`).
++--
++-- Idempotente: so `CREATE OR REPLACE`, `REVOKE` e `GRANT`.
++-- =====================================================================
++
++CREATE OR REPLACE FUNCTION abrir_sessao(
++  p_organizacao_id uuid,
++  p_usuario_id uuid,
++  p_token_hash text,
++  p_duracao interval,
++  p_user_agent text,
++  p_ip text,
++  p_familia_id uuid DEFAULT NULL
++) RETURNS uuid
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_id uuid := gen_random_uuid();
++  v_suspenso timestamptz;
++BEGIN
++  -- Login (sem familia): a leitura espera a suspensao em curso e e esperada
++  -- por ela (ver o cabecalho). Renovacao: leitura comum, porque ela ja
++  -- segura a trava por pessoa da 049 e a linha depois da trava fecharia
++  -- ciclo com a suspensao.
++  IF p_familia_id IS NULL THEN
++    SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes
++     WHERE id = p_organizacao_id
++       FOR SHARE;
++  ELSE
++    SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id;
++  END IF;
++  IF v_suspenso IS NOT NULL THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC367',
++      MESSAGE = 'O acesso deste municipio esta suspenso pelo fornecedor.',
++      DETAIL  = format('Suspenso desde %s. Nenhuma sessao nova abre ate a reativacao.', v_suspenso);
++  END IF;
++
++  -- Herdar familia so da familia que existe, do mesmo usuario e do mesmo
++  -- municipio, E que nao foi encerrada (049, sem mudanca).
++  IF p_familia_id IS NOT NULL AND (
++       NOT EXISTS (
++         SELECT 1 FROM sessoes
++          WHERE familia_id = p_familia_id
++            AND usuario_id = p_usuario_id
++            AND organizacao_id = p_organizacao_id
++       )
++    OR EXISTS (
++         SELECT 1 FROM sessoes
++          WHERE familia_id = p_familia_id
++            AND usuario_id = p_usuario_id
++            AND organizacao_id = p_organizacao_id
++            AND revogada_em IS NOT NULL
++            AND motivo_revogacao IS DISTINCT FROM 'rotacionada na renovacao'
++       )
++  ) THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC369',
++      MESSAGE = 'A familia de sessao informada nao existe para este usuario.';
++  END IF;
++
++  INSERT INTO sessoes (id, organizacao_id, usuario_id, token_hash, expira_em, user_agent, ip, familia_id)
++  VALUES (v_id, p_organizacao_id, p_usuario_id, p_token_hash, now() + p_duracao,
++          left(coalesce(p_user_agent, ''), 400), nullif(p_ip, '')::inet,
++          coalesce(p_familia_id, v_id));
++  RETURN v_id;
++END;
++$$;
++
++REVOKE ALL ON FUNCTION abrir_sessao(uuid, uuid, text, interval, text, text, uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION abrir_sessao(uuid, uuid, text, interval, text, text, uuid) TO dc360_app;
+diff --git a/dc360/db/test/login-e-suspensao-na-mesma-linha.test.ts b/dc360/db/test/login-e-suspensao-na-mesma-linha.test.ts
+new file mode 100644
+index 0000000..55fed1a
+--- /dev/null
++++ b/dc360/db/test/login-e-suspensao-na-mesma-linha.test.ts
+@@ -0,0 +1,188 @@
++/**
++ * A MIGRAÇÃO 050: o login lê a suspensão do município com trava de linha
++ * (`FOR SHARE`), e a renovação não (V2-F00-E07, revisão da correção 2).
++ *
++ * A disputa de verdade (o login e a suspensão em duas conexões) não cabe
++ * aqui: o PGlite tem uma conexão só. Ela está no bloco de Postgres real de
++ * `apps/api/test/renovacao-contra-encerramento.test.ts` (caso 9), que o job
++ * `implantavel` do CI roda. Este arquivo cobra do BANCO o que dá para cobrar
++ * sem concorrência:
++ *
++ *  - a migração aplica sobre um banco que já tem sessões, sem tocar nelas, e é
++ *    idempotente;
++ *  - o número de funções SECURITY DEFINER não mudou (teto de 27 de
++ *    `isolamento.test.ts`), e `abrir_sessao` continua privilegiada e
++ *    executável só pelo papel de aplicação;
++ *  - no texto da função instalada, o LOGIN (família nula) lê a suspensão com
++ *    `FOR SHARE` e a RENOVAÇÃO lê sem trava de linha (a trava de linha depois
++ *    da trava por pessoa fecharia ciclo com a suspensão);
++ *  - o login e a renovação continuam abrindo sessão como antes;
++ *  - as recusas continuam as mesmas: município suspenso (DC367) e família
++ *    encerrada (DC369, da 049).
++ */
++import { PGlite } from "@electric-sql/pglite";
++import { readFileSync, readdirSync } from "node:fs";
++import { fileURLToPath } from "node:url";
++import { dirname, join } from "node:path";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++
++const aqui = dirname(fileURLToPath(import.meta.url));
++const pasta = join(aqui, "..", "migrations");
++const arquivos = readdirSync(pasta).filter((f) => f.endsWith(".sql")).sort();
++const ARQUIVO_050 = "050_login_e_suspensao_na_mesma_linha.sql";
++const ate049 = arquivos.filter((f) => f < ARQUIVO_050);
++const sql = (f: string) => readFileSync(join(pasta, f), "utf8");
++
++let db: PGlite;
++let org = "";
++let usuario = "";
++let sessoesAntes: unknown[] = [];
++let definersAntes = 0;
++
++async function contarDefiners(): Promise<number> {
++  const r = await db.query<{ n: number }>(
++    `SELECT count(*)::int AS n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
++      WHERE n.nspname = 'public' AND p.prosecdef`,
++  );
++  return r.rows[0]!.n;
++}
++
++async function lerSessoes(): Promise<unknown[]> {
++  return (await db.query(
++    "SELECT id, familia_id, revogada_em, motivo_revogacao FROM sessoes ORDER BY token_hash",
++  )).rows;
++}
++
++async function abrir(
++  tx: { query: PGlite["query"] }, hash: string, familia: string | null = null,
++): Promise<string> {
++  const r = await tx.query<{ id: string }>(
++    "SELECT abrir_sessao($1,$2,$3, interval '1 day', NULL, NULL, $4) AS id", [org, usuario, hash, familia],
++  );
++  return r.rows[0]!.id;
++}
++
++async function recusa(consulta: string, valores: unknown[]): Promise<{ code?: string; message: string }> {
++  try {
++    await db.query(consulta, valores);
++  } catch (erro) {
++    return erro as { code?: string; message: string };
++  }
++  throw new Error("a consulta deveria ter sido recusada");
++}
++
++beforeAll(async () => {
++  db = new PGlite();
++  for (const f of ate049) await db.exec(sql(f));
++
++  org = (await db.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('DC A','Serra Alta','MG') RETURNING id",
++  )).rows[0]!.id;
++  usuario = (await db.query<{ id: string }>(
++    `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, senha_hash)
++     VALUES ($1, 'Pessoa de Teste', 'A-1', 'a1@exemplo.gov.br', 'coordenador', 'x') RETURNING id`,
++    [org],
++  )).rows[0]!.id;
++
++  // Sessões que existem ANTES da 050: uma viva, uma rotacionada e a filha dela.
++  await abrir(db, "antes-viva");
++  const raiz = await abrir(db, "antes-raiz");
++  await db.query("SELECT revogar_sessao('antes-raiz', 'rotacionada na renovacao')");
++  await abrir(db, "antes-renovada", raiz);
++
++  sessoesAntes = await lerSessoes();
++  definersAntes = await contarDefiners();
++  await db.exec(sql(ARQUIVO_050));
++}, 180_000);
++
++afterAll(async () => { await db.close(); });
++
++describe("A migração 050 sobre um banco que já tem sessões", () => {
++  it("não toca em sessão nenhuma, e rodar o texto de novo não falha nem muda nada", async () => {
++    expect(await lerSessoes()).toEqual(sessoesAntes);
++    await db.exec(sql(ARQUIVO_050));
++    expect(await lerSessoes()).toEqual(sessoesAntes);
++  });
++
++  it("o número de funções SECURITY DEFINER não mudou, e abrir_sessao continua só do papel de aplicação", async () => {
++    expect(await contarDefiners()).toBe(definersAntes);
++    const assinatura = "abrir_sessao(uuid,uuid,text,interval,text,text,uuid)";
++    const r = await db.query<{ app: boolean; publico: boolean; console: boolean; definer: boolean }>(
++      `SELECT has_function_privilege('dc360_app', '${assinatura}', 'EXECUTE') AS app,
++              has_function_privilege('public', '${assinatura}', 'EXECUTE') AS publico,
++              has_function_privilege('dc360_console', '${assinatura}', 'EXECUTE') AS console,
++              (SELECT prosecdef FROM pg_proc WHERE oid = '${assinatura}'::regprocedure) AS definer`,
++    );
++    expect(r.rows[0]).toEqual({ app: true, publico: false, console: false, definer: true });
++  });
++});
++
++describe("O login trava a linha do município; a renovação não", () => {
++  /*
++    Conferido no TEXTO da função instalada, e não pela linha travada: no PGlite
++    não há segunda conexão para esbarrar na trava, e o `xmax` da linha não
++    distingue o FOR SHARE do FOR KEY SHARE que a chave estrangeira de
++    `sessoes` já toma em todo INSERT (os dois deixam o xid da transação ali).
++    Que o FOR SHARE de fato segura a suspensão, e é segurado por ela, é o caso
++    9 do bloco de Postgres real de `apps/api/test/renovacao-contra-encerramento.test.ts`.
++  */
++  async function corpoDeAbrirSessao(): Promise<string> {
++    return (await db.query<{ def: string }>(
++      "SELECT pg_get_functiondef('abrir_sessao(uuid,uuid,text,interval,text,text,uuid)'::regprocedure) AS def",
++    )).rows[0]!.def.replace(/\s+/g, " ");
++  }
++
++  it("o login (família nula) lê a suspensão com FOR SHARE, e a renovação lê sem trava de linha", async () => {
++    const corpo = await corpoDeAbrirSessao();
++    const login = /IF p_familia_id IS NULL THEN SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id FOR SHARE; ELSE SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id; END IF;/;
++    expect(corpo, "o login não trava a linha do município, ou a renovação passou a travar").toMatch(login);
++    // Uma leitura só de cada tipo: nenhuma outra leitura da suspensão escapou da regra.
++    expect(corpo.match(/FROM organizacoes/g)).toHaveLength(2);
++    expect(corpo.match(/FOR (SHARE|UPDATE|NO KEY UPDATE)/g)).toEqual(["FOR SHARE"]);
++  });
++
++  it("o login abre família nova normalmente, e a renovação herda a família só rotacionada", async () => {
++    const id = await abrir(db, "login-normal");
++    const r = await db.query<{ familia_id: string }>("SELECT familia_id FROM sessoes WHERE id = $1", [id]);
++    expect(r.rows[0]!.familia_id).toBe(id);
++
++    const raiz = await abrir(db, "renovacao-raiz");
++    await db.query("SELECT revogar_sessao('renovacao-raiz', 'rotacionada na renovacao')");
++    const filha = await db.transaction(async (tx) => {
++      await tx.query("SELECT travar_sessoes_do_usuario($1)", [usuario]);
++      return abrir(tx, "renovacao-filha", raiz);
++    });
++    const f = await db.query<{ familia_id: string }>("SELECT familia_id FROM sessoes WHERE id = $1", [filha]);
++    expect(f.rows[0]!.familia_id).toBe(raiz);
++  });
++
++  it("município suspenso: o login e a renovação continuam recusados com DC367, sem gravar nada", async () => {
++    const raiz = await abrir(db, "suspensa-raiz");
++    await db.query("UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'prova' WHERE id = $1", [org]);
++    try {
++      const login = await recusa(
++        "SELECT abrir_sessao($1,$2,'suspensa-login', interval '1 day', NULL, NULL, NULL)", [org, usuario],
++      );
++      expect(login.code).toBe("DC367");
++      const renovacao = await recusa(
++        "SELECT abrir_sessao($1,$2,'suspensa-filha', interval '1 day', NULL, NULL, $3)", [org, usuario, raiz],
++      );
++      expect(renovacao.code).toBe("DC367");
++      const gravadas = await db.query<{ n: number }>(
++        "SELECT count(*)::int AS n FROM sessoes WHERE token_hash IN ('suspensa-login', 'suspensa-filha')",
++      );
++      expect(gravadas.rows[0]!.n).toBe(0);
++    } finally {
++      await db.query("UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org]);
++    }
++  });
++
++  it("a recusa da 049 continua: família encerrada não é herdada (DC369)", async () => {
++    const raiz = await abrir(db, "encerrada-raiz");
++    await db.query("SELECT revogar_sessao('encerrada-raiz', 'sessoes encerradas por quem administra')");
++    const e = await recusa(
++      "SELECT abrir_sessao($1,$2,'encerrada-filha', interval '1 day', NULL, NULL, $3)", [org, usuario, raiz],
++    );
++    expect(e.code).toBe("DC369");
++  });
++});

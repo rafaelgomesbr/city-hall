@@ -6,6 +6,7 @@
  *   node sonda-049.mjs preparar <url-superusuario>   banco prova_c2_migrar até a 048, papéis como o job implantavel, sessões
  *   (aqui o `npm run migrar` de verdade, com DATABASE_URL do dc360_setup: --conferir, aplicar, --conferir, aplicar)
  *   node sonda-049.mjs conferir <url-superusuario>   catálogo, sessões preservadas, recusa de família encerrada, disputa em duas conexões
+ *                                                    (encerramentos, suspensão pelo console e impasse, cada um com o controle sem a correção)
  *   node sonda-049.mjs apagar <url-superusuario>     apaga o banco e os papéis
  *
  * Papéis como o job `implantavel` do CI: `dc360_setup` (CREATEROLE, BYPASSRLS,
@@ -19,14 +20,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { randomBytes } from "node:crypto";
 
-const RAIZ = "C:/Projetos/city-hall/dc360";
+const AQUI = dirname(fileURLToPath(import.meta.url));
+// A pasta do produto: seis niveis acima desta (sondas, correcao-2, etapa, G00,
+// evidencias-v2, docs), ou a que `DC360_RAIZ` disser.
+const RAIZ = process.env.DC360_RAIZ ?? join(AQUI, "..", "..", "..", "..", "..", "..", "dc360");
 const require = createRequire(join(RAIZ, "apps/api/package.json"));
 const pg = require("pg");
 const db = await import(pathToFileURL(join(RAIZ, "db/dist/index.js")).href);
 
 const [, , fase, urlSuper] = process.argv;
 const BANCO = "prova_c2_migrar";
-const AQUI = dirname(fileURLToPath(import.meta.url));
 const ARQ_SENHAS = join(AQUI, ".senhas-prova");
 const HELENA = "11111111-1111-4111-8111-0000000000d1";
 const SERRA_ALTA = "11111111-1111-4111-8111-000000000001";
@@ -55,7 +58,8 @@ async function preparar() {
   for (const [papel, extra] of [["dc360_setup", "CREATEROLE BYPASSRLS NOSUPERUSER"], ["dc360_api", "NOSUPERUSER"]]) {
     const existe = await sup.query("SELECT 1 FROM pg_roles WHERE rolname = $1", [papel]);
     const senha = papel === "dc360_setup" ? senhas.setup : senhas.api;
-    await sup.query(`${existe.rows.length ? "ALTER" : "CREATE"} ROLE ${papel} LOGIN PASSWORD '${senha}' ${extra}`);
+    // A senha vai citada por `escapeLiteral` do driver, nunca colada no texto.
+    await sup.query(`${existe.rows.length ? "ALTER" : "CREATE"} ROLE ${papel} LOGIN PASSWORD ${sup.escapeLiteral(senha)} ${extra}`);
   }
   // Num servidor que já rodou a suíte, os papéis que as migrações criam já
   // existem (são do servidor, não do banco). O `dc360_setup` os teria criado
@@ -120,7 +124,7 @@ async function conferir() {
       has_function_privilege('dc360_app', p.oid, 'EXECUTE') AS app_executa,
       has_function_privilege('dc360_console', p.oid, 'EXECUTE') AS console_executa
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-   WHERE n.nspname = 'public' AND p.proname IN ('travar_sessoes_do_usuario','revogar_sessoes_do_usuario','trocar_senha','consumir_recuperacao','abrir_sessao')
+   WHERE n.nspname = 'public' AND p.proname IN ('travar_sessoes_do_usuario','revogar_sessoes_do_usuario','trocar_senha','consumir_recuperacao','abrir_sessao','console_suspender_municipio')
    ORDER BY p.proname`);
   for (const f of funcoes) {
     linha("   ", f.proname, "definer:", f.prosecdef, "dono:", f.dono, "config:", JSON.stringify(f.proconfig),
@@ -157,11 +161,13 @@ async function conferir() {
     (await q("SELECT count(*)::int AS n FROM sessoes WHERE familia_id = $1 AND revogada_em IS NULL", [f2]))[0].n);
 
   // 4. A disputa em duas conexões: A renova (trava, revoga, abre) e para antes do COMMIT; B encerra.
-  async function disputa(rotulo, encerrar) {
+  async function disputa(rotulo, encerrar, { bComoSuper = false } = {}) {
     const hashViva = `sonda-disputa-${rotulo}`;
     const raiz = (await q("SELECT abrir_sessao($1,$2,$3,interval '1 day',NULL,NULL) AS id", [SERRA_ALTA, HELENA, hashViva]))[0].id;
     const a = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
-    const b = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
+    const b = await conectar(bComoSuper
+      ? url(urlSuper, { banco: BANCO })
+      : url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
     await a.query("BEGIN");
     await a.query("SET LOCAL ROLE dc360_app");
     await a.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
@@ -169,8 +175,10 @@ async function conferir() {
     await a.query("SELECT revogar_sessao($1,'rotacionada na renovacao')", [hashViva]);
 
     await b.query("BEGIN");
-    await b.query("SET LOCAL ROLE dc360_app");
-    await b.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
+    if (!bComoSuper) {
+      await b.query("SET LOCAL ROLE dc360_app");
+      await b.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
+    }
     const pidB = (await b.query("SELECT pg_backend_pid() AS pid")).rows[0].pid;
     const encerrou = encerrar(b).then(async (n) => { await b.query("COMMIT"); return n; });
     await new Promise((r) => setTimeout(r, 400));
@@ -201,6 +209,71 @@ async function conferir() {
     b.query(`UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'sessoes encerradas por quem administra'
               WHERE usuario_id = $1 AND revogada_em IS NULL RETURNING id`, [HELENA]).then((r) => r.rows.length));
   linha("   com a trava, vivas por disputa:", JSON.stringify(resultados), "| controle sem trava:", controle);
+
+  // 5. A suspensao pelo console no meio da renovacao (a funcao da 049, que toma
+  //    a trava de cada pessoa com sessao de pe), e o controle com a escrita da
+  //    038, sem trava.
+  const dono = (await q(
+    `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel)
+     VALUES ('dono.da.sonda@fornecedor.exemplo', 'scrypt$' || repeat('a', 90), 'v1.sonda', 'dono')
+     ON CONFLICT DO NOTHING RETURNING id`))[0]?.id
+    ?? (await q("SELECT id FROM console_operadores WHERE papel = 'dono'"))[0].id;
+  const reativar = () => q("UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [SERRA_ALTA]);
+  async function suspensao(rotulo, suspender) {
+    // B e o console: conexao de superusuario com o operador dono no contexto
+    // (o papel `dc360_console` so executa a funcao; quem a roda e o dono dela).
+    const v = await disputa(rotulo, async (b) => {
+      await b.query("SELECT set_config('app.console_operador', $1, true)", [dono]);
+      return suspender(b);
+    }, { bComoSuper: true }).catch(async (e) => { await reativar(); throw e; });
+    await reativar();
+    return v;
+  }
+  const suspTrava = await suspensao("suspensao pelo console (console_suspender_municipio da 049)", (b) =>
+    b.query("SELECT console_suspender_municipio($1, 'sonda da 049') AS n", [SERRA_ALTA]).then((r) => r.rows[0].n));
+  const suspControle = await suspensao("CONTROLE suspensao sem trava (a escrita da 038)", (b) =>
+    b.query("UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'sonda' WHERE id = $1", [SERRA_ALTA])
+      .then(() => b.query(`UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'acesso suspenso pelo fornecedor'
+                            WHERE organizacao_id = $1 AND revogada_em IS NULL RETURNING id`, [SERRA_ALTA]))
+      .then((r) => r.rows.length));
+  linha("   suspensao, vivas na cadeia: com a trava", suspTrava, "| controle sem trava:", suspControle);
+
+  // 6. Impasse (deadlock): A redefine a senha como a API de quem administra
+  //    (UPDATE de usuarios, depois a trava e o UPDATE de sessoes); B troca a
+  //    senha pela propria pessoa no meio. Controle: B na ordem da primeira
+  //    versao da 049 (trava antes do UPDATE de usuarios).
+  async function impasse(rotulo, trocar) {
+    const a = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
+    const b = await conectar(url(urlSuper, { usuario: "dc360_api", senha: senhas.api, banco: BANCO }));
+    const comoAppEm = async (c) => {
+      await c.query("BEGIN");
+      await c.query("SET LOCAL ROLE dc360_app");
+      await c.query("SELECT set_config('app.organizacao_atual', $1, true)", [SERRA_ALTA]);
+    };
+    await comoAppEm(a);
+    await a.query("UPDATE usuarios SET senha_hash = 'hash-da-redefinicao', falhas_login = 0, bloqueado_ate = NULL, senha_provisoria_ate = now() + interval '72 hours' WHERE id = $1", [HELENA]);
+    await comoAppEm(b);
+    const pidB = (await b.query("SELECT pg_backend_pid() AS pid")).rows[0].pid;
+    const erros = [];
+    const daB = trocar(b).then(() => b.query("COMMIT"), async (e) => { erros.push(`B ${e.code}`); await b.query("ROLLBACK"); });
+    await new Promise((r) => setTimeout(r, 400));
+    const espera = (await q("SELECT wait_event_type, wait_event FROM pg_stat_activity WHERE pid = $1", [pidB]))[0];
+    const daA = a.query("SELECT travar_sessoes_do_usuario($1)", [HELENA])
+      .then(() => a.query("UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'senha redefinida por quem administra' WHERE usuario_id = $1 AND revogada_em IS NULL", [HELENA]))
+      .then(() => a.query("COMMIT"), async (e) => { erros.push(`A ${e.code}`); await a.query("ROLLBACK"); });
+    await Promise.all([daA, daB]);
+    linha(`6. ${rotulo}: B esperando (${espera.wait_event_type ?? "nao esperava"}/${espera.wait_event ?? "-"});`,
+      `erros: ${erros.length ? erros.join(", ") : "nenhum"}`);
+    await a.end(); await b.end();
+    return erros.length;
+  }
+  const impasseHoje = await impasse("troca de senha (trocar_senha da 049) contra a redefinicao", (b) =>
+    b.query("SELECT trocar_senha($1, 'hash-da-troca', NULL)", [HELENA]));
+  const impasseControle = await impasse("CONTROLE trava antes do UPDATE de usuarios", (b) =>
+    b.query("SELECT travar_sessoes_do_usuario($1)", [HELENA])
+      .then(() => b.query("UPDATE usuarios SET senha_hash = 'hash-da-troca' WHERE id = $1", [HELENA])));
+  linha("   impasse, transacoes abortadas: com a ordem da 049", impasseHoje, "| controle:", impasseControle);
+
   await api.end();
   await sup.end();
 }
