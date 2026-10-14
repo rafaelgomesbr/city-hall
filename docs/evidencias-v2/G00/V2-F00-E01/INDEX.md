@@ -59,7 +59,7 @@
 | saidas/RESUMO.md | 71f9fad4367ebbda641eea9de607c6b4d0ac3cadeb6ff22b8fb53d1ee2827985 |
 | saidas/resultados.json | bdc238d3173529fdfce86914e7c239abfc16c7bf5c4ca925a02e1db620e42c82 |
 | validacao/4b96ea7/engenharia-entrega.md | cdedbbda7232053b08bba70c17fec44a40babaca7dbec2cc3f5b01e779bc650d |
-| validacao/4b96ea7/qa.md | 502c16ce80c5d4a9703ee1fd3349000ac40ea2eb14d8f14f3b39630469fd3087 |
+| validacao/4b96ea7/qa.md | 1eb7307931b5060b946ddac8f0322d22eb7c4257066cbce8e966ce08e36e7f58 |
 | validacao/7005a60/arbitragem.md | f8b337513c15d74930f5aaf41e4c92d422520a388db76ef8aea8e74d289d40f3 |
 | validacao/7005a60/engenharia-entrega.md | 69a2369e4ac12f1552970b381408fecb6f6cbd367146269ee1d8a86aa602c5fc |
 | validacao/7005a60/qa.md | 09fc34e9e2b8270e8f8bc81d74dc05b141510082dca5b7b65d2ab138af3fc2bc |

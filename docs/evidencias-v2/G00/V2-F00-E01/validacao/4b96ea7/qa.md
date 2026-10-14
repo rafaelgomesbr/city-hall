@@ -24,7 +24,7 @@ Saídas em `C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/b6264
 | `node --test scripts/baseline.test.mjs` verde | PASS | `qa-infra/03-baseline-test-base.txt`: 26 de 26 |
 | O roteiro reproduz o estado de hoje | PASS | Saída do gatekeeper (`scratchpad/baseline/RESUMO.md`): 17 de 17 "confere", 0 divergentes. Eu repeti 3 passos reais (`test-scripts`, `auditar`, `expo-doctor`): todos "confere", código 0 (`qa-infra/07-baseline-subset.txt`). `expo-doctor` dá 21 de 21 |
 | Divergência sem explicação reprova (código 3) e não se esconde | PASS | Mutações abaixo (A e B), mais `avaliar` lido em `scripts/baseline.mjs:650-676` |
-| Redação mascara JWT, `Bearer`, URL com credencial antes de gravar | PASS | `qa-infra/redigir-sonda.mjs`, 12 amostras: JWT, `Bearer` e `bearer`, `postgres://u:p@h`, `postgresql://` com senha codificada, `mysql://`, `https://u:pw@h`, `Basic`, JWT dentro de JSON, `DATABASE_URL=...`, pasta de usuário `C:/Users/<nome>` e `/c/Users/<nome>` viram `[REDIGIDO]`/`[usuario]`; U+2014 vira `[travessao]` |
+| Redação mascara JWT, `Bearer`, URL com credencial antes de gravar | PASS | `qa-infra/redigir-sonda.mjs`, 12 amostras: JWT, `Bearer` e `bearer`, `postgres:` com usuário e senha, `postgresql://` com senha codificada, `mysql://`, `https:` com usuário e senha (amostra descrita por extenso pelo gatekeeper em 2026-10-13: o literal disparava a varredura de segredo do `conferir-evidencia`), `Basic`, JWT dentro de JSON, `DATABASE_URL=...`, pasta de usuário `C:/Users/<nome>` e `/c/Users/<nome>` viram `[REDIGIDO]`/`[usuario]`; U+2014 vira `[travessao]` |
 | Documentação de como reproduzir bate com o que o roteiro faz | FAIL | Achado 1 |
 | `.nvmrc` com `22`; matriz de versões | PASS | `dc360/.nvmrc` = `22`; `README.md:1059` |
 
