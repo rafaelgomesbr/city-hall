@@ -1,0 +1,381 @@
+TAP version 13
+# Subtest: auditar.mjs
+    # Subtest: passa quando runtime e aplicativo estão limpos
+    ok 1 - passa quando runtime e aplicativo estão limpos
+      ---
+      duration_ms: 248.9577
+      type: 'test'
+      ...
+    # Subtest: reprova vulnerabilidade de runtime
+    ok 2 - reprova vulnerabilidade de runtime
+      ---
+      duration_ms: 180.8486
+      type: 'test'
+      ...
+    # Subtest: só avisa de vulnerabilidade apenas de desenvolvimento
+    ok 3 - só avisa de vulnerabilidade apenas de desenvolvimento
+      ---
+      duration_ms: 247.4599
+      type: 'test'
+      ...
+    # Subtest: dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono'
+    ok 4 - dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono'
+      ---
+      duration_ms: 294.8893
+      type: 'test'
+      ...
+    # Subtest: dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo
+    ok 5 - dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo
+      ---
+      duration_ms: 263.8207
+      type: 'test'
+      ...
+    # Subtest: reprova advisory nova no aplicativo de campo
+    ok 6 - reprova advisory nova no aplicativo de campo
+      ---
+      duration_ms: 247.488
+      type: 'test'
+      ...
+    # Subtest: aceita o nomeado, com dono e prazo na saída
+    ok 7 - aceita o nomeado, com dono e prazo na saída
+      ---
+      duration_ms: 278.4556
+      type: 'test'
+      ...
+    # Subtest: reprova aceita que tem correção disponível e não está marcada como inaplicável
+    ok 8 - reprova aceita que tem correção disponível e não está marcada como inaplicável
+      ---
+      duration_ms: 247.8759
+      type: 'test'
+      ...
+    # Subtest: tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)
+    ok 9 - tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)
+      ---
+      duration_ms: 241.5393
+      type: 'test'
+      ...
+    # Subtest: sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro
+    ok 10 - sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro
+      ---
+      duration_ms: 110.469
+      type: 'test'
+      ...
+    # Subtest: sai 2 quando a auditoria completa da raiz volta com erro do registro
+    ok 11 - sai 2 quando a auditoria completa da raiz volta com erro do registro
+      ---
+      duration_ms: 174.1041
+      type: 'test'
+      ...
+    # Subtest: sai 2 quando o aplicativo de campo volta com erro do registro
+    ok 12 - sai 2 quando o aplicativo de campo volta com erro do registro
+      ---
+      duration_ms: 235.6409
+      type: 'test'
+      ...
+    # Subtest: sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo
+    ok 13 - sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo
+      ---
+      duration_ms: 529.7954
+      type: 'test'
+      ...
+    # Subtest: sai 2 quando o npm não devolve nem JSON
+    ok 14 - sai 2 quando o npm não devolve nem JSON
+      ---
+      duration_ms: 240.7078
+      type: 'test'
+      ...
+    1..14
+ok 1 - auditar.mjs
+  ---
+  duration_ms: 3543.2891
+  type: 'suite'
+  ...
+# Subtest: exceções do CP-03: nome, dono e prazo
+    # Subtest: aceita exceção com motivo, dono e prazo no futuro
+    ok 1 - aceita exceção com motivo, dono e prazo no futuro
+      ---
+      duration_ms: 1.2859
+      type: 'test'
+      ...
+    # Subtest: aceita exceção que vence hoje (o prazo vale até o fim do dia)
+    ok 2 - aceita exceção que vence hoje (o prazo vale até o fim do dia)
+      ---
+      duration_ms: 0.1399
+      type: 'test'
+      ...
+    # Subtest: reprova exceção sem prazo
+    ok 3 - reprova exceção sem prazo
+      ---
+      duration_ms: 0.1164
+      type: 'test'
+      ...
+    # Subtest: reprova prazo em branco, fora do formato ou que não existe no calendário
+    ok 4 - reprova prazo em branco, fora do formato ou que não existe no calendário
+      ---
+      duration_ms: 0.2411
+      type: 'test'
+      ...
+    # Subtest: reprova exceção sem dono ou com dono em branco
+    ok 5 - reprova exceção sem dono ou com dono em branco
+      ---
+      duration_ms: 0.1612
+      type: 'test'
+      ...
+    # Subtest: reprova exceção sem motivo ou com motivo em branco
+    ok 6 - reprova exceção sem motivo ou com motivo em branco
+      ---
+      duration_ms: 0.1335
+      type: 'test'
+      ...
+    # Subtest: reprova exceção vencida e diz a data
+    ok 7 - reprova exceção vencida e diz a data
+      ---
+      duration_ms: 0.0847
+      type: 'test'
+      ...
+    # Subtest: aponta todos os defeitos de uma vez, de todas as exceções
+    ok 8 - aponta todos os defeitos de uma vez, de todas as exceções
+      ---
+      duration_ms: 0.0715
+      type: 'test'
+      ...
+    # Subtest: a lista REAL tem motivo, dono e prazo válidos e no futuro
+    ok 9 - a lista REAL tem motivo, dono e prazo válidos e no futuro
+      ---
+      duration_ms: 0.138
+      type: 'test'
+      ...
+    # Subtest: a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos
+    ok 10 - a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos
+      ---
+      duration_ms: 0.1519
+      type: 'test'
+      ...
+    1..10
+ok 2 - exceções do CP-03: nome, dono e prazo
+  ---
+  duration_ms: 2.7579
+  type: 'suite'
+  ...
+# Subtest: auditar.mjs com a lista de exceções adulterada
+    # Subtest: a cópia sem adulteração passa (controle do próprio teste)
+    ok 1 - a cópia sem adulteração passa (controle do próprio teste)
+      ---
+      duration_ms: 255.2626
+      type: 'test'
+      ...
+    # Subtest: reprova a exceção sem prazo, mesmo que o pacote esteja no relatório
+    ok 2 - reprova a exceção sem prazo, mesmo que o pacote esteja no relatório
+      ---
+      duration_ms: 68.9018
+      type: 'test'
+      ...
+    # Subtest: reprova a exceção sem dono
+    ok 3 - reprova a exceção sem dono
+      ---
+      duration_ms: 68.6057
+      type: 'test'
+      ...
+    # Subtest: reprova a exceção vencida
+    ok 4 - reprova a exceção vencida
+      ---
+      duration_ms: 66.0375
+      type: 'test'
+      ...
+    1..4
+ok 3 - auditar.mjs com a lista de exceções adulterada
+  ---
+  duration_ms: 459.0535
+  type: 'suite'
+  ...
+# Subtest: redige um JWT colado num texto
+ok 4 - redige um JWT colado num texto
+  ---
+  duration_ms: 1.3424
+  type: 'test'
+  ...
+# Subtest: redige o valor de Authorization Bearer e Basic
+ok 5 - redige o valor de Authorization Bearer e Basic
+  ---
+  duration_ms: 0.3024
+  type: 'test'
+  ...
+# Subtest: redige usuário e senha de uma URL de banco
+ok 6 - redige usuário e senha de uma URL de banco
+  ---
+  duration_ms: 0.1918
+  type: 'test'
+  ...
+# Subtest: troca o nome do usuário nas pastas pessoais
+ok 7 - troca o nome do usuário nas pastas pessoais
+  ---
+  duration_ms: 0.1314
+  type: 'test'
+  ...
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+ok 8 - troca o travessão, que a regra de conteúdo proíbe em docs
+  ---
+  duration_ms: 0.4576
+  type: 'test'
+  ...
+# Subtest: não mexe em texto comum
+ok 9 - não mexe em texto comum
+  ---
+  duration_ms: 0.1325
+  type: 'test'
+  ...
+# Subtest: lê as contagens do vitest
+ok 10 - lê as contagens do vitest
+  ---
+  duration_ms: 1.1047
+  type: 'test'
+  ...
+# Subtest: lê as contagens do node --test e do jest
+ok 11 - lê as contagens do node --test e do jest
+  ---
+  duration_ms: 0.3261
+  type: 'test'
+  ...
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+ok 12 - sem contagem na saída o resultado é vazio, não zero
+  ---
+  duration_ms: 0.2578
+  type: 'test'
+  ...
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+ok 13 - avaliar confere quando o resultado é o esperado, vermelho inclusive
+  ---
+  duration_ms: 0.4536
+  type: 'test'
+  ...
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+ok 14 - avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+  ---
+  duration_ms: 0.2184
+  type: 'test'
+  ...
+# Subtest: avaliar não aceita a ausência de contagem como confere
+ok 15 - avaliar não aceita a ausência de contagem como confere
+  ---
+  duration_ms: 0.0803
+  type: 'test'
+  ...
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+not ok 16 - a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+  ---
+  duration_ms: 1.4585
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\dc360\\scripts\\baseline.test.mjs:138:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    27 !== 26
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 26
+  actual: 27
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/baseline.test.mjs:176:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+ok 17 - o E2E do painel local declara o servidor que o teste exige
+  ---
+  duration_ms: 0.3216
+  type: 'test'
+  ...
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+ok 18 - as opções recusam o que não conhecem e os filtros recusam passo inexistente
+  ---
+  duration_ms: 0.5355
+  type: 'test'
+  ...
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+ok 19 - --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+  ---
+  duration_ms: 49.934
+  type: 'test'
+  ...
+# Subtest: o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada
+ok 20 - o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada
+  ---
+  duration_ms: 0.1946
+  type: 'test'
+  ...
+# Subtest: os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)
+ok 21 - os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)
+  ---
+  duration_ms: 0.2691
+  type: 'test'
+  ...
+# Subtest: a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente
+ok 22 - a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente
+  ---
+  duration_ms: 0.2356
+  type: 'test'
+  ...
+# Subtest: passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+ok 23 - passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+  ---
+  duration_ms: 0.0931
+  type: 'test'
+  ...
+# Subtest: o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+ok 24 - o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+  ---
+  duration_ms: 0.0824
+  type: 'test'
+  ...
+# Subtest: o resumo conta as divergências explicadas e diz por quê
+ok 25 - o resumo conta as divergências explicadas e diz por quê
+  ---
+  duration_ms: 0.2689
+  type: 'test'
+  ...
+# Subtest: o conferidor de contagens reprova o número velho plantado e passa com o certo
+ok 26 - o conferidor de contagens reprova o número velho plantado e passa com o certo
+  ---
+  duration_ms: 0.2207
+  type: 'test'
+  ...
+# Subtest: o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+ok 27 - o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+  ---
+  duration_ms: 0.1363
+  type: 'test'
+  ...
+# Subtest: suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+ok 28 - suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+  ---
+  duration_ms: 0.1387
+  type: 'test'
+  ...
+# Subtest: todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+ok 29 - todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+  ---
+  duration_ms: 0.4131
+  type: 'test'
+  ...
+# Subtest: o registro da deriva V-DEP-4 existe e diz que foi fechada
+ok 30 - o registro da deriva V-DEP-4 existe e diz que foi fechada
+  ---
+  duration_ms: 0.6993
+  type: 'test'
+  ...
+1..30
+# tests 55
+# suites 3
+# pass 54
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4115.2914

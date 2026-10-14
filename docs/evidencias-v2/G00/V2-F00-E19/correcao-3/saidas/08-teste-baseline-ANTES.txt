@@ -1,0 +1,4 @@
+not ok 18 - os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)
+    audit-raiz: não auditou, não pode conferir
+# pass 23
+# fail 4

@@ -1169,8 +1169,14 @@ Cada passo diz se o resultado "confere", se está "divergente-explicada" (um
 achado nomeado, com o registro onde está descrito, e que só vale quando a saída
 bate com a descrição inteira) ou "divergente" (sem explicação). O código de
 saída é 0 (tudo confere), 1 (só divergência explicada) ou 3 (divergência sem
-explicação, que reprova); 2 é o roteiro quebrado. Hoje a única divergência
-explicada é o `expo-doctor` (V-DEP-4). O total de casos que o roteiro espera de
+explicação, que reprova); 2 é o roteiro quebrado. Hoje não há divergência
+explicada: o roteiro confere todos os passos com código 0 (17 de 17 com
+`--sem-instalar`, 19 de 19 no Linux do CI); a deriva V-DEP-4 do `expo-doctor` foi
+fechada em 2026-10-13, com a atualização dos patches do Expo.
+Os dois `npm audit` crus são os únicos passos esperados como "falha", e só
+conferem se a saída trouxer o relatório (`# npm audit report`): `npm audit` que
+sai diferente de zero porque o registro estava fora do ar não audita nada e
+diverge. O total de casos que o roteiro espera de
 cada suíte é conferido contra a árvore por `npm run conferir:numeros`:
 acrescentar teste sem declarar a diferença em `scripts/baseline.mjs` reprova ali.
 O passo a passo para uma segunda pessoa está em
@@ -1321,7 +1327,10 @@ um com motivo, dono e prazo de 2027-01-05; depois do prazo o portão reprova at�
 alguém reavaliar. O `npm audit fix` no aplicativo foi descartado porque
 reembaralha a árvore do Expo; a saída definitiva é subir o SDK por inteiro, o
 que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
-quem quer a resposta do portão roda `npm run auditar`.
+quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem
+ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
+devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
+código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
 
 ### O aplicativo de campo precisa de um comando próprio
 
@@ -1610,9 +1619,10 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
   código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
   envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
-  aplicativo; passa no `expo-doctor` menos uma verificação, a de versões de pacote
-  (seis patches novos do Expo, pendência 17 de `apps/campo/PENDENCIAS.md`) e no `npm run auditar` conforme o CP-03
-  (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+  aplicativo; passa no `expo-doctor` 21 de 21 (os seis patches do Expo foram
+  aplicados em 2026-10-13, pendência 17 de `apps/campo/PENDENCIAS.md`) e no
+  `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
+  aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
   de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o

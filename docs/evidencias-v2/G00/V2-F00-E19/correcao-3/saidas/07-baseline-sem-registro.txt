@@ -1,0 +1,4 @@
+[1/2] audit-raiz: npm audit (.)
+    codigo 1, divergente: a saída não contém "# npm audit report"
+[2/2] audit-campo: npm audit (apps/campo)
+    codigo 1, divergente: a saída não contém "# npm audit report"

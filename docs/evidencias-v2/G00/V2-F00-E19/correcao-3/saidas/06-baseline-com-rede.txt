@@ -1,0 +1,8 @@
+[1/4] auditar: npm run auditar (.)
+    codigo 0, confere
+[2/4] audit-raiz: npm audit (.)
+    codigo 1, confere
+[3/4] audit-campo: npm audit (apps/campo)
+    codigo 1, confere
+[4/4] expo-doctor: npx expo-doctor (apps/campo)
+    codigo 0, confere

@@ -33,8 +33,12 @@ before(() => {
 const f = JSON.parse(process.env.AUDITAR_FIXTURE);
 const rel = cwd.endsWith("apps/campo") ? f.app
   : process.argv.includes("--omit=dev") ? f.runtime : f.tudo;
+// Texto cru simula o npm que não devolve JSON nenhum.
+if (typeof rel === "string") { process.stdout.write(rel); process.exit(1); }
 process.stdout.write(JSON.stringify(rel));
-process.exit(Object.keys(rel.vulnerabilities ?? {}).length ? 1 : 0);
+// Relatório com error ou sem metadata é o do registro fora do ar: o npm real
+// sai com 1 e devolve só message e error.
+process.exit(Object.keys(rel.vulnerabilities ?? {}).length || rel.error || !rel.metadata ? 1 : 0);
 `,
   );
   writeFileSync(join(pasta, "npm.cmd"), '@node "%~dp0npm.mjs" %*\r\n');
@@ -125,6 +129,52 @@ describe("auditar.mjs", () => {
   it("tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)", () => {
     const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": true }) });
     assert.equal(codigo, 0, saida);
+  });
+
+  /*
+    Item 7 da seção 7 de `28`: o portão não pode aprovar sem ter auditado. Com o
+    registro de avisos inalcançável o `npm audit --json` devolve só
+    `{ message, error }`, sem `metadata`, e o portão antigo lia isso como
+    "0 vulnerabilidades", imprimia "Runtime limpo" e saía 0.
+  */
+  const SEM_AUDITORIA = { message: "request to http://127.0.0.1:9/... failed", error: { summary: "", detail: "" } };
+
+  it("sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro", () => {
+    const { codigo, saida } = rodar({ runtime: SEM_AUDITORIA, tudo: limpo });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /NÃO foi auditad/);
+    assert.match(saida, /raiz/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("sai 2 quando a auditoria completa da raiz volta com erro do registro", () => {
+    const { codigo, saida } = rodar({ runtime: limpo, tudo: SEM_AUDITORIA });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /NÃO foi auditad/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("sai 2 quando o aplicativo de campo volta com erro do registro", () => {
+    const { codigo, saida } = rodar({ app: SEM_AUDITORIA });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /NÃO foi auditad/);
+    assert.match(saida, /aplicativo de campo/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo", () => {
+    for (const onde of ["runtime", "tudo", "app"]) {
+      const { codigo, saida } = rodar({ [onde]: {} });
+      assert.equal(codigo, 2, `${onde}: ${saida}`);
+      assert.match(saida, /NÃO foi auditad/);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+  });
+
+  it("sai 2 quando o npm não devolve nem JSON", () => {
+    const { codigo, saida } = rodar({ app: "isto não é um relatório" });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /NÃO foi auditad/);
   });
 });
 

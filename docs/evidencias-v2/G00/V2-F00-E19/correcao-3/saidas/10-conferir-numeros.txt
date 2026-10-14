@@ -1,0 +1,18 @@
+
+> dc360@0.1.0 conferir:numeros
+> node scripts/conferir-numeros.mjs
+
+Lendo a lista de testes de cada pacote (sem executar)...
+file:///C:/Projetos/city-hall/dc360/scripts/casos-do-aplicativo.mjs:199
+    throw new Error(
+          ^
+
+Error: src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx: tem `describe.each`, que multiplica todos os casos do bloco. Esta contagem não sabe fazer isso, e um número calado seria pior que este erro.
+    at contarCasos (file:///C:/Projetos/city-hall/dc360/scripts/casos-do-aplicativo.mjs:199:11)
+    at contarCasosDoAplicativo (file:///C:/Projetos/city-hall/dc360/scripts/casos-do-aplicativo.mjs:226:30)
+    at file:///C:/Projetos/city-hall/dc360/scripts/conferir-numeros.mjs:106:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:329:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.17.0

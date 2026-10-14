@@ -3,9 +3,9 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | AMBIENTE.md | b5c79485f8347592c8f61392fa981db39691bd5e0a4e934cf3e2a230240ebf4c |
-| COMO-REPRODUZIR.md | 3183bd53da3ef0e37d74ab22dc40ad8a5d54273ed3fec0079324118c91000dd2 |
+| COMO-REPRODUZIR.md | ac8a705c4f182fddc6183c278dedbbd3de63fa3f55729a738ba15c846574e824 |
 | RESUMO.md | a7daa191546dfe0d8aa1d7d646e16ff54647f2fd1bab43b4bfc56a0bcc87d4be |
-| VEREDITO.md | b1ad9e225380e67e74049b41a56a1152762a99274c5bc566a801e300edc0651e |
+| VEREDITO.md | b9b43f08c858b463798be77b7c1b0cfcb50d6a84d6c41036f5c4464393678125 |
 | correcao-1/RESUMO.md | de980cf79bb938fa30af9a38aae9aa6a6007cc75085dc5c1bf9a07c5646c98de |
 | correcao-1/diff-da-correcao.patch | 29cc644492afa66e10e96bef5fcb20d693f1259b1af738dd81f874195e31135c |
 | correcao-1/roteiro-stdout.log | 9b118fe0109159aae781bda06c95b23dc6703dc6427c24dcd16cca3a7f15e694 |
@@ -35,6 +35,10 @@
 | correcao-1/saidas/17-e2e-api.txt | 7840d45b0f1e5e88f3f7a86699c0bd745914d2c55993c24a489f309208d01f8e |
 | correcao-1/saidas/RESUMO.md | 1d927d623efc21a4dc1bd9e2f70a2549204f43190a68cb03a184f7e35fb391b4 |
 | correcao-1/saidas/resultados.json | e82d7d36eed372964ef4a5a6847d25494a4e4c64f9600af0d4910e1715aee101 |
+| correcao-2/RESUMO.md | 5fe06ec1a299ca9b26e6205ba911ad1ccc8017c22db37cfd24581e53e0ec6896 |
+| correcao-2/diff-da-correcao.patch | a25f54eac6751569f99b6f654fee6e12b2aceefa2578bf16b3a1bfe7e93b13a7 |
+| correcao-2/saidas/01-baseline-com-rede.txt | 2e58a0531da295964e7c5a75f9ff000b08be934cbdbd12325c58f27cd993c136 |
+| correcao-2/saidas/02-baseline-sem-registro.txt | b86ccc3ee2c6c2e835a8e225e9bb8b59c561d4f2eb80c5a5e0464e63b0fc2869 |
 | saidas/01-typecheck.txt | 74686ac2aaeb709d1d2f585f4f10829a3449e8c27ddcbce6d7c8c4f196f10b18 |
 | saidas/02-teste-shared.txt | d41acfbbd4324ecaccff3fe8b41a526854fcaa215d1615e0904f82c623b33b86 |
 | saidas/03-teste-db.txt | 0b776aef8af7df4c38af8706d91832a30b5b663a6e9d2c5e9be8cdfb8b613773 |
@@ -54,6 +58,8 @@
 | saidas/17-e2e-api.txt | ebba7d9647941c00b5f28640a9b14bb694d8f8d85631bf25245216cc768b310d |
 | saidas/RESUMO.md | 71f9fad4367ebbda641eea9de607c6b4d0ac3cadeb6ff22b8fb53d1ee2827985 |
 | saidas/resultados.json | bdc238d3173529fdfce86914e7c239abfc16c7bf5c4ca925a02e1db620e42c82 |
+| validacao/4b96ea7/engenharia-entrega.md | cdedbbda7232053b08bba70c17fec44a40babaca7dbec2cc3f5b01e779bc650d |
+| validacao/4b96ea7/qa.md | 502c16ce80c5d4a9703ee1fd3349000ac40ea2eb14d8f14f3b39630469fd3087 |
 | validacao/7005a60/arbitragem.md | f8b337513c15d74930f5aaf41e4c92d422520a388db76ef8aea8e74d289d40f3 |
 | validacao/7005a60/engenharia-entrega.md | 69a2369e4ac12f1552970b381408fecb6f6cbd367146269ee1d8a86aa602c5fc |
 | validacao/7005a60/qa.md | 09fc34e9e2b8270e8f8bc81d74dc05b141510082dca5b7b65d2ab138af3fc2bc |

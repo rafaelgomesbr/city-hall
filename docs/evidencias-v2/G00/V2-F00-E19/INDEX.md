@@ -3,7 +3,7 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | aa57a95819efa41d56375aaad5deb6eefe2ce48a9c9c45e3578a83bd17cd1464 |
-| VEREDITO.md | 750fa55e773c24cf7a4184ee65ee4f87511324e257af3b7e072aaf361ca8ac1e |
+| VEREDITO.md | 454cf77e6e90cd91301eed20b465486b12f83292a204951443d0f90904917160 |
 | correcao-1/RESUMO.md | 3fe5444ac71a912b4a41748762010e32a3210c85043772cf04ce46d906ae64ec |
 | correcao-1/diff-da-correcao.patch | 8ab339714c5c1488d06553c7958205425316592cab699a596723a9b2b65311ff |
 | correcao-1/saidas/01-auditar-test-ANTES.txt | 9f3300669c6ddc4b0e1ca5d5d0a9bb1da2dd42c9bd6a642e247a5e2522b9ffec |
@@ -26,6 +26,19 @@
 | correcao-2/saidas/06-test-campo.txt | c19f9eda3dab39fe9a6316fa73c644a62abd321797800e5d92f8ce244f4138a9 |
 | correcao-2/saidas/07-test-pacote-campo.txt | 084ef2cd6bb554e9e2dd9496811adaf9d1ece13f780d37ebed7a4074e37e8e8b |
 | correcao-2/saidas/08-numeros.txt | 7d8495e012ef9b735ff6bd3117dbf65b1433aec6899c38ad2c573d4045f9fccf |
+| correcao-3/RESUMO.md | 3d541ae69a3b9c49189ca436502f4132d9922b2fb4c1e8a3a295880aa0e90509 |
+| correcao-3/diff-da-correcao.patch | e246344a8f43989722afc75bd1a4f4b4923b16b58b3ee72460162db494bf9329 |
+| correcao-3/saidas/01-testes-auditar-ANTES.txt | 64f33e067bf7c2762c852e698da56bf52fcb772f2459bbf620df7cdc1f93dc94 |
+| correcao-3/saidas/02-repro-ANTES.txt | 8fcacfa7bf4c191203d7b0be1853ffba1fec246a8f36d7792599f542c0d432b4 |
+| correcao-3/saidas/03-testes-auditar-DEPOIS.txt | 351d448e563bd5a78da7621b4153945da813610f0959b838c1b60dfa63ab01d6 |
+| correcao-3/saidas/04-repro-DEPOIS.txt | 64067573dcde9dbd20ff08230a7d5128902acd8de0f614dcececa583264f8f0b |
+| correcao-3/saidas/05-auditar-com-rede.txt | 2abc014b3acc03ab7b186afd12150b8bf2b95a31cdfb1b4ae64aa30fdcccbccf |
+| correcao-3/saidas/06-baseline-com-rede.txt | 2e58a0531da295964e7c5a75f9ff000b08be934cbdbd12325c58f27cd993c136 |
+| correcao-3/saidas/07-baseline-sem-registro.txt | b86ccc3ee2c6c2e835a8e225e9bb8b59c561d4f2eb80c5a5e0464e63b0fc2869 |
+| correcao-3/saidas/08-teste-baseline-ANTES.txt | fe77e1d485ee481dd82e4933c8b7bb07411a78255a03c3ad289f798ce40f27b9 |
+| correcao-3/saidas/09-regras-de-conteudo.txt | 22ec6fdf55a00cbd237a7bcc06574fcd407ea4309960b45f13de1a72192b37d7 |
+| correcao-3/saidas/10-conferir-numeros.txt | 6a9aa776fd166af4369150b515c9c88ff9ed8232cff3213b2ad60e2ba0565fa3 |
+| correcao-3/saidas/11-testes-auditar-e-baseline-DEPOIS.txt | bbe8dff9cac1a845a008748a00339040ef0fba0bfdf486f4b5e0e87bcf9a1cdc |
 | saidas/01-auditar.txt | f3ac3cae828cab1ab08277243da0c605aa522f998fc5fadee16ab585ecd3b0aa |
 | saidas/02-auditar-test.txt | 40e7693258ba85c64cf9cfabe40fadc684157a3f432f9851b775f54e02db5033 |
 | saidas/03-expo-doctor.txt | 3398056cdac22661840b6afb1ba2611b95dcc2d9282fac3680367cc603c30b98 |
@@ -36,5 +49,7 @@
 | saidas/08-typecheck.txt | 5a56ccad88c743e16bc01377d357554dd764184a5732248d5d9aa0005ea8eb21 |
 | saidas/09-npm-audit-raiz-runtime.txt | 026aadca0cc89a2bd8e18ec36f3fb8119b2922f27026ce3057f6335913263fe2 |
 | saidas/10-e2e-api.txt | d3bdd4c4b8a8b09184518a4ed6ceca9b54025b5057e666964b16d50c8d71b395 |
+| validacao/4b96ea7/engenharia-entrega.md | b4b9d56251470e3543ccda638e3024425e1e3c7e29fceb0c4ca6c9129d2e575c |
+| validacao/4b96ea7/qa.md | 70179c5a6d6900df509c1a0d969e8d9b65e3cf66d19b60eee679c915d7f81563 |
 | validacao/7005a60/engenharia-entrega.md | 90dbf1cca62ed7590f4de4beeeb97108fc23cddcfe32013844aa52dc533e7feb |
 | validacao/7005a60/qa.md | cf161cf812d2d8c75f1fbe71415b6b27974649f6781d78c1099314e88edafe4a |

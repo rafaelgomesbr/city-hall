@@ -62,9 +62,9 @@ O esperado de cada passo está em `PASSOS`, dentro de `scripts/baseline.mjs`, e 
 
 - passam, com código 0: `typecheck`, as suítes de `packages/shared`, `db` (inclui o isolamento, com 3 pulados por ambiente em `busca.test.ts`), `packages/campo`, `apps/api` (sem nenhum pulado), `apps/console` e `apps/web`, o jest do aplicativo de campo, `npm run test:campo`, `npm run test:scripts` (4 pulados por ambiente, a pasta `ios/` que não existe), `conferir:numeros`, `auditar` e os dois E2E;
 - falham de propósito: os dois `npm audit` crus (raiz e `apps/campo`). A política do CP-03 aceita o que eles apontam, e quem decide é o `auditar`, que sai 0. Se um deles fechar em 0, o passo diverge de propósito: é a notícia de que a exceção pode sair;
-- uma divergência EXPLICADA: o `expo-doctor` dá 20 de 21, e o roteiro o nomeia como **V-DEP-4**. É deriva externa: o Expo publicou patches depois do 21 de 21 de 2026-10-08, e seis pacotes ficaram um patch atrás do que o SDK 57 exige. A atualização é decisão do Rafael e está descrita no item 17 de `dc360/apps/campo/PENDENCIAS.md`. Quando ela for feita, o passo passa a "confere" sozinho e a explicação deve sair do roteiro.
+- nenhuma divergência explicada: o `expo-doctor` dá 21 de 21. A deriva que o roteiro nomeava como **V-DEP-4** (seis pacotes do Expo um patch atrás do que o SDK 57 exige, publicados depois do 21 de 21 de 2026-10-08) foi fechada em 2026-10-13: o Rafael decidiu atualizar, os seis patches foram aplicados (item 17 de `dc360/apps/campo/PENDENCIAS.md`) e o passo confere sozinho. Se a deriva voltar (o Expo publica patch novo a toda hora), o passo diverge de propósito e a causa se descreve em `divergenciaExplicada` só se a decisão for não atualizar na hora.
 
-Portanto uma árvore verde e rede disponível dão código **1**, por V-DEP-4 e só por ela. Código 0 só volta quando os seis patches do Expo forem aplicados.
+Portanto uma árvore verde e rede disponível dão código **0**: 19 de 19 passos "confere" numa máquina nova, ou 17 de 17 com `--sem-instalar` (o `npm ci` das duas árvores não roda). Sem rede o resultado NÃO vale: `npm audit` e `expo-doctor` dependem do registro, e o roteiro não confere um `npm audit` cru que saiu "falha" sem trazer o relatório (`# npm audit report`), justamente porque registro fora do ar também sai com código diferente de zero sem ter auditado. Nesse caso o passo diverge (código 3).
 
 ## Quem garante que o roteiro não fica velho
 
@@ -75,7 +75,7 @@ Isso não cobre, e é dito aqui para não parecer que cobre: as verificações q
 ## Anexar ao fechar a validação
 
 - O último run do workflow **Verificar** no GitHub (link ou captura), porque o repositório é privado e o resultado do CI é NÃO CONFIRMADO sem isso. O job "Linha de base (baseline.mjs) em Linux" só roda com `[ci completo]` na mensagem do commit, por `workflow_dispatch` ou na rodada semanal.
-- O `RESUMO.md` da segunda máquina, com a explicação de qualquer divergência além de V-DEP-4.
+- O `RESUMO.md` da segunda máquina, com a explicação de qualquer divergência (hoje não há nenhuma esperada).
 - Nada de segredo: o roteiro redige JWT, `Bearer`, `Basic`, URL com senha e a pasta pessoal, mas confira o texto antes de anexar.
 
 ## Histórico: a linha vermelha de 2026-09-30

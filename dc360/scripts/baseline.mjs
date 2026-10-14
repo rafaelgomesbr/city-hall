@@ -85,7 +85,7 @@ export const SAIDA_PADRAO = join(
  * explicada, código de saída, conferidor de contagens com número velho
  * plantado).
  */
-export const TESTES_DA_E01_EM_SCRIPTS = 26;
+export const TESTES_DA_E01_EM_SCRIPTS = 27;
 
 /**
  * Quantos testes cada etapa SEGUINTE da fase F00 soma ao `test:scripts`, por ID.
@@ -136,7 +136,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
     dava 0 para este arquivo e por isso ele ficou de fora).
   */
-  "V2-F00-E19": 23,
+  "V2-F00-E19": 28,
   /*
     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
@@ -479,6 +479,9 @@ export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
 }
 
+/** Cabeçalho que o `npm audit` imprime só quando auditou e achou algo (não aparece com o registro fora do ar). */
+const RELATORIO_DE_AUDITORIA = "# npm audit report";
+
 /**
  * Os passos, na ordem em que se roda. `esperado` é o resultado que a árvore
  * verde produz hoje:
@@ -527,9 +530,15 @@ export const PASSOS = [
     da árvore do Expo SDK 57). A decisão está no CP-03, com prazo das exceções
     em 2027-01-05. Se algum dia um deles fechar em 0, o passo diverge de
     propósito: é a notícia de que a exceção pode sair.
+
+    "Falha" sozinho não basta, e foi o furo da validação de 2026-10-13: o
+    `npm audit` também sai diferente de zero quando o registro está fora do ar,
+    e aí não auditou nada. Por isso o esperado exige o cabeçalho do relatório de
+    verdade (`# npm audit report`), que só aparece quando houve auditoria e
+    achados; com o registro fora do ar o passo diverge.
   */
-  { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
-  { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
+  { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha", contem: RELATORIO_DE_AUDITORIA } },
+  { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha", contem: RELATORIO_DE_AUDITORIA } },
   /*
     O esperado é o verde de verdade: 21 de 21. Em 2026-10-13 a árvore deu 20 de 21
     por deriva externa (o Expo publicou patches de seis pacotes depois do 21 de 21

@@ -1,0 +1,271 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index df0a083..b0f5997 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1169,8 +1169,14 @@ Cada passo diz se o resultado "confere", se está "divergente-explicada" (um
+ achado nomeado, com o registro onde está descrito, e que só vale quando a saída
+ bate com a descrição inteira) ou "divergente" (sem explicação). O código de
+ saída é 0 (tudo confere), 1 (só divergência explicada) ou 3 (divergência sem
+-explicação, que reprova); 2 é o roteiro quebrado. Hoje a única divergência
+-explicada é o `expo-doctor` (V-DEP-4). O total de casos que o roteiro espera de
++explicação, que reprova); 2 é o roteiro quebrado. Hoje não há divergência
++explicada: o roteiro confere todos os passos com código 0 (17 de 17 com
++`--sem-instalar`, 19 de 19 no Linux do CI); a deriva V-DEP-4 do `expo-doctor` foi
++fechada em 2026-10-13, com a atualização dos patches do Expo.
++Os dois `npm audit` crus são os únicos passos esperados como "falha", e só
++conferem se a saída trouxer o relatório (`# npm audit report`): `npm audit` que
++sai diferente de zero porque o registro estava fora do ar não audita nada e
++diverge. O total de casos que o roteiro espera de
+ cada suíte é conferido contra a árvore por `npm run conferir:numeros`:
+ acrescentar teste sem declarar a diferença em `scripts/baseline.mjs` reprova ali.
+ O passo a passo para uma segunda pessoa está em
+@@ -1321,7 +1327,10 @@ um com motivo, dono e prazo de 2027-01-05; depois do prazo o portão reprova at
+ alguém reavaliar. O `npm audit fix` no aplicativo foi descartado porque
+ reembaralha a árvore do Expo; a saída definitiva é subir o SDK por inteiro, o
+ que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
+-quem quer a resposta do portão roda `npm run auditar`.
++quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem
++ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
++devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
++código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
+ 
+ ### O aplicativo de campo precisa de um comando próprio
+ 
+@@ -1610,9 +1619,10 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+ - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
+   código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
+   envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
+-  aplicativo; passa no `expo-doctor` menos uma verificação, a de versões de pacote
+-  (seis patches novos do Expo, pendência 17 de `apps/campo/PENDENCIAS.md`) e no `npm run auditar` conforme o CP-03
+-  (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
++  aplicativo; passa no `expo-doctor` 21 de 21 (os seis patches do Expo foram
++  aplicados em 2026-10-13, pendência 17 de `apps/campo/PENDENCIAS.md`) e no
++  `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
++  aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+   de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
+   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+diff --git a/dc360/scripts/auditar.mjs b/dc360/scripts/auditar.mjs
+index 1d4dc29..75c529a 100755
+--- a/dc360/scripts/auditar.mjs
++++ b/dc360/scripts/auditar.mjs
+@@ -38,20 +38,64 @@ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import { ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
+ 
+-function auditar(argumentos, cwd) {
++/**
++ * Sai com código 2 dizendo, em português, que a auditoria NÃO aconteceu.
++ *
++ * Código 2 e não 1 de propósito: 1 quer dizer "auditei e achei vulnerabilidade",
++ * 2 quer dizer "não consegui auditar", e quem lê o CI precisa distinguir. O que
++ * este portão nunca pode fazer é aprovar sem ter auditado: com o registro de
++ * avisos fora do ar o `npm audit --json` devolve só `{ message, error }`, sem
++ * `metadata`, e a leitura ingênua desse relatório era "0 vulnerabilidades",
++ * "Runtime limpo" e código 0 (validação de 2026-10-13, item 7 da seção 7 de
++ * `28`). Falta de prova não é prova de ausência.
++ */
++function naoAuditou(rotulo, motivo) {
++  console.error(`\nERRO: ${rotulo} NÃO foi auditado, então este portão NÃO aprova.`);
++  console.error(`Motivo: ${motivo}`);
++  console.error(
++    "Isto não é 'zero vulnerabilidades': é 'não consegui olhar'. Confira a rede e o registro "
++    + "(npm config get registry), rode de novo, e só então confie no resultado.",
++  );
++  process.exit(2);
++}
++
++/** Aceita só um relatório que de fato contém a contagem de vulnerabilidades. */
++function relatorioValido(relatorio) {
++  if (relatorio === null || typeof relatorio !== "object" || Array.isArray(relatorio)) {
++    return "o npm não devolveu um relatório JSON";
++  }
++  if (relatorio.error) {
++    return `o npm audit devolveu erro (${String(relatorio.message ?? relatorio.error.summary ?? "sem mensagem").slice(0, 200)})`;
++  }
++  const v = relatorio.metadata?.vulnerabilities;
++  if (v === null || typeof v !== "object" || typeof v.total !== "number") {
++    return "o relatório não traz metadata.vulnerabilities (o npm não chegou a auditar)";
++  }
++  return null;
++}
++
++function auditar(argumentos, cwd, rotulo) {
++  let saida;
+   try {
+-    const saida = execFileSync("npm", ["audit", "--json", ...argumentos], {
++    saida = execFileSync("npm", ["audit", "--json", ...argumentos], {
+       encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
+       ...(cwd ? { cwd } : {}),
+     });
+-    return JSON.parse(saida);
+   } catch (erro) {
+     // `npm audit` sai com código diferente de zero quando acha algo, e o JSON
+     // vem no stdout do mesmo jeito. Só é falha de verdade se não vier JSON.
+-    const saida = erro.stdout?.toString() ?? "";
+-    if (!saida.trim()) throw erro;
+-    return JSON.parse(saida);
++    saida = erro.stdout?.toString() ?? "";
++    if (!saida.trim()) naoAuditou(rotulo, `o npm falhou sem relatório (${erro.message.split(String.fromCharCode(10))[0]})`);
++  }
++  let relatorio;
++  try {
++    relatorio = JSON.parse(saida);
++  } catch {
++    return naoAuditou(rotulo, "a saída do npm audit não é JSON");
+   }
++  const defeito = relatorioValido(relatorio);
++  if (defeito) naoAuditou(rotulo, defeito);
++  return relatorio;
+ }
+ 
+ function contar(relatorio) {
+@@ -85,8 +129,8 @@ if (defeitosDaLista.length > 0) {
+   process.exit(1);
+ }
+ 
+-const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"]);
+-const relatorioDeTudo = auditar(["--audit-level=low"]);
++const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], undefined, "o conjunto de runtime da raiz");
++const relatorioDeTudo = auditar(["--audit-level=low"], undefined, "o conjunto completo da raiz");
+ const runtime = contar(relatorioDoRuntime);
+ const tudo = contar(relatorioDeTudo);
+ const soDesenvolvimento = Math.max(0, tudo.total - runtime.total);
+@@ -132,7 +176,7 @@ if (soDesenvolvimento > 0) {
+ const AQUI = dirname(fileURLToPath(import.meta.url));
+ const APLICATIVO = join(AQUI, "..", "apps", "campo");
+ 
+-const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO);
++const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo");
+ const doApp = contar(relatorioDoApp);
+ /*
+   Só os pacotes com advisory PRÓPRIA, e não a cadeia inteira que depende deles.
+diff --git a/dc360/scripts/auditar.test.mjs b/dc360/scripts/auditar.test.mjs
+index 430b390..097d240 100644
+--- a/dc360/scripts/auditar.test.mjs
++++ b/dc360/scripts/auditar.test.mjs
+@@ -33,8 +33,12 @@ before(() => {
+ const f = JSON.parse(process.env.AUDITAR_FIXTURE);
+ const rel = cwd.endsWith("apps/campo") ? f.app
+   : process.argv.includes("--omit=dev") ? f.runtime : f.tudo;
++// Texto cru simula o npm que não devolve JSON nenhum.
++if (typeof rel === "string") { process.stdout.write(rel); process.exit(1); }
+ process.stdout.write(JSON.stringify(rel));
+-process.exit(Object.keys(rel.vulnerabilities ?? {}).length ? 1 : 0);
++// Relatório com error ou sem metadata é o do registro fora do ar: o npm real
++// sai com 1 e devolve só message e error.
++process.exit(Object.keys(rel.vulnerabilities ?? {}).length || rel.error || !rel.metadata ? 1 : 0);
+ `,
+   );
+   writeFileSync(join(pasta, "npm.cmd"), '@node "%~dp0npm.mjs" %*\r\n');
+@@ -126,6 +130,52 @@ describe("auditar.mjs", () => {
+     const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": true }) });
+     assert.equal(codigo, 0, saida);
+   });
++
++  /*
++    Item 7 da seção 7 de `28`: o portão não pode aprovar sem ter auditado. Com o
++    registro de avisos inalcançável o `npm audit --json` devolve só
++    `{ message, error }`, sem `metadata`, e o portão antigo lia isso como
++    "0 vulnerabilidades", imprimia "Runtime limpo" e saía 0.
++  */
++  const SEM_AUDITORIA = { message: "request to http://127.0.0.1:9/... failed", error: { summary: "", detail: "" } };
++
++  it("sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro", () => {
++    const { codigo, saida } = rodar({ runtime: SEM_AUDITORIA, tudo: limpo });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /NÃO foi auditad/);
++    assert.match(saida, /raiz/);
++    assert.doesNotMatch(saida, /Runtime limpo/);
++  });
++
++  it("sai 2 quando a auditoria completa da raiz volta com erro do registro", () => {
++    const { codigo, saida } = rodar({ runtime: limpo, tudo: SEM_AUDITORIA });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /NÃO foi auditad/);
++    assert.doesNotMatch(saida, /Runtime limpo/);
++  });
++
++  it("sai 2 quando o aplicativo de campo volta com erro do registro", () => {
++    const { codigo, saida } = rodar({ app: SEM_AUDITORIA });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /NÃO foi auditad/);
++    assert.match(saida, /aplicativo de campo/);
++    assert.doesNotMatch(saida, /Runtime limpo/);
++  });
++
++  it("sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo", () => {
++    for (const onde of ["runtime", "tudo", "app"]) {
++      const { codigo, saida } = rodar({ [onde]: {} });
++      assert.equal(codigo, 2, `${onde}: ${saida}`);
++      assert.match(saida, /NÃO foi auditad/);
++      assert.doesNotMatch(saida, /Runtime limpo/);
++    }
++  });
++
++  it("sai 2 quando o npm não devolve nem JSON", () => {
++    const { codigo, saida } = rodar({ app: "isto não é um relatório" });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /NÃO foi auditad/);
++  });
+ });
+ 
+ describe("exceções do CP-03: nome, dono e prazo", () => {
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index e93c71d..5b43ac6 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -479,6 +479,9 @@ export function esperadoDoTesteCampoApp() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
+ }
+ 
++/** Cabeçalho que o `npm audit` imprime só quando auditou e achou algo (não aparece com o registro fora do ar). */
++const RELATORIO_DE_AUDITORIA = "# npm audit report";
++
+ /**
+  * Os passos, na ordem em que se roda. `esperado` é o resultado que a árvore
+  * verde produz hoje:
+@@ -527,9 +530,15 @@ export const PASSOS = [
+     da árvore do Expo SDK 57). A decisão está no CP-03, com prazo das exceções
+     em 2027-01-05. Se algum dia um deles fechar em 0, o passo diverge de
+     propósito: é a notícia de que a exceção pode sair.
++
++    "Falha" sozinho não basta, e foi o furo da validação de 2026-10-13: o
++    `npm audit` também sai diferente de zero quando o registro está fora do ar,
++    e aí não auditou nada. Por isso o esperado exige o cabeçalho do relatório de
++    verdade (`# npm audit report`), que só aparece quando houve auditoria e
++    achados; com o registro fora do ar o passo diverge.
+   */
+-  { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
+-  { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
++  { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha", contem: RELATORIO_DE_AUDITORIA } },
++  { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha", contem: RELATORIO_DE_AUDITORIA } },
+   /*
+     O esperado é o verde de verdade: 21 de 21. Em 2026-10-13 a árvore deu 20 de 21
+     por deriva externa (o Expo publicou patches de seis pacotes depois do 21 de 21
+diff --git a/dc360/scripts/baseline.test.mjs b/dc360/scripts/baseline.test.mjs
+index fab92db..f23672c 100644
+--- a/dc360/scripts/baseline.test.mjs
++++ b/dc360/scripts/baseline.test.mjs
+@@ -223,6 +223,21 @@ test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor esper
+   assert.equal(PASSOS.find((p) => p.id === "audit-campo").esperado.codigo, "falha");
+ });
+ 
++test("os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)", () => {
++  const SEM_REGISTRO = [
++    "npm warn audit request to http://127.0.0.1:9/-/npm/v1/security/audits/quick failed, reason: connect ECONNREFUSED 127.0.0.1:9",
++    "npm error audit endpoint returned an error",
++  ].join("\n");
++  const COM_ACHADOS = "# npm audit report\n\nvitest  <=4.0.0\nSeverity: critical\n\n3 vulnerabilities (1 moderate, 2 critical)\n";
++  for (const id of ["audit-raiz", "audit-campo"]) {
++    const passo = PASSOS.find((p) => p.id === id);
++    // Antes do conserto o esperado era só { codigo: "falha" }, e o código 1 do registro fora do ar conferia.
++    assert.equal(avaliar(passo, SEM_REGISTRO, 1).status, "divergente", `${id}: não auditou, não pode conferir`);
++    assert.equal(avaliar(passo, COM_ACHADOS, 1).status, "confere", `${id}: auditou e achou, confere`);
++    assert.equal(avaliar(passo, COM_ACHADOS, 0).status, "divergente", `${id}: ficar verde diverge de propósito`);
++  }
++});
++
+ test("a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente", () => {
+   const real = PASSOS.find((p) => p.id === "expo-doctor");
+   // O passo real não descreve nada: 20 de 21 hoje seria deriva nova e sem explicação.

@@ -1,0 +1,9 @@
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+
+Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+
+Aviso: decode-uri-component, brace-expansion, braces, node-forge, shell-quote, sprintf-js não aparece(m) mais no relatório do aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs.
+
+Runtime limpo, e o aplicativo sem advisory nova.
+CODIGO=0

@@ -38,20 +38,64 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
 
-function auditar(argumentos, cwd) {
+/**
+ * Sai com código 2 dizendo, em português, que a auditoria NÃO aconteceu.
+ *
+ * Código 2 e não 1 de propósito: 1 quer dizer "auditei e achei vulnerabilidade",
+ * 2 quer dizer "não consegui auditar", e quem lê o CI precisa distinguir. O que
+ * este portão nunca pode fazer é aprovar sem ter auditado: com o registro de
+ * avisos fora do ar o `npm audit --json` devolve só `{ message, error }`, sem
+ * `metadata`, e a leitura ingênua desse relatório era "0 vulnerabilidades",
+ * "Runtime limpo" e código 0 (validação de 2026-10-13, item 7 da seção 7 de
+ * `28`). Falta de prova não é prova de ausência.
+ */
+function naoAuditou(rotulo, motivo) {
+  console.error(`\nERRO: ${rotulo} NÃO foi auditado, então este portão NÃO aprova.`);
+  console.error(`Motivo: ${motivo}`);
+  console.error(
+    "Isto não é 'zero vulnerabilidades': é 'não consegui olhar'. Confira a rede e o registro "
+    + "(npm config get registry), rode de novo, e só então confie no resultado.",
+  );
+  process.exit(2);
+}
+
+/** Aceita só um relatório que de fato contém a contagem de vulnerabilidades. */
+function relatorioValido(relatorio) {
+  if (relatorio === null || typeof relatorio !== "object" || Array.isArray(relatorio)) {
+    return "o npm não devolveu um relatório JSON";
+  }
+  if (relatorio.error) {
+    return `o npm audit devolveu erro (${String(relatorio.message ?? relatorio.error.summary ?? "sem mensagem").slice(0, 200)})`;
+  }
+  const v = relatorio.metadata?.vulnerabilities;
+  if (v === null || typeof v !== "object" || typeof v.total !== "number") {
+    return "o relatório não traz metadata.vulnerabilities (o npm não chegou a auditar)";
+  }
+  return null;
+}
+
+function auditar(argumentos, cwd, rotulo) {
+  let saida;
   try {
-    const saida = execFileSync("npm", ["audit", "--json", ...argumentos], {
+    saida = execFileSync("npm", ["audit", "--json", ...argumentos], {
       encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
       ...(cwd ? { cwd } : {}),
     });
-    return JSON.parse(saida);
   } catch (erro) {
     // `npm audit` sai com código diferente de zero quando acha algo, e o JSON
     // vem no stdout do mesmo jeito. Só é falha de verdade se não vier JSON.
-    const saida = erro.stdout?.toString() ?? "";
-    if (!saida.trim()) throw erro;
-    return JSON.parse(saida);
+    saida = erro.stdout?.toString() ?? "";
+    if (!saida.trim()) naoAuditou(rotulo, `o npm falhou sem relatório (${erro.message.split(String.fromCharCode(10))[0]})`);
   }
+  let relatorio;
+  try {
+    relatorio = JSON.parse(saida);
+  } catch {
+    return naoAuditou(rotulo, "a saída do npm audit não é JSON");
+  }
+  const defeito = relatorioValido(relatorio);
+  if (defeito) naoAuditou(rotulo, defeito);
+  return relatorio;
 }
 
 function contar(relatorio) {
@@ -85,8 +129,8 @@ if (defeitosDaLista.length > 0) {
   process.exit(1);
 }
 
-const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"]);
-const relatorioDeTudo = auditar(["--audit-level=low"]);
+const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], undefined, "o conjunto de runtime da raiz");
+const relatorioDeTudo = auditar(["--audit-level=low"], undefined, "o conjunto completo da raiz");
 const runtime = contar(relatorioDoRuntime);
 const tudo = contar(relatorioDeTudo);
 const soDesenvolvimento = Math.max(0, tudo.total - runtime.total);
@@ -132,7 +176,7 @@ if (soDesenvolvimento > 0) {
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const APLICATIVO = join(AQUI, "..", "apps", "campo");
 
-const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO);
+const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo");
 const doApp = contar(relatorioDoApp);
 /*
   Só os pacotes com advisory PRÓPRIA, e não a cadeia inteira que depende deles.

@@ -223,6 +223,21 @@ test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor esper
   assert.equal(PASSOS.find((p) => p.id === "audit-campo").esperado.codigo, "falha");
 });
 
+test("os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)", () => {
+  const SEM_REGISTRO = [
+    "npm warn audit request to http://127.0.0.1:9/-/npm/v1/security/audits/quick failed, reason: connect ECONNREFUSED 127.0.0.1:9",
+    "npm error audit endpoint returned an error",
+  ].join("\n");
+  const COM_ACHADOS = "# npm audit report\n\nvitest  <=4.0.0\nSeverity: critical\n\n3 vulnerabilities (1 moderate, 2 critical)\n";
+  for (const id of ["audit-raiz", "audit-campo"]) {
+    const passo = PASSOS.find((p) => p.id === id);
+    // Antes do conserto o esperado era só { codigo: "falha" }, e o código 1 do registro fora do ar conferia.
+    assert.equal(avaliar(passo, SEM_REGISTRO, 1).status, "divergente", `${id}: não auditou, não pode conferir`);
+    assert.equal(avaliar(passo, COM_ACHADOS, 1).status, "confere", `${id}: auditou e achou, confere`);
+    assert.equal(avaliar(passo, COM_ACHADOS, 0).status, "divergente", `${id}: ficar verde diverge de propósito`);
+  }
+});
+
 test("a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente", () => {
   const real = PASSOS.find((p) => p.id === "expo-doctor");
   // O passo real não descreve nada: 20 de 21 hoje seria deriva nova e sem explicação.
