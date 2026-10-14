@@ -4,11 +4,11 @@
 **Por que existe:** regra do Rafael de 2026-10-13: "se depender de mim pra ir pra próxima etapa vamos ter uma limitação de tempo e o sistema fica ocioso muito tempo [...] se precisar estritamente de algo humano, salva em um roadmap pendencias-humanas, mas continue desenvolvendo". Tudo o que manda parar e esperar uma pessoa vem para cá e o trabalho segue; o que era "aparelho físico" passa a ser tentado no emulador Android e só fica aqui o que o emulador não prova. A prova automatizada (testes, e2e, capturas, conferência de que o teste morde) não sai daqui nem vira pendência: continua obrigatória.
 **Como usar:** cada item diz o que fazer, onde ler, o que deve acontecer e quem decide. Quando resolver, diga no chat o código do item e o resultado ("H03 feito", "H07 reprovo, porque ..."); quem registra sou eu. Item resolvido muda de seção, nunca some.
 **Fonte do estado:** `docs/roadmap-v2/STATUS.md` e os `VEREDITO.md` de cada etapa. Se este arquivo e o STATUS divergirem, vale o STATUS.
-**Atualizado em:** 2026-10-13, depois da rodada 2 da validação da F00 (SHA `4b96ea7`).
+**Atualizado em:** 2026-10-14, depois da correção 2 da F00 (candidato `7c97881` da rodada 3).
 
 ## Situação da F00 em uma linha
 
-Rodada 2 da validação: 12 etapas em correção (E01, E03, E04, E06, E07, E09, E10, E12, E16, E19, E22, E24), 8 validadas (E02, E08, E17, E18, E20, E21, E23, E25) e 5 validadas faltando só o que é humano (E05, E11, E13, E14, E15). As correções seguem sem esperar nenhum item desta lista.
+Correção 2 concluída em 2026-10-14: as 12 etapas reprovadas na rodada 2 (E01, E03, E04, E06, E07, E09, E10, E12, E16, E19, E22, E24) estão IMPLEMENTADAS no candidato `7c97881`, à espera do CI completo e da rodada 3 de validação numa sessão nova; 8 validadas (E02, E08, E17, E18, E20, E21, E23, E25) e 5 validadas faltando só o que é humano (E05, E11, E13, E14, E15). Nada desta lista trava a rodada 3.
 
 ## A. Decisões que só uma pessoa toma (não travam a correção)
 
@@ -23,6 +23,8 @@ Rodada 2 da validação: 12 etapas em correção (E01, E03, E04, E06, E07, E09, 
 | H07 | E11 | Município com acesso suspenso não consegue baixar o próprio pacote de saída (toda escrita confere a suspensão). É justamente o município em litígio que mais quer sair. Mantém? | `STATUS.md`, seção 11, "Achado novo da E11, município suspenso" | Rafael com jurídico |
 | H08 | E13 | A barra de navegação de onze itens no celular continua rolando na horizontal. Menu "mais", abas, ou fica para a F10? | `docs/evidencias-v2/G00/V2-F00-E13/VEREDITO.md`, achados | Rafael |
 | H09 | G00 | Aprovar o gate G00 e fazer o merge em master (commit de merge, nunca squash), quando o gatekeeper recomendar. Hoje NÃO está recomendado. | `docs/relatorios-v2/aprovacao/ROTEIRO-G00.md`, parte 3 | Rafael |
+| H24 | E19 | Confirmar ou reverter a subida de cinco pacotes do Expo de 2026-10-14 (`expo` ~57.0.29, `expo-linking`, `expo-notifications`, `expo-router` e `expo-constants` pela árvore), feita por PREMISSA com o mesmo tratamento da sua D1 de 2026-10-13, porque o `expo-doctor` tinha voltado a 20 de 21. Reverter é `git revert 0e00875`. Vale decidir também se esta deriva, que volta a cada patch do Expo, passa a ser tratada sempre assim. | `docs/evidencias-v2/G00/V2-F00-E19/correcao-4/RESUMO.md` | Rafael |
+| H25 | CI | Instalar e autenticar o `gh` neste Mac (`gh auth login`), ou olhar o run no GitHub, para ler o CI completo do candidato `7c97881`: daqui não dá para ler (repositório privado, sem `gh`). | GitHub Actions, workflow Verificar, ramo `v2/f00` | Rafael |
 
 ## B. Texto de produto e percepção visual (gatilhos da seção 10 de `28`)
 
