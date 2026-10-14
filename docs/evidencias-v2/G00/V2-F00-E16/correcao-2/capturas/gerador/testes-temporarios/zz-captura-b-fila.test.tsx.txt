@@ -1,0 +1,202 @@
+/**
+ * A fila de envio deixa de ser uma coluna de parágrafos.
+ *
+ * O texto desta tela é o melhor do repositório e estava no formato errado:
+ * dezesseis variantes de prosa, cada uma entregue inteira a um único `Txt`
+ * cinza dentro do cartão. O pior deles tinha quarenta e cinco palavras, e as
+ * últimas vinte eram instrução operacional ("peça para fulano entrar neste
+ * aparelho com sinal", "avise a coordenação e informe o protocolo") enterrada
+ * no fim de um parágrafo em cor discreta, lido em pé, na chuva.
+ *
+ * Sete defeitos travados aqui, um caso por defeito:
+ *
+ * 1. o parágrafo vira estrutura: quem, por quê, o que fazer;
+ * 2. as quatro seções deixam de ser um `h2` solto no fluxo;
+ * 3. a fila vazia deixa de ser uma frase cinza seguida de um botão apagado;
+ * 4. "Tentar de novo" e "Esta coleta é minha" passam a ter retorno de toque;
+ * 5. o botão apagado passa a dizer POR QUÊ, na tela e não num comentário;
+ * 6. o item confirmado sai desaparecendo, e não num corte seco;
+ * 7. a espera de abertura ganha a saída que `Carregando` já sabia oferecer.
+ *
+ * O arquivo mora em `src/ui` pela mesma razão dos vizinhos: `src/app` é rota
+ * para o Expo, e nada que está aqui é tela.
+ */
+
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { Animated, StyleSheet } from "react-native";
+import { CODIGO_ARQUIVO_SUMIU } from "@dc360/campo";
+import type {
+  AutorDaColeta, FotoNaFila, ItemDeVistoria, ItemFila, PapelDoArquivo,
+} from "@dc360/campo";
+
+const AGENTE: AutorDaColeta = {
+  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
+};
+const OUTRO_AGENTE: AutorDaColeta = {
+  usuarioId: "u-bruno", nome: "Bruno Lima", organizacaoId: "org-serra-alta",
+};
+
+let mockEsquema: "light" | "dark" = "light";
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
+  __esModule: true, default: () => mockEsquema,
+}));
+
+jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
+
+/*
+  A tela da fila passou a abrir a vistoria ("Corrigir a vistoria", 15/09/2026),
+  e o roteador é módulo nativo: sem o dublê, importá-la derruba a suíte. A
+  correção em si tem teste próprio em `corrigir-na-fila.test.tsx`.
+*/
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("../dados/correcao-da-coleta", () => ({
+  devolverParaCorrecao: jest.fn(async () => ({ retirada: false, motivo: "nao_encontrada" })),
+}));
+
+/* A chave de redução de movimento é do teste: o clímax existe para ser visto, e
+   quem pede para reduzir movimento precisa receber a mesma tela sem o gesto. */
+let mockReduzir = false;
+jest.mock("../ui/useReducaoDeMovimento", () => ({ useReducaoDeMovimento: () => mockReduzir }));
+
+/* O motor tátil não existe aqui, e não é ele que se mede: o que se cobra é
+   QUANDO a tela pede vibração. A ponte com `expo-haptics` tem teste próprio em
+   `ui/retorno-tatil.test.ts`. */
+const mockRetornoTatil = jest.fn();
+jest.mock("../ui/retornoTatil", () => ({
+  retornoTatil: (momento: string) => mockRetornoTatil(momento),
+}));
+
+/* A sessão precisa ser o MESMO objeto a cada renderização: um objeto novo faz o
+   efeito de abertura rodar de novo a cada render, e o teste entra em laço. */
+const mockSessao = {
+  obterToken: async () => "token-de-mentira",
+  lerIdentidade: () => AGENTE,
+  identidade: AGENTE,
+};
+jest.mock("../dados/sessao", () => ({ useSessao: () => mockSessao }));
+
+/** O sinal é do teste, porque o botão apagado depende dele. */
+let mockSinal = { temSinal: true, tipo: "Wi-Fi" };
+jest.mock("../dados/conectividade", () => ({ useSinal: () => mockSinal }));
+
+let mockItens: ItemFila[] = [];
+const mockDescartar = jest.fn(async () => {});
+const mockReenviar = jest.fn(async () => {});
+const mockAssumir = jest.fn(async () => {});
+/** O que o motor devolve quando o agente abre mão dos registros perdidos. */
+let mockAbrirMao = jest.fn(async (_id: string) => ({ liberado: true, perdidas: 0 }));
+/** O que a fila chama quando algo muda de estado, guardado para o teste
+ *  disparar a releitura da lista sem mexer no relógio do aplicativo. */
+let avisarQueMudou: (() => void) | null = null;
+const mockFila = {
+  itens: async () => mockItens,
+  assinar: (aviso: () => void) => {
+    avisarQueMudou = aviso;
+    return () => { avisarQueMudou = null; };
+  },
+  drenar: async () => undefined,
+  descartar: mockDescartar,
+  reenviar: mockReenviar,
+  assumir: mockAssumir,
+  abrirMaoDasEvidenciasPerdidas: (id: string) => mockAbrirMao(id),
+};
+/* A abertura da fila é trocável pelo teste: o caso da espera precisa de uma
+   que nunca responde, que é a situação real de primeira abertura sem sinal. */
+let mockObterFila: () => Promise<typeof mockFila> = async () => mockFila;
+jest.mock("../dados/fila", () => ({ obterFila: () => mockObterFila() }));
+
+import TelaDaFila from "../app/(agente)/fila";
+import { atrasoEmCascata } from "../ui/hierarquia";
+import { contarPreenchidos } from "../ui/regua";
+import { movimento, temaEscuro } from "../ui/tokens";
+import { DEMORA_MS, ProvedorDeTema } from "../ui/componentes";
+
+function item(
+  parcial: Partial<ItemDeVistoria> & Pick<ItemDeVistoria, "id" | "estado">,
+): ItemDeVistoria {
+  return {
+    tipo: "vistoria",
+    ocorrenciaId: `oc-${parcial.id}`,
+    protocolo: "2026/000123",
+    autor: AGENTE,
+    envelope: {} as never,
+    tentativas: 0,
+    criadoEm: "2026-09-09T09:00:00.000Z",
+    liberadoEm: "2026-09-09T09:00:00.000Z",
+    ultimaFalha: null,
+    confirmadoEm: null,
+    fotos: [],
+    ...parcial,
+  };
+}
+
+beforeEach(() => {
+  mockItens = [];
+  mockReduzir = false;
+  mockAbrirMao = jest.fn(async (_id: string) => ({ liberado: true, perdidas: 0 }));
+  mockSinal = { temSinal: true, tipo: "Wi-Fi" };
+  mockObterFila = async () => mockFila;
+  avisarQueMudou = null;
+  mockRetornoTatil.mockClear();
+  mockDescartar.mockClear();
+  mockReenviar.mockClear();
+  mockAssumir.mockClear();
+});
+
+afterEach(() => { jest.useRealTimers(); });
+
+async function abrirATela(): Promise<void> {
+  await render(<ProvedorDeTema><TelaDaFila /></ProvedorDeTema>);
+  await act(async () => {});
+}
+
+async function tocar(texto: string): Promise<void> {
+  await act(async () => { fireEvent.press(screen.getByText(texto)); });
+}
+
+/**
+ * Todo pedaço de texto que a tela desenhou, em ordem.
+ *
+ * A leitura é da árvore renderizada e não do arquivo de origem: o que interessa
+ * é o que chega ao olho de quem está na rua. Um parágrafo montado por
+ * concatenação chega aqui como UMA string, que é exatamente a unidade que o
+ * caso do tamanho precisa medir.
+ */
+function textosNaTela(): string[] {
+  const achados: string[] = [];
+  const visitar = (no: unknown): void => {
+    if (no === null || no === undefined) return;
+    if (Array.isArray(no)) { for (const filho of no) visitar(filho); return; }
+    if (typeof no === "string") { achados.push(no); return; }
+    if (typeof no === "object" && "children" in (no as Record<string, unknown>)) {
+      visitar((no as { children?: unknown }).children);
+    }
+  };
+  visitar(screen.toJSON());
+  return achados;
+}
+
+
+import { gravar } from "./zz-dumper";
+describe("captura", () => {
+  it.each(["light", "dark"] as const)("fila %s", async (esquema) => {
+    mockEsquema = esquema;
+    mockItens = [
+      item({ id: "a", estado: "pendente", protocolo: "2026/000471", tentativas: 0 }),
+      item({ id: "b", estado: "pendente", protocolo: "2026/000472", tentativas: 3 }),
+      item({ id: "c", estado: "pendente", protocolo: "2026/000473", tentativas: 9 }),
+    ];
+    await abrirATela();
+    await act(async () => { await new Promise((r) => setTimeout(r, 1800)); });
+    gravar(`fila-andando-${esquema}`, screen.toJSON());
+  });
+
+  it.each(["light", "dark"] as const)("fila pausada %s", async (esquema) => {
+    mockEsquema = esquema;
+    mockItens = [item({ id: "a", estado: "pendente", protocolo: "2026/000471", tentativas: 0 })];
+    await abrirATela();
+    await act(async () => { (avisarQueMudou as unknown as (r: unknown) => void)({ pausadaPor: "sessao_encerrada" }); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 1800)); });
+    gravar(`fila-pausada-${esquema}`, screen.toJSON());
+  });
+});

@@ -1,0 +1,1476 @@
+diff --git a/dc360/apps/campo/src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx b/dc360/apps/campo/src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx
+new file mode 100644
+index 0000000..74779c9
+--- /dev/null
++++ b/dc360/apps/campo/src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx
+@@ -0,0 +1,219 @@
++import { act, fireEvent, render, screen } from "@testing-library/react-native";
++import type { Pendencia } from "../dados/api";
++import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
++
++/**
++ * A FOTO DA VISTORIA, com o módulo de disco REAL e um disco fiel (V2-F00-E16,
++ * correção 2).
++ *
++ * Os outros testes da tela substituem `../dados/evidencia-no-disco` inteiro, e o
++ * teste do módulo substitui `expo-file-system`: cada camada era verde contra um
++ * dublê que concordava com o da outra e discordava da biblioteca. No emulador
++ * Android a rodada 2 da validação achou o resultado: toda foto recusada como
++ * "o arquivo saiu vazio", porque a cópia (assíncrona) não era esperada. Este
++ * arquivo liga `fotografar` ao `guardarFotoNoAparelho` verdadeiro: a câmera
++ * devolve um caminho de cache, o disco só materializa a cópia depois de um
++ * tick, e a tela precisa mostrar "Fotografias (1)".
++ */
++
++jest.mock("expo-router", () => {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { useEffect } = require("react") as typeof import("react");
++  const navegacao = { setOptions: jest.fn() };
++  return {
++    router: {
++      back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true),
++    },
++    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
++    useNavigation: () => navegacao,
++    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
++  };
++});
++
++const mockTirarFoto = jest.fn(async () => {
++  mockDisco.set("file:///cache/foto.jpg", 812_345);
++  return { uri: "file:///cache/foto.jpg" };
++});
++let mockPermissaoDeCamera = { granted: true };
++const mockPedirCamera = jest.fn(async () => mockPermissaoDeCamera);
++jest.mock("expo-camera", () => {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { forwardRef, useImperativeHandle } = require("react") as typeof import("react");
++  return {
++    CameraView: forwardRef((_props: Record<string, unknown>, ref) => {
++      useImperativeHandle(ref, () => ({ takePictureAsync: () => mockTirarFoto() }));
++      return null;
++    }),
++    useCameraPermissions: () => [mockPermissaoDeCamera, mockPedirCamera],
++  };
++});
++
++let mockPermissaoDeLocal = { granted: true };
++let mockPosicao = { coords: { latitude: -27.595900, longitude: -48.548900, accuracy: 8 } };
++jest.mock("expo-location", () => ({
++  Accuracy: { High: 4 },
++  requestForegroundPermissionsAsync: async () => mockPermissaoDeLocal,
++  getCurrentPositionAsync: async () => mockPosicao,
++}));
++
++let mockContadorDeChaves = 0;
++jest.mock("expo-crypto", () => ({
++  randomUUID: () => {
++    mockContadorDeChaves += 1;
++    return `cccccccc-cccc-4ccc-8ccc-${String(mockContadorDeChaves).padStart(12, "0")}`;
++  },
++}));
++
++/*
++  O disco, FIEL ao `expo-file-system` 57: `copy` é assíncrona e o destino só
++  existe depois de um tick; `size` é 0 para arquivo que ainda não existe. O
++  módulo `../dados/evidencia-no-disco` NÃO é substituído aqui: é o real que
++  roda, e é isso que nenhum outro teste de tela fazia.
++*/
++const mockDisco = new Map<string, number>();
++jest.mock("expo-file-system", () => ({
++  Paths: { document: "file:///documentos" },
++  File: class {
++    uri: string;
++    constructor(base: string | { document: string }, nome?: string) {
++      const raiz = typeof base === "string" ? base : base.document;
++      this.uri = nome ? `${raiz}/${nome}` : raiz;
++    }
++    get size(): number { return mockDisco.get(this.uri) ?? 0; }
++    get exists(): boolean { return mockDisco.has(this.uri); }
++    bytesSync(): Uint8Array {
++      if (!mockDisco.has(this.uri)) throw new Error("File does not exist");
++      return new Uint8Array(mockDisco.get(this.uri) ?? 0);
++    }
++    async copy(destino: { uri: string }): Promise<void> {
++      await new Promise<void>((resolver) => { setTimeout(resolver, 0); });
++      mockDisco.set(destino.uri, mockDisco.get(this.uri) ?? 0);
++    }
++    delete(): void { mockDisco.delete(this.uri); }
++  },
++}));
++
++jest.mock("../ui/Assinatura", () => ({ Assinatura: () => null }));
++jest.mock("../ui/retornoTatil", () => ({ retornoTatil: jest.fn() }));
++jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
++jest.mock("../dados/mapa", () => ({
++  ...jest.requireActual("../dados/mapa"),
++  abrirNoMapa: jest.fn(async () => true),
++}));
++jest.mock("../dados/historico-da-casa", () => ({
++  ...jest.requireActual("../dados/historico-da-casa"),
++  buscarHistoricoDaCasa: async () => ({
++    estado: "chegou",
++    historico: {
++      vistoriaAnterior: null, providencias: [], vinculadas: [], devolucao: null, fotosDeAntes: [],
++    },
++  }),
++}));
++
++const OCORRENCIA: Pendencia = {
++  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
++  protocolo: "2026/000123",
++  tipo: "deslizamento",
++  severidade: "alta",
++  endereco: "Servidão do Morro, 45",
++  ponto_referencia: null,
++  latitude: -27.595378,
++  longitude: -48.548050,
++  descricao: "Barranco escorregou sobre os fundos da casa.",
++  solicitante_nome: "Maria de exemplo",
++  solicitante_contato: null,
++  vulnerabilidade_presente: false,
++  vulnerabilidade_descricao: null,
++  prazo_em: null,
++  criado_em: "2026-09-09T09:00:00.000Z",
++};
++
++jest.mock("../dados/pendencias", () => ({
++  pendenciaGuardada: async () => OCORRENCIA,
++  orgaosGuardados: async () => [],
++  atualizarPendencias: jest.fn(async () => {}),
++}));
++
++jest.mock("../dados/coletas", () => ({
++  coletaDe: async () => null,
++  marcarColetada: jest.fn(async () => {}),
++  arquivarColeta: jest.fn(async () => {}),
++}));
++
++const mockEnfileirar = jest.fn(async (..._args: unknown[]) => ({}));
++const mockFila = { enfileirar: (...args: unknown[]) => mockEnfileirar(...args) };
++jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
++
++jest.mock("../dados/sessao", () => ({
++  useSessao: () => ({
++    obterToken: async () => "token-de-mentira",
++    lerIdentidade: async () => null,
++    identidade: {
++      nome: "Agente de teste", matricula: "0001",
++      organizacaoNome: "Defesa Civil de Teste", municipio: "Teste", uf: "SC",
++    },
++  }),
++}));
++
++type RascunhoDeTeste = Record<string, unknown>;
++let mockRascunhoGuardado: RascunhoDeTeste | null = null;
++jest.mock("../dados/rascunho", () => ({
++  lerRascunho: jest.fn(async () => mockRascunhoGuardado),
++  salvarRascunho: jest.fn(async () => {}),
++  descartarRascunho: jest.fn(async () => {}),
++  rascunhoNovo: (ocorrenciaId: string, protocolo: string, idempotencyKey: string) => ({
++    ocorrenciaId, protocolo, idempotencyKey,
++    checklist: {}, orgaosParaAcionar: [], fotos: [],
++    gpsPrecisaoMetros: null, coordenada: null,
++    assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
++    coletadaEm: "2026-09-09T12:00:00.000Z",
++    atualizadoEm: "2026-09-09T12:00:00.000Z",
++  }),
++}));
++
++
++/* ============================================================
++   Utilidades
++   ============================================================ */
++
++async function abrirATela(): Promise<void> {
++  await render(<TelaDeVistoria />);
++  await screen.findByText("Checklist técnico");
++}
++
++beforeEach(() => {
++  jest.clearAllMocks();
++  mockContadorDeChaves = 0;
++  mockRascunhoGuardado = null;
++  mockPermissaoDeCamera = { granted: true };
++  mockPermissaoDeLocal = { granted: true };
++  mockDisco.clear();
++});
++
++afterEach(() => { jest.restoreAllMocks(); });
++
++describe("tirar a foto com o disco de verdade", () => {
++  it("a foto é aceita: 'Fotografias (1)', sem a tarja de arquivo vazio", async () => {
++    await abrirATela();
++
++    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
++    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
++    // A cópia assíncrona termina depois de um tick; a tela espera por ela.
++    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
++
++    expect(screen.queryByText(/arquivo saiu vazio/)).toBeNull();
++    expect(screen.queryByTestId("tarja-de-erro")).toBeNull();
++    expect(screen.getByText("Fotografias (1)")).toBeTruthy();
++
++    /* O rascunho guarda o caminho do DOCUMENTO e o tamanho da cópia, nunca o do cache. */
++    const { salvarRascunho } = jest.requireMock("../dados/rascunho") as {
++      salvarRascunho: jest.Mock;
++    };
++    const gravado = salvarRascunho.mock.calls.at(-1)?.[0] as {
++      fotos: { uriLocal: string; tamanhoBytes: number }[];
++    };
++    expect(gravado.fotos).toHaveLength(1);
++    expect(gravado.fotos[0]?.uriLocal).toMatch(/^file:\/\/\/documentos\/foto-\d+-0\.jpg$/);
++    expect(gravado.fotos[0]?.tamanhoBytes).toBe(812_345);
++  });
++});
+diff --git a/dc360/apps/campo/src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx b/dc360/apps/campo/src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx
+new file mode 100644
+index 0000000..dd0bb7c
+--- /dev/null
++++ b/dc360/apps/campo/src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx
+@@ -0,0 +1,209 @@
++import { StyleSheet } from "react-native";
++import { act, fireEvent, render, screen } from "@testing-library/react-native";
++import type { Pendencia } from "../dados/api";
++import { ProvedorDeTema } from "../ui/componentes";
++import { visor } from "../ui/tokens";
++import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
++
++/**
++ * "VOLTAR SEM FOTOGRAFAR" SE LÊ SOBRE O VISOR (V2-F00-E16, correção 2).
++ *
++ * O visor da câmera é preto nos dois temas (`visor.fundo`), mas o botão
++ * secundário pintava o rótulo e o contorno com as cores do TEMA: no tema claro,
++ * `texto` é quase preto, e o rótulo escuro sobre o visor preto media 1,19:1 na
++ * captura do emulador Android (WCAG 1.4.3 pede 4,5:1; o contorno de controle,
++ * 3:1, da 1.4.11). A saída da câmera era o botão que o agente não enxergava.
++ *
++ * O conserto usa só tokens do tema do aplicativo: sobre o visor o botão adota a
++ * paleta do tema escuro, que é a que foi feita para fundo escuro.
++ */
++
++let mockEsquema: "light" | "dark" = "light";
++jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
++  __esModule: true,
++  default: () => mockEsquema,
++}));
++
++jest.mock("expo-router", () => {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { useEffect } = require("react") as typeof import("react");
++  const navegacao = { setOptions: jest.fn() };
++  return {
++    router: {
++      back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true),
++    },
++    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
++    useNavigation: () => navegacao,
++    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
++  };
++});
++
++const mockTirarFoto = jest.fn(async () => ({ uri: "file:///cache/foto.jpg" }));
++let mockPermissaoDeCamera = { granted: true };
++const mockPedirCamera = jest.fn(async () => mockPermissaoDeCamera);
++jest.mock("expo-camera", () => {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { forwardRef, useImperativeHandle } = require("react") as typeof import("react");
++  return {
++    CameraView: forwardRef((_props: Record<string, unknown>, ref) => {
++      useImperativeHandle(ref, () => ({ takePictureAsync: () => mockTirarFoto() }));
++      return null;
++    }),
++    useCameraPermissions: () => [mockPermissaoDeCamera, mockPedirCamera],
++  };
++});
++
++let mockPermissaoDeLocal = { granted: true };
++let mockPosicao = { coords: { latitude: -27.595900, longitude: -48.548900, accuracy: 8 } };
++jest.mock("expo-location", () => ({
++  Accuracy: { High: 4 },
++  requestForegroundPermissionsAsync: async () => mockPermissaoDeLocal,
++  getCurrentPositionAsync: async () => mockPosicao,
++}));
++
++let mockContadorDeChaves = 0;
++jest.mock("expo-crypto", () => ({
++  randomUUID: () => {
++    mockContadorDeChaves += 1;
++    return `cccccccc-cccc-4ccc-8ccc-${String(mockContadorDeChaves).padStart(12, "0")}`;
++  },
++}));
++
++jest.mock("expo-file-system", () => ({
++  File: class { size = 1024; constructor(_uri: string) {} },
++}));
++
++/** O que a cópia da foto para o disco faz. Cada caso ajusta. */
++let mockGuardarFoto: () => { uriLocal: string; tamanhoBytes: number } = () => ({
++  uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024,
++});
++jest.mock("../dados/evidencia-no-disco", () => ({
++  guardarFotoNoAparelho: () => mockGuardarFoto(),
++  apagarFotoDoAparelho: () => true,
++  medirArquivoNoAparelho: () => 1024,
++}));
++
++jest.mock("../ui/Assinatura", () => ({ Assinatura: () => null }));
++jest.mock("../ui/retornoTatil", () => ({ retornoTatil: jest.fn() }));
++jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
++jest.mock("../dados/mapa", () => ({
++  ...jest.requireActual("../dados/mapa"),
++  abrirNoMapa: jest.fn(async () => true),
++}));
++jest.mock("../dados/historico-da-casa", () => ({
++  ...jest.requireActual("../dados/historico-da-casa"),
++  buscarHistoricoDaCasa: async () => ({
++    estado: "chegou",
++    historico: {
++      vistoriaAnterior: null, providencias: [], vinculadas: [], devolucao: null, fotosDeAntes: [],
++    },
++  }),
++}));
++
++const OCORRENCIA: Pendencia = {
++  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
++  protocolo: "2026/000123",
++  tipo: "deslizamento",
++  severidade: "alta",
++  endereco: "Servidão do Morro, 45",
++  ponto_referencia: null,
++  latitude: -27.595378,
++  longitude: -48.548050,
++  descricao: "Barranco escorregou sobre os fundos da casa.",
++  solicitante_nome: "Maria de exemplo",
++  solicitante_contato: null,
++  vulnerabilidade_presente: false,
++  vulnerabilidade_descricao: null,
++  prazo_em: null,
++  criado_em: "2026-09-09T09:00:00.000Z",
++};
++
++jest.mock("../dados/pendencias", () => ({
++  pendenciaGuardada: async () => OCORRENCIA,
++  orgaosGuardados: async () => [],
++  atualizarPendencias: jest.fn(async () => {}),
++}));
++
++jest.mock("../dados/coletas", () => ({
++  coletaDe: async () => null,
++  marcarColetada: jest.fn(async () => {}),
++  arquivarColeta: jest.fn(async () => {}),
++}));
++
++const mockEnfileirar = jest.fn(async (..._args: unknown[]) => ({}));
++const mockFila = { enfileirar: (...args: unknown[]) => mockEnfileirar(...args) };
++jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
++
++jest.mock("../dados/sessao", () => ({
++  useSessao: () => ({
++    obterToken: async () => "token-de-mentira",
++    lerIdentidade: async () => null,
++    identidade: {
++      nome: "Agente de teste", matricula: "0001",
++      organizacaoNome: "Defesa Civil de Teste", municipio: "Teste", uf: "SC",
++    },
++  }),
++}));
++
++type RascunhoDeTeste = Record<string, unknown>;
++let mockRascunhoGuardado: RascunhoDeTeste | null = null;
++jest.mock("../dados/rascunho", () => ({
++  lerRascunho: jest.fn(async () => mockRascunhoGuardado),
++  salvarRascunho: jest.fn(async () => {}),
++  descartarRascunho: jest.fn(async () => {}),
++  rascunhoNovo: (ocorrenciaId: string, protocolo: string, idempotencyKey: string) => ({
++    ocorrenciaId, protocolo, idempotencyKey,
++    checklist: {}, orgaosParaAcionar: [], fotos: [],
++    gpsPrecisaoMetros: null, coordenada: null,
++    assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
++    coletadaEm: "2026-09-09T12:00:00.000Z",
++    atualizadoEm: "2026-09-09T12:00:00.000Z",
++  }),
++}));
++
++
++function luminancia(hex: string): number {
++  const n = parseInt(hex.replace("#", ""), 16);
++  const canal = (v: number): number => {
++    const s = v / 255;
++    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
++  };
++  return 0.2126 * canal((n >> 16) & 255) + 0.7152 * canal((n >> 8) & 255)
++    + 0.0722 * canal(n & 255);
++}
++
++function contraste(a: string, b: string): number {
++  const [x, y] = [luminancia(a), luminancia(b)];
++  const [claro, escuro] = x > y ? [x, y] : [y, x];
++  return (claro + 0.05) / (escuro + 0.05);
++}
++
++beforeEach(() => {
++  jest.clearAllMocks();
++  mockContadorDeChaves = 0;
++  mockRascunhoGuardado = null;
++  mockPermissaoDeCamera = { granted: true };
++  mockPermissaoDeLocal = { granted: true };
++});
++
++afterEach(() => { jest.restoreAllMocks(); });
++
++describe("a câmera aberta", () => {
++  it.each(["light", "dark"] as const)("com o aparelho no tema %s, 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor", async (esquema) => {
++    mockEsquema = esquema;
++    await act(async () => {
++      await render(<ProvedorDeTema><TelaDeVistoria /></ProvedorDeTema>);
++    });
++    await screen.findByText("Checklist técnico");
++
++    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
++    const botao = await screen.findByTestId("fechar-a-camera");
++    const rotulo = StyleSheet.flatten(screen.getByText("Voltar sem fotografar").props.style) as {
++      color: string;
++    };
++    const contorno = StyleSheet.flatten(botao.props.style) as { borderColor: string };
++
++    expect(contraste(rotulo.color, visor.fundo)).toBeGreaterThanOrEqual(4.5);
++    expect(contraste(contorno.borderColor, visor.fundo)).toBeGreaterThanOrEqual(3);
++  });
++});
+diff --git a/dc360/apps/campo/src/app/(agente)/fila.tsx b/dc360/apps/campo/src/app/(agente)/fila.tsx
+index d4d256b..ada7947 100644
+--- a/dc360/apps/campo/src/app/(agente)/fila.tsx
++++ b/dc360/apps/campo/src/app/(agente)/fila.tsx
+@@ -194,8 +194,8 @@ function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
+           ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair quando `
+             + "o aplicativo estiver aberto e houver sinal. A tarefa já saiu da sua lista."
+           : `Motivo: ${motivo}. Já tentou ${item.tentativas}x e vai continuar `
+-            + "tentando sozinha. Enquanto ela não chegar, a coordenação não sabe "
+-            + "que esta tarefa voltou.",
++            + "tentando enquanto o aplicativo estiver aberto. Até ela chegar, a "
++            + "coordenação não sabe que esta tarefa voltou.",
+       };
+     case "enviando":
+       return {
+@@ -444,15 +444,18 @@ function descreverEstado(
+         porque: item.tentativas === 0
+           ? "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal."
+           : item.tentativas < TENTATIVAS_ATE_AVISAR
+-            ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`
++            ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes, enquanto `
++              + "o aplicativo estiver aberto."
+             /*
+               Muitas tentativas não viram acusação nem convite ao descarte: a
+-              coleta continua tentando sozinha, e o que falta é sinal. A frase
+-              diz isso, e a única ação que resolve saiu do fim do parágrafo e
+-              virou passo.
++              coleta continua tentando, e o que falta é sinal. A frase diz
++              isso COM a condição (enquanto o aplicativo estiver aberto):
++              "sozinha" sem ela sugeria tentativa com o aplicativo fechado, que
++              não existe (V2-F00-E16, correção 2). A única ação que resolve saiu
++              do fim do parágrafo e virou passo.
+             */
+-            : `Já tentou ${item.tentativas}x e vai continuar tentando sozinha. A `
+-              + "conexão daqui não está completando o envio.",
++            : `Já tentou ${item.tentativas}x e vai continuar tentando enquanto o `
++              + "aplicativo estiver aberto. A conexão daqui não está completando o envio.",
+         oQueFazer: item.tentativas >= TENTATIVAS_ATE_AVISAR
+           ? ["Procure um lugar com sinal melhor ou uma rede Wi-Fi que funcione."]
+           : undefined,
+@@ -1591,7 +1594,8 @@ export default function TelaDaFila() {
+                           criar a mesma dúvida que esta tela dissolve.
+                         */
+                         texto: "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
+-                          + "se não, ela volta para a espera e continua tentando.",
++                          + "se não, ela volta para a espera e continua tentando "
++                          + "enquanto o aplicativo estiver aberto.",
+                       };
+                     })}
+                   />
+diff --git a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+index a67eca1..5f66092 100644
+--- a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
++++ b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+@@ -42,7 +42,7 @@ import { useSinal } from "../../../dados/conectividade";
+ import { Assinatura } from "../../../ui/Assinatura";
+ import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
+ import {
+-  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, Tocavel, Txt, Vazio, useTema,
++  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, SobreOVisor, Tocavel, Txt, Vazio, useTema,
+ } from "../../../ui/componentes";
+ import { useRecuoDoMenu } from "../../../ui/BarraDeAbas";
+ import { Campo, CampoDeTexto } from "../../../ui/Campo";
+@@ -1585,7 +1585,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+     */
+     let guardada: { uriLocal: string; tamanhoBytes: number };
+     try {
+-      guardada = guardarFotoNoAparelho(uri, rascunho.fotos.length);
++      guardada = await guardarFotoNoAparelho(uri, rascunho.fotos.length);
+     } catch (e) {
+       throw new FotoNaoGuardada(
+         e instanceof Error && e.message
+@@ -2576,13 +2576,17 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+             título, e "Cancelar" aqui é ambíguo do jeito caro (cancelar a foto,
+             ou cancelar a vistoria?).
+           */}
+-          <Botao
+-            titulo="Voltar sem fotografar"
+-            tipo="secundario"
+-            onPress={() => setCameraAberta(false)}
+-            testID="fechar-a-camera"
+-            estilo={{ alignSelf: "stretch" }}
+-          />
++          {/* Sobre o visor preto o botão usa a paleta do tema escuro: com o
++              tema claro o rótulo escuro media 1,19:1 (correção 2 da E16). */}
++          <SobreOVisor>
++            <Botao
++              titulo="Voltar sem fotografar"
++              tipo="secundario"
++              onPress={() => setCameraAberta(false)}
++              testID="fechar-a-camera"
++              estilo={{ alignSelf: "stretch" }}
++            />
++          </SobreOVisor>
+         </View>
+       </View>
+     );
+diff --git a/dc360/apps/campo/src/dados/evidencia-no-disco.test.ts b/dc360/apps/campo/src/dados/evidencia-no-disco.test.ts
+index a01fce0..dd5664e 100644
+--- a/dc360/apps/campo/src/dados/evidencia-no-disco.test.ts
++++ b/dc360/apps/campo/src/dados/evidencia-no-disco.test.ts
+@@ -18,8 +18,17 @@ const mockTamanhos = new Map<string, number>();
+ let mockRecusaApagar = false;
+ /** O `size` do aparelho vindo zerado, como no iPhone de 15/09/2026. */
+ let mockSizeZerado = false;
+-/** O sistema recusando a cópia (disco cheio), com a frase nativa em inglês. */
++/** O sistema recusando a cópia (disco cheio), com a frase nativa em inglês.
++    Na biblioteca real a recusa chega como Promise REJEITADA, porque `copy` é
++    assíncrona. */
+ let mockRecusaCopiar = false;
++/** A recusa que sai SÍNCRONA (caminho de destino inválido): é o que o
++    construtor e `copySync` podem fazer, e o `try/catch` da função cobre. */
++let mockRecusaCopiarSincrono = false;
++/** A cópia que grava um pedaço do arquivo e então falha (disco cheio no meio). */
++let mockCopiaPelaMetade = false;
++/** Quantas cópias terminaram de verdade (a Promise de `copy` resolveu). */
++let mockCopiasTerminadas = 0;
+ /** Quantas vezes o arquivo INTEIRO foi lido para ser medido. */
+ let mockLeiturasDeBytes = 0;
+ 
+@@ -31,9 +40,21 @@ jest.mock("expo-file-system", () => ({
+       const raiz = typeof base === "string" ? base : base.document;
+       this.uri = nome ? `${raiz}/${nome}` : raiz;
+     }
+-    get size(): number | null {
++    /*
++      DUBLÊ FIEL AO `expo-file-system` 57 (V2-F00-E16, correção 2).
++
++      `size` é documentado como "0 se o arquivo não existe ou não pôde ser
++      lido", e não nulo. E `copy` é ASSÍNCRONA (`AsyncFunction("copy")` no
++      módulo Android, `Promise<void>` na tipagem): o arquivo de destino só
++      existe quando a Promise resolve. A versão anterior deste dublê tinha
++      `copy(): void` síncrono, e por isso a suíte inteira ficou verde enquanto
++      no Android toda foto era recusada como "arquivo saiu vazio": o código
++      lia o tamanho na linha seguinte, antes de a cópia existir. `copySync`
++      existe na biblioteca e materializa na hora.
++    */
++    get size(): number {
+       if (mockSizeZerado) return 0;
+-      return mockTamanhos.get(this.uri) ?? null;
++      return mockTamanhos.get(this.uri) ?? 0;
+     }
+     get exists(): boolean {
+       return mockTamanhos.has(this.uri);
+@@ -46,10 +67,25 @@ jest.mock("expo-file-system", () => ({
+       if (!mockTamanhos.has(this.uri)) throw new Error("File does not exist");
+       return new Uint8Array(mockTamanhos.get(this.uri) ?? 0);
+     }
+-    copy(destino: { uri: string }): void {
++    async copy(destino: { uri: string }): Promise<void> {
++      if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
++      // A cópia acontece em outra thread: só vira arquivo depois de um tick.
++      await new Promise<void>((resolver) => { setTimeout(resolver, 0); });
++      if (mockCopiaPelaMetade) {
++        mockTamanhos.set(destino.uri, 4_096);
++        throw new Error("ENOSPC: no space left on device");
++      }
++      if (mockRecusaCopiar) throw new Error("ENOSPC: no space left on device");
++      mockCopias.push({ de: this.uri, para: destino.uri });
++      mockTamanhos.set(destino.uri, mockTamanhos.get(this.uri) ?? 0);
++      mockCopiasTerminadas += 1;
++    }
++    copySync(destino: { uri: string }): void {
++      if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
+       if (mockRecusaCopiar) throw new Error("ENOSPC: no space left on device");
+       mockCopias.push({ de: this.uri, para: destino.uri });
+       mockTamanhos.set(destino.uri, mockTamanhos.get(this.uri) ?? 0);
++      mockCopiasTerminadas += 1;
+     }
+     delete(): void {
+       if (mockRecusaApagar) throw new Error("EPERM: operation not permitted");
+@@ -69,6 +105,9 @@ beforeEach(() => {
+   mockRecusaApagar = false;
+   mockSizeZerado = false;
+   mockRecusaCopiar = false;
++  mockRecusaCopiarSincrono = false;
++  mockCopiaPelaMetade = false;
++  mockCopiasTerminadas = 0;
+   mockLeiturasDeBytes = 0;
+   jest.spyOn(Date, "now").mockReturnValue(1_757_000_000_000);
+ });
+@@ -81,7 +120,7 @@ describe("a foto recém tirada", () => {
+   it("é copiada do cache para o diretório de documentos", async () => {
+     mockTamanhos.set(DA_CAMERA, 812_345);
+ 
+-    const r = guardarFotoNoAparelho(DA_CAMERA, 0);
++    const r = await guardarFotoNoAparelho(DA_CAMERA, 0);
+ 
+     expect(mockCopias).toEqual([
+       { de: DA_CAMERA, para: "file:///documentos/foto-1757000000000-0.jpg" },
+@@ -99,7 +138,7 @@ describe("a foto recém tirada", () => {
+     */
+     mockTamanhos.set(DA_CAMERA, 812_345);
+ 
+-    expect(guardarFotoNoAparelho(DA_CAMERA, 0).tamanhoBytes).toBe(812_345);
++    expect((await guardarFotoNoAparelho(DA_CAMERA, 0)).tamanhoBytes).toBe(812_345);
+   });
+ 
+   it("o tamanho vem dos bytes de verdade, e não do `size` que pode vir zerado", async () => {
+@@ -114,37 +153,100 @@ describe("a foto recém tirada", () => {
+     mockTamanhos.set(DA_CAMERA, 812_345);
+     mockSizeZerado = true;
+ 
+-    expect(guardarFotoNoAparelho(DA_CAMERA, 0).tamanhoBytes).toBe(812_345);
++    expect((await guardarFotoNoAparelho(DA_CAMERA, 0)).tamanhoBytes).toBe(812_345);
+   });
+ 
+   it("zero bytes é arquivo perdido, e não um tamanho: a foto não entra na coleta", async () => {
+     // A cópia deixou um arquivo vazio (disco cheio no meio da gravação).
+     mockTamanhos.set(DA_CAMERA, 0);
+ 
+-    expect(() => guardarFotoNoAparelho(DA_CAMERA, 0)).toThrow(/não ficou guardada/);
++    await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(/não ficou guardada/);
++  });
++
++  /*
++    V2-F00-E16, correção 2. A cópia resolve, a medição dá zero, a função lança
++    "o arquivo saiu vazio" e o destino ficava órfão em `Paths.document`: nada
++    o referencia, e num aparelho compartilhado pode ser foto de família. A
++    recusa tem de levar o arquivo junto.
++  */
++  it("o arquivo vazio que a cópia deixou é apagado antes de a recusa subir", async () => {
++    mockTamanhos.set(DA_CAMERA, 0);
++    const destino = "file:///documentos/foto-1757000000000-0.jpg";
++
++    await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(/o arquivo saiu vazio/);
++
++    expect(mockTamanhos.has(destino)).toBe(false);
++    // A origem (a foto da câmera) não é tocada: quem a descarta é a tela.
++    expect(mockTamanhos.has(DA_CAMERA)).toBe(true);
++  });
++
++  it("o pedaço que uma cópia interrompida deixou também é apagado", async () => {
++    mockTamanhos.set(DA_CAMERA, 812_345);
++    mockCopiaPelaMetade = true;
++    const destino = "file:///documentos/foto-1757000000000-0.jpg";
++
++    await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(/não ficou guardada neste aparelho/);
++
++    expect(mockTamanhos.has(destino)).toBe(false);
+   });
+ 
+-  it("a cópia recusada pelo sistema sai em português e com o que fazer, e não em inglês", async () => {
++  it("a cópia recusada pelo sistema (Promise rejeitada) sai em português e com o que fazer, e não em inglês", async () => {
+     /*
+       V2-F00-E16: a tela de vistoria passou a mostrar a frase que esta função
+       lança. A frase nativa ("ENOSPC: no space left on device") não pode chegar
+-      à tarja do agente.
++      à tarja do agente. E, na biblioteca real, a recusa chega como Promise
++      REJEITADA (a cópia é assíncrona): a versão anterior deste teste fazia
++      `copy` lançar de forma síncrona, caminho que a biblioteca nunca produz, e
++      deixava a rejeição real solta (derrubava o processo com ENOSPC).
+     */
+     mockTamanhos.set(DA_CAMERA, 812_345);
+     mockRecusaCopiar = true;
+ 
+-    expect(() => guardarFotoNoAparelho(DA_CAMERA, 0)).toThrow(
++    const falha = await guardarFotoNoAparelho(DA_CAMERA, 0).then(
++      () => null,
++      (e: unknown) => e as Error,
++    );
++    expect(falha).toBeInstanceOf(Error);
++    expect(falha?.message).toMatch(/não ficou guardada neste aparelho.*tire a foto de novo/i);
++    expect(falha?.message).not.toMatch(/ENOSPC/);
++  });
++
++  it("a recusa que sai síncrona (destino inválido) também sai em português", async () => {
++    mockTamanhos.set(DA_CAMERA, 812_345);
++    mockRecusaCopiarSincrono = true;
++
++    await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(
+       /não ficou guardada neste aparelho.*tire a foto de novo/i,
+     );
+-    expect(() => guardarFotoNoAparelho(DA_CAMERA, 0)).not.toThrow(/ENOSPC/);
++  });
++
++  it("ESPERA a cópia terminar antes de medir (a cópia do expo-file-system é assíncrona)", async () => {
++    /*
++      O defeito do emulador Android (rodada 2 da validação, 13/10/2026): o
++      código chamava `copy(...)` sem esperar e lia o tamanho na linha seguinte,
++      quando o arquivo de destino ainda não existia. O `size` zerado virou
++      "o arquivo saiu vazio" para uma foto inteira, em 5 de 5 tentativas.
++
++      Este teste só passa se a função esperar a Promise da cópia: o dublê só
++      materializa o destino depois de um tick. Quem trocar para `copySync`
++      também passa (o dublê tem a síncrona fiel), e é uma correção igualmente
++      válida: o que o teste proíbe é medir antes de a cópia existir.
++    */
++    mockTamanhos.set(DA_CAMERA, 812_345);
++
++    const r = await guardarFotoNoAparelho(DA_CAMERA, 0);
++
++    expect(mockCopiasTerminadas).toBe(1);
++    expect(r.tamanhoBytes).toBe(812_345);
++    expect(mockTamanhos.get(r.uriLocal)).toBe(812_345);
+   });
+ 
+   it("duas fotos no mesmo milissegundo não viram uma só", async () => {
+     // Acontece quando o agente segura o botão. Nome repetido sobrescreveria a
+     // foto anterior, e a foto anterior é prova.
+     mockTamanhos.set(DA_CAMERA, 812_345);
+-    const primeira = guardarFotoNoAparelho(DA_CAMERA, 0);
+-    const segunda = guardarFotoNoAparelho(DA_CAMERA, 1);
++    const primeira = await guardarFotoNoAparelho(DA_CAMERA, 0);
++    const segunda = await guardarFotoNoAparelho(DA_CAMERA, 1);
+ 
+     expect(primeira.uriLocal).not.toBe(segunda.uriLocal);
+   });
+diff --git a/dc360/apps/campo/src/dados/evidencia-no-disco.ts b/dc360/apps/campo/src/dados/evidencia-no-disco.ts
+index 46d3eb2..3b8b52f 100644
+--- a/dc360/apps/campo/src/dados/evidencia-no-disco.ts
++++ b/dc360/apps/campo/src/dados/evidencia-no-disco.ts
+@@ -22,10 +22,10 @@ import { CODIGO_ARQUIVO_SUMIU, FalhaPermanente, type Arquivos } from "@dc360/cam
+  * pela limpeza do logout em `banco-local.ts`, que preserva o que a fila ainda
+  * referencia.
+  */
+-export function guardarFotoNoAparelho(
++export async function guardarFotoNoAparelho(
+   uriDaCamera: string,
+   ordem: number,
+-): { uriLocal: string; tamanhoBytes: number } {
++): Promise<{ uriLocal: string; tamanhoBytes: number }> {
+   /*
+     `foto-<carimbo>-<ordem>.jpg`, e os dois números importam.
+ 
+@@ -41,11 +41,32 @@ export function guardarFotoNoAparelho(
+     caminho recusado) vem em inglês e sem saída, e por isso não atravessa: é
+     trocado aqui pela frase que o agente consegue seguir na porta da casa.
+   */
+-  let destino: File;
++  let destino: File | undefined;
+   try {
+     destino = new File(Paths.document, `foto-${Date.now()}-${ordem}.jpg`);
+-    new File(uriDaCamera).copy(destino);
++    /*
++      A cópia é ESPERADA, e isso não é detalhe (V2-F00-E16, correção 2).
++
++      No `expo-file-system` 57, `File.copy` é assíncrona (`Promise<void>`; no
++      Android é uma `AsyncFunction`): o arquivo de destino só existe quando a
++      Promise resolve. Esta linha já foi `copy(destino)` sem `await`, e o
++      tamanho era lido logo abaixo, antes de a cópia existir. Resultado no
++      emulador Android: o `size` vinha zerado, a leitura dos bytes falhava e
++      TODA foto era recusada como "o arquivo saiu vazio", com o JPEG inteiro
++      órfão no disco. Era coleta que o agente não conseguia anexar. A recusa
++      do sistema (disco cheio) também chega por aqui como Promise rejeitada, e
++      por isso o `await` fica DENTRO do `try`: sem ele a rejeição sairia solta
++      e em inglês.
++    */
++    await new File(uriDaCamera).copy(destino);
+   } catch {
++    /*
++      Cópia que falha pela metade (disco cheio no meio da gravação) pode deixar
++      um pedaço do JPEG em `Paths.document`. Nada referencia esse arquivo, e
++      ele é foto da vistoria num aparelho que passa de mão em mão: apagar aqui,
++      em silêncio, pelo mesmo caminho que nunca estoura.
++    */
++    if (destino) apagarFotoDoAparelho(destino.uri);
+     throw new Error(
+       "A foto não ficou guardada neste aparelho (o armazenamento pode estar "
+       + "cheio). Libere espaço e tire a foto de novo.",
+@@ -71,6 +92,14 @@ export function guardarFotoNoAparelho(
+   */
+   const tamanhoBytes = medirArquivoNoAparelho(destino.uri);
+   if (tamanhoBytes === 0) {
++    /*
++      A cópia resolveu e o arquivo existe, só que vazio: ele fica órfão em
++      `Paths.document`, onde nada o referencia e onde só o logout o varreria
++      (o agente de campo não sai da conta). Pode ser foto de família num
++      aparelho compartilhado. Some antes de a recusa subir (V2-F00-E16,
++      correção 2).
++    */
++    apagarFotoDoAparelho(destino.uri);
+     throw new Error(
+       "A foto não ficou guardada neste aparelho (o arquivo saiu vazio). "
+       + "Tire a foto de novo.",
+diff --git a/dc360/apps/campo/src/ui/componentes.tsx b/dc360/apps/campo/src/ui/componentes.tsx
+index 2a9cd2e..32b91f3 100644
+--- a/dc360/apps/campo/src/ui/componentes.tsx
++++ b/dc360/apps/campo/src/ui/componentes.tsx
+@@ -158,6 +158,20 @@ export function useTema(): Tema {
+   return useContext(ContextoTema);
+ }
+ 
++/**
++ * Peças que ficam SOBRE o visor da câmera leem o tema escuro, nos dois temas.
++ *
++ * O visor é preto fixo (`visor.fundo`, em `tokens.ts`), mas o botão secundário
++ * pintava rótulo e contorno com o tema corrente: no claro, `texto` é quase
++ * preto, e "Voltar sem fotografar" media 1,19:1 sobre o visor na captura do
++ * emulador Android (V2-F00-E16, correção 2). Em vez de inventar uma cor para o
++ * botão, a peça troca de TEMA: o escuro foi desenhado para fundo escuro, e a
++ * paridade com o painel não muda.
++ */
++export function SobreOVisor({ children }: { children: ReactNode }) {
++  return <ContextoTema.Provider value={temaEscuro}>{children}</ContextoTema.Provider>;
++}
++
+ /**
+  * A escolha do tema, para quem a OFERECE.
+  *
+diff --git a/dc360/apps/campo/src/ui/dialogo-na-fila.test.tsx b/dc360/apps/campo/src/ui/dialogo-na-fila.test.tsx
+index 7dffd16..db5a4bc 100644
+--- a/dc360/apps/campo/src/ui/dialogo-na-fila.test.tsx
++++ b/dc360/apps/campo/src/ui/dialogo-na-fila.test.tsx
+@@ -418,7 +418,8 @@ describe("sinal ruim por muito tempo", () => {
+     await abrirATela();
+ 
+     expect(screen.getByText("Aguardando")).toBeTruthy();
+-    expect(screen.getByText(/vai continuar tentando sozinha/)).toBeTruthy();
++    expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
++    expect(screen.queryByText(/sozinha/)).toBeNull();
+     expect(screen.getByText(/sinal melhor/)).toBeTruthy();
+     // Não se oferece apagar o que ainda vai subir sozinho.
+     expect(screen.queryByText("Descartar")).toBeNull();
+diff --git a/dc360/apps/campo/src/ui/fila-como-produto.test.tsx b/dc360/apps/campo/src/ui/fila-como-produto.test.tsx
+index 278d8a6..eda2107 100644
+--- a/dc360/apps/campo/src/ui/fila-como-produto.test.tsx
++++ b/dc360/apps/campo/src/ui/fila-como-produto.test.tsx
+@@ -409,7 +409,12 @@ describe("o toque que muda alguma coisa deixa marca", () => {
+ 
+     await tocar("Tentar de novo");
+ 
+-    expect(screen.getByText(/continua tentando\.$/)).toBeTruthy();
++    /*
++      V2-F00-E16, correção 2: "continua tentando" sem condição sugeria
++      tentativa com o aplicativo fechado, que não existe. A frase diz a
++      condição, e continua sem prometer chegada.
++    */
++    expect(screen.getByText(/continua tentando enquanto o aplicativo estiver aberto\.$/)).toBeTruthy();
+   });
+ 
+   /*
+@@ -1474,7 +1479,8 @@ describe("a fila não promete envio em segundo plano nem com o aplicativo fechad
+     mockItens = [item({ id: "teimosa", estado: "pendente", tentativas: 8 })];
+     await abrirATela();
+ 
+-    expect(screen.getByText(/vai continuar tentando sozinha/)).toBeTruthy();
++    expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
++    expect(screen.queryByText(/sozinha/)).toBeNull();
+     nenhumTextoPromete();
+   });
+ 
+diff --git a/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs b/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs
+index 235ee32..ff53436 100644
+--- a/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs
++++ b/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs
+@@ -1,6 +1,6 @@
+ /**
+  * Nenhuma promessa de segundo plano na interface do aplicativo de campo
+- * (V2-F00-E16, correção 1).
++ * (V2-F00-E16, correção 1; regra por classe na correção 2).
+  *
+  * O fato: a fila só drena enquanto o aplicativo está ABERTO. O laço
+  * (`iniciarSincronizacaoContinua`) vive no layout das abas, e o aplicativo não
+@@ -15,25 +15,58 @@
+  *
+  * Este portão varre a fonte de TODO o aplicativo (menos comentários, que
+  * explicam o defeito e precisam poder citá-lo, e menos os testes, que
+- * precisam escrever a frase proibida para provar que ela sumiu). O que ele
+- * reprova, em texto que o agente lê:
++ * precisam escrever a frase proibida para provar que ela sumiu). O que o
++ * CÓDIGO reprova, em texto que o agente lê, nesta ordem:
+  *
+- * 1. "segundo plano", "em background", "nos bastidores";
+- * 2. "aplicativo fechado" e variações ("mesmo fechado", "fechou o app");
+- * 3. um verbo de envio seguido de "sozinho/sozinha" ("sai sozinho", "sobe
+- *    sozinha"), que diz que a coisa acontece sem o aplicativo precisar estar
+- *    em uso. A frase verdadeira diz a condição: "quando o aplicativo estiver
+- *    aberto e houver sinal";
+- * 4. "assim que houver sinal", que condiciona o envio só ao sinal.
++ * 1. a LISTA de expressões conhecidas (`PROMESSAS`): "segundo plano",
++ *    "background", "nos bastidores", "aplicativo fechado" e variações,
++ *    "aparelho bloqueado/guardado", "sem abrir o aplicativo", "sai sozinho",
++ *    "assim que houver sinal". É a rede mais fina, e é a que a primeira versão
++ *    do portão tinha inteira;
++ * 2. a regra por CLASSE, que é a que importa e que não depende de a expressão
++ *    ter aparecido antes. Ela olha cada frase e cada trecho de texto da tela:
++ *
++ *    - AFASTAMENTO: qualquer forma de o agente deixar o aplicativo ou o
++ *      aparelho de lado (fechar, minimizar, bloquear, desligar, guardar o
++ *      aparelho ou o aplicativo, sair do aplicativo, trocar de aplicativo,
++ *      "no bolso", "ir embora"), reconhecida pelo RADICAL do verbo, e não por
++ *      lista de flexões ("feche", "fechar", "fechando", "fechou" são a mesma
++ *      coisa). Afastamento negado ou precavido ("não feche", "antes de
++ *      fechar", "sem fechar") não conta: é o aviso verdadeiro;
++ *    - PROMESSA: qualquer verbo de envio, sincronização, chegada, término ou
++ *      continuidade, também por radical (enviar, subir, sair, chegar, terminar,
++ *      continuar, seguir, rodar, tentar...);
++ *    - AUTONOMIA: "sozinho", "automaticamente", "em instantes", "em breve",
++ *      "a qualquer momento", "não precisa fazer nada", "quando houver sinal"...;
++ *    - CONDIÇÃO: "aberto/aberta" sem negação ("sem o aplicativo aberto" NÃO é
++ *      condição, é a promessa que se quer impedir).
++ *
++ *    Reprova a FRASE que junta PROMESSA com AFASTAMENTO ou com AUTONOMIA e não
++ *    traz a CONDIÇÃO. Reprova também o TRECHO de texto (o conjunto das frases
++ *    de um mesmo texto da tela) que junta PROMESSA com AFASTAMENTO, para pegar
++ *    "Pode fechar o aplicativo. O envio termina." em duas frases. E reprova o
++ *    CONVITE a sair ("Pode fechar o aplicativo", "Basta bloquear a tela") sem
++ *    a condição, mesmo que a promessa venha em outra frase, ou nem venha.
++ *
++ * O que o código NÃO reprova, dito aqui para o documento não prometer mais do
++ * que o código faz: "tela bloqueada" sozinha (é onde a notificação aparece, e
++ * não há promessa de envio nela); afastamento sem nenhuma promessa na frase ou
++ * no trecho e sem convite ("Ele fica legível na tela bloqueada"); uma promessa
++ * de envio sem afastamento e sem autonomia ("A vistoria será enviada"); e
++ * texto montado em tempo de execução a partir de valor de fora do arquivo.
+  *
+  * Limite, dito na cara: ele lê TEXTO escrito, não o que o React Native
+- * desenha. Frase montada em tempo de execução a partir de valor de fora do
+- * arquivo passa por ele (é o mesmo limite dos outros portões do aplicativo).
+- * `app.config.ts` fica fora da varredura: ali "nunca em segundo plano" é a
+- * promessa VERDADEIRA de que a localização não roda em segundo plano.
++ * desenha, e reconhece palavras do português por radical, não por sentido.
++ * Quem escrever a promessa com uma palavra que nenhum radical alcança passa
++ * por ele; a defesa é a lista de casos que precisam reprovar, abaixo, que cresce
++ * a cada promessa nova que alguém plantar. `app.config.ts` fica fora da
++ * varredura: ali "nunca em segundo plano" é a promessa VERDADEIRA de que a
++ * localização não roda em segundo plano.
+  *
+- * A prova de que o portão morde está no próprio arquivo (ver o último teste):
+- * as frases que a arbitragem achou são reprovadas.
++ * A prova de que o portão morde está no próprio arquivo (ver os últimos
++ * testes): as frases que a arbitragem achou e as que o revisor plantou são
++ * reprovadas, as frases verdadeiras passam, e a fila real reprova quando se
++ * planta cada uma delas.
+  */
+ import test from "node:test";
+ import assert from "node:assert/strict";
+@@ -42,10 +75,13 @@ import { readFileSync } from "node:fs";
+ import { arquivosDeFonte, nomeCurto, semComentarios } from "./fonte-do-aplicativo.mjs";
+ 
+ const PROMESSAS = [
+-  { nome: "segundo plano", regra: /segundo plano|em background|nos bastidores|plano de fundo/i },
++  {
++    nome: "segundo plano",
++    regra: /segundo[ -]plano|\bbackground\b|nos bastidores|plano de fundo|\bde fundo\b/i,
++  },
+   {
+     nome: "aplicativo fechado",
+-    regra: /(aplicativo|app) fechado|mesmo fechado|fechou o (aplicativo|app)/i,
++    regra: /(aplicativo|app) fechado|mesmo fechado|(mesmo )?sem (precisar )?abrir (o|este|esse) (aplicativo|app)|\bmesmo sem abrir\b|(aparelho|celular) (bloqueado|guardado|no bolso)/i,
+   },
+   {
+     nome: "envio sozinho",
+@@ -86,10 +122,239 @@ function textoEmendado(fonte) {
+   return { texto: caracteres.join(""), linhas };
+ }
+ 
++/*
++  A regra por CLASSE (correção 2). Quatro conjuntos, reconhecidos por RADICAL do
++  verbo e não por lista de palavras inteiras:
++
++  - PROMESSA: a frase fala da coisa subir, chegar, terminar ou continuar
++    (enviar, subir, sair, sincronizar, chegar, terminar, continuar, seguir,
++    rodar, tentar, receber...).
++  - AUTONOMIA: a frase diz que isso acontece sem o agente fazer nada, ou diz
++    QUANDO acontece de um jeito que dispensa o aplicativo em uso (sozinho,
++    automático, em instantes, a qualquer momento, não precisa fazer nada,
++    quando houver sinal...).
++  - AFASTAMENTO: a frase fala de o agente deixar o aplicativo ou o aparelho de
++    lado (fechar, minimizar, bloquear, desligar, guardar, sair do aplicativo,
++    trocar de aplicativo, no bolso, ir embora). Se vem negado ou precavido
++    ("não feche", "antes de fechar", "sem fechar"), é o aviso verdadeiro e não
++    conta.
++  - CONDIÇÃO: "aberto/aberta" sem negação. É a condição verdadeira: a fila só
++    drena com o aplicativo aberto. "Sem o aplicativo aberto" NÃO é condição.
++
++  Reprova: PROMESSA com AUTONOMIA, ou PROMESSA com AFASTAMENTO, sem CONDIÇÃO,
++  na mesma frase; PROMESSA com AFASTAMENTO no mesmo trecho de texto da tela
++  (duas frases seguidas); e o CONVITE a sair ("pode fechar o aplicativo")
++  sem CONDIÇÃO, mesmo sem promessa por perto.
++*/
++const P = "(?<![\\p{L}])";
++const F = "(?![\\p{L}])";
++const palavra = (...radicais) => new RegExp(`${P}(?:${radicais.join("|")})${F}`, "iu");
++
++const PROMESSA = palavra(
++  "envi[\\p{L}]*", "sincroniz[\\p{L}]*", "transmit[\\p{L}]*", "transmiss[\\p{L}]*",
++  "drena[\\p{L}]*", "entreg[\\p{L}]*", "subm[\\p{L}]*",
++  "sobe", "sobem", "sub(?:ir|irá|irão|iu|indo|ida)",
++  "sai", "saem", "sair", "sairá", "sairão", "saiu", "saindo",
++  "cheg[\\p{L}]*", "termin[\\p{L}]*", "conclu(?:i|em|ir|irá|irão|ído|ida)",
++  "segu(?:e|em|ir|irá|irão|iu|indo)", "prossegu[\\p{L}]*", "continu(?:a|am|ar|ará|arão|ou|ando)(?!\\s+(?:guardad|valendo|salv))",
++  "rod(?:a|am|ar|ará|arão)", "funcion(?:a|am|ar|ará|arão)", "acontec[\\p{L}]*", "ocorr(?:e|em|er|erá|erão)",
++  "tent(?:a|am|ar|ará|arão|ando|ou)", "receb(?:e|em|er|erá|erão|ida|ido|idas|idos)",
++  "mand(?:a|am|ar|ada|ado|adas|ados|ará|arão)",
++);
++
++const AUTONOMIA = new RegExp([
++  /* "Não resolve sozinho" nega a autonomia: é o aviso verdadeiro. */
++  `${P}(?<!não [\\p{L}]+ )sozinh[oa]s?${F}`,
++  `${P}automátic[oa]s?${F}`,
++  `${P}automaticamente${F}`,
++  `${P}em instantes${F}`,
++  `${P}em breve${F}`,
++  `${P}daqui a pouco${F}`,
++  `${P}logo mais${F}`,
++  `${P}a qualquer (?:momento|hora)${F}`,
++  `${P}quando (?:houver|tiver|voltar) (?:o |a )?(?:sinal|rede|conexão|internet)${F}`,
++  `${P}quando (?:o|a) (?:sinal|rede|conexão|internet) (?:voltar|houver|estiver)${F}`,
++  `${P}não precisa(?:m)? (?:fazer|abrir|ficar|mexer|tocar|esperar)${F}`,
++  `${P}sem (?:você |a gente )?(?:precisar|tocar|abrir|mexer|fazer|ligar|olhar|usar)${F}`,
++  `${P}mesmo sem (?:você |a gente )?(?:abrir|tocar|mexer|usar|olhar|o app|o aplicativo)${F}`,
++  `${P}continu(?:a|am|ar|ará|arão) (?:tentando|enviando|subindo|sincronizando|a tentar|a enviar|a subir)${F}`,
++].join("|"), "iu");
++
++const OBJETO = "(?:aplicativo|app|programa|aparelho|celular|telefone|smartphone|dispositivo)";
++const OBJETO_OU_TELA = "(?:aplicativo|app|programa|aparelho|celular|telefone|smartphone|dispositivo|tela)";
++const ARTIGO = "(?:(?:o|a|os|as|este|esta|esse|essa|seu|sua|do|da|no|na|neste|nesta|desse|dessa|um|uma)\\s+){0,2}";
++
++const AFASTAMENTO = new RegExp([
++  `${P}fech[\\p{L}]*\\s+${ARTIGO}${OBJETO}${F}`,
++  `${P}minimiz[\\p{L}]*${F}`,
++  `${P}(?:bloque[\\p{L}]*|trav(?:e|ar|ando))\\s+${ARTIGO}(?:${OBJETO_OU_TELA})${F}`,
++  `${P}deslig[\\p{L}]*\\s+${ARTIGO}(?:${OBJETO_OU_TELA})${F}`,
++  `${P}guard(?!ad)[\\p{L}]*\\s+${ARTIGO}${OBJETO}${F}`,
++  `${P}(?:larg|abandon|deix)[\\p{L}]*\\s+${ARTIGO}${OBJETO}${F}`,
++  `${P}sai(?:a|r|u|ndo)?\\s+(?:d[oa]s?|n[oa]s?)\\s+(?:aplicativo|app|programa)${F}`,
++  `${P}troc[\\p{L}]*\\s+de\\s+(?:aplicativo|app|programa)${F}`,
++  `${P}(?:abr|us)[\\p{L}]*\\s+outro\\s+(?:aplicativo|app|programa)${F}`,
++  `${P}${OBJETO}\\s+(?:[\\p{L}]+\\s+){0,2}(?:fechad[oa]|bloquead[oa]|minimizad[oa]|desligad[oa]|travad[oa]|guardad[oa])${F}`,
++  `${P}no bolso${F}`,
++  `${P}(?:ir|voltar|vá|vão|vai)\\s+(?:embora|para casa|pra casa)${F}`,
++].join("|"), "iu");
++
++/** O que, imediatamente antes do afastamento, o transforma em aviso verdadeiro. */
++const NEGADO = /(?:^|[\s,;:(])(?:não|nunca|jamais|nem|evite|evitar|antes de|sem|espere|aguarde)\s+(?:[\p{L}]+\s+){0,2}$/iu;
++/** O que, logo depois do afastamento, o adia para depois do envio: também é o aviso verdadeiro. */
++const ADIADO = /^[\s,]*(?:(?:só|somente|apenas)\s+(?:depois|quando|após|se)|depois que|após|até)(?![\p{L}])/iu;
++/** O que, imediatamente antes do afastamento, o transforma em convite. */
++const CONVITE = /(?:^|[\s,;:(])(?:pode|podem|poderá|poderão|basta|é só|já pode|pode até)\s+(?:[\p{L}]+\s+){0,3}$/iu;
++
++/** Só "aberto" que não vem negado: "sem o aplicativo aberto" não é condição. */
++function temCondicao(texto) {
++  const semNegadas = texto.replace(
++    /(?<![\p{L}])(?:sem|nem|não|nao)\s+(?:[\p{L}]+\s+){0,3}abert[oa]s?(?![\p{L}])/giu,
++    " ",
++  );
++  return /(?<![\p{L}])abert[oa]s?(?![\p{L}])/iu.test(semNegadas);
++}
++
++/**
++ * Lê um texto e separa o que a regra precisa: os afastamentos que valem (sem os
++ * negados, como "não feche", e sem os adiados, como "feche só depois que o envio
++ * terminar"), cada um dito como convite ou não, e se há PROMESSA no que sobra
++ * depois de tirar os próprios afastamentos (senão "sair do aplicativo" seria,
++ * sozinho, o verbo de envio "sair").
++ *
++ * "Aberto" NÃO redime o afastamento: "com o aplicativo aberto, pode bloquear a
++ * tela" continua falso, porque o aplicativo de campo não envia com a tela
++ * bloqueada nem com ele fora da frente.
++ */
++function lerTexto(texto) {
++  const afastamentos = [];
++  for (const m of texto.matchAll(new RegExp(AFASTAMENTO.source, "giu"))) {
++    const antes = texto.slice(Math.max(0, m.index - 40), m.index);
++    const depois = texto.slice(m.index + m[0].length, m.index + m[0].length + 30);
++    if (NEGADO.test(antes) || ADIADO.test(depois)) continue;
++    afastamentos.push({ trecho: m[0], convite: CONVITE.test(antes) });
++  }
++  const semAfastamento = texto.replace(new RegExp(AFASTAMENTO.source, "giu"), " ");
++  return { afastamentos, promessa: PROMESSA.test(semAfastamento), semAfastamento };
++}
++
++/**
++ * Os textos que o agente lê: cada texto literal entre aspas (com os pedaços
++ * emendados por `+` juntados em um só) e cada texto solto dentro do JSX.
++ *
++ * As aspas são pareadas LINHA A LINHA, e isso é deliberado: uma aspa simples
++ * perdida em texto de JSX ("d'água") pareada pelo arquivo inteiro desencaixava
++ * todos os textos dali até o fim do arquivo, e o portão deixava de enxergá-los
++ * sem avisar (medido na fila real: o texto de "ainda não saiu do aparelho" ficava
++ * fora de qualquer par). Texto entre aspas simples ou duplas não atravessa
++ * linha na linguagem; só o de crase atravessa. Uma aspa sem par na linha é
++ * ignorada, e o estrago fica naquela linha.
++ */
++function textosDaTela(fonte) {
++  const limpo = semComentarios(fonte);
++  const literais = [];
++  let i = 0;
++  while (i < limpo.length) {
++    const c = limpo[i];
++    if (c === '"' || c === "'" || c === "`") {
++      let j = i + 1;
++      let fechou = false;
++      while (j < limpo.length) {
++        const d = limpo[j];
++        if (d === "\\") { j += 2; continue; }
++        if (d === c) { fechou = true; break; }
++        if (d === "\n" && c !== "`") break;
++        j += 1;
++      }
++      if (fechou) {
++        literais.push({ conteudo: limpo.slice(i + 1, j), ini: i, fim: j + 1 });
++        i = j + 1;
++        continue;
++      }
++    }
++    i += 1;
++  }
++  /* Pedaços emendados por `+` viram um texto só: é uma frase para quem lê. */
++  const juntos = [];
++  for (const l of literais) {
++    const ultimo = juntos[juntos.length - 1];
++    if (ultimo && /^\s*\+\s*$/.test(limpo.slice(ultimo.fim, l.ini))) {
++      ultimo.conteudo += l.conteudo;
++      ultimo.fim = l.fim;
++    } else {
++      juntos.push({ ...l });
++    }
++  }
++  const textos = juntos.map((l) => ({ conteudo: l.conteudo, ini: l.ini }));
++  for (const m of limpo.matchAll(/>([^<>{}]{4,400}?)</g)) {
++    textos.push({ conteudo: m[1] ?? "", ini: m.index });
++  }
++  return textos
++    .map((t) => ({
++      conteudo: t.conteudo.replace(/\\(["'`])/g, "$1").replace(/\s+/g, " ").trim(),
++      indice: t.ini,
++      linha: limpo.slice(0, t.ini).split("\n").length,
++    }))
++    .filter((t) => t.conteudo.length >= 4);
++}
++
++/** Cada texto quebrado em frases, com a linha de onde veio. */
++function frasesVisiveis(fonte) {
++  const frases = [];
++  for (const { conteudo, indice, linha } of textosDaTela(fonte)) {
++    for (const frase of conteudo.split(/(?<=[.!?])\s+/)) {
++      if (frase.trim()) frases.push({ frase: frase.trim(), linha, indice });
++    }
++  }
++  return frases;
++}
++
+ /** Cada trecho de texto (sem comentário) que casa com alguma regra. */
+ export function promessasEm(fonte) {
+   const { texto, linhas } = textoEmendado(fonte);
+   const achados = [];
++  const frases = frasesVisiveis(fonte);
++  for (const { frase, linha } of frases) {
++    const { afastamentos, promessa } = lerTexto(frase);
++    if (afastamentos.length > 0 && (promessa || afastamentos.some((a) => a.convite))) {
++      achados.push({
++        linha,
++        nome: promessa
++          ? "envio junto de largar o aplicativo"
++          : "convite a largar o aplicativo",
++        texto: frase.slice(0, 120),
++      });
++    } else if (promessa && AUTONOMIA.test(frase) && !temCondicao(frase)) {
++      achados.push({
++        linha,
++        nome: "envio com autonomia, sem a condição do aplicativo aberto",
++        texto: frase.slice(0, 120),
++      });
++    }
++  }
++  /*
++    O trecho inteiro (as frases do mesmo texto da tela): pega a promessa dita
++    em duas frases, "Pode fechar o aplicativo. O envio termina.". Só o par
++    PROMESSA com AFASTAMENTO sobe de nível aqui; AUTONOMIA fica na frase, porque
++    em trecho longo ela casa com assuntos vizinhos e reprovaria quem não errou.
++  */
++  const trechos = new Map();
++  for (const { frase, linha, indice } of frases) {
++    const antes = trechos.get(indice) ?? { linha, lista: [] };
++    antes.lista.push(frase);
++    trechos.set(indice, antes);
++  }
++  for (const { linha, lista } of trechos.values()) {
++    if (lista.length < 2) continue;
++    const todo = lista.join(" ");
++    const { afastamentos, promessa } = lerTexto(todo);
++    if (afastamentos.length === 0 || !promessa) continue;
++    achados.push({
++      linha,
++      nome: "envio junto de largar o aplicativo, em frases seguidas",
++      texto: todo.slice(0, 120),
++    });
++  }
+   for (const { nome, regra } of PROMESSAS) {
+     for (const m of texto.matchAll(new RegExp(regra.source, "gi"))) {
+       achados.push({
+@@ -145,3 +410,181 @@ test("as frases verdadeiras passam", () => {
+   ];
+   for (const frase of ok) assert.deepEqual(promessasEm(`"${frase}"`), [], frase);
+ });
++
++/*
++  Correção 2 (V2-F00-E16). As quatro frases que a validação da rodada 2 plantou
++  na fila zerada de `fila.tsx`. A rodada achou que o portão reprovava só a
++  primeira (o controle) e deixava passar as outras três.
++*/
++const PLANTADAS_PELA_VALIDACAO = [
++  "Vai sair assim que houver sinal.",
++  "Mesmo sem abrir o app, a coleta sobe.",
++  "O envio roda no background.",
++  "O envio segue mesmo se você fechar o aplicativo.",
++];
++
++test("o portão morde: as quatro frases plantadas pela validação da rodada 2 são reprovadas", () => {
++  for (const frase of PLANTADAS_PELA_VALIDACAO) {
++    assert.ok(promessasEm(`descricao={"${frase}"}`).length >= 1, `deixou passar: ${frase}`);
++    assert.ok(promessasEm(`<Txt>${frase}</Txt>`).length >= 1, `deixou passar no JSX: ${frase}`);
++  }
++});
++
++test("o portão morde frases que ninguém listou, porque a regra é por classe e não por lista", () => {
++  /*
++    Nenhuma destas está na lista de expressões: o que as pega é falarem de
++    envio e de autonomia ou de momento sem a condição "aberto". Quem escrever a
++    próxima variação cai na mesma regra, e a saída é dizer a condição.
++  */
++  const novas = [
++    "A coleta vai sair quando o sinal voltar.",
++    "Quando houver rede a vistoria sobe.",
++    "O envio continua tentando, não precisa fazer nada.",
++    "Sua coleta é enviada automaticamente.",
++    "Pode fechar o aplicativo que a coleta segue para a coordenação.",
++    "A vistoria sobe sem você abrir nada.",
++    "Seguimos enviando em segundo-plano.",
++    "A sincronização acontece a qualquer momento.",
++  ];
++  for (const frase of novas) {
++    assert.ok(promessasEm(`"${frase}"`).length >= 1, `deixou passar: ${frase}`);
++  }
++});
++
++/*
++  As promessas que o revisor plantou na correção 2 e que a primeira versão da
++  regra por frase deixou passar (10 de 11), mais variações do mesmo tipo. Todas
++  juntam um jeito de largar o aplicativo ou o aparelho (fechar, sair, minimizar,
++  bloquear, guardar, desligar, trocar de aplicativo, ir embora) com uma promessa
++  de envio ou de continuidade, e nenhuma está em lista de expressões.
++*/
++export const LARGAR_E_PROMETER = [
++  "Feche o aplicativo: o envio termina.",
++  "Pode sair do aplicativo: a coleta será enviada.",
++  "Pode minimizar o aplicativo, a coleta segue",
++  "Pode bloquear a tela, a coleta continua subindo.",
++  "Guarde o celular no bolso: a vistoria sobe.",
++  "Pode desligar o aparelho que o envio termina depois.",
++  "Você pode trocar de aplicativo, o envio continua.",
++  "Se fechar o aplicativo, a coleta chega à coordenação.",
++  "Feche o app e a vistoria é enviada.",
++  "Fechando o aplicativo, a sincronização se completa.",
++  "Bloqueie a tela do celular: a coleta será entregue à coordenação.",
++  "Pode ir embora, a coleta sobe.",
++  "Pode abrir outro aplicativo, a coleta continua enviando.",
++  "Depois de fechar o aplicativo, o envio é concluído.",
++  "Pode deixar o celular de lado: o envio segue.",
++  "Deixe o app quieto, a coleta termina de subir.",
++  "Pode usar outro aplicativo que a coleta segue.",
++  "Bloqueando o aparelho, a coleta continua.",
++  "Minimizou o app? A coleta chega do mesmo jeito.",
++  "Mesmo com o aplicativo aberto, pode bloquear a tela: o envio continua.",
++];
++
++test("o portão morde: largar o aplicativo junto de uma promessa de envio, em qualquer flexão", () => {
++  for (const frase of LARGAR_E_PROMETER) {
++    assert.ok(promessasEm(`"${frase}"`).length >= 1, `deixou passar: ${frase}`);
++    assert.ok(promessasEm(`<Txt>${frase}</Txt>`).length >= 1, `deixou passar no JSX: ${frase}`);
++    assert.ok(promessasEm(`descricao={"${frase}"}`).length >= 1, `deixou passar no atributo: ${frase}`);
++  }
++});
++
++test("o portão morde a promessa dita em duas frases seguidas e o convite a sair", () => {
++  const duasFrases = [
++    "Pode fechar o aplicativo. O envio termina.",
++    "Bloqueie a tela. A coleta continua sendo enviada.",
++    "Guarde o celular. A vistoria chega sozinha.",
++  ];
++  for (const texto of duasFrases) {
++    assert.ok(promessasEm(`"${texto}"`).length >= 1, `deixou passar: ${texto}`);
++  }
++  /* O convite, sem nenhuma promessa por perto, também reprova. */
++  for (const convite of ["Pode fechar o aplicativo.", "Basta bloquear a tela.", "Você já pode sair do aplicativo."]) {
++    assert.ok(promessasEm(`"${convite}"`).length >= 1, `deixou passar: ${convite}`);
++  }
++});
++
++test("a promessa de retomada sem a condição também reprova (a forma antiga da fila)", () => {
++  /* "Vai tentar de novo em instantes" prometia nova tentativa sem dizer que o aplicativo precisa estar aberto. */
++  for (const frase of [
++    "Já tentou 3x. Vai tentar de novo em instantes.",
++    "Já tentou 3x. Vai tentar de novo em breve.",
++    "O aplicativo tenta de novo daqui a pouco.",
++  ]) {
++    assert.ok(promessasEm(`"${frase}"`).length >= 1, `deixou passar: ${frase}`);
++  }
++});
++
++test("a mesma frase com a condição 'aberto' passa", () => {
++  const verdadeiras = [
++    "A coleta vai sair quando o aplicativo estiver aberto e o sinal voltar.",
++    "Já tentou 8x e vai continuar tentando enquanto o aplicativo estiver aberto.",
++    "O envio foi pedido de novo. Se houver sinal, ela sai agora; se não, ela volta para a espera e continua tentando enquanto o aplicativo estiver aberto.",
++    "Com o aplicativo aberto e com sinal, a vistoria sobe quando houver rede.",
++    "Já tentou 3x. Vai tentar de novo em instantes, enquanto o aplicativo estiver aberto.",
++  ];
++  for (const frase of verdadeiras) assert.deepEqual(promessasEm(`"${frase}"`), [], frase);
++});
++
++test("'aberto' negado não é condição: 'sem o aplicativo aberto' é a promessa que se quer impedir", () => {
++  for (const frase of [
++    "A coleta sobe sozinha, mesmo sem o aplicativo aberto.",
++    "O envio acontece automaticamente, sem o app aberto.",
++  ]) {
++    assert.ok(promessasEm(`"${frase}"`).length >= 1, `deixou passar: ${frase}`);
++  }
++});
++
++test("os avisos verdadeiros sobre largar o aplicativo passam", () => {
++  /* Negado, precavido ou adiado: é a instrução honesta, e o portão não pode puni-la. */
++  const verdadeiras = [
++    "Não feche o aplicativo enquanto a coleta estiver sendo enviada.",
++    "Antes de fechar o aplicativo, confira se a coleta foi enviada.",
++    "Sem fechar o aplicativo, espere o envio terminar.",
++    "Feche o aplicativo só depois que o envio terminar.",
++    "Não bloqueie a tela até a coleta ser enviada.",
++    "Evite guardar o celular antes de o envio terminar.",
++    "Para sair do aplicativo, toque em Perfil.",
++  ];
++  for (const frase of verdadeiras) assert.deepEqual(promessasEm(`"${frase}"`), [], frase);
++});
++
++test("frases do aplicativo de hoje que falam de continuar, de sair e de 'sozinho' sem prometer envio passam", () => {
++  /* Falsos positivos medidos ao apertar a regra: continuam passando. */
++  const inofensivas = [
++    "A vistoria que você já fez continua guardada e vai ser enviada do mesmo jeito.",
++    "Repetir o envio não resolve sozinho: cada cartão abaixo diz o que aconteceu e o que fazer.",
++    "Faça na base, antes de sair, e depois a sua equipe aparece aqui mesmo sem conexão.",
++    "A escolha vale só neste aparelho e continua valendo depois de sair da conta.",
++    "Sair agora não apaga nada: quando você voltar, ela continua de onde parou.",
++    "Ele fica legível na tela bloqueada, na mão de quem está passando.",
++    "Guardada neste aparelho. Sobe depois que você entrar de novo.",
++    "Você pode fechar esta tela e continuar de onde parou.",
++    "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal.",
++  ];
++  for (const frase of inofensivas) assert.deepEqual(promessasEm(`"${frase}"`), [], frase);
++});
++
++test("a fila REAL reprova quando se planta cada frase (em memória, o arquivo não é tocado)", () => {
++  const fonte = readFileSync(new URL("../apps/campo/src/app/(agente)/fila.tsx", import.meta.url), "utf8");
++  assert.deepEqual(promessasEm(fonte), [], "a fila de hoje precisa estar limpa para o plantio valer");
++  const ponto = "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal.";
++  assert.ok(fonte.includes(ponto), "o ponto de plantio sumiu da fila; escolha outro texto");
++  for (const frase of [...PLANTADAS_PELA_VALIDACAO, ...LARGAR_E_PROMETER]) {
++    const plantada = fonte.replace(ponto, `${ponto} ${frase}`);
++    assert.notEqual(plantada, fonte);
++    assert.ok(promessasEm(plantada).length >= 1, `a fila com a frase plantada passou: ${frase}`);
++  }
++});
++
++test("a fila REAL reprova a forma antiga de 'vai tentar de novo em instantes', sem a condição", () => {
++  const fonte = readFileSync(new URL("../apps/campo/src/app/(agente)/fila.tsx", import.meta.url), "utf8");
++  const atual = "`Já tentou ${item.tentativas}x. Vai tentar de novo em instantes, enquanto `\n"
++    + "              + \"o aplicativo estiver aberto.\"";
++  assert.ok(fonte.includes(atual), "a frase de tentativas mudou na fila; atualize o ponto de plantio");
++  const antiga = fonte.replace(atual, "`Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`");
++  assert.notEqual(antiga, fonte);
++  const achados = promessasEm(antiga);
++  assert.ok(achados.length >= 1, "a forma antiga passou pelo portão");
++  assert.ok(achados.some((a) => /instantes/.test(a.texto)), "o portão apontou outra frase, e não a antiga");
++});
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index e93c71d..af9e59d 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -85,7 +85,7 @@ export const SAIDA_PADRAO = join(
+  * explicada, código de saída, conferidor de contagens com número velho
+  * plantado).
+  */
+-export const TESTES_DA_E01_EM_SCRIPTS = 26;
++export const TESTES_DA_E01_EM_SCRIPTS = 27;
+ 
+ /**
+  * Quantos testes cada etapa SEGUINTE da fase F00 soma ao `test:scripts`, por ID.
+@@ -136,14 +136,26 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
+     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
+     dava 0 para este arquivo e por isso ele ficou de fora).
+   */
+-  "V2-F00-E19": 23,
++  "V2-F00-E19": 28,
+   /*
+     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
+     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
+     segundo plano). Faltava aqui desde 81a5223; o roteiro de 2026-10-13 mostrava
+     226 esperado contra 230 obtidos.
++
++    V2-F00-E16, correção 2: o mesmo arquivo ganhou 5 casos (as quatro frases
++    que a validação plantou, as variações fora da lista, a condição "aberto",
++    as frases inofensivas e o plantio na fila real), então o arquivo tem 9.
++    A tabela de arquivos abaixo confere o arquivo inteiro contra este número.
++
++    V2-F00-E16, correção 2, segunda rodada de conserto: a regra deixou de ser
++    por lista de palavras e passou a ser por classe (radicais de largar o
++    aplicativo e de prometer envio), e o arquivo ganhou 6 casos (as promessas
++    que o revisor plantou e suas variações, a promessa em duas frases, a forma
++    antiga de "vai tentar de novo em instantes", o "aberto" negado, os avisos
++    verdadeiros e o plantio da forma antiga na fila real). O arquivo tem 15.
+   */
+-  "V2-F00-E16-correcao-1": 4,
++  "V2-F00-E16-correcao-1": 15,
+ };
+ 
+ /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
+@@ -479,6 +491,9 @@ export function esperadoDoTesteCampoApp() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
+ }
+ 
++/** Cabeçalho que o `npm audit` imprime só quando auditou e achou algo (não aparece com o registro fora do ar). */
++const RELATORIO_DE_AUDITORIA = "# npm audit report";
++
+ /**
+  * Os passos, na ordem em que se roda. `esperado` é o resultado que a árvore
+  * verde produz hoje:
+@@ -527,9 +542,15 @@ export const PASSOS = [
+     da árvore do Expo SDK 57). A decisão está no CP-03, com prazo das exceções
+     em 2027-01-05. Se algum dia um deles fechar em 0, o passo diverge de
+     propósito: é a notícia de que a exceção pode sair.
++
++    "Falha" sozinho não basta, e foi o furo da validação de 2026-10-13: o
++    `npm audit` também sai diferente de zero quando o registro está fora do ar,
++    e aí não auditou nada. Por isso o esperado exige o cabeçalho do relatório de
++    verdade (`# npm audit report`), que só aparece quando houve auditoria e
++    achados; com o registro fora do ar o passo diverge.
+   */
+-  { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
+-  { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
++  { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha", contem: RELATORIO_DE_AUDITORIA } },
++  { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha", contem: RELATORIO_DE_AUDITORIA } },
+   /*
+     O esperado é o verde de verdade: 21 de 21. Em 2026-10-13 a árvore deu 20 de 21
+     por deriva externa (o Expo publicou patches de seis pacotes depois do 21 de 21

@@ -25,6 +25,8 @@ let mockRecusaCopiar = false;
 /** A recusa que sai SÍNCRONA (caminho de destino inválido): é o que o
     construtor e `copySync` podem fazer, e o `try/catch` da função cobre. */
 let mockRecusaCopiarSincrono = false;
+/** A cópia que grava um pedaço do arquivo e então falha (disco cheio no meio). */
+let mockCopiaPelaMetade = false;
 /** Quantas cópias terminaram de verdade (a Promise de `copy` resolveu). */
 let mockCopiasTerminadas = 0;
 /** Quantas vezes o arquivo INTEIRO foi lido para ser medido. */
@@ -69,6 +71,10 @@ jest.mock("expo-file-system", () => ({
       if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
       // A cópia acontece em outra thread: só vira arquivo depois de um tick.
       await new Promise<void>((resolver) => { setTimeout(resolver, 0); });
+      if (mockCopiaPelaMetade) {
+        mockTamanhos.set(destino.uri, 4_096);
+        throw new Error("ENOSPC: no space left on device");
+      }
       if (mockRecusaCopiar) throw new Error("ENOSPC: no space left on device");
       mockCopias.push({ de: this.uri, para: destino.uri });
       mockTamanhos.set(destino.uri, mockTamanhos.get(this.uri) ?? 0);
@@ -100,6 +106,7 @@ beforeEach(() => {
   mockSizeZerado = false;
   mockRecusaCopiar = false;
   mockRecusaCopiarSincrono = false;
+  mockCopiaPelaMetade = false;
   mockCopiasTerminadas = 0;
   mockLeiturasDeBytes = 0;
   jest.spyOn(Date, "now").mockReturnValue(1_757_000_000_000);
@@ -154,6 +161,33 @@ describe("a foto recém tirada", () => {
     mockTamanhos.set(DA_CAMERA, 0);
 
     await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(/não ficou guardada/);
+  });
+
+  /*
+    V2-F00-E16, correção 2. A cópia resolve, a medição dá zero, a função lança
+    "o arquivo saiu vazio" e o destino ficava órfão em `Paths.document`: nada
+    o referencia, e num aparelho compartilhado pode ser foto de família. A
+    recusa tem de levar o arquivo junto.
+  */
+  it("o arquivo vazio que a cópia deixou é apagado antes de a recusa subir", async () => {
+    mockTamanhos.set(DA_CAMERA, 0);
+    const destino = "file:///documentos/foto-1757000000000-0.jpg";
+
+    await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(/o arquivo saiu vazio/);
+
+    expect(mockTamanhos.has(destino)).toBe(false);
+    // A origem (a foto da câmera) não é tocada: quem a descarta é a tela.
+    expect(mockTamanhos.has(DA_CAMERA)).toBe(true);
+  });
+
+  it("o pedaço que uma cópia interrompida deixou também é apagado", async () => {
+    mockTamanhos.set(DA_CAMERA, 812_345);
+    mockCopiaPelaMetade = true;
+    const destino = "file:///documentos/foto-1757000000000-0.jpg";
+
+    await expect(guardarFotoNoAparelho(DA_CAMERA, 0)).rejects.toThrow(/não ficou guardada neste aparelho/);
+
+    expect(mockTamanhos.has(destino)).toBe(false);
   });
 
   it("a cópia recusada pelo sistema (Promise rejeitada) sai em português e com o que fazer, e não em inglês", async () => {

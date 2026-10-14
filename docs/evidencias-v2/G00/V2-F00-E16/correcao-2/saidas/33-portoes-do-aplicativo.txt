@@ -1,16 +1,16 @@
 ## portao-acessibilidade-do-aplicativo
-# tests 10
-# pass 10
-# fail 0
+ℹ tests 10
+ℹ pass 10
+ℹ fail 0
 ## portao-densidade-do-aplicativo
-# tests 7
-# pass 7
-# fail 0
+ℹ tests 7
+ℹ pass 7
+ℹ fail 0
 ## portao-design-do-aplicativo
-# tests 16
-# pass 16
-# fail 0
+ℹ tests 16
+ℹ pass 16
+ℹ fail 0
 ## portao-sem-promessa-de-segundo-plano-do-aplicativo
-# tests 4
-# pass 4
-# fail 0
+ℹ tests 9
+ℹ pass 9
+ℹ fail 0

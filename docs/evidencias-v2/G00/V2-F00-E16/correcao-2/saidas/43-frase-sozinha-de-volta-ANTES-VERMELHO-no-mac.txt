@@ -1,0 +1,680 @@
+FAIL src/ui/dialogo-na-fila.test.tsx
+  a pergunta antes de descartar
+    ✓ o toque em 'Descartar' abre a pergunta e NÃO apaga a coleta (120 ms)
+    ✓ a pergunta diz QUAL coleta, pelo protocolo (16 ms)
+    ✓ 'Manter na fila' fecha a pergunta e a coleta continua lá (72 ms)
+    ✓ o botão que repete o verbo apaga a coleta certa (26 ms)
+    ✓ o botão que age diz o que faz, e não 'OK' (14 ms)
+    ✓ 'Tentar de novo' continua sem perguntar, porque não destrói nada (17 ms)
+  o selo de estado de cada item
+    ✓ uma coleta ARQUIVADA não se parece com uma coleta AGUARDANDO (7 ms)
+    ✓ todo estado carrega um símbolo além da cor, porque a tela é lida sob sol (13 ms)
+    ✓ o leitor de tela ouve o protocolo junto com o estado (8 ms)
+  a coleta arquivada tem saída pela tela
+    ✓ oferece 'Tentar de novo', para o caso de a ocorrência ser reaberta (13 ms)
+    ✓ oferece 'Descartar', com a mesma pergunta das outras (14 ms)
+    ✓ não entra no contador de 'coletas na fila', que precisa poder zerar (6 ms)
+  a coleta do agente do turno anterior
+    ✓ não diz 'Aguardando': ela não sai enquanto quem coletou não entrar (7 ms)
+    ✓ diz o nome de quem fez a vistoria, para alguém poder ir atrás (11 ms)
+    ✓ a pergunta antes de descartar diz de quem é a vistoria (12 ms)
+  a coleta guardada por uma versão anterior do aplicativo
+    ✓ pede que alguém assuma a autoria, em vez de subir com quem estiver logado (16 ms)
+  sinal ruim por muito tempo
+    ✕ não vira convite para apagar a vistoria (7 ms)
+
+  ● sinal ruim por muito tempo › não vira convite para apagar a vistoria
+
+    Unable to find an element with text: /vai continuar tentando enquanto o aplicativo estiver aberto/
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"1, coleta na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoleta na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 1 item"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m1[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000123[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000123: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mJá tentou 14x e vai continuar tentando sozinha. A conexão daqui não está completando o envio.[0m
+              [36m</Text>[39m
+              [36m<View[39m
+                [33mtestID[39m=[32m"o-que-fazer-muitas-tentativas"[39m
+              [36m>[39m
+                [36m<View>[39m
+                  [36m<View[39m
+                    [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                    [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                  [36m>[39m
+                    [36m<RNSVGSvgView>[39m
+                      [36m<RNSVGGroup>[39m
+                        [36m<RNSVGCircle />[39m
+                        [36m<RNSVGCircle />[39m
+                        [36m<RNSVGPath />[39m
+                      [36m</RNSVGGroup>[39m
+                    [36m</RNSVGSvgView>[39m
+                  [36m</View>[39m
+                  [36m<Text>[39m
+                    [0mO que fazer[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mProcure um lugar com sinal melhor ou uma rede Wi-Fi que funcione.[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m09/09/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mCom o aplicativo aberto e com sinal, o envio acontece sem você tocar em nada. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+      419 |
+      420 |     expect(screen.getByText("Aguardando")).toBeTruthy();
+    > 421 |     expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
+          |                   ^
+      422 |     expect(screen.queryByText(/sozinha/)).toBeNull();
+      423 |     expect(screen.getByText(/sinal melhor/)).toBeTruthy();
+      424 |     // Não se oferece apagar o que ainda vai subir sozinho.
+
+      at Object.getByText (src/ui/dialogo-na-fila.test.tsx:421:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/ui/fila-como-produto.test.tsx
+  o cartão responde três perguntas, em vez de contar uma história
+    ✓ nenhum pedaço de texto do cartão é um parágrafo (96 ms)
+    ✓ diz QUEM primeiro, e o nome não fica na quinta linha (8 ms)
+    ✓ diz POR QUÊ, sem a instrução grudada na explicação (7 ms)
+    ✓ diz O QUE FAZER, em passos, com título próprio (9 ms)
+    ✓ a coleta sem autor também vira passos, e não um parágrafo (8 ms)
+    ✓ quando não há nada a fazer, não existe bloco de passos (4 ms)
+  as quatro seções param de ser um texto de 21 pontos
+    ✓ cada seção se apresenta como cabeçalho ao leitor de tela (15 ms)
+    ✓ o contador sai de dentro da frase e vira número próprio (16 ms)
+    ✓ o título da seção não repete o selo do cartão que está dentro dela (20 ms)
+  a fila vazia, que é a resposta a 'o meu trabalho chegou?'
+    ✓ não tem botão apagado embaixo dela (3 ms)
+    ✓ afirma que chegou, em vez de informar que não há nada (2 ms)
+  o toque que muda alguma coisa deixa marca
+    ✓ 'Tentar de novo' confirma na tela que o envio foi pedido (18 ms)
+    ✓ o verbo que estoura no aparelho deixa marca, em vez de sumir sem nada (12 ms)
+    ✕ a confirmação não promete chegada, porque o reenvio não garante nenhuma (17 ms)
+    ✓ 'Tentar de novo' é realce, e os vizinhos dele não (7 ms)
+    ✓ 'Esta coleta é minha' confirma que o nome no laudo vai ser o seu (16 ms)
+    ✓ a confirmação some sozinha, para não virar ruído em cima do estado novo (20 ms)
+  o botão apagado diz por que está apagado
+    ✓ sem sinal, a frase fala do botão e não repete o aviso do topo (11 ms)
+    ✓ com sinal e nada que saia por ali, diz que nada sai por ali (6 ms)
+    ✓ quem ouve a tela ouve a razão junto com o nome do botão (5 ms)
+    ✓ com sinal e coleta pronta, o botão não se explica: ele funciona (3 ms)
+  o item que sai da fila não some num corte seco
+    ✓ continua na tela enquanto desaparece, e sai depois (30 ms)
+    ✓ o contador não espera a animação: ele cai no instante em que o disco larga o item (10 ms)
+    ✓ a coleta que JÁ CHEGOU sai do número, e continua no cartão (6 ms)
+    ✓ a fila só com o que já chegou não anuncia número nenhum (4 ms)
+    ✓ o vazio só chega depois que o último cartão terminou de sair (9 ms)
+  a espera de abertura tem saída
+    ✓ aos seis segundos a espera oferece a saída, e a saída leva a algum lugar (3 ms)
+    ✓ o estado de desistência diz que nada se perdeu, porque nada se perdeu (2 ms)
+    ✓ 'Tentar abrir de novo' abre a fila de verdade (4 ms)
+  a hierarquia nova não apagou o que já estava certo
+    ✓ o selo continua trazendo símbolo além da cor, e o desenho é o terceiro canal (3 ms)
+  a fila zerando, que é o momento que este aplicativo existe para produzir
+    ✓ vibra quando o último item sai (4 ms)
+    ✓ abrir a aba com a fila já vazia não comemora nada (1 ms)
+    ✓ descartar o último item esvazia a fila e não comemora (15 ms)
+    ✓ um item a menos, com outros na fila, não comemora (4 ms)
+  a régua do peso visual, na fila
+    ✓ uma fila inteira de coletas enviadas não acende um bloco sequer (5 ms)
+    ✓ a coleta bloqueada continua sendo a única que pinta, mesmo depois do toque (10 ms)
+  o clímax da fila zerando só acontece quando a fila zera de verdade
+    ✓ abrir a aba com a fila já vazia não comemora nada, nem na tela (1 ms)
+    ✓ a fila zerando por entrega roda o clímax (5 ms)
+    ✓ o gesto inteiro cabe no orçamento do token, e roda na camada nativa (5 ms)
+    ✓ descartar o último item esvazia a fila e NÃO comemora, nem na tela (9 ms)
+    ✓ quem pede para reduzir movimento recebe a mesma tela, sem o gesto (3 ms)
+  os cartões que chegam à fila entram em cascata
+    ✓ abrir a aba com a fila cheia não anima nada: a primeira pintura chega pronta (3 ms)
+    ✓ a coleta que chega depois entra animada, com duração de token e na camada nativa (4 ms)
+    ✓ várias chegando juntas entram uma depois da outra, no passo do token (5 ms)
+    ✓ quem já estava na tela não entra de novo quando outra chega (9 ms)
+    ✓ com redução de movimento, a coleta que chega aparece inteira, sem cascata (5 ms)
+  a coleta que não sobe porque um arquivo se perdeu
+    ✓ o cartão não repete o parágrafo de quarenta palavras que o motor escreve (4 ms)
+    ✓ o selo diz que falta uma DECISÃO, e não que falta atenção (3 ms)
+    ✓ diz quantas fotografias sumiram, e que não há como recuperá-las (4 ms)
+    ✓ quando é a assinatura que sumiu, ela é dita com todas as letras (3 ms)
+    ✓ a saída é oferecida sem imperativo: quem decide é o agente (4 ms)
+    ✓ NUNCA com um toque só: o botão pergunta antes de autorizar (6 ms)
+    ✓ a pergunta diz o protocolo, o número e o que o laudo vai declarar (6 ms)
+    ✓ com a assinatura entre as perdas, a pergunta diz o que acontece com a linha do laudo (7 ms)
+    ✓ sem a assinatura entre as perdas, a pergunta não inventa esse aviso (6 ms)
+    ✓ confirmada, chama o motor e confirma com o número QUE O MOTOR devolveu (12 ms)
+    ✓ recusada pelo motor, a tela NÃO diz 'Pronto' (18 ms)
+    ✓ coleta de outro agente não oferece a saída, porque a perda é assinada (3 ms)
+    ✓ bloqueio que não é perda de arquivo continua sem a saída (3 ms)
+    ✓ a régua do peso visual continua valendo neste cartão (12 ms)
+  a fila não promete envio em segundo plano nem com o aplicativo fechado
+    ✓ a fila zerada diz que o que vier depois sobe com o aplicativo aberto e rede (1 ms)
+    ✓ com coleta na fila e com sinal, a legenda do botão diz a condição (2 ms)
+    ✓ sem sinal, o aviso e o cartão não prometem envio fora do aplicativo (3 ms)
+    ✕ depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz (3 ms)
+    ✓ a fila que não abriu também diz a condição (2 ms)
+
+  ● o toque que muda alguma coisa deixa marca › a confirmação não promete chegada, porque o reenvio não garante nenhuma
+
+    Unable to find an element with text: /continua tentando enquanto o aplicativo estiver aberto\.$/
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"1, coleta na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoleta na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 1 item"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m1[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33maccessibilityRole[39m=[32m"alert"[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Perigo"[39m
+                [33maccessible[39m=[32m{true}[39m
+              [36m>[39m
+                [36m<Text>[39m
+                  [0m×[0m
+                [36m</Text>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<Text>[39m
+                  [0mUma coleta precisa de atenção[0m
+                [36m</Text>[39m
+                [36m<Text>[39m
+                  [0mRepetir o envio não resolve sozinho: cada cartão abaixo diz o que aconteceu e o que fazer.[0m
+                [36m</Text>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGCircle />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000777[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000777: Precisa de atenção"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m![0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mPrecisa de atenção[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mO servidor recusou por um motivo que repetir não resolve.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m09/09/2026, 06:00:00[0m
+              [36m</Text>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                [36m>[39m
+                  [36m<View>[39m
+                    [36m<View[39m
+                      [33maccessibilityLabel[39m=[32m"Concluído"[39m
+                      [33maccessible[39m=[32m{true}[39m
+                    [36m>[39m
+                      [36m<Text>[39m
+                        [0m✓[0m
+                      [36m</Text>[39m
+                    [36m</View>[39m
+                    [36m<View>[39m
+                      [36m<Text>[39m
+                        [0mPronto[0m
+                      [36m</Text>[39m
+                      [36m<Text>[39m
+                        [0mO envio foi pedido de novo. Se houver sinal, ela sai agora; se não, ela volta para a espera e continua tentando.[0m
+                      [36m</Text>[39m
+                    [36m</View>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View />[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Corrigir a vistoria do protocolo 2026/000777: ela volta para a tela de coleta, com tudo preenchido"[39m
+                [33maccessibilityRole[39m=[32m"button"[39m
+                [33maccessibilityState[39m=[32m{
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }[39m
+                [33maccessible[39m=[32m{true}[39m
+                [33mtestID[39m=[32m"corrigir-coleta-travada"[39m
+              [36m>[39m
+                [36m<View[39m
+                  [33mtestID[39m=[32m"corrigir-coleta-travada-rotulo"[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0mCorrigir a vistoria[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Tentar enviar de novo a coleta do protocolo 2026/000777"[39m
+                  [33maccessibilityRole[39m=[32m"button"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mTentar de novo[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Descartar a coleta do protocolo 2026/000777"[39m
+                  [33maccessibilityRole[39m=[32m"button"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mDescartar[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora. Nada aqui sai por este botão: o que está na lista espera outra conta ou já não tem para onde ir."[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": true,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessibilityElementsHidden[39m=[32m{true}[39m
+            [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+          [36m>[39m
+            [36m<RNSVGSvgView>[39m
+              [36m<RNSVGGroup>[39m
+                [36m<RNSVGPath />[39m
+                [36m<RNSVGPath />[39m
+                [36m<RNSVGCircle />[39m
+              [36m</RNSVGGroup>[39m
+            [36m</RNSVGSvgView>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mNada aqui sai por este botão: o que está na lista espera outra conta ou já não tem para onde ir.[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+      415 |       condição, e continua sem prometer chegada.
+      416 |     */
+    > 417 |     expect(screen.getByText(/continua tentando enquanto o aplicativo estiver aberto\.$/)).toBeTruthy();
+          |                   ^
+      418 |   });
+      419 |
+      420 |   /*
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:417:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz
+
+    Unable to find an element with text: /vai continuar tentando enquanto o aplicativo estiver aberto/
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"1, coleta na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoleta na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 1 item"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m1[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000123[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000123: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mJá tentou 8x e vai continuar tentando sozinha. A conexão daqui não está completando o envio.[0m
+              [36m</Text>[39m
+              [36m<View[39m
+                [33mtestID[39m=[32m"o-que-fazer-teimosa"[39m
+              [36m>[39m
+                [36m<View>[39m
+                  [36m<View[39m
+                    [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                    [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                  [36m>[39m
+                    [36m<RNSVGSvgView>[39m
+                      [36m<RNSVGGroup>[39m
+                        [36m<RNSVGCircle />[39m
+                        [36m<RNSVGCircle />[39m
+                        [36m<RNSVGPath />[39m
+                      [36m</RNSVGGroup>[39m
+                    [36m</RNSVGSvgView>[39m
+                  [36m</View>[39m
+                  [36m<Text>[39m
+                    [0mO que fazer[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mProcure um lugar com sinal melhor ou uma rede Wi-Fi que funcione.[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m09/09/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mCom o aplicativo aberto e com sinal, o envio acontece sem você tocar em nada. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+      1480 |     await abrirATela();
+      1481 |
+    > 1482 |     expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
+           |                   ^
+      1483 |     expect(screen.queryByText(/sozinha/)).toBeNull();
+      1484 |     nenhumTextoPromete();
+      1485 |   });
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:1482:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 2 failed, 2 total
+Tests:       3 failed, 79 passed, 82 total
+Snapshots:   0 total
+Time:        1.642 s, estimated 2 s
+Ran all test suites matching /src\/ui\/dialogo-na-fila.test.tsx|src\/ui\/fila-como-produto.test.tsx/i.

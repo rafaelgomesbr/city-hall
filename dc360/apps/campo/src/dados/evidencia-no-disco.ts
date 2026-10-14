@@ -41,7 +41,7 @@ export async function guardarFotoNoAparelho(
     caminho recusado) vem em inglês e sem saída, e por isso não atravessa: é
     trocado aqui pela frase que o agente consegue seguir na porta da casa.
   */
-  let destino: File;
+  let destino: File | undefined;
   try {
     destino = new File(Paths.document, `foto-${Date.now()}-${ordem}.jpg`);
     /*
@@ -60,6 +60,13 @@ export async function guardarFotoNoAparelho(
     */
     await new File(uriDaCamera).copy(destino);
   } catch {
+    /*
+      Cópia que falha pela metade (disco cheio no meio da gravação) pode deixar
+      um pedaço do JPEG em `Paths.document`. Nada referencia esse arquivo, e
+      ele é foto da vistoria num aparelho que passa de mão em mão: apagar aqui,
+      em silêncio, pelo mesmo caminho que nunca estoura.
+    */
+    if (destino) apagarFotoDoAparelho(destino.uri);
     throw new Error(
       "A foto não ficou guardada neste aparelho (o armazenamento pode estar "
       + "cheio). Libere espaço e tire a foto de novo.",
@@ -85,6 +92,14 @@ export async function guardarFotoNoAparelho(
   */
   const tamanhoBytes = medirArquivoNoAparelho(destino.uri);
   if (tamanhoBytes === 0) {
+    /*
+      A cópia resolveu e o arquivo existe, só que vazio: ele fica órfão em
+      `Paths.document`, onde nada o referencia e onde só o logout o varreria
+      (o agente de campo não sai da conta). Pode ser foto de família num
+      aparelho compartilhado. Some antes de a recusa subir (V2-F00-E16,
+      correção 2).
+    */
+    apagarFotoDoAparelho(destino.uri);
     throw new Error(
       "A foto não ficou guardada neste aparelho (o arquivo saiu vazio). "
       + "Tire a foto de novo.",

@@ -444,7 +444,8 @@ function descreverEstado(
         porque: item.tentativas === 0
           ? "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal."
           : item.tentativas < TENTATIVAS_ATE_AVISAR
-            ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`
+            ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes, enquanto `
+              + "o aplicativo estiver aberto."
             /*
               Muitas tentativas não viram acusação nem convite ao descarte: a
               coleta continua tentando, e o que falta é sinal. A frase diz
@@ -1593,7 +1594,8 @@ export default function TelaDaFila() {
                           criar a mesma dúvida que esta tela dissolve.
                         */
                         texto: "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
-                          + "se não, ela volta para a espera e continua tentando.",
+                          + "se não, ela volta para a espera e continua tentando "
+                          + "enquanto o aplicativo estiver aberto.",
                       };
                     })}
                   />

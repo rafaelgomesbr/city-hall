@@ -409,7 +409,12 @@ describe("o toque que muda alguma coisa deixa marca", () => {
 
     await tocar("Tentar de novo");
 
-    expect(screen.getByText(/continua tentando\.$/)).toBeTruthy();
+    /*
+      V2-F00-E16, correção 2: "continua tentando" sem condição sugeria
+      tentativa com o aplicativo fechado, que não existe. A frase diz a
+      condição, e continua sem prometer chegada.
+    */
+    expect(screen.getByText(/continua tentando enquanto o aplicativo estiver aberto\.$/)).toBeTruthy();
   });
 
   /*

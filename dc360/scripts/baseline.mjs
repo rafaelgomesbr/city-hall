@@ -25,7 +25,7 @@
  *      achado NOMEADO (id, onde está registrado, motivo, código de saída e o
  *      trecho exato da saída). Só vale se a saída bater com a descrição inteira;
  *      saída diferente da descrita volta a ser "divergente". Hoje não há
- *      nenhuma: a última foi o `expo-doctor` (V-DEP-4), fechada em 2026-10-13.
+ *      nenhuma: a última foi o `expo-doctor` (V-DEP-4), fechada em 2026-10-13, que voltou na manhã de 2026-10-14 e foi fechada de novo no mesmo dia (E19, correção 4).
  *    - "divergente": sem explicação, ou com a explicação não casando. É defeito
  *      do produto, deriva externa nova ou contabilidade atrasada; nunca é
  *      maquiado: ou se conserta, ou se nomeia e se registra.
@@ -142,8 +142,20 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
     segundo plano). Faltava aqui desde 81a5223; o roteiro de 2026-10-13 mostrava
     226 esperado contra 230 obtidos.
+
+    V2-F00-E16, correção 2: o mesmo arquivo ganhou 5 casos (as quatro frases
+    que a validação plantou, as variações fora da lista, a condição "aberto",
+    as frases inofensivas e o plantio na fila real), então o arquivo tem 9.
+    A tabela de arquivos abaixo confere o arquivo inteiro contra este número.
+
+    V2-F00-E16, correção 2, segunda rodada de conserto: a regra deixou de ser
+    por lista de palavras e passou a ser por classe (radicais de largar o
+    aplicativo e de prometer envio), e o arquivo ganhou 6 casos (as promessas
+    que o revisor plantou e suas variações, a promessa em duas frases, a forma
+    antiga de "vai tentar de novo em instantes", o "aberto" negado, os avisos
+    verdadeiros e o plantio da forma antiga na fila real). O arquivo tem 15.
   */
-  "V2-F00-E16-correcao-1": 4,
+  "V2-F00-E16-correcao-1": 15,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -329,6 +341,22 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     ponta a ponta e a troca de conta com a foto em voo). Nenhuma falha nem pulo.
   */
   "V2-F00-E06-correcao-1": { total: 13, falhas: 0, puladas: 0 },
+  /*
+    Correções 2 (2026-10-14), contadas contra o `4b96ea7` pelo `vitest list`:
+    V2-F00-E04 acrescentou 2 casos a `acesso-suspenso.test.ts` (18 para 20);
+    V2-F00-E07 trouxe `renovacao-contra-encerramento.test.ts`, novo: 5 casos de
+    PGlite que rodam sempre e 9 de Postgres real (`describe.skipIf`), que só
+    rodam com `DC360_POSTGRES_DE_PROVA` (o job `implantavel` do CI define; o
+    roteiro da linha de base não). No roteiro eles são 9 PULADOS por ambiente:
+    o `vitest run` imprime 1319 casos (1310 mais esses 9) e 9 pulados, e a lista
+    do `vitest list` enumera 1310. V2-F00-E12 acrescentou 4 casos a
+    `saida-de-municipio.test.ts` (28 para 32: o controle positivo da assinatura,
+    o armazenamento que lança, o armazenamento fora do ar e a diferença
+    conhecida). Soma 11 na lista (de 1299 para 1310) e 20 no `vitest run`.
+  */
+  "V2-F00-E04-correcao-2": { total: 2, falhas: 0, puladas: 0 },
+  "V2-F00-E07-correcao-2": { total: 14, falhas: 0, puladas: 9 },
+  "V2-F00-E12-correcao-2": { total: 4, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -388,6 +416,10 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E21": { total: 7, falhas: -1 },
   // V2-F00-E09, correção 1: 3 casos em `acessibilidade.test.ts` (diálogos e barra inferior em tela estreita) e 3 em `devolucao.test.ts`. Faltava aqui desde 39051f7 (V-ROT-01): 643 esperado contra 649.
   "V2-F00-E09-correcao-1": { total: 6, falhas: 0 },
+  // V2-F00-E09, correção 2: `minha-conta-estreita.test.ts` é novo, com 6 casos (a regra `.botao--quebra`, a largura até 600 px, o uso no botão, o que não pode ter número solto, o `ref` e o foco).
+  "V2-F00-E09-correcao-2": { total: 6, falhas: 0 },
+  // V2-F00-E10, correção 2: `recuperar-senha.test.ts` foi de 37 para 47 casos (a tela de sucesso não promete ida automática nem tem relógio, o foco na confirmação, o rodapé, o hover e o pedido de novo). Contado contra o `4b96ea7`.
+  "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -404,6 +436,15 @@ export function esperadoDoTesteWeb() {
 export const BASE_DO_TESTE_DB = { total: 318, falhas: 0, puladas: 3 };
 export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
   "V2-F00-E07": { total: 12, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E07, correção 2: `renovacao-e-encerramento-na-mesma-trava.test.ts`
+    é novo, com 12 casos (a 049: a trava, a ordem em que cada função a toma, a
+    recusa de herdar família encerrada, as permissões), e
+    `login-e-suspensao-na-mesma-linha.test.ts` é novo, com 6 (a 050: aplica sem
+    tocar sessões, idempotente, teto de funções `SECURITY DEFINER`, permissões,
+    `FOR SHARE` só no login, DC367 e DC369 mantidos). Soma 18, de 327 para 345.
+  */
+  "V2-F00-E07-correcao-2": { total: 18, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
@@ -474,6 +515,18 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E15-correcao-1": { total: 4, falhas: 0 },
   // V2-F00-E16, correção 1: 19 casos (a foto sem frase própria, o teclado e a câmera, a falha de atualização, a pausa da fila e a fila como produto; dois `it.each` entram com uma linha por valor). Faltava aqui desde 81a5223: 1880 esperado contra 1903.
   "V2-F00-E16-correcao-1": { total: 19, falhas: 0 },
+  /*
+    V2-F00-E06, correção 2 (17 casos, contados contra o `4b96ea7`):
+    `obter-fila-uma-so.test.ts` (4), `faixa-ligada-a-fila-real.test.tsx` (3),
+    `a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx` (5), 4 em
+    `ordem-do-dia.test.ts` e 1 em `pausa-da-fila.test.ts`.
+    V2-F00-E16, correção 2 (7 casos): 4 em `evidencia-no-disco.test.ts`, 1 em
+    `vistoria-a-foto-com-o-disco-fiel.test.tsx` (novo) e 2 em
+    `vistoria-camera-legivel-sobre-o-visor.test.tsx` (novo, um por tema).
+    Soma 24, de 1903 para 1927.
+  */
+  "V2-F00-E06-correcao-2": { total: 17, falhas: 0 },
+  "V2-F00-E16-correcao-2": { total: 7, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
@@ -526,8 +579,9 @@ export const PASSOS = [
   /*
     Os dois `npm audit` crus CONTINUAM vermelhos por desenho, e é por isso que o
     esperado deles é "falha": medem o que a política do CP-03 aceita (raiz: 3
-    avisos de ferramenta de desenvolvimento, entre eles dois críticos; campo: 61,
-    da árvore do Expo SDK 57). A decisão está no CP-03, com prazo das exceções
+    avisos de ferramenta de desenvolvimento, entre eles dois críticos; campo: dezenas, da árvore do
+    Expo SDK 57; a contagem muda com a base de avisos do dia: 61 em 2026-10-13, 59
+    em 2026-10-14). A decisão está no CP-03, com prazo das exceções
     em 2027-01-05. Se algum dia um deles fechar em 0, o passo diverge de
     propósito: é a notícia de que a exceção pode sair.
 
@@ -544,8 +598,10 @@ export const PASSOS = [
     por deriva externa (o Expo publicou patches de seis pacotes depois do 21 de 21
     de 2026-10-08, V-DEP-4); o Rafael decidiu atualizar (D1) e a E19, correção 2,
     subiu os seis patches com `npx expo install --fix`, rodou a suíte do aplicativo
-    e voltou a 21 de 21. Se a deriva voltar (e ela volta a cada patch novo do
-    Expo), o passo diverge de propósito: descreva-a em `divergenciaExplicada`, com
+    e voltou a 21 de 21. Ela voltou na manhã de 2026-10-14 (cinco patches novos)
+    e foi fechada de novo no mesmo dia pela E19, correção 4 (21 de 21), por analogia
+    com a D1, premissa que o Rafael ainda não confirmou. Se a deriva voltar (e ela
+    volta a cada patch novo do Expo), o passo diverge de propósito: descreva-a em `divergenciaExplicada`, com
     o registro onde está, só se decidir não atualizar na hora.
   */
   {
@@ -594,13 +650,19 @@ export const PASSOS = [
     executadas; eram 271 ate a E18) e a largura estreita
     (`layout-estreito.e2e.mjs`, 50, onde a correcao conferiu dialogos e barra
     inferior). Os dois trechos tem de aparecer.
+
+    Correcoes 2 (2026-10-14): E09 e E10 acrescentaram conferencias as duas
+    suites (a confirmacao com o foco nela, 5 s sem redirecionar, hover nos dois
+    temas, geometria a 320 px): 288 verificacoes executadas no fluxo contra a
+    API (as `ok(` no inicio de linha, que o `conferir` conta, sao 258) e 64 na
+    largura estreita. Medido no Mac, Node 24, Chromium.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 279   Falhou: 0", "Passou: 50   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 64   Falhou: 0"] },
   },
 ];
 
@@ -639,8 +701,15 @@ export function extrairContagem(texto, ferramenta) {
     return { total: Number(m[2]), falhas: parte("failed"), puladas: parte("skipped") };
   }
   if (ferramenta === "node-test") {
+    /*
+      O resumo do `node --test` tem duas grafias: "# tests 260" (TAP, o que o
+      Node 22 imprime quando a saída não é um terminal) e "ℹ tests 260" (o
+      relator `spec`, que o Node 24 usa também sem terminal). Medido em 2026-10-14
+      no Mac com Node 24: só a segunda aparecia, e o passo `test-scripts` dava
+      "a saída não traz a contagem" com código 0 e 260 de 260 verdes.
+    */
     const num = (nome) => {
-      const m = new RegExp(`^# ${nome} (\\d+)\\s*$`, "m").exec(limpo);
+      const m = new RegExp(`^(?:#|\u2139) ${nome} (\\d+)\\s*$`, "m").exec(limpo);
       return m ? Number(m[1]) : undefined;
     };
     const total = num("tests");
