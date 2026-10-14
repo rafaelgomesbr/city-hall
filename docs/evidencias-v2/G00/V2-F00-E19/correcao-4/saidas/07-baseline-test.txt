@@ -1,0 +1,35 @@
+✔ redige um JWT colado num texto (0.705292ms)
+✔ redige o valor de Authorization Bearer e Basic (0.078458ms)
+✔ redige usuário e senha de uma URL de banco (0.060917ms)
+✔ troca o nome do usuário nas pastas pessoais (0.069625ms)
+✔ troca o travessão, que a regra de conteúdo proíbe em docs (0.197ms)
+✔ não mexe em texto comum (0.043042ms)
+✔ lê as contagens do vitest (0.500084ms)
+✔ lê as contagens do node --test e do jest (0.234125ms)
+✔ sem contagem na saída o resultado é vazio, não zero (0.072583ms)
+✔ avaliar confere quando o resultado é o esperado, vermelho inclusive (0.144625ms)
+✔ avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda (0.096458ms)
+✔ avaliar não aceita a ausência de contagem como confere (0.0555ms)
+✔ a lista de passos tem ids únicos e o total de scripts soma a própria etapa (0.666875ms)
+✔ o E2E do painel local declara o servidor que o teste exige (0.100959ms)
+✔ as opções recusam o que não conhecem e os filtros recusam passo inexistente (0.279959ms)
+✔ --so-listar imprime os comandos, não executa nada e não cria a pasta de saída (28.572583ms)
+✔ o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada (0.08825ms)
+✔ os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13) (0.100792ms)
+✔ a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente (0.093792ms)
+✔ passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos (0.040166ms)
+✔ o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3) (0.044292ms)
+✔ o resumo conta as divergências explicadas e diz por quê (0.136834ms)
+✔ o conferidor de contagens reprova o número velho plantado e passa com o certo (0.102459ms)
+✔ o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera (0.048667ms)
+✔ suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também (0.0685ms)
+✔ todo passo do roteiro com total esperado aparece na medição do conferir:numeros (0.175917ms)
+✔ o registro da deriva V-DEP-4 existe e diz que foi fechada (0.284542ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.704833

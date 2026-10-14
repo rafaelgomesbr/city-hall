@@ -1,0 +1,177 @@
+[
+  {
+    "id": "typecheck",
+    "cmd": "npm run typecheck",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 8055,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-typecheck.txt"
+  },
+  {
+    "id": "teste-shared",
+    "cmd": "npm run test --workspace @dc360/shared",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 1191,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-shared.txt"
+  },
+  {
+    "id": "teste-db",
+    "cmd": "npm run test:isolamento",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 23235,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "03-teste-db.txt"
+  },
+  {
+    "id": "teste-campo-pacote",
+    "cmd": "npm run test --workspace @dc360/campo",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 876,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "04-teste-campo-pacote.txt"
+  },
+  {
+    "id": "teste-api",
+    "cmd": "npm run test:api",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 83767,
+    "status": "divergente",
+    "detalhes": [
+      "código de saída 1, esperado 0",
+      "falhas: obtido 1, esperado 0"
+    ],
+    "arquivo": "05-teste-api.txt"
+  },
+  {
+    "id": "teste-console",
+    "cmd": "npm run test:console",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 42039,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "06-teste-console.txt"
+  },
+  {
+    "id": "teste-web",
+    "cmd": "npm run test --workspace @dc360/web",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 5246,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "07-teste-web.txt"
+  },
+  {
+    "id": "teste-campo-app",
+    "cmd": "npx jest --silent",
+    "cwd": "apps/campo",
+    "codigo": 0,
+    "duracaoMs": 19522,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "08-teste-campo-app.txt"
+  },
+  {
+    "id": "test-campo",
+    "cmd": "npm run test:campo",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 19231,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "09-test-campo.txt"
+  },
+  {
+    "id": "test-scripts",
+    "cmd": "npm run test:scripts",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2862,
+    "status": "divergente",
+    "detalhes": [
+      "puladas: obtido 0, esperado 4"
+    ],
+    "arquivo": "10-test-scripts.txt"
+  },
+  {
+    "id": "conferir-numeros",
+    "cmd": "npm run conferir:numeros",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 14218,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "11-conferir-numeros.txt"
+  },
+  {
+    "id": "auditar",
+    "cmd": "npm run auditar",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2505,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "12-auditar.txt"
+  },
+  {
+    "id": "audit-raiz",
+    "cmd": "npm audit",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 601,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "13-audit-raiz.txt"
+  },
+  {
+    "id": "audit-campo",
+    "cmd": "npm audit",
+    "cwd": "apps/campo",
+    "codigo": 1,
+    "duracaoMs": 1215,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "14-audit-campo.txt"
+  },
+  {
+    "id": "expo-doctor",
+    "cmd": "npx expo-doctor",
+    "cwd": "apps/campo",
+    "codigo": 0,
+    "duracaoMs": 2339,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "15-expo-doctor.txt"
+  },
+  {
+    "id": "e2e",
+    "cmd": "npm run test:e2e",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 26046,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "16-e2e.txt"
+  },
+  {
+    "id": "e2e-api",
+    "cmd": "npm run test:e2e:api",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 117530,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "17-e2e-api.txt"
+  }
+]

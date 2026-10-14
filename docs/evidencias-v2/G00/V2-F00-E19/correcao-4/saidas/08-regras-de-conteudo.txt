@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (8 tests) 396ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  15:16:38
+   Duration  577ms (transform 25ms, setup 0ms, collect 25ms, tests 396ms, environment 0ms, prepare 39ms)
+

@@ -1,0 +1,7 @@
+$ npx expo-doctor   (em apps/campo)
+codigo=0 duracao=2s situacao=confere
+
+env: load .env
+env: export DC360_API_URL DC360_MAPS_CHAVE DC360_MAPS_CHAVE_ANDROID DC360_MAPS_CHAVE_IOS
+Running 21 checks on your project...
+21/21 checks passed. No issues detected!
