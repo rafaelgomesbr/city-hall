@@ -1,0 +1,18 @@
+PASS src/dados/obter-fila-uma-so.test.ts
+  obterFila sob chamadas simultâneas
+    ✓ quatro chamadas ao mesmo tempo devolvem a MESMA instância (101 ms)
+    ✓ o banco local é aberto uma vez só (22 ms)
+    ✓ a chamada seguinte, depois de a fila existir, também devolve a mesma (21 ms)
+    ✓ se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo (24 ms)
+
+PASS src/ui/faixa-ligada-a-fila-real.test.tsx
+  a faixa global com a fila real parada pela sessão
+    ✓ 401 sessao_encerrada: a faixa diz 'Sessão encerrada', e não 'Tudo sincronizado' (74 ms)
+    ✓ 403 troca_de_senha_obrigatoria: a faixa diz 'Defina a sua senha' (42 ms)
+    ✓ a fila da faixa e a do laço de fundo são a mesma (29 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        0.837 s, estimated 3 s
+Ran all test suites matching /src\/dados\/obter-fila-uma-so.test.ts|src\/ui\/faixa-ligada-a-fila-real.test.tsx/i.

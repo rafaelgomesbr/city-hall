@@ -1,0 +1,960 @@
+Mutação em memória e revertida (SHA-1 do index.tsx conferido igual antes e depois): a tela passa pausadaPor nulo para a ordem do dia. Saída do jest.
+
+FAIL src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx
+  a tarefa já vistoriada, com a fila andando
+    ✓ diz que falta sinal, porque é isso que falta (88 ms)
+  a tarefa já vistoriada, com a fila parada
+    ✕ sessão encerrada: diz que falta entrar de novo, e não sinal (11 ms)
+    ✕ senha provisória: diz que falta definir a senha, e não sinal (11 ms)
+    ✕ conta desativada: diz que falta a coordenação reativar a conta (9 ms)
+    ✕ o motivo também vai no rótulo de quem ouve a tela (9 ms)
+
+  ● a tarefa já vistoriada, com a fila parada › sessão encerrada: diz que falta entrar de novo, e não sinal
+
+    Unable to find an element with text: /O que falta é entrar de novo/
+
+    <View>
+      <View>
+        <View
+          accessibilityLabel="1, vistoria para fazer"
+          accessible={true}
+          testID="quantas-vistorias"
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            vistoria para fazer
+          </Text>
+        </View>
+        <View
+          testID="faixa-de-estado"
+        >
+          <RNSVGSvgView>
+            <RNSVGGroup>
+              <RNSVGPath />
+              <RNSVGPath />
+              <RNSVGCircle />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Esta lista tem mais de meia hora
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Ver o aviso desta lista por extenso"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="detalhe-da-lista"
+          >
+            <RNSVGSvgView>
+              <RNSVGGroup>
+                <RNSVGCircle />
+                <RNSVGCircle />
+                <RNSVGPath />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+          </View>
+        </View>
+      </View>
+      <RCTScrollView
+        testID="lista-de-tarefas"
+      >
+        <RCTRefreshControl />
+        <View>
+          <View>
+            <View>
+              <View
+                testID="tarefa-11111111-1111-4111-8111-111111111111"
+              >
+                <View
+                  accessibilityLabel="Protocolo 2026/000123, severidade alta, Servidão do Morro, 45. Sem prazo definido. Coletada, aguardando envio. Comece por aqui: Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar. A ordem não considerou distância: este aparelho não sabe onde você está. Expandido, mostrando as ações"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                      "expanded": true,
+                      "selected": true,
+                    }
+                  }
+                  accessible={true}
+                  testID="escolher-11111111-1111-4111-8111-111111111111"
+                >
+                  <View
+                    testID="comece-por-aqui"
+                  >
+                    <Text>
+                      Comece por aqui
+                    </Text>
+                    <Text>
+                      Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.
+                    </Text>
+                    <Text>
+                      A ordem não considerou distância: este aparelho não sabe onde você está.
+                    </Text>
+                  </View>
+                  <View>
+                    <Text>
+                      2026/000123
+                    </Text>
+                    <View />
+                    <View
+                      accessibilityLabel="Severidade alta"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                          <RNSVGPath />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Alta
+                      </Text>
+                    </View>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                    </View>
+                  </View>
+                  <Text>
+                    Servidão do Morro, 45
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Coletada, aguardando envio"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <Text>
+                        ✓
+                      </Text>
+                      <Text>
+                        Coletada, aguardando envio
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <View>
+                    <Text>
+                      Deslizamento
+                    </Text>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGCircle />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Sem prazo definido
+                      </Text>
+                    </View>
+                    <Text>
+                      Sem GPS: sem distância e sem rumo até este imóvel. O endereço e o ponto de referência estão na vistoria.
+                    </Text>
+                    <View
+                      accessibilityLabel="Abrir a vistoria do protocolo 2026/000123, Servidão do Morro, 45"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "busy": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111"
+                    >
+                      <RNSVGSvgView
+                        pointerEvents="none"
+                      >
+                        <RNSVGGroup>
+                          <RNSVGDefs>
+                            <RNSVGLinearGradient />
+                          </RNSVGDefs>
+                          <RNSVGRect />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <View
+                        testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111-rotulo"
+                      >
+                        <Text>
+                          Abrir a vistoria
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <Text>
+                  Antes de subir
+                </Text>
+                <Text>
+                  Puxe a tela para baixo com sinal para baixar a lista mais recente. O que estiver aqui funciona sem conexão nenhuma; o que não estiver, não existe no aparelho.
+                </Text>
+                <View
+                  accessibilityLabel="Baixar tarefas agora"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <View>
+                    <Text>
+                      Baixar tarefas agora
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      139 |     await abrirALista();
+      140 |
+    > 141 |     expect(screen.getByText(/O que falta é entrar de novo/)).toBeTruthy();
+          |                   ^
+      142 |     expect(screen.queryByText(/falta é sinal/)).toBeNull();
+      143 |   });
+      144 |
+
+      at Object.getByText (src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx:141:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a tarefa já vistoriada, com a fila parada › senha provisória: diz que falta definir a senha, e não sinal
+
+    Unable to find an element with text: /O que falta é definir a sua senha no painel e entrar de novo/
+
+    <View>
+      <View>
+        <View
+          accessibilityLabel="1, vistoria para fazer"
+          accessible={true}
+          testID="quantas-vistorias"
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            vistoria para fazer
+          </Text>
+        </View>
+        <View
+          testID="faixa-de-estado"
+        >
+          <RNSVGSvgView>
+            <RNSVGGroup>
+              <RNSVGPath />
+              <RNSVGPath />
+              <RNSVGCircle />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Esta lista tem mais de meia hora
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Ver o aviso desta lista por extenso"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="detalhe-da-lista"
+          >
+            <RNSVGSvgView>
+              <RNSVGGroup>
+                <RNSVGCircle />
+                <RNSVGCircle />
+                <RNSVGPath />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+          </View>
+        </View>
+      </View>
+      <RCTScrollView
+        testID="lista-de-tarefas"
+      >
+        <RCTRefreshControl />
+        <View>
+          <View>
+            <View>
+              <View
+                testID="tarefa-11111111-1111-4111-8111-111111111111"
+              >
+                <View
+                  accessibilityLabel="Protocolo 2026/000123, severidade alta, Servidão do Morro, 45. Sem prazo definido. Coletada, aguardando envio. Comece por aqui: Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar. A ordem não considerou distância: este aparelho não sabe onde você está. Expandido, mostrando as ações"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                      "expanded": true,
+                      "selected": true,
+                    }
+                  }
+                  accessible={true}
+                  testID="escolher-11111111-1111-4111-8111-111111111111"
+                >
+                  <View
+                    testID="comece-por-aqui"
+                  >
+                    <Text>
+                      Comece por aqui
+                    </Text>
+                    <Text>
+                      Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.
+                    </Text>
+                    <Text>
+                      A ordem não considerou distância: este aparelho não sabe onde você está.
+                    </Text>
+                  </View>
+                  <View>
+                    <Text>
+                      2026/000123
+                    </Text>
+                    <View />
+                    <View
+                      accessibilityLabel="Severidade alta"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                          <RNSVGPath />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Alta
+                      </Text>
+                    </View>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                    </View>
+                  </View>
+                  <Text>
+                    Servidão do Morro, 45
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Coletada, aguardando envio"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <Text>
+                        ✓
+                      </Text>
+                      <Text>
+                        Coletada, aguardando envio
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <View>
+                    <Text>
+                      Deslizamento
+                    </Text>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGCircle />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Sem prazo definido
+                      </Text>
+                    </View>
+                    <Text>
+                      Sem GPS: sem distância e sem rumo até este imóvel. O endereço e o ponto de referência estão na vistoria.
+                    </Text>
+                    <View
+                      accessibilityLabel="Abrir a vistoria do protocolo 2026/000123, Servidão do Morro, 45"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "busy": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111"
+                    >
+                      <RNSVGSvgView
+                        pointerEvents="none"
+                      >
+                        <RNSVGGroup>
+                          <RNSVGDefs>
+                            <RNSVGLinearGradient />
+                          </RNSVGDefs>
+                          <RNSVGRect />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <View
+                        testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111-rotulo"
+                      >
+                        <Text>
+                          Abrir a vistoria
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <Text>
+                  Antes de subir
+                </Text>
+                <Text>
+                  Puxe a tela para baixo com sinal para baixar a lista mais recente. O que estiver aqui funciona sem conexão nenhuma; o que não estiver, não existe no aparelho.
+                </Text>
+                <View
+                  accessibilityLabel="Baixar tarefas agora"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <View>
+                    <Text>
+                      Baixar tarefas agora
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      148 |     await abrirALista();
+      149 |
+    > 150 |     expect(screen.getByText(/O que falta é definir a sua senha no painel e entrar de novo/)).toBeTruthy();
+          |                   ^
+      151 |     expect(screen.queryByText(/falta é sinal/)).toBeNull();
+      152 |   });
+      153 |
+
+      at Object.getByText (src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx:150:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a tarefa já vistoriada, com a fila parada › conta desativada: diz que falta a coordenação reativar a conta
+
+    Unable to find an element with text: /O que falta é a coordenação reativar a sua conta/
+
+    <View>
+      <View>
+        <View
+          accessibilityLabel="1, vistoria para fazer"
+          accessible={true}
+          testID="quantas-vistorias"
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            vistoria para fazer
+          </Text>
+        </View>
+        <View
+          testID="faixa-de-estado"
+        >
+          <RNSVGSvgView>
+            <RNSVGGroup>
+              <RNSVGPath />
+              <RNSVGPath />
+              <RNSVGCircle />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Esta lista tem mais de meia hora
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Ver o aviso desta lista por extenso"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="detalhe-da-lista"
+          >
+            <RNSVGSvgView>
+              <RNSVGGroup>
+                <RNSVGCircle />
+                <RNSVGCircle />
+                <RNSVGPath />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+          </View>
+        </View>
+      </View>
+      <RCTScrollView
+        testID="lista-de-tarefas"
+      >
+        <RCTRefreshControl />
+        <View>
+          <View>
+            <View>
+              <View
+                testID="tarefa-11111111-1111-4111-8111-111111111111"
+              >
+                <View
+                  accessibilityLabel="Protocolo 2026/000123, severidade alta, Servidão do Morro, 45. Sem prazo definido. Coletada, aguardando envio. Comece por aqui: Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar. A ordem não considerou distância: este aparelho não sabe onde você está. Expandido, mostrando as ações"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                      "expanded": true,
+                      "selected": true,
+                    }
+                  }
+                  accessible={true}
+                  testID="escolher-11111111-1111-4111-8111-111111111111"
+                >
+                  <View
+                    testID="comece-por-aqui"
+                  >
+                    <Text>
+                      Comece por aqui
+                    </Text>
+                    <Text>
+                      Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.
+                    </Text>
+                    <Text>
+                      A ordem não considerou distância: este aparelho não sabe onde você está.
+                    </Text>
+                  </View>
+                  <View>
+                    <Text>
+                      2026/000123
+                    </Text>
+                    <View />
+                    <View
+                      accessibilityLabel="Severidade alta"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                          <RNSVGPath />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Alta
+                      </Text>
+                    </View>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                    </View>
+                  </View>
+                  <Text>
+                    Servidão do Morro, 45
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Coletada, aguardando envio"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <Text>
+                        ✓
+                      </Text>
+                      <Text>
+                        Coletada, aguardando envio
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <View>
+                    <Text>
+                      Deslizamento
+                    </Text>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGCircle />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Sem prazo definido
+                      </Text>
+                    </View>
+                    <Text>
+                      Sem GPS: sem distância e sem rumo até este imóvel. O endereço e o ponto de referência estão na vistoria.
+                    </Text>
+                    <View
+                      accessibilityLabel="Abrir a vistoria do protocolo 2026/000123, Servidão do Morro, 45"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "busy": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111"
+                    >
+                      <RNSVGSvgView
+                        pointerEvents="none"
+                      >
+                        <RNSVGGroup>
+                          <RNSVGDefs>
+                            <RNSVGLinearGradient />
+                          </RNSVGDefs>
+                          <RNSVGRect />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <View
+                        testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111-rotulo"
+                      >
+                        <Text>
+                          Abrir a vistoria
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <Text>
+                  Antes de subir
+                </Text>
+                <Text>
+                  Puxe a tela para baixo com sinal para baixar a lista mais recente. O que estiver aqui funciona sem conexão nenhuma; o que não estiver, não existe no aparelho.
+                </Text>
+                <View
+                  accessibilityLabel="Baixar tarefas agora"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <View>
+                    <Text>
+                      Baixar tarefas agora
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      157 |     await abrirALista();
+      158 |
+    > 159 |     expect(screen.getByText(/O que falta é a coordenação reativar a sua conta/)).toBeTruthy();
+          |                   ^
+      160 |     expect(screen.queryByText(/falta é sinal/)).toBeNull();
+      161 |   });
+      162 |
+
+      at Object.getByText (src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx:159:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a tarefa já vistoriada, com a fila parada › o motivo também vai no rótulo de quem ouve a tela
+
+    Unable to find an element with accessibility label: /Comece por aqui:.*O que falta é entrar de novo/
+
+    <View>
+      <View>
+        <View
+          accessibilityLabel="1, vistoria para fazer"
+          accessible={true}
+          testID="quantas-vistorias"
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            vistoria para fazer
+          </Text>
+        </View>
+        <View
+          testID="faixa-de-estado"
+        >
+          <RNSVGSvgView>
+            <RNSVGGroup>
+              <RNSVGPath />
+              <RNSVGPath />
+              <RNSVGCircle />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Esta lista tem mais de meia hora
+            </Text>
+          </View>
+          <View
+            accessibilityLabel="Ver o aviso desta lista por extenso"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="detalhe-da-lista"
+          >
+            <RNSVGSvgView>
+              <RNSVGGroup>
+                <RNSVGCircle />
+                <RNSVGCircle />
+                <RNSVGPath />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+          </View>
+        </View>
+      </View>
+      <RCTScrollView
+        testID="lista-de-tarefas"
+      >
+        <RCTRefreshControl />
+        <View>
+          <View>
+            <View>
+              <View
+                testID="tarefa-11111111-1111-4111-8111-111111111111"
+              >
+                <View
+                  accessibilityLabel="Protocolo 2026/000123, severidade alta, Servidão do Morro, 45. Sem prazo definido. Coletada, aguardando envio. Comece por aqui: Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar. A ordem não considerou distância: este aparelho não sabe onde você está. Expandido, mostrando as ações"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                      "expanded": true,
+                      "selected": true,
+                    }
+                  }
+                  accessible={true}
+                  testID="escolher-11111111-1111-4111-8111-111111111111"
+                >
+                  <View
+                    testID="comece-por-aqui"
+                  >
+                    <Text>
+                      Comece por aqui
+                    </Text>
+                    <Text>
+                      Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.
+                    </Text>
+                    <Text>
+                      A ordem não considerou distância: este aparelho não sabe onde você está.
+                    </Text>
+                  </View>
+                  <View>
+                    <Text>
+                      2026/000123
+                    </Text>
+                    <View />
+                    <View
+                      accessibilityLabel="Severidade alta"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                          <RNSVGPath />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Alta
+                      </Text>
+                    </View>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                    </View>
+                  </View>
+                  <Text>
+                    Servidão do Morro, 45
+                  </Text>
+                  <View>
+                    <View
+                      accessibilityLabel="Coletada, aguardando envio"
+                      accessibilityRole="text"
+                      accessible={true}
+                    >
+                      <Text>
+                        ✓
+                      </Text>
+                      <Text>
+                        Coletada, aguardando envio
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <View>
+                    <Text>
+                      Deslizamento
+                    </Text>
+                    <View>
+                      <RNSVGSvgView>
+                        <RNSVGGroup>
+                          <RNSVGCircle />
+                          <RNSVGPath />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <Text>
+                        Sem prazo definido
+                      </Text>
+                    </View>
+                    <Text>
+                      Sem GPS: sem distância e sem rumo até este imóvel. O endereço e o ponto de referência estão na vistoria.
+                    </Text>
+                    <View
+                      accessibilityLabel="Abrir a vistoria do protocolo 2026/000123, Servidão do Morro, 45"
+                      accessibilityRole="button"
+                      accessibilityState={
+                        {
+                          "busy": false,
+                          "disabled": false,
+                        }
+                      }
+                      accessible={true}
+                      testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111"
+                    >
+                      <RNSVGSvgView
+                        pointerEvents="none"
+                      >
+                        <RNSVGGroup>
+                          <RNSVGDefs>
+                            <RNSVGLinearGradient />
+                          </RNSVGDefs>
+                          <RNSVGRect />
+                        </RNSVGGroup>
+                      </RNSVGSvgView>
+                      <View
+                        testID="abrir-a-vistoria-11111111-1111-4111-8111-111111111111-rotulo"
+                      >
+                        <Text>
+                          Abrir a vistoria
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <Text>
+                  Antes de subir
+                </Text>
+                <Text>
+                  Puxe a tela para baixo com sinal para baixar a lista mais recente. O que estiver aqui funciona sem conexão nenhuma; o que não estiver, não existe no aparelho.
+                </Text>
+                <View
+                  accessibilityLabel="Baixar tarefas agora"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                >
+                  <View>
+                    <Text>
+                      Baixar tarefas agora
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      166 |     await abrirALista();
+      167 |
+    > 168 |     expect(screen.getByLabelText(/Comece por aqui:.*O que falta é entrar de novo/)).toBeTruthy();
+          |                   ^
+      169 |   });
+      170 | });
+      171 |
+
+      at Object.getByLabelText (src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx:168:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 1 passed, 5 total
+Snapshots:   0 total
+Time:        1.188 s, estimated 2 s
+Ran all test suites matching /src\/__tests__\/a-lista-com-a-fila-pausada/i.

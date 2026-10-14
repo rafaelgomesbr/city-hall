@@ -1,0 +1,16 @@
+Com o conserto. Saída do jest.
+
+PASS src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx
+  a tarefa já vistoriada, com a fila andando
+    ✓ diz que falta sinal, porque é isso que falta (67 ms)
+  a tarefa já vistoriada, com a fila parada
+    ✓ sessão encerrada: diz que falta entrar de novo, e não sinal (16 ms)
+    ✓ senha provisória: diz que falta definir a senha, e não sinal (10 ms)
+    ✓ conta desativada: diz que falta a coordenação reativar a conta (9 ms)
+    ✓ o motivo também vai no rótulo de quem ouve a tela (9 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        0.799 s, estimated 2 s
+Ran all test suites matching /src\/__tests__\/a-lista-com-a-fila-pausada/i.

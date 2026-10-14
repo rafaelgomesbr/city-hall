@@ -1,0 +1,878 @@
+diff --git a/dc360/apps/campo/src/dados/fila.ts b/dc360/apps/campo/src/dados/fila.ts
+index 5fb3376..293d667 100644
+--- a/dc360/apps/campo/src/dados/fila.ts
++++ b/dc360/apps/campo/src/dados/fila.ts
+@@ -24,7 +24,21 @@ import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
+  * ATENÇÃO: nunca foi executado em aparelho. Ver `apps/campo/LEIA-ME.md`.
+  */
+ 
+-let fila: FilaDeSincronizacao | null = null;
++/**
++ * A PROMESSA da fila, e não a fila (V2-F00-E06, correção 2).
++ *
++ * Esta variável já foi `FilaDeSincronizacao | null`, conferida logo na
++ * primeira linha de `obterFila`. Mas a fila só existe depois de `await
++ * bancoLocal()`, e na abertura do aplicativo a faixa, a barra de abas, o laço
++ * de fundo e a tela da fila a pedem no mesmo instante: todas passavam pela
++ * conferência com a variável ainda nula e cada uma montava a sua fila. Cada
++ * instância tem a sua pausa da sessão, a sua marca de cancelamento e o seu
++ * `drenando`, então a pausa nascia numa fila que ninguém mais escutava, e a
++ * faixa global mostrava "Tudo sincronizado" sobre uma coleta parada (achado no
++ * emulador Android pela validação de 13/10/2026). Guardar a promessa faz quem
++ * chega em segundo esperar a mesma criação em vez de começar outra.
++ */
++let fila: Promise<FilaDeSincronizacao> | null = null;
+ 
+ /**
+  * A fila, criada uma vez e reaproveitada.
+@@ -42,13 +56,44 @@ let fila: FilaDeSincronizacao | null = null;
+  * uma sessão derrubada: é um laudo assinado pela pessoa errada. Ver
+  * `sessaoAtual` logo abaixo.
+  */
+-export async function obterFila(
++export function obterFila(
+   baseUrl: string,
+   obterToken: ObterToken,
+   lerIdentidade: () => Identidade | null,
+ ): Promise<FilaDeSincronizacao> {
+-  if (fila) return fila;
++  fila ??= criarFila(baseUrl, obterToken, lerIdentidade).catch((erro: unknown) => {
++    /*
++      A falha NÃO fica guardada AQUI: a variável da fila volta a nula, para a
++      próxima chamada tentar criar de novo em vez de receber a mesma promessa
++      rejeitada. Isso é só metade do caminho. `criarFila` começa por
++      `bancoLocal()`, e ele memoiza a PRÓPRIA promessa, rejeitada inclusive
++      (ver `banco-local.ts`): se foi a abertura do banco que falhou, a nova
++      tentativa recebe a mesma rejeição até `esquecerConexao()` ou o aplicativo
++      ser reaberto. Falha em outro ponto da criação (depois de o banco abrir)
++      é a que a nova chamada de fato refaz.
++    */
++    fila = null;
++    throw erro;
++  });
++  return fila;
++}
+ 
++/**
++ * Só para teste: esquece a fila, para o caso seguinte começar do zero.
++ *
++ * Mesmo papel de `esquecerConexao` em `banco-local.ts`, e deve ser usada junto
++ * com ela (a fila guarda o banco que foi aberto). A fila é um singleton do
++ * aparelho; sem isto, um teste herda o estado do anterior.
++ */
++export function esquecerFila(): void {
++  fila = null;
++}
++
++async function criarFila(
++  baseUrl: string,
++  obterToken: ObterToken,
++  lerIdentidade: () => Identidade | null,
++): Promise<FilaDeSincronizacao> {
+   /*
+     O banco é aberto uma vez, em `banco-local.ts`, e é o MESMO que o rascunho
+     e a lista de pendências usam.
+@@ -62,7 +107,7 @@ export async function obterFila(
+   const db = await bancoLocal();
+   await prepararSqlite(db);
+ 
+-  fila = criarFilaDeSincronizacao({
++  return criarFilaDeSincronizacao({
+     deposito: depositoSobreChaveValor(lojaSqlite(db)),
+     transporte: transporteHttp({ baseUrl, obterToken }),
+     /*
+@@ -102,8 +147,6 @@ export async function obterFila(
+       tentativa perdida, gastando bateria e dados duas vezes.
+     */
+   });
+-
+-  return fila;
+ }
+ 
+ /**
+diff --git a/dc360/apps/campo/src/dados/obter-fila-uma-so.test.ts b/dc360/apps/campo/src/dados/obter-fila-uma-so.test.ts
+new file mode 100644
+index 0000000..5a026d5
+--- /dev/null
++++ b/dc360/apps/campo/src/dados/obter-fila-uma-so.test.ts
+@@ -0,0 +1,139 @@
++/**
++ * Uma fila só por aparelho, mesmo quando várias telas a pedem ao mesmo tempo
++ * (V2-F00-E06, correção 2).
++ *
++ * O defeito que a rodada 2 da validação achou no emulador Android: `obterFila`
++ * conferia `if (fila) return fila;` e só DEPOIS esperava o banco abrir. Na
++ * abertura do aplicativo a faixa de sincronização, a barra de abas, o laço de
++ * fundo do layout e a tela da fila a chamam no mesmo instante; todas passavam
++ * pela conferência com a variável ainda nula, cada uma criava a sua fila, e
++ * cada fila tem a sua pausa, a sua marca de cancelamento e o seu `drenando`.
++ * A pausa da sessão nascia numa instância que ninguém mais escutava: a faixa
++ * global mostrava "Tudo sincronizado" sobre uma coleta parada, e o
++ * `cancelar()` da troca de conta só alcançava a instância do layout.
++ *
++ * Os outros testes trocam `obterFila` por um dublê de instância única, que é
++ * exatamente o que esconde isto. Este chama a de produção, em paralelo.
++ */
++
++import { DatabaseSync } from "node:sqlite";
++
++let mockBanco: DatabaseSync | null = null;
++let mockAberturas = 0;
++let mockFalharAoAbrir = false;
++
++function mockAbrir(): DatabaseSync {
++  mockBanco ??= new DatabaseSync(":memory:");
++  return mockBanco;
++}
++
++jest.mock("expo-sqlite", () => ({
++  openDatabaseAsync: async () => {
++    mockAberturas += 1;
++    // O banco real demora para abrir: é aqui que a corrida acontece.
++    await new Promise((r) => setTimeout(r, 5));
++    if (mockFalharAoAbrir) throw new Error("banco travado");
++    const db = mockAbrir();
++    return {
++      async execAsync(sql: string) { db.exec(sql); },
++      async runAsync(sql: string, params: unknown[] = []) { db.prepare(sql).run(...params); },
++      async getAllAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).all(...params); },
++      async getFirstAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).get(...params) ?? null; },
++    };
++  },
++}));
++
++jest.mock("expo-file-system", () => ({
++  Paths: { document: "file:///documentos" },
++  File: class {},
++  Directory: class { list() { return []; } },
++}));
++
++import type { Identidade } from "./api";
++
++const quem = { atual: null as Identidade | null };
++
++beforeEach(() => {
++  mockBanco = null;
++  mockAberturas = 0;
++  mockFalharAoAbrir = false;
++  // Cada caso começa com o módulo, a fila e o banco do zero.
++  jest.resetModules();
++});
++
++/** O módulo recém-carregado, depois do `resetModules` do `beforeEach`. */
++function carregar(): Promise<typeof import("./fila")> {
++  // eslint-disable-next-line @typescript-eslint/no-require-imports
++  return Promise.resolve(require("./fila") as typeof import("./fila"));
++}
++
++describe("obterFila sob chamadas simultâneas", () => {
++  it("quatro chamadas ao mesmo tempo devolvem a MESMA instância", async () => {
++    const { obterFila } = await carregar();
++
++    // Sem `await` entre elas: é a abertura do aplicativo, quatro telas de uma vez.
++    const filas = await Promise.all([
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++    ]);
++
++    expect(filas[1]).toBe(filas[0]);
++    expect(filas[2]).toBe(filas[0]);
++    expect(filas[3]).toBe(filas[0]);
++  });
++
++  it("o banco local é aberto uma vez só", async () => {
++    const { obterFila } = await carregar();
++
++    await Promise.all([
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++    ]);
++
++    expect(mockAberturas).toBe(1);
++  });
++
++  it("a chamada seguinte, depois de a fila existir, também devolve a mesma", async () => {
++    const { obterFila } = await carregar();
++
++    const [primeira] = await Promise.all([
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++    ]);
++    const depois = await obterFila("http://api.exemplo", async () => "outro", () => quem.atual);
++
++    expect(depois).toBe(primeira);
++  });
++
++  it("se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo", async () => {
++    /*
++      Memorizar a PROMESSA tem um preço: uma promessa rejeitada memorizada
++      envenenaria o aplicativo até ele ser fechado. A falha é de quem pediu
++      naquela hora (disco cheio, banco travado); a próxima tentativa recomeça.
++    */
++    const { obterFila } = await carregar();
++    mockFalharAoAbrir = true;
++    await expect(
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++    ).rejects.toThrow(/banco travado/);
++
++    mockFalharAoAbrir = false;
++    /*
++      `bancoLocal()` guarda a própria promessa, rejeitada inclusive (limite
++      anotado no relatório da correção 2): o teste a esquece para provar só o
++      que é de `obterFila`, que não pode guardar a falha por conta própria.
++    */
++    // eslint-disable-next-line @typescript-eslint/no-require-imports
++    (require("./banco-local") as typeof import("./banco-local")).esquecerConexao();
++    const [a, b] = await Promise.all([
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++      obterFila("http://api.exemplo", async () => "token", () => quem.atual),
++    ]);
++
++    expect(a).toBeDefined();
++    expect(b).toBe(a);
++  });
++});
+diff --git a/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts b/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+index b196d71..1018c55 100644
+--- a/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts
++++ b/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+@@ -45,7 +45,6 @@ jest.mock("expo-file-system", () => ({
+   Directory: class { list() { return []; } },
+ }));
+ 
+-import { obterFila } from "./fila";
+ import type { Identidade } from "./api";
+ 
+ const ANA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+@@ -87,12 +86,34 @@ function resposta(status: number, corpo: Record<string, unknown>): Response {
+ /*
+   A fila do aplicativo é memoizada e o transporte captura o `fetch` na criação:
+   o que muda de um teste para outro é o delegado, e não o `fetch` global.
++
++  CADA CASO COMEÇA DO ZERO (V2-F00-E06, correção 2). Antes, o módulo `./fila`
++  (a fila é um singleton) e o banco em memória viviam o arquivo inteiro, e o
++  segundo caso só passava porque encontrava o item que o primeiro tinha
++  enfileirado: rodado sozinho, ou numa ordem aleatória (`jest --randomize`), ele
++  reprovava. O CI só roda a ordem declarada e nunca viu. Agora o módulo é
++  recarregado e o banco é novo a cada caso, e o caso enfileira o que usa.
+ */
+ let mockFetch: (url: string, init: RequestInit) => Promise<Response> = async () => {
+   throw new Error("fetch nao configurado");
+ };
+ (globalThis as unknown as { fetch: unknown }).fetch = (url: string, init: RequestInit) => mockFetch(url, init);
+ 
++type ObterFila = typeof import("./fila").obterFila;
++
++/** `obterFila` do módulo recém-carregado: fila nova, banco novo. */
++function obterFilaDoZero(): ObterFila {
++  // eslint-disable-next-line @typescript-eslint/no-require-imports
++  return (require("./fila") as typeof import("./fila")).obterFila;
++}
++
++beforeEach(() => {
++  mockBanco = null;
++  quem.atual = identidade(ANA, "Ana Ribeiro");
++  mockFetch = async () => { throw new Error("fetch nao configurado"); };
++  jest.resetModules();
++});
++
+ describe("a fila real do aplicativo com a conta trocando no meio do pedido", () => {
+   it("o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela", async () => {
+     // O pedido fica pendurado até o teste decidir a resposta.
+@@ -102,6 +123,7 @@ describe("a fila real do aplicativo com a conta trocando no meio do pedido", ()
+       pedidos.push((init.headers as Record<string, string>)["authorization"]!);
+       return new Promise<Response>((r) => { responder = r; });
+     };
++    const obterFila = obterFilaDoZero();
+     const fila = await obterFila(
+       "http://api.exemplo",
+       async () => (quem.atual?.usuarioId === ANA ? "token-da-ana" : "token-do-bruno"),
+@@ -137,10 +159,10 @@ describe("a fila real do aplicativo com a conta trocando no meio do pedido", ()
+   });
+ 
+   it("403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada", async () => {
+-    quem.atual = identidade(ANA, "Ana Ribeiro");
+     mockFetch = async () =>
+       resposta(403, { erro: "troca_de_senha_obrigatoria", mensagem: "Defina a sua senha." });
+-    const fila = await obterFila("http://api.exemplo", async () => "token", () => quem.atual);
++    const fila = await obterFilaDoZero()("http://api.exemplo", async () => "token", () => quem.atual);
++    await fila.enfileirar(envelope("22222222-2222-4222-8222-222222222222"), { protocolo: "000472/2026" });
+ 
+     const r = await fila.drenar();
+ 
+diff --git a/dc360/apps/campo/src/ui/faixa-ligada-a-fila-real.test.tsx b/dc360/apps/campo/src/ui/faixa-ligada-a-fila-real.test.tsx
+new file mode 100644
+index 0000000..00034ab
+--- /dev/null
++++ b/dc360/apps/campo/src/ui/faixa-ligada-a-fila-real.test.tsx
+@@ -0,0 +1,173 @@
++/**
++ * A faixa global ligada à fila REAL (V2-F00-E06, correção 2).
++ *
++ * A rodada 2 da validação achou no emulador Android o que a suíte inteira não
++ * via: com a coleta parada pela sessão, a faixa do topo dizia "Tudo
++ * sincronizado" (ou "Com sinal, 1 esperando envio"), porque o gancho da faixa
++ * assinava uma fila e o laço de fundo do layout drenava e pausava OUTRA (a
++ * criação concorrente de `obterFila` fabricava várias). Os testes de tela
++ * trocam `obterFila` por um dublê de instância única e injetam o resumo à mão,
++ * que é o que esconde essa fiação.
++ *
++ * Aqui nada disso é dublê: a fila, o transporte, o depósito e `obterFila` são
++ * os de produção (o SQLite é o do Node, em memória, e o `fetch` é falso). O
++ * "laço de fundo" é o teste chamando `obterFila` no mesmo instante em que a
++ * faixa monta, como o layout faz, e drenando por ela.
++ */
++
++import { DatabaseSync } from "node:sqlite";
++import { act, render, screen, waitFor } from "@testing-library/react-native";
++import type { EnvelopeSincronizacao } from "@dc360/shared";
++import type { Identidade } from "../dados/api";
++import { esquecerConexao } from "../dados/banco-local";
++import { esquecerFila, obterFila } from "../dados/fila";
++import { ProvedorDeTema } from "./componentes";
++import { FaixaDeSincronizacaoLigada } from "./FaixaDeSincronizacao";
++
++const AGENTE = {
++  usuarioId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
++  nome: "Ana Ribeiro",
++  organizacaoId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
++} as unknown as Identidade;
++
++jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
++  __esModule: true, default: () => "light",
++}));
++
++let mockBanco: DatabaseSync | null = null;
++function mockAbrir(): DatabaseSync {
++  mockBanco ??= new DatabaseSync(":memory:");
++  return mockBanco;
++}
++
++jest.mock("expo-sqlite", () => ({
++  openDatabaseAsync: async () => {
++    // O banco real demora para abrir: é aqui que as chamadas se atropelam.
++    await new Promise((r) => setTimeout(r, 5));
++    const db = mockAbrir();
++    return {
++      async execAsync(sql: string) { db.exec(sql); },
++      async runAsync(sql: string, params: unknown[] = []) { db.prepare(sql).run(...params); },
++      async getAllAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).all(...params); },
++      async getFirstAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).get(...params) ?? null; },
++    };
++  },
++}));
++
++jest.mock("expo-file-system", () => ({
++  Paths: { document: "file:///documentos" },
++  File: class {},
++  Directory: class { list() { return []; } },
++}));
++
++jest.mock("../dados/api", () => ({ enderecoDaApi: () => "http://api.exemplo" }));
++jest.mock("../dados/conectividade", () => ({ useSinal: () => ({ temSinal: true, tipo: "Wi-Fi" }) }));
++
++/* O MESMO objeto a cada renderização: um novo refaz o efeito de abertura em laço. */
++const mockSessao = {
++  obterToken: async () => "token-da-ana",
++  lerIdentidade: () => AGENTE,
++  identidade: AGENTE,
++};
++jest.mock("../dados/sessao", () => ({ useSessao: () => mockSessao }));
++
++let mockFetch: (url: string, init: RequestInit) => Promise<Response> = async () => {
++  throw new Error("fetch nao configurado");
++};
++(globalThis as unknown as { fetch: unknown }).fetch = (url: string, init: RequestInit) => mockFetch(url, init);
++
++function resposta(status: number, corpo: Record<string, unknown>): Response {
++  return { ok: status >= 200 && status < 300, status, json: async () => corpo } as Response;
++}
++
++function envelope(chave: string): EnvelopeSincronizacao {
++  const momento = new Date(Date.now() - 3_600_000).toISOString();
++  return {
++    idempotencyKey: chave,
++    ocorrenciaId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
++    coletadaEm: momento,
++    vistoria: {
++      checklist: [
++        { chave: "risco_iminente", resposta: true },
++        { chave: "evacuacao_necessaria", resposta: false },
++        { chave: "interdicao_indicada", resposta: false },
++        { chave: "acionar_outro_orgao", resposta: false },
++      ],
++      fotos: [],
++      gpsPrecisaoMetros: 6,
++      assinanteNome: "Moradora",
++      assinaturaChave: null,
++      coletadaEm: momento,
++    },
++  };
++}
++
++beforeEach(() => {
++  // Fila e banco do zero a cada caso (a fila do aplicativo é um singleton).
++  mockBanco = null;
++  esquecerConexao();
++  esquecerFila();
++});
++
++/**
++ * Monta a faixa e, NO MESMO INSTANTE, pede a fila como o laço de fundo do
++ * layout faz. Devolve a fila do "laço" e o espião das assinaturas dela.
++ *
++ * O espião é posto na instância do laço assim que ela nasce, ANTES de a faixa
++ * assinar (o `.then` abaixo é registrado antes do efeito da faixa na mesma
++ * promessa, e as reações rodam na ordem em que foram registradas). Se a faixa
++ * assinasse uma fila própria, o espião da fila do laço nunca seria chamado.
++ */
++async function montarFaixaEPedirAFila() {
++  // Sem `await`: a faixa monta enquanto a criação da fila ainda está em curso.
++  const doLaco = obterFila("http://api.exemplo", mockSessao.obterToken, mockSessao.lerIdentidade);
++  let assinaturas: jest.SpyInstance | null = null;
++  void doLaco.then((f) => { assinaturas = jest.spyOn(f, "assinar"); });
++  await act(async () => {
++    await render(
++      <ProvedorDeTema><FaixaDeSincronizacaoLigada aoTocar={() => {}} /></ProvedorDeTema>,
++    );
++  });
++  // Deixa a assinatura da faixa terminar dentro do `act`, antes de o caso mexer na fila.
++  await act(async () => { await doLaco; await new Promise((r) => setTimeout(r, 20)); });
++  return { fila: await doLaco, assinaturas: assinaturas as jest.SpyInstance | null };
++}
++
++describe("a faixa global com a fila real parada pela sessão", () => {
++  it("401 sessao_encerrada: a faixa diz 'Sessão encerrada', e não 'Tudo sincronizado'", async () => {
++    mockFetch = async () => resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
++    const { fila } = await montarFaixaEPedirAFila();
++    await act(async () => { await fila.enfileirar(envelope("11111111-1111-4111-8111-111111111111"), { protocolo: "000471/2026" }); });
++
++    await act(async () => { await fila.drenar(); });
++
++    await waitFor(() => expect(screen.getByText("Sessão encerrada")).toBeTruthy());
++    expect(screen.getByText(/Entre de novo: suas coletas continuam guardadas/)).toBeTruthy();
++    expect(screen.queryByText("Tudo sincronizado")).toBeNull();
++    expect(screen.queryByText(/esperando envio/)).toBeNull();
++  });
++
++  it("403 troca_de_senha_obrigatoria: a faixa diz 'Defina a sua senha'", async () => {
++    mockFetch = async () =>
++      resposta(403, { erro: "troca_de_senha_obrigatoria", mensagem: "Defina a sua senha." });
++    const { fila } = await montarFaixaEPedirAFila();
++    await act(async () => { await fila.enfileirar(envelope("22222222-2222-4222-8222-222222222222"), { protocolo: "000472/2026" }); });
++
++    await act(async () => { await fila.drenar(); });
++
++    await waitFor(() => expect(screen.getByText("Defina a sua senha")).toBeTruthy());
++    expect(screen.queryByText("Tudo sincronizado")).toBeNull();
++  });
++
++  it("a faixa assinou a MESMA fila que o laço de fundo recebeu", async () => {
++    mockFetch = async () => resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
++    const { fila: doLaco, assinaturas } = await montarFaixaEPedirAFila();
++
++    const outra = await obterFila("http://api.exemplo", mockSessao.obterToken, mockSessao.lerIdentidade);
++
++    expect(outra).toBe(doLaco);
++    /* O que o nome promete: quem assinou foi ESTA instância, e não uma que a faixa fabricou. */
++    expect(assinaturas).not.toBeNull();
++    expect(assinaturas).toHaveBeenCalledTimes(1);
++  });
++});
+diff --git a/dc360/apps/campo/src/app/(agente)/index.tsx b/dc360/apps/campo/src/app/(agente)/index.tsx
+index ae988e2..6ef17a3 100644
+--- a/dc360/apps/campo/src/app/(agente)/index.tsx
++++ b/dc360/apps/campo/src/app/(agente)/index.tsx
+@@ -52,6 +52,7 @@ import {
+   type DevolucaoNoAparelho,
+   type FilaDeSincronizacao,
+   type ItemFila,
++  type MotivoDeSessao,
+ } from "@dc360/campo";
+ import { DialogoDeDevolucao, type PedidoDeDevolucao } from "../../ui/DialogoDeDevolucao";
+ import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
+@@ -584,6 +585,7 @@ export default function Tarefas() {
+   const lerDoDiscoAgora = useRef(lerDoDisco);
+   lerDoDiscoAgora.current = lerDoDisco;
+ 
++  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
+   useEffect(() => {
+     let vivo = true;
+     let desassinar: (() => void) | undefined;
+@@ -592,7 +594,15 @@ export default function Tarefas() {
+         const aberta = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
+         if (!vivo) return;
+         fila.current = aberta;
+-        desassinar = aberta.assinar(() => { void lerDoDiscoAgora.current(); });
++        desassinar = aberta.assinar((resumo) => {
++          /*
++            A pausa da sessão vem no resumo que a fila já entrega a cada aviso
++            (e uma vez na assinatura). O cartão da sugerida a usa para não
++            mandar esperar sinal quando o que falta é entrar de novo.
++          */
++          setPausadaPor(resumo?.pausadaPor ?? null);
++          void lerDoDiscoAgora.current();
++        });
+       } catch {
+         /* Sem fila não há devolução possível, e a lista continua servindo. */
+       }
+@@ -935,6 +945,7 @@ export default function Tarefas() {
+       agora: agora.getTime(),
+       de: ondeEstou,
+       jaColetadas,
++      pausadaPor,
+     });
+     const antes = ultimaOrdem.current;
+     const igual = antes !== null
+@@ -945,7 +956,7 @@ export default function Tarefas() {
+     const resultado = igual ? antes : nova;
+     ultimaOrdem.current = resultado;
+     return resultado;
+-  }, [naLista, agora, ondeEstou, jaColetadas]);
++  }, [naLista, agora, ondeEstou, jaColetadas, pausadaPor]);
+ 
+   /** Metros até cada tarefa, quando há como medir. Para o item não recalcular. */
+   const distancias = useMemo(
+diff --git a/dc360/apps/campo/src/dados/ordem-do-dia.ts b/dc360/apps/campo/src/dados/ordem-do-dia.ts
+index fd8a556..c5bd961 100644
+--- a/dc360/apps/campo/src/dados/ordem-do-dia.ts
++++ b/dc360/apps/campo/src/dados/ordem-do-dia.ts
+@@ -1,7 +1,10 @@
+-import { devolucoesPorOcorrencia, quantoFalta, type ColetaLocal, type ItemFila } from "@dc360/campo";
++import {
++  devolucoesPorOcorrencia, quantoFalta, type ColetaLocal, type ItemFila, type MotivoDeSessao,
++} from "@dc360/campo";
+ import type { Severidade } from "@dc360/shared";
+ 
+ import { distanciaEmMetros, distanciaEmTexto, type Ponto } from "./mapa";
++import { frasesDaPausa } from "./pausa-da-fila";
+ 
+ /**
+  * A ORDEM DO DIA: o que o agente faz agora, e por quê.
+@@ -172,6 +175,14 @@ export type ContextoDoDia = {
+   de: Ponto | null;
+   /** Ids das tarefas que este aparelho já coletou e ainda não enviou. */
+   jaColetadas: ReadonlySet<string>;
++  /**
++   * Por que a fila de envio está PARADA, ou ausente/nulo quando ela anda.
++   *
++   * Entra aqui porque a frase "o que falta é sinal" só é verdade com a fila
++   * andando. Com a sessão encerrada ou a senha provisória, falta outra coisa, e
++   * a faixa do topo já diz qual (V2-F00-E06, correção 2).
++   */
++  pausadaPor?: MotivoDeSessao | null;
+ };
+ 
+ function grupoDe(tarefa: TarefaDoDia, contexto: ContextoDoDia): GrupoDeUrgencia {
+@@ -376,6 +387,7 @@ function motivoDaSugerida<T extends TarefaDoDia>(
+       coletada, então todas foram, e o agente não tem para onde ir. Mandá-lo
+       subir de novo seria o pior desfecho possível desta tela.
+     */
++    if (contexto.pausadaPor) return frasesDaPausa(contexto.pausadaPor).daLista;
+     return "Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.";
+   }
+ 
+diff --git a/dc360/apps/campo/src/dados/ordem-do-dia.test.ts b/dc360/apps/campo/src/dados/ordem-do-dia.test.ts
+index 223a0b0..ae7aaba 100644
+--- a/dc360/apps/campo/src/dados/ordem-do-dia.test.ts
++++ b/dc360/apps/campo/src/dados/ordem-do-dia.test.ts
+@@ -530,3 +530,39 @@ describe("a faixa de prazo, sozinha", () => {
+     expect(leitura(AGORA + 30_000)).toEqual(leitura(AGORA));
+   });
+ });
++
++/*
++  V2-F00-E06, correção 2. Quando a primeira da lista já foi vistoriada, a frase
++  "o que falta é sinal" só é verdade com a fila andando. Com a fila parada pela
++  sessão, a frase tem de dizer o que falta de verdade.
++*/
++describe("a frase da lista inteira já vistoriada", () => {
++  const tarefa = {
++    id: "t1", protocolo: "2026/000001", tipo: "deslizamento", severidade: "alta",
++    prazo_em: null, latitude: null, longitude: null,
++  } as unknown as TarefaDoDia;
++  const agora = Date.parse("2026-09-09T12:00:00.000Z");
++  const base = { agora, de: null, jaColetadas: new Set(["t1"]) };
++
++  it("com a fila andando, falta sinal", () => {
++    expect(ordemDoDia([tarefa], base).motivo).toBe(
++      "Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.",
++    );
++  });
++
++  it("com a fila parada pela sessão, falta entrar de novo, e não sinal", () => {
++    const { motivo } = ordemDoDia([tarefa], { ...base, pausadaPor: "sessao_encerrada" });
++    expect(motivo).toMatch(/falta é entrar de novo/);
++    expect(motivo).not.toMatch(/sinal/i);
++  });
++
++  it("com a pausa nula, volta a falar de sinal", () => {
++    expect(ordemDoDia([tarefa], { ...base, pausadaPor: null }).motivo).toMatch(/falta é sinal/);
++  });
++
++  it("a pausa não muda a frase de uma lista que ainda tem o que vistoriar", () => {
++    const outra = { ...tarefa, id: "t2", protocolo: "2026/000002" };
++    const { motivo } = ordemDoDia([outra], { ...base, pausadaPor: "sessao_encerrada" });
++    expect(motivo).not.toMatch(/falta é/);
++  });
++});
+diff --git a/dc360/apps/campo/src/dados/pausa-da-fila.ts b/dc360/apps/campo/src/dados/pausa-da-fila.ts
+index f789e6c..19746b4 100644
+--- a/dc360/apps/campo/src/dados/pausa-da-fila.ts
++++ b/dc360/apps/campo/src/dados/pausa-da-fila.ts
+@@ -37,6 +37,14 @@ export type FrasesDaPausa = {
+   detalhe: string;
+   /** O cartão de cada coleta guardada: o que acontece COM ELA. */
+   doCartao: string;
++  /**
++   * O que a lista de tarefas diz quando TUDO o que ela tem já foi vistoriado
++   * e a fila está parada. Sem esta frase o cartão da tarefa dizia "o que falta
++   * é sinal" ao lado da faixa "Sessão encerrada": duas telas contraditórias
++   * sobre o mesmo fato, e a que mandava esperar sinal era a errada
++   * (V2-F00-E06, correção 2).
++   */
++  daLista: string;
+ };
+ 
+ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+@@ -49,6 +57,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+       + "Entre de novo com o seu email e a sua senha: com o aplicativo aberto, "
+       + "elas sobem depois que você entrar.",
+     doCartao: "Guardada neste aparelho. Sobe depois que você entrar de novo.",
++    daLista:
++      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
++      + "O que falta é entrar de novo.",
+   },
+   conta_desativada: {
+     faixaTitulo: "Conta desativada",
+@@ -61,6 +72,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+     doCartao:
+       "Guardada neste aparelho. Só sobe depois que a coordenação reativar a sua "
+       + "conta e você entrar.",
++    daLista:
++      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
++      + "O que falta é a coordenação reativar a sua conta.",
+   },
+   troca_de_senha_obrigatoria: {
+     faixaTitulo: "Defina a sua senha",
+@@ -73,6 +87,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+     doCartao:
+       "Guardada neste aparelho. Só sobe depois que você definir a sua senha no "
+       + "painel e entrar de novo.",
++    daLista:
++      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
++      + "O que falta é definir a sua senha no painel e entrar de novo.",
+   },
+ };
+ 
+diff --git a/dc360/apps/campo/src/dados/pausa-da-fila.test.ts b/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+index 8ad7ab8..c4aa833 100644
+--- a/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
++++ b/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+@@ -66,6 +66,27 @@ describe("frases da pausa", () => {
+     expect(new Set(todas.map((f) => f.doCartao)).size).toBe(3);
+   });
+ 
++  /*
++    V2-F00-E06, correção 2. A frase do cartão da tarefa, quando tudo da lista
++    já foi vistoriado: não pode mandar esperar sinal, que é o que a faixa do
++    topo contradizia quando a pausa era da sessão.
++  */
++  it("a frase da lista diz o que falta de verdade em cada pausa, e nunca fala em sinal", () => {
++    const sessao = frasesDaPausa("sessao_encerrada").daLista;
++    const conta = frasesDaPausa("conta_desativada").daLista;
++    const senha = frasesDaPausa("troca_de_senha_obrigatoria").daLista;
++    expect(sessao).toMatch(/falta é entrar de novo/);
++    expect(conta).toMatch(/falta é a coordenação reativar a sua conta/);
++    expect(senha).toMatch(/falta é definir a sua senha no painel e entrar de novo/);
++    for (const frase of [sessao, conta, senha]) {
++      expect(frase).toMatch(/^Você já vistoriou tudo o que está nesta lista/);
++      expect(frase).toMatch(/guardadas/);
++      expect(frase).not.toMatch(/sinal/i);
++      expect(frase).not.toContain(String.fromCharCode(0x2014));
++    }
++    expect(new Set([sessao, conta, senha]).size).toBe(3);
++  });
++
+   it("com a fila parada o laço espera mais que o piso normal de 15 s", () => {
+     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
+   });
+diff --git a/dc360/apps/campo/src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx b/dc360/apps/campo/src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx
+new file mode 100644
+index 0000000..dfa311e
+--- /dev/null
++++ b/dc360/apps/campo/src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx
+@@ -0,0 +1,170 @@
++/**
++ * O cartão da tarefa não manda esperar sinal quando o que falta é outra coisa
++ * (V2-F00-E06, correção 2).
++ *
++ * O achado 2 do QA da rodada 2: com a coleta guardada e a fila PAUSADA pela
++ * sessão (ou pela senha provisória), o cartão da tarefa dizia "O que falta é
++ * sinal para enviar" enquanto a faixa do topo dizia "Sessão encerrada". Duas
++ * mensagens contraditórias sobre o mesmo fato, e a errada mandava o agente
++ * esperar uma rede que já estava funcionando.
++ *
++ * A tela assina a fila e recebe a pausa no resumo que a fila entrega. Aqui a
++ * fila é um dublê que entrega o resumo que o teste escolhe, e o que se
++ * confere é o texto que o agente lê no cartão.
++ *
++ * Mora em `__tests__` porque tudo dentro de `src/app` vira ROTA no Expo.
++ */
++
++import { act, render, screen } from "@testing-library/react-native";
++import type { ColetaLocal } from "@dc360/campo";
++import type { Pendencia } from "../dados/api";
++
++jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
++  __esModule: true, default: () => "dark",
++}));
++
++jest.mock("expo-router", () => {
++  const { useEffect } = require("react") as typeof import("react");
++  return {
++    router: { push: jest.fn() },
++    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
++  };
++});
++
++jest.mock("../dados/api", () => ({
++  SemSinal: class SemSinal extends Error {},
++  enderecoDaApi: () => "https://api.exemplo",
++}));
++
++let mockTarefas: Pendencia[] = [];
++let mockColetas: ColetaLocal[] = [];
++
++jest.mock("../dados/pendencias", () => ({
++  pendenciasGuardadas: jest.fn(async () => mockTarefas),
++  baixadasEm: jest.fn(async () => "2026-09-09T13:00:00.000Z"),
++  atualizarPendencias: jest.fn(async () => mockTarefas),
++  tetoAtingido: jest.fn(async () => null),
++}));
++
++const SEM_RASCUNHOS: never[] = [];
++jest.mock("../dados/rascunho", () => ({ listarRascunhos: jest.fn(async () => SEM_RASCUNHOS) }));
++
++jest.mock("../dados/coletas", () => ({
++  listarColetas: jest.fn(async () => mockColetas),
++  marcarEnviada: jest.fn(async () => {}),
++}));
++
++/* O resumo que a fila entrega a quem assina. Nulo na pausa: a fila anda. */
++let mockPausadaPor: string | null = null;
++const SEM_ITENS: never[] = [];
++jest.mock("../dados/fila", () => ({
++  obterFila: async () => ({
++    itens: async () => SEM_ITENS,
++    assinar: (ouvinte: (r: unknown) => void) => {
++      ouvinte({ pendentes: 1, pausadaPor: mockPausadaPor });
++      return () => {};
++    },
++  }),
++}));
++
++jest.mock("../dados/conectividade", () => ({
++  useSinal: () => ({ temSinal: true, tipo: "wifi" }),
++}));
++
++jest.mock("../dados/sessao", () => ({
++  useSessao: () => ({
++    obterToken: async () => "token-de-mentira",
++    lerIdentidade: () => null,
++    identidade: { nome: "Agente de teste", municipio: "Teste", uf: "SC" },
++  }),
++}));
++
++import Tarefas from "../app/(agente)/index";
++
++const ID = "11111111-1111-4111-8111-111111111111";
++
++function tarefa(): Pendencia {
++  return {
++    id: ID,
++    protocolo: "2026/000123",
++    tipo: "deslizamento",
++    severidade: "alta",
++    endereco: "Servidão do Morro, 45",
++    ponto_referencia: null,
++    latitude: -27.595378,
++    longitude: -48.548050,
++    descricao: "Barranco escorregou sobre os fundos da casa.",
++    solicitante_nome: "Maria de exemplo",
++    solicitante_contato: null,
++    vulnerabilidade_presente: false,
++    vulnerabilidade_descricao: null,
++    prazo_em: null,
++    criado_em: "2026-09-09T09:00:00.000Z",
++  } as Pendencia;
++}
++
++function lapide(): ColetaLocal {
++  return {
++    ocorrenciaId: ID,
++    idempotencyKey: "chave-da-coleta",
++    protocolo: "2026/000123",
++    coletadaEm: "2026-09-09T13:00:00.000Z",
++    situacao: "na_fila",
++  };
++}
++
++async function abrirALista(): Promise<void> {
++  await render(<Tarefas />);
++  await act(async () => {});
++}
++
++beforeEach(() => {
++  mockTarefas = [tarefa()];
++  mockColetas = [lapide()];
++  mockPausadaPor = null;
++});
++
++describe("a tarefa já vistoriada, com a fila andando", () => {
++  it("diz que falta sinal, porque é isso que falta", async () => {
++    await abrirALista();
++
++    expect(screen.getByText(/O que falta é sinal para enviar/)).toBeTruthy();
++  });
++});
++
++describe("a tarefa já vistoriada, com a fila parada", () => {
++  it("sessão encerrada: diz que falta entrar de novo, e não sinal", async () => {
++    mockPausadaPor = "sessao_encerrada";
++
++    await abrirALista();
++
++    expect(screen.getByText(/O que falta é entrar de novo/)).toBeTruthy();
++    expect(screen.queryByText(/falta é sinal/)).toBeNull();
++  });
++
++  it("senha provisória: diz que falta definir a senha, e não sinal", async () => {
++    mockPausadaPor = "troca_de_senha_obrigatoria";
++
++    await abrirALista();
++
++    expect(screen.getByText(/O que falta é definir a sua senha no painel e entrar de novo/)).toBeTruthy();
++    expect(screen.queryByText(/falta é sinal/)).toBeNull();
++  });
++
++  it("conta desativada: diz que falta a coordenação reativar a conta", async () => {
++    mockPausadaPor = "conta_desativada";
++
++    await abrirALista();
++
++    expect(screen.getByText(/O que falta é a coordenação reativar a sua conta/)).toBeTruthy();
++    expect(screen.queryByText(/falta é sinal/)).toBeNull();
++  });
++
++  it("o motivo também vai no rótulo de quem ouve a tela", async () => {
++    mockPausadaPor = "sessao_encerrada";
++
++    await abrirALista();
++
++    expect(screen.getByLabelText(/Comece por aqui:.*O que falta é entrar de novo/)).toBeTruthy();
++  });
++});

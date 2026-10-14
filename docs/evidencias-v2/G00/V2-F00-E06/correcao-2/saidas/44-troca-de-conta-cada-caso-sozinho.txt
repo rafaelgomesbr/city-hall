@@ -1,0 +1,8 @@
+### versao anterior (cea7837^), segundo caso sozinho
+    ✕ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (3 ms)
+Tests:       1 failed, 1 skipped, 2 total
+### cada caso sozinho
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (68 ms)
+Tests:       1 skipped, 1 passed, 2 total
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (71 ms)
+Tests:       1 skipped, 1 passed, 2 total

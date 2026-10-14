@@ -37,6 +37,14 @@ export type FrasesDaPausa = {
   detalhe: string;
   /** O cartão de cada coleta guardada: o que acontece COM ELA. */
   doCartao: string;
+  /**
+   * O que a lista de tarefas diz quando TUDO o que ela tem já foi vistoriado
+   * e a fila está parada. Sem esta frase o cartão da tarefa dizia "o que falta
+   * é sinal" ao lado da faixa "Sessão encerrada": duas telas contraditórias
+   * sobre o mesmo fato, e a que mandava esperar sinal era a errada
+   * (V2-F00-E06, correção 2).
+   */
+  daLista: string;
 };
 
 const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
@@ -49,6 +57,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
       + "Entre de novo com o seu email e a sua senha: com o aplicativo aberto, "
       + "elas sobem depois que você entrar.",
     doCartao: "Guardada neste aparelho. Sobe depois que você entrar de novo.",
+    daLista:
+      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
+      + "O que falta é entrar de novo.",
   },
   conta_desativada: {
     faixaTitulo: "Conta desativada",
@@ -61,6 +72,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
     doCartao:
       "Guardada neste aparelho. Só sobe depois que a coordenação reativar a sua "
       + "conta e você entrar.",
+    daLista:
+      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
+      + "O que falta é a coordenação reativar a sua conta.",
   },
   troca_de_senha_obrigatoria: {
     faixaTitulo: "Defina a sua senha",
@@ -73,6 +87,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
     doCartao:
       "Guardada neste aparelho. Só sobe depois que você definir a sua senha no "
       + "painel e entrar de novo.",
+    daLista:
+      "Você já vistoriou tudo o que está nesta lista e as coletas estão guardadas. "
+      + "O que falta é definir a sua senha no painel e entrar de novo.",
   },
 };
 

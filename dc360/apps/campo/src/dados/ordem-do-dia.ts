@@ -1,7 +1,10 @@
-import { devolucoesPorOcorrencia, quantoFalta, type ColetaLocal, type ItemFila } from "@dc360/campo";
+import {
+  devolucoesPorOcorrencia, quantoFalta, type ColetaLocal, type ItemFila, type MotivoDeSessao,
+} from "@dc360/campo";
 import type { Severidade } from "@dc360/shared";
 
 import { distanciaEmMetros, distanciaEmTexto, type Ponto } from "./mapa";
+import { frasesDaPausa } from "./pausa-da-fila";
 
 /**
  * A ORDEM DO DIA: o que o agente faz agora, e por quê.
@@ -172,6 +175,14 @@ export type ContextoDoDia = {
   de: Ponto | null;
   /** Ids das tarefas que este aparelho já coletou e ainda não enviou. */
   jaColetadas: ReadonlySet<string>;
+  /**
+   * Por que a fila de envio está PARADA, ou ausente/nulo quando ela anda.
+   *
+   * Entra aqui porque a frase "o que falta é sinal" só é verdade com a fila
+   * andando. Com a sessão encerrada ou a senha provisória, falta outra coisa, e
+   * a faixa do topo já diz qual (V2-F00-E06, correção 2).
+   */
+  pausadaPor?: MotivoDeSessao | null;
 };
 
 function grupoDe(tarefa: TarefaDoDia, contexto: ContextoDoDia): GrupoDeUrgencia {
@@ -376,6 +387,7 @@ function motivoDaSugerida<T extends TarefaDoDia>(
       coletada, então todas foram, e o agente não tem para onde ir. Mandá-lo
       subir de novo seria o pior desfecho possível desta tela.
     */
+    if (contexto.pausadaPor) return frasesDaPausa(contexto.pausadaPor).daLista;
     return "Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.";
   }
 

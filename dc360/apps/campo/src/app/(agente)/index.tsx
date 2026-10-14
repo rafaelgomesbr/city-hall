@@ -52,6 +52,7 @@ import {
   type DevolucaoNoAparelho,
   type FilaDeSincronizacao,
   type ItemFila,
+  type MotivoDeSessao,
 } from "@dc360/campo";
 import { DialogoDeDevolucao, type PedidoDeDevolucao } from "../../ui/DialogoDeDevolucao";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
@@ -584,6 +585,7 @@ export default function Tarefas() {
   const lerDoDiscoAgora = useRef(lerDoDisco);
   lerDoDiscoAgora.current = lerDoDisco;
 
+  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
   useEffect(() => {
     let vivo = true;
     let desassinar: (() => void) | undefined;
@@ -592,7 +594,15 @@ export default function Tarefas() {
         const aberta = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
         if (!vivo) return;
         fila.current = aberta;
-        desassinar = aberta.assinar(() => { void lerDoDiscoAgora.current(); });
+        desassinar = aberta.assinar((resumo) => {
+          /*
+            A pausa da sessão vem no resumo que a fila já entrega a cada aviso
+            (e uma vez na assinatura). O cartão da sugerida a usa para não
+            mandar esperar sinal quando o que falta é entrar de novo.
+          */
+          setPausadaPor(resumo?.pausadaPor ?? null);
+          void lerDoDiscoAgora.current();
+        });
       } catch {
         /* Sem fila não há devolução possível, e a lista continua servindo. */
       }
@@ -935,6 +945,7 @@ export default function Tarefas() {
       agora: agora.getTime(),
       de: ondeEstou,
       jaColetadas,
+      pausadaPor,
     });
     const antes = ultimaOrdem.current;
     const igual = antes !== null
@@ -945,7 +956,7 @@ export default function Tarefas() {
     const resultado = igual ? antes : nova;
     ultimaOrdem.current = resultado;
     return resultado;
-  }, [naLista, agora, ondeEstou, jaColetadas]);
+  }, [naLista, agora, ondeEstou, jaColetadas, pausadaPor]);
 
   /** Metros até cada tarefa, quando há como medir. Para o item não recalcular. */
   const distancias = useMemo(

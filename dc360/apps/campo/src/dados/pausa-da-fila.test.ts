@@ -66,6 +66,27 @@ describe("frases da pausa", () => {
     expect(new Set(todas.map((f) => f.doCartao)).size).toBe(3);
   });
 
+  /*
+    V2-F00-E06, correção 2. A frase do cartão da tarefa, quando tudo da lista
+    já foi vistoriado: não pode mandar esperar sinal, que é o que a faixa do
+    topo contradizia quando a pausa era da sessão.
+  */
+  it("a frase da lista diz o que falta de verdade em cada pausa, e nunca fala em sinal", () => {
+    const sessao = frasesDaPausa("sessao_encerrada").daLista;
+    const conta = frasesDaPausa("conta_desativada").daLista;
+    const senha = frasesDaPausa("troca_de_senha_obrigatoria").daLista;
+    expect(sessao).toMatch(/falta é entrar de novo/);
+    expect(conta).toMatch(/falta é a coordenação reativar a sua conta/);
+    expect(senha).toMatch(/falta é definir a sua senha no painel e entrar de novo/);
+    for (const frase of [sessao, conta, senha]) {
+      expect(frase).toMatch(/^Você já vistoriou tudo o que está nesta lista/);
+      expect(frase).toMatch(/guardadas/);
+      expect(frase).not.toMatch(/sinal/i);
+      expect(frase).not.toContain(String.fromCharCode(0x2014));
+    }
+    expect(new Set([sessao, conta, senha]).size).toBe(3);
+  });
+
   it("com a fila parada o laço espera mais que o piso normal de 15 s", () => {
     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
   });

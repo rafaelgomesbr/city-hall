@@ -111,11 +111,18 @@ beforeEach(() => {
 
 /**
  * Monta a faixa e, NO MESMO INSTANTE, pede a fila como o laço de fundo do
- * layout faz. Devolve a fila do "laço".
+ * layout faz. Devolve a fila do "laço" e o espião das assinaturas dela.
+ *
+ * O espião é posto na instância do laço assim que ela nasce, ANTES de a faixa
+ * assinar (o `.then` abaixo é registrado antes do efeito da faixa na mesma
+ * promessa, e as reações rodam na ordem em que foram registradas). Se a faixa
+ * assinasse uma fila própria, o espião da fila do laço nunca seria chamado.
  */
 async function montarFaixaEPedirAFila() {
   // Sem `await`: a faixa monta enquanto a criação da fila ainda está em curso.
   const doLaco = obterFila("http://api.exemplo", mockSessao.obterToken, mockSessao.lerIdentidade);
+  let assinaturas: jest.SpyInstance | null = null;
+  void doLaco.then((f) => { assinaturas = jest.spyOn(f, "assinar"); });
   await act(async () => {
     await render(
       <ProvedorDeTema><FaixaDeSincronizacaoLigada aoTocar={() => {}} /></ProvedorDeTema>,
@@ -123,13 +130,13 @@ async function montarFaixaEPedirAFila() {
   });
   // Deixa a assinatura da faixa terminar dentro do `act`, antes de o caso mexer na fila.
   await act(async () => { await doLaco; await new Promise((r) => setTimeout(r, 20)); });
-  return doLaco;
+  return { fila: await doLaco, assinaturas: assinaturas as jest.SpyInstance | null };
 }
 
 describe("a faixa global com a fila real parada pela sessão", () => {
   it("401 sessao_encerrada: a faixa diz 'Sessão encerrada', e não 'Tudo sincronizado'", async () => {
     mockFetch = async () => resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
-    const fila = await montarFaixaEPedirAFila();
+    const { fila } = await montarFaixaEPedirAFila();
     await act(async () => { await fila.enfileirar(envelope("11111111-1111-4111-8111-111111111111"), { protocolo: "000471/2026" }); });
 
     await act(async () => { await fila.drenar(); });
@@ -143,7 +150,7 @@ describe("a faixa global com a fila real parada pela sessão", () => {
   it("403 troca_de_senha_obrigatoria: a faixa diz 'Defina a sua senha'", async () => {
     mockFetch = async () =>
       resposta(403, { erro: "troca_de_senha_obrigatoria", mensagem: "Defina a sua senha." });
-    const fila = await montarFaixaEPedirAFila();
+    const { fila } = await montarFaixaEPedirAFila();
     await act(async () => { await fila.enfileirar(envelope("22222222-2222-4222-8222-222222222222"), { protocolo: "000472/2026" }); });
 
     await act(async () => { await fila.drenar(); });
@@ -152,12 +159,15 @@ describe("a faixa global com a fila real parada pela sessão", () => {
     expect(screen.queryByText("Tudo sincronizado")).toBeNull();
   });
 
-  it("a fila da faixa e a do laço de fundo são a mesma", async () => {
+  it("a faixa assinou a MESMA fila que o laço de fundo recebeu", async () => {
     mockFetch = async () => resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
-    const doLaco = await montarFaixaEPedirAFila();
+    const { fila: doLaco, assinaturas } = await montarFaixaEPedirAFila();
 
     const outra = await obterFila("http://api.exemplo", mockSessao.obterToken, mockSessao.lerIdentidade);
 
     expect(outra).toBe(doLaco);
+    /* O que o nome promete: quem assinou foi ESTA instância, e não uma que a faixa fabricou. */
+    expect(assinaturas).not.toBeNull();
+    expect(assinaturas).toHaveBeenCalledTimes(1);
   });
 });

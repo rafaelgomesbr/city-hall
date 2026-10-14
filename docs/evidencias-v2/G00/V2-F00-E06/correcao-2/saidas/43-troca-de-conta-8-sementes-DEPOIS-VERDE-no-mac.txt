@@ -1,0 +1,40 @@
+### seed 1
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (98 ms)
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (13 ms)
+Seed:        1
+Tests:       2 passed, 2 total
+### seed 2
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (72 ms)
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (14 ms)
+Seed:        2
+Tests:       2 passed, 2 total
+### seed 3
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (73 ms)
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (19 ms)
+Seed:        3
+Tests:       2 passed, 2 total
+### seed 4
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (65 ms)
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (15 ms)
+Seed:        4
+Tests:       2 passed, 2 total
+### seed 5
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (72 ms)
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (14 ms)
+Seed:        5
+Tests:       2 passed, 2 total
+### seed 6
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (70 ms)
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (17 ms)
+Seed:        6
+Tests:       2 passed, 2 total
+### seed 7
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (71 ms)
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (14 ms)
+Seed:        7
+Tests:       2 passed, 2 total
+### seed 8
+    ✓ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (68 ms)
+    ✓ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (15 ms)
+Seed:        8
+Tests:       2 passed, 2 total

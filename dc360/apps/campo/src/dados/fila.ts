@@ -63,9 +63,14 @@ export function obterFila(
 ): Promise<FilaDeSincronizacao> {
   fila ??= criarFila(baseUrl, obterToken, lerIdentidade).catch((erro: unknown) => {
     /*
-      A falha NÃO fica guardada. Uma promessa rejeitada memorizada
-      envenenaria o aplicativo até ele ser fechado (banco que travou uma vez,
-      disco cheio na abertura); a próxima chamada recomeça do zero.
+      A falha NÃO fica guardada AQUI: a variável da fila volta a nula, para a
+      próxima chamada tentar criar de novo em vez de receber a mesma promessa
+      rejeitada. Isso é só metade do caminho. `criarFila` começa por
+      `bancoLocal()`, e ele memoiza a PRÓPRIA promessa, rejeitada inclusive
+      (ver `banco-local.ts`): se foi a abertura do banco que falhou, a nova
+      tentativa recebe a mesma rejeição até `esquecerConexao()` ou o aplicativo
+      ser reaberto. Falha em outro ponto da criação (depois de o banco abrir)
+      é a que a nova chamada de fato refaz.
     */
     fila = null;
     throw erro;
