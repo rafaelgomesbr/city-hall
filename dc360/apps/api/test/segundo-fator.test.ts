@@ -200,6 +200,13 @@ async function semear(banco: BancoEmMemoria): Promise<void> {
     */
     ["beto", "Beto Nogueira", "SA-9", "beto@serraalta.exemplo.gov.br", "coordenador"],
     ["clara", "Clara Rezende", "SA-10", "clara@serraalta.exemplo.gov.br", "coordenador"],
+    /*
+      Tânia e Ulisses existem só para os casos da senha que muda depois do
+      desafio (V2-F00-E07, correção 3): cada um troca a senha no meio, e
+      reaproveitar outra conta mudaria a senha de quem os outros casos usam.
+    */
+    ["tania", "Tânia Moraes", "SA-11", "tania@serraalta.exemplo.gov.br", "coordenador"],
+    ["ulisses", "Ulisses Teixeira", "SA-12", "ulisses@serraalta.exemplo.gov.br", "administrador"],
   ];
 
   for (const [apelido, nome, matricula, email, papel] of pessoas) {
@@ -500,6 +507,45 @@ describe("A entrada em duas etapas", () => {
     );
     expect(ditado.statusCode, ditado.body).toBe(200);
   });
+
+  /*
+    A SENHA MUDOU DEPOIS DE O DESAFIO SAIR (V2-F00-E07, correção 3, achado 5
+    da validação de 52952a1). O desafio vale cinco minutos e só atestava que
+    a senha conferiu quando ele foi emitido: quem tinha a senha antiga e o
+    código abria sessão depois de a própria pessoa trocar a senha (o remédio
+    de quem desconfia que ela vazou). Agora o desafio carrega a impressão da
+    credencial, e a sessão só nasce se ela ainda for a de agora.
+  */
+  it("o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo", async () => {
+    const SENHA_NOVA = "outra-senha-da-tania-2026";
+    const { acesso } = await ligar("tania", "tania@serraalta.exemplo.gov.br");
+
+    const login = await entrar("tania@serraalta.exemplo.gov.br");
+    expect(login.json().segundoFator).toBe("codigo");
+
+    const troca = await app.inject({
+      method: "POST", url: "/auth/trocar-senha", headers: comToken(acesso),
+      payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
+    });
+    expect(troca.statusCode, troca.body).toBe(200);
+
+    // O passo é zerado antes de cada etapa para a recusa não ser a do passo gasto.
+    await esquecerPassoGasto(id["tania"]!);
+    delete passoGasto["tania"];
+    const velho = await segundaEtapa(login.json().desafio, codigoNovoDe("tania"));
+    expect(
+      velho.statusCode,
+      `o desafio da senha antiga abriu sessão depois da troca: ${velho.body}`,
+    ).toBe(401);
+    expect(velho.json().acesso).toBeUndefined();
+
+    // Com a senha nova, o mesmo caminho entra.
+    await esquecerPassoGasto(id["tania"]!);
+    delete passoGasto["tania"];
+    const novo = await entrar("tania@serraalta.exemplo.gov.br", SENHA_NOVA);
+    const entrou = await segundaEtapa(novo.json().desafio, codigoNovoDe("tania"));
+    expect(entrou.statusCode, entrou.body).toBe(200);
+  });
 });
 
 describe("Ligar a verificação", () => {
@@ -566,6 +612,49 @@ describe("Ligar a verificação", () => {
     });
     expect(eu.statusCode).toBe(200);
     expect(eu.json().nome).toBe("Olavo Prado");
+  });
+
+  /*
+    O mesmo da segunda etapa, no desafio de ATIVAÇÃO (correção 3 da E07): a
+    senha do administrador é redefinida (aqui direto no banco, como o link de
+    recuperação faria) entre a primeira etapa e a confirmação. A sessão não
+    nasce; a pessoa entra de novo com a senha nova.
+  */
+  it("a ativação pelo desafio não abre sessão se a senha mudou depois dele", async () => {
+    const login = await entrar("ulisses@serraalta.exemplo.gov.br");
+    const desafio = login.json().desafio as string;
+    expect(login.json().segundoFator).toBe("ativacao");
+
+    const inicio = await app.inject({
+      method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
+    });
+    expect(inicio.statusCode, inicio.body).toBe(200);
+    const segredo = inicio.json().segredo as string;
+
+    await mem.bruto.query(
+      "UPDATE usuarios SET senha_hash = $2 WHERE id = $1",
+      [id["ulisses"], await derivarSenha("senha-nova-do-ulisses-2026")],
+    );
+
+    const fim = await app.inject({
+      method: "POST", url: "/segundo-fator/confirmar",
+      payload: { desafio, codigo: codigoAgora(segredo) },
+    });
+    expect(fim.statusCode, `a ativação abriu sessão com a senha antiga: ${fim.body}`).toBe(401);
+    expect(fim.json().sessao).toBeUndefined();
+
+    // E não ligou o recurso com o aparelho de quem tinha a senha antiga: o
+    // administrador de verdade, com a senha nova, não fica trancado do lado
+    // de fora pedindo um código que não tem.
+    const ligado = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM segundo_fator WHERE usuario_id = $1 AND confirmado_em IS NOT NULL",
+      [id["ulisses"]],
+    );
+    expect(Number(ligado.rows[0]!.n), "o desafio da senha antiga ligou o segundo fator").toBe(0);
+    const outraVez = await app.inject({
+      method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
+    });
+    expect(outraVez.statusCode, outraVez.body).toBe(401);
   });
 
   it("o segredo vai CIFRADO para o banco, e não em texto", async () => {

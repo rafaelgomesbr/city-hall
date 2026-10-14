@@ -46,6 +46,16 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
  *    escapar da suspensão e voltar a valer na reativação. A 050 faz o login
  *    ler a suspensão com `FOR SHARE`; o caso 9 do segundo bloco disputa as
  *    duas ordens.
+ * 4. O LOGIN NO MESMO INSTANTE DE UMA MUDANÇA DE CREDENCIAL (correção 3,
+ *    achados 1 e 2 da validação de 52952a1). O login lia o hash, gastava o
+ *    scrypt e abria a sessão em outra transação, sem trava: a troca de senha,
+ *    a redefinição ou a desativação que confirmasse nesse intervalo não via
+ *    a sessão que ainda ia nascer. Agora o login abre a sessão, toma a trava
+ *    da pessoa e relê a credencial na mesma transação (`emitirPar`). Os casos
+ *    6 a 8 do primeiro bloco e 10 a 12 do segundo deixam a mudança confirmar
+ *    no meio do login; os 14 a 16 seguram o login com a trava já tomada e
+ *    exigem que a mudança pare nela. O 9 e o 13 cobram que a renovação que
+ *    perde a trava para a desativação diga `conta_desativada` (403).
  *
  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
@@ -274,7 +284,221 @@ function auxiliares(cenario: () => Cenario) {
     expect(antiga.statusCode, "o token de antes da renovação voltou a escrever").toBe(401);
   }
 
-  return { entrar, pedirRenovacao, escrever, sessoesVivasDaCadeia, restaurarHelena, encerramentos, exigirCadeiaMorta };
+  /**
+   * Sessões de pé da Helena FORA das famílias preservadas. É a conta do login
+   * disputado (correção 3): a troca de senha pela própria pessoa preserva de
+   * propósito a cadeia de onde ela trocou, e todo o resto tem de estar morto.
+   */
+  async function vivasDaHelenaFora(preservadas: string[]): Promise<number> {
+    const r = await cenario().bruto(
+      `SELECT count(*)::int AS n FROM sessoes
+        WHERE usuario_id = $1 AND revogada_em IS NULL
+          AND NOT (familia_id = ANY($2::uuid[]))`,
+      [HELENA, preservadas],
+    );
+    return Number(r.rows[0]!.n);
+  }
+
+  async function familiaDe(p: Par): Promise<string> {
+    const r = await cenario().bruto(
+      "SELECT familia_id FROM sessoes WHERE token_hash = $1", [hashDoToken(p.renovacao)],
+    );
+    return String(r.rows[0]!.familia_id);
+  }
+
+  /** Começa a disputa sem sessão viva da Helena sobrando de caso anterior. */
+  async function limparSessoesDaHelena(): Promise<void> {
+    await cenario().bruto(
+      "UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'limpeza do teste' WHERE usuario_id = $1 AND revogada_em IS NULL",
+      [HELENA],
+    );
+  }
+
+  /**
+   * As três mudanças de credencial que o login com a senha ANTIGA disputa
+   * (V2-F00-E07, correção 3, achado 1 da validação de 52952a1). Todas
+   * atualizam `usuarios` e só depois tomam a trava da pessoa e encerram as
+   * sessões; a sessão que o login abrir tem de cair junto ou nem nascer.
+   */
+  type MudancaDeCredencial = {
+    nome: string;
+    /** Devolve o pedido concorrente e as famílias que ele preserva de propósito. */
+    preparar: () => Promise<{ disparar: () => ReturnType<FastifyInstance["inject"]>; preservadas: string[] }>;
+  };
+
+  const mudancasDeCredencial: MudancaDeCredencial[] = [
+    {
+      nome: "a própria pessoa troca a senha em outro aparelho",
+      preparar: async () => {
+        const quemTroca = await entrar();
+        return {
+          preservadas: [await familiaDe(quemTroca)],
+          disparar: () => cenario().app.inject({
+            method: "POST", url: "/auth/trocar-senha", headers: com(quemTroca.acesso),
+            payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
+          }),
+        };
+      },
+    },
+    {
+      nome: "quem administra redefine a senha da pessoa",
+      preparar: async () => ({
+        preservadas: [],
+        disparar: () => cenario().app.inject({
+          method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: com(cenario().tokenRita),
+        }),
+      }),
+    },
+    {
+      nome: "quem administra desativa a conta",
+      preparar: async () => ({
+        preservadas: [],
+        disparar: () => cenario().app.inject({
+          method: "PATCH", url: `/usuarios/${HELENA}/situacao`, headers: com(cenario().tokenRita),
+          payload: { ativo: false },
+        }),
+      }),
+    },
+  ];
+
+  /** O login da Helena com a senha de antes, pela rota de verdade. */
+  function entrarComASenhaAntiga() {
+    return cenario().app.inject({
+      method: "POST", url: "/auth/entrar", payload: { email: EMAIL_HELENA, senha: SENHA },
+    });
+  }
+
+  /**
+   * O que tem de valer depois de um login disputado com uma mudança de
+   * credencial: a mudança respondeu 200, nenhuma sessão da Helena ficou de pé
+   * fora da cadeia preservada e, se o login devolveu um par, ele não renova.
+   */
+  async function exigirLoginSemSobra(
+    mudanca: { statusCode: number; body: string },
+    login: { statusCode: number; body: string; json: () => { renovacao?: string } },
+    preservadas: string[],
+  ): Promise<void> {
+    expect(mudanca.statusCode, mudanca.body).toBe(200);
+    expect(await vivasDaHelenaFora(preservadas), `sobrou sessão viva do login disputado (login: ${login.statusCode})`).toBe(0);
+    if (login.statusCode === 200) {
+      const depois = await pedirRenovacao(login.json().renovacao!);
+      expect([401, 403], `o par do login disputado ainda renova: ${depois.body}`).toContain(depois.statusCode);
+    } else {
+      expect(login.statusCode, login.body).toBe(401);
+    }
+  }
+
+  return {
+    entrar, pedirRenovacao, escrever, sessoesVivasDaCadeia, restaurarHelena, encerramentos, exigirCadeiaMorta,
+    mudancasDeCredencial, entrarComASenhaAntiga, exigirLoginSemSobra, limparSessoesDaHelena,
+  };
+}
+
+/** A transação que registrou o ACERTO da senha no login (é a última antes da sessão). */
+const registrouAcerto = (chamadas: Chamada[]) =>
+  chamadas.some((c) => c.sql.includes("registrar_tentativa_login($1, true"));
+
+/** A releitura da credencial sob a trava, dentro da transação que abre a sessão do login. */
+const releCredencial = (c: Chamada) => /SELECT senha_hash, ativo\s+FROM usuarios/.test(c.sql);
+
+/** A primeira transação da renovação: a leitura da sessão pelo token, antes da trava. */
+const leuSessaoPorToken = (chamadas: Chamada[]) =>
+  chamadas.some((c) => c.sql.includes("sessao_por_token("));
+
+/**
+ * Os casos da correção 3 que valem igual nos dois bancos, porque seguram o
+ * pedido FORA de qualquer transação (no `depois`, já confirmado): o PGlite,
+ * que tem uma conexão só, não trava, e o Postgres de verdade disputa igual.
+ */
+function casosDaCorrecao3(a: ReturnType<typeof auxiliares>, grampo: { atual: Grampo | null }, primeiro: number) {
+  /*
+    O LOGIN COM A SENHA ANTIGA NO MESMO INSTANTE DE UMA MUDANÇA DE CREDENCIAL
+    (achado 1 da validação de 52952a1). O login lê o hash, gasta o scrypt
+    (centenas de milissegundos) e só então abre a sessão. Se a troca, a
+    redefinição ou a desativação confirma nesse intervalo, o UPDATE de
+    `sessoes` dela não vê a sessão que ainda não existe, e até a correção 3 o
+    login a abria depois, viva. A disputa segura o login logo depois de ele
+    registrar o acerto da senha (fora de transação), deixa a mudança terminar
+    inteira, e só então o solta: a sessão do login tem de não nascer.
+  */
+  for (const [i, mudanca] of a.mudancasDeCredencial.entries()) {
+    it(`${primeiro + i}. o login com a senha antiga confere a senha enquanto ${mudanca.nome}: a sessão do login não sobrevive`, async () => {
+      await a.limparSessoesDaHelena();
+      const disputa = await mudanca.preparar();
+      const janela = sinal();
+      const solta = sinal();
+      let segurou = false;
+      grampo.atual = {
+        depois: async (chamadas) => {
+          if (segurou || !registrouAcerto(chamadas)) return;
+          segurou = true;
+          janela.disparar();
+          await solta.disparado;
+        },
+      };
+      const pendentes: Promise<unknown>[] = [];
+      try {
+        const login = a.entrarComASenhaAntiga();
+        pendentes.push(login);
+        const primeiro = await Promise.race([
+          janela.disparado.then(() => "segurou" as const),
+          login.then(() => "terminou" as const),
+        ]);
+        expect(primeiro, "a disputa não aconteceu: o login terminou sem registrar o acerto da senha").toBe("segurou");
+        const m = await disputa.disparar();
+        solta.disparar();
+        grampo.atual = null;
+        await a.exigirLoginSemSobra(m, await login, disputa.preservadas);
+      } finally {
+        solta.disparar();
+        grampo.atual = null;
+        await Promise.allSettled(pendentes);
+        await a.restaurarHelena();
+      }
+    }, 120_000);
+  }
+
+  /*
+    A RENOVAÇÃO QUE PERDE PARA A DESATIVAÇÃO diz que a conta foi desativada
+    (achado 2 da validação de 52952a1). A renovação lê a sessão pelo token
+    (conta ativa), e a desativação confirma antes de ela tomar a trava: o
+    `revogar_sessao` da renovação devolve zero. Até a correção 3 a resposta era
+    401 `sessao_encerrada`, e o painel mandava a pessoa entrar de novo para ler
+    a recusa genérica, que é o desfecho que a correção 1 da E05 consertou.
+  */
+  it(`${primeiro + a.mudancasDeCredencial.length}. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401`, async () => {
+    await a.limparSessoesDaHelena();
+    const h = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurou = false;
+    grampo.atual = {
+      depois: async (chamadas) => {
+        if (segurou || !leuSessaoPorToken(chamadas)) return;
+        segurou = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const renovacao = a.pedirRenovacao(h.renovacao);
+      pendentes.push(renovacao);
+      await janela.disparado;
+      const desativacao = await a.mudancasDeCredencial[2]!.preparar().then((d) => d.disparar());
+      expect(desativacao.statusCode, desativacao.body).toBe(200);
+      solta.disparar();
+      grampo.atual = null;
+      const r = await renovacao;
+      expect(r.statusCode, r.body).toBe(403);
+      expect(r.json().erro).toBe("conta_desativada");
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
+    }
+  }, 120_000);
 }
 
 function configDeTeste() {
@@ -382,6 +606,8 @@ describe("Renovação e encerramento no mesmo instante: a renovação é UMA tra
       grampo.atual = null;
     }
   });
+
+  casosDaCorrecao3(a, grampo, 6);
 });
 
 // ---------------------------------------------------------------------------
@@ -816,4 +1042,58 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
       cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
     }
   }, 120_000);
+
+  // 10 a 13: os casos da correção 3 que valem nos dois bancos.
+  casosDaCorrecao3(a, grampo, 10);
+
+  /*
+    A OUTRA ORDEM DO LOGIN DISPUTADO (correção 3): o login já abriu a sessão e
+    segura a trava da pessoa, e a mudança de credencial chega nesse instante.
+    O login é segurado DENTRO da transação, entre tomar a trava e reler a
+    credencial; a mudança atualiza `usuarios` e para na trava (o teste VÊ isso
+    em `pg_locks`). Solto, o login relê a credencial de antes (a mudança não
+    confirmou), confirma a sessão e solta a trava; o UPDATE de `sessoes` da
+    mudança, que vem depois da trava, enxerga a sessão e a encerra. Sem a
+    trava no login não há onde segurá-lo, e o caso reprova por isso.
+  */
+  for (const [i, mudanca] of a.mudancasDeCredencial.entries()) {
+    it(`${14 + i}. o login já abriu a sessão sob a trava quando ${mudanca.nome}: a mudança espera e encerra a sessão do login`, async () => {
+      await a.limparSessoesDaHelena();
+      const disputa = await mudanca.preparar();
+      const janela = sinal();
+      const solta = sinal();
+      let segurou = false;
+      grampo.atual = {
+        antes: async (chamada) => {
+          if (segurou || !releCredencial(chamada)) return;
+          segurou = true;
+          janela.disparar();
+          await solta.disparado;
+        },
+      };
+      const pendentes: Promise<unknown>[] = [];
+      try {
+        const login = a.entrarComASenhaAntiga();
+        pendentes.push(login);
+        const primeiro = await Promise.race([
+          janela.disparado.then(() => "segurou" as const),
+          login.then(() => "terminou" as const),
+        ]);
+        expect(primeiro, "a disputa não aconteceu: o login não releu a credencial sob a trava da pessoa").toBe("segurou");
+        const m = disputa.disparar();
+        pendentes.push(m);
+        await exigirQueTravou(`a mudança de credencial (${mudanca.nome})`, m, "advisory");
+        solta.disparar();
+        const [rm, rl] = await Promise.all([m, login]);
+        grampo.atual = null;
+        expect(rl.statusCode, `o login segurado antes da mudança: ${rl.body}`).toBe(200);
+        await a.exigirLoginSemSobra(rm, rl, disputa.preservadas);
+      } finally {
+        solta.disparar();
+        grampo.atual = null;
+        await Promise.allSettled(pendentes);
+        await a.restaurarHelena();
+      }
+    }, 120_000);
+  }
 });

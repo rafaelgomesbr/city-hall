@@ -357,6 +357,19 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F00-E04-correcao-2": { total: 2, falhas: 0, puladas: 0 },
   "V2-F00-E07-correcao-2": { total: 14, falhas: 0, puladas: 9 },
   "V2-F00-E12-correcao-2": { total: 4, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E07, correção 3 (2026-10-14), contada contra o `52952a1`:
+    `renovacao-contra-encerramento.test.ts` ganha 4 casos de PGlite (o login
+    com a senha antiga contra a troca, a redefinição e a desativação, e a
+    renovação que perde a trava para a desativação) e 7 de Postgres real
+    (`describe.skipIf`, pulados no roteiro: os mesmos 4 mais as três disputas
+    com a trava já tomada pelo login); `segundo-fator.test.ts` ganha 2 (o
+    desafio da senha antiga, no código e na ativação); `corpo-ilegivel.test.ts`
+    é novo, com 3 (corpo vazio e JSON torto respondem 400, e o pedido sem
+    corpo segue aceito). Soma 9 na lista (de 1310 para 1319) e 16 no `vitest
+    run` (1335, com 16 pulados por ambiente).
+  */
+  "V2-F00-E07-correcao-3": { total: 16, falhas: 0, puladas: 7 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

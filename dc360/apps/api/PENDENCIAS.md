@@ -154,6 +154,28 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   e a linha depois dela fecharia ciclo com a suspensão (que toma a linha
   antes da trava). Provado no caso 9 de `test/renovacao-contra-encerramento.test.ts`
   e em `db/test/login-e-suspensao-na-mesma-linha.test.ts`.
+- **Entrar no mesmo instante de uma mudança de credencial (correção 3 da E07,
+  sem migração nova):** o login lia o hash, gastava o scrypt (cerca de 230 ms)
+  e abria a sessão em outra transação, sem trava e sem reler nada; a troca de
+  senha pela própria pessoa, a redefinição por quem administra ou a
+  desativação que confirmasse nesse intervalo deixava viva a sessão do login
+  com a senha antiga (a validação de 52952a1 mediu 13 de 30, 30 de 60 e 18 de
+  30). Agora `emitirPar` (`auth/servico.ts`) abre a sessão, toma
+  `travar_sessoes_do_usuario` e relê `senha_hash` e `ativo`, nessa ordem e
+  numa transação só; se a credencial não é mais a conferida, tudo volta atrás
+  e a resposta é a recusa genérica. A ordem é linha do município (o FOR
+  SHARE da 050) antes da trava, igual à da suspensão; trava antes da linha
+  fecharia ciclo com ela. O segundo fator e a ativação pelo desafio fazem o
+  mesmo com a impressão da credencial que o desafio carrega (`cr`, HMAC do
+  hash com o segredo de assinatura), e as rotas de ligar o segundo fator
+  recusam o desafio cuja senha já mudou. Provado nos casos 6 a 8 e 10 a 16
+  de `test/renovacao-contra-encerramento.test.ts` e em dois casos de
+  `test/segundo-fator.test.ts`.
+- **Renovação que perde a trava para a desativação:** responde 403
+  `conta_desativada` (pergunta a `dono_do_token`, como o token recusado),
+  e não 401 `sessao_encerrada`. A mesma pergunta trata o reúso: quem perde
+  para outra renovação com o MESMO token cai como reúso e derruba a família,
+  que é o que já acontecia quando o segundo pedido chegava um instante depois.
 - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
   Entrar e renovar já recusavam.

@@ -1,0 +1,9 @@
+Log do Postgres 16.13 descartavel (embedded-postgres, porta 55847, log_lock_waits=on, deadlock_timeout=200ms) de toda a correcao 3: rodadas ANTES e DEPOIS, as tres rodadas da corrida e as duas sondas.
+linhas no log: 114
+linhas com 'deadlock': 0
+linhas com '40P01': 0
+esperas de trava registradas (log_lock_waits, 'still waiting'): 0
+linhas ERROR: 10
+
+Mensagens de ERROR (contagem):
+    10  O acesso deste municipio esta suspenso pelo fornecedor.

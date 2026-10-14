@@ -637,6 +637,32 @@ export async function construirServidor(
         campos: erro.issues.map((i) => ({ campo: i.path.join("."), mensagem: i.message })),
       });
     }
+    /*
+      O CORPO QUE O FASTIFY NÃO CONSEGUIU LER (V2-F00-E07, correção 3, achado
+      3 da validação de 52952a1): JSON vazio com `content-type:
+      application/json`, JSON torto, corpo grande demais, tipo que nenhuma
+      rota aceita. O Fastify já diz que é erro de quem pediu (status 4xx, código
+      `FST_ERR_CTP_*`), e até aqui isso caía no 500 lá embaixo, que manda
+      "informar o código ao suporte" por um pedido mal formado e enche o log
+      de "erro não tratado". O status do Fastify é mantido; a mensagem não
+      repete a dele, que fala de parser e de cabeçalho.
+    */
+    const doLeitorDeCorpo = erro as { code?: unknown; statusCode?: unknown };
+    if (
+      typeof doLeitorDeCorpo.code === "string" && doLeitorDeCorpo.code.startsWith("FST_ERR_CTP_")
+      && typeof doLeitorDeCorpo.statusCode === "number"
+      && doLeitorDeCorpo.statusCode >= 400 && doLeitorDeCorpo.statusCode < 500
+    ) {
+      const status = doLeitorDeCorpo.statusCode;
+      return resposta.code(status).send({
+        erro: "corpo_invalido",
+        mensagem: status === 413
+          ? "O pedido é grande demais."
+          : status === 415
+            ? "Este tipo de conteúdo não é aceito aqui."
+            : "O corpo do pedido não pôde ser lido. Confira o formato e envie de novo.",
+      });
+    }
     if ((erro as { statusCode?: number }).statusCode === 429) {
       return resposta.code(429).send({
         erro: "excesso_de_requisicoes",

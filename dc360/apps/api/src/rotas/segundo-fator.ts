@@ -60,6 +60,12 @@ type Quem = {
    * entrar. Só nesse caso a confirmação devolve uma sessão.
    */
   viaDesafio: boolean;
+  /**
+   * A impressão da credencial que o desafio carrega (V2-F00-E07, correção 3).
+   * Só existe com `viaDesafio`: a sessão que nasce na confirmação confere que
+   * a senha não mudou depois de o desafio sair.
+   */
+  credencialDoDesafio?: string;
 };
 
 export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): Promise<void> {
@@ -88,13 +94,25 @@ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): P
 
     if (desafio) {
       const conteudo = await verificarDesafio(config.jwtSegredos, desafio);
-      if (conteudo && conteudo.pp === "ativacao_do_segundo_fator") {
+      /*
+        A senha não pode ter mudado depois de o desafio sair (V2-F00-E07,
+        correção 3). Sem esta pergunta, quem tinha a senha antiga de um
+        administrador obrigado ligava o segundo fator com o aparelho DELE nos
+        cinco minutos do desafio, e o administrador de verdade, já com a senha
+        nova, passava a ser pedido de um código que não tem. A sessão da
+        confirmação confere de novo, sob a trava (`emitirPar`).
+      */
+      if (
+        conteudo && conteudo.pp === "ativacao_do_segundo_fator"
+        && await autenticacao.credencialDoDesafioVale(conteudo.org, conteudo.sub, conteudo.cr)
+      ) {
         return {
           usuarioId: conteudo.sub,
           organizacaoId: conteudo.org,
           papel: conteudo.papel,
           nome: conteudo.nome,
           viaDesafio: true,
+          credencialDoDesafio: conteudo.cr,
         };
       }
       throw new NaoAutenticado(
@@ -197,13 +215,15 @@ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): P
       A sessão nasce aqui SÓ para quem chegou pelo desafio de ativação, que é
       quem ainda não tem nenhuma. As duas etapas acabaram de acontecer, na
       ordem certa, nos últimos cinco minutos: mandar digitar a senha de novo
-      seria atrito sem ganho de segurança.
+      seria atrito sem ganho de segurança. Mas a senha pode ter mudado nesses
+      cinco minutos, e então a sessão não nasce (a impressão da credencial do
+      desafio, V2-F00-E07, correção 3).
     */
     const sessao = quem.viaDesafio
       ? await autenticacao.sessaoAposAtivacao(quem.organizacaoId, quem.usuarioId, {
         userAgent: req.headers["user-agent"],
         ip: enderecoDoCliente(req),
-      })
+      }, quem.credencialDoDesafio ?? "")
       : undefined;
 
     return resposta.code(200).send({

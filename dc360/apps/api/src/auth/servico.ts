@@ -12,7 +12,7 @@ import { encerrarSessoes } from "./sessoes.js";
 import { exigirAcessoAtivo } from "./suspensao.js";
 import { ContaDesativada } from "./conta-desativada.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { mensagemDeRecuperacao, semOsEnderecos, type Mensagem, type Notificador } from "./notificador.js";
 import { resumirAparelho } from "./aparelho.js";
 
@@ -133,6 +133,36 @@ type LinhaCredencial = {
  * primeiro caso.
  */
 const MENSAGEM_GENERICA = "Email ou senha inválidos.";
+
+/**
+ * A credencial mudou entre a conferência da senha e a abertura da sessão
+ * (`emitirPar`). Só existe para desfazer a transação; quem chama a traduz na
+ * recusa genérica.
+ */
+class CredencialMudou extends Error {}
+
+/**
+ * A impressão da credencial que o desafio do segundo fator carrega (`cr`,
+ * V2-F00-E07, correção 3, achado 5 da validação de 52952a1).
+ *
+ * O desafio vale cinco minutos, e a sessão só nasce na segunda etapa. Sem
+ * isto, quem tinha a senha antiga e o código abria sessão depois de uma troca
+ * ou redefinição de senha feita nesses cinco minutos. A segunda etapa não tem
+ * o hash que a primeira conferiu, então o desafio leva uma impressão dele, e
+ * `emitirPar` relê o hash sob a trava e compara.
+ *
+ * HMAC com o segredo de assinatura, e não o hash puro nem um resumo dele: o
+ * desafio é legível por quem o carrega (é assinado, não cifrado), e nada
+ * derivado da senha precisa sair do servidor de um jeito que dê para
+ * comparar fora dele. Muda a cada troca porque cada derivação sorteia um sal
+ * novo. Sem hash (conta sem senha) a impressão é de uma cadeia vazia e nunca
+ * confere com uma conta que tem senha.
+ */
+function impressaoDaCredencial(segredo: Uint8Array, senhaHash: string | null): string {
+  return createHmac("sha256", segredo)
+    .update(`dc360.credencial-do-desafio:${senhaHash ?? ""}`)
+    .digest("base64url");
+}
 
 /**
  * O contador de falhas dos emails que NÃO EXISTEM, em memória, com teto.
@@ -372,7 +402,9 @@ export function servicoDeAutenticacao(
       return desafiar(linha, exigencia);
     }
 
-    return emitirPar(linha, contexto);
+    // A sessão só nasce se a credencial ainda for a que o scrypt conferiu
+    // acima. Ver `emitirPar`.
+    return emitirPar(linha, contexto, (atual) => atual === linha.senha_hash);
   }
 
   /**
@@ -397,6 +429,7 @@ export function servicoDeAutenticacao(
       papel: linha.papel,
       nome: linha.nome,
       pp: proposito,
+      cr: impressaoDaCredencial(config.jwtSegredos[0], linha.senha_hash),
     });
 
     return {
@@ -467,7 +500,9 @@ export function servicoDeAutenticacao(
     await exigirAcessoAtivo(banco, conteudo.org);
 
     return {
-      ...(await emitirPar(linha, contexto)),
+      // A senha pode ter mudado depois de o desafio sair (até cinco minutos):
+      // a sessão só nasce se a credencial ainda for a que ele atesta.
+      ...(await emitirPar(linha, contexto, (atual) => credencialDoDesafioConfere(conteudo.cr, atual))),
       codigosDeRecuperacaoRestantes: resultado.codigosRestantes,
       entrouComCodigoDeRecuperacao: resultado.viaCodigoDeRecuperacao,
     };
@@ -490,13 +525,42 @@ export function servicoDeAutenticacao(
     organizacaoId: string,
     usuarioId: string,
     contexto: { userAgent?: string; ip?: string },
+    /** A impressão da credencial que o desafio de ativação carrega (`cr`). */
+    credencialDoDesafio: string,
   ): Promise<Autenticado> {
     const linha = await lerCredencialPorId(organizacaoId, usuarioId);
     if (!linha || !linha.ativo) {
       throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
     await exigirAcessoAtivo(banco, organizacaoId);
-    return emitirPar(linha, contexto);
+    return emitirPar(linha, contexto, (atual) => credencialDoDesafioConfere(credencialDoDesafio, atual));
+  }
+
+  /**
+   * A credencial de agora é a que o desafio atesta? Confere contra todo
+   * segredo da lista, como a assinatura: o desafio emitido pouco antes de uma
+   * troca de segredo continua valendo pelos seus cinco minutos.
+   */
+  function credencialDoDesafioConfere(impressao: string, senhaHashAtual: string | null): boolean {
+    return config.jwtSegredos.some((s) => impressaoDaCredencial(s, senhaHashAtual) === impressao);
+  }
+
+  /**
+   * A mesma pergunta, para quem usa o desafio de ativação ANTES de haver
+   * sessão (as rotas de ligar o segundo fator): a conta segue ativa e a
+   * senha é a que o desafio atesta. Leitura sob o município do desafio
+   * assinado, pelo caminho comum (RLS), como `lerCredencialPorId`.
+   */
+  async function credencialDoDesafioVale(
+    organizacaoId: string, usuarioId: string, impressao: string,
+  ): Promise<boolean> {
+    const atual = await banco.comTenant(organizacaoId, async (c) => {
+      const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+        "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
+      );
+      return r.rows[0] ?? null;
+    });
+    return atual !== null && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
   }
 
   /**
@@ -555,13 +619,73 @@ export function servicoDeAutenticacao(
     return r.rows[0]!.abrir_sessao;
   }
 
-  /** Login: abre a sessão (família nova) e emite o par de tokens. */
+  /**
+   * Login: abre a sessão (família nova) e emite o par de tokens, SÓ SE a
+   * credencial ainda for a que foi conferida (V2-F00-E07, correção 3).
+   *
+   * O DEFEITO, provado pela validação de 52952a1 em Postgres 17: o login lia o
+   * hash numa transação, gastava o scrypt (cerca de 230 ms) e abria a sessão
+   * em OUTRA, sem trava e sem reler nada. Se a troca de senha pela própria
+   * pessoa, a redefinição por quem administra ou a desativação confirmava
+   * nesse intervalo, o UPDATE de `sessoes` delas não via a sessão que ainda
+   * não existia, e o login a abria depois, viva: com a senha ANTIGA, e
+   * renovando por catorze dias (13 de 30 rodadas na troca pela própria
+   * pessoa, que é o remédio de quem desconfia que a senha vazou).
+   *
+   * O CONSERTO, numa transação só, nesta ordem:
+   *
+   *   1. `abrir_sessao`, que no login lê a linha do município com FOR SHARE
+   *      (migração 050);
+   *   2. a trava da pessoa (`travar_sessoes_do_usuario`, migração 049), num
+   *      comando próprio;
+   *   3. a releitura de `senha_hash` e `ativo`, que em READ COMMITTED tira
+   *      fotografia nova depois da trava. Se a credencial não é mais a que
+   *      `confere` aceita, ou a conta foi desativada, a transação volta
+   *      atrás inteira (a sessão some junto) e a resposta é a recusa
+   *      genérica de senha errada: a senha digitada de fato não vale mais.
+   *
+   * As duas ordens da disputa ficam fechadas. Mudança que confirmou antes da
+   * trava: a releitura a enxerga e recusa. Mudança que chega depois da trava:
+   * ela atualiza `usuarios` (sem esperar o login, que só lê a linha) e para na
+   * trava; o login confirma a sessão e solta a trava, e o UPDATE de `sessoes`
+   * da mudança, que vem depois da trava, enxerga a sessão e a encerra.
+   *
+   * POR QUE ESSA ORDEM, e não a trava primeiro: a suspensão pelo console
+   * atualiza a linha do município e SÓ DEPOIS toma a trava de cada pessoa
+   * (049). Se o login tomasse a trava e depois pedisse a linha do município
+   * (o FOR SHARE da 050), as duas se esperariam em ordem inversa e o Postgres
+   * mataria uma com 40P01. Linha do município antes da trava, como a
+   * suspensão; e o login nunca trava a linha de `usuarios` (a chave
+   * estrangeira de `sessoes` só pede FOR KEY SHARE, que não conflita com o
+   * UPDATE de quem troca a senha), então a regra da 049 (linha de `usuarios`
+   * antes da trava) continua sem ciclo.
+   *
+   * `confere` recebe o hash de agora: o login compara com o hash que o scrypt
+   * conferiu; o segundo fator e a ativação, que não têm o hash, comparam com a
+   * impressão que o desafio carrega (`impressaoDaCredencial`).
+   */
   async function emitirPar(
     linha: LinhaCredencial,
     contexto: { userAgent?: string; ip?: string },
+    confere: (senhaHashAtual: string | null) => boolean,
   ): Promise<Autenticado> {
     const renovacao = gerarTokenRenovacao();
-    const sessaoId = await banco.semTenant((c) => abrirSessao(c, linha, contexto, renovacao, null));
+    const sessaoId = await banco.comTenant(linha.organizacao_id, async (c) => {
+      const id = await abrirSessao(c, linha, contexto, renovacao, null);
+      await c.query("SELECT travar_sessoes_do_usuario($1)", [linha.usuario_id]);
+      const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+        "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [linha.usuario_id],
+      );
+      const atual = r.rows[0];
+      if (!atual || !atual.ativo || !confere(atual.senha_hash)) throw new CredencialMudou();
+      return id;
+    }).catch((erro: unknown) => {
+      if (erro instanceof CredencialMudou) return null;
+      throw erro;
+    });
+    if (sessaoId === null) {
+      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
+    }
     return montarPar(linha, sessaoId, renovacao);
   }
 
@@ -750,6 +874,18 @@ export function servicoDeAutenticacao(
       throw erro;
     });
     if (sessaoNova === null) {
+      /*
+        PERDEU A TRAVA, e quem ganhou pode ter sido a desativação da conta
+        (V2-F00-E07, correção 3, achado 2 da validação de 52952a1). A leitura
+        acima viu a conta ativa; a desativação confirmou antes de a trava sair.
+        Responder `sessao_encerrada` aqui mandava o painel pedir login, e a
+        pessoa lia a recusa genérica ao entrar: o desfecho que a correção 1
+        da E05 consertou, de volta numa janela estreita. A mesma pergunta do
+        token recusado acima decide, e ela também trata o reúso: quem perdeu
+        para outra renovação com o MESMO token cai como reúso, que é o que já
+        acontecia quando o segundo pedido chegava um instante depois.
+      */
+      if (await tratarTokenRecusado(hash) === "conta_desativada") throw new ContaDesativada();
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
@@ -1130,7 +1266,7 @@ export function servicoDeAutenticacao(
   }
 
   return {
-    entrar, conferirSegundoFator, sessaoAposAtivacao, renovar, sair,
+    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale, renovar, sair,
     pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
     listarMinhasSessoes, esperarEnvios,
   };
