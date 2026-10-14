@@ -32,15 +32,22 @@ import type { Banco } from "../banco/tipos.js";
  *
  *   - ENTRAR e RENOVAR conferem sempre. É ali que nasce credencial nova, e
  *     credencial nova sob contrato suspenso não pode nascer. Renovar confere
- *     mesmo que o console já tenha revogado as sessões: a API não depende de
- *     outro processo ter feito a parte dele.
+ *     mesmo com a sessão ainda de pé no banco, e responde 403
+ *     `acesso_suspenso`: o console revoga as sessões ao suspender, mas a API
+ *     não depende de outro processo ter feito a parte dele. Quando o console
+ *     já revogou, a sessão é uma sessão encerrada como outra qualquer, e a
+ *     renovação responde 401 `sessao_encerrada`; o 403 aparece no pedido
+ *     seguinte (entrar, ou o token de acesso vencido, abaixo).
  *   - ESCRITA com token vivo confere sempre. Escrita é todo método que não
  *     seja GET nem HEAD E também o GET (com o HEAD dele) da rota marcada com
  *     `ROTA_GET_COM_EFEITO` (`servidor.ts`): o laudo, o termo de
  *     interdição, o termo de desinterdição e os PDFs, o CSV de ocorrências e
  *     o sino `GET /avisos`, que materializa avisos e expurga os velhos.
  *     Todos esses respondem 403 `acesso_suspenso` com o município suspenso,
- *     como um POST. Escrever cria registro (protocolo, laudo, evento de
+ *     como um POST de qualquer rota fora da fila do campo. As rotas que a
+ *     fila do aparelho chama (marcadas com `filaDoCampo`, todas POST)
+ *     recusam a mesma escrita com 503, e não 403: ver "A FILA DO APARELHO
+ *     RECEBE 503", abaixo. Escrever cria registro (protocolo, laudo, evento de
  *     trilha) sob um contrato que o fornecedor suspendeu, e o custo é uma
  *     consulta por escrita, que é a parte pequena do tráfego. Essa MESMA
  *     consulta confere também a vigência de quem escreve (conta ativa,
@@ -63,23 +70,30 @@ import type { Banco } from "../banco/tipos.js";
  *     campo: depois que a renovação falha, o aparelho segue apresentando o
  *     token vencido, e sem esta conferência ele receberia 401 para sempre, que
  *     a tela lê como "sua sessão terminou, entre de novo". Entrar de novo dá
- *     403 para sempre. Respondendo 403 já aqui, a tela diz a frase certa e não
- *     oferece o botão que não resolve. Custa uma consulta só quando a resposta
- *     seria 401 de qualquer forma, e a organização sai de um token que ESTE
- *     servidor assinou, nunca de um token forjado.
+ *     403 para sempre. Respondendo já aqui, a tela diz a frase certa e não
+ *     oferece o botão que não resolve. A resposta é 403 `acesso_suspenso`,
+ *     e 503 nas rotas marcadas com `filaDoCampo` (o mesmo status da escrita
+ *     com token vivo nelas, pela razão da seção abaixo). Custa uma consulta
+ *     só quando a resposta seria 401 de qualquer forma, e a organização sai
+ *     de um token que ESTE servidor assinou, nunca de um token forjado.
  *
  * ====================================================================
  * A FILA DO APARELHO RECEBE 503, E NÃO 403.
  *
- * `packages/campo/src/transporte.ts` classifica 5xx e 429 como temporário e
- * 4xx como permanente, e permanente vira item `bloqueado`, sem tela para
- * desbloquear e com "Descartar" embaixo. A coleta que está no aparelho foi
- * feita no morro, e a suspensão é reversível: ela precisa ESPERAR, e subir
- * sozinha quando o acesso voltar. A fila espera para sempre com teto de cinco
- * minutos entre tentativas, que é o custo certo. Por isso as rotas que a fila
- * chama (marcadas com `filaDoCampo` na configuração da rota) recusam com 503,
- * que é o mesmo código que o produto já usa para "existe e está indisponível
- * por decisão de quem implantou" (`recuperacao_desligada`).
+ * `packages/campo/src/transporte.ts` classifica 5xx e 429 como temporário, e
+ * o 4xx que não é de sessão, de conta nem de contrato como permanente, e
+ * permanente vira item `bloqueado` ("alguém precisa olhar", na legenda dos
+ * estados de `packages/campo/src/fila.ts`). A coleta que está
+ * no aparelho foi feita no morro, e a suspensão é reversível: ela precisa
+ * ESPERAR, e subir sozinha quando o acesso voltar. A fila espera com teto de
+ * cinco minutos entre tentativas (`ESPERA_MAXIMA_MS`), que é o custo certo.
+ * Por isso as rotas que a fila chama (marcadas com `filaDoCampo` na
+ * configuração da rota) recusam com 503, que o cliente trata como temporário
+ * só pelo status, e que é o mesmo código que o produto já usa para "existe e
+ * está indisponível por decisão de quem implantou" (`recuperacao_desligada`).
+ * Desde a V2-F00-E06 o cliente também lê o 403 `acesso_suspenso` pelo código
+ * do catálogo e o trata como temporário; esse ramo é a defesa em
+ * profundidade do cliente, e o 503 continua sendo a resposta destas rotas.
  *
  * O que NÃO se faz: aceitar a coleta e gravá-la sob o contrato suspenso. O
  * aparelho é o lugar certo para ela esperar, porque é o único que a fila sabe
