@@ -1,0 +1,575 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index b0f5997..8d55a3e 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -12,3 +12,3 @@
+-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 649 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1299 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1310 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+@@ -16 +16 @@
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` dá 21 de 21 (medido em 2026-10-13, depois de subir seis pacotes do Expo um patch atrás; registro na pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás) e **20 de 21 em 2026-10-14**: o Expo publicou outros patches (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e a única verificação que falha é a de versões de pacote. O resultado depende do dia e do registro do Expo, e subir de novo é decisão do Rafael (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -133 +133 @@
+-| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação |
++| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo |
+@@ -1016,0 +1017,3 @@
++Esse acompanhamento está em construção: a tela existe, mas o aplicativo do agente
++ainda não declara a saída (V2-F14-E01, ver o quadro de estado da seção "O agente
++que sobe o morro sozinho"), e por isso hoje ela fica vazia.
+@@ -1114 +1117,9 @@
+-  instalar, em vez de pular.
++  instalar, em vez de pular. **No macOS há uma falha de ambiente conhecida:**
++  `apps/api/test/openssl-do-teste.test.ts`, o caso "respeita OPENSSL_CONF válido",
++  espera o comportamento do OpenSSL 3 (o autoassinado de `openssl req -x509`
++  sai marcado como CA sem a configuração mínima) e o `openssl` do sistema é o
++  LibreSSL (3.3.6 medido em 2026-10-14), que não marca. É uma falha do teste
++  contra o LibreSSL, não do produto (não foi tentado aqui com um OpenSSL 3 no
++  PATH). Por isso o `test:api` numa máquina Mac sem OpenSSL 3 dá uma falha a
++  mais que o esperado do roteiro (o passo `teste-api` diverge só por ela), e a
++  contagem de casos não muda.
+@@ -1119,14 +1130,19 @@
+-| Comando | Windows 11 com Git Bash (Node 22.17.0) | Linux |
+-| --- | --- | --- |
+-| `npm run typecheck` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+-| `npm test` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+-| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | não provado nesta máquina |
+-| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | não provado nesta máquina |
+-| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | não provado nesta máquina |
+-| `npm run test:scripts` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+-| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+-
+-A coluna Linux fica "não provado" até existir um run de verdade, do CI
+-(F01-E03) ou de contêiner: esta máquina não tem WSL nem Docker, e o código foi
+-escrito para não depender da plataforma, o que não é o mesmo que ter rodado
+-nela. A evidência está em `docs/evidencias-v2/G00/V2-F00-E21/`.
++| Comando | Windows 11 com Git Bash (Node 22.17.0) | macOS (Node 24), 2026-10-14 | Linux |
++| --- | --- | --- | --- |
++| `npm run typecheck` | rodado em 2026-10-07, código 0 | código 0 (passo `typecheck` do roteiro) | CI, ver abaixo |
++| `npm test` | rodado em 2026-10-07, código 0 | não rodado como comando único; cada pacote rodou no roteiro, ver a linha seguinte | CI, ver abaixo |
++| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | **código 1**: 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`") e 9 pulados por ambiente (o Postgres real), 1319 casos impressos | CI, ver abaixo |
++| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | código 0 | CI, ver abaixo |
++| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | código 0 | CI, ver abaixo |
++| `npm run test:scripts` | rodado em 2026-10-07, código 0 | código 0, 260 de 260, 0 pulados (existe `apps/campo/ios/`) | CI, ver abaixo |
++| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | código 0 | CI, ver abaixo |
++
++A coluna Linux ficou "não provado" até existir um run de verdade do CI, e agora
++existe: o trabalho "Linha de base (baseline.mjs) em Linux" rodou o roteiro
++inteiro (19 de 19 passos, código 0) no run 38445527075, do SHA `c9895e9`, que o
++gatekeeper da V2-F00-E25 leu (`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`);
++o mesmo run passou os demais trabalhos. Isso cobre o roteiro, não cada comando
++da tabela um a um, e é anterior às correções 2 de 2026-10-14: com a árvore de
++hoje não houve run de CI. A coluna do macOS vem do roteiro rodado nesta máquina
++(`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
++da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+@@ -1172,4 +1188,13 @@
+-explicação, que reprova); 2 é o roteiro quebrado. Hoje não há divergência
+-explicada: o roteiro confere todos os passos com código 0 (17 de 17 com
+-`--sem-instalar`, 19 de 19 no Linux do CI); a deriva V-DEP-4 do `expo-doctor` foi
+-fechada em 2026-10-13, com a atualização dos patches do Expo.
++explicação, que reprova); 2 é o roteiro quebrado. Nenhum passo carrega hoje
++uma divergência explicada. Na árvore validada de `4b96ea7` o roteiro conferiu
++todos os passos com código 0 (17 de 17 com `--sem-instalar` no Windows, 19 de 19
++no Linux do CI), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
++com a atualização dos patches do Expo. **Medido em 2026-10-14 num Mac (Node 24,
++`--sem-instalar`): 14 de 17**, e as três divergências são de ambiente ou de dia,
++nenhuma de teste de produto: `teste-api` (a falha do LibreSSL descrita acima,
++com 1319 casos impressos, 9 deles pulados por ambiente porque o bloco de Postgres
++real só roda com `DC360_POSTGRES_DE_PROVA`), `test-scripts` (existe `apps/campo/ios/`,
++saída do `expo prebuild` desta máquina, então os casos que pulam sem ela
++rodam e passam: 0 pulados contra 4 esperados) e `expo-doctor` (20 de 21, a
++deriva voltou: cinco patches novos do Expo, item 17 de `apps/campo/PENDENCIAS.md`).
++Cada uma está nas saídas de `docs/evidencias-v2/G00/V2-F00-E22/correcao-2/`.
+@@ -1310,3 +1335,3 @@
+-npm test                    # 2925 testes em seis pacotes
+-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+-npm run test:api            # 1299 testes da API
++npm test                    # 2970 testes em seis pacotes
++npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
++npm run test:api            # 1310 testes da API
+@@ -1314 +1339 @@
+-npm run test:campo          # tipos e os 1903 testes do aplicativo de campo
++npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
+@@ -1471 +1496 @@
+-São 251 verificações no navegador que só existem neste caminho: entrada por senha, senha
++São 258 verificações no navegador que só existem neste caminho: entrada por senha, senha
+@@ -1622,2 +1647,3 @@
+-  aplicativo; passa no `expo-doctor` 21 de 21 (os seis patches do Expo foram
+-  aplicados em 2026-10-13, pendência 17 de `apps/campo/PENDENCIAS.md`) e no
++  aplicativo; deu 21 de 21 no `expo-doctor` em 2026-10-13 (os seis patches do Expo foram
++  aplicados então) e 20 de 21 em 2026-10-14, por cinco patches novos
++  (pendência 17 de `apps/campo/PENDENCIAS.md`); passa no
+diff --git a/dc360/apps/api/src/rotas/avisos.ts b/dc360/apps/api/src/rotas/avisos.ts
+index 49f5993..1d1b031 100644
+--- a/dc360/apps/api/src/rotas/avisos.ts
++++ b/dc360/apps/api/src/rotas/avisos.ts
+@@ -195,3 +195,4 @@
+-   * saída seria uma função `SECURITY DEFINER` a mais. O produto tem doze
+-   * dessas e um portão que reprova a décima terceira, de propósito, porque
+-   * cada uma é um buraco na parede do isolamento. Gastar essa vaga com um
++   * saída seria uma função `SECURITY DEFINER` a mais. O produto tem um teto
++   * dessas (27, em `db/test/isolamento.test.ts`) e um portão que reprova a
++   * seguinte, de propósito, porque cada uma é um buraco na parede do
++   * isolamento. Gastar essa vaga com um
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 78ceacb..11182b9 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -16 +16,3 @@
+-aparelho". Não há emulador nesta máquina, e simulador de iOS só existe em Mac.
++aparelho". Emulador de Android e simulador de iOS dependem da máquina de quem
++roda (o simulador só existe em Mac); nenhum registro de execução num deles está
++no repositório.
+@@ -23 +25 @@
+-| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
++| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou em 2026-10-14: 20 de 21**, a única falha é a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`; item 17 de `PENDENCIAS.md`). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
+diff --git a/dc360/apps/campo/LOJAS.md b/dc360/apps/campo/LOJAS.md
+index e189ce4..4d06258 100644
+--- a/dc360/apps/campo/LOJAS.md
++++ b/dc360/apps/campo/LOJAS.md
+@@ -270 +270,2 @@
+-npx expo-doctor      # 21 verificações da própria Expo
++npx expo-doctor      # 21 verificações da própria Expo (21 de 21 em 2026-10-13, 20 de 21 em
++                     # 2026-10-14 por patches novos; o resultado depende do dia)
+@@ -272 +273,4 @@
+-npm audit            # precisa fechar em zero
++npm run auditar --prefix ..   # política do CP-03: dependência de runtime em zero;
++                              # avisos de ferramenta do Expo só os da lista
++                              # nomeada, com dono e prazo (scripts/auditar-excecoes.mjs).
++                              # O `npm audit` puro daqui não fecha em zero.
+@@ -289,5 +293,10 @@
+-<!-- numeros: nao sao contagem -->
+-- **O aplicativo nunca rodou.** Ele compila, passa nas 21 verificações da Expo
+-  e o TypeScript não reclama, mas nenhuma tela foi aberta em aparelho nenhum.
+-- **Câmera, GPS e assinatura nunca foram exercitados.** A lógica que os cerca
+-  está escrita; o comportamento deles no aparelho, não.
++- **Não há prova arquivada de que o aplicativo rodou num aparelho.** Ele
++  compila, passa no `expo-doctor` (21 de 21 em 2026-10-13; o resultado depende do dia) e o TypeScript não reclama. Há
++  relato de uso (o `README.md` da raiz fala de compilação nativa num iPhone em
++  08/09/2026, com três vistorias coletadas, e o `LEIA-ME.md` fala de emulador),
++  mas nenhuma foto, vídeo, registro ou captura de aparelho está no repositório,
++  e relato não é prova. Até a V2-F14-E12 arquivar esse artefato, este documento
++  não afirma que alguma tela foi aberta num aparelho, nem que não foi.
++- **Câmera, GPS e assinatura não têm prova de aparelho arquivada.** A lógica
++  que os cerca está escrita e testada fora do celular; o comportamento deles no
++  aparelho é o que o relato afirma e o repositório não comprova.
+@@ -295 +304 @@
+-  envio e reabrir, confirmando que nada duplica no servidor. A fila tem 46
++  envio e reabrir, confirmando que nada duplica no servidor. A fila tem 58
+@@ -299,2 +308,4 @@
+-- **Nenhum build foi gerado.** `eas build` precisa de conta.
+-- **O som de despacho nunca tocou num aparelho.** Desde 15/09/2026 a tarefa nova
++- **Nenhum build de distribuição está arquivado.** `eas build` precisa de
++  conta, e a compilação nativa relatada para o iPhone em 08/09/2026 não deixou
++  binário no repositório.
++- **Não há registro de o som de despacho ter tocado num aparelho.** Desde 15/09/2026 a tarefa nova
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index dba69ea..f1b31ec 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -441,0 +442,31 @@
++### Correção 2 da E06 (2026-10-14): uma fila só por aparelho, e o cartão da tarefa não pede sinal quando a fila está pausada
++
++Três coisas mudaram, todas presas por teste de componente ou de módulo com a fila de
++produção:
++
++- **`obterFila` (`src/dados/fila.ts`) devolve UMA instância por dono, também sob
++  chamadas simultâneas.** A variável de módulo guarda a PROMESSA da fila, atribuída de
++  forma síncrona antes de qualquer `await`. Antes, a faixa global, a barra de abas, o
++  laço de fundo e a tela da fila passavam todas pela conferência com a variável ainda
++  nula e cada uma montava a sua fila; a pausa nascia numa fila que ninguém mais
++  escutava e a faixa dizia "Tudo sincronizado" com a sessão encerrada. Uma criação que
++  falha não fica gravada, mas `bancoLocal()` memoiza a própria promessa rejeitada: um
++  banco que falhou ao abrir continua falhando até `esquecerConexao()` ou o aplicativo
++  ser reaberto.
++- **O cartão da tarefa não manda esperar sinal quando a fila está pausada.** Com a
++  coleta guardada e a fila parada pela sessão, pela senha provisória ou pela conta
++  desativada, o cartão dizia "O que falta é sinal para enviar" enquanto a faixa dizia
++  "Sessão encerrada". `ordemDoDia` recebe `pausadaPor` (opcional) e, no caso "a
++  primeira da lista já foi vistoriada", usa a frase `daLista` de `pausa-da-fila.ts`
++  (uma por motivo: entrar de novo, a coordenação reativar a conta, definir a senha no
++  painel e entrar de novo). A tela de tarefas (`index.tsx`) guarda a pausa que a fila
++  entrega no resumo e a passa à ordem. O mapa não mostra essa frase. Texto de produto
++  novo: precisa da aprovação do Rafael.
++- **`troca-de-conta-com-pedido-em-voo.test.ts` não depende mais da ordem dos casos**
++  (recarrega o módulo e zera banco e `fetch` em cada caso); reprovava com
++  `--randomize` em quatro das oito sementes.
++
++Continua sem prova de aparelho: nada disto foi visto em emulador nem em aparelho. As
++capturas da correção (`docs/evidencias-v2/G00/V2-F00-E06/correcao-2/capturas/`) são de
++nível E1+ (a árvore real em Chromium, sem a barra de abas nem a fonte do aparelho).
++
+@@ -555,0 +587,29 @@
++### Correção 2 da E16 (2026-10-14): a cópia da foto é esperada, o contraste sobre o visor e o portão por classe
++
++- **A cópia da foto é assíncrona e agora é esperada.** No `expo-file-system` 57,
++  `File.copy` devolve uma `Promise`; `guardarFotoNoAparelho` (`src/dados/evidencia-no-disco.ts`)
++  chamava sem `await` e lia o tamanho antes de a cópia existir, de modo que no emulador
++  Android toda foto era recusada como "o arquivo saiu vazio", com o JPEG inteiro órfão no
++  disco. Agora o `await` fica dentro do `try` (a recusa do sistema, como disco cheio, chega
++  como Promise rejeitada e sai em português), e foto vazia ou cópia pela metade apaga o
++  destino antes de a recusa subir. O dublê de `File` do teste foi reescrito para o
++  contrato real (`copy` assíncrona, `copySync` síncrona, `size` zero para arquivo que não
++  existe); trocar `copy` por `copySync` também passa.
++- **O botão sobre a câmera é legível.** "Voltar sem fotografar" media 1,19:1 de rótulo
++  sobre o visor preto no tema claro (exigido 4,5:1). As peças sobre o visor agora leem o
++  tema escuro nos dois temas (`SobreOVisor`, em `ui/componentes.tsx`, sem cor nova): rótulo
++  18,46:1 e contorno 8,81:1. Um teste mede o estilo renderizado nos dois temas do aparelho
++  (rótulo de pelo menos 4,5 e contorno de pelo menos 3).
++- **A fila deixou de prometer que continua sozinha.** O cartão "Aguardando" com muitas
++  tentativas diz "Já tentou Nx e vai continuar tentando enquanto o aplicativo estiver
++  aberto. A conexão daqui não está completando o envio." (`fila.tsx`).
++- **O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs` passou
++  a ser por classe, e não por lista de frases:** reconhece o afastamento (fechar, minimizar,
++  bloquear, sair do aplicativo...) e a promessa (enviar, subir, terminar, continuar...) por
++  radical do verbo, e reprova a frase que junta as duas sem a condição "aberto". Medido
++  contra 22 promessas plantadas: a regra da rodada anterior deixou passar 15, a por classe
++  deixa passar 0. O arquivo tem 15 casos.
++
++Continua valendo: nada disto foi visto num aparelho (o que a cópia faz no `expo-file-system`
++real do iPhone ou do Android é o que só o aparelho responde).
++
+@@ -557,0 +618,12 @@
++**RECORRÊNCIA em 2026-10-14 (medida na rodada de conserto da V2-F00-E22).** O `npx expo-doctor`
++em `apps/campo` voltou a dar **20 de 21**, pela mesma verificação ("Check that packages match
++versions required by installed Expo SDK"): o Expo publicou mais patches depois da subida de
++2026-10-13, e cinco pacotes ficaram um patch atrás (`expo` 57.0.28 contra ~57.0.29,
++`expo-constants` 57.0.21 contra ~57.0.22, `expo-linking` 57.0.12 contra ~57.0.13,
++`expo-notifications` 57.0.22 contra ~57.0.23 e `expo-router` 57.0.26 contra ~57.0.27). Nada
++foi atualizado nesta rodada: subir pacote nativo muda o binário do aparelho e é decisão do
++Rafael, com a suíte do aplicativo e o `prebuild` junto. Saída em
++`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/`. O passo `expo-doctor` do roteiro da
++linha de base diverge hoje por isso (deriva nova, sem `divergenciaExplicada`, de propósito).
++O texto abaixo continua sendo o registro da subida de 2026-10-13.
++
+@@ -562 +634,2 @@
+-`package-lock.json`. Depois: `npx expo-doctor` **21 de 21**, `npm run test:campo`
++`package-lock.json`. Depois (números daquele dia; hoje o jest do aplicativo tem 1927 casos):
++`npx expo-doctor` **21 de 21**, `npm run test:campo`
+diff --git a/dc360/apps/web/PENDENCIAS.md b/dc360/apps/web/PENDENCIAS.md
+index 6f30992..6cc4da0 100644
+--- a/dc360/apps/web/PENDENCIAS.md
++++ b/dc360/apps/web/PENDENCIAS.md
+@@ -37 +37 @@
+-| e2e contra a API no Firefox fora do CI; nenhum run do CI conferido | 10.1 | F01-E03, validação humana |
++| e2e contra a API no Firefox fora do CI; o gatekeeper leu o run do CI, falta a conferência humana | 10.1 | F01-E03, validação humana |
+@@ -427 +427 @@
+-A rodada 2 da validação reprovou três pontos, todos presos agora por teste:
++A rodada 2 da validação reprovou três pontos, e a própria correção achou um quarto, todos presos agora por teste:
+@@ -438,2 +438,4 @@
+-  `MinhaConta.tsx` leva o foco para a confirmação (`tabIndex={-1}`). Preso por
+-  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real).
++  `MinhaConta.tsx` leva o foco para a confirmação, que é o próprio `Aviso` com a prop
++  `foco` (`tabIndex={-1}`, sem `role`: ver o fim desta seção). Preso por
++  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real e ausência
++  de região viva).
+@@ -441,2 +443,3 @@
+-  redefinição não tem mais relógio: mostra a confirmação (`role="status"`) e o
+-  botão "Entrar com a nova senha", um link de navegação completa. Preso por
++  redefinição não tem mais relógio: mostra a confirmação (com o foco nela) e o
++  botão "Entrar com a nova senha", um link de navegação completa, que é a única ação
++  da tela (sem o link "Voltar para a entrada" nem a frase de apoio, que repetiam). Preso por
+@@ -446,5 +449,27 @@
+-
+-Continua aberto, com dono em outra fase: foco em `BODY` depois do envio do pedido
+-e do sucesso da recuperação, e aviso de sucesso que entra no DOM já com o texto
+-(anúncio de região inserida não é garantido), ambos de F10-E11; telas de
+-recuperação sem landmark `main`.
++- **Rótulo do botão Entrar sumia com o mouse em cima (E10, achado da própria correção).**
++  As capturas a 1280 px mostraram o botão "Entrar com a nova senha" sem texto: ele é
++  um `<a>`, e `a:hover` (0,1,1) vence a cor do repouso de `.botao--primario` (0,1,0),
++  então o texto ia para `--ds-accent-hover`, igual ao fundo do hover, nos dois temas.
++  O hover de `.botao--primario` e de `.botao--secundario` agora diz a cor do texto
++  (`app.css`). Preso por `test/recuperar-senha.test.ts` (fonte) e pela seção 14 do
++  `fluxo-api.e2e.mjs`, que passa o mouse sobre o botão nos dois temas e compara a cor
++  do texto com a do fundo. Era defeito anterior à correção (o botão antigo "Ir para a
++  entrada" tinha o mesmo).
++
++**Foco e anúncio da confirmação (rodada de conserto da correção 2).** O foco em `BODY`
++depois do envio do pedido de recuperação e depois de redefinir a senha, e o aviso de
++sucesso que entrava no DOM já com o texto (anúncio de região inserida não é garantido),
++SAÍRAM desta lista: foram consertados. Escolha, em UM mecanismo só: o FOCO. `Aviso`
++ganhou a prop `foco`; com ela o aviso é o alvo do foco (`tabIndex={-1}`) e NÃO é região
++viva (sem `role`), porque região viva mais foco seriam lidos duas vezes. As duas telas
++de recuperação e a confirmação de Minha conta usam o mesmo mecanismo. Ao "Pedir de novo"
++o foco volta para o campo de email. Preso por `test/recuperar-senha.test.ts` e
++`test/minha-conta-estreita.test.ts` (fonte), pela seção 14 de `fluxo-api.e2e.mjs` e pela
++seção 7 de `layout-estreito.e2e.mjs` (foco real e ausência de região viva).
++
++Continua aberto, com dono em outra fase (F10-E11): quando a redefinição cai em link que
++não vale mais ou em recuperação desligada, o formulário também some e o foco ainda vai
++para `BODY` (o aviso de perigo é `role="alert"`, então é anunciado); telas de
++recuperação sem landmark `main`. Nenhum leitor de tela foi usado: o anúncio por foco
++está provado por atributo e por `document.activeElement`, e a conferência com leitor de
++tela segue como pendência humana.
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index dcf3100..301bad7 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -40,4 +40,11 @@
+-- **4828 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+-  F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+-  conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+-  raiz do repositório.
++- **4897 testes somando o aplicativo** (contagem estática de `npm run
++  conferir:numeros` em 2026-10-14; a execução imprime pulos por ambiente à
++  parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
++  os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
++  14 de 17, por três passos de ambiente ou de dia (README, "O roteiro da linha
++  de base"), entre eles o `expo-doctor` em 20 de 21. `npm run auditar` sai com
++  código 0 pela política do CP-03: dependência de runtime em zero, e os avisos de ferramenta
++  do aplicativo só os da lista nomeada, com dono e prazo
++  (`scripts/auditar-excecoes.mjs`). O `npm audit` puro do aplicativo continua
++  acusando avisos. O estado de cada etapa está em `docs/roadmap-v2/STATUS.md`,
++  na raiz do repositório.
+@@ -48,3 +55,6 @@
+-- O app foi verificado inteiro no emulador **Android**: menu, minuta, login,
+-  GPS, câmera, o ciclo completo. **Nunca rodou em iOS**, e é o que você vai fazer
+-  no Mac.
++- O aplicativo está inteiro em código e passa nos testes. Há relato de uso em
++  emulador Android (menu, minuta, login, GPS, câmera, o ciclo completo) e de
++  compilação nativa e três vistorias coletadas num iPhone em 08/09/2026, mas
++  **nenhum artefato de aparelho está arquivado** (a prova é a V2-F14-E12), e
++  relato não é prova. O que você vai fazer no Mac é refazer essa prova com o
++  que o repositório consiga guardar.
+@@ -179,0 +190,9 @@
++  **Migrações 049 e 050 (V2-F00-E07): migre ANTES de implantar o código novo.**
++  O código novo da API chama `travar_sessoes_do_usuario`, que a 049 cria, em
++  toda renovação e em todo encerramento em massa das sessões de uma pessoa;
++  contra um banco sem a 049 a renovação falha. O contrário é seguro: o código
++  antigo contra o banco já migrado continua funcionando (as funções recriadas
++  mantêm a assinatura). A 050 só recria
++  `abrir_sessao` (o login passa a ler a suspensão do município com `FOR SHARE`),
++  a API não muda por causa dela e a ordem é indiferente.
++
+@@ -312 +331 @@
+-npm run verificar          # typecheck, 4828 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4897 testes com o aplicativo, auditar, números
+@@ -367,2 +386,3 @@
+-> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado com as 47 migrações,
+-> com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
++> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado então com as 47
++> migrações que existiam (hoje são 50; o CI repete o roteiro em Postgres 17,
++> ver o próprio documento), com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
+@@ -762 +782 @@
+-| Postgres do CI | 16 (`postgres:16`) | Job que aplica as migrações e roda a API contra banco real |
++| Postgres do CI | 16 (`postgres:16`) no job `implantavel`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações e roda a API contra banco real; o segundo ensaia o restore (CA-08) em Linux |
+diff --git a/dc360/docs/RESTORE-DO-BANCO.md b/dc360/docs/RESTORE-DO-BANCO.md
+index 57d5861..c9e06d9 100644
+--- a/dc360/docs/RESTORE-DO-BANCO.md
++++ b/dc360/docs/RESTORE-DO-BANCO.md
+@@ -1 +1 @@
+-# Restore do banco: o roteiro mínimo, provado com as 47 migrações
++# Restore do banco: o roteiro mínimo, provado e repetido pelo CI
+@@ -14,0 +15,9 @@
++**Quantas migrações.** A pasta `db/migrations/` tem hoje 50 (001 a 050) <!-- numeros: migracoes=50 -->. Os
++números de migração abaixo são fatos datados: cada prova vale para a árvore em
++que rodou, e quem quiser o número de hoje conta os arquivos
++(`ls db/migrations | wc -l`). O roteiro não depende da quantidade: o `migrar`
++aplica as que existem. A 048, a 049 e a 050 não acrescentam tabela, policy
++nem função `SECURITY DEFINER` (recriam funções que já existiam, e a 049 cria
++uma função comum; o teto de 27 em `db/test/isolamento.test.ts` segue o mesmo),
++mas a prova local abaixo, de 2026-10-07, não as inclui.
++
+@@ -19,4 +28,7 @@
+-  **47 migrações** (001 a 047; o roteiro da V2 dizia 46, mas a E07 acrescentou
+-  a 047) aplicadas do zero e a semente sintética.
+-  (A 048, de 2026-10-13, só recria `dono_do_token` com uma coluna a mais; o job
+-  `restore` do CI a aplica junto das outras, e esta prova local não foi repetida.)
++  **47 migrações que existiam então** (001 a 047; o roteiro da V2 dizia 46, mas
++  a E07 acrescentou a 047) aplicadas do zero e a semente sintética.
++  (A 048, de 2026-10-13, só recria `dono_do_token` com uma coluna a mais; a
++  049 recria funções de sessão e acrescenta uma função comum de trava
++  (`travar_sessoes_do_usuario`), e a 050 recria `abrir_sessao`. O job `restore`
++  do CI as aplica junto das outras, e esta prova local não foi repetida com
++  elas.)
+@@ -40,0 +53,12 @@
++Provado pelo CI, em Linux, com Postgres 17 (job "Restore do banco, Postgres 17
++(CA-08)" de `.github/workflows/verificar.yml`): o mesmo roteiro, em dois
++servidores `postgres:17` descartáveis (17.11 no run 38445527075, do SHA
++`c9895e9`; lido pelo gatekeeper da E25, que registrou o resultado em
++`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`, e não reaberto aqui), com o cliente `pg_dump` 17,
++as 48 migrações que existiam naquele SHA aplicadas do zero e as 27
++conferências do roteiro (`scripts/ensaiar-restore.sh`) todas "OK". Esse run é
++anterior à 049 e à 050: com a árvore de hoje (50 migrações) o job ainda não
++rodou, e este documento não afirma que ele passa. O job `implantavel`, que
++roda a API contra banco real, usa o Postgres 16 (`postgres:16`); o 17 é só do
++job `restore`.
++
+@@ -47,6 +71,6 @@
+-- **Postgres 17.** A produção é 17.6 e o CI usa 16; a prova rodou no 18.3, a
+-  única versão instalada nesta máquina. Os passos não dependem da versão, mas
+-  isso é inferência.
+-- **Linux e macOS.** Os comandos são os mesmos (são binários do PostgreSQL e
+-  `bash`), mas não foram executados lá nesta prova. As diferenças conhecidas
+-  estão na seção "Fora do Windows".
++- **A prova local em outra versão do Postgres.** A prova de 2026-10-07 rodou
++  no 18.3, a única versão instalada naquela máquina; a produção é 17.6. O
++  Postgres 17 está provado pelo CI (acima), não pela prova local.
++- **macOS.** Os comandos são os mesmos (são binários do PostgreSQL e `bash`),
++  mas não foram executados lá nesta prova. Linux está provado pelo CI. As
++  diferenças conhecidas estão na seção "Fora do Windows".
+@@ -120 +144 @@
+-npm run migrar                  # Aplicadas: 001_base.sql ... 047_familia_da_sessao.sql
++npm run migrar                  # Aplicadas: 001_base.sql ... até a última da pasta (047 na prova de 2026-10-07)
+@@ -266 +290 @@
+-Não executado nesta prova; o que muda é só onde ficam os binários:
++Linux roda no CI (acima) com o cliente do repositório do PGDG; o macOS não foi executado em prova nenhuma. O que muda é só onde ficam os binários:
+@@ -275 +299 @@
+-## Tempo medido nesta prova
++## Tempo medido na prova de 2026-10-07
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 4c1604f..053078a 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -144,0 +145,12 @@
++
++    V2-F00-E16, correção 2: o mesmo arquivo ganhou 5 casos (as quatro frases
++    que a validação plantou, as variações fora da lista, a condição "aberto",
++    as frases inofensivas e o plantio na fila real), então o arquivo tem 9.
++    A tabela de arquivos abaixo confere o arquivo inteiro contra este número.
++
++    V2-F00-E16, correção 2, segunda rodada de conserto: a regra deixou de ser
++    por lista de palavras e passou a ser por classe (radicais de largar o
++    aplicativo e de prometer envio), e o arquivo ganhou 6 casos (as promessas
++    que o revisor plantou e suas variações, a promessa em duas frases, a forma
++    antiga de "vai tentar de novo em instantes", o "aberto" negado, os avisos
++    verdadeiros e o plantio da forma antiga na fila real). O arquivo tem 15.
+@@ -146 +158 @@
+-  "V2-F00-E16-correcao-1": 4,
++  "V2-F00-E16-correcao-1": 15,
+@@ -331,0 +344,16 @@
++  /*
++    Correções 2 (2026-10-14), contadas contra o `4b96ea7` pelo `vitest list`:
++    V2-F00-E04 acrescentou 2 casos a `acesso-suspenso.test.ts` (18 para 20);
++    V2-F00-E07 trouxe `renovacao-contra-encerramento.test.ts`, novo: 5 casos de
++    PGlite que rodam sempre e 9 de Postgres real (`describe.skipIf`), que só
++    rodam com `DC360_POSTGRES_DE_PROVA` (o job `implantavel` do CI define; o
++    roteiro da linha de base não). No roteiro eles são 9 PULADOS por ambiente:
++    o `vitest run` imprime 1319 casos (1310 mais esses 9) e 9 pulados, e a lista
++    do `vitest list` enumera 1310. V2-F00-E12 acrescentou 4 casos a
++    `saida-de-municipio.test.ts` (28 para 32: o controle positivo da assinatura,
++    o armazenamento que lança, o armazenamento fora do ar e a diferença
++    conhecida). Soma 11 na lista (de 1299 para 1310) e 20 no `vitest run`.
++  */
++  "V2-F00-E04-correcao-2": { total: 2, falhas: 0, puladas: 0 },
++  "V2-F00-E07-correcao-2": { total: 14, falhas: 0, puladas: 9 },
++  "V2-F00-E12-correcao-2": { total: 4, falhas: 0, puladas: 0 },
+@@ -390,0 +419,4 @@
++  // V2-F00-E09, correção 2: `minha-conta-estreita.test.ts` é novo, com 6 casos (a regra `.botao--quebra`, a largura até 600 px, o uso no botão, o que não pode ter número solto, o `ref` e o foco).
++  "V2-F00-E09-correcao-2": { total: 6, falhas: 0 },
++  // V2-F00-E10, correção 2: `recuperar-senha.test.ts` foi de 37 para 47 casos (a tela de sucesso não promete ida automática nem tem relógio, o foco na confirmação, o rodapé, o hover e o pedido de novo). Contado contra o `4b96ea7`.
++  "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
+@@ -406,0 +439,9 @@
++  /*
++    V2-F00-E07, correção 2: `renovacao-e-encerramento-na-mesma-trava.test.ts`
++    é novo, com 12 casos (a 049: a trava, a ordem em que cada função a toma, a
++    recusa de herdar família encerrada, as permissões), e
++    `login-e-suspensao-na-mesma-linha.test.ts` é novo, com 6 (a 050: aplica sem
++    tocar sessões, idempotente, teto de funções `SECURITY DEFINER`, permissões,
++    `FOR SHARE` só no login, DC367 e DC369 mantidos). Soma 18, de 327 para 345.
++  */
++  "V2-F00-E07-correcao-2": { total: 18, falhas: 0, puladas: 0 },
+@@ -476,0 +518,12 @@
++  /*
++    V2-F00-E06, correção 2 (17 casos, contados contra o `4b96ea7`):
++    `obter-fila-uma-so.test.ts` (4), `faixa-ligada-a-fila-real.test.tsx` (3),
++    `a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx` (5), 4 em
++    `ordem-do-dia.test.ts` e 1 em `pausa-da-fila.test.ts`.
++    V2-F00-E16, correção 2 (7 casos): 4 em `evidencia-no-disco.test.ts`, 1 em
++    `vistoria-a-foto-com-o-disco-fiel.test.tsx` (novo) e 2 em
++    `vistoria-camera-legivel-sobre-o-visor.test.tsx` (novo, um por tema).
++    Soma 24, de 1903 para 1927.
++  */
++  "V2-F00-E06-correcao-2": { total: 17, falhas: 0 },
++  "V2-F00-E16-correcao-2": { total: 7, falhas: 0 },
+@@ -529,2 +582,3 @@
+-    avisos de ferramenta de desenvolvimento, entre eles dois críticos; campo: 61,
+-    da árvore do Expo SDK 57). A decisão está no CP-03, com prazo das exceções
++    avisos de ferramenta de desenvolvimento, entre eles dois críticos; campo: dezenas, da árvore do
++    Expo SDK 57; a contagem muda com a base de avisos do dia: 61 em 2026-10-13, 59
++    em 2026-10-14). A decisão está no CP-03, com prazo das exceções
+@@ -596,0 +651,6 @@
++
++    Correcoes 2 (2026-10-14): E09 e E10 acrescentaram conferencias as duas
++    suites (a confirmacao com o foco nela, 5 s sem redirecionar, hover nos dois
++    temas, geometria a 320 px): 288 verificacoes executadas no fluxo contra a
++    API (as `ok(` no inicio de linha, que o `conferir` conta, sao 258) e 64 na
++    largura estreita. Medido no Mac, Node 24, Chromium.
+@@ -603 +663 @@
+-    esperado: { codigo: 0, contem: ["Passou: 279   Falhou: 0", "Passou: 50   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 64   Falhou: 0"] },
+@@ -641,0 +702,7 @@
++    /*
++      O resumo do `node --test` tem duas grafias: "# tests 260" (TAP, o que o
++      Node 22 imprime quando a saída não é um terminal) e "ℹ tests 260" (o
++      relator `spec`, que o Node 24 usa também sem terminal). Medido em 2026-10-14
++      no Mac com Node 24: só a segunda aparecia, e o passo `test-scripts` dava
++      "a saída não traz a contagem" com código 0 e 260 de 260 verdes.
++    */
+@@ -643 +710 @@
+-      const m = new RegExp(`^# ${nome} (\\d+)\\s*$`, "m").exec(limpo);
++      const m = new RegExp(`^(?:#|\u2139) ${nome} (\\d+)\\s*$`, "m").exec(limpo);
+diff --git a/dc360/scripts/baseline.test.mjs b/dc360/scripts/baseline.test.mjs
+index f23672c..74a5721 100644
+--- a/dc360/scripts/baseline.test.mjs
++++ b/dc360/scripts/baseline.test.mjs
+@@ -109,0 +110,2 @@
++  // Node 24 sem terminal imprime o resumo no relator `spec`, com "\u2139" no lugar de "#".
++  assert.deepEqual(extrairContagem("\u2139 tests 260\n\u2139 suites 3\n\u2139 pass 257\n\u2139 fail 1\n\u2139 skipped 2\n", "node-test"), { total: 260, falhas: 1, puladas: 2 });
+diff --git a/dc360/scripts/conferir-numeros.mjs b/dc360/scripts/conferir-numeros.mjs
+index a27890a..936d5a8 100644
+--- a/dc360/scripts/conferir-numeros.mjs
++++ b/dc360/scripts/conferir-numeros.mjs
+@@ -178,0 +179,13 @@
++/**
++ * Marcador para a frase que diz quantas migrações a pasta `db/migrations/` tem
++ * HOJE: `<!-- numeros: migracoes=50 -->`, na própria linha. O número é conferido
++ * contra os arquivos `NNN_*.sql` da pasta (V2-F00-E22, correção 2).
++ *
++ * Existe porque o roteiro de restore dizia "47 migrações" com 50 na pasta e
++ * nenhum portão reclamou: a contagem de migração não é contagem de teste, e o
++ * conferidor de teste não a enxerga. Só vale para o número ATUAL; fato datado
++ * ("provado com 47 em 2026-10-07") fica sem marcador, porque continua verdadeiro.
++ */
++const MARCADOR_DE_MIGRACOES = /<!--\s*numeros:\s*migracoes=(\d+)\s*-->/;
++const migracoesNaPasta = readdirSync(join(RAIZ, "db", "migrations")).filter((n) => /^\d{3}_.+\.sql$/.test(n)).length;
++
+@@ -181 +194,8 @@
+-const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage"]);
++/*
++  `ios` e `android` são saída do `expo prebuild` do aplicativo de campo, fora do
++  git (`apps/campo/.gitignore`). Numa máquina que já compilou para o aparelho
++  eles trazem milhares de arquivos de Pods, com link simbólico para dentro do
++  `node_modules`; depois de um `npm ci` o link fica quebrado e o `statSync`
++  derrubava o portão inteiro com ENOENT. Nenhum documento do produto mora ali.
++*/
++const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage", "ios", "android"]);
+@@ -360,0 +381,9 @@
++
++    const marcadaDeMigracoes = MARCADOR_DE_MIGRACOES.exec(linha);
++    if (marcadaDeMigracoes) {
++      const afirmado = Number(marcadaDeMigracoes[1]);
++      const local = `${relativo}:${i + 1}`;
++      if (afirmado === migracoesNaPasta) conferidos.push(`${local}  ${afirmado} migrações, conferido contra db/migrations`);
++      else problemas.push(`${local}\n    afirma: ${afirmado} migrações em db/migrations\n    a pasta tem ${migracoesNaPasta}`);
++    }
++
+diff --git a/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md b/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
+index 0f4a8cf..f6ac06e 100644
+--- a/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
++++ b/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
+@@ -61 +61 @@
+-O esperado de cada passo está em `PASSOS`, dentro de `scripts/baseline.mjs`, e o total de casos de cada suíte é a soma de uma base mais o que cada etapa da fase F00 declarou mudar. Em resumo, na árvore verde de 2026-10-13:
++O esperado de cada passo está em `PASSOS`, dentro de `scripts/baseline.mjs`, e o total de casos de cada suíte é a soma de uma base mais o que cada etapa da fase F00 declarou mudar. Em resumo, na árvore verde de 2026-10-13 (Windows e Linux do CI; o que mudou na rodada de 2026-10-14 está no fim desta seção):
+@@ -63 +63 @@
+-- passam, com código 0: `typecheck`, as suítes de `packages/shared`, `db` (inclui o isolamento, com 3 pulados por ambiente em `busca.test.ts`), `packages/campo`, `apps/api` (sem nenhum pulado), `apps/console` e `apps/web`, o jest do aplicativo de campo, `npm run test:campo`, `npm run test:scripts` (4 pulados por ambiente, a pasta `ios/` que não existe), `conferir:numeros`, `auditar` e os dois E2E;
++- passam, com código 0: `typecheck`, as suítes de `packages/shared`, `db` (inclui o isolamento, com 3 pulados por ambiente em `busca.test.ts`), `packages/campo`, `apps/api` (9 pulados por ambiente: o bloco de Postgres real de `renovacao-contra-encerramento.test.ts`, que só roda com `DC360_POSTGRES_DE_PROVA`; o `vitest run` imprime 1319 casos contra 1310 da lista), `apps/console` e `apps/web`, o jest do aplicativo de campo, `npm run test:campo`, `npm run test:scripts` (4 pulados por ambiente, a pasta `ios/` que não existe), `conferir:numeros`, `auditar` e os dois E2E;
+@@ -65 +65 @@
+-- nenhuma divergência explicada: o `expo-doctor` dá 21 de 21. A deriva que o roteiro nomeava como **V-DEP-4** (seis pacotes do Expo um patch atrás do que o SDK 57 exige, publicados depois do 21 de 21 de 2026-10-08) foi fechada em 2026-10-13: o Rafael decidiu atualizar, os seis patches foram aplicados (item 17 de `dc360/apps/campo/PENDENCIAS.md`) e o passo confere sozinho. Se a deriva voltar (o Expo publica patch novo a toda hora), o passo diverge de propósito e a causa se descreve em `divergenciaExplicada` só se a decisão for não atualizar na hora.
++- nenhuma divergência explicada: o `expo-doctor` deu 21 de 21 em 2026-10-13 (em 2026-10-14 deu 20 de 21 de novo, ver o fim desta seção). A deriva que o roteiro nomeava como **V-DEP-4** (seis pacotes do Expo um patch atrás do que o SDK 57 exige, publicados depois do 21 de 21 de 2026-10-08) foi fechada em 2026-10-13: o Rafael decidiu atualizar, os seis patches foram aplicados (item 17 de `dc360/apps/campo/PENDENCIAS.md`) e o passo confere sozinho. Se a deriva voltar (o Expo publica patch novo a toda hora), o passo diverge de propósito e a causa se descreve em `divergenciaExplicada` só se a decisão for não atualizar na hora.
+@@ -67 +67 @@
+-Portanto uma árvore verde e rede disponível dão código **0**: 19 de 19 passos "confere" numa máquina nova, ou 17 de 17 com `--sem-instalar` (o `npm ci` das duas árvores não roda). Sem rede o resultado NÃO vale: `npm audit` e `expo-doctor` dependem do registro, e o roteiro não confere um `npm audit` cru que saiu "falha" sem trazer o relatório (`# npm audit report`), justamente porque registro fora do ar também sai com código diferente de zero sem ter auditado. Nesse caso o passo diverge (código 3).
++Portanto uma árvore verde e rede disponível dão código **0**: 19 de 19 passos "confere" numa máquina nova, ou 17 de 17 com `--sem-instalar` (o `npm ci` das duas árvores não roda), **no dia em que o `expo-doctor` está verde**. **Medido em 2026-10-14 num Mac (Node 24, `--sem-instalar`): 14 de 17, código 3**, por três passos que dependem da máquina ou do dia, e nenhum é regressão de teste de produto: `teste-api` (o `openssl` do macOS é LibreSSL e o caso "respeita OPENSSL_CONF válido" de `openssl-do-teste.test.ts` espera o OpenSSL 3: 1 falha), `test-scripts` (a pasta `apps/campo/ios/` existe nesta máquina, os 4 testes que pulam sem ela rodam: 0 pulados contra 4 esperados) e `expo-doctor` (20 de 21: o Expo publicou cinco patches novos, `apps/campo/PENDENCIAS.md`, item 17). Nesse caso quem reproduz vê código 3, e o RESUMO.md diz qual passo e por quê. Sem rede o resultado NÃO vale: `npm audit` e `expo-doctor` dependem do registro, e o roteiro não confere um `npm audit` cru que saiu "falha" sem trazer o relatório (`# npm audit report`), justamente porque registro fora do ar também sai com código diferente de zero sem ter auditado. Nesse caso o passo diverge (código 3).

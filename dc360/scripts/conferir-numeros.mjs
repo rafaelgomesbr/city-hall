@@ -176,9 +176,29 @@ const NAO_E_CONTAGEM = "<!-- numeros: nao sao contagem -->";
  */
 const CONFERE_SO_POR_VALOR = "<!-- numeros: confere so por valor -->";
 
+/**
+ * Marcador para a frase que diz quantas migrações a pasta `db/migrations/` tem
+ * HOJE: `<!-- numeros: migracoes=50 -->`, na própria linha. O número é conferido
+ * contra os arquivos `NNN_*.sql` da pasta (V2-F00-E22, correção 2).
+ *
+ * Existe porque o roteiro de restore dizia "47 migrações" com 50 na pasta e
+ * nenhum portão reclamou: a contagem de migração não é contagem de teste, e o
+ * conferidor de teste não a enxerga. Só vale para o número ATUAL; fato datado
+ * ("provado com 47 em 2026-10-07") fica sem marcador, porque continua verdadeiro.
+ */
+const MARCADOR_DE_MIGRACOES = /<!--\s*numeros:\s*migracoes=(\d+)\s*-->/;
+const migracoesNaPasta = readdirSync(join(RAIZ, "db", "migrations")).filter((n) => /^\d{3}_.+\.sql$/.test(n)).length;
+
 /* ---------- Varredura da documentação ---------- */
 
-const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage"]);
+/*
+  `ios` e `android` são saída do `expo prebuild` do aplicativo de campo, fora do
+  git (`apps/campo/.gitignore`). Numa máquina que já compilou para o aparelho
+  eles trazem milhares de arquivos de Pods, com link simbólico para dentro do
+  `node_modules`; depois de um `npm ci` o link fica quebrado e o `statSync`
+  derrubava o portão inteiro com ENOENT. Nenhum documento do produto mora ali.
+*/
+const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage", "ios", "android"]);
 
 function markdowns(pasta) {
   const achados = [];
@@ -358,6 +378,15 @@ for (const caminho of markdowns(RAIZ)) {
   readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
     if (linha.trim() === "") isento = false;
     if (linha.includes(NAO_E_CONTAGEM)) isento = true;
+
+    const marcadaDeMigracoes = MARCADOR_DE_MIGRACOES.exec(linha);
+    if (marcadaDeMigracoes) {
+      const afirmado = Number(marcadaDeMigracoes[1]);
+      const local = `${relativo}:${i + 1}`;
+      if (afirmado === migracoesNaPasta) conferidos.push(`${local}  ${afirmado} migrações, conferido contra db/migrations`);
+      else problemas.push(`${local}\n    afirma: ${afirmado} migrações em db/migrations\n    a pasta tem ${migracoesNaPasta}`);
+    }
+
     if (isento) return;
 
     const achados = [...linha.matchAll(AFIRMACAO)];

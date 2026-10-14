@@ -1,0 +1,45 @@
+$ npx vitest run test/openssl-do-teste.test.ts   (em apps/api; openssl do sistema: LibreSSL 3.3.6)
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/openssl-do-teste.test.ts (10 tests | 1 failed) 229ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > tira a variável que aponta para arquivo inexistente, e diz por quê 1ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > mantém a variável que aponta para arquivo que existe, sem motivo 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > sem a variável, o ambiente passa igual 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > acha a variável em qualquer caixa, porque no Windows o nome não distingue 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > não mexe no ambiente de quem chamou 0ms
+   ✓ Onde o teste acha o openssl > usa o do PATH quando ele está lá 0ms
+   ✓ Onde o teste acha o openssl > no Windows sem openssl no PATH, acha o que vem ao lado do git (o caso do PowerShell) 0ms
+   ✓ Onde o teste acha o openssl > sem openssl em lugar nenhum devolve null, e o gerador reprova dizendo o que instalar 0ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente 84ms
+   × O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado 142ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/openssl-do-teste.test.ts > O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/openssl-do-teste.test.ts:119:62
+    117| 
+    118|     const semAVariavel = gerarCertificadoAutoassinado(pastaNova(), amb…
+    119|     expect(new X509Certificate(semAVariavel.certificado).ca).toBe(true…
+       |                                                              ^
+    120|   });
+    121| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  14:57:43
+   Duration  407ms (transform 24ms, setup 15ms, collect 12ms, tests 229ms, environment 0ms, prepare 35ms)
+

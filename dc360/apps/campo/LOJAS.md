@@ -267,9 +267,14 @@ listagem de loja é vazamento, e não tem como recolher.
 <!-- numeros: nao sao contagem -->
 ```bash
 cd dc360/apps/campo
-npx expo-doctor      # 21 verificações da própria Expo
+npx expo-doctor      # 21 verificações da própria Expo (21 de 21 em 2026-10-13, 20 de 21 na
+                     # manhã de 2026-10-14 por patches novos e 21 de 21 de novo nesse mesmo
+                     # dia, depois da E19 correção 4; o resultado depende do dia)
 npm run typecheck
-npm audit            # precisa fechar em zero
+npm run auditar --prefix ..   # política do CP-03: dependência de runtime em zero;
+                              # avisos de ferramenta do Expo só os da lista
+                              # nomeada, com dono e prazo (scripts/auditar-excecoes.mjs).
+                              # O `npm audit` puro daqui não fecha em zero.
 ```
 
 E, na raiz do produto, porque o aplicativo depende dos dois pacotes
@@ -286,18 +291,25 @@ cd dc360 && npm run verificar
 Isto está aqui para não virar surpresa. Nada abaixo é opinião: é o que separa
 código escrito de código comprovado.
 
-<!-- numeros: nao sao contagem -->
-- **O aplicativo nunca rodou.** Ele compila, passa nas 21 verificações da Expo
-  e o TypeScript não reclama, mas nenhuma tela foi aberta em aparelho nenhum.
-- **Câmera, GPS e assinatura nunca foram exercitados.** A lógica que os cerca
-  está escrita; o comportamento deles no aparelho, não.
+- **Não há prova arquivada de que o aplicativo rodou num aparelho.** Ele
+  compila, passa no `expo-doctor` (20 de 21 na manhã de 2026-10-14 por patches novos e 21 de 21 depois da correção 4 da E19, no mesmo dia; o resultado depende do dia) e o TypeScript não reclama. Há
+  relato de uso (o `README.md` da raiz fala de compilação nativa num iPhone em
+  08/09/2026, com três vistorias coletadas, e o `LEIA-ME.md` fala de emulador),
+  mas nenhuma foto, vídeo, registro ou captura de aparelho está no repositório,
+  e relato não é prova. Até a V2-F14-E12 arquivar esse artefato, este documento
+  não afirma que alguma tela foi aberta num aparelho, nem que não foi.
+- **Câmera, GPS e assinatura não têm prova de aparelho arquivada.** A lógica
+  que os cerca está escrita e testada fora do celular; o comportamento deles no
+  aparelho é o que o relato afirma e o repositório não comprova.
 - **A prova que mais importa continua pendente:** matar o aplicativo no meio do
-  envio e reabrir, confirmando que nada duplica no servidor. A fila tem 46
+  envio e reabrir, confirmando que nada duplica no servidor. A fila tem 58
   testes cobrindo isso fora do celular, inclusive a retomada foto a foto, mas
   o `expo-sqlite` sob morte de processo real é justamente o que só o aparelho
   responde.
-- **Nenhum build foi gerado.** `eas build` precisa de conta.
-- **O som de despacho nunca tocou num aparelho.** Desde 15/09/2026 a tarefa nova
+- **Nenhum build de distribuição está arquivado.** `eas build` precisa de
+  conta, e a compilação nativa relatada para o iPhone em 08/09/2026 não deixou
+  binário no repositório.
+- **Não há registro de o som de despacho ter tocado num aparelho.** Desde 15/09/2026 a tarefa nova
   toca um som próprio (`assets/sons/despacho.wav`, gerado por
   `../../scripts/gerar-som-de-despacho.mjs`) e vibra em qualquer severidade, com
   o aplicativo fechado (push) ou aberto (aviso local). O arquivo está na régua

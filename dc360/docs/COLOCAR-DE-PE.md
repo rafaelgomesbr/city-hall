@@ -37,17 +37,28 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **4828 testes somando o aplicativo.** Durante a estabilização da V2 (fase
-  F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
-  conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
-  raiz do repositório.
+- **4897 testes somando o aplicativo** (contagem estática de `npm run
+  conferir:numeros` em 2026-10-14; a execução imprime pulos por ambiente à
+  parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+  os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+  15 de 17, por dois passos que dependem da máquina (README, "O roteiro da linha
+  de base"). O `expo-doctor` deu 20 de 21 na manhã desse dia e 21 de 21 depois da
+  correção 4 da E19, no mesmo dia. `npm run auditar` sai com
+  código 0 pela política do CP-03: dependência de runtime em zero, e os avisos de ferramenta
+  do aplicativo só os da lista nomeada, com dono e prazo
+  (`scripts/auditar-excecoes.mjs`). O `npm audit` puro do aplicativo continua
+  acusando avisos. O estado de cada etapa está em `docs/roadmap-v2/STATUS.md`,
+  na raiz do repositório.
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
   pessoas.
-- O app foi verificado inteiro no emulador **Android**: menu, minuta, login,
-  GPS, câmera, o ciclo completo. **Nunca rodou em iOS**, e é o que você vai fazer
-  no Mac.
+- O aplicativo está inteiro em código e passa nos testes. Há relato de uso em
+  emulador Android (menu, minuta, login, GPS, câmera, o ciclo completo) e de
+  compilação nativa e três vistorias coletadas num iPhone em 08/09/2026, mas
+  **nenhum artefato de aparelho está arquivado** (a prova é a V2-F14-E12), e
+  relato não é prova. O que você vai fazer no Mac é refazer essa prova com o
+  que o repositório consiga guardar.
 
 ---
 
@@ -176,6 +187,15 @@ com os dois erros que ele encontrou pelo caminho.
   argumentos). A migração é aditiva e rápida (uma coluna, um índice parcial e a
   troca de uma função); sessões abertas na hora ganham família própria, e no
   máximo um token de acesso antigo cai e o cliente renova.
+
+  **Migrações 049 e 050 (V2-F00-E07): migre ANTES de implantar o código novo.**
+  O código novo da API chama `travar_sessoes_do_usuario`, que a 049 cria, em
+  toda renovação e em todo encerramento em massa das sessões de uma pessoa;
+  contra um banco sem a 049 a renovação falha. O contrário é seguro: o código
+  antigo contra o banco já migrado continua funcionando (as funções recriadas
+  mantêm a assinatura). A 050 só recria
+  `abrir_sessao` (o login passa a ler a suspensão do município com `FOR SHARE`),
+  a API não muda por causa dela e a ordem é indiferente.
 
 ### 3. Servidor da API
 
@@ -309,7 +329,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 4828 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 4897 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -364,8 +384,9 @@ ter o app no seu iPhone via TestFlight neste fim de semana.
 ## Parte 6: o restore do banco, testado de verdade (CA-08)
 
 > **Registro histórico, de 2026-09-09.** O roteiro vigente é
-> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado com as 47 migrações,
-> com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
+> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado então com as 47
+> migrações que existiam (hoje são 50; o CI repete o roteiro em Postgres 17,
+> ver o próprio documento), com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
 > cópia. Esta parte descreve o teste com 15 migrações e 15 tabelas e, se
 > seguida hoje, para no restore: faltam o papel `dc360_console` (migração 023)
 > e a extensão `pg_trgm` no dump (migração 041). Ela continua valendo pelo que
@@ -759,7 +780,7 @@ Quatro versões diferentes de Postgres e de Node aparecem neste projeto, e confu
 | --- | --- | --- |
 | Node | 22 (`dc360/.nvmrc`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` aceita 20 ou mais, mas só a 22 está medida |
 | PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
-| Postgres do CI | 16 (`postgres:16`) | Job que aplica as migrações e roda a API contra banco real |
+| Postgres do CI | 16 (`postgres:16`) no job `implantavel`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações e roda a API contra banco real; o segundo ensaia o restore (CA-08) em Linux |
 | Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
 
 Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.

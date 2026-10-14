@@ -192,9 +192,10 @@ export async function rotasAvisos(
    * As duas precisam do município no contexto, e nada neste produto roda com
    * município no contexto sem alguém logado: é assim que o RLS funciona aqui.
    * Um relógio de servidor, como o do push, só enxerga município nenhum, e a
-   * saída seria uma função `SECURITY DEFINER` a mais. O produto tem doze
-   * dessas e um portão que reprova a décima terceira, de propósito, porque
-   * cada uma é um buraco na parede do isolamento. Gastar essa vaga com um
+   * saída seria uma função `SECURITY DEFINER` a mais. O produto tem um teto
+   * dessas (27, em `db/test/isolamento.test.ts`) e um portão que reprova a
+   * seguinte, de propósito, porque cada uma é um buraco na parede do
+   * isolamento. Gastar essa vaga com um
    * sino, que é o recurso menos crítico da lista, seria a troca errada.
    *
    * As duas escritas são idempotentes, limitadas por lote e restritas ao

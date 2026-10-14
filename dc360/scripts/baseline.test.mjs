@@ -107,6 +107,8 @@ test("lê as contagens do vitest", () => {
 
 test("lê as contagens do node --test e do jest", () => {
   assert.deepEqual(extrairContagem("# tests 165\n# pass 158\n# fail 3\n# skipped 4\n", "node-test"), { total: 165, falhas: 3, puladas: 4 });
+  // Node 24 sem terminal imprime o resumo no relator `spec`, com "\u2139" no lugar de "#".
+  assert.deepEqual(extrairContagem("\u2139 tests 260\n\u2139 suites 3\n\u2139 pass 257\n\u2139 fail 1\n\u2139 skipped 2\n", "node-test"), { total: 260, falhas: 1, puladas: 2 });
   assert.deepEqual(extrairContagem("Tests:       20 failed, 1781 passed, 1801 total\n", "jest"), { total: 1801, falhas: 20, puladas: 0 });
 });
 

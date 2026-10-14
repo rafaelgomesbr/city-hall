@@ -1,0 +1,100 @@
+$ node --test scripts/baseline.test.mjs   (cópia dos scripts com a regex antiga do extrator, "# tests" só; os outros 2 casos vermelhos da cópia vêm do caminho relativo da cópia, não do extrator)
+
+✔ redige um JWT colado num texto (0.722708ms)
+✔ redige o valor de Authorization Bearer e Basic (0.077542ms)
+✔ redige usuário e senha de uma URL de banco (0.050583ms)
+✔ troca o nome do usuário nas pastas pessoais (0.068209ms)
+✔ troca o travessão, que a regra de conteúdo proíbe em docs (0.203584ms)
+✔ não mexe em texto comum (0.042542ms)
+✔ lê as contagens do vitest (0.491833ms)
+✖ lê as contagens do node --test e do jest (0.611042ms)
+✔ sem contagem na saída o resultado é vazio, não zero (0.062042ms)
+✔ avaliar confere quando o resultado é o esperado, vermelho inclusive (0.166875ms)
+✔ avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda (0.090375ms)
+✔ avaliar não aceita a ausência de contagem como confere (0.045917ms)
+✔ a lista de passos tem ids únicos e o total de scripts soma a própria etapa (0.659208ms)
+✖ o E2E do painel local declara o servidor que o teste exige (0.086ms)
+✔ as opções recusam o que não conhecem e os filtros recusam passo inexistente (0.258375ms)
+✔ --so-listar imprime os comandos, não executa nada e não cria a pasta de saída (29.743666ms)
+✔ o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada (0.08475ms)
+✔ os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13) (0.092458ms)
+✔ a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente (0.118666ms)
+✔ passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos (0.041291ms)
+✔ o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3) (0.04025ms)
+✔ o resumo conta as divergências explicadas e diz por quê (0.137959ms)
+✔ o conferidor de contagens reprova o número velho plantado e passa com o certo (0.107042ms)
+✔ o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera (0.041916ms)
+✔ suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também (0.071833ms)
+✔ todo passo do roteiro com total esperado aparece na medição do conferir:numeros (0.198291ms)
+✖ o registro da deriva V-DEP-4 existe e diz que foi fechada (0.073167ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 24
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 83.597
+
+✖ failing tests:
+
+test at scripts/baseline.test.mjs:108:1
+✖ lê as contagens do node --test e do jest (0.611042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + {}
+  - {
+  -   falhas: 1,
+  -   puladas: 2,
+  -   total: 260
+  - }
+  
+      at TestContext.<anonymous> (file:///private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/antigo/scripts/baseline.test.mjs:111:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: {},
+    expected: { total: 260, falhas: 1, puladas: 2 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/baseline.test.mjs:186:1
+✖ o E2E do painel local declara o servidor que o teste exige (0.086ms)
+  Error: ENOENT: no such file or directory, open '/private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/antigo/apps/web/test/fluxo.e2e.mjs'
+      at readFileSync (node:fs:441:20)
+      at TestContext.<anonymous> (file:///private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/antigo/scripts/baseline.test.mjs:189:17)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/antigo/apps/web/test/fluxo.e2e.mjs'
+  }
+
+test at scripts/baseline.test.mjs:345:1
+✖ o registro da deriva V-DEP-4 existe e diz que foi fechada (0.073167ms)
+  Error: ENOENT: no such file or directory, open '/private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/dc360/apps/campo/PENDENCIAS.md'
+      at readFileSync (node:fs:441:20)
+      at TestContext.<anonymous> (file:///private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/antigo/scripts/baseline.test.mjs:347:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/dc360/apps/campo/PENDENCIAS.md'
+  }

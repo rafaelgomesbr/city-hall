@@ -1,4 +1,4 @@
-# Restore do banco: o roteiro mínimo, provado com as 47 migrações
+# Restore do banco: o roteiro mínimo, provado e repetido pelo CI
 
 - **Versão:** 1, de 2026-10-07 (V2-F00-E25, critério CA-08).
 - **Substitui:** a Parte 6 de `COLOCAR-DE-PE.md`, que passa a ser o registro
@@ -12,14 +12,26 @@ como conferir isso, em vez de supor.
 
 ## O que foi provado, e o que não foi
 
+**Quantas migrações.** A pasta `db/migrations/` tem hoje 50 (001 a 050) <!-- numeros: migracoes=50 -->. Os
+números de migração abaixo são fatos datados: cada prova vale para a árvore em
+que rodou, e quem quiser o número de hoje conta os arquivos
+(`ls db/migrations | wc -l`). O roteiro não depende da quantidade: o `migrar`
+aplica as que existem. A 048, a 049 e a 050 não acrescentam tabela, policy
+nem função `SECURITY DEFINER` (recriam funções que já existiam, e a 049 cria
+uma função comum; o teto de 27 em `db/test/isolamento.test.ts` segue o mesmo),
+mas a prova local abaixo, de 2026-10-07, não as inclui.
+
 Provado em 2026-10-07, no Windows 11 com Git Bash, por quem escreveu o sistema:
 
 - Origem descartável sem Supabase: um cluster PostgreSQL criado com `initdb`
   numa pasta temporária, provisionado como o job `implantavel` do CI, com as
-  **47 migrações** (001 a 047; o roteiro da V2 dizia 46, mas a E07 acrescentou
-  a 047) aplicadas do zero e a semente sintética.
-  (A 048, de 2026-10-13, só recria `dono_do_token` com uma coluna a mais; o job
-  `restore` do CI a aplica junto das outras, e esta prova local não foi repetida.)
+  **47 migrações que existiam então** (001 a 047; o roteiro da V2 dizia 46, mas
+  a E07 acrescentou a 047) aplicadas do zero e a semente sintética.
+  (A 048, de 2026-10-13, só recria `dono_do_token` com uma coluna a mais; a
+  049 recria funções de sessão e acrescenta uma função comum de trava
+  (`travar_sessoes_do_usuario`), e a 050 recria `abrir_sessao`. O job `restore`
+  do CI as aplica junto das outras, e esta prova local não foi repetida com
+  elas.)
 - Destino: um **segundo cluster**, também criado com `initdb`, noutra porta.
 - `pg_restore --exit-on-error` sem erro; linhas por tabela idênticas (36
   tabelas, 106 linhas); as 47 impressões de `schema_migracoes` idênticas; RLS
@@ -38,18 +50,30 @@ Provado em 2026-10-07, no Windows 11 com Git Bash, por quem escreveu o sistema:
   coordenadora da semente, lista e detalhe de ocorrência, ocorrência do outro
   município com 404 e a busca com `pg_trgm` respondendo.
 
+Provado pelo CI, em Linux, com Postgres 17 (job "Restore do banco, Postgres 17
+(CA-08)" de `.github/workflows/verificar.yml`): o mesmo roteiro, em dois
+servidores `postgres:17` descartáveis (17.11 no run 38445527075, do SHA
+`c9895e9`; lido pelo gatekeeper da E25, que registrou o resultado em
+`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`, e não reaberto aqui), com o cliente `pg_dump` 17,
+as 48 migrações que existiam naquele SHA aplicadas do zero e as 27
+conferências do roteiro (`scripts/ensaiar-restore.sh`) todas "OK". Esse run é
+anterior à 049 e à 050: com a árvore de hoje (50 migrações) o job ainda não
+rodou, e este documento não afirma que ele passa. O job `implantavel`, que
+roda a API contra banco real, usa o Postgres 16 (`postgres:16`); o 17 é só do
+job `restore`.
+
 Não provado (validação humana pendente):
 
 - **Máquina limpa de verdade.** Os dois clusters são novos, mas a máquina é a
   do autor, com Node, dependências e binários já instalados.
 - **Outra pessoa seguindo este roteiro do zero.** É a validação que fecha o
   CA-08.
-- **Postgres 17.** A produção é 17.6 e o CI usa 16; a prova rodou no 18.3, a
-  única versão instalada nesta máquina. Os passos não dependem da versão, mas
-  isso é inferência.
-- **Linux e macOS.** Os comandos são os mesmos (são binários do PostgreSQL e
-  `bash`), mas não foram executados lá nesta prova. As diferenças conhecidas
-  estão na seção "Fora do Windows".
+- **A prova local em outra versão do Postgres.** A prova de 2026-10-07 rodou
+  no 18.3, a única versão instalada naquela máquina; a produção é 17.6. O
+  Postgres 17 está provado pelo CI (acima), não pela prova local.
+- **macOS.** Os comandos são os mesmos (são binários do PostgreSQL e `bash`),
+  mas não foram executados lá nesta prova. Linux está provado pelo CI. As
+  diferenças conhecidas estão na seção "Fora do Windows".
 - **Origem Supabase.** O dump de produção tem os papéis do provedor (`anon`,
   `authenticated`, `service_role`, `supabase_admin`); o remédio está na Parte 6
   histórica e não foi refeito aqui. O dump antes de migração e o
@@ -117,7 +141,7 @@ psql -p 55451 -d prova_e25_origem -c "GRANT CREATE ON DATABASE prova_e25_origem 
 psql -p 55451 -d prova_e25_origem -c "CREATE ROLE dc360_api LOGIN PASSWORD '...' NOSUPERUSER;"
 
 export DATABASE_URL="postgres://dc360_setup:...@127.0.0.1:55451/prova_e25_origem"
-npm run migrar                  # Aplicadas: 001_base.sql ... 047_familia_da_sessao.sql
+npm run migrar                  # Aplicadas: 001_base.sql ... até a última da pasta (047 na prova de 2026-10-07)
 npm run migrar -- --conferir    # Esquema em dia.
 npm run migrar -- --semear      # Semeado com os dois municípios fictícios.
 psql -p 55451 -d prova_e25_origem -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
@@ -263,7 +287,7 @@ que são só os da prova. Depois, procure arquivo `*.dump` que tenha sobrado.
 
 ## Fora do Windows
 
-Não executado nesta prova; o que muda é só onde ficam os binários:
+Linux roda no CI (acima) com o cliente do repositório do PGDG; o macOS não foi executado em prova nenhuma. O que muda é só onde ficam os binários:
 
 - **Linux (Debian e Ubuntu):** `apt install postgresql` traz os binários em
   `/usr/lib/postgresql/<versão>/bin`, fora do `PATH`; acrescente ao `PATH`. O
@@ -272,7 +296,7 @@ Não executado nesta prova; o que muda é só onde ficam os binários:
   sozinho (receita da Parte 6) traz só o cliente e não basta para o cluster de
   destino.
 
-## Tempo medido nesta prova
+## Tempo medido na prova de 2026-10-07
 
 | Passo | Tempo |
 | --- | --- |
