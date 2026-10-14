@@ -1,0 +1,23 @@
+$ MOTOR=firefox node test/layout-estreito.e2e.mjs
+# Firefox não está instalado nesta máquina: sem prova em Firefox nesta rodada
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Executable doesn't exist at /Users/[usuario]/Library/Caches/ms-playwright/firefox-1538/firefox/Nightly.app/Contents/MacOS/firefox
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     npx playwright install                                 ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+    at /Users/[usuario]/Documents/city-hall/dc360/apps/web/test/layout-estreito.e2e.mjs:57:34
+    at async node:internal/modules/esm/loader:639:26 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v24.15.0

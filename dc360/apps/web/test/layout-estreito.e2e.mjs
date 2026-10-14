@@ -248,10 +248,27 @@ const atual = await page.evaluate(() => {
 });
 ok("a 390 px o ladrilho da tela atual (Organização) está inteiro à vista",
    Boolean(atual) && atual.esq >= -0.5 && atual.dir <= atual.largura + 0.5, `(${JSON.stringify(atual)})`);
-await page.keyboard.press("Tab");
-ok("o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada",
-   await page.evaluate(() => document.activeElement?.className === "pular-para-conteudo"
-     || document.activeElement?.textContent?.includes("Pular para o conteúdo")));
+/*
+  O WebKit do Playwright no macOS não leva o Tab a links nem a botões (é a
+  preferência "Pressionar Tab para destacar cada item", desligada por padrão
+  nessa plataforma): numa página mínima só com um link, o primeiro Tab não chega
+  nele. Sonda-se isso primeiro, para esta conferência só valer onde o Tab anda de
+  verdade, e não reprovar o painel por um comportamento do motor (visto na rodada
+  de conserto da V2-F00-E09: sonda arquivada em correcao-2/sondas).
+*/
+const paginaSonda = await contexto.newPage();
+await paginaSonda.setContent('<a href="#x" id="alvo">link</a>');
+await paginaSonda.keyboard.press("Tab");
+const tabAlcancaLink = await paginaSonda.evaluate(() => document.activeElement?.id === "alvo");
+await paginaSonda.close();
+if (tabAlcancaLink) {
+  await page.keyboard.press("Tab");
+  ok("o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada",
+     await page.evaluate(() => document.activeElement?.className === "pular-para-conteudo"
+       || document.activeElement?.textContent?.includes("Pular para o conteúdo")));
+} else {
+  console.log(`  PULADA o primeiro Tab cai em Pular para o conteúdo (em ${MOTOR} o Tab não alcança links nem numa página mínima)`);
+}
 await page.setViewportSize({ width: 1280, height: 800 });
 await page.waitForTimeout(100);
 ok("a 1280 px a barra é a lateral e não o pé da tela",
@@ -359,9 +376,9 @@ await paginaConta.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
 const botaoOutras = paginaConta.getByRole("button", { name: "Encerrar minhas outras sessões" });
 await botaoOutras.waitFor({ timeout: 30_000 });
 /*
-  A coordenadora já entrou outras vezes neste arquivo (seção 4), então são três
-  ou mais sessões, e o rótulo do botão da janela traz a conta: "Encerrar as
-  outras N sessões". O teste não fixa N.
+  A coordenadora já entrou outras vezes neste arquivo (seção 4), então costuma
+  haver mais de duas sessões, e o rótulo do botão da janela traz a conta:
+  "Encerrar as outras N sessões". O teste exige pelo menos duas e não fixa N.
 */
 ok("Minha conta lista pelo menos duas sessões e mostra o botão de encerrar as outras",
    (await paginaConta.locator(".sessoes__item").count()) >= 2);
@@ -416,12 +433,24 @@ const foco = await paginaConta.evaluate(() => {
     tag: a?.tagName ?? "nenhum", conectado: Boolean(a?.isConnected),
     dentroDaConfirmacao: a !== document.body && (Boolean(a?.closest?.(".aviso--sucesso")) || Boolean(a?.querySelector?.(".aviso--sucesso"))),
     texto: (a?.textContent ?? "").trim().slice(0, 60),
+    eOAviso: Boolean(a?.classList?.contains("aviso--sucesso")),
+    tabindex: a?.getAttribute?.("tabindex") ?? null,
+    papel: a?.getAttribute?.("role") ?? null,
+    regiaoViva: Boolean(a?.closest?.("[role=status],[role=alert]")) || Boolean(a?.querySelector?.("[role=status],[role=alert]")),
   };
 });
 ok("depois de encerrar as outras sessões o foco continua num elemento que existe, e não em BODY",
    foco.tag !== "BODY" && foco.tag !== "HTML" && foco.conectado, `(${JSON.stringify(foco)})`);
 ok("e esse elemento é a confirmação (quem usa leitor de tela ouve o que aconteceu)",
    foco.dentroDaConfirmacao && /foi encerrada|foram encerradas/.test(foco.texto), `(${JSON.stringify(foco)})`);
+/*
+  UM mecanismo só (rodada de conserto da correção 2): o foco. A confirmação é o
+  próprio aviso, focável por código, e NÃO é região viva nem está dentro de uma:
+  um `div` sem papel em volta de um `role="status"` fazia o leitor dizer a frase
+  duas vezes (uma pelo foco, outra pela região).
+*/
+ok("a confirmação é o próprio aviso (tabindex -1), sem papel de região viva, e não há região viva em volta nem dentro",
+   foco.eOAviso && foco.tabindex === "-1" && foco.papel === null && !foco.regiaoViva, `(${JSON.stringify(foco)})`);
 await ctxConta.close();
 
 await navegador.close();

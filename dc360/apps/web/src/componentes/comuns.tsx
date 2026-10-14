@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import {
   ROTULO_SEVERIDADE,
   ROTULO_STATUS,
@@ -188,9 +188,31 @@ const ICONE_DO_AVISO = {
   perigo: <IconeAlerta tamanho={20} />,
 } as const;
 
-export function Aviso({ tom, children }: { tom: "info" | "perigo" | "sucesso" | "alerta"; children: ReactNode }) {
+/**
+ * O aviso, com DOIS jeitos de ser ouvido, e nunca os dois juntos.
+ *
+ * Sem `foco`, é uma região viva (`role="status"`, ou `alert` no perigo): serve
+ * para o aviso que já está na tela quando o texto muda, ou que chega sem a
+ * pessoa ter acabado de agir.
+ *
+ * Com `foco`, é o ALVO do foco: quem chama leva o foco para ele depois de uma
+ * ação que fez o controle sumir (o formulário enviado, o botão que era
+ * "Encerrar"). Nesse caso o elemento NÃO é região viva. Uma região inserida no
+ * DOM já com o texto não tem anúncio garantido (o leitor só anuncia mudança de
+ * uma região que ele já conhecia), e uma região com foco ainda por cima seria
+ * lida duas vezes. O foco é o mecanismo que funciona sempre, também para quem
+ * navega só com teclado: o foco não cai em `BODY` (WCAG 2.4.3) e o leitor lê o
+ * aviso inteiro ao chegar nele (WCAG 4.1.3 atendido por foco).
+ */
+export function Aviso({ tom, children, foco }: {
+  tom: "info" | "perigo" | "sucesso" | "alerta";
+  children: ReactNode;
+  foco?: Ref<HTMLDivElement>;
+}) {
   return (
-    <div className={`aviso aviso--${tom}`} role={tom === "perigo" ? "alert" : "status"}>
+    <div className={`aviso aviso--${tom}`} ref={foco}
+         tabIndex={foco ? -1 : undefined}
+         role={foco ? undefined : tom === "perigo" ? "alert" : "status"}>
       {ICONE_DO_AVISO[tom]}
       <div>{children}</div>
     </div>

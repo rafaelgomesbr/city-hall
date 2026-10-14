@@ -1,0 +1,5 @@
+$ node sondas/sonda-tab-webkit.mjs
+# página mínima sem o painel: o WebKit do Playwright no macOS não leva o Tab a links e botões
+
+chromium: página mínima (link, botão, campo): 1º Tab -> a; 2º Tab -> b
+webkit: página mínima (link, botão, campo): 1º Tab -> c; 2º Tab -> BODY

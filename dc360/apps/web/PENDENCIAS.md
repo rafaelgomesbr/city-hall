@@ -34,7 +34,7 @@ citados existem; os pedidos de rede e o CORS não mudaram).
 | Município suspenso não baixa o pacote | 8.4 | Rafael com o jurídico (CP-29) |
 | Barra de navegação a 390 px ainda rola na horizontal (mas sem ladrilho cortado desde a V2-F00-E09, correção 1) | 9.2, 11 | F10 |
 | Janela de milissegundos na renovação | 9.3 | F03-E02 |
-| e2e contra a API no Firefox fora do CI; nenhum run do CI conferido | 10.1 | F01-E03, validação humana |
+| e2e contra a API no Firefox fora do CI; o gatekeeper leu o run do CI, falta a conferência humana | 10.1 | F01-E03, validação humana |
 | CORS por ambiente e do armazenamento externo | 10.2 | F01-E10, F06-E15 |
 | Ver a foto subir na seção 13 | 10.3 | validação humana |
 
@@ -424,7 +424,7 @@ O que continua aberto:
 
 ## 12. Minha conta a 320 px, foco depois de encerrar e senha redefinida sem relógio (V2-F00-E09 e E10, correção 2)
 
-A rodada 2 da validação reprovou três pontos, todos presos agora por teste:
+A rodada 2 da validação reprovou três pontos, e a própria correção achou um quarto, todos presos agora por teste:
 
 - **Botão de Minha conta a 320 px (E09).** "Encerrar minhas outras sessões" passava
   cerca de 16 px da coluna porque `.botao` é `nowrap` e o conserto da correção 1 só
@@ -435,16 +435,41 @@ A rodada 2 da validação reprovou três pontos, todos presos agora por teste:
   320 e 390 px.
 - **Foco depois de encerrar as outras sessões (E09, WCAG 2.4.3).** O botão some
   quando a lista é relida e o foco caía em `BODY`. Um efeito sobre `sucesso` em
-  `MinhaConta.tsx` leva o foco para a confirmação (`tabIndex={-1}`). Preso por
-  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real).
+  `MinhaConta.tsx` leva o foco para a confirmação, que é o próprio `Aviso` com a prop
+  `foco` (`tabIndex={-1}`, sem `role`: ver o fim desta seção). Preso por
+  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real e ausência
+  de região viva).
 - **Senha redefinida sem redirecionamento por tempo (E10, WCAG 2.2.1).** A tela de
-  redefinição não tem mais relógio: mostra a confirmação (`role="status"`) e o
-  botão "Entrar com a nova senha", um link de navegação completa. Preso por
+  redefinição não tem mais relógio: mostra a confirmação (com o foco nela) e o
+  botão "Entrar com a nova senha", um link de navegação completa, que é a única ação
+  da tela (sem o link "Voltar para a entrada" nem a frase de apoio, que repetiam). Preso por
   `test/recuperar-senha.test.ts` (nenhum `setTimeout`, `location.assign` ou
   navegação por código na tela) e pela seção 14 do e2e, que espera 5 s e confere
   que a confirmação continua lá.
+- **Rótulo do botão Entrar sumia com o mouse em cima (E10, achado da própria correção).**
+  As capturas a 1280 px mostraram o botão "Entrar com a nova senha" sem texto: ele é
+  um `<a>`, e `a:hover` (0,1,1) vence a cor do repouso de `.botao--primario` (0,1,0),
+  então o texto ia para `--ds-accent-hover`, igual ao fundo do hover, nos dois temas.
+  O hover de `.botao--primario` e de `.botao--secundario` agora diz a cor do texto
+  (`app.css`). Preso por `test/recuperar-senha.test.ts` (fonte) e pela seção 14 do
+  `fluxo-api.e2e.mjs`, que passa o mouse sobre o botão nos dois temas e compara a cor
+  do texto com a do fundo. Era defeito anterior à correção (o botão antigo "Ir para a
+  entrada" tinha o mesmo).
 
-Continua aberto, com dono em outra fase: foco em `BODY` depois do envio do pedido
-e do sucesso da recuperação, e aviso de sucesso que entra no DOM já com o texto
-(anúncio de região inserida não é garantido), ambos de F10-E11; telas de
-recuperação sem landmark `main`.
+**Foco e anúncio da confirmação (rodada de conserto da correção 2).** O foco em `BODY`
+depois do envio do pedido de recuperação e depois de redefinir a senha, e o aviso de
+sucesso que entrava no DOM já com o texto (anúncio de região inserida não é garantido),
+SAÍRAM desta lista: foram consertados. Escolha, em UM mecanismo só: o FOCO. `Aviso`
+ganhou a prop `foco`; com ela o aviso é o alvo do foco (`tabIndex={-1}`) e NÃO é região
+viva (sem `role`), porque região viva mais foco seriam lidos duas vezes. As duas telas
+de recuperação e a confirmação de Minha conta usam o mesmo mecanismo. Ao "Pedir de novo"
+o foco volta para o campo de email. Preso por `test/recuperar-senha.test.ts` e
+`test/minha-conta-estreita.test.ts` (fonte), pela seção 14 de `fluxo-api.e2e.mjs` e pela
+seção 7 de `layout-estreito.e2e.mjs` (foco real e ausência de região viva).
+
+Continua aberto, com dono em outra fase (F10-E11): quando a redefinição cai em link que
+não vale mais ou em recuperação desligada, o formulário também some e o foco ainda vai
+para `BODY` (o aviso de perigo é `role="alert"`, então é anunciado); telas de
+recuperação sem landmark `main`. Nenhum leitor de tela foi usado: o anúncio por foco
+está provado por atributo e por `document.activeElement`, e a conferência com leitor de
+tela segue como pendência humana.

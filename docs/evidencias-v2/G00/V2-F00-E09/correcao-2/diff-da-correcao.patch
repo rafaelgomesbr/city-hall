@@ -1,0 +1,460 @@
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index f78b4ee..8255f05 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -1,4 +1,4 @@
+-import { useCallback, useEffect, useState } from "react";
++import { useCallback, useEffect, useRef, useState } from "react";
+ import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
+ import {
+   MODO, desativarSegundoFator, encerrarMinhasSessoes, listarMinhasSessoes,
+@@ -212,6 +212,33 @@ function MinhasOutrasSessoes() {
+   const [encerrando, setEncerrando] = useState(false);
+   const [erro, setErro] = useState<string | null>(null);
+   const [sucesso, setSucesso] = useState<string | null>(null);
++  const confirmacao = useRef<HTMLDivElement>(null);
++
++  /*
++    O FOCO NÃO PODE CAIR EM `BODY` DEPOIS DE ENCERRAR (WCAG 2.4.3).
++
++    O botão "Encerrar minhas outras sessões" só existe enquanto há outra
++    sessão. Ao confirmar, a lista é relida, o botão some, e o foco que o
++    `Modal` devolveu a ele ia junto: teclado e leitor de tela recomeçavam do
++    topo da página (validação da V2-F00-E09, rodada 2). O foco vai para a
++    confirmação, que continua na tela e é o que a pessoa precisa ouvir.
++
++    UM mecanismo só: a confirmação é o próprio alvo do foco (`Aviso` com
++    `foco`) e, por isso, não é região viva. Antes o foco ia para uma `div` sem
++    papel que embrulhava um aviso `role="status"`, e o leitor podia dizer a
++    mesma frase duas vezes (uma pelo foco, outra pela região). É o mesmo
++    mecanismo da tela de redefinição de senha, para os dois fluxos se
++    comportarem igual.
++
++    É um efeito sobre `sucesso`, e não uma chamada dentro de `encerrar`, por
++    causa da ordem: o `Modal` devolve o foco ao gatilho na limpeza do efeito
++    dele, que roda antes deste (filho antes de pai). Mover o foco aqui, depois
++    do commit que mostrou a confirmação, é o que não deixa o gatilho ter a
++    última palavra.
++  */
++  useEffect(() => {
++    if (sucesso) confirmacao.current?.focus();
++  }, [sucesso]);
+ 
+   const carregar = useCallback((): (() => void) => {
+     let cancelado = false;
+@@ -259,7 +286,9 @@ function MinhasOutrasSessoes() {
+ 
+   return (
+     <Cartao titulo="Minhas sessões">
+-      {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
++      {sucesso && (
++        <Aviso tom="sucesso" foco={confirmacao}>{sucesso}</Aviso>
++      )}
+ 
+       {/*
+         O `Carregando` da página tem 60vh de altura, que dentro de um cartão
+@@ -312,7 +341,8 @@ function MinhasOutrasSessoes() {
+               <p className="campo__dica" style={{ marginTop: 0 }}>
+                 Encerrar as outras não mexe nesta: você continua aqui, sem precisar entrar de novo.
+               </p>
+-              <button type="button" className="botao botao--perigo"
++              {/* `botao--quebra`: a 320 px o rótulo comprido quebra em linhas e o botão ocupa a coluna. */}
++              <button type="button" className="botao botao--perigo botao--quebra"
+                       onClick={() => { setErro(null); setSucesso(null); setPerguntando(true); }}>
+                 Encerrar minhas outras sessões
+               </button>
+diff --git a/dc360/apps/web/src/componentes/comuns.tsx b/dc360/apps/web/src/componentes/comuns.tsx
+index 34b0de4..b533d88 100644
+--- a/dc360/apps/web/src/componentes/comuns.tsx
++++ b/dc360/apps/web/src/componentes/comuns.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useRef, useState, type ReactNode } from "react";
++import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+ import {
+   ROTULO_SEVERIDADE,
+   ROTULO_STATUS,
+@@ -188,9 +188,31 @@ const ICONE_DO_AVISO = {
+   perigo: <IconeAlerta tamanho={20} />,
+ } as const;
+ 
+-export function Aviso({ tom, children }: { tom: "info" | "perigo" | "sucesso" | "alerta"; children: ReactNode }) {
++/**
++ * O aviso, com DOIS jeitos de ser ouvido, e nunca os dois juntos.
++ *
++ * Sem `foco`, é uma região viva (`role="status"`, ou `alert` no perigo): serve
++ * para o aviso que já está na tela quando o texto muda, ou que chega sem a
++ * pessoa ter acabado de agir.
++ *
++ * Com `foco`, é o ALVO do foco: quem chama leva o foco para ele depois de uma
++ * ação que fez o controle sumir (o formulário enviado, o botão que era
++ * "Encerrar"). Nesse caso o elemento NÃO é região viva. Uma região inserida no
++ * DOM já com o texto não tem anúncio garantido (o leitor só anuncia mudança de
++ * uma região que ele já conhecia), e uma região com foco ainda por cima seria
++ * lida duas vezes. O foco é o mecanismo que funciona sempre, também para quem
++ * navega só com teclado: o foco não cai em `BODY` (WCAG 2.4.3) e o leitor lê o
++ * aviso inteiro ao chegar nele (WCAG 4.1.3 atendido por foco).
++ */
++export function Aviso({ tom, children, foco }: {
++  tom: "info" | "perigo" | "sucesso" | "alerta";
++  children: ReactNode;
++  foco?: Ref<HTMLDivElement>;
++}) {
+   return (
+-    <div className={`aviso aviso--${tom}`} role={tom === "perigo" ? "alert" : "status"}>
++    <div className={`aviso aviso--${tom}`} ref={foco}
++         tabIndex={foco ? -1 : undefined}
++         role={foco ? undefined : tom === "perigo" ? "alert" : "status"}>
+       {ICONE_DO_AVISO[tom]}
+       <div>{children}</div>
+     </div>
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index 22dffef..595e40c 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -248,10 +248,27 @@ const atual = await page.evaluate(() => {
+ });
+ ok("a 390 px o ladrilho da tela atual (Organização) está inteiro à vista",
+    Boolean(atual) && atual.esq >= -0.5 && atual.dir <= atual.largura + 0.5, `(${JSON.stringify(atual)})`);
+-await page.keyboard.press("Tab");
+-ok("o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada",
+-   await page.evaluate(() => document.activeElement?.className === "pular-para-conteudo"
+-     || document.activeElement?.textContent?.includes("Pular para o conteúdo")));
++/*
++  O WebKit do Playwright no macOS não leva o Tab a links nem a botões (é a
++  preferência "Pressionar Tab para destacar cada item", desligada por padrão
++  nessa plataforma): numa página mínima só com um link, o primeiro Tab não chega
++  nele. Sonda-se isso primeiro, para esta conferência só valer onde o Tab anda de
++  verdade, e não reprovar o painel por um comportamento do motor (visto na rodada
++  de conserto da V2-F00-E09: sonda arquivada em correcao-2/sondas).
++*/
++const paginaSonda = await contexto.newPage();
++await paginaSonda.setContent('<a href="#x" id="alvo">link</a>');
++await paginaSonda.keyboard.press("Tab");
++const tabAlcancaLink = await paginaSonda.evaluate(() => document.activeElement?.id === "alvo");
++await paginaSonda.close();
++if (tabAlcancaLink) {
++  await page.keyboard.press("Tab");
++  ok("o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada",
++     await page.evaluate(() => document.activeElement?.className === "pular-para-conteudo"
++       || document.activeElement?.textContent?.includes("Pular para o conteúdo")));
++} else {
++  console.log(`  PULADA o primeiro Tab cai em Pular para o conteúdo (em ${MOTOR} o Tab não alcança links nem numa página mínima)`);
++}
+ await page.setViewportSize({ width: 1280, height: 800 });
+ await page.waitForTimeout(100);
+ ok("a 1280 px a barra é a lateral e não o pé da tela",
+@@ -291,6 +308,151 @@ for (const caminho of ["/painel", "/ocorrencias"]) {
+      `(pedidos: ${coordenacaoVendo.pedidos.join(",")})`);
+ }
+ 
++
++/**
++ * Tudo o que está FORA DO LUGAR dentro de um cartão ou de uma janela.
++ *
++ * Foi o buraco da validação da E09 (rodada 2): o teste media as janelas e a
++ * barra do pé, e "Minha conta" a 320 px passou verde com o botão "Encerrar
++ * minhas outras sessões" 16 px além da coluna. Aqui a régua é o RETÂNGULO, em
++ * qualquer tela: cada botão, link-botão, campo, selo, aviso e item de lista tem
++ * de caber na área útil (dentro do padding) do cartão ou da janela que o
++ * contém, o texto dele tem de caber nele, e a página não pode ganhar rolagem
++ * horizontal. O que está dentro de um envoltório que rola de propósito (a
++ * tabela, que traz a dica "A tabela continua para a direita") fica de fora.
++ */
++async function foraDoLugar(pg) {
++  return pg.evaluate(() => {
++    const descreve = (e) =>
++      `${e.tagName.toLowerCase()}${typeof e.className === "string" && e.className ? "." + e.className.trim().split(/\s+/).join(".") : ""} "${(e.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40)}"`;
++    const rola = (e) => {
++      for (let a = e.parentElement; a; a = a.parentElement) {
++        const o = getComputedStyle(a).overflowX;
++        if ((o === "auto" || o === "scroll") && !a.classList.contains("modal__painel")) return true;
++      }
++      return false;
++    };
++    const problemas = [];
++    if (document.documentElement.scrollWidth > window.innerWidth + 1)
++      problemas.push(`a pagina ganhou rolagem horizontal (${document.documentElement.scrollWidth} contra ${window.innerWidth})`);
++    const escopo = document.querySelector(".modal__painel") ?? document.querySelector("main.conteudo");
++    if (!escopo) return ["nada para medir"];
++    const candidatos = escopo.querySelectorAll(
++      "button, a.botao, input:not([type=hidden]), select, textarea, .selo, .aviso, .sessoes__item, .senha-temporaria__bloco",
++    );
++    for (const e of candidatos) {
++      const r = e.getBoundingClientRect();
++      if (r.width === 0 || r.height === 0 || rola(e)) continue;
++      const caixa = e.closest(".modal__painel, .cartao__corpo") ?? escopo;
++      const c = caixa.getBoundingClientRect();
++      const st = getComputedStyle(caixa);
++      const esq = c.left + parseFloat(st.paddingLeft) + parseFloat(st.borderLeftWidth);
++      const dir = c.right - parseFloat(st.paddingRight) - parseFloat(st.borderRightWidth);
++      if (r.left < esq - 0.5 || r.right > dir + 0.5)
++        problemas.push(`${descreve(e)} sai da area util (${r.left.toFixed(0)}..${r.right.toFixed(0)} contra ${esq.toFixed(0)}..${dir.toFixed(0)})`);
++      if (e.matches("button, a.botao") && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1))
++        problemas.push(`${descreve(e)} com o texto cortado`);
++      if (e.matches("button, a.botao") && r.height < 43.5)
++        problemas.push(`${descreve(e)} abaixo de 44 px de altura (${r.height.toFixed(0)})`);
++    }
++    return problemas;
++  });
++}
++
++console.log("\n== 5. Minha conta cabe, do celular pequeno à mesa (V2-F00-E09, correção 2) ==");
++/*
++  Duas sessões abertas: uma criada agora pela API e a do próprio navegador. É
++  isso que faz o botão "Encerrar minhas outras sessões" existir, e o botão é
++  justamente o que passava da coluna a 320 px.
++*/
++const ctxConta = await navegador.newContext({ locale: "pt-BR" });
++const paginaConta = await ctxConta.newPage();
++paginaConta.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
++paginaConta.on("console", (m) => { if (m.type() === "error") erros.push(`console: ${m.text()}`); });
++const outraSessao = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: emailCoordenacao, senha: SENHA_DO_TESTE } });
++ok("a coordenadora abre uma sessão a mais pela API", outraSessao.status === 200, `(${outraSessao.status})`);
++await entrar(emailCoordenacao, SENHA_DO_TESTE, paginaConta);
++await paginaConta.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++const botaoOutras = paginaConta.getByRole("button", { name: "Encerrar minhas outras sessões" });
++await botaoOutras.waitFor({ timeout: 30_000 });
++/*
++  A coordenadora já entrou outras vezes neste arquivo (seção 4), então costuma
++  haver mais de duas sessões, e o rótulo do botão da janela traz a conta:
++  "Encerrar as outras N sessões". O teste exige pelo menos duas e não fixa N.
++*/
++ok("Minha conta lista pelo menos duas sessões e mostra o botão de encerrar as outras",
++   (await paginaConta.locator(".sessoes__item").count()) >= 2);
++for (const largura of [320, 390, 768, 1280]) {
++  await paginaConta.setViewportSize({ width: largura, height: 900 });
++  await paginaConta.waitForTimeout(150);
++  const problemas = await foraDoLugar(paginaConta);
++  ok(`Minha conta a ${largura} px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)`,
++     problemas.length === 0, `(${problemas.join(" | ")})`);
++}
++
++console.log("\n== 6. Usuários e a janela da senha temporária a 320 e 390 px ==");
++await page.setViewportSize({ width: 1280, height: 800 });
++await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++for (const largura of [320, 390, 768]) {
++  await page.setViewportSize({ width: largura, height: 900 });
++  await page.waitForTimeout(150);
++  const problemas = await foraDoLugar(page);
++  ok(`Usuários a ${largura} px: nada fora do lugar fora da tabela que rola`, problemas.length === 0, `(${problemas.join(" | ")})`);
++}
++for (const largura of [320, 390]) {
++  await page.setViewportSize({ width: largura, height: 900 });
++  await page.waitForTimeout(100);
++  const alvo = page.locator("tbody tr", { hasText: emailLongo });
++  await alvo.getByRole("button", { name: "Redefinir senha", exact: true }).scrollIntoViewIfNeeded();
++  await alvo.getByRole("button", { name: "Redefinir senha", exact: true }).click();
++  const janela = page.getByRole("dialog");
++  await janela.waitFor({ timeout: 10_000 });
++  await janela.getByRole("button", { name: /^Redefinir a senha de Marcos/ }).click();
++  await janela.getByRole("button", { name: "Já anotei a senha" }).waitFor({ timeout: 20_000 });
++  const problemas = await foraDoLugar(page);
++  ok(`a janela da senha temporária a ${largura} px: nada fora do lugar`, problemas.length === 0, `(${problemas.join(" | ")})`);
++  await janela.getByRole("button", { name: "Já anotei a senha" }).click();
++  await janela.waitFor({ state: "detached", timeout: 10_000 });
++}
++
++console.log("\n== 7. Depois de encerrar as outras sessões, o foco não cai em BODY (WCAG 2.4.3) ==");
++await paginaConta.setViewportSize({ width: 390, height: 900 });
++await paginaConta.getByRole("button", { name: "Encerrar minhas outras sessões" }).focus();
++await paginaConta.keyboard.press("Enter");
++const janelaConta = paginaConta.getByRole("dialog");
++await janelaConta.waitFor({ timeout: 10_000 });
++await janelaConta.getByRole("button", { name: /^Encerrar (a outra sessão|as outras \d+ sessões)$/ }).click();
++await paginaConta.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
++// O botão some quando a lista é relida: é esse o instante em que o foco se perdia.
++await botaoOutras.waitFor({ state: "detached", timeout: 20_000 });
++await paginaConta.waitForTimeout(300);
++const foco = await paginaConta.evaluate(() => {
++  const a = document.activeElement;
++  return {
++    tag: a?.tagName ?? "nenhum", conectado: Boolean(a?.isConnected),
++    dentroDaConfirmacao: a !== document.body && (Boolean(a?.closest?.(".aviso--sucesso")) || Boolean(a?.querySelector?.(".aviso--sucesso"))),
++    texto: (a?.textContent ?? "").trim().slice(0, 60),
++    eOAviso: Boolean(a?.classList?.contains("aviso--sucesso")),
++    tabindex: a?.getAttribute?.("tabindex") ?? null,
++    papel: a?.getAttribute?.("role") ?? null,
++    regiaoViva: Boolean(a?.closest?.("[role=status],[role=alert]")) || Boolean(a?.querySelector?.("[role=status],[role=alert]")),
++  };
++});
++ok("depois de encerrar as outras sessões o foco continua num elemento que existe, e não em BODY",
++   foco.tag !== "BODY" && foco.tag !== "HTML" && foco.conectado, `(${JSON.stringify(foco)})`);
++ok("e esse elemento é a confirmação (quem usa leitor de tela ouve o que aconteceu)",
++   foco.dentroDaConfirmacao && /foi encerrada|foram encerradas/.test(foco.texto), `(${JSON.stringify(foco)})`);
++/*
++  UM mecanismo só (rodada de conserto da correção 2): o foco. A confirmação é o
++  próprio aviso, focável por código, e NÃO é região viva nem está dentro de uma:
++  um `div` sem papel em volta de um `role="status"` fazia o leitor dizer a frase
++  duas vezes (uma pelo foco, outra pela região).
++*/
++ok("a confirmação é o próprio aviso (tabindex -1), sem papel de região viva, e não há região viva em volta nem dentro",
++   foco.eOAviso && foco.tabindex === "-1" && foco.papel === null && !foco.regiaoViva, `(${JSON.stringify(foco)})`);
++await ctxConta.close();
++
+ await navegador.close();
+ 
+ console.log(`\n${"=".repeat(52)}`);
+diff --git a/dc360/apps/web/test/minha-conta-estreita.test.ts b/dc360/apps/web/test/minha-conta-estreita.test.ts
+new file mode 100644
+index 0000000..ad3a513
+--- /dev/null
++++ b/dc360/apps/web/test/minha-conta-estreita.test.ts
+@@ -0,0 +1,68 @@
++import { fileURLToPath } from "node:url";
++import { describe, expect, it } from "vitest";
++
++import { lerFonte } from "./ler-fonte";
++
++/**
++ * V2-F00-E09, correção 2: os dois defeitos de Minha conta que a validação da
++ * rodada 2 reprovou, travados pela fonte.
++ *
++ * O que só o navegador prova (o retângulo do botão a 320 px e o foco real
++ * depois de encerrar) está em `layout-estreito.e2e.mjs`, seções 5 e 7. Aqui fica
++ * a metade barata, que roda em toda `npm test`: a decisão está escrita no lugar
++ * certo, e quem a apagar reprova antes de chegar ao navegador.
++ */
++
++const PAINEL = new URL("..", import.meta.url);
++const ler = (relativo: string) => lerFonte(new URL(relativo, PAINEL).pathname.replace(/^\/(\w:)/, "$1"));
++
++/** O corpo da regra de CSS cujo seletor contém \`seletor\`, sem comentários. */
++function regraDoCss(css: string, seletor: string): string {
++  const semComentarios = css.replace(/\/\*[\s\S]*?\*\//g, "");
++  const m = semComentarios.match(new RegExp(`(^|\\n)[^{}]*${seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^{}]*\\{([^}]*)\\}`));
++  if (!m) throw new Error(`regra ${seletor} não encontrada`);
++  return m[2];
++}
++
++describe("O botão de Minha conta não passa da coluna em tela estreita", () => {
++  const css = ler("src/estilos/app.css");
++  const conta = ler("src/paginas/MinhaConta.tsx");
++
++  it("existe um modificador que deixa o rótulo quebrar em linhas e limita o botão à coluna", () => {
++    const regra = regraDoCss(css, ".botao--quebra");
++    expect(regra).toContain("white-space: normal");
++    expect(regra).toContain("max-width: 100%");
++    expect(regra).toContain("height: auto");
++  });
++
++  it("até 600 px o botão com o modificador ocupa a largura da coluna", () => {
++    const miolo = css.slice(css.indexOf("@media (max-width: 600px)", css.indexOf(".botao--quebra")));
++    expect(miolo.slice(0, 400)).toMatch(/\.botao--quebra\s*\{\s*width:\s*100%/);
++  });
++
++  it("o botão 'Encerrar minhas outras sessões' usa o modificador", () => {
++    expect(conta).toMatch(/className="botao botao--perigo botao--quebra"/);
++  });
++
++  it("o modificador só usa tokens do design system: nenhum número solto de espaço, cor ou duração", () => {
++    const regra = regraDoCss(css, ".botao--quebra");
++    expect(regra).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
++    expect(regra).not.toMatch(/\b\d+(\.\d+)?(ms|s)\b/);
++    expect(regra).not.toMatch(/padding[^;]*\b[1-9]\d*px/);
++  });
++});
++
++describe("Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.4.3)", () => {
++  const conta = ler("src/paginas/MinhaConta.tsx");
++
++  it("a confirmação é um elemento focável por código (tabIndex -1) que a tela guarda por ref", () => {
++    expect(conta).toMatch(/const confirmacao = useRef<HTMLDivElement>\(null\)/);
++    // O próprio Aviso é o alvo do foco (sem `div` sem papel em volta de um `role="status"`, que anunciava duas vezes).
++    expect(conta).toContain('<Aviso tom="sucesso" foco={confirmacao}>{sucesso}</Aviso>');
++    expect(conta).not.toMatch(/<div ref=\{confirmacao\}/);
++  });
++
++  it("um efeito sobre \`sucesso\` leva o foco para a confirmação, e não uma chamada solta no envio", () => {
++    expect(conta).toMatch(/useEffect\(\(\) => \{\s*if \(sucesso\) confirmacao\.current\?\.focus\(\);\s*\}, \[sucesso\]\);/);
++  });
++});
+diff --git a/dc360/apps/web/PENDENCIAS.md b/dc360/apps/web/PENDENCIAS.md
+index 3ad55d2..00ac707 100644
+--- a/dc360/apps/web/PENDENCIAS.md
++++ b/dc360/apps/web/PENDENCIAS.md
+@@ -421,3 +421,55 @@ O que continua aberto:
+ 2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
+ 3. A lista `ESPERADOS` de `fluxo-api.e2e.mjs` ainda aceita 403 em qualquer rota:
+    o teste novo é quem prova a ausência do 403 de devolvidas, por papel.
++
++## 12. Minha conta a 320 px, foco depois de encerrar e senha redefinida sem relógio (V2-F00-E09 e E10, correção 2)
++
++A rodada 2 da validação reprovou três pontos, e a própria correção achou um quarto, todos presos agora por teste:
++
++- **Botão de Minha conta a 320 px (E09).** "Encerrar minhas outras sessões" passava
++  cerca de 16 px da coluna porque `.botao` é `nowrap` e o conserto da correção 1 só
++  alcançava `.modal__rodape .botao`. `.botao--quebra` (`app.css`) faz o rótulo
++  quebrar e, até 600 px, o botão ocupar a coluna. `layout-estreito.e2e.mjs`
++  (seções 5 e 6) mede por retângulo Minha conta a 320, 390, 768 e 1280 px, Usuários
++  (fora da tabela que rola) a 320, 390 e 768 px e a janela da senha temporária a
++  320 e 390 px.
++- **Foco depois de encerrar as outras sessões (E09, WCAG 2.4.3).** O botão some
++  quando a lista é relida e o foco caía em `BODY`. Um efeito sobre `sucesso` em
++  `MinhaConta.tsx` leva o foco para a confirmação, que é o próprio `Aviso` com a prop
++  `foco` (`tabIndex={-1}`, sem `role`: ver o fim desta seção). Preso por
++  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real e ausência
++  de região viva).
++- **Senha redefinida sem redirecionamento por tempo (E10, WCAG 2.2.1).** A tela de
++  redefinição não tem mais relógio: mostra a confirmação (com o foco nela) e o
++  botão "Entrar com a nova senha", um link de navegação completa, que é a única ação
++  da tela (sem o link "Voltar para a entrada" nem a frase de apoio, que repetiam). Preso por
++  `test/recuperar-senha.test.ts` (nenhum `setTimeout`, `location.assign` ou
++  navegação por código na tela) e pela seção 14 do e2e, que espera 5 s e confere
++  que a confirmação continua lá.
++- **Rótulo do botão Entrar sumia com o mouse em cima (E10, achado da própria correção).**
++  As capturas a 1280 px mostraram o botão "Entrar com a nova senha" sem texto: ele é
++  um `<a>`, e `a:hover` (0,1,1) vence a cor do repouso de `.botao--primario` (0,1,0),
++  então o texto ia para `--ds-accent-hover`, igual ao fundo do hover, nos dois temas.
++  O hover de `.botao--primario` e de `.botao--secundario` agora diz a cor do texto
++  (`app.css`). Preso por `test/recuperar-senha.test.ts` (fonte) e pela seção 14 do
++  `fluxo-api.e2e.mjs`, que passa o mouse sobre o botão nos dois temas e compara a cor
++  do texto com a do fundo. Era defeito anterior à correção (o botão antigo "Ir para a
++  entrada" tinha o mesmo).
++
++**Foco e anúncio da confirmação (rodada de conserto da correção 2).** O foco em `BODY`
++depois do envio do pedido de recuperação e depois de redefinir a senha, e o aviso de
++sucesso que entrava no DOM já com o texto (anúncio de região inserida não é garantido),
++SAÍRAM desta lista: foram consertados. Escolha, em UM mecanismo só: o FOCO. `Aviso`
++ganhou a prop `foco`; com ela o aviso é o alvo do foco (`tabIndex={-1}`) e NÃO é região
++viva (sem `role`), porque região viva mais foco seriam lidos duas vezes. As duas telas
++de recuperação e a confirmação de Minha conta usam o mesmo mecanismo. Ao "Pedir de novo"
++o foco volta para o campo de email. Preso por `test/recuperar-senha.test.ts` e
++`test/minha-conta-estreita.test.ts` (fonte), pela seção 14 de `fluxo-api.e2e.mjs` e pela
++seção 7 de `layout-estreito.e2e.mjs` (foco real e ausência de região viva).
++
++Continua aberto, com dono em outra fase (F10-E11): quando a redefinição cai em link que
++não vale mais ou em recuperação desligada, o formulário também some e o foco ainda vai
++para `BODY` (o aviso de perigo é `role="alert"`, então é anunciado); telas de
++recuperação sem landmark `main`. Nenhum leitor de tela foi usado: o anúncio por foco
++está provado por atributo e por `document.activeElement`, e a conferência com leitor de
++tela segue como pendência humana.
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 5f8c8bd..2855b59 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -715,6 +725,24 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   .modal__rodape .botao { width: 100%; }
+ }
+ 
++/*
++  `.botao--quebra` é o mesmo tratamento para o botão que mora FORA de janela e
++  repete o objeto ou diz uma frase comprida: "Encerrar minhas outras sessões" em
++  Minha conta passava cerca de 16 px da coluna a 320 px, porque o conserto acima
++  só alcançava `.modal__rodape .botao` (reprovação da V2-F00-E09, rodada 2). Em
++  tela estreita ele também ocupa a largura da coluna, como os da janela. A regra é
++  própria, e não um seletor a mais na de cima, para um não quebrar o outro.
++*/
++.botao--quebra {
++  max-width: 100%; height: auto;
++  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
++  white-space: normal; overflow-wrap: break-word; text-align: center;
++  line-height: var(--ds-lh-body-sm);
++}
++@media (max-width: 600px) {
++  .botao--quebra { width: 100%; }
++}
++
+ /* ---------- Filtros ---------- */
+ 
+ .filtros {

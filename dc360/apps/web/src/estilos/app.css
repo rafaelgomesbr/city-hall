@@ -676,10 +676,20 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 .botao:not(:disabled):active { transform: translateY(1px); }
 
 .botao--primario { background: var(--ds-accent); color: var(--ds-on-accent); }
-.botao--primario:not(:disabled):hover { background: var(--ds-accent-hover); box-shadow: var(--ds-accent-glow); }
+/*
+  O `color` do hover é repetido de propósito: um botão que é `<a>` (o "Entrar com a
+  nova senha" da recuperação de senha) leva `a:hover` (0,1,1), que vence a cor do
+  repouso (0,1,0) e punha o texto em `--ds-accent-hover`, igual ao fundo do hover:
+  o rótulo sumia nos dois temas (V2-F00-E10, correção 2). Aqui (0,3,0) vence.
+*/
+.botao--primario:not(:disabled):hover {
+  background: var(--ds-accent-hover); color: var(--ds-on-accent); box-shadow: var(--ds-accent-glow);
+}
 
 .botao--secundario { background: var(--ds-surface); color: var(--ds-text); border-color: var(--ds-border); }
-.botao--secundario:not(:disabled):hover { background: var(--ds-surface-2); border-color: var(--ds-text-muted); }
+.botao--secundario:not(:disabled):hover {
+  background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-text-muted);
+}
 
 .botao--perigo { background: var(--ds-danger-bg); color: var(--ds-danger-fg); border-color: var(--ds-danger-fg); }
 .botao--perigo:not(:disabled):hover { background: var(--ds-danger-fg); color: var(--ds-surface); }

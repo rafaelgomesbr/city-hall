@@ -57,7 +57,9 @@ describe("Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.
 
   it("a confirmação é um elemento focável por código (tabIndex -1) que a tela guarda por ref", () => {
     expect(conta).toMatch(/const confirmacao = useRef<HTMLDivElement>\(null\)/);
-    expect(conta).toMatch(/<div ref=\{confirmacao\} tabIndex=\{-1\}>/);
+    // O próprio Aviso é o alvo do foco (sem `div` sem papel em volta de um `role="status"`, que anunciava duas vezes).
+    expect(conta).toContain('<Aviso tom="sucesso" foco={confirmacao}>{sucesso}</Aviso>');
+    expect(conta).not.toMatch(/<div ref=\{confirmacao\}/);
   });
 
   it("um efeito sobre \`sucesso\` leva o foco para a confirmação, e não uma chamada solta no envio", () => {

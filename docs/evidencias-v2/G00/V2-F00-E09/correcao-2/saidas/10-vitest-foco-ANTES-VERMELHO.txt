@@ -1,0 +1,1582 @@
+$ npx vitest run test/recuperar-senha.test.ts test/minha-conta-estreita.test.ts (em dc360/apps/web)
+# mesmo comando da E10 (saida 11 de lá): 6 falhas, 2 deste arquivo
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/web
+
+ ❯ test/minha-conta-estreita.test.ts (6 tests | 1 failed) 6ms
+   ✓ O botão de Minha conta não passa da coluna em tela estreita > existe um modificador que deixa o rótulo quebrar em linhas e limita o botão à coluna 1ms
+   ✓ O botão de Minha conta não passa da coluna em tela estreita > até 600 px o botão com o modificador ocupa a largura da coluna 0ms
+   ✓ O botão de Minha conta não passa da coluna em tela estreita > o botão 'Encerrar minhas outras sessões' usa o modificador 0ms
+   ✓ O botão de Minha conta não passa da coluna em tela estreita > o modificador só usa tokens do design system: nenhum número solto de espaço, cor ou duração 0ms
+   × Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.4.3) > a confirmação é um elemento focável por código (tabIndex -1) que a tela guarda por ref 4ms
+     → expected 'import { useCallback, useEffect, useR…' to contain '<Aviso tom="sucesso" foco={confirmaca…'
+   ✓ Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.4.3) > um efeito sobre `sucesso` leva o foco para a confirmação, e não uma chamada solta no envio 0ms
+ ❯ test/recuperar-senha.test.ts (47 tests | 5 failed) 16ms
+   ✓ Qual frase vale para qual falha > 503 recuperacao_desligada troca a tela inteira por 'procure quem administra' 1ms
+   ✓ Qual frase vale para qual falha > 401 é link que não vale mais, 429 é excesso, 422 é senha recusada, falta de rede é rede 0ms
+   ✓ Qual frase vale para qual falha > a falha de rede usa a frase própria dela, e as outras usam a da tela 0ms
+   ✓ Qual frase vale para qual falha > a mensagem do servidor nunca vai para a tela: ela pode vir de um proxy no meio do caminho 0ms
+   ✓ As conferências de digitação > email: vazio e formato torto são recusados, com a frase que diz o que digitar 0ms
+   ✓ As conferências de digitação > senha nova: vazia, curta, longa e diferente da repetição, cada erro no campo certo 0ms
+   ✓ As conferências de digitação > os limites passam: 12 e 200 caracteres iguais nos dois campos são aceitos 0ms
+   ✓ As conferências de digitação > sem regra de composição: senha longa só de letras minúsculas passa 0ms
+   ✓ Tela de pedir o link, estado por estado > normal: um campo de email com rótulo, dica, e o botão que diz o ato 0ms
+   ✓ Tela de pedir o link, estado por estado > vazio com erro: o campo é marcado inválido e a frase diz o que digitar 0ms
+   ✓ Tela de pedir o link, estado por estado > carregando o pedido: o botão diz Enviando, fica desligado e o formulário avisa que está ocupado 0ms
+   ✓ Tela de pedir o link, estado por estado > verificando se a recuperação está ligada: anuncia por role=status, sem formulário 0ms
+   ✓ Tela de pedir o link, estado por estado > falha de envio: aviso de perigo com role=alert e o formulário continua para tentar de novo 0ms
+   ✓ Tela de pedir o link, estado por estado > enviado: a frase neutra, o apoio e o botão de pedir de novo 0ms
+   ✓ Tela de pedir o link, estado por estado > a frase de 'enviado' não diz se a conta existe: nada de 'encontrado', 'cadastrado' sem condicional 0ms
+   ✓ Tela de pedir o link, estado por estado > desligada: manda procurar quem administra e aponta o botão Redefinir senha da lista de Usuários 0ms
+   ✓ Tela de pedir o link, estado por estado > modo de demonstração: explica e não deixa enviar 0ms
+   ✓ Tela de pedir o link, estado por estado > a saída da tela é um link comum (recarrega), e nunca o Link do roteador 1ms
+   ✓ Tela de definir a senha nova, estado por estado > normal: dois campos de senha com autocomplete new-password e o botão que diz o ato 0ms
+   ✓ Tela de definir a senha nova, estado por estado > senha curta: o erro fica na senha nova, e só nela 0ms
+   ✓ Tela de definir a senha nova, estado por estado > senhas diferentes: o erro fica na repetição, e só nela 0ms
+   ✓ Tela de definir a senha nova, estado por estado > carregando: o botão diz Salvando e fica desligado 0ms
+   ✓ Tela de definir a senha nova, estado por estado > falha de rede ou de servidor: aviso de perigo acima do botão, campos sem erro 0ms
+   ✓ Tela de definir a senha nova, estado por estado > link que não vale mais (vencido, usado ou trocado): UMA frase, e o caminho de pedir outro 0ms
+   ✓ Tela de definir a senha nova, estado por estado > endereço sem link (vazio): diz que o link veio incompleto e oferece pedir outro 0ms
+   ✓ Tela de definir a senha nova, estado por estado > recuperação desligada: as mesmas instruções da tela de pedir, sem formulário 0ms
+   × Tela de definir a senha nova, estado por estado > sucesso: confirma com foco (sem ser região viva) e oferece o botão Entrar, sem prometer ida automática 3ms
+     → expected '<div class="entrada"><div class="entr…' to match /class="aviso aviso--sucesso" tabindex…/
+   × Tela de definir a senha nova, estado por estado > sucesso: uma ação só e um texto só (sem o 'Voltar para a entrada' nem a frase de apoio) 2ms
+     → expected [ '<a ', '<a ' ] to have a length of 1 but got 2
+   × Tela de definir a senha nova, estado por estado > pedido enviado: a confirmação também é alvo do foco, e não região viva 0ms
+     → expected '<div class="entrada"><div class="entr…' to match /class="aviso aviso--sucesso" tabindex…/
+   × O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3) > depois de redefinir, um efeito sobre a fase leva o foco para a confirmação 0ms
+     → expected 'import { useEffect, useRef, useState …' to match /useEffect\(\(\) => \{\s*if \(p\.fase …/
+   ✓ O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3) > os hooks da redefinição ficam antes dos retornos antecipados (regra dos hooks) 0ms
+   × O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3) > depois de enviar o pedido o foco vai para a confirmação, e ao pedir de novo volta para o email 1ms
+     → expected 'import { useEffect, useRef, useState …' to match /if \(p\.fase === "enviado"\) confirma…/
+   ✓ O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3) > o Aviso com foco é focável por código e deixa de ser região viva; sem foco continua status/alert 0ms
+   ✓ O link de uso único não fica na barra de endereço > o token é lido uma vez para o estado e a barra de endereço é limpa com history.replaceState 0ms
+   ✓ O link de uso único não fica na barra de endereço > depois do sucesso a ida para a entrada é um link de navegação completa, para a política de referenciador não seguir a pessoa 0ms
+   ✓ O link de uso único não fica na barra de endereço > a página que carrega o link não é indexada: o cabeçalho X-Robots-Tag cobre as duas rotas 0ms
+   ✓ A confirmação da senha nova não some por tempo (WCAG 2.2.1) > a tela de redefinição não tem relógio nem navegação por código: nada leva a pessoa embora sozinho 0ms
+   ✓ A confirmação da senha nova não some por tempo (WCAG 2.2.1) > não sobrou a constante de espera que alimentava o redirecionamento 0ms
+   ✓ O botão Entrar, que é um link, não perde o rótulo ao passar o mouse > o hover do botão primário fixa a cor do texto em --ds-on-accent 0ms
+   ✓ O botão Entrar, que é um link, não perde o rótulo ao passar o mouse > o hover do botão secundário fixa a cor do texto em --ds-text 0ms
+   ✓ Referrer-Policy no painel > as duas telas de recuperação são servidas com Referrer-Policy: no-referrer e X-Robots-Tag: noindex 0ms
+   ✓ Referrer-Policy no painel > nenhum bloco global põe no-referrer: a chave do Google Maps é restrita por referenciador HTTP 0ms
+   ✓ O texto das duas telas > nenhuma frase tem travessão 1ms
+   ✓ O texto das duas telas > nenhuma frase supõe o gênero de quem lê nem de quem administra 0ms
+   ✓ O texto das duas telas > português com acento: nenhuma das palavras que já saíram sem acento 0ms
+   ✓ O texto das duas telas > rótulo de botão não é vago: nenhum é só 'OK', 'Enviar' ou 'Sim' 0ms
+   ✓ O texto das duas telas > o rótulo do campo diz o que digitar 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/minha-conta-estreita.test.ts > Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.4.3) > a confirmação é um elemento focável por código (tabIndex -1) que a tela guarda por ref
+AssertionError: expected 'import { useCallback, useEffect, useR…' to contain '<Aviso tom="sucesso" foco={confirmaca…'
+
+- Expected
++ Received
+
+- <Aviso tom="sucesso" foco={confirmacao}>{sucesso}</Aviso>
++ import { useCallback, useEffect, useRef, useState } from "react";
++ import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
++ import {
++   MODO, desativarSegundoFator, encerrarMinhasSessoes, listarMinhasSessoes,
++   situacaoSegundoFator, trocarSenha,
++   type SessaoDaConta, type SituacaoSegundoFator,
++ } from "../dados/repositorio";
++ import { useSessaoObrigatoria } from "../estado/sessao";
++ import {
++   Aviso, AvisoDeObrigatorios, Carregando, Cartao, formatarDataHora,
++ } from "../componentes/comuns";
++ import { Campo } from "../componentes/Campo";
++ import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
++ import { IconeCheck } from "../componentes/Icones";
++ import { AtivarSegundoFator } from "../componentes/SegundoFator";
++ import {
++   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
++ } from "./sessoes-regras";
++ import { useTitulo } from "../seo/titulo";
++
++ /**
++  * A conta de quem está usando o sistema, e a troca da própria senha.
++  *
++  * Esta tela fecha um buraco aberto pelo provisionamento: criar um município
++  * entrega uma senha inicial sorteada, ditada por telefone, com o pedido de que
++  * seja trocada na primeira entrada. Não havia como. O único caminho era pedir
++  * link de recuperação por email, que é o caminho de quem esqueceu a senha, não
++  * o de quem quer trocá-la, e que depende de um provedor de email que ainda não
++  * existe. Na prática, a senha ditada por telefone ficaria valendo para sempre.
++  *
++  * A rota já existia no servidor (`POST /auth/trocar-senha`), com o cuidado que
++  * importa: ela exige a senha atual e derruba as outras sessões. Faltava a
++  * tela.
++  */
++ export function MinhaConta() {
++   useTitulo("Minha conta");
++   const sessao = useSessaoObrigatoria();
++
++   const [atual, setAtual] = useState("");
++   const [nova, setNova] = useState("");
++   const [repetida, setRepetida] = useState("");
++   const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
++   const [erro, setErro] = useState<string | null>(null);
++   const [sucesso, setSucesso] = useState<string | null>(null);
++   const [enviando, setEnviando] = useState(false);
++
++   async function submeter(evento: React.FormEvent) {
++     evento.preventDefault();
++     const problemas: Record<string, string> = {};
++
++     if (!atual) problemas["atual"] = "Informe a senha que você usa hoje";
++
++     const conferida = senhaSchema.safeParse(nova);
++     if (!conferida.success) {
++       problemas["nova"] = conferida.error.issues[0]?.message ?? "Senha inválida";
++     } else if (nova === atual) {
++       // Trocar por ela mesma daria "sucesso" sem trocar nada, e a pessoa sairia
++       // achando que resolveu.
++       problemas["nova"] = "A senha nova precisa ser diferente da atual";
++     }
++
++     if (repetida !== nova) problemas["repetida"] = "As duas senhas não são iguais";
++
++     if (Object.keys(problemas).length > 0) {
++       setErrosDeCampo(problemas);
++       setErro(null);
++       setSucesso(null);
++       return;
++     }
++
++     setErrosDeCampo({});
++     setErro(null);
++     setEnviando(true);
++     try {
++       const mensagem = await trocarSenha(atual, nova);
++       setSucesso(mensagem);
++       setAtual(""); setNova(""); setRepetida("");
++     } catch (e: unknown) {
++       setErro(e instanceof Error ? e.message : String(e));
++     } finally {
++       setEnviando(false);
++     }
++   }
++
++   return (
++     <>
++       <div className="cabecalho-pagina">
++         <div>
++           <h1>Minha conta</h1>
++           <p>{sessao.organizacaoNome}</p>
++         </div>
++       </div>
++
++       <div className="detalhe">
++         <div className="coluna">
++           <Cartao titulo="Quem está usando este painel">
++             <div className="linha-campos">
++               <div className="par">
++                 <span className="par__rotulo">Nome</span>
++                 <span className="par__valor">{sessao.usuarioNome}</span>
++               </div>
++               <div className="par">
++                 <span className="par__rotulo">Papel</span>
++                 <span className="par__valor">{ROTULO_PAPEL[sessao.papel]}</span>
++               </div>
++               <div className="par">
++                 <span className="par__rotulo">Município</span>
++                 <span className="par__valor">{sessao.municipio}, {sessao.uf}</span>
++               </div>
++               <div className="par">
++                 <span className="par__rotulo">Órgão</span>
++                 <span className="par__valor">{sessao.organizacaoNome}</span>
++               </div>
++             </div>
++           </Cartao>
++
++           <Cartao titulo="Trocar minha senha">
++             {MODO === "local" ? (
++               <Aviso tom="info">
++                 Neste painel a entrada é por escolha de perfil, sem senha, então
++                 não há o que trocar. A troca existe quando o painel está ligado
++                 ao servidor da prefeitura, que é o caminho de produção.
++               </Aviso>
++             ) : (
++               <>
++                 {erro && <Aviso tom="perigo">{erro}</Aviso>}
++                 {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
++
++                 <p className="campo__dica" style={{ marginTop: 0 }}>
++                   Trocar a senha encerra as suas outras sessões, em outros
++                   navegadores e aparelhos. Esta continua aberta.
++                 </p>
++
++                 <form onSubmit={submeter} noValidate>
++                   <AvisoDeObrigatorios />
++                   <Campo
++                     id="conta-senha-atual"
++                     rotulo="Senha que você usa hoje"
++                     erro={errosDeCampo["atual"]}
++                   >
++                     {(campo) => (
++                       <input {...campo} type="password" value={atual}
++                              autoComplete="current-password"
++                              onChange={(e) => setAtual(e.target.value)} />
++                     )}
++                   </Campo>
++
++                   <Campo
++                     id="conta-senha-nova"
++                     rotulo="Senha nova"
++                     erro={errosDeCampo["nova"]}
++                     dica={"Mínimo de 12 caracteres. Sem exigência de símbolo ou número: "
++                       + "regra de composição só produz senha pior e mais difícil de lembrar."}
++                   >
++                     {(campo) => (
++                       <input {...campo} type="password" value={nova}
++                              autoComplete="new-password"
++                              onChange={(e) => setNova(e.target.value)} />
++                     )}
++                   </Campo>
++
++                   <Campo
++                     id="conta-senha-repetida"
++                     rotulo="Repita a senha nova"
++                     erro={errosDeCampo["repetida"]}
++                   >
++                     {(campo) => (
++                       <input {...campo} type="password" value={repetida}
++                              autoComplete="new-password"
++                              onChange={(e) => setRepetida(e.target.value)} />
++                     )}
++                   </Campo>
++
++                   <button type="submit" className="botao botao--primario" disabled={enviando}>
++                     {enviando ? "Trocando" : "Trocar senha"}
++                   </button>
++                 </form>
++               </>
++             )}
++           </Cartao>
++
++           <MinhasOutrasSessoes />
++
++           <VerificacaoEmDuasEtapas />
++         </div>
++       </div>
++     </>
++   );
++ }
++
++ /**
++  * As sessões abertas da própria conta, e o botão de sair de todas as outras.
++  *
++  * É o caminho de quem perdeu o celular ou esqueceu o painel aberto no
++  * computador da recepção, e de quem não precisa trocar a senha só para expulsar
++  * um aparelho: trocar a senha CONCEDE acesso novo, encerrar sessão só RETIRA, e
++  * por isso este botão não pede a senha atual (decisão do servidor, em
++  * `/auth/encerrar-sessoes`).
++  *
++  * A LISTA VEM ANTES DO BOTÃO porque ninguém decide derrubar o que não
++  * consegue ver: com "Chrome em Windows, entrou ontem" na tela, a pessoa
++  * reconhece o computador da recepção. A tela não recebe IP nem o user-agent
++  * inteiro, só a frase do aparelho.
++  *
++  * ESTA SESSÃO CONTINUA ABERTA, e a frase está na pergunta e na confirmação:
++  * um botão que desloga quem o aperta é um botão que ninguém aperta.
++  */
++ function MinhasOutrasSessoes() {
++   const [sessoes, setSessoes] = useState<SessaoDaConta[] | null>(null);
++   const [erroDeLeitura, setErroDeLeitura] = useState<string | null>(null);
++   const [perguntando, setPerguntando] = useState(false);
++   const [encerrando, setEncerrando] = useState(false);
++   const [erro, setErro] = useState<string | null>(null);
++   const [sucesso, setSucesso] = useState<string | null>(null);
++   const confirmacao = useRef<HTMLDivElement>(null);
++
++   /*
++     O FOCO NÃO PODE CAIR EM `BODY` DEPOIS DE ENCERRAR (WCAG 2.4.3).
++
++     O botão "Encerrar minhas outras sessões" só existe enquanto há outra
++     sessão. Ao confirmar, a lista é relida, o botão some, e o foco que o
++     `Modal` devolveu a ele ia junto: teclado e leitor de tela recomeçavam do
++     topo da página (validação da V2-F00-E09, rodada 2). O foco vai para a
++     confirmação, que continua na tela e é o que a pessoa precisa ouvir.
++
++     UM mecanismo só: a confirmação é o próprio alvo do foco (`Aviso` com
++     `foco`) e, por isso, não é região viva. Antes o foco ia para uma `div` sem
++     papel que embrulhava um aviso `role="status"`, e o leitor podia dizer a
++     mesma frase duas vezes (uma pelo foco, outra pela região). É o mesmo
++     mecanismo da tela de redefinição de senha, para os dois fluxos se
++     comportarem igual.
++
++     É um efeito sobre `sucesso`, e não uma chamada dentro de `encerrar`, por
++     causa da ordem: o `Modal` devolve o foco ao gatilho na limpeza do efeito
++     dele, que roda antes deste (filho antes de pai). Mover o foco aqui, depois
++     do commit que mostrou a confirmação, é o que não deixa o gatilho ter a
++     última palavra.
++   */
++   useEffect(() => {
++     if (sucesso) confirmacao.current?.focus();
++   }, [sucesso]);
++
++   const carregar = useCallback((): (() => void) => {
++     let cancelado = false;
++     setErroDeLeitura(null);
++     listarMinhasSessoes()
++       .then((lista) => { if (!cancelado) setSessoes(lista); })
++       .catch((e: unknown) => {
++         if (!cancelado) setErroDeLeitura(e instanceof Error ? e.message : String(e));
++       });
++     return () => { cancelado = true; };
++   }, []);
++
++   // No modo local não existe sessão para ler: a entrada é por escolha de perfil.
++   useEffect(() => (MODO === "local" ? undefined : carregar()), [carregar]);
++
++   async function encerrar(): Promise<void> {
++     if (encerrando) return;
++     setEncerrando(true);
++     setErro(null);
++     try {
++       const r = await encerrarMinhasSessoes();
++       setPerguntando(false);
++       setSucesso(fraseDeOutrasEncerradas(r.sessoesEncerradas));
++       carregar();
++     } catch (e: unknown) {
++       setErro(e instanceof Error ? e.message : String(e));
++     } finally {
++       setEncerrando(false);
++     }
++   }
++
++   if (MODO === "local") {
++     return (
++       <Cartao titulo="Minhas sessões">
++         <Aviso tom="info">
++           Neste painel a entrada é por escolha de perfil, sem senha e sem sessão em outros
++           aparelhos, então não há o que listar nem encerrar. Esta lista existe quando o
++           painel está ligado ao servidor da prefeitura, que é o caminho de produção.
++         </Aviso>
++       </Cartao>
++     );
++   }
++
++   const outras = sessoes ? sessoes.filter((s) => !s.atual).length : 0;
++
++   return (
++     <Cartao titulo="Minhas sessões">
++       {sucesso && (
++         <div ref={confirmacao} tabIndex={-1}>
++           <Aviso tom="sucesso">{sucesso}</Aviso>
++         </div>
++       )}
++
++       {/*
++         O `Carregando` da página tem 60vh de altura, que dentro de um cartão
++         empurraria o resto da tela para baixo. Aqui o mesmo desenho, no tamanho
++         do cartão.
++       */}
++       {!sessoes && !erroDeLeitura && (
++         <div className="carregando carregando--no-cartao" role="status" aria-live="polite">
++           <div className="girador" aria-hidden="true" />
++           <p>Carregando as suas sessões</p>
++         </div>
++       )}
++
++       {erroDeLeitura && (
++         <>
++           <Aviso tom="perigo">
++             Não foi possível carregar as suas sessões. {erroDeLeitura}
++           </Aviso>
++           <button type="button" className="botao botao--secundario" onClick={() => carregar()}>
++             Tentar de novo
++           </button>
++         </>
++       )}
++
++       {sessoes && (
++         <>
++           <ul className="sessoes" aria-label="Sessões abertas na sua conta">
++             {sessoes.map((s, i) => (
++               <li key={`${s.entrouEm}-${i}`} className="sessoes__item">
++                 <div className="sessoes__topo">
++                   <span className="sessoes__aparelho">{s.aparelho}</span>
++                   {s.atual && (
++                     <span className="selo selo--info">
++                       <IconeCheck tamanho={12} /> Esta sessão
++                     </span>
++                   )}
++                 </div>
++                 <div className="sessoes__datas">
++                   <span>Entrou em {formatarDataHora(s.entrouEm)}</span>
++                   <span>Expira em {formatarDataHora(s.validaAte)}</span>
++                 </div>
++               </li>
++             ))}
++           </ul>
++
++           {outras === 0 ? (
++             <p className="campo__dica" style={{ margin: 0 }}>{SO_ESTA_SESSAO}</p>
++           ) : (
++             <>
++               <p className="campo__dica" style={{ marginTop: 0 }}>
++                 Encerrar as outras não mexe nesta: você continua aqui, sem precisar entrar de novo.
++               </p>
++               {/* `botao--quebra`: a 320 px o rótulo comprido quebra em linhas e o botão ocupa a coluna. */}
++               <button type="button" className="botao botao--perigo botao--quebra"
++                       onClick={() => { setErro(null); setSucesso(null); setPerguntando(true); }}>
++                 Encerrar minhas outras sessões
++               </button>
++             </>
++           )}
++         </>
++       )}
++
++       <ConfirmarAcao
++         aberto={perguntando}
++         titulo="Encerrar minhas outras sessões"
++         consequencia={
++           <>
++             Os outros navegadores e aparelhos da sua conta saem agora e precisam entrar de novo
++             com a sua senha. Esta sessão continua aberta, e a senha não muda.
++           </>
++         }
++         rotuloDaAcao={rotuloDeEncerrarOutras(outras)}
++         destrutiva
++         ocupado={encerrando}
++         aoConfirmar={() => void encerrar()}
++         aoCancelar={() => setPerguntando(false)}
++       >
++         {erro && <Aviso tom="perigo">{erro}</Aviso>}
++       </ConfirmarAcao>
++     </Cartao>
++   );
++ }
++
++ /**
++  * A verificação em duas etapas da própria conta.
++  *
++  * Ela fica aqui, e não numa tela de segurança separada, porque é aqui que a
++  * pessoa já vem trocar a senha: um recurso de segurança escondido em outro
++  * lugar do menu é um recurso que só quem já sabe que ele existe encontra, e o
++  * público desta tela é justamente quem nunca ouviu falar dele.
++  *
++  * O ESTADO DELA É LIDO DO SERVIDOR, e não do papel de quem está logado. Parece
++  * detalhe e não é: "esta conta é administradora, então a verificação está
++  * ligada" seria uma inferência da tela sobre um fato que mora no banco, e ela
++  * fica errada no minuto seguinte a alguém desligar o recurso no servidor.
++  */
++ function VerificacaoEmDuasEtapas() {
++   const [situacao, setSituacao] = useState<SituacaoSegundoFator | null>(null);
++   const [ligando, setLigando] = useState(false);
++   const [senha, setSenha] = useState("");
++   const [erro, setErro] = useState<string | null>(null);
++   const [sucesso, setSucesso] = useState<string | null>(null);
++   const [desligando, setDesligando] = useState(false);
++
++   function recarregar() {
++     let cancelado = false;
++     situacaoSegundoFator()
++       .then((s) => { if (!cancelado) setSituacao(s); })
++       .catch((e: unknown) => {
++         if (!cancelado) setErro(e instanceof Error ? e.message : String(e));
++       });
++     return () => { cancelado = true; };
++   }
++
++   // A bandeira de cancelamento é o equivalente, para um pedido em voo, do
++   // temporizador limpo no desmonte: resposta que chega depois da tela não
++   // escreve estado nenhum.
++   useEffect(recarregar, []);
++
++   async function desligar(evento: React.FormEvent) {
++     evento.preventDefault();
++     setErro(null);
++     setSucesso(null);
++     setDesligando(true);
++     try {
++       const mensagem = await desativarSegundoFator(senha);
++       setSenha("");
++       setSucesso(mensagem);
++       recarregar();
++     } catch (e: unknown) {
++       setErro(e instanceof Error ? e.message : String(e));
++     } finally {
++       setDesligando(false);
++     }
++   }
++
++   if (!situacao) {
++     return (
++       <Cartao titulo="Verificação em duas etapas">
++         {erro ? <Aviso tom="perigo">{erro}</Aviso> : <Carregando />}
++       </Cartao>
++     );
++   }
++
++   if (!situacao.disponivel) {
++     return (
++       <Cartao titulo="Verificação em duas etapas">
++         <Aviso tom="info">
++           {MODO === "local"
++             ? "Neste painel a entrada é por escolha de perfil, sem senha, então "
++               + "não há segunda etapa a ligar. Ela existe quando o painel está "
++               + "ligado ao servidor da prefeitura, que é o caminho de produção."
++             : "Este servidor está com a verificação em duas etapas desligada. "
++               + "Quem cuida da instalação do sistema pode ligá-la."}
++         </Aviso>
++       </Cartao>
++     );
++   }
++
++   if (ligando) {
++     return (
++       <Cartao titulo="Ligar a verificação em duas etapas">
++         <AtivarSegundoFator
++           aoConcluir={() => {
++             setLigando(false);
++             setSucesso("Verificação em duas etapas ligada nesta conta.");
++             recarregar();
++           }}
++           aoDesistir={() => setLigando(false)}
++         />
++       </Cartao>
++     );
++   }
++
++   return (
++     <Cartao titulo="Verificação em duas etapas">
++       {erro && <Aviso tom="perigo">{erro}</Aviso>}
++       {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
++
++       {situacao.ativo ? (
++         <>
++           <Aviso tom="sucesso">
++             Ligada. Ao entrar, além da senha, o sistema pede o código de seis
++             dígitos do seu aplicativo de autenticação. Você ainda tem
++             {" "}{situacao.codigosRestantes}{" "}
++             {situacao.codigosRestantes === 1 ? "código" : "códigos"} de recuperação.
++           </Aviso>
++
++           <p className="campo__dica" style={{ marginTop: 0 }}>
++             Trocou de telefone? Desligue aqui e ligue de novo: o aparelho antigo
++             para de valer no mesmo ato, e você recebe códigos de recuperação
++             novos.
++           </p>
++
++           <form onSubmit={desligar} noValidate>
++             <Campo
++               id="segundo-fator-senha"
++               rotulo="Sua senha, para desligar"
++               dica="Desligar retira a proteção da conta, então o sistema confirma que é você. Um painel esquecido aberto na recepção não desliga nada."
++             >
++               {(campo) => (
++                 <input {...campo} type="password" value={senha}
++                        autoComplete="current-password"
++                        onChange={(e) => setSenha(e.target.value)} />
++               )}
++             </Campo>
++             <button type="submit" className="botao botao--perigo" disabled={desligando}>
++               {desligando ? "Desligando" : "Desligar a verificação"}
++             </button>
++           </form>
++         </>
++       ) : (
++         <>
++           {situacao.exigido ? (
++             <Aviso tom="alerta">
++               Esta conta administra o município, e o município exige a verificação
++               em duas etapas para ela. Enquanto não estiver ligada, a próxima
++               entrada vai pedir para ligar antes de continuar.
++             </Aviso>
++           ) : (
++             <Aviso tom="info">
++               Desligada. Com ela, uma senha descoberta não basta para entrar na
++               sua conta: o sistema passa a pedir também o código de seis dígitos
++               do seu aplicativo de autenticação.
++             </Aviso>
++           )}
++
++           {situacao.pendente && (
++             <p className="campo__dica" style={{ marginTop: 0 }}>
++               Você começou a ligar e não confirmou nenhum código, então nada
++               mudou. Comece de novo: o segredo anterior é descartado.
++             </p>
++           )}
++
++           <button type="button" className="botao botao--primario"
++                   onClick={() => { setSucesso(null); setErro(null); setLigando(true); }}>
++             Ligar a verificação em duas etapas
++           </button>
++         </>
++       )}
++     </Cartao>
++   );
++ }
++
+
+ ❯ test/minha-conta-estreita.test.ts:61:19
+     59|     expect(conta).toMatch(/const confirmacao = useRef<HTMLDivElement>\…
+     60|     // O próprio Aviso é o alvo do foco (sem `div` sem papel em volta …
+     61|     expect(conta).toContain('<Aviso tom="sucesso" foco={confirmacao}>{…
+       |                   ^
+     62|     expect(conta).not.toMatch(/<div ref=\{confirmacao\}/);
+     63|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/recuperar-senha.test.ts > Tela de definir a senha nova, estado por estado > sucesso: confirma com foco (sem ser região viva) e oferece o botão Entrar, sem prometer ida automática
+AssertionError: expected '<div class="entrada"><div class="entr…' to match /class="aviso aviso--sucesso" tabindex…/
+
+- Expected: 
+/class="aviso aviso--sucesso" tabindex="-1"/
+
++ Received: 
+"<div class=\"entrada\"><div class=\"entrada__painel\"><div class=\"entrada__marca\"><span class=\"entrada__sigla\" aria-hidden=\"true\">DC</span><div><h1 class=\"entrada__titulo\">Nova senha</h1><p class=\"entrada__subtitulo\">Sua senha foi alterada</p></div></div><section class=\"cartao\"><div class=\"cartao__corpo\"><div class=\"aviso aviso--sucesso\" role=\"status\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m4.5 12.5 5 5 10-11\"></path></svg><div>Senha redefinida. Entre com a nova senha.</div></div><p class=\"entrada__texto entrada__texto--apoio\">Quando quiser, vá para a entrada e use a senha nova.</p><a class=\"botao botao--primario entrada__acao\" href=\"/entrar\">Entrar com a nova senha</a></div></section><p class=\"entrada__rodape\"><a href=\"/entrar\">Voltar para a entrada</a></p></div></div>"
+
+ ❯ test/recuperar-senha.test.ts:286:18
+    284|     // A confirmação é o alvo do foco (tabindex -1) e NÃO é região viv…
+    285|     // de anúncio, e os dois juntos seriam lidos duas vezes.
+    286|     expect(html).toMatch(/class="aviso aviso--sucesso" tabindex="-1"/);
+       |                  ^
+    287|     expect(html).not.toMatch(/aviso--sucesso"[^>]*role=/);
+    288|     expect(texto(html)).toContain("Senha redefinida. Entre com a nova …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/recuperar-senha.test.ts > Tela de definir a senha nova, estado por estado > sucesso: uma ação só e um texto só (sem o 'Voltar para a entrada' nem a frase de apoio)
+AssertionError: expected [ '<a ', '<a ' ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ test/recuperar-senha.test.ts:304:32
+    302|     const html = redefinicao({ fase: "pronto" });
+    303|     // O botão "Entrar com a nova senha" já leva à entrada: um segundo…
+    304|     expect(html.match(/<a /g)).toHaveLength(1);
+       |                                ^
+    305|     expect(html).not.toContain(FRASES.voltar);
+    306|     expect(texto(html)).not.toContain("Quando quiser");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/recuperar-senha.test.ts > Tela de definir a senha nova, estado por estado > pedido enviado: a confirmação também é alvo do foco, e não região viva
+AssertionError: expected '<div class="entrada"><div class="entr…' to match /class="aviso aviso--sucesso" tabindex…/
+
+- Expected: 
+/class="aviso aviso--sucesso" tabindex="-1"/
+
++ Received: 
+"<div class=\"entrada\"><div class=\"entrada__painel\"><div class=\"entrada__marca\"><span class=\"entrada__sigla\" aria-hidden=\"true\">DC</span><div><h1 class=\"entrada__titulo\">Redefinir senha</h1><p class=\"entrada__subtitulo\">Informe o email com que você entra no sistema</p></div></div><section class=\"cartao\"><div class=\"cartao__corpo\"><div class=\"aviso aviso--sucesso\" role=\"status\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m4.5 12.5 5 5 10-11\"></path></svg><div>Se existir conta com esse email, enviamos um link de redefinição. Confira sua caixa de entrada.</div></div><p class=\"entrada__texto entrada__texto--apoio\">Não chegou? Olhe também a caixa de spam e espere alguns minutos. O link vale por pouco tempo e funciona uma vez só. Se digitou o email errado, peça de novo.</p><button type=\"button\" class=\"botao botao--secundario\" style=\"width:100%\">Pedir de novo</button></div></section><p class=\"entrada__rodape\"><a href=\"/entrar\">Voltar para a entrada</a></p></div></div>"
+
+ ❯ test/recuperar-senha.test.ts:314:18
+    312|   it("pedido enviado: a confirmação também é alvo do foco, e não regiã…
+    313|     const html = pedido({ fase: "enviado" });
+    314|     expect(html).toMatch(/class="aviso aviso--sucesso" tabindex="-1"/);
+       |                  ^
+    315|     expect(html).not.toMatch(/aviso--sucesso"[^>]*role=/);
+    316|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/recuperar-senha.test.ts > O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3) > depois de redefinir, um efeito sobre a fase leva o foco para a confirmação
+AssertionError: expected 'import { useEffect, useRef, useState …' to match /useEffect\(\(\) => \{\s*if \(p\.fase …/
+
+- Expected: 
+/useEffect\(\(\) => \{\s*if \(p\.fase === "pronto"\) confirmacao\.current\?\.focus\(\);\s*\}, \[p\.fase\]\);/
+
++ Received: 
+"import { useEffect, useRef, useState } from \"react\";
+import type { FormEvent, ReactNode } from \"react\";
+import { useSearchParams } from \"react-router-dom\";
+import { MODO, pedirRecuperacao, redefinirSenha, situacaoDaRecuperacao } from \"../dados/repositorio\";
+import { Aviso, AvisoDeObrigatorios } from \"../componentes/comuns\";
+import { Campo } from \"../componentes/Campo\";
+import { useTitulo } from \"../seo/titulo\";
+import {
+  FRASES, classificarFalha, fraseDaFalhaDaRedefinicao, fraseDaFalhaDoPedido,
+  validarEmailDoPedido, validarSenhaNova, type ErroDaSenhaNova,
+} from \"./recuperar-regras\";
+
+/**
+ * Recuperação de senha, em duas telas que compartilham a mesma moldura.
+ *
+ * A primeira pede o email. A resposta é sempre a mesma, exista a conta ou
+ * não, e a tela repete isso ao pé da letra: se ela dissesse \"email não
+ * encontrado\", viraria um verificador de quais servidores estão cadastrados
+ * na prefeitura.
+ *
+ * A segunda recebe o link e define a senha nova. Ela não entra no sistema
+ * depois: quem redefiniu digita a senha uma vez no login, e é isso que
+ * confirma que a nova senha funciona.
+ *
+ * Cada tela é DUAS peças: uma que decide (estado, chamadas ao servidor) e uma
+ * que só desenha o que lhe mandaram (`TelaDoPedido`, `TelaDaRedefinicao`). A
+ * segunda existe separada para cada estado poder ser desenhado e conferido
+ * sozinho, sem servidor, e é por ela que as capturas de erro, de link vencido e
+ * de recuperação desligada saem iguais ao que a pessoa vê.
+ *
+ * A \"Voltar para a entrada\" é um `<a>` comum, e não um `Link` do roteador, de
+ * propósito: a página `/redefinir-senha` é servida com `Referrer-Policy:
+ * no-referrer` (`vercel.json`), e uma política vale para o documento inteiro.
+ * Navegar por dentro do roteador levaria essa política para o painel depois do
+ * login, e o mapa do Google (cuja chave é restrita por referenciador) pararia
+ * de carregar até a próxima recarga. Recarregar é barato aqui e fecha isso.
+ */
+function Moldura({ titulo, subtitulo, children, comVolta = true }: {
+  titulo: string;
+  subtitulo: string;
+  children: ReactNode;
+  /** Falso na confirmação da senha nova: o botão \"Entrar\" já é a ida à entrada, e um segundo link para o mesmo lugar só repetiria. */
+  comVolta?: boolean;
+}) {
+  return (
+    <div className=\"entrada\">
+      <div className=\"entrada__painel\">
+        <div className=\"entrada__marca\">
+          <span className=\"entrada__sigla\" aria-hidden=\"true\">DC</span>
+          <div>
+            <h1 className=\"entrada__titulo\">{titulo}</h1>
+            <p className=\"entrada__subtitulo\">{subtitulo}</p>
+          </div>
+        </div>
+        <section className=\"cartao\">
+          <div className=\"cartao__corpo\">{children}</div>
+        </section>
+        {comVolta && (
+          <p className=\"entrada__rodape\">
+            <a href=\"/entrar\">{FRASES.voltar}</a>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O que fazer quando o email não sai: procurar quem administra.
+ *
+ * Aparece nas duas telas (o pedido e o link), porque o caminho é o mesmo e a
+ * pessoa chega nele por dois lados. Os passos apontam o botão \"Redefinir senha\"
+ * da lista de Usuários, que é o caminho que de fato funciona hoje (V2-F00-E09).
+ */
+function SemEmail() {
+  return (
+    <>
+      <Aviso tom=\"alerta\">{FRASES.desligadaAviso}</Aviso>
+      <p className=\"entrada__texto\">{FRASES.desligadaIntroducao}</p>
+      <ol className=\"passos\">
+        {FRASES.desligadaPassos.map((passo) => <li key={passo}>{passo}</li>)}
+      </ol>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pedir o link
+// ---------------------------------------------------------------------------
+
+export type FaseDoPedido = \"verificando\" | \"desligada\" | \"local\" | \"formulario\" | \"enviado\";
+
+export type PropsDoPedido = {
+  fase: FaseDoPedido;
+  email: string;
+  enviando: boolean;
+  /** Erro do campo de email (vazio, formato). */
+  erroDoCampo: string | null;
+  /** Falha do envio que não é do campo: rede, excesso de pedidos, servidor. */
+  falha: string | null;
+  aoMudarEmail: (valor: string) => void;
+  aoEnviar: (evento: FormEvent) => void;
+  aoPedirDeNovo: () => void;
+};
+
+export function TelaDoPedido(p: PropsDoPedido) {
+  /*
+    O FOCO ACOMPANHA A TROCA DE TELA (WCAG 2.4.3 e 4.1.3).
+
+    Enviar o pedido faz o formulário (e o botão que tinha o foco) sumir, e o
+    foco caía em `BODY`. Agora ele vai para a confirmação. UM mecanismo só: o
+    foco. A confirmação (`Aviso` com `foco`) não é região viva, porque uma
+    região inserida já com o texto pode nem ser anunciada, e com o foco em cima
+    seria lida duas vezes. Ao \"Pedir de novo\" o botão também some, e o foco
+    volta para o campo de email.
+  */
+  const confirmacao = useRef<HTMLDivElement>(null);
+  const faseAnterior = useRef(p.fase);
+  useEffect(() => {
+    
+    faseAnterior.current = p.fase;
+  }, [p.fase]);
+
+  const subtitulo = p.fase === \"desligada\" ? FRASES.desligadaSubtitulo : FRASES.pedidoSubtitulo;
+  return (
+    <Moldura titulo={FRASES.pedidoTitulo} subtitulo={subtitulo}>
+      {p.fase === \"verificando\" && (
+        <div className=\"entrada__verificando\" role=\"status\" aria-live=\"polite\">
+          <div className=\"girador\" aria-hidden=\"true\" />
+          <p>{FRASES.pedidoVerificando}</p>
+        </div>
+      )}
+
+      {p.fase === \"desligada\" && <SemEmail />}
+
+      {p.fase === \"enviado\" && (
+        <>
+          <Aviso tom=\"sucesso\">{FRASES.pedidoEnviado}</Aviso>
+          <p className=\"entrada__texto entrada__texto--apoio\">{FRASES.pedidoEnviadoApoio}</p>
+          <button type=\"button\" className=\"botao botao--secundario\"
+                  style={{ width: \"100%\" }} onClick={p.aoPedirDeNovo}>
+            {FRASES.pedidoDeNovo}
+          </button>
+        </>
+      )}
+
+      {(p.fase === \"formulario\" || p.fase === \"local\") && (
+        <form onSubmit={p.aoEnviar} noValidate aria-busy={p.enviando}>
+          {p.fase === \"local\" && <Aviso tom=\"alerta\">{FRASES.pedidoLocal}</Aviso>}
+          <Campo id=\"recuperar-email\" rotulo={FRASES.pedidoRotulo} erro={p.erroDoCampo}
+                 dica={FRASES.pedidoDica}>
+            {(campo) => (
+              <input {...campo} type=\"email\" value={p.email} autoComplete=\"email\"
+                     inputMode=\"email\" autoCapitalize=\"none\" spellCheck={false}
+                     onChange={(e) => p.aoMudarEmail(e.target.value)} />
+            )}
+          </Campo>
+          {p.falha && <Aviso tom=\"perigo\">{p.falha}</Aviso>}
+          <button type=\"submit\" className=\"botao botao--primario\"
+                  style={{ width: \"100%\" }} disabled={p.enviando || p.fase === \"local\"}>
+            {p.enviando ? FRASES.pedidoBotaoEnviando : FRASES.pedidoBotao}
+          </button>
+        </form>
+      )}
+    </Moldura>
+  );
+}
+
+export function RecuperarSenha() {
+  useTitulo(\"Recuperar senha\");
+  const [fase, setFase] = useState<FaseDoPedido>(MODO === \"local\" ? \"local\" : \"verificando\");
+  const [email, setEmail] = useState(\"\");
+  const [erroDoCampo, setErroDoCampo] = useState<string | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  /*
+    Pergunta ao servidor se a recuperação está ligada ANTES de mostrar o
+    formulário. Falha da pergunta NÃO vira \"desligada\": a tela cai no
+    formulário e o próprio pedido conta a verdade (503 `recuperacao_desligada`),
+    porque uma leitura que falhou por sinal fraco não pode fechar a porta de
+    quem só quer pedir o link.
+  */
+  useEffect(() => {
+    if (MODO === \"local\") return;
+    let cancelado = false;
+    situacaoDaRecuperacao()
+      .then((r) => { if (!cancelado) setFase(r.ativa ? \"formulario\" : \"desligada\"); })
+      .catch(() => { if (!cancelado) setFase(\"formulario\"); });
+    return () => { cancelado = true; };
+  }, []);
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    setFalha(null);
+    const erro = validarEmailDoPedido(email);
+    setErroDoCampo(erro);
+    if (erro) {
+      document.getElementById(\"recuperar-email\")?.focus();
+      return;
+    }
+    setEnviando(true);
+    try {
+      await pedirRecuperacao(email.trim());
+      // A frase é a da tela, e não a do servidor: ver `recuperar-regras.ts`.
+      setFase(\"enviado\");
+    } catch (e: unknown) {
+      if (classificarFalha(e) === \"desligada\") setFase(\"desligada\");
+      else setFalha(fraseDaFalhaDoPedido(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <TelaDoPedido
+      fase={fase} email={email} enviando={enviando}
+      erroDoCampo={erroDoCampo} falha={falha}
+      aoMudarEmail={(v) => { setEmail(v); setErroDoCampo(null); }}
+      aoEnviar={enviar}
+      aoPedirDeNovo={() => { setFase(\"formulario\"); setFalha(null); }}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Definir a senha nova
+// ---------------------------------------------------------------------------
+
+export type FaseDaRedefinicao = \"sem-link\" | \"link-invalido\" | \"desligada\" | \"formulario\" | \"pronto\";
+
+export type PropsDaRedefinicao = {
+  fase: FaseDaRedefinicao;
+  senha: string;
+  repetida: string;
+  salvando: boolean;
+  erroDeSenha: ErroDaSenhaNova | null;
+  falha: string | null;
+  aoMudarSenha: (valor: string) => void;
+  aoMudarRepetida: (valor: string) => void;
+  aoEnviar: (evento: FormEvent) => void;
+};
+
+export function TelaDaRedefinicao(p: PropsDaRedefinicao) {
+  /*
+    O FOCO VAI PARA A CONFIRMAÇÃO DEPOIS DE REDEFINIR (WCAG 2.4.3 e 4.1.3).
+
+    \"Definir nova senha\" faz o formulário sumir e o foco caía em `BODY`; a
+    confirmação, além disso, entrava no DOM já com o texto, e região viva
+    inserida assim pode não ser anunciada (quem lê devagar ou usa leitor de tela
+    perdia a mensagem, o mesmo motivo da retirada do relógio). Escolha: UM
+    mecanismo, o FOCO. O foco no `Aviso` faz o leitor ler a frase inteira, vale
+    para teclado e para toque, e não depende de a região já existir antes do
+    texto. Por isso o aviso com `foco` não é `role=\"status\"`: os dois juntos
+    seriam lidos duas vezes. Os hooks ficam antes dos retornos antecipados.
+  */
+  const confirmacao = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    
+  }, [p.fase]);
+
+  if (p.fase === \"sem-link\") {
+    return (
+      <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.semLinkSubtitulo}>
+        <Aviso tom=\"perigo\">{FRASES.semLink}</Aviso>
+        <a className=\"botao botao--primario entrada__acao\" href=\"/recuperar-senha\">
+          {FRASES.pedirNovoLink}
+        </a>
+      </Moldura>
+    );
+  }
+
+  if (p.fase === \"link-invalido\") {
+    return (
+      <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.linkInvalidoSubtitulo}>
+        <Aviso tom=\"perigo\">{FRASES.linkInvalido}</Aviso>
+        <a className=\"botao botao--primario entrada__acao\" href=\"/recuperar-senha\">
+          {FRASES.pedirNovoLink}
+        </a>
+      </Moldura>
+    );
+  }
+
+  if (p.fase === \"desligada\") {
+    return (
+      <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.desligadaSubtitulo}>
+        <SemEmail />
+      </Moldura>
+    );
+  }
+
+  return (
+    <Moldura
+      titulo={FRASES.novaTitulo}
+      subtitulo={p.fase === \"pronto\" ? FRASES.novaProntaSubtitulo : FRASES.novaSubtitulo}
+      
+    >
+      {p.fase === \"pronto\" ? (
+        <>
+          {/* Uma ação (o botão) e um texto (o aviso): o rodapé \"Voltar\" e a frase de apoio repetiam os dois. */}
+          <Aviso tom=\"sucesso\">{FRASES.novaPronta}</Aviso>
+          <p className=\"entrada__texto entrada__texto--apoio\">{FRASES.novaProntaApoio}</p>
+          <a className=\"botao botao--primario entrada__acao\" href=\"/entrar\">
+            {FRASES.novaProntaBotao}
+          </a>
+        </>
+      ) : (
+        <form onSubmit={p.aoEnviar} noValidate aria-busy={p.salvando}>
+          <AvisoDeObrigatorios />
+          {/*
+            Cada erro vai para o campo que o causou (o tamanho para a senha
+            nova, a divergência para a repetição), e a falha que não é de campo
+            (rede, excesso de tentativas) fica num aviso acima do botão. Repetir
+            o mesmo texto embaixo dos dois campos faria o leitor de tela anunciar
+            duas vezes o mesmo problema, e quem enxerga leria dois erros onde
+            existe um.
+          */}
+          <Campo
+            id=\"nova-senha\"
+            rotulo={FRASES.novaRotulo}
+            erro={p.erroDeSenha?.campo === \"nova\" ? p.erroDeSenha.texto : null}
+            dica={FRASES.novaDica}
+          >
+            {(campo) => (
+              <input {...campo} type=\"password\" value={p.senha} autoComplete=\"new-password\"
+                     onChange={(e) => p.aoMudarSenha(e.target.value)} />
+            )}
+          </Campo>
+          <Campo
+            id=\"repetir-senha\"
+            rotulo={FRASES.repetirRotulo}
+            erro={p.erroDeSenha?.campo === \"repetida\" ? p.erroDeSenha.texto : null}
+          >
+            {(campo) => (
+              <input {...campo} type=\"password\" value={p.repetida} autoComplete=\"new-password\"
+                     onChange={(e) => p.aoMudarRepetida(e.target.value)} />
+            )}
+          </Campo>
+          {p.falha && <Aviso tom=\"perigo\">{p.falha}</Aviso>}
+          <button type=\"submit\" className=\"botao botao--primario\"
+                  style={{ width: \"100%\" }} disabled={p.salvando}>
+            {p.salvando ? FRASES.novaBotaoSalvando : FRASES.novaBotao}
+          </button>
+        </form>
+      )}
+    </Moldura>
+  );
+}
+
+export function DefinirNovaSenha() {
+  useTitulo(\"Definir nova senha\");
+  const [params] = useSearchParams();
+  /*
+    O token é LIDO UMA VEZ e guardado no estado; em seguida sai da barra de
+    endereço. Ele é credencial de uso único viva por minutos: na barra de
+    endereço ele vai para o histórico do navegador, para a captura de tela que
+    a pessoa manda ao suporte e, sem política de referenciador, para qualquer
+    endereço de fora a que a página chegasse a apontar. Lido para o estado, a
+    tela continua funcionando e a URL fica limpa.
+  */
+  const [token] = useState(() => params.get(\"token\") ?? \"\");
+  const [fase, setFase] = useState<FaseDaRedefinicao>(token ? \"formulario\" : \"sem-link\");
+  const [senha, setSenha] = useState(\"\");
+  const [repetida, setRepetida] = useState(\"\");
+  const [erroDeSenha, setErroDeSenha] = useState<ErroDaSenhaNova | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    if (!window.location.search) return;
+    // `history.state` volta igual: é onde o roteador guarda a posição dele.
+    window.history.replaceState(window.history.state, \"\", window.location.pathname);
+  }, []);
+
+  /*
+    SEM REDIRECIONAMENTO POR TEMPO (WCAG 2.2.1, Tempo ajustável).
+
+    Antes, depois de redefinir a senha a tela levava sozinha para a entrada em
+    cerca de 2,5 segundos. Quem lê devagar, quem usa leitor de tela (o anúncio
+    de \"Senha redefinida\" leva mais que isso) e quem tem dificuldade de leitura
+    perdia a única confirmação, e a entrada que carregava não a repetia
+    (validação da V2-F00-E10, rodada 2). Agora a confirmação fica até a pessoa
+    decidir: o botão \"Entrar com a nova senha\" é um link de navegação COMPLETA
+    (`href`, e não o roteador), pela razão escrita na `Moldura`: a política de
+    referenciador desta página não pode seguir a pessoa para dentro do painel.
+
+    Não existe mais relógio nesta tela, e o teste reprova se alguém o trouxer
+    de volta (`recuperar-senha.test.ts` e o fluxo ponta a ponta).
+  */
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    setFalha(null);
+
+    // As conferências de digitação acontecem aqui, e não no servidor: é erro de
+    // digitação, não regra de negócio, e a ida ao servidor só atrasaria a
+    // correção. O servidor confere de novo (a regra mora nele).
+    const erro = validarSenhaNova(senha, repetida);
+    setErroDeSenha(erro);
+    if (erro) {
+      document.getElementById(erro.campo === \"nova\" ? \"nova-senha\" : \"repetir-senha\")?.focus();
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      await redefinirSenha(token, senha);
+      setFase(\"pronto\");
+    } catch (e: unknown) {
+      const tipo = classificarFalha(e);
+      if (tipo === \"link-invalido\") setFase(\"link-invalido\");
+      else if (tipo === \"desligada\") setFase(\"desligada\");
+      else setFalha(fraseDaFalhaDaRedefinicao(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <TelaDaRedefinicao
+      fase={fase} senha={senha} repetida={repetida} salvando={salvando}
+      erroDeSenha={erroDeSenha} falha={falha}
+      aoMudarSenha={(v) => { setSenha(v); setErroDeSenha(null); }}
+      aoMudarRepetida={(v) => { setRepetida(v); setErroDeSenha(null); }}
+      aoEnviar={enviar}
+    />
+  );
+}
+"
+
+ ❯ test/recuperar-senha.test.ts:323:20
+    321| 
+    322|   it("depois de redefinir, um efeito sobre a fase leva o foco para a c…
+    323|     expect(codigo).toMatch(/useEffect\(\(\) => \{\s*if \(p\.fase === "…
+       |                    ^
+    324|     expect(codigo).toContain('<Aviso tom="sucesso" foco={confirmacao}>…
+    325|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  test/recuperar-senha.test.ts > O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3) > depois de enviar o pedido o foco vai para a confirmação, e ao pedir de novo volta para o email
+AssertionError: expected 'import { useEffect, useRef, useState …' to match /if \(p\.fase === "enviado"\) confirma…/
+
+- Expected: 
+/if \(p\.fase === "enviado"\) confirmacao\.current\?\.focus\(\);/
+
++ Received: 
+"import { useEffect, useRef, useState } from \"react\";
+import type { FormEvent, ReactNode } from \"react\";
+import { useSearchParams } from \"react-router-dom\";
+import { MODO, pedirRecuperacao, redefinirSenha, situacaoDaRecuperacao } from \"../dados/repositorio\";
+import { Aviso, AvisoDeObrigatorios } from \"../componentes/comuns\";
+import { Campo } from \"../componentes/Campo\";
+import { useTitulo } from \"../seo/titulo\";
+import {
+  FRASES, classificarFalha, fraseDaFalhaDaRedefinicao, fraseDaFalhaDoPedido,
+  validarEmailDoPedido, validarSenhaNova, type ErroDaSenhaNova,
+} from \"./recuperar-regras\";
+
+/**
+ * Recuperação de senha, em duas telas que compartilham a mesma moldura.
+ *
+ * A primeira pede o email. A resposta é sempre a mesma, exista a conta ou
+ * não, e a tela repete isso ao pé da letra: se ela dissesse \"email não
+ * encontrado\", viraria um verificador de quais servidores estão cadastrados
+ * na prefeitura.
+ *
+ * A segunda recebe o link e define a senha nova. Ela não entra no sistema
+ * depois: quem redefiniu digita a senha uma vez no login, e é isso que
+ * confirma que a nova senha funciona.
+ *
+ * Cada tela é DUAS peças: uma que decide (estado, chamadas ao servidor) e uma
+ * que só desenha o que lhe mandaram (`TelaDoPedido`, `TelaDaRedefinicao`). A
+ * segunda existe separada para cada estado poder ser desenhado e conferido
+ * sozinho, sem servidor, e é por ela que as capturas de erro, de link vencido e
+ * de recuperação desligada saem iguais ao que a pessoa vê.
+ *
+ * A \"Voltar para a entrada\" é um `<a>` comum, e não um `Link` do roteador, de
+ * propósito: a página `/redefinir-senha` é servida com `Referrer-Policy:
+ * no-referrer` (`vercel.json`), e uma política vale para o documento inteiro.
+ * Navegar por dentro do roteador levaria essa política para o painel depois do
+ * login, e o mapa do Google (cuja chave é restrita por referenciador) pararia
+ * de carregar até a próxima recarga. Recarregar é barato aqui e fecha isso.
+ */
+function Moldura({ titulo, subtitulo, children, comVolta = true }: {
+  titulo: string;
+  subtitulo: string;
+  children: ReactNode;
+  /** Falso na confirmação da senha nova: o botão \"Entrar\" já é a ida à entrada, e um segundo link para o mesmo lugar só repetiria. */
+  comVolta?: boolean;
+}) {
+  return (
+    <div className=\"entrada\">
+      <div className=\"entrada__painel\">
+        <div className=\"entrada__marca\">
+          <span className=\"entrada__sigla\" aria-hidden=\"true\">DC</span>
+          <div>
+            <h1 className=\"entrada__titulo\">{titulo}</h1>
+            <p className=\"entrada__subtitulo\">{subtitulo}</p>
+          </div>
+        </div>
+        <section className=\"cartao\">
+          <div className=\"cartao__corpo\">{children}</div>
+        </section>
+        {comVolta && (
+          <p className=\"entrada__rodape\">
+            <a href=\"/entrar\">{FRASES.voltar}</a>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O que fazer quando o email não sai: procurar quem administra.
+ *
+ * Aparece nas duas telas (o pedido e o link), porque o caminho é o mesmo e a
+ * pessoa chega nele por dois lados. Os passos apontam o botão \"Redefinir senha\"
+ * da lista de Usuários, que é o caminho que de fato funciona hoje (V2-F00-E09).
+ */
+function SemEmail() {
+  return (
+    <>
+      <Aviso tom=\"alerta\">{FRASES.desligadaAviso}</Aviso>
+      <p className=\"entrada__texto\">{FRASES.desligadaIntroducao}</p>
+      <ol className=\"passos\">
+        {FRASES.desligadaPassos.map((passo) => <li key={passo}>{passo}</li>)}
+      </ol>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pedir o link
+// ---------------------------------------------------------------------------
+
+export type FaseDoPedido = \"verificando\" | \"desligada\" | \"local\" | \"formulario\" | \"enviado\";
+
+export type PropsDoPedido = {
+  fase: FaseDoPedido;
+  email: string;
+  enviando: boolean;
+  /** Erro do campo de email (vazio, formato). */
+  erroDoCampo: string | null;
+  /** Falha do envio que não é do campo: rede, excesso de pedidos, servidor. */
+  falha: string | null;
+  aoMudarEmail: (valor: string) => void;
+  aoEnviar: (evento: FormEvent) => void;
+  aoPedirDeNovo: () => void;
+};
+
+export function TelaDoPedido(p: PropsDoPedido) {
+  /*
+    O FOCO ACOMPANHA A TROCA DE TELA (WCAG 2.4.3 e 4.1.3).
+
+    Enviar o pedido faz o formulário (e o botão que tinha o foco) sumir, e o
+    foco caía em `BODY`. Agora ele vai para a confirmação. UM mecanismo só: o
+    foco. A confirmação (`Aviso` com `foco`) não é região viva, porque uma
+    região inserida já com o texto pode nem ser anunciada, e com o foco em cima
+    seria lida duas vezes. Ao \"Pedir de novo\" o botão também some, e o foco
+    volta para o campo de email.
+  */
+  const confirmacao = useRef<HTMLDivElement>(null);
+  const faseAnterior = useRef(p.fase);
+  useEffect(() => {
+    
+    faseAnterior.current = p.fase;
+  }, [p.fase]);
+
+  const subtitulo = p.fase === \"desligada\" ? FRASES.desligadaSubtitulo : FRASES.pedidoSubtitulo;
+  return (
+    <Moldura titulo={FRASES.pedidoTitulo} subtitulo={subtitulo}>
+      {p.fase === \"verificando\" && (
+        <div className=\"entrada__verificando\" role=\"status\" aria-live=\"polite\">
+          <div className=\"girador\" aria-hidden=\"true\" />
+          <p>{FRASES.pedidoVerificando}</p>
+        </div>
+      )}
+
+      {p.fase === \"desligada\" && <SemEmail />}
+
+      {p.fase === \"enviado\" && (
+        <>
+          <Aviso tom=\"sucesso\">{FRASES.pedidoEnviado}</Aviso>
+          <p className=\"entrada__texto entrada__texto--apoio\">{FRASES.pedidoEnviadoApoio}</p>
+          <button type=\"button\" className=\"botao botao--secundario\"
+                  style={{ width: \"100%\" }} onClick={p.aoPedirDeNovo}>
+            {FRASES.pedidoDeNovo}
+          </button>
+        </>
+      )}
+
+      {(p.fase === \"formulario\" || p.fase === \"local\") && (
+        <form onSubmit={p.aoEnviar} noValidate aria-busy={p.enviando}>
+          {p.fase === \"local\" && <Aviso tom=\"alerta\">{FRASES.pedidoLocal}</Aviso>}
+          <Campo id=\"recuperar-email\" rotulo={FRASES.pedidoRotulo} erro={p.erroDoCampo}
+                 dica={FRASES.pedidoDica}>
+            {(campo) => (
+              <input {...campo} type=\"email\" value={p.email} autoComplete=\"email\"
+                     inputMode=\"email\" autoCapitalize=\"none\" spellCheck={false}
+                     onChange={(e) => p.aoMudarEmail(e.target.value)} />
+            )}
+          </Campo>
+          {p.falha && <Aviso tom=\"perigo\">{p.falha}</Aviso>}
+          <button type=\"submit\" className=\"botao botao--primario\"
+                  style={{ width: \"100%\" }} disabled={p.enviando || p.fase === \"local\"}>
+            {p.enviando ? FRASES.pedidoBotaoEnviando : FRASES.pedidoBotao}
+          </button>
+        </form>
+      )}
+    </Moldura>
+  );
+}
+
+export function RecuperarSenha() {
+  useTitulo(\"Recuperar senha\");
+  const [fase, setFase] = useState<FaseDoPedido>(MODO === \"local\" ? \"local\" : \"verificando\");
+  const [email, setEmail] = useState(\"\");
+  const [erroDoCampo, setErroDoCampo] = useState<string | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  /*
+    Pergunta ao servidor se a recuperação está ligada ANTES de mostrar o
+    formulário. Falha da pergunta NÃO vira \"desligada\": a tela cai no
+    formulário e o próprio pedido conta a verdade (503 `recuperacao_desligada`),
+    porque uma leitura que falhou por sinal fraco não pode fechar a porta de
+    quem só quer pedir o link.
+  */
+  useEffect(() => {
+    if (MODO === \"local\") return;
+    let cancelado = false;
+    situacaoDaRecuperacao()
+      .then((r) => { if (!cancelado) setFase(r.ativa ? \"formulario\" : \"desligada\"); })
+      .catch(() => { if (!cancelado) setFase(\"formulario\"); });
+    return () => { cancelado = true; };
+  }, []);
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    setFalha(null);
+    const erro = validarEmailDoPedido(email);
+    setErroDoCampo(erro);
+    if (erro) {
+      document.getElementById(\"recuperar-email\")?.focus();
+      return;
+    }
+    setEnviando(true);
+    try {
+      await pedirRecuperacao(email.trim());
+      // A frase é a da tela, e não a do servidor: ver `recuperar-regras.ts`.
+      setFase(\"enviado\");
+    } catch (e: unknown) {
+      if (classificarFalha(e) === \"desligada\") setFase(\"desligada\");
+      else setFalha(fraseDaFalhaDoPedido(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <TelaDoPedido
+      fase={fase} email={email} enviando={enviando}
+      erroDoCampo={erroDoCampo} falha={falha}
+      aoMudarEmail={(v) => { setEmail(v); setErroDoCampo(null); }}
+      aoEnviar={enviar}
+      aoPedirDeNovo={() => { setFase(\"formulario\"); setFalha(null); }}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Definir a senha nova
+// ---------------------------------------------------------------------------
+
+export type FaseDaRedefinicao = \"sem-link\" | \"link-invalido\" | \"desligada\" | \"formulario\" | \"pronto\";
+
+export type PropsDaRedefinicao = {
+  fase: FaseDaRedefinicao;
+  senha: string;
+  repetida: string;
+  salvando: boolean;
+  erroDeSenha: ErroDaSenhaNova | null;
+  falha: string | null;
+  aoMudarSenha: (valor: string) => void;
+  aoMudarRepetida: (valor: string) => void;
+  aoEnviar: (evento: FormEvent) => void;
+};
+
+export function TelaDaRedefinicao(p: PropsDaRedefinicao) {
+  /*
+    O FOCO VAI PARA A CONFIRMAÇÃO DEPOIS DE REDEFINIR (WCAG 2.4.3 e 4.1.3).
+
+    \"Definir nova senha\" faz o formulário sumir e o foco caía em `BODY`; a
+    confirmação, além disso, entrava no DOM já com o texto, e região viva
+    inserida assim pode não ser anunciada (quem lê devagar ou usa leitor de tela
+    perdia a mensagem, o mesmo motivo da retirada do relógio). Escolha: UM
+    mecanismo, o FOCO. O foco no `Aviso` faz o leitor ler a frase inteira, vale
+    para teclado e para toque, e não depende de a região já existir antes do
+    texto. Por isso o aviso com `foco` não é `role=\"status\"`: os dois juntos
+    seriam lidos duas vezes. Os hooks ficam antes dos retornos antecipados.
+  */
+  const confirmacao = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    
+  }, [p.fase]);
+
+  if (p.fase === \"sem-link\") {
+    return (
+      <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.semLinkSubtitulo}>
+        <Aviso tom=\"perigo\">{FRASES.semLink}</Aviso>
+        <a className=\"botao botao--primario entrada__acao\" href=\"/recuperar-senha\">
+          {FRASES.pedirNovoLink}
+        </a>
+      </Moldura>
+    );
+  }
+
+  if (p.fase === \"link-invalido\") {
+    return (
+      <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.linkInvalidoSubtitulo}>
+        <Aviso tom=\"perigo\">{FRASES.linkInvalido}</Aviso>
+        <a className=\"botao botao--primario entrada__acao\" href=\"/recuperar-senha\">
+          {FRASES.pedirNovoLink}
+        </a>
+      </Moldura>
+    );
+  }
+
+  if (p.fase === \"desligada\") {
+    return (
+      <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.desligadaSubtitulo}>
+        <SemEmail />
+      </Moldura>
+    );
+  }
+
+  return (
+    <Moldura
+      titulo={FRASES.novaTitulo}
+      subtitulo={p.fase === \"pronto\" ? FRASES.novaProntaSubtitulo : FRASES.novaSubtitulo}
+      
+    >
+      {p.fase === \"pronto\" ? (
+        <>
+          {/* Uma ação (o botão) e um texto (o aviso): o rodapé \"Voltar\" e a frase de apoio repetiam os dois. */}
+          <Aviso tom=\"sucesso\">{FRASES.novaPronta}</Aviso>
+          <p className=\"entrada__texto entrada__texto--apoio\">{FRASES.novaProntaApoio}</p>
+          <a className=\"botao botao--primario entrada__acao\" href=\"/entrar\">
+            {FRASES.novaProntaBotao}
+          </a>
+        </>
+      ) : (
+        <form onSubmit={p.aoEnviar} noValidate aria-busy={p.salvando}>
+          <AvisoDeObrigatorios />
+          {/*
+            Cada erro vai para o campo que o causou (o tamanho para a senha
+            nova, a divergência para a repetição), e a falha que não é de campo
+            (rede, excesso de tentativas) fica num aviso acima do botão. Repetir
+            o mesmo texto embaixo dos dois campos faria o leitor de tela anunciar
+            duas vezes o mesmo problema, e quem enxerga leria dois erros onde
+            existe um.
+          */}
+          <Campo
+            id=\"nova-senha\"
+            rotulo={FRASES.novaRotulo}
+            erro={p.erroDeSenha?.campo === \"nova\" ? p.erroDeSenha.texto : null}
+            dica={FRASES.novaDica}
+          >
+            {(campo) => (
+              <input {...campo} type=\"password\" value={p.senha} autoComplete=\"new-password\"
+                     onChange={(e) => p.aoMudarSenha(e.target.value)} />
+            )}
+          </Campo>
+          <Campo
+            id=\"repetir-senha\"
+            rotulo={FRASES.repetirRotulo}
+            erro={p.erroDeSenha?.campo === \"repetida\" ? p.erroDeSenha.texto : null}
+          >
+            {(campo) => (
+              <input {...campo} type=\"password\" value={p.repetida} autoComplete=\"new-password\"
+                     onChange={(e) => p.aoMudarRepetida(e.target.value)} />
+            )}
+          </Campo>
+          {p.falha && <Aviso tom=\"perigo\">{p.falha}</Aviso>}
+          <button type=\"submit\" className=\"botao botao--primario\"
+                  style={{ width: \"100%\" }} disabled={p.salvando}>
+            {p.salvando ? FRASES.novaBotaoSalvando : FRASES.novaBotao}
+          </button>
+        </form>
+      )}
+    </Moldura>
+  );
+}
+
+export function DefinirNovaSenha() {
+  useTitulo(\"Definir nova senha\");
+  const [params] = useSearchParams();
+  /*
+    O token é LIDO UMA VEZ e guardado no estado; em seguida sai da barra de
+    endereço. Ele é credencial de uso único viva por minutos: na barra de
+    endereço ele vai para o histórico do navegador, para a captura de tela que
+    a pessoa manda ao suporte e, sem política de referenciador, para qualquer
+    endereço de fora a que a página chegasse a apontar. Lido para o estado, a
+    tela continua funcionando e a URL fica limpa.
+  */
+  const [token] = useState(() => params.get(\"token\") ?? \"\");
+  const [fase, setFase] = useState<FaseDaRedefinicao>(token ? \"formulario\" : \"sem-link\");
+  const [senha, setSenha] = useState(\"\");
+  const [repetida, setRepetida] = useState(\"\");
+  const [erroDeSenha, setErroDeSenha] = useState<ErroDaSenhaNova | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    if (!window.location.search) return;
+    // `history.state` volta igual: é onde o roteador guarda a posição dele.
+    window.history.replaceState(window.history.state, \"\", window.location.pathname);
+  }, []);
+
+  /*
+    SEM REDIRECIONAMENTO POR TEMPO (WCAG 2.2.1, Tempo ajustável).
+
+    Antes, depois de redefinir a senha a tela levava sozinha para a entrada em
+    cerca de 2,5 segundos. Quem lê devagar, quem usa leitor de tela (o anúncio
+    de \"Senha redefinida\" leva mais que isso) e quem tem dificuldade de leitura
+    perdia a única confirmação, e a entrada que carregava não a repetia
+    (validação da V2-F00-E10, rodada 2). Agora a confirmação fica até a pessoa
+    decidir: o botão \"Entrar com a nova senha\" é um link de navegação COMPLETA
+    (`href`, e não o roteador), pela razão escrita na `Moldura`: a política de
+    referenciador desta página não pode seguir a pessoa para dentro do painel.
+
+    Não existe mais relógio nesta tela, e o teste reprova se alguém o trouxer
+    de volta (`recuperar-senha.test.ts` e o fluxo ponta a ponta).
+  */
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    setFalha(null);
+
+    // As conferências de digitação acontecem aqui, e não no servidor: é erro de
+    // digitação, não regra de negócio, e a ida ao servidor só atrasaria a
+    // correção. O servidor confere de novo (a regra mora nele).
+    const erro = validarSenhaNova(senha, repetida);
+    setErroDeSenha(erro);
+    if (erro) {
+      document.getElementById(erro.campo === \"nova\" ? \"nova-senha\" : \"repetir-senha\")?.focus();
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      await redefinirSenha(token, senha);
+      setFase(\"pronto\");
+    } catch (e: unknown) {
+      const tipo = classificarFalha(e);
+      if (tipo === \"link-invalido\") setFase(\"link-invalido\");
+      else if (tipo === \"desligada\") setFase(\"desligada\");
+      else setFalha(fraseDaFalhaDaRedefinicao(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <TelaDaRedefinicao
+      fase={fase} senha={senha} repetida={repetida} salvando={salvando}
+      erroDeSenha={erroDeSenha} falha={falha}
+      aoMudarSenha={(v) => { setSenha(v); setErroDeSenha(null); }}
+      aoMudarRepetida={(v) => { setRepetida(v); setErroDeSenha(null); }}
+      aoEnviar={enviar}
+    />
+  );
+}
+"
+
+ ❯ test/recuperar-senha.test.ts:334:20
+    332| 
+    333|   it("depois de enviar o pedido o foco vai para a confirmação, e ao pe…
+    334|     expect(codigo).toMatch(/if \(p\.fase === "enviado"\) confirmacao\.…
+       |                    ^
+    335|     expect(codigo).toMatch(/else if \(faseAnterior\.current === "envia…
+    336|     expect(codigo).toContain('<Aviso tom="sucesso" foco={confirmacao}>…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  6 failed | 47 passed (53)
+   Start at  13:30:23
+   Duration  491ms (transform 196ms, setup 0ms, collect 352ms, tests 22ms, environment 0ms, prepare 72ms)
+

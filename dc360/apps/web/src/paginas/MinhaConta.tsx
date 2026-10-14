@@ -223,6 +223,13 @@ function MinhasOutrasSessoes() {
     topo da página (validação da V2-F00-E09, rodada 2). O foco vai para a
     confirmação, que continua na tela e é o que a pessoa precisa ouvir.
 
+    UM mecanismo só: a confirmação é o próprio alvo do foco (`Aviso` com
+    `foco`) e, por isso, não é região viva. Antes o foco ia para uma `div` sem
+    papel que embrulhava um aviso `role="status"`, e o leitor podia dizer a
+    mesma frase duas vezes (uma pelo foco, outra pela região). É o mesmo
+    mecanismo da tela de redefinição de senha, para os dois fluxos se
+    comportarem igual.
+
     É um efeito sobre `sucesso`, e não uma chamada dentro de `encerrar`, por
     causa da ordem: o `Modal` devolve o foco ao gatilho na limpeza do efeito
     dele, que roda antes deste (filho antes de pai). Mover o foco aqui, depois
@@ -280,9 +287,7 @@ function MinhasOutrasSessoes() {
   return (
     <Cartao titulo="Minhas sessões">
       {sucesso && (
-        <div ref={confirmacao} tabIndex={-1}>
-          <Aviso tom="sucesso">{sucesso}</Aviso>
-        </div>
+        <Aviso tom="sucesso" foco={confirmacao}>{sucesso}</Aviso>
       )}
 
       {/*
