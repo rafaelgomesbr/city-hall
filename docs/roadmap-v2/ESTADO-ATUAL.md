@@ -12,8 +12,8 @@
 - GATE.md do G00 em docs/evidencias-v2/G00/: ausente
 
 ## Etapas da F00 (25)
-- IMPLEMENTADA 12, VALIDADA 6, VALIDADA COM PENDÊNCIA HUMANA 7
-- Próxima etapa acionável na ordem da tabela: nenhuma
+- VALIDADA 8, VALIDADA COM PENDÊNCIA HUMANA 5, REPROVADA 12
+- Próxima etapa acionável na ordem da tabela: V2-F00-E01 (REPROVADA) Baseline atual reproduzível em máquina limpa
 
 ## Checkpoints ABERTOS ou PARCIAIS citados (fase atual e próxima)
 - CP-04 ABERTO: Entidade, domínio, contas de loja, marca e bundle ids (F01: cabeçalho da fase, F01-E10,...)
@@ -23,10 +23,9 @@
 - CP-43 ABERTO: Licenças de dependência permitidas e proibidas (F01: cabeçalho da fase, F01-E19)
 - CP-44 ABERTO: PostGIS no provedor gerenciado de HML e de produção (F01: cabeçalho da fase, F01-E22)
 
-## Etapas com pendência humana (19)
+## Etapas com pendência humana (5)
 - Observação com "falta" em etapa EM ANDAMENTO ou IMPLEMENTADA, ou status VALIDADA COM PENDÊNCIA HUMANA:
-  F00-E01, F00-E02, F00-E03, F00-E04, F00-E05, F00-E06, F00-E07, F00-E09, F00-E10, F00-E11, F00-E12,
-  F00-E13, F00-E14, F00-E15, F00-E16, F00-E19, F00-E20, F00-E22, F00-E24
+  F00-E05, F00-E11, F00-E13, F00-E14, F00-E15
 
 ## Riscos aceitos vigentes (0)
 - nenhum RISCO-ACEITO.md em docs/evidencias-v2/
