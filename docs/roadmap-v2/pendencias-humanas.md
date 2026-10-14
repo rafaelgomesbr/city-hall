@@ -63,9 +63,6 @@ O QA rodou o aplicativo no emulador Android (AVD `Medium_Phone_API_36.1`, APK do
 
 Não são pendências humanas; estão aqui porque não admitem risco aceito e você precisa saber que existem. Entram por etapa, sem decisão sua.
 
-- E07: renovação concorrente com "encerrar sessões" deixa sessão viva (sessão revogada, item 2 da seção 7 de `28`). Correção 2 da E07.
-- E16: toda foto recusada no Android (perda de dado do campo, item 5). Correção 2 da E16.
-- E19: `auditar` aprova sem auditar quando o registro npm cai (item 7). Correção 2 da E19.
 - `acolherNoAparelho` falha aberto entre pessoas se o SQLite falhar (vazamento entre agentes no mesmo aparelho, item 3). Anterior à F00; dono F14-E02; tem de estar corrigido antes de qualquer piloto.
 
 ## F. Resolvidos
@@ -75,3 +72,4 @@ Não são pendências humanas; estão aqui porque não admitem risco aceito e vo
 | D1 a D8 | 2026-10-13 | Parte 1 do `ROTEIRO-G00.md` (Expo, prazo de teste pulado, perguntas da E03, isenções, D-25, CP-19, frases, tabela de documentação) | decididos por você; registro na seção 10 do STATUS |
 | T1 a T6 | 2026-10-13 | Telas no navegador do `ROTEIRO-G00.md` | executados por agente nos três motores (Chromium, Firefox, WebKit) sobre o SHA `4b96ea7`; os defeitos achados viraram correção (E09, E10); prova em `docs/evidencias-v2/G00/validacao/4b96ea7/navegador/` |
 | T7 a T9 (parte) | 2026-10-13 | Celular do `ROTEIRO-G00.md` | executados no emulador Android; o que o emulador não prova ficou em H18 a H20 |
+| E07, E16, E19 (seção E) | 2026-10-14 | Correções técnicas que não admitem risco aceito | implementadas no candidato `7c97881`: sessão viva na disputa de renovação (E07, `3935c3f`, 0 em 180 disputas em Postgres real), foto recusada pela cópia assíncrona (E16, `48cf0fa`, dublê fiel; falta emulador), `auditar` sem auditar (E19, `2d8f8c1`, sai 2); a rodada 3 de validação é quem confirma |
