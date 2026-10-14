@@ -1,0 +1,7 @@
+$ cd dc360/apps/web && node ../../docs/apresentacao/gerar-pdf.mjs 2026-09-15-para-o-alyson
+/Users/[usuario]/Documents/city-hall/dc360/docs/apresentacao/2026-09-15-para-o-alyson.pdf: 891717 bytes, 24 páginas, erros de console: 0
+
+$ texto do PDF extraido com PDFKit (pdftotext nao existe nesta maquina): trechos com a ressalva
+mado depende da saída a campo, que está em construção no aplicativo do agente (V2-F14-E01) PEÇA ESTA DO OBSERVAÇÃO Ofício para outro órgão por email Pronto, deslig
+idência e acompanha quem está em campo (em construção: a tela da coordenação existe, mas o aplicativo do agente ainda não declara a saída, V2-F14-E01). Classificar
+travessoes no texto do PDF: 0

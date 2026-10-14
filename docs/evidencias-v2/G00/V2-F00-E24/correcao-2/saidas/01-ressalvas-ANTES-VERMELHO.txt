@@ -1,0 +1,18 @@
+$ node docs/evidencias-v2/G00/V2-F00-E24/correcao-2/verificar-ressalvas.mjs  (ANTES do conserto)
+SEM RESSALVA  docs/apresentacao-produto-alyson.html  (linha 333): <p>Registra o chamado, responde providência quando outra secretaria retorna e acompanha quem está em campo, in
+SEM RESSALVA  docs/apresentacao-produto-alyson.html  (linha 381): <tr><td>Acompanhar quem está em campo</td><td class="sim">Sim</td><td class="nao">–</td><td class="sim">Sim</t
+SEM RESSALVA  dc360/docs/apresentacao/2026-09-15-para-o-alyson.html  (linha 372): <tr><td>Sino do painel</td><td><span class="pilula p-ok">Em uso</span></td><td>Vistoria recebida, prazo vencid
+SEM RESSALVA  dc360/docs/apresentacao/2026-09-15-para-o-alyson.html  (linha 498): <tr><td>Operador / plantonista</td><td><span class="pilula p-parcial">Parcial</span></td><td>Registra chamado 
+SEM RESSALVA  dc360/docs/PRIVACIDADE.md  (paragrafo 20): Desde 14/09/2026 há mais uma categoria, e ela precisa ser dita por extenso: a
+**saída a campo declarada pelo a
+SEM RESSALVA  dc360/docs/PAPEIS_E_RESPONSABILIDADES.md  (paragrafo 13): | Pode | Não pode |
+| --- | --- |
+| Registrar ocorrência (gera o protocolo) | Classificar severidade |
+| Regis
+SEM RESSALVA  dc360/docs/PAPEIS_E_RESPONSABILIDADES.md  (paragrafo 15): **Por que ele acompanha quem está em campo:** é a única permissão deste produto
+concedida ao posto mais baixo 
+SEM RESSALVA  dc360/README.md  (paragrafo 202): E ele **acompanha quem está em campo**, que é a única permissão concedida ao
+posto mais baixo por uma razão qu
+
+8 ocorrência(s) conferida(s), 8 sem a ressalva "em construção".
+codigo de saida: 1

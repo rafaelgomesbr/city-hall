@@ -93,11 +93,15 @@ interdição responde pelo ato, e a trilha é o que permite ao próprio servidor
 provar o que fez e quando. Por isso usuário **não se apaga**: se desativa. Um
 usuário apagado deixaria laudos assinados por ninguém.
 
-Desde 14/09/2026 há mais uma categoria, e ela precisa ser dita por extenso: a
-**saída a campo declarada pelo agente**, com o protocolo para onde ele foi, o
-tempo que ele previu, se ele foi sozinho, e o prazo de retorno. É dado sobre o
-servidor, ele mesmo declara, e existe para a coordenação saber que alguém não
-deu notícia.
+Desde 14/09/2026 o servidor prevê mais uma categoria, e ela precisa ser dita
+por extenso: a **saída a campo declarada pelo agente**, com o protocolo para
+onde ele foi, o tempo que ele previu, se ele foi sozinho, e o prazo de retorno.
+É dado sobre o servidor, ele mesmo declara, e existe para a coordenação saber
+que alguém não deu notícia. **Recurso em construção:** o aplicativo do agente
+ainda não declara a saída (previsto na V2-F14-E01, sem data), então hoje
+nenhuma saída é declarada e esta categoria fica vazia na prática. Ela já está
+descrita aqui para que a política valha desde o primeiro dia em que o recurso
+for ligado.
 
 **O que o sistema NÃO faz com isso, e é a parte que importa:** não acompanha a
 localização do agente, nem durante a saída nem depois. O que fica guardado é para

@@ -1,0 +1,12 @@
+$ cd dc360/apps/api && npx vitest run test/saida-a-campo.test.ts
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/saida-a-campo.test.ts (27 tests) 2979ms
+
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+   Start at  11:16:49
+   Duration  3.46s (transform 191ms, setup 15ms, collect 304ms, tests 2.98s, environment 0ms, prepare 34ms)
+
+codigo de saida: 0

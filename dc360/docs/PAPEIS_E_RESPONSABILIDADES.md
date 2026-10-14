@@ -37,7 +37,7 @@ coordenador em outro turno.
 | Registrar ocorrência (gera o protocolo) | Classificar severidade |
 | Registrar a resposta de uma providência | Despachar equipe |
 | Consultar os ofícios de encaminhamento (só leitura) | Encerrar ocorrência |
-| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito | Emitir documento |
+| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito (em construção, ver abaixo) | Emitir documento |
 | | Emitir ou enviar ofício |
 
 **Por que a linha é essa:** classificar severidade é decisão técnica com
@@ -52,6 +52,10 @@ Restringir à coordenação seria escolher a arrumação da tabela contra a fina
 da coisa, e o custo do erro é um agente no morro sem ninguém olhando. Ele também
 encerra a saída, porque é ele quem chama o agente pelo rádio: ver o alerta sem
 poder registrar o que fez deixaria o fato aberto na tela e o ato invisível.
+**Estado do recurso: em construção.** A tela da coordenação e a permissão já
+existem, mas o aplicativo do agente ainda não declara a saída (previsto na
+V2-F14-E01, sem data). Até lá a tela fica vazia e nenhum prazo estourado
+aparece: o operador não deve contar com ela para saber quem está no morro.
 
 **Por que ele responde providência:** é ele quem atende o telefone quando a
 secretaria liga de volta dizendo o que fez. Fazer essa pessoa anotar num papel

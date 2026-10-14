@@ -1,0 +1,13 @@
+$ cd dc360 && npx vitest run --root packages/shared test/regras-de-conteudo.test.ts
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (8 tests) 547ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  314ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  11:16:23
+   Duration  747ms (transform 29ms, setup 0ms, collect 30ms, tests 547ms, environment 0ms, prepare 41ms)
+
+codigo de saida: 0

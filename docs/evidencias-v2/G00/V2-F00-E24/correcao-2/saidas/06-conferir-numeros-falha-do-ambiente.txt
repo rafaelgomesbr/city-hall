@@ -1,0 +1,29 @@
+$ cd dc360 && npm run conferir:numeros
+
+> dc360@0.1.0 conferir:numeros
+> node scripts/conferir-numeros.mjs
+
+Lendo a lista de testes de cada pacote (sem executar)...
+node:fs:1726
+  const stats = binding.stat(
+                        ^
+
+Error: ENOENT: no such file or directory, stat '/Users/[usuario]/Documents/city-hall/dc360/apps/campo/ios/Pods/Headers/Private/ExpoSQLite/sqlite3.h'
+    at statSync (node:fs:1726:25)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:9)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at markdowns (file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:188:58)
+    at file:///Users/[usuario]/Documents/city-hall/dc360/scripts/conferir-numeros.mjs:348:23 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/[usuario]/Documents/city-hall/dc360/apps/campo/ios/Pods/Headers/Private/ExpoSQLite/sqlite3.h'
+}
+
+Node.js v24.15.0
+codigo de saida: 1

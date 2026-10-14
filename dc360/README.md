@@ -9,11 +9,11 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 649 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1299 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1310 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` dá 21 de 21 (medido em 2026-10-13, depois de subir seis pacotes do Expo um patch atrás; registro na pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -130,7 +130,7 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 | Token de acesso | JWT HS256, 15 minutos por padrão (`ACESSO_MINUTOS`, teto de 60) | Na LEITURA PURA (GET e HEAD de rota que só lê), verificado só pela assinatura: conta, papel e sessão NÃO são consultados, então conta desativada ainda lê até o token vencer (a F03-E03 fecha a leitura). Na ESCRITA, que é todo método que não é GET nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` e o HEAD delas (laudo, termo de interdição, termo de desinterdição e PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`, porque praticam um ato ou mudam dado do município; o dossiê e a busca, que só gravam o registro da própria leitura, seguem como leitura até a F03-E03; a lista é fixada por `apps/api/test/get-com-efeito.test.ts`), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
 | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
 | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
-| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação |
+| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo |
 | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
 | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
 | Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
@@ -1014,6 +1014,9 @@ recurso é alguém enxergar o prazo estourado, e quem está na sala às três da
 de uma noite de temporal é o operador de plantão. Restringir à coordenação seria
 escolher a elegância da tabela contra a finalidade da coisa, e o custo do erro é
 um agente no morro sem ninguém olhando.
+Esse acompanhamento está em construção: a tela existe, mas o aplicativo do agente
+ainda não declara a saída (V2-F14-E01, ver o quadro de estado da seção "O agente
+que sobe o morro sozinho"), e por isso hoje ela fica vazia.
 
 ## Como rodar
 
@@ -1111,25 +1114,38 @@ eram da máquina, e não do código, foram fechados no próprio repositório:
   existente é respeitada. O `openssl` vem do PATH; no Windows, quando o PATH
   não o tem (o caso do PowerShell), o teste o procura ao lado do `git` (Git for
   Windows). Sem `openssl` em lugar nenhum a suíte reprova dizendo o que
-  instalar, em vez de pular.
+  instalar, em vez de pular. **No macOS há uma falha de ambiente conhecida:**
+  `apps/api/test/openssl-do-teste.test.ts`, o caso "respeita OPENSSL_CONF válido",
+  espera o comportamento do OpenSSL 3 (o autoassinado de `openssl req -x509`
+  sai marcado como CA sem a configuração mínima) e o `openssl` do sistema é o
+  LibreSSL (3.3.6 medido em 2026-10-14), que não marca. É uma falha do teste
+  contra o LibreSSL, não do produto (não foi tentado aqui com um OpenSSL 3 no
+  PATH). Por isso o `test:api` numa máquina Mac sem OpenSSL 3 dá uma falha a
+  mais que o esperado do roteiro (o passo `teste-api` diverge só por ela), e a
+  contagem de casos não muda.
 - *Cache do Expo.* `npm run test:campo` apaga `apps/campo/.expo/types` quando o
   `router.d.ts` gerado ali não conhece alguma rota de `src/app` (ver
   `apps/campo/LEIA-ME.md`).
 
-| Comando | Windows 11 com Git Bash (Node 22.17.0) | Linux |
-| --- | --- | --- |
-| `npm run typecheck` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
-| `npm test` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
-| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | não provado nesta máquina |
-| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | não provado nesta máquina |
-| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | não provado nesta máquina |
-| `npm run test:scripts` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
-| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+| Comando | Windows 11 com Git Bash (Node 22.17.0) | macOS (Node 24), 2026-10-14 | Linux |
+| --- | --- | --- | --- |
+| `npm run typecheck` | rodado em 2026-10-07, código 0 | código 0 (passo `typecheck` do roteiro) | CI, ver abaixo |
+| `npm test` | rodado em 2026-10-07, código 0 | não rodado como comando único; cada pacote rodou no roteiro, ver a linha seguinte | CI, ver abaixo |
+| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | **código 1**: 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`") e 9 pulados por ambiente (o Postgres real), 1319 casos impressos | CI, ver abaixo |
+| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | código 0 | CI, ver abaixo |
+| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | código 0 | CI, ver abaixo |
+| `npm run test:scripts` | rodado em 2026-10-07, código 0 | código 0, 260 de 260, 0 pulados (existe `apps/campo/ios/`) | CI, ver abaixo |
+| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | código 0 | CI, ver abaixo |
 
-A coluna Linux fica "não provado" até existir um run de verdade, do CI
-(F01-E03) ou de contêiner: esta máquina não tem WSL nem Docker, e o código foi
-escrito para não depender da plataforma, o que não é o mesmo que ter rodado
-nela. A evidência está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+A coluna Linux ficou "não provado" até existir um run de verdade do CI, e agora
+existe: o trabalho "Linha de base (baseline.mjs) em Linux" rodou o roteiro
+inteiro (19 de 19 passos, código 0) no run 38445527075, do SHA `c9895e9`, que o
+gatekeeper da V2-F00-E25 leu (`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`);
+o mesmo run passou os demais trabalhos. Isso cobre o roteiro, não cada comando
+da tabela um a um, e é anterior às correções 2 de 2026-10-14: com a árvore de
+hoje não houve run de CI. A coluna do macOS vem do roteiro rodado nesta máquina
+(`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
+da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
 
 Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
 sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
@@ -1169,10 +1185,23 @@ Cada passo diz se o resultado "confere", se está "divergente-explicada" (um
 achado nomeado, com o registro onde está descrito, e que só vale quando a saída
 bate com a descrição inteira) ou "divergente" (sem explicação). O código de
 saída é 0 (tudo confere), 1 (só divergência explicada) ou 3 (divergência sem
-explicação, que reprova); 2 é o roteiro quebrado. Hoje não há divergência
-explicada: o roteiro confere todos os passos com código 0 (17 de 17 com
-`--sem-instalar`, 19 de 19 no Linux do CI); a deriva V-DEP-4 do `expo-doctor` foi
-fechada em 2026-10-13, com a atualização dos patches do Expo.
+explicação, que reprova); 2 é o roteiro quebrado. Nenhum passo carrega hoje
+uma divergência explicada. Na árvore validada de `4b96ea7` o roteiro conferiu
+todos os passos com código 0 (17 de 17 com `--sem-instalar` no Windows, 19 de 19
+no Linux do CI), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
+com a atualização dos patches do Expo. **Medido em 2026-10-14 num Mac (Node 24,
+`--sem-instalar`): 15 de 17**, e as duas divergências são de ambiente, nenhuma
+de teste de produto: `teste-api` (a falha do LibreSSL descrita acima, com 1319
+casos impressos, 9 deles pulados por ambiente porque o bloco de Postgres real
+só roda com `DC360_POSTGRES_DE_PROVA`) e `test-scripts` (existe `apps/campo/ios/`,
+saída do `expo prebuild` desta máquina, então os casos que pulam sem ela
+rodam e passam: 0 pulados contra 4 esperados). O `expo-doctor` deu 20 de 21 na
+manhã desse dia (cinco patches novos do Expo) e **21 de 21 depois da correção 4
+da E19**, no mesmo dia; a medição de 15 de 17 é a da árvore final, com ele já
+verde (premissa e limites no item 17 de `apps/campo/PENDENCIAS.md`). As saídas
+estão em `docs/evidencias-v2/G00/V2-F00-E22/correcao-2/` (medição da manhã, 14 de
+17) e em `docs/evidencias-v2/G00/V2-F00-E19/correcao-4/saidas/linha-de-base-final/`
+(árvore final, 15 de 17, com as 17 saídas brutas).
 Os dois `npm audit` crus são os únicos passos esperados como "falha", e só
 conferem se a saída trouxer o relatório (`# npm audit report`): `npm audit` que
 sai diferente de zero porque o registro estava fora do ar não audita nada e
@@ -1307,11 +1336,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 2925 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
-npm run test:api            # 1299 testes da API
+npm test                    # 2970 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+npm run test:api            # 1310 testes da API
 npm run test --workspace @dc360/campo   # 223 testes do motor de campo
-npm run test:campo          # tipos e os 1903 testes do aplicativo de campo
+npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
 ```
@@ -1468,7 +1497,7 @@ local no Chromium e no Firefox e, contra a API, o arquivo inteiro de ponta a
 ponta nos dois motores, sem cópia aparada. Antes disso a suíte contra a API
 morria na seção 13, e as seções seguintes nunca tinham sido alcançadas juntas.
 
-São 251 verificações no navegador que só existem neste caminho: entrada por senha, senha
+São 258 verificações no navegador que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -1619,8 +1648,11 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
   código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
   envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
-  aplicativo; passa no `expo-doctor` 21 de 21 (os seis patches do Expo foram
-  aplicados em 2026-10-13, pendência 17 de `apps/campo/PENDENCIAS.md`) e no
+  aplicativo; deu 21 de 21 no `expo-doctor` em 2026-10-13 (os seis patches do Expo foram
+  aplicados então), 20 de 21 na manhã de 2026-10-14 (cinco patches novos) e
+  21 de 21 de novo no mesmo dia, depois da correção 4 da E19 (pendência 17 de
+  `apps/campo/PENDENCIAS.md`, com a premissa de que o Rafael ainda não confirmou
+  a analogia com a D1 para esses cinco pacotes); passa no
   `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
   aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
   de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
