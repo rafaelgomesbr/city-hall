@@ -1,0 +1,36 @@
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts (mutacao: ordem)
+@@ -696,8 +696,8 @@
+   ): Promise<Autenticado> {
+     const renovacao = gerarTokenRenovacao();
+     const sessaoId = await banco.comTenant(linha.organizacao_id, async (c) => {
+-      const id = await abrirSessao(c, linha, contexto, renovacao, null);
+       await c.query("SELECT travar_sessoes_do_usuario($1)", [linha.usuario_id]);
++      const id = await abrirSessao(c, linha, contexto, renovacao, null);
+       const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+         "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [linha.usuario_id],
+       );
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts (mutacao: releitura)
+@@ -697,10 +697,10 @@
+     const renovacao = gerarTokenRenovacao();
+     const sessaoId = await banco.comTenant(linha.organizacao_id, async (c) => {
+       const id = await abrirSessao(c, linha, contexto, renovacao, null);
+-      await c.query("SELECT travar_sessoes_do_usuario($1)", [linha.usuario_id]);
+       const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+         "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [linha.usuario_id],
+       );
++      await c.query("SELECT travar_sessoes_do_usuario($1)", [linha.usuario_id]);
+       const atual = r.rows[0];
+       if (!atual || !atual.ativo || !confere(atual.senha_hash)) throw new CredencialMudou();
+       return id;
+--- a/dc360/apps/api/src/auth/vigencia.ts
++++ b/dc360/apps/api/src/auth/vigencia.ts (mutacao: M7)
+@@ -166,7 +166,6 @@
+   if (
+     !vigencia.usuarioAtivo
+     || !vigencia.sessaoViva
+-    || (vigencia.senhaProvisoriaAte !== null && vigencia.senhaProvisoriaAte < agora)
+   ) {
+     throw new FalhaAutenticacao("sessao_encerrada", MENSAGEM_DE_SESSAO_ENCERRADA);
+   }

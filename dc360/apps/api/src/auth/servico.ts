@@ -564,6 +564,31 @@ export function servicoDeAutenticacao(
   }
 
   /**
+   * A mesma pergunta, DENTRO da transação de quem chama e sob a trava da
+   * pessoa (complemento da correção 3 da E07). É a de `confirmarAtivacao`:
+   * a conferência de `credencialDoDesafioVale` roda numa transação própria,
+   * antes, e a senha podia mudar entre ela e a que liga o recurso, ligando o
+   * segundo fator com o aparelho de quem tinha a senha antiga. Aqui a
+   * releitura vem depois da trava, como em `emitirPar`: mudança que confirmou
+   * antes é vista; mudança que chega depois para na trava (toda troca,
+   * redefinição e desativação a toma depois de atualizar `usuarios`) e só
+   * confirma depois de o recurso estar ligado, como se tivesse chegado um
+   * instante depois. A trava vem antes da linha de `segundo_fator` e não
+   * segura linha de `usuarios` nem do município, então não fecha ciclo com
+   * os caminhos da 049.
+   */
+  async function credencialDoDesafioValeSobTrava(
+    c: Consulta, usuarioId: string, impressao: string,
+  ): Promise<boolean> {
+    await c.query("SELECT travar_sessoes_do_usuario($1)", [usuarioId]);
+    const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+      "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
+    );
+    const atual = r.rows[0];
+    return atual !== undefined && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
+  }
+
+  /**
    * Relê a conta para emitir a sessão, agora COM contexto de município.
    *
    * Não usa `credenciais_para_login` de propósito, e a diferença é de
@@ -1266,7 +1291,8 @@ export function servicoDeAutenticacao(
   }
 
   return {
-    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale, renovar, sair,
+    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale,
+    credencialDoDesafioValeSobTrava, renovar, sair,
     pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
     listarMinhasSessoes, esperarEnvios,
   };

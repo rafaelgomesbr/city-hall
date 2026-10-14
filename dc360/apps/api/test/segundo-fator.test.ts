@@ -6,6 +6,7 @@ import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import { derivarSenha } from "../src/auth/senha.js";
 import { base32Decodificar, codigoTotp, passoDe } from "../src/auth/totp.js";
+import type { Banco, Consulta } from "../src/banco/tipos.js";
 
 /**
  * A verificação em duas etapas, de ponta a ponta.
@@ -38,6 +39,38 @@ const CHAVE_DO_COFRE = Buffer.alloc(32, 7).toString("base64");
 
 let mem: BancoEmMemoria;
 let app: FastifyInstance;
+
+/**
+ * Um gancho depois de cada transação confirmada pelo servidor principal
+ * (complemento da correção 3 da E07). Fica nulo em todo caso menos um: o que
+ * muda a senha no instante exato entre a conferência do desafio de ativação
+ * (`quemEsta`, transação própria) e a transação que liga o recurso. Recebe os
+ * comandos que a transação executou.
+ */
+let depoisDaTransacao: ((comandos: string[]) => Promise<void>) | null = null;
+
+function comGancho(banco: Banco): Banco {
+  function embrulhar<T>(
+    abrir: (execucao: (c: Consulta) => Promise<T>) => Promise<T>,
+    execucao: (c: Consulta) => Promise<T>,
+  ): Promise<T> {
+    const comandos: string[] = [];
+    return abrir((c) => execucao({
+      query: (sql, params) => {
+        comandos.push(sql);
+        return c.query(sql, params);
+      },
+    })).then(async (r) => {
+      await depoisDaTransacao?.(comandos);
+      return r;
+    });
+  }
+  return {
+    comTenant: (org, execucao) => embrulhar((e) => banco.comTenant(org, e), execucao),
+    semTenant: (execucao) => embrulhar((e) => banco.semTenant(e), execucao),
+    encerrar: () => banco.encerrar(),
+  };
+}
 
 /** Um segundo servidor, com o recurso DESLIGADO, para provar que ele recusa. */
 let memDesligado: BancoEmMemoria;
@@ -207,6 +240,8 @@ async function semear(banco: BancoEmMemoria): Promise<void> {
     */
     ["tania", "Tânia Moraes", "SA-11", "tania@serraalta.exemplo.gov.br", "coordenador"],
     ["ulisses", "Ulisses Teixeira", "SA-12", "ulisses@serraalta.exemplo.gov.br", "administrador"],
+    // Vera, para a senha que muda no meio da própria confirmação da ativação.
+    ["vera", "Vera Quintela", "SA-13", "vera@serraalta.exemplo.gov.br", "administrador"],
   ];
 
   for (const [apelido, nome, matricula, email, papel] of pessoas) {
@@ -223,7 +258,7 @@ beforeAll(async () => {
   mem = await bancoEmMemoria();
   await semear(mem);
   app = await construirServidor({
-    banco: mem.banco,
+    banco: comGancho(mem.banco),
     config: carregarConfig({
       NODE_ENV: "test",
       JWT_SEGREDO: "segredo-do-segundo-fator-com-mais-de-trinta-e-dois-bytes",
@@ -655,6 +690,51 @@ describe("Ligar a verificação", () => {
       method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
     });
     expect(outraVez.statusCode, outraVez.body).toBe(401);
+  });
+
+  /*
+    A MESMA SENHA QUE MUDA, agora DENTRO da confirmação (complemento da
+    correção 3 da E07). A conferência do desafio em `quemEsta` roda numa
+    transação própria; o gancho muda a senha logo depois de ela confirmar e
+    antes da transação que liga o recurso. Sem a releitura sob a trava dentro
+    dessa transação, o recurso ficava ligado com o aparelho de quem tinha a
+    senha antiga (a sessão não nascia, mas o estrago estava feito).
+  */
+  it("a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator", async () => {
+    const login = await entrar("vera@serraalta.exemplo.gov.br");
+    const desafio = login.json().desafio as string;
+    expect(login.json().segundoFator).toBe("ativacao");
+
+    const inicio = await app.inject({
+      method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
+    });
+    expect(inicio.statusCode, inicio.body).toBe(200);
+    const segredo = inicio.json().segredo as string;
+
+    const hashNovo = await derivarSenha("senha-nova-da-vera-2026");
+    let mudou = false;
+    depoisDaTransacao = async (comandos) => {
+      if (mudou || !comandos.some((sql) => sql.includes("SELECT senha_hash, ativo FROM usuarios"))) return;
+      mudou = true;
+      await mem.bruto.query("UPDATE usuarios SET senha_hash = $2 WHERE id = $1", [id["vera"], hashNovo]);
+    };
+    try {
+      const fim = await app.inject({
+        method: "POST", url: "/segundo-fator/confirmar",
+        payload: { desafio, codigo: codigoAgora(segredo) },
+      });
+      expect(mudou, "a disputa não aconteceu: a confirmação não conferiu o desafio antes de ligar").toBe(true);
+      expect(fim.statusCode, fim.body).toBe(401);
+      expect(fim.json().sessao).toBeUndefined();
+    } finally {
+      depoisDaTransacao = null;
+    }
+
+    const ligado = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM segundo_fator WHERE usuario_id = $1 AND confirmado_em IS NOT NULL",
+      [id["vera"]],
+    );
+    expect(Number(ligado.rows[0]!.n), "a senha mudou no meio da confirmação e o segundo fator ficou ligado").toBe(0);
   });
 
   it("o segredo vai CIFRADO para o banco, e não em texto", async () => {

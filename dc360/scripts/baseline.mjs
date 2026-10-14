@@ -370,6 +370,19 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     run` (1335, com 16 pulados por ambiente).
   */
   "V2-F00-E07-correcao-3": { total: 16, falhas: 0, puladas: 7 },
+  /*
+    V2-F00-E07, complemento da correção 3 (2026-10-14), contado contra o
+    `3ee020c`: `renovacao-contra-encerramento.test.ts` ganha 1 caso de PGlite
+    (a sequência do login: abrir a sessão, a trava, a releitura) e 4 de
+    Postgres real (pulados no roteiro: as três disputas seguradas entre abrir
+    a sessão e a trava, e o login com a trava contra a suspensão pelo
+    console); `senha-provisoria.test.ts` ganha 1 (a escrita comum com a
+    provisória vencida responde 401) e `segundo-fator.test.ts` ganha 1 (a
+    senha que muda no meio da confirmação não liga o recurso). Soma 3 na
+    lista (de 1319 para 1322) e 7 no `vitest run` (1342, com 20 pulados por
+    ambiente).
+  */
+  "V2-F00-E07-correcao-3-complemento": { total: 7, falhas: 0, puladas: 4 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

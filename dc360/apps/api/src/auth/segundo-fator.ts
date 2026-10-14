@@ -258,10 +258,18 @@ export function servicoDeSegundoFator(banco: Banco, config: Config) {
    */
   async function confirmarAtivacao(
     quem: Autor, codigo: string, agora = new Date(),
+    /**
+     * Roda primeiro, na MESMA transação que liga o recurso, e recusa lançando
+     * erro (a transação volta atrás inteira). A rota a usa na ativação pelo
+     * desafio, para conferir sob a trava da pessoa que a senha ainda é a que
+     * o desafio atesta (complemento da correção 3 da E07).
+     */
+    exigirAntes?: (c: Consulta) => Promise<void>,
   ): Promise<{ codigos: string[] }> {
     const cofreAberto = exigirLigado();
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      await exigirAntes?.(c);
       const linha = await lerLinha(c, quem.usuarioId);
       if (!linha || linha.desativado_em || !linha.segredo_cifrado) {
         throw new RegraDeNegocio(

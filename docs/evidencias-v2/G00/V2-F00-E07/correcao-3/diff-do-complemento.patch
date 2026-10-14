@@ -1,0 +1,591 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index fa4bd0b..ef4ab73 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,7 +11,7 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1319 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1322 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+@@ -1336,9 +1336,9 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2979 testes em seis pacotes
++npm test                    # 2982 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1319 testes da API
++npm run test:api            # 1322 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+ npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index bf3d817..18030e4 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -168,17 +168,29 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
+   fecharia ciclo com ela. O segundo fator e a ativação pelo desafio fazem o
+   mesmo com a impressão da credencial que o desafio carrega (`cr`, HMAC do
+   hash com o segredo de assinatura), e as rotas de ligar o segundo fator
+-  recusam o desafio cuja senha já mudou. Provado nos casos 6 a 8 e 10 a 16
+-  de `test/renovacao-contra-encerramento.test.ts` e em dois casos de
++  recusam o desafio cuja senha já mudou; a confirmação da ativação pelo
++  desafio confere de novo DENTRO da transação que liga o recurso, sob a
++  trava da pessoa (`credencialDoDesafioValeSobTrava`), e a senha que muda
++  entre a conferência de `quemEsta` e essa transação não deixa o recurso
++  ligado. Provado nos casos 6 a 8 e 10 do primeiro bloco e 10 a 20 do segundo
++  de `test/renovacao-contra-encerramento.test.ts` (o 10 do primeiro e o 20 do
++  segundo prendem a ordem: trava antes da linha do município faz a suspensão
++  parar na trava e fecha ciclo, 40P01 medido) e em três casos de
+   `test/segundo-fator.test.ts`.
+ - **Renovação que perde a trava para a desativação:** responde 403
+   `conta_desativada` (pergunta a `dono_do_token`, como o token recusado),
+   e não 401 `sessao_encerrada`. A mesma pergunta trata o reúso: quem perde
+-  para outra renovação com o MESMO token cai como reúso e derruba a família,
+-  que é o que já acontecia quando o segundo pedido chegava um instante depois.
++  para outra renovação com o MESMO token cai como reúso e encerra TODAS as
++  sessões da pessoa (`revogar_sessoes_do_usuario`, motivo "reuso de token de
++  renovacao"), e não só a família daquele token, que é o que já acontecia
++  quando o segundo pedido chegava um instante depois.
+ - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
+   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
+-  Entrar e renovar já recusavam.
++  Entrar e renovar já recusavam. O ramo do prazo em `exigirVigencia` tem caso
++  próprio desde o complemento da correção 3 (achado 3 do red-team de
++  52952a1): a escrita comum com a provisória vencida responde 401
++  `sessao_encerrada`, e não 403 `troca_de_senha_obrigatoria`
++  (`test/senha-provisoria.test.ts`).
+ - **`troca_de_senha_obrigatoria` na fila do campo:** PAUSA a fila (correção 1
+   da E06, 2026-10-13), e não é mais recusa permanente. A decisão da E07, de deixar
+   esse 403 bloquear a coleta porque o aparelho "praticamente não chega a ele",
+diff --git a/dc360/apps/api/src/auth/segundo-fator.ts b/dc360/apps/api/src/auth/segundo-fator.ts
+index 95d3b56..cc46926 100644
+--- a/dc360/apps/api/src/auth/segundo-fator.ts
++++ b/dc360/apps/api/src/auth/segundo-fator.ts
+@@ -258,10 +258,18 @@ export function servicoDeSegundoFator(banco: Banco, config: Config) {
+    */
+   async function confirmarAtivacao(
+     quem: Autor, codigo: string, agora = new Date(),
++    /**
++     * Roda primeiro, na MESMA transação que liga o recurso, e recusa lançando
++     * erro (a transação volta atrás inteira). A rota a usa na ativação pelo
++     * desafio, para conferir sob a trava da pessoa que a senha ainda é a que
++     * o desafio atesta (complemento da correção 3 da E07).
++     */
++    exigirAntes?: (c: Consulta) => Promise<void>,
+   ): Promise<{ codigos: string[] }> {
+     const cofreAberto = exigirLigado();
+ 
+     return banco.comTenant(quem.organizacaoId, async (c) => {
++      await exigirAntes?.(c);
+       const linha = await lerLinha(c, quem.usuarioId);
+       if (!linha || linha.desativado_em || !linha.segredo_cifrado) {
+         throw new RegraDeNegocio(
+diff --git a/dc360/apps/api/src/auth/servico.ts b/dc360/apps/api/src/auth/servico.ts
+index 2116b77..df98e01 100644
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts
+@@ -563,6 +563,31 @@ export function servicoDeAutenticacao(
+     return atual !== null && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
+   }
+ 
++  /**
++   * A mesma pergunta, DENTRO da transação de quem chama e sob a trava da
++   * pessoa (complemento da correção 3 da E07). É a de `confirmarAtivacao`:
++   * a conferência de `credencialDoDesafioVale` roda numa transação própria,
++   * antes, e a senha podia mudar entre ela e a que liga o recurso, ligando o
++   * segundo fator com o aparelho de quem tinha a senha antiga. Aqui a
++   * releitura vem depois da trava, como em `emitirPar`: mudança que confirmou
++   * antes é vista; mudança que chega depois para na trava (toda troca,
++   * redefinição e desativação a toma depois de atualizar `usuarios`) e só
++   * confirma depois de o recurso estar ligado, como se tivesse chegado um
++   * instante depois. A trava vem antes da linha de `segundo_fator` e não
++   * segura linha de `usuarios` nem do município, então não fecha ciclo com
++   * os caminhos da 049.
++   */
++  async function credencialDoDesafioValeSobTrava(
++    c: Consulta, usuarioId: string, impressao: string,
++  ): Promise<boolean> {
++    await c.query("SELECT travar_sessoes_do_usuario($1)", [usuarioId]);
++    const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
++      "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
++    );
++    const atual = r.rows[0];
++    return atual !== undefined && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
++  }
++
+   /**
+    * Relê a conta para emitir a sessão, agora COM contexto de município.
+    *
+@@ -1266,7 +1291,8 @@ export function servicoDeAutenticacao(
+   }
+ 
+   return {
+-    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale, renovar, sair,
++    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale,
++    credencialDoDesafioValeSobTrava, renovar, sair,
+     pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
+     listarMinhasSessoes, esperarEnvios,
+   };
+diff --git a/dc360/apps/api/src/rotas/segundo-fator.ts b/dc360/apps/api/src/rotas/segundo-fator.ts
+index 0a62eec..e2bf0ab 100644
+--- a/dc360/apps/api/src/rotas/segundo-fator.ts
++++ b/dc360/apps/api/src/rotas/segundo-fator.ts
+@@ -1,7 +1,7 @@
+ import type { FastifyInstance, FastifyRequest } from "fastify";
+ import { z } from "zod";
+ import type { Papel } from "@dc360/shared";
+-import type { Banco } from "../banco/tipos.js";
++import type { Banco, Consulta } from "../banco/tipos.js";
+ import type { Config } from "../config.js";
+ import type { ServicoAutenticacao } from "../auth/servico.js";
+ import type { ServicoSegundoFator } from "../auth/segundo-fator.js";
+@@ -209,7 +209,25 @@ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): P
+     const quem = await quemEsta(req, desafioDoCorpo(req));
+     const dados = codigoSchema.parse(req.body);
+ 
+-    const { codigos } = await segundoFator.confirmarAtivacao(quem, dados.codigo);
++    /*
++      Pelo desafio, a credencial é conferida de novo DENTRO da transação que
++      liga o recurso, sob a trava da pessoa (complemento da correção 3 da
++      E07). A conferência de `quemEsta` roda em transação própria, antes: sem
++      esta, a senha que mudasse entre as duas deixava o segundo fator ligado
++      com o aparelho de quem tinha a senha antiga (a sessão não nascia, mas o
++      administrador de verdade ficava pedindo um código que não tem).
++    */
++    const exigirCredencial = quem.viaDesafio
++      ? async (c: Consulta) => {
++        const vale = await autenticacao.credencialDoDesafioValeSobTrava(
++          c, quem.usuarioId, quem.credencialDoDesafio ?? "",
++        );
++        if (!vale) {
++          throw new NaoAutenticado("Esta tentativa de entrada expirou. Informe email e senha de novo.");
++        }
++      }
++      : undefined;
++    const { codigos } = await segundoFator.confirmarAtivacao(quem, dados.codigo, undefined, exigirCredencial);
+ 
+     /*
+       A sessão nasce aqui SÓ para quem chegou pelo desafio de ativação, que é
+diff --git a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+index 35adb4d..c638746 100644
+--- a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
++++ b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+@@ -55,7 +55,15 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
+  *    6 a 8 do primeiro bloco e 10 a 12 do segundo deixam a mudança confirmar
+  *    no meio do login; os 14 a 16 seguram o login com a trava já tomada e
+  *    exigem que a mudança pare nela. O 9 e o 13 cobram que a renovação que
+- *    perde a trava para a desativação diga `conta_desativada` (403).
++ *    perde a trava para a desativação diga `conta_desativada` (403). Os 17 a
++ *    19 (revisão da correção 3) seguram o login DENTRO da transação, entre
++ *    abrir a sessão e tomar a trava: a mudança termina inteira, e a releitura
++ *    tem de recusar o login (401).
++ * 5. A ORDEM DAS TRAVAS NO LOGIN (complemento da correção 3): linha do
++ *    município antes da trava da pessoa, como a suspensão pelo console. O
++ *    caso 10 do primeiro bloco confere a sequência de comandos; o 20 do
++ *    segundo disputa o login com a suspensão e exige que ela espere a linha
++ *    do município, e não a trava, sem impasse.
+  *
+  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
+  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
+@@ -608,6 +616,35 @@ describe("Renovação e encerramento no mesmo instante: a renovação é UMA tra
+   });
+ 
+   casosDaCorrecao3(a, grampo, 6);
++
++  /*
++    A ORDEM DOS COMANDOS DO LOGIN (complemento da correção 3). Nenhum outro
++    caso deste bloco reprova se `emitirPar` tomar a trava da pessoa ANTES de
++    `abrir_sessao`, e essa inversão fecha ciclo com a suspensão pelo console
++    (ver o caso 20 do segundo bloco, que mede o impasse em Postgres real). O
++    PGlite não trava nada, então aqui a guarda é a sequência: na transação do
++    login, `abrir_sessao` (que lê a linha do município com FOR SHARE, 050), depois
++    a trava, depois a releitura da credencial.
++  */
++  it("10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela", async () => {
++    await a.limparSessoesDaHelena();
++    const sequencia: string[] = [];
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (chamada.sql.includes("abrir_sessao(") && chamada.params?.[6] == null) sequencia.push("abrir_sessao");
++        else if (chamada.sql.includes("travar_sessoes_do_usuario(")) sequencia.push("trava");
++        else if (releCredencial(chamada)) sequencia.push("releitura");
++      },
++    };
++    try {
++      const login = await a.entrarComASenhaAntiga();
++      expect(login.statusCode, login.body).toBe(200);
++      expect(sequencia, "a ordem do login é linha do município, trava e releitura; a trava antes da linha fecha ciclo com a suspensão")
++        .toEqual(["abrir_sessao", "trava", "releitura"]);
++    } finally {
++      grampo.atual = null;
++    }
++  });
+ });
+ 
+ // ---------------------------------------------------------------------------
+@@ -1096,4 +1133,151 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
+       }
+     }, 120_000);
+   }
++
++  /*
++    A JANELA DO MEIO DO LOGIN DISPUTADO (revisão da correção 3): o login já
++    abriu a sessão, ainda sem confirmar e ANTES de tomar a trava da pessoa, e
++    a mudança de credencial chega nesse instante. O login é segurado DENTRO da
++    transação, no comando da trava; a mudança não encontra trava tomada nem
++    linha de `usuarios` segura (o login só lê), e termina inteira, sem
++    enxergar a sessão que ainda não confirmou. Solto, o login toma a trava, e
++    a releitura que vem depois dela vê a credencial nova (ou a conta
++    desativada): a transação volta atrás, a resposta é 401 e não sobra sessão.
++    Sem a releitura depois da trava, a sessão do login sobreviveria à mudança.
++  */
++  for (const [i, mudanca] of a.mudancasDeCredencial.entries()) {
++    it(`${17 + i}. o login abriu a sessão e ainda não tomou a trava quando ${mudanca.nome}: a mudança termina e o login é recusado`, async () => {
++      await a.limparSessoesDaHelena();
++      const disputa = await mudanca.preparar();
++      const janela = sinal();
++      const solta = sinal();
++      let abriu = false;
++      let segurou = false;
++      grampo.atual = {
++        antes: async (chamada) => {
++          if (segurou) return;
++          if (chamada.sql.includes("abrir_sessao(") && chamada.params?.[6] == null) {
++            abriu = true;
++            return;
++          }
++          if (!abriu || !chamada.sql.includes("travar_sessoes_do_usuario(")) return;
++          segurou = true;
++          janela.disparar();
++          await solta.disparado;
++        },
++      };
++      const pendentes: Promise<unknown>[] = [];
++      try {
++        const login = a.entrarComASenhaAntiga();
++        pendentes.push(login);
++        const primeiro = await Promise.race([
++          janela.disparado.then(() => "segurou" as const),
++          login.then(() => "terminou" as const),
++        ]);
++        expect(primeiro, "a disputa não aconteceu: o login não abriu a sessão antes de tomar a trava da pessoa").toBe("segurou");
++        // A mudança termina inteira com a sessão do login aberta e não confirmada.
++        const m = await disputa.disparar();
++        expect(m.statusCode, m.body).toBe(200);
++        solta.disparar();
++        const rl = await login;
++        grampo.atual = null;
++        expect(rl.statusCode, `o login deveria ser recusado pela releitura depois da trava: ${rl.body}`).toBe(401);
++        await a.exigirLoginSemSobra(m, rl, disputa.preservadas);
++      } finally {
++        solta.disparar();
++        grampo.atual = null;
++        await Promise.allSettled(pendentes);
++        await a.restaurarHelena();
++      }
++    }, 120_000);
++  }
++
++  /*
++    A ORDEM DAS TRAVAS NO LOGIN, contra a suspensão pelo console (complemento
++    da correção 3). `emitirPar` lê a linha do município (o FOR SHARE de
++    `abrir_sessao`, 050) ANTES de tomar a trava da pessoa, a mesma ordem de
++    `console_suspender_municipio`, que atualiza a linha do município e só
++    depois toma a trava de cada pessoa com sessão de pé (049). Invertida, os
++    outros casos continuam verdes, e o login e a suspensão no mesmo instante
++    fecham ciclo: o login segura a trava e pede a linha, a suspensão segura a
++    linha e pede a trava, e o Postgres mata uma das duas com 40P01.
++
++    O caso segura o login no comando SEGUINTE ao da trava (qualquer que seja),
++    com a Helena já tendo uma sessão de pé (sem ela a suspensão nem pede a
++    trava dela), dispara a suspensão e exige duas coisas: que ela pare na
++    linha do município, e não na trava consultiva (o teste VÊ em `pg_locks`),
++    e que, solto o login, os dois terminem sem impasse, com a sessão do login
++    encerrada pela suspensão. Fica no fim do bloco porque a suspensão derruba
++    também a sessão da administradora (o `finally` entra de novo com ela).
++  */
++  it("20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse", async () => {
++    await a.limparSessoesDaHelena();
++    await a.entrar();
++    const operador = await donoDoConsole();
++    const org = await municipioDaHelena();
++    const janela = sinal();
++    const solta = sinal();
++    let travou = false;
++    let segurou = false;
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (segurou) return;
++        if (chamada.sql.includes("travar_sessoes_do_usuario(")) {
++          travou = true;
++          return;
++        }
++        if (!travou) return;
++        segurou = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    const consoleDb = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
++    await consoleDb.connect();
++    // Rede de segurança: nenhum desfecho deixa o caso parado para sempre.
++    await consoleDb.query("SET statement_timeout = '20s'");
++    const pendentes: Promise<unknown>[] = [];
++    try {
++      const login = a.entrarComASenhaAntiga();
++      pendentes.push(login);
++      const primeiro = await Promise.race([
++        janela.disparado.then(() => "segurou" as const),
++        login.then(() => "terminou" as const),
++      ]);
++      expect(primeiro, "a disputa não aconteceu: o login não tomou a trava da pessoa").toBe("segurou");
++      const suspensao = (async () => {
++        await consoleDb.query("BEGIN");
++        await consoleDb.query("SELECT set_config('app.console_operador', $1, true)", [operador]);
++        await consoleDb.query("SELECT console_suspender_municipio($1, 'prova da ordem das travas do login')", [org]);
++        await consoleDb.query("COMMIT");
++        return "confirmou";
++      })().catch(async (e: { code?: string }) => {
++        await consoleDb.query("ROLLBACK").catch(() => undefined);
++        return e.code ?? "erro";
++      });
++      pendentes.push(suspensao);
++      await exigirQueTravou("a suspensão pelo console", suspensao, null);
++      const naTravaDaPessoa = await esperandoTrava("advisory");
++      solta.disparar();
++      const [rs, rl] = await Promise.all([suspensao, login]);
++      grampo.atual = null;
++      expect(naTravaDaPessoa, "a suspensão parou na trava da pessoa, e não na linha do município: o login tomou a trava antes de ler o município")
++        .toBe(0);
++      expect(rs, "a suspensão pelo console (40P01 é impasse)").toBe("confirmou");
++      expect(rl.statusCode, `o login segurado com a trava: ${rl.body}`).toBe(200);
++      const vivas = await cen.bruto(
++        "SELECT count(*)::int AS n FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL", [HELENA],
++      );
++      expect(Number(vivas.rows[0]!.n), "sobrou sessão viva da Helena depois da suspensão").toBe(0);
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++      await Promise.allSettled(pendentes);
++      await consoleDb.end();
++      await cen.bruto(
++        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++      );
++      cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
++    }
++  }, 120_000);
+ });
+diff --git a/dc360/apps/api/test/segundo-fator.test.ts b/dc360/apps/api/test/segundo-fator.test.ts
+index e0fcfb0..75fbe0a 100644
+--- a/dc360/apps/api/test/segundo-fator.test.ts
++++ b/dc360/apps/api/test/segundo-fator.test.ts
+@@ -6,6 +6,7 @@ import { construirServidor } from "../src/servidor.js";
+ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+ import { derivarSenha } from "../src/auth/senha.js";
+ import { base32Decodificar, codigoTotp, passoDe } from "../src/auth/totp.js";
++import type { Banco, Consulta } from "../src/banco/tipos.js";
+ 
+ /**
+  * A verificação em duas etapas, de ponta a ponta.
+@@ -39,6 +40,38 @@ const CHAVE_DO_COFRE = Buffer.alloc(32, 7).toString("base64");
+ let mem: BancoEmMemoria;
+ let app: FastifyInstance;
+ 
++/**
++ * Um gancho depois de cada transação confirmada pelo servidor principal
++ * (complemento da correção 3 da E07). Fica nulo em todo caso menos um: o que
++ * muda a senha no instante exato entre a conferência do desafio de ativação
++ * (`quemEsta`, transação própria) e a transação que liga o recurso. Recebe os
++ * comandos que a transação executou.
++ */
++let depoisDaTransacao: ((comandos: string[]) => Promise<void>) | null = null;
++
++function comGancho(banco: Banco): Banco {
++  function embrulhar<T>(
++    abrir: (execucao: (c: Consulta) => Promise<T>) => Promise<T>,
++    execucao: (c: Consulta) => Promise<T>,
++  ): Promise<T> {
++    const comandos: string[] = [];
++    return abrir((c) => execucao({
++      query: (sql, params) => {
++        comandos.push(sql);
++        return c.query(sql, params);
++      },
++    })).then(async (r) => {
++      await depoisDaTransacao?.(comandos);
++      return r;
++    });
++  }
++  return {
++    comTenant: (org, execucao) => embrulhar((e) => banco.comTenant(org, e), execucao),
++    semTenant: (execucao) => embrulhar((e) => banco.semTenant(e), execucao),
++    encerrar: () => banco.encerrar(),
++  };
++}
++
+ /** Um segundo servidor, com o recurso DESLIGADO, para provar que ele recusa. */
+ let memDesligado: BancoEmMemoria;
+ let appDesligado: FastifyInstance;
+@@ -207,6 +240,8 @@ async function semear(banco: BancoEmMemoria): Promise<void> {
+     */
+     ["tania", "Tânia Moraes", "SA-11", "tania@serraalta.exemplo.gov.br", "coordenador"],
+     ["ulisses", "Ulisses Teixeira", "SA-12", "ulisses@serraalta.exemplo.gov.br", "administrador"],
++    // Vera, para a senha que muda no meio da própria confirmação da ativação.
++    ["vera", "Vera Quintela", "SA-13", "vera@serraalta.exemplo.gov.br", "administrador"],
+   ];
+ 
+   for (const [apelido, nome, matricula, email, papel] of pessoas) {
+@@ -223,7 +258,7 @@ beforeAll(async () => {
+   mem = await bancoEmMemoria();
+   await semear(mem);
+   app = await construirServidor({
+-    banco: mem.banco,
++    banco: comGancho(mem.banco),
+     config: carregarConfig({
+       NODE_ENV: "test",
+       JWT_SEGREDO: "segredo-do-segundo-fator-com-mais-de-trinta-e-dois-bytes",
+@@ -657,6 +692,51 @@ describe("Ligar a verificação", () => {
+     expect(outraVez.statusCode, outraVez.body).toBe(401);
+   });
+ 
++  /*
++    A MESMA SENHA QUE MUDA, agora DENTRO da confirmação (complemento da
++    correção 3 da E07). A conferência do desafio em `quemEsta` roda numa
++    transação própria; o gancho muda a senha logo depois de ela confirmar e
++    antes da transação que liga o recurso. Sem a releitura sob a trava dentro
++    dessa transação, o recurso ficava ligado com o aparelho de quem tinha a
++    senha antiga (a sessão não nascia, mas o estrago estava feito).
++  */
++  it("a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator", async () => {
++    const login = await entrar("vera@serraalta.exemplo.gov.br");
++    const desafio = login.json().desafio as string;
++    expect(login.json().segundoFator).toBe("ativacao");
++
++    const inicio = await app.inject({
++      method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
++    });
++    expect(inicio.statusCode, inicio.body).toBe(200);
++    const segredo = inicio.json().segredo as string;
++
++    const hashNovo = await derivarSenha("senha-nova-da-vera-2026");
++    let mudou = false;
++    depoisDaTransacao = async (comandos) => {
++      if (mudou || !comandos.some((sql) => sql.includes("SELECT senha_hash, ativo FROM usuarios"))) return;
++      mudou = true;
++      await mem.bruto.query("UPDATE usuarios SET senha_hash = $2 WHERE id = $1", [id["vera"], hashNovo]);
++    };
++    try {
++      const fim = await app.inject({
++        method: "POST", url: "/segundo-fator/confirmar",
++        payload: { desafio, codigo: codigoAgora(segredo) },
++      });
++      expect(mudou, "a disputa não aconteceu: a confirmação não conferiu o desafio antes de ligar").toBe(true);
++      expect(fim.statusCode, fim.body).toBe(401);
++      expect(fim.json().sessao).toBeUndefined();
++    } finally {
++      depoisDaTransacao = null;
++    }
++
++    const ligado = await mem.bruto.query<{ n: string }>(
++      "SELECT count(*)::text AS n FROM segundo_fator WHERE usuario_id = $1 AND confirmado_em IS NOT NULL",
++      [id["vera"]],
++    );
++    expect(Number(ligado.rows[0]!.n), "a senha mudou no meio da confirmação e o segundo fator ficou ligado").toBe(0);
++  });
++
+   it("o segredo vai CIFRADO para o banco, e não em texto", async () => {
+     const login = await entrar("ivone@serraalta.exemplo.gov.br");
+     const desafio = login.json().desafio as string;
+diff --git a/dc360/apps/api/test/senha-provisoria.test.ts b/dc360/apps/api/test/senha-provisoria.test.ts
+index 074794c..537aced 100644
+--- a/dc360/apps/api/test/senha-provisoria.test.ts
++++ b/dc360/apps/api/test/senha-provisoria.test.ts
+@@ -200,6 +200,37 @@ describe("A senha temporária de quem administra", () => {
+       );
+     }
+   }, 300_000);
++
++  /*
++    O PRAZO NA VIGÊNCIA DA ESCRITA (V2-F00-E07, achado 3 do red-team da
++    validação de 52952a1). O caso de cima não prende esse ramo de
++    `exigirVigencia`: sem ele, a troca de senha ainda leva 401 pela
++    conferência do próprio serviço. Uma escrita comum não tem essa segunda
++    conferência, e sem o prazo ela sairia 403 `troca_de_senha_obrigatoria`,
++    mandando trocar uma senha que já não pode ser trocada. A resposta certa é
++    401 `sessao_encerrada`: entrar de novo, e a entrada diz que a provisória
++    venceu.
++  */
++  it("a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403", async () => {
++    const temporaria = await redefinirDiego();
++    try {
++      const sessao = await entrar(DIEGO_EMAIL, temporaria);
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_provisoria_ate = now() - interval '1 minute' WHERE id = $1", [DIEGO],
++      );
++      const escrita = await app.inject({
++        method: "POST", url: "/sincronizacao/vistoria", headers: com(sessao.acesso),
++        payload: { idempotencyKey: crypto.randomUUID(), ocorrenciaId: OC_ALFA_1 },
++      });
++      expect(escrita.statusCode, escrita.body).toBe(401);
++      expect(escrita.json().erro).toBe("sessao_encerrada");
++    } finally {
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_hash = $2, senha_provisoria_ate = NULL WHERE id = $1",
++        [DIEGO, await derivarSenha(SENHA)],
++      );
++    }
++  }, 300_000);
+ });
+ 
+ describe("A senha inicial do console", () => {
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 50c5b7d..1325c89 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4906 testes somando o aplicativo** (contagem estática de `npm run
++- **4909 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-14; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -329,7 +329,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4906 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 4909 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 10979d4..2d11050 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -370,6 +370,19 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     run` (1335, com 16 pulados por ambiente).
+   */
+   "V2-F00-E07-correcao-3": { total: 16, falhas: 0, puladas: 7 },
++  /*
++    V2-F00-E07, complemento da correção 3 (2026-10-14), contado contra o
++    `3ee020c`: `renovacao-contra-encerramento.test.ts` ganha 1 caso de PGlite
++    (a sequência do login: abrir a sessão, a trava, a releitura) e 4 de
++    Postgres real (pulados no roteiro: as três disputas seguradas entre abrir
++    a sessão e a trava, e o login com a trava contra a suspensão pelo
++    console); `senha-provisoria.test.ts` ganha 1 (a escrita comum com a
++    provisória vencida responde 401) e `segundo-fator.test.ts` ganha 1 (a
++    senha que muda no meio da confirmação não liga o recurso). Soma 3 na
++    lista (de 1319 para 1322) e 7 no `vitest run` (1342, com 20 pulados por
++    ambiente).
++  */
++  "V2-F00-E07-correcao-3-complemento": { total: 7, falhas: 0, puladas: 4 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

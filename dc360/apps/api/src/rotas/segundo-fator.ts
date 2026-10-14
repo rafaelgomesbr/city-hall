@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { Papel } from "@dc360/shared";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import type { Config } from "../config.js";
 import type { ServicoAutenticacao } from "../auth/servico.js";
 import type { ServicoSegundoFator } from "../auth/segundo-fator.js";
@@ -209,7 +209,25 @@ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): P
     const quem = await quemEsta(req, desafioDoCorpo(req));
     const dados = codigoSchema.parse(req.body);
 
-    const { codigos } = await segundoFator.confirmarAtivacao(quem, dados.codigo);
+    /*
+      Pelo desafio, a credencial é conferida de novo DENTRO da transação que
+      liga o recurso, sob a trava da pessoa (complemento da correção 3 da
+      E07). A conferência de `quemEsta` roda em transação própria, antes: sem
+      esta, a senha que mudasse entre as duas deixava o segundo fator ligado
+      com o aparelho de quem tinha a senha antiga (a sessão não nascia, mas o
+      administrador de verdade ficava pedindo um código que não tem).
+    */
+    const exigirCredencial = quem.viaDesafio
+      ? async (c: Consulta) => {
+        const vale = await autenticacao.credencialDoDesafioValeSobTrava(
+          c, quem.usuarioId, quem.credencialDoDesafio ?? "",
+        );
+        if (!vale) {
+          throw new NaoAutenticado("Esta tentativa de entrada expirou. Informe email e senha de novo.");
+        }
+      }
+      : undefined;
+    const { codigos } = await segundoFator.confirmarAtivacao(quem, dados.codigo, undefined, exigirCredencial);
 
     /*
       A sessão nasce aqui SÓ para quem chegou pelo desafio de ativação, que é

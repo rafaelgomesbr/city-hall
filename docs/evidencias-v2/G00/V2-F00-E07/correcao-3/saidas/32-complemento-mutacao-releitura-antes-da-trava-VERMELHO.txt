@@ -1,0 +1,198 @@
+
+ RUN  v3.2.7 [scratchpad]/e07c3b/copia-releitura/apps/api
+
+ ❯ test/renovacao-contra-encerramento.test.ts (30 tests | 8 failed) 34056ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 248ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  477ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1155ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 246ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar 242ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1144ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  695ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  468ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  466ms
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela 254ms
+     → a ordem do login é linha do município, trava e releitura; a trava antes da linha fecha ciclo com a suspensão: expected [ Array(3) ] to deeply equal [ Array(3) ]
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 282ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  490ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1167ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 260ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve 239ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  14522ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse  1222ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  510ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova  300ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1161ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  690ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  460ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login 1160ms
+     → a disputa não aconteceu: a mudança de credencial (a própria pessoa troca a senha em outro aparelho) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login 705ms
+     → a disputa não aconteceu: a mudança de credencial (quem administra redefine a senha da pessoa) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login 480ms
+     → a disputa não aconteceu: a mudança de credencial (quem administra desativa a conta) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado 1141ms
+     → o login deveria ser recusado pela releitura depois da trava: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"11111111-1111-4111-8111-0000000000d1","nome":"Helena Vasques Coutinho","matricula":"SA-1042","papel":"coordenador","organizacaoId":"11111111-1111-4111-8111-000000000001","organizacaoNome":"Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta","municipio":"Serra Alta","uf":"MG"}}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado 687ms
+     → o login deveria ser recusado pela releitura depois da trava: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"11111111-1111-4111-8111-0000000000d1","nome":"Helena Vasques Coutinho","matricula":"SA-1042","papel":"coordenador","organizacaoId":"11111111-1111-4111-8111-000000000001","organizacaoNome":"Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta","municipio":"Serra Alta","uf":"MG"}}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado 460ms
+     → o login deveria ser recusado pela releitura depois da trava: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"11111111-1111-4111-8111-0000000000d1","nome":"Helena Vasques Coutinho","matricula":"SA-1042","papel":"coordenador","organizacaoId":"11111111-1111-4111-8111-000000000001","organizacaoNome":"Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta","municipio":"Serra Alta","uf":"MG"}}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse 708ms
+     → a disputa não aconteceu: o login não tomou a trava da pessoa: expected 'terminou' to be 'segurou' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela
+AssertionError: a ordem do login é linha do município, trava e releitura; a trava antes da linha fecha ciclo com a suspensão: expected [ Array(3) ] to deeply equal [ Array(3) ]
+
+- Expected
++ Received
+
+  [
+    "abrir_sessao",
+-   "trava",
+    "releitura",
++   "trava",
+  ]
+
+ ❯ test/renovacao-contra-encerramento.test.ts:643:10
+    641|       expect(login.statusCode, login.body).toBe(200);
+    642|       expect(sequencia, "a ordem do login é linha do município, trava …
+    643|         .toEqual(["abrir_sessao", "trava", "releitura"]);
+       |          ^
+    644|     } finally {
+    645|       grampo.atual = null;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login
+AssertionError: a disputa não aconteceu: a mudança de credencial (a própria pessoa troca a senha em outro aparelho) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: "travou"
+Received: "terminou"
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:757:8
+    755|     const desfecho = await travouOuTerminou(pedido, tipo);
+    756|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    757|       .toBe("travou");
+       |        ^
+    758|   }
+    759| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1122:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login
+AssertionError: a disputa não aconteceu: a mudança de credencial (quem administra redefine a senha da pessoa) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: "travou"
+Received: "terminou"
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:757:8
+    755|     const desfecho = await travouOuTerminou(pedido, tipo);
+    756|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    757|       .toBe("travou");
+       |        ^
+    758|   }
+    759| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1122:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login
+AssertionError: a disputa não aconteceu: a mudança de credencial (quem administra desativa a conta) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: "travou"
+Received: "terminou"
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:757:8
+    755|     const desfecho = await travouOuTerminou(pedido, tipo);
+    756|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    757|       .toBe("travou");
+       |        ^
+    758|   }
+    759| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1122:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado
+AssertionError: o login deveria ser recusado pela releitura depois da trava: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"11111111-1111-4111-8111-0000000000d1","nome":"Helena Vasques Coutinho","matricula":"SA-1042","papel":"coordenador","organizacaoId":"11111111-1111-4111-8111-000000000001","organizacaoNome":"Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta","municipio":"Serra Alta","uf":"MG"}}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1184:106
+    1182|         const rl = await login;
+    1183|         grampo.atual = null;
+    1184|         expect(rl.statusCode, `o login deveria ser recusado pela relei…
+       |                                                                                                          ^
+    1185|         await a.exigirLoginSemSobra(m, rl, disputa.preservadas);
+    1186|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado
+AssertionError: o login deveria ser recusado pela releitura depois da trava: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"11111111-1111-4111-8111-0000000000d1","nome":"Helena Vasques Coutinho","matricula":"SA-1042","papel":"coordenador","organizacaoId":"11111111-1111-4111-8111-000000000001","organizacaoNome":"Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta","municipio":"Serra Alta","uf":"MG"}}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1184:106
+    1182|         const rl = await login;
+    1183|         grampo.atual = null;
+    1184|         expect(rl.statusCode, `o login deveria ser recusado pela relei…
+       |                                                                                                          ^
+    1185|         await a.exigirLoginSemSobra(m, rl, disputa.preservadas);
+    1186|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado
+AssertionError: o login deveria ser recusado pela releitura depois da trava: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"11111111-1111-4111-8111-0000000000d1","nome":"Helena Vasques Coutinho","matricula":"SA-1042","papel":"coordenador","organizacaoId":"11111111-1111-4111-8111-000000000001","organizacaoNome":"Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta","municipio":"Serra Alta","uf":"MG"}}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1184:106
+    1182|         const rl = await login;
+    1183|         grampo.atual = null;
+    1184|         expect(rl.statusCode, `o login deveria ser recusado pela relei…
+       |                                                                                                          ^
+    1185|         await a.exigirLoginSemSobra(m, rl, disputa.preservadas);
+    1186|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse
+AssertionError: a disputa não aconteceu: o login não tomou a trava da pessoa: expected 'terminou' to be 'segurou' // Object.is equality
+
+Expected: "segurou"
+Received: "terminou"
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1247:88
+    1245|         login.then(() => "terminou" as const),
+    1246|       ]);
+    1247|       expect(primeiro, "a disputa não aconteceu: o login não tomou a t…
+       |                                                                                        ^
+    1248|       const suspensao = (async () => {
+    1249|         await consoleDb.query("BEGIN");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 22 passed (30)
+   Start at  18:33:49
+   Duration  35.01s (transform 313ms, setup 30ms, collect 580ms, tests 34.06s, environment 0ms, prepare 90ms)
+

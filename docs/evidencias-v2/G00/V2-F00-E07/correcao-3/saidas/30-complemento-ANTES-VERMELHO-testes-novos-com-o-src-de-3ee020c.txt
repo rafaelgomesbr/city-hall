@@ -1,0 +1,88 @@
+
+ RUN  v3.2.7 [scratchpad]/e07c3b/copia-antes/apps/api
+
+ ✓ test/senha-provisoria.test.ts (8 tests) 8072ms
+   ✓ A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera  1072ms
+   ✓ A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403  767ms
+   ✓ A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha  1017ms
+   ✓ A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova  757ms
+   ✓ A senha temporária de quem administra > a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403  761ms
+   ✓ A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa  498ms
+ ❯ test/segundo-fator.test.ts (23 tests | 1 failed) 15336ms
+   ✓ Configuração > recusa subir com o segundo fator ligado e sem chave para cifrar o segredo 1ms
+   ✓ Configuração > recusa chave de tamanho errado na partida, e não na primeira ativação 0ms
+   ✓ Configuração > com o recurso desligado, a rota recusa em vez de sumir 10ms
+   ✓ A entrada em duas etapas > administrador sem segundo fator não recebe sessão nenhuma, só o desafio 263ms
+   ✓ A entrada em duas etapas > o desafio NÃO vale como token de acesso em rota nenhuma 254ms
+   ✓ A entrada em duas etapas > e é a PLATEIA que o recusa, não a sorte do conteúdo 2ms
+   ✓ A entrada em duas etapas > quem não é administrador continua entrando em uma etapa  766ms
+   ✓ A entrada em duas etapas > com a verificação ligada, a senha sozinha não abre sessão, e o código abre  548ms
+   ✓ A entrada em duas etapas > o mesmo código não vale duas vezes dentro da mesma janela  788ms
+   ✓ A entrada em duas etapas > a tolerância é de um passo para cada lado, e não mais  779ms
+   ✓ A entrada em duas etapas > o teto de tentativas do código é separado do teto da senha  1769ms
+   ✓ A entrada em duas etapas > o código de recuperação entra uma vez, e só uma  999ms
+   ✓ A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo  1226ms
+   ✓ Ligar a verificação > a ativação começada e não confirmada NÃO muda o login  485ms
+   ✓ Ligar a verificação > código errado não liga a verificação 247ms
+   ✓ Ligar a verificação > o administrador obrigado liga pelo desafio e sai daqui com sessão 252ms
+   ✓ Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele  492ms
+   × Ligar a verificação > a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator 496ms
+     → a senha mudou no meio da confirmação e o segundo fator ficou ligado: expected 1 to be +0 // Object.is equality
+   ✓ Ligar a verificação > o segredo vai CIFRADO para o banco, e não em texto 246ms
+   ✓ Ligar a verificação > ligar de novo, por cima de uma verificação ativa, é recusado 258ms
+   ✓ Ligar a verificação > a ativação fica na trilha administrativa, e o segredo não 1ms
+   ✓ Desligar a verificação > exige a senha atual  741ms
+   ✓ Desligar a verificação > desligar apaga o segredo, derruba os códigos e deixa rastro  985ms
+ ✓ test/renovacao-contra-encerramento.test.ts (30 tests) 36730ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  325ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  575ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1268ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1254ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  755ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  498ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  489ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  512ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1223ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  14158ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse  1220ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  712ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova  301ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1140ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  685ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  458ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login  1163ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login  709ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login  483ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado  1139ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado  687ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado  459ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse  735ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/segundo-fator.test.ts > Ligar a verificação > a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator
+AssertionError: a senha mudou no meio da confirmação e o segundo fator ficou ligado: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ test/segundo-fator.test.ts:737:110
+    735|       [id["vera"]],
+    736|     );
+    737|     expect(Number(ligado.rows[0]!.n), "a senha mudou no meio da confir…
+       |                                                                                                              ^
+    738|   });
+    739| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 60 passed (61)
+   Start at  18:32:28
+   Duration  38.31s (transform 772ms, setup 122ms, collect 3.40s, tests 60.14s, environment 0ms, prepare 194ms)
+

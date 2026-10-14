@@ -55,7 +55,15 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
  *    6 a 8 do primeiro bloco e 10 a 12 do segundo deixam a mudança confirmar
  *    no meio do login; os 14 a 16 seguram o login com a trava já tomada e
  *    exigem que a mudança pare nela. O 9 e o 13 cobram que a renovação que
- *    perde a trava para a desativação diga `conta_desativada` (403).
+ *    perde a trava para a desativação diga `conta_desativada` (403). Os 17 a
+ *    19 (revisão da correção 3) seguram o login DENTRO da transação, entre
+ *    abrir a sessão e tomar a trava: a mudança termina inteira, e a releitura
+ *    tem de recusar o login (401).
+ * 5. A ORDEM DAS TRAVAS NO LOGIN (complemento da correção 3): linha do
+ *    município antes da trava da pessoa, como a suspensão pelo console. O
+ *    caso 10 do primeiro bloco confere a sequência de comandos; o 20 do
+ *    segundo disputa o login com a suspensão e exige que ela espere a linha
+ *    do município, e não a trava, sem impasse.
  *
  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
@@ -608,6 +616,35 @@ describe("Renovação e encerramento no mesmo instante: a renovação é UMA tra
   });
 
   casosDaCorrecao3(a, grampo, 6);
+
+  /*
+    A ORDEM DOS COMANDOS DO LOGIN (complemento da correção 3). Nenhum outro
+    caso deste bloco reprova se `emitirPar` tomar a trava da pessoa ANTES de
+    `abrir_sessao`, e essa inversão fecha ciclo com a suspensão pelo console
+    (ver o caso 20 do segundo bloco, que mede o impasse em Postgres real). O
+    PGlite não trava nada, então aqui a guarda é a sequência: na transação do
+    login, `abrir_sessao` (que lê a linha do município com FOR SHARE, 050), depois
+    a trava, depois a releitura da credencial.
+  */
+  it("10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela", async () => {
+    await a.limparSessoesDaHelena();
+    const sequencia: string[] = [];
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (chamada.sql.includes("abrir_sessao(") && chamada.params?.[6] == null) sequencia.push("abrir_sessao");
+        else if (chamada.sql.includes("travar_sessoes_do_usuario(")) sequencia.push("trava");
+        else if (releCredencial(chamada)) sequencia.push("releitura");
+      },
+    };
+    try {
+      const login = await a.entrarComASenhaAntiga();
+      expect(login.statusCode, login.body).toBe(200);
+      expect(sequencia, "a ordem do login é linha do município, trava e releitura; a trava antes da linha fecha ciclo com a suspensão")
+        .toEqual(["abrir_sessao", "trava", "releitura"]);
+    } finally {
+      grampo.atual = null;
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1096,4 +1133,151 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
       }
     }, 120_000);
   }
+
+  /*
+    A JANELA DO MEIO DO LOGIN DISPUTADO (revisão da correção 3): o login já
+    abriu a sessão, ainda sem confirmar e ANTES de tomar a trava da pessoa, e
+    a mudança de credencial chega nesse instante. O login é segurado DENTRO da
+    transação, no comando da trava; a mudança não encontra trava tomada nem
+    linha de `usuarios` segura (o login só lê), e termina inteira, sem
+    enxergar a sessão que ainda não confirmou. Solto, o login toma a trava, e
+    a releitura que vem depois dela vê a credencial nova (ou a conta
+    desativada): a transação volta atrás, a resposta é 401 e não sobra sessão.
+    Sem a releitura depois da trava, a sessão do login sobreviveria à mudança.
+  */
+  for (const [i, mudanca] of a.mudancasDeCredencial.entries()) {
+    it(`${17 + i}. o login abriu a sessão e ainda não tomou a trava quando ${mudanca.nome}: a mudança termina e o login é recusado`, async () => {
+      await a.limparSessoesDaHelena();
+      const disputa = await mudanca.preparar();
+      const janela = sinal();
+      const solta = sinal();
+      let abriu = false;
+      let segurou = false;
+      grampo.atual = {
+        antes: async (chamada) => {
+          if (segurou) return;
+          if (chamada.sql.includes("abrir_sessao(") && chamada.params?.[6] == null) {
+            abriu = true;
+            return;
+          }
+          if (!abriu || !chamada.sql.includes("travar_sessoes_do_usuario(")) return;
+          segurou = true;
+          janela.disparar();
+          await solta.disparado;
+        },
+      };
+      const pendentes: Promise<unknown>[] = [];
+      try {
+        const login = a.entrarComASenhaAntiga();
+        pendentes.push(login);
+        const primeiro = await Promise.race([
+          janela.disparado.then(() => "segurou" as const),
+          login.then(() => "terminou" as const),
+        ]);
+        expect(primeiro, "a disputa não aconteceu: o login não abriu a sessão antes de tomar a trava da pessoa").toBe("segurou");
+        // A mudança termina inteira com a sessão do login aberta e não confirmada.
+        const m = await disputa.disparar();
+        expect(m.statusCode, m.body).toBe(200);
+        solta.disparar();
+        const rl = await login;
+        grampo.atual = null;
+        expect(rl.statusCode, `o login deveria ser recusado pela releitura depois da trava: ${rl.body}`).toBe(401);
+        await a.exigirLoginSemSobra(m, rl, disputa.preservadas);
+      } finally {
+        solta.disparar();
+        grampo.atual = null;
+        await Promise.allSettled(pendentes);
+        await a.restaurarHelena();
+      }
+    }, 120_000);
+  }
+
+  /*
+    A ORDEM DAS TRAVAS NO LOGIN, contra a suspensão pelo console (complemento
+    da correção 3). `emitirPar` lê a linha do município (o FOR SHARE de
+    `abrir_sessao`, 050) ANTES de tomar a trava da pessoa, a mesma ordem de
+    `console_suspender_municipio`, que atualiza a linha do município e só
+    depois toma a trava de cada pessoa com sessão de pé (049). Invertida, os
+    outros casos continuam verdes, e o login e a suspensão no mesmo instante
+    fecham ciclo: o login segura a trava e pede a linha, a suspensão segura a
+    linha e pede a trava, e o Postgres mata uma das duas com 40P01.
+
+    O caso segura o login no comando SEGUINTE ao da trava (qualquer que seja),
+    com a Helena já tendo uma sessão de pé (sem ela a suspensão nem pede a
+    trava dela), dispara a suspensão e exige duas coisas: que ela pare na
+    linha do município, e não na trava consultiva (o teste VÊ em `pg_locks`),
+    e que, solto o login, os dois terminem sem impasse, com a sessão do login
+    encerrada pela suspensão. Fica no fim do bloco porque a suspensão derruba
+    também a sessão da administradora (o `finally` entra de novo com ela).
+  */
+  it("20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse", async () => {
+    await a.limparSessoesDaHelena();
+    await a.entrar();
+    const operador = await donoDoConsole();
+    const org = await municipioDaHelena();
+    const janela = sinal();
+    const solta = sinal();
+    let travou = false;
+    let segurou = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (segurou) return;
+        if (chamada.sql.includes("travar_sessoes_do_usuario(")) {
+          travou = true;
+          return;
+        }
+        if (!travou) return;
+        segurou = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const consoleDb = new pg.Client({ connectionString: urlDoBanco(nomeDoBanco) });
+    await consoleDb.connect();
+    // Rede de segurança: nenhum desfecho deixa o caso parado para sempre.
+    await consoleDb.query("SET statement_timeout = '20s'");
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const login = a.entrarComASenhaAntiga();
+      pendentes.push(login);
+      const primeiro = await Promise.race([
+        janela.disparado.then(() => "segurou" as const),
+        login.then(() => "terminou" as const),
+      ]);
+      expect(primeiro, "a disputa não aconteceu: o login não tomou a trava da pessoa").toBe("segurou");
+      const suspensao = (async () => {
+        await consoleDb.query("BEGIN");
+        await consoleDb.query("SELECT set_config('app.console_operador', $1, true)", [operador]);
+        await consoleDb.query("SELECT console_suspender_municipio($1, 'prova da ordem das travas do login')", [org]);
+        await consoleDb.query("COMMIT");
+        return "confirmou";
+      })().catch(async (e: { code?: string }) => {
+        await consoleDb.query("ROLLBACK").catch(() => undefined);
+        return e.code ?? "erro";
+      });
+      pendentes.push(suspensao);
+      await exigirQueTravou("a suspensão pelo console", suspensao, null);
+      const naTravaDaPessoa = await esperandoTrava("advisory");
+      solta.disparar();
+      const [rs, rl] = await Promise.all([suspensao, login]);
+      grampo.atual = null;
+      expect(naTravaDaPessoa, "a suspensão parou na trava da pessoa, e não na linha do município: o login tomou a trava antes de ler o município")
+        .toBe(0);
+      expect(rs, "a suspensão pelo console (40P01 é impasse)").toBe("confirmou");
+      expect(rl.statusCode, `o login segurado com a trava: ${rl.body}`).toBe(200);
+      const vivas = await cen.bruto(
+        "SELECT count(*)::int AS n FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL", [HELENA],
+      );
+      expect(Number(vivas.rows[0]!.n), "sobrou sessão viva da Helena depois da suspensão").toBe(0);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await consoleDb.end();
+      await cen.bruto(
+        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+      );
+      cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
+    }
+  }, 120_000);
 });
