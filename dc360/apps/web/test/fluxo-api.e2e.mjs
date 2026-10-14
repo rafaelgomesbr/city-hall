@@ -1767,10 +1767,28 @@ await paginaE10.getByRole("button", { name: "Definir nova senha" }).click();
 await paginaE10.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
 ok("redefine a senha e confirma",
    (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."));
-ok("a tela oferece ir para a entrada agora",
-   (await paginaE10.getByRole("link", { name: "Ir para a entrada" }).count()) === 1);
-await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 }).catch(() => {});
-ok("e leva sozinha para a entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");
+ok("a confirmação é anunciada como região de status",
+   (await paginaE10.locator(".aviso--sucesso").getAttribute("role")) === "status");
+ok("a tela oferece o botão Entrar",
+   (await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).count()) === 1);
+/*
+  V2-F00-E10, correção 2 (WCAG 2.2.1): a tela NÃO redireciona por tempo. Antes
+  ela levava sozinha para a entrada em cerca de 2,5 s, e a entrada não repetia a
+  confirmação. Espera quase o dobro disso, e a confirmação tem de continuar lá,
+  na mesma página, até a pessoa clicar.
+*/
+const inicioDaEspera = Date.now();
+await paginaE10.waitForTimeout(5_000);
+ok("passados 5 s a tela continua a de redefinir, sem redirecionamento por tempo",
+   new URL(paginaE10.url()).pathname === "/redefinir-senha", paginaE10.url());
+ok("e a confirmação de sucesso continua na tela",
+   (await paginaE10.locator(".aviso--sucesso").count()) === 1
+   && (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."),
+   `(${Date.now() - inicioDaEspera} ms depois)`);
+await capturarE10(paginaE10, "definir-sucesso");
+await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).click();
+await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 });
+ok("o botão Entrar leva à entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");
 
 const antigaDoAlvoE10 = await viaApiE07("/auth/entrar", { metodo: "POST", corpo: { email: ALVO_E10, senha: SENHA } });
 const novaDoAlvoE10 = await viaApiE07("/auth/entrar", { metodo: "POST", corpo: { email: ALVO_E10, senha: SENHA_NOVA_E10 } });

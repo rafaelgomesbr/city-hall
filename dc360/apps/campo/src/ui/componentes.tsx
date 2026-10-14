@@ -159,6 +159,20 @@ export function useTema(): Tema {
 }
 
 /**
+ * Peças que ficam SOBRE o visor da câmera leem o tema escuro, nos dois temas.
+ *
+ * O visor é preto fixo (`visor.fundo`, em `tokens.ts`), mas o botão secundário
+ * pintava rótulo e contorno com o tema corrente: no claro, `texto` é quase
+ * preto, e "Voltar sem fotografar" media 1,19:1 sobre o visor na captura do
+ * emulador Android (V2-F00-E16, correção 2). Em vez de inventar uma cor para o
+ * botão, a peça troca de TEMA: o escuro foi desenhado para fundo escuro, e a
+ * paridade com o painel não muda.
+ */
+export function SobreOVisor({ children }: { children: ReactNode }) {
+  return <ContextoTema.Provider value={temaEscuro}>{children}</ContextoTema.Provider>;
+}
+
+/**
  * A escolha do tema, para quem a OFERECE.
  *
  * Estoura fora do provedor, ao contrário de `useTema()`, e a diferença é

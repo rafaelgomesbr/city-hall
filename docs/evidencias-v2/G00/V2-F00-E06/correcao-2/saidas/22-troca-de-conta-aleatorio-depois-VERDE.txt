@@ -1,0 +1,42 @@
+### seed 1
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (246 ms)
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (39 ms)
+Seed:        1
+Tests:       2 passed, 2 total
+### seed 2
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (242 ms)
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (38 ms)
+Seed:        2
+Tests:       2 passed, 2 total
+### seed 3
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (690 ms)
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (97 ms)
+Seed:        3
+Tests:       2 passed, 2 total
+### seed 4
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (873 ms)
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (170 ms)
+Seed:        4
+Tests:       2 passed, 2 total
+### seed 5
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (350 ms)
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (48 ms)
+Seed:        5
+Tests:       2 passed, 2 total
+### seed 6
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (506 ms)
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (103 ms)
+Seed:        6
+Tests:       2 passed, 2 total
+### seed 7
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (230 ms)
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (38 ms)
+Seed:        7
+Tests:       2 passed, 2 total
+### seed 8
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (215 ms)
+    √ o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela (42 ms)
+Seed:        8
+Tests:       2 passed, 2 total
+    √ 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada (236 ms)
+Tests:       1 skipped, 1 passed, 2 total

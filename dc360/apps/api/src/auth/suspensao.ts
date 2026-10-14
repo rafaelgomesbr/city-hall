@@ -24,8 +24,9 @@ import type { Banco } from "../banco/tipos.js";
  * ====================================================================
  * SESSÃO VIVA: ONDE A SUSPENSÃO É CONFERIDA, E ONDE NÃO É.
  *
- * O token de acesso vive quinze minutos e é conferido só por assinatura; o de
- * renovação vive dias e é conferido no banco. Conferir a suspensão em toda
+ * O token de acesso vive quinze minutos (`ACESSO_MINUTOS`, 15 por padrão) e,
+ * na leitura, é conferido só por assinatura; o de renovação vive dias e é
+ * conferido no banco. Conferir a suspensão em toda
  * requisição custaria uma transação a mais em cada uma, inclusive nas leituras
  * de uma noite de chuva, que são a maior parte do tráfego. A decisão é esta:
  *
@@ -33,24 +34,31 @@ import type { Banco } from "../banco/tipos.js";
  *     credencial nova sob contrato suspenso não pode nascer. Renovar confere
  *     mesmo que o console já tenha revogado as sessões: a API não depende de
  *     outro processo ter feito a parte dele.
- *   - ESCRITA com token vivo confere sempre (qualquer método que não seja
- *     GET ou HEAD). Escrever cria registro (protocolo, laudo, evento de
+ *   - ESCRITA com token vivo confere sempre. Escrita é todo método que não
+ *     seja GET nem HEAD E também o GET (com o HEAD dele) da rota marcada com
+ *     `ROTA_GET_COM_EFEITO` (`servidor.ts`): o laudo, o termo de
+ *     interdição, o termo de desinterdição e os PDFs, o CSV de ocorrências e
+ *     o sino `GET /avisos`, que materializa avisos e expurga os velhos.
+ *     Todos esses respondem 403 `acesso_suspenso` com o município suspenso,
+ *     como um POST. Escrever cria registro (protocolo, laudo, evento de
  *     trilha) sob um contrato que o fornecedor suspendeu, e o custo é uma
  *     consulta por escrita, que é a parte pequena do tráfego. Essa MESMA
  *     consulta confere também a vigência de quem escreve (conta ativa,
  *     papel do token, sessão de pé, senha provisória no prazo): ver
  *     `auth/vigencia.ts`. Ela nasceu em 15/09/2026, ficou DESLIGADA de
- *     17/09/2026 até a V2-F00-E04 (2026-10-06) e é a que vale hoje
- *     (conferido na V2-F00-E22).
- *   - LEITURA com token vivo NÃO confere. O token expira em quinze minutos, e
- *     essa é a janela que o produto aceita, para LEITURA, quando um usuário é
- *     desativado ou expulso pelo administrador: a sessão cai, a escrita para
- *     no pedido seguinte, e o token vivo termina o prazo lendo. Suspensão
- *     contratual não é incidente de segurança, e quinze minutos de leitura
- *     não produzem registro nenhum, com UMA exceção conhecida: `GET /avisos`
- *     escreve (materializa avisos e expurga os velhos) e segue aceitando
- *     esse token (`apps/api/PENDENCIAS.md`). O que se compra é nenhuma ida
- *     ao banco a mais em nenhuma leitura.
+ *     17/09/2026 até a V2-F00-E04 (2026-10-06), e as rotas GET marcadas
+ *     entraram na correção 1 da E04 (2026-10-13).
+ *   - LEITURA com token vivo NÃO confere: o GET sem a marca. O token expira
+ *     em quinze minutos, e essa é a janela que o produto aceita, para
+ *     LEITURA, quando um usuário é desativado ou expulso pelo administrador: a
+ *     sessão cai, a escrita para no pedido seguinte, e o token vivo termina o
+ *     prazo lendo. Suspensão contratual não é incidente de segurança, e
+ *     quinze minutos de leitura não praticam ato nem mudam dado do município.
+ *     O que a leitura grava é só o registro de que foi lida: o dossiê
+ *     (`GET /ocorrencias/:id`) e a busca gravam `ocorrencia_consultas`
+ *     (`registrarConsulta`), e por isso ficam sem a marca; a vigência deles é
+ *     da F03-E03. O que se compra é nenhuma ida ao banco a mais em nenhuma
+ *     leitura.
  *   - TOKEN VENCIDO mas AUTÊNTICO confere. Este é o caso do aplicativo de
  *     campo: depois que a renovação falha, o aparelho segue apresentando o
  *     token vencido, e sem esta conferência ele receberia 401 para sempre, que

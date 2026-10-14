@@ -1,0 +1,209 @@
+import { StyleSheet } from "react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import type { Pendencia } from "../dados/api";
+import { ProvedorDeTema } from "../ui/componentes";
+import { visor } from "../ui/tokens";
+import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
+
+/**
+ * "VOLTAR SEM FOTOGRAFAR" SE LÊ SOBRE O VISOR (V2-F00-E16, correção 2).
+ *
+ * O visor da câmera é preto nos dois temas (`visor.fundo`), mas o botão
+ * secundário pintava o rótulo e o contorno com as cores do TEMA: no tema claro,
+ * `texto` é quase preto, e o rótulo escuro sobre o visor preto media 1,19:1 na
+ * captura do emulador Android (WCAG 1.4.3 pede 4,5:1; o contorno de controle,
+ * 3:1, da 1.4.11). A saída da câmera era o botão que o agente não enxergava.
+ *
+ * O conserto usa só tokens do tema do aplicativo: sobre o visor o botão adota a
+ * paleta do tema escuro, que é a que foi feita para fundo escuro.
+ */
+
+let mockEsquema: "light" | "dark" = "light";
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
+  __esModule: true,
+  default: () => mockEsquema,
+}));
+
+jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
+  const navegacao = { setOptions: jest.fn() };
+  return {
+    router: {
+      back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true),
+    },
+    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
+    useNavigation: () => navegacao,
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
+  };
+});
+
+const mockTirarFoto = jest.fn(async () => ({ uri: "file:///cache/foto.jpg" }));
+let mockPermissaoDeCamera = { granted: true };
+const mockPedirCamera = jest.fn(async () => mockPermissaoDeCamera);
+jest.mock("expo-camera", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { forwardRef, useImperativeHandle } = require("react") as typeof import("react");
+  return {
+    CameraView: forwardRef((_props: Record<string, unknown>, ref) => {
+      useImperativeHandle(ref, () => ({ takePictureAsync: () => mockTirarFoto() }));
+      return null;
+    }),
+    useCameraPermissions: () => [mockPermissaoDeCamera, mockPedirCamera],
+  };
+});
+
+let mockPermissaoDeLocal = { granted: true };
+let mockPosicao = { coords: { latitude: -27.595900, longitude: -48.548900, accuracy: 8 } };
+jest.mock("expo-location", () => ({
+  Accuracy: { High: 4 },
+  requestForegroundPermissionsAsync: async () => mockPermissaoDeLocal,
+  getCurrentPositionAsync: async () => mockPosicao,
+}));
+
+let mockContadorDeChaves = 0;
+jest.mock("expo-crypto", () => ({
+  randomUUID: () => {
+    mockContadorDeChaves += 1;
+    return `cccccccc-cccc-4ccc-8ccc-${String(mockContadorDeChaves).padStart(12, "0")}`;
+  },
+}));
+
+jest.mock("expo-file-system", () => ({
+  File: class { size = 1024; constructor(_uri: string) {} },
+}));
+
+/** O que a cópia da foto para o disco faz. Cada caso ajusta. */
+let mockGuardarFoto: () => { uriLocal: string; tamanhoBytes: number } = () => ({
+  uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024,
+});
+jest.mock("../dados/evidencia-no-disco", () => ({
+  guardarFotoNoAparelho: () => mockGuardarFoto(),
+  apagarFotoDoAparelho: () => true,
+  medirArquivoNoAparelho: () => 1024,
+}));
+
+jest.mock("../ui/Assinatura", () => ({ Assinatura: () => null }));
+jest.mock("../ui/retornoTatil", () => ({ retornoTatil: jest.fn() }));
+jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
+jest.mock("../dados/mapa", () => ({
+  ...jest.requireActual("../dados/mapa"),
+  abrirNoMapa: jest.fn(async () => true),
+}));
+jest.mock("../dados/historico-da-casa", () => ({
+  ...jest.requireActual("../dados/historico-da-casa"),
+  buscarHistoricoDaCasa: async () => ({
+    estado: "chegou",
+    historico: {
+      vistoriaAnterior: null, providencias: [], vinculadas: [], devolucao: null, fotosDeAntes: [],
+    },
+  }),
+}));
+
+const OCORRENCIA: Pendencia = {
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+  protocolo: "2026/000123",
+  tipo: "deslizamento",
+  severidade: "alta",
+  endereco: "Servidão do Morro, 45",
+  ponto_referencia: null,
+  latitude: -27.595378,
+  longitude: -48.548050,
+  descricao: "Barranco escorregou sobre os fundos da casa.",
+  solicitante_nome: "Maria de exemplo",
+  solicitante_contato: null,
+  vulnerabilidade_presente: false,
+  vulnerabilidade_descricao: null,
+  prazo_em: null,
+  criado_em: "2026-09-09T09:00:00.000Z",
+};
+
+jest.mock("../dados/pendencias", () => ({
+  pendenciaGuardada: async () => OCORRENCIA,
+  orgaosGuardados: async () => [],
+  atualizarPendencias: jest.fn(async () => {}),
+}));
+
+jest.mock("../dados/coletas", () => ({
+  coletaDe: async () => null,
+  marcarColetada: jest.fn(async () => {}),
+  arquivarColeta: jest.fn(async () => {}),
+}));
+
+const mockEnfileirar = jest.fn(async (..._args: unknown[]) => ({}));
+const mockFila = { enfileirar: (...args: unknown[]) => mockEnfileirar(...args) };
+jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
+
+jest.mock("../dados/sessao", () => ({
+  useSessao: () => ({
+    obterToken: async () => "token-de-mentira",
+    lerIdentidade: async () => null,
+    identidade: {
+      nome: "Agente de teste", matricula: "0001",
+      organizacaoNome: "Defesa Civil de Teste", municipio: "Teste", uf: "SC",
+    },
+  }),
+}));
+
+type RascunhoDeTeste = Record<string, unknown>;
+let mockRascunhoGuardado: RascunhoDeTeste | null = null;
+jest.mock("../dados/rascunho", () => ({
+  lerRascunho: jest.fn(async () => mockRascunhoGuardado),
+  salvarRascunho: jest.fn(async () => {}),
+  descartarRascunho: jest.fn(async () => {}),
+  rascunhoNovo: (ocorrenciaId: string, protocolo: string, idempotencyKey: string) => ({
+    ocorrenciaId, protocolo, idempotencyKey,
+    checklist: {}, orgaosParaAcionar: [], fotos: [],
+    gpsPrecisaoMetros: null, coordenada: null,
+    assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
+    coletadaEm: "2026-09-09T12:00:00.000Z",
+    atualizadoEm: "2026-09-09T12:00:00.000Z",
+  }),
+}));
+
+
+function luminancia(hex: string): number {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const canal = (v: number): number => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal((n >> 16) & 255) + 0.7152 * canal((n >> 8) & 255)
+    + 0.0722 * canal(n & 255);
+}
+
+function contraste(a: string, b: string): number {
+  const [x, y] = [luminancia(a), luminancia(b)];
+  const [claro, escuro] = x > y ? [x, y] : [y, x];
+  return (claro + 0.05) / (escuro + 0.05);
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockContadorDeChaves = 0;
+  mockRascunhoGuardado = null;
+  mockPermissaoDeCamera = { granted: true };
+  mockPermissaoDeLocal = { granted: true };
+});
+
+afterEach(() => { jest.restoreAllMocks(); });
+
+describe("a câmera aberta", () => {
+  it.each(["light", "dark"] as const)("com o aparelho no tema %s, 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor", async (esquema) => {
+    mockEsquema = esquema;
+    await act(async () => {
+      await render(<ProvedorDeTema><TelaDeVistoria /></ProvedorDeTema>);
+    });
+    await screen.findByText("Checklist técnico");
+
+    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+    const botao = await screen.findByTestId("fechar-a-camera");
+    const rotulo = StyleSheet.flatten(screen.getByText("Voltar sem fotografar").props.style) as {
+      color: string;
+    };
+    const contorno = StyleSheet.flatten(botao.props.style) as { borderColor: string };
+
+    expect(contraste(rotulo.color, visor.fundo)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(contorno.borderColor, visor.fundo)).toBeGreaterThanOrEqual(3);
+  });
+});

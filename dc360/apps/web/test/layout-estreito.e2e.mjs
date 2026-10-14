@@ -291,6 +291,139 @@ for (const caminho of ["/painel", "/ocorrencias"]) {
      `(pedidos: ${coordenacaoVendo.pedidos.join(",")})`);
 }
 
+
+/**
+ * Tudo o que está FORA DO LUGAR dentro de um cartão ou de uma janela.
+ *
+ * Foi o buraco da validação da E09 (rodada 2): o teste media as janelas e a
+ * barra do pé, e "Minha conta" a 320 px passou verde com o botão "Encerrar
+ * minhas outras sessões" 16 px além da coluna. Aqui a régua é o RETÂNGULO, em
+ * qualquer tela: cada botão, link-botão, campo, selo, aviso e item de lista tem
+ * de caber na área útil (dentro do padding) do cartão ou da janela que o
+ * contém, o texto dele tem de caber nele, e a página não pode ganhar rolagem
+ * horizontal. O que está dentro de um envoltório que rola de propósito (a
+ * tabela, que traz a dica "A tabela continua para a direita") fica de fora.
+ */
+async function foraDoLugar(pg) {
+  return pg.evaluate(() => {
+    const descreve = (e) =>
+      `${e.tagName.toLowerCase()}${typeof e.className === "string" && e.className ? "." + e.className.trim().split(/\s+/).join(".") : ""} "${(e.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40)}"`;
+    const rola = (e) => {
+      for (let a = e.parentElement; a; a = a.parentElement) {
+        const o = getComputedStyle(a).overflowX;
+        if ((o === "auto" || o === "scroll") && !a.classList.contains("modal__painel")) return true;
+      }
+      return false;
+    };
+    const problemas = [];
+    if (document.documentElement.scrollWidth > window.innerWidth + 1)
+      problemas.push(`a pagina ganhou rolagem horizontal (${document.documentElement.scrollWidth} contra ${window.innerWidth})`);
+    const escopo = document.querySelector(".modal__painel") ?? document.querySelector("main.conteudo");
+    if (!escopo) return ["nada para medir"];
+    const candidatos = escopo.querySelectorAll(
+      "button, a.botao, input:not([type=hidden]), select, textarea, .selo, .aviso, .sessoes__item, .senha-temporaria__bloco",
+    );
+    for (const e of candidatos) {
+      const r = e.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0 || rola(e)) continue;
+      const caixa = e.closest(".modal__painel, .cartao__corpo") ?? escopo;
+      const c = caixa.getBoundingClientRect();
+      const st = getComputedStyle(caixa);
+      const esq = c.left + parseFloat(st.paddingLeft) + parseFloat(st.borderLeftWidth);
+      const dir = c.right - parseFloat(st.paddingRight) - parseFloat(st.borderRightWidth);
+      if (r.left < esq - 0.5 || r.right > dir + 0.5)
+        problemas.push(`${descreve(e)} sai da area util (${r.left.toFixed(0)}..${r.right.toFixed(0)} contra ${esq.toFixed(0)}..${dir.toFixed(0)})`);
+      if (e.matches("button, a.botao") && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1))
+        problemas.push(`${descreve(e)} com o texto cortado`);
+      if (e.matches("button, a.botao") && r.height < 43.5)
+        problemas.push(`${descreve(e)} abaixo de 44 px de altura (${r.height.toFixed(0)})`);
+    }
+    return problemas;
+  });
+}
+
+console.log("\n== 5. Minha conta cabe, do celular pequeno à mesa (V2-F00-E09, correção 2) ==");
+/*
+  Duas sessões abertas: uma criada agora pela API e a do próprio navegador. É
+  isso que faz o botão "Encerrar minhas outras sessões" existir, e o botão é
+  justamente o que passava da coluna a 320 px.
+*/
+const ctxConta = await navegador.newContext({ locale: "pt-BR" });
+const paginaConta = await ctxConta.newPage();
+paginaConta.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+paginaConta.on("console", (m) => { if (m.type() === "error") erros.push(`console: ${m.text()}`); });
+const outraSessao = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: emailCoordenacao, senha: SENHA_DO_TESTE } });
+ok("a coordenadora abre uma sessão a mais pela API", outraSessao.status === 200, `(${outraSessao.status})`);
+await entrar(emailCoordenacao, SENHA_DO_TESTE, paginaConta);
+await paginaConta.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+const botaoOutras = paginaConta.getByRole("button", { name: "Encerrar minhas outras sessões" });
+await botaoOutras.waitFor({ timeout: 30_000 });
+/*
+  A coordenadora já entrou outras vezes neste arquivo (seção 4), então são três
+  ou mais sessões, e o rótulo do botão da janela traz a conta: "Encerrar as
+  outras N sessões". O teste não fixa N.
+*/
+ok("Minha conta lista pelo menos duas sessões e mostra o botão de encerrar as outras",
+   (await paginaConta.locator(".sessoes__item").count()) >= 2);
+for (const largura of [320, 390, 768, 1280]) {
+  await paginaConta.setViewportSize({ width: largura, height: 900 });
+  await paginaConta.waitForTimeout(150);
+  const problemas = await foraDoLugar(paginaConta);
+  ok(`Minha conta a ${largura} px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)`,
+     problemas.length === 0, `(${problemas.join(" | ")})`);
+}
+
+console.log("\n== 6. Usuários e a janela da senha temporária a 320 e 390 px ==");
+await page.setViewportSize({ width: 1280, height: 800 });
+await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+for (const largura of [320, 390, 768]) {
+  await page.setViewportSize({ width: largura, height: 900 });
+  await page.waitForTimeout(150);
+  const problemas = await foraDoLugar(page);
+  ok(`Usuários a ${largura} px: nada fora do lugar fora da tabela que rola`, problemas.length === 0, `(${problemas.join(" | ")})`);
+}
+for (const largura of [320, 390]) {
+  await page.setViewportSize({ width: largura, height: 900 });
+  await page.waitForTimeout(100);
+  const alvo = page.locator("tbody tr", { hasText: emailLongo });
+  await alvo.getByRole("button", { name: "Redefinir senha", exact: true }).scrollIntoViewIfNeeded();
+  await alvo.getByRole("button", { name: "Redefinir senha", exact: true }).click();
+  const janela = page.getByRole("dialog");
+  await janela.waitFor({ timeout: 10_000 });
+  await janela.getByRole("button", { name: /^Redefinir a senha de Marcos/ }).click();
+  await janela.getByRole("button", { name: "Já anotei a senha" }).waitFor({ timeout: 20_000 });
+  const problemas = await foraDoLugar(page);
+  ok(`a janela da senha temporária a ${largura} px: nada fora do lugar`, problemas.length === 0, `(${problemas.join(" | ")})`);
+  await janela.getByRole("button", { name: "Já anotei a senha" }).click();
+  await janela.waitFor({ state: "detached", timeout: 10_000 });
+}
+
+console.log("\n== 7. Depois de encerrar as outras sessões, o foco não cai em BODY (WCAG 2.4.3) ==");
+await paginaConta.setViewportSize({ width: 390, height: 900 });
+await paginaConta.getByRole("button", { name: "Encerrar minhas outras sessões" }).focus();
+await paginaConta.keyboard.press("Enter");
+const janelaConta = paginaConta.getByRole("dialog");
+await janelaConta.waitFor({ timeout: 10_000 });
+await janelaConta.getByRole("button", { name: /^Encerrar (a outra sessão|as outras \d+ sessões)$/ }).click();
+await paginaConta.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
+// O botão some quando a lista é relida: é esse o instante em que o foco se perdia.
+await botaoOutras.waitFor({ state: "detached", timeout: 20_000 });
+await paginaConta.waitForTimeout(300);
+const foco = await paginaConta.evaluate(() => {
+  const a = document.activeElement;
+  return {
+    tag: a?.tagName ?? "nenhum", conectado: Boolean(a?.isConnected),
+    dentroDaConfirmacao: a !== document.body && (Boolean(a?.closest?.(".aviso--sucesso")) || Boolean(a?.querySelector?.(".aviso--sucesso"))),
+    texto: (a?.textContent ?? "").trim().slice(0, 60),
+  };
+});
+ok("depois de encerrar as outras sessões o foco continua num elemento que existe, e não em BODY",
+   foco.tag !== "BODY" && foco.tag !== "HTML" && foco.conectado, `(${JSON.stringify(foco)})`);
+ok("e esse elemento é a confirmação (quem usa leitor de tela ouve o que aconteceu)",
+   foco.dentroDaConfirmacao && /foi encerrada|foram encerradas/.test(foco.texto), `(${JSON.stringify(foco)})`);
+await ctxConta.close();
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);

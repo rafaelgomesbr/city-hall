@@ -1,0 +1,25 @@
+PASS src/dados/reconciliacao-ligada.test.ts
+PASS src/dados/lista-cortada.test.ts
+PASS src/ui/retorno-tatil.test.ts
+PASS src/push/aviso-local.test.ts
+PASS src/dados/precisao-do-gps.test.ts
+PASS src/dados/api-conta-desativada.test.ts
+PASS src/dados/conquistas.test.ts
+PASS src/push/permissao.test.ts
+PASS src/dados/api-aparelho.test.ts
+PASS src/ui/mapa/estilo-do-google.test.ts
+PASS src/dados/api-tempo-limite.test.ts
+PASS src/dados/api-acesso-suspenso.test.ts
+PASS src/ui/mapa/pinos.test.ts
+PASS src/__tests__/vistoria-como-produto.test.tsx (27.431 s)
+
+Test Suites: 133 passed, 133 total
+Tests:       1915 passed, 1915 total
+Snapshots:   0 total
+Time:        28.642 s, estimated 29 s
+Ran all test suites.
+Test results written to: node_modules\.cache\dc360-contagem.json
+
+A leitura do código e o jest concordam: 1915 casos.
+
+O aplicativo de campo passou: tipos limpos e testes verdes.

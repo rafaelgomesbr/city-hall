@@ -42,7 +42,7 @@ import { useSinal } from "../../../dados/conectividade";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, SobreOVisor, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { useRecuoDoMenu } from "../../../ui/BarraDeAbas";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
@@ -1585,7 +1585,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     */
     let guardada: { uriLocal: string; tamanhoBytes: number };
     try {
-      guardada = guardarFotoNoAparelho(uri, rascunho.fotos.length);
+      guardada = await guardarFotoNoAparelho(uri, rascunho.fotos.length);
     } catch (e) {
       throw new FotoNaoGuardada(
         e instanceof Error && e.message
@@ -2576,13 +2576,17 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
             título, e "Cancelar" aqui é ambíguo do jeito caro (cancelar a foto,
             ou cancelar a vistoria?).
           */}
-          <Botao
-            titulo="Voltar sem fotografar"
-            tipo="secundario"
-            onPress={() => setCameraAberta(false)}
-            testID="fechar-a-camera"
-            estilo={{ alignSelf: "stretch" }}
-          />
+          {/* Sobre o visor preto o botão usa a paleta do tema escuro: com o
+              tema claro o rótulo escuro media 1,19:1 (correção 2 da E16). */}
+          <SobreOVisor>
+            <Botao
+              titulo="Voltar sem fotografar"
+              tipo="secundario"
+              onPress={() => setCameraAberta(false)}
+              testID="fechar-a-camera"
+              estilo={{ alignSelf: "stretch" }}
+            />
+          </SobreOVisor>
         </View>
       </View>
     );

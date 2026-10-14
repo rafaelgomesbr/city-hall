@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
 import {
   MODO, desativarSegundoFator, encerrarMinhasSessoes, listarMinhasSessoes,
@@ -212,6 +212,26 @@ function MinhasOutrasSessoes() {
   const [encerrando, setEncerrando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
+  const confirmacao = useRef<HTMLDivElement>(null);
+
+  /*
+    O FOCO NÃO PODE CAIR EM `BODY` DEPOIS DE ENCERRAR (WCAG 2.4.3).
+
+    O botão "Encerrar minhas outras sessões" só existe enquanto há outra
+    sessão. Ao confirmar, a lista é relida, o botão some, e o foco que o
+    `Modal` devolveu a ele ia junto: teclado e leitor de tela recomeçavam do
+    topo da página (validação da V2-F00-E09, rodada 2). O foco vai para a
+    confirmação, que continua na tela e é o que a pessoa precisa ouvir.
+
+    É um efeito sobre `sucesso`, e não uma chamada dentro de `encerrar`, por
+    causa da ordem: o `Modal` devolve o foco ao gatilho na limpeza do efeito
+    dele, que roda antes deste (filho antes de pai). Mover o foco aqui, depois
+    do commit que mostrou a confirmação, é o que não deixa o gatilho ter a
+    última palavra.
+  */
+  useEffect(() => {
+    if (sucesso) confirmacao.current?.focus();
+  }, [sucesso]);
 
   const carregar = useCallback((): (() => void) => {
     let cancelado = false;
@@ -259,7 +279,11 @@ function MinhasOutrasSessoes() {
 
   return (
     <Cartao titulo="Minhas sessões">
-      {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
+      {sucesso && (
+        <div ref={confirmacao} tabIndex={-1}>
+          <Aviso tom="sucesso">{sucesso}</Aviso>
+        </div>
+      )}
 
       {/*
         O `Carregando` da página tem 60vh de altura, que dentro de um cartão
@@ -312,7 +336,8 @@ function MinhasOutrasSessoes() {
               <p className="campo__dica" style={{ marginTop: 0 }}>
                 Encerrar as outras não mexe nesta: você continua aqui, sem precisar entrar de novo.
               </p>
-              <button type="button" className="botao botao--perigo"
+              {/* `botao--quebra`: a 320 px o rótulo comprido quebra em linhas e o botão ocupa a coluna. */}
+              <button type="button" className="botao botao--perigo botao--quebra"
                       onClick={() => { setErro(null); setSucesso(null); setPerguntando(true); }}>
                 Encerrar minhas outras sessões
               </button>

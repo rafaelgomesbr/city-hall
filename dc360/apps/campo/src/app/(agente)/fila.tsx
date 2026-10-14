@@ -194,8 +194,8 @@ function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
           ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair quando `
             + "o aplicativo estiver aberto e houver sinal. A tarefa já saiu da sua lista."
           : `Motivo: ${motivo}. Já tentou ${item.tentativas}x e vai continuar `
-            + "tentando sozinha. Enquanto ela não chegar, a coordenação não sabe "
-            + "que esta tarefa voltou.",
+            + "tentando enquanto o aplicativo estiver aberto. Até ela chegar, a "
+            + "coordenação não sabe que esta tarefa voltou.",
       };
     case "enviando":
       return {
@@ -447,12 +447,14 @@ function descreverEstado(
             ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`
             /*
               Muitas tentativas não viram acusação nem convite ao descarte: a
-              coleta continua tentando sozinha, e o que falta é sinal. A frase
-              diz isso, e a única ação que resolve saiu do fim do parágrafo e
-              virou passo.
+              coleta continua tentando, e o que falta é sinal. A frase diz
+              isso COM a condição (enquanto o aplicativo estiver aberto):
+              "sozinha" sem ela sugeria tentativa com o aplicativo fechado, que
+              não existe (V2-F00-E16, correção 2). A única ação que resolve saiu
+              do fim do parágrafo e virou passo.
             */
-            : `Já tentou ${item.tentativas}x e vai continuar tentando sozinha. A `
-              + "conexão daqui não está completando o envio.",
+            : `Já tentou ${item.tentativas}x e vai continuar tentando enquanto o `
+              + "aplicativo estiver aberto. A conexão daqui não está completando o envio.",
         oQueFazer: item.tentativas >= TENTATIVAS_ATE_AVISAR
           ? ["Procure um lugar com sinal melhor ou uma rede Wi-Fi que funcione."]
           : undefined,

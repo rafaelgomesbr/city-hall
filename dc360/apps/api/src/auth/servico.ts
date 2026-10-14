@@ -1,6 +1,6 @@
 import type { Papel } from "@dc360/shared";
 import type { Config } from "../config.js";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import { conferirSenha, gastarTempoEquivalente } from "./senha.js";
 import {
   DESAFIO_MINUTOS, emitirAcesso, emitirDesafio, gerarTokenRenovacao, hashDoToken,
@@ -528,33 +528,49 @@ export function servicoDeAutenticacao(
   }
 
   /**
-   * Abre a sessão e emite o par de tokens. `familiaId` só a renovação informa:
-   * a sessão nova entra na cadeia da que acabou de ser rotacionada. Sem ele é
-   * um login, e o banco abre uma família nova (migração 047).
+   * Abre a sessão no banco, na transação de quem chama. `familiaId` só a
+   * renovação informa: a sessão nova entra na cadeia da que acabou de ser
+   * rotacionada. Sem ele é um login, e o banco abre uma família nova
+   * (migração 047).
    */
+  async function abrirSessao(
+    c: Consulta,
+    linha: LinhaCredencial,
+    contexto: { userAgent?: string; ip?: string },
+    renovacao: string,
+    familiaId: string | null,
+  ): Promise<string> {
+    const r = await c.query<{ abrir_sessao: string }>(
+      "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
+      [
+        linha.organizacao_id,
+        linha.usuario_id,
+        hashDoToken(renovacao),
+        `${config.RENOVACAO_DIAS} days`,
+        contexto.userAgent ?? null,
+        contexto.ip ?? null,
+        familiaId,
+      ],
+    );
+    return r.rows[0]!.abrir_sessao;
+  }
+
+  /** Login: abre a sessão (família nova) e emite o par de tokens. */
   async function emitirPar(
     linha: LinhaCredencial,
     contexto: { userAgent?: string; ip?: string },
-    familiaId: string | null = null,
   ): Promise<Autenticado> {
     const renovacao = gerarTokenRenovacao();
+    const sessaoId = await banco.semTenant((c) => abrirSessao(c, linha, contexto, renovacao, null));
+    return montarPar(linha, sessaoId, renovacao);
+  }
 
-    const sessaoId = await banco.semTenant(async (c) => {
-      const r = await c.query<{ abrir_sessao: string }>(
-        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
-        [
-          linha.organizacao_id,
-          linha.usuario_id,
-          hashDoToken(renovacao),
-          `${config.RENOVACAO_DIAS} days`,
-          contexto.userAgent ?? null,
-          contexto.ip ?? null,
-          familiaId,
-        ],
-      );
-      return r.rows[0]!.abrir_sessao;
-    });
-
+  /** O par de tokens de uma sessão já aberta. */
+  async function montarPar(
+    linha: LinhaCredencial,
+    sessaoId: string,
+    renovacao: string,
+  ): Promise<Autenticado> {
     // Vencida não chega aqui: `entrar` e `renovar` recusam antes. O que sobra
     // é "provisória e no prazo", que vira a marca no token.
     const provisoria = linha.senha_provisoria_ate !== null;
@@ -659,56 +675,85 @@ export function servicoDeAutenticacao(
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
-    /*
-      A FAMÍLIA da sessão que vai ser rotacionada, lida ANTES da rotação e sob
-      tenant (`sessoes` está sob RLS, e `sessao_por_token` não a devolve: a
-      função da 046 não mudou). A sessão nova entra na mesma cadeia, e é isso
-      que permite à vigência saber que o token de acesso emitido na antiga
-      ainda pertence a uma cadeia viva (migração 047).
-    */
-    const familiaId = await banco.comTenant(sessao.organizacao_id, async (c) => {
-      const r = await c.query<{ familia_id: string }>(
-        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
-      );
-      return r.rows[0]?.familia_id ?? null;
-    });
+    const linha: LinhaCredencial = {
+      usuario_id: sessao.usuario_id,
+      organizacao_id: sessao.organizacao_id,
+      nome: sessao.nome,
+      matricula: sessao.matricula,
+      papel: sessao.papel,
+      senha_hash: null,
+      ativo: true,
+      bloqueado_ate: null,
+      senha_provisoria_ate: sessao.senha_provisoria_ate,
+      organizacao_nome: sessao.organizacao_nome,
+      municipio: sessao.municipio,
+      uf: sessao.uf,
+    };
+    const renovacao = gerarTokenRenovacao();
 
     /*
-      H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leem a sessão
-      de pé acima; só um consegue revogá-la. `revogar_sessao` devolve quantas
-      linhas mudou, e ZERO significa que outro pedido acabou de rotacionar
-      este token. O perdedor ABORTA aqui, sem emitir par nenhum: emitir seria
-      entregar duas sessões vivas para um token só, e a segunda para quem
-      chegou depois, que é exatamente o cenário do token roubado.
+      A ROTAÇÃO É UMA TRANSAÇÃO SÓ, E SOB A TRAVA DA PESSOA (V2-F00-E07,
+      correção 2). Até aqui revogar a antiga e abrir a nova eram duas
+      transações, e entre elas a família ficava sem sessão viva: quem
+      administra encerrava as sessões nesse instante, não achava nada da
+      cadeia para encerrar (respondia 200), e a renovação abria a sessão nova
+      herdando a família encerrada. A validação de 4b96ea7 viu sobrar sessão
+      viva em 5 de 60 corridas.
+
+      Uma transação só não basta: em READ COMMITTED o UPDATE de quem encerra
+      não enxerga a linha que esta transação inseriu e ainda não confirmou.
+      Por isso a trava (`travar_sessoes_do_usuario`, migração 049) vem
+      primeiro e só sai no COMMIT, com a sessão nova já aberta, e todo
+      encerramento em massa toma a mesma trava num comando anterior ao UPDATE
+      (`auth/sessoes.ts` e as funções da 049). Quem chega depois espera e
+      encerra também a sessão nova; quem chegou antes faz o `revogar_sessao`
+      abaixo devolver zero, e a renovação desiste sem emitir par.
+
+      De brinde, a escrita com o token de acesso anterior à renovação deixa de
+      cair num instante sem sessão viva na família (a "janela na renovação"
+      que `apps/api/PENDENCIAS.md` registrava): quem lê vê a antiga de pé ou a
+      nova de pé, nunca nenhuma.
     */
-    const revogadas = await banco.semTenant(async (c) => {
-      const r = await c.query<{ revogar_sessao: number }>(
+    const sessaoNova = await banco.comTenant(sessao.organizacao_id, async (c) => {
+      await c.query("SELECT travar_sessoes_do_usuario($1)", [sessao.usuario_id]);
+
+      /*
+        H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leram a
+        sessão de pé acima; só um consegue revogá-la. `revogar_sessao` devolve
+        quantas linhas mudou, e ZERO significa que outro pedido acabou de
+        rotacionar este token (ou que um encerramento chegou antes). O perdedor
+        ABORTA aqui, sem emitir par nenhum: emitir seria entregar duas sessões
+        vivas para um token só, e a segunda para quem chegou depois, que é
+        exatamente o cenário do token roubado.
+      */
+      const revogada = await c.query<{ revogar_sessao: number }>(
         "SELECT revogar_sessao($1, $2) AS revogar_sessao", [hash, "rotacionada na renovacao"],
       );
-      return Number(r.rows[0]?.revogar_sessao ?? 0);
+      if (Number(revogada.rows[0]?.revogar_sessao ?? 0) === 0) return null;
+
+      /*
+        A FAMÍLIA da sessão rotacionada, lida sob tenant (`sessoes` está sob
+        RLS, e `sessao_por_token` não a devolve: a função da 046 não mudou). A
+        sessão nova entra na mesma cadeia, e é isso que permite à vigência
+        saber que o token de acesso emitido na antiga ainda pertence a uma
+        cadeia viva (migração 047).
+      */
+      const familia = await c.query<{ familia_id: string }>(
+        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
+      );
+      return abrirSessao(c, linha, contexto, renovacao, familia.rows[0]?.familia_id ?? null);
+    }).catch((erro: unknown) => {
+      // A segunda barreira (migração 049): `abrir_sessao` recusa herdar família
+      // encerrada. Com a trava não acontece; se acontecer, é sessão encerrada,
+      // e a transação inteira voltou atrás.
+      if ((erro as { code?: unknown }).code === "DC369") return null;
+      throw erro;
     });
-    if (revogadas === 0) {
+    if (sessaoNova === null) {
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
-    return emitirPar(
-      {
-        usuario_id: sessao.usuario_id,
-        organizacao_id: sessao.organizacao_id,
-        nome: sessao.nome,
-        matricula: sessao.matricula,
-        papel: sessao.papel,
-        senha_hash: null,
-        ativo: true,
-        bloqueado_ate: null,
-        senha_provisoria_ate: sessao.senha_provisoria_ate,
-        organizacao_nome: sessao.organizacao_nome,
-        municipio: sessao.municipio,
-        uf: sessao.uf,
-      },
-      contexto,
-      familiaId,
-    );
+    return montarPar(linha, sessaoNova, renovacao);
   }
 
   /** Migração 046: provisória e já no passado. */

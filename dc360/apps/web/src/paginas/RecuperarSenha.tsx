@@ -206,16 +206,6 @@ export function RecuperarSenha() {
 // Definir a senha nova
 // ---------------------------------------------------------------------------
 
-/**
- * Quanto a confirmação fica na tela antes de levar para a entrada.
- *
- * Tempo suficiente para ler "Senha redefinida" e entender que a próxima tela
- * não é erro. Menos que isto e a troca de tela parece falha; muito mais e a
- * pessoa fica olhando uma tela que não pede nada. O botão "Ir para a entrada"
- * existe ao lado, para quem não quer esperar.
- */
-const ESPERA_ATE_A_ENTRADA_MS = 2500;
-
 export type FaseDaRedefinicao = "sem-link" | "link-invalido" | "desligada" | "formulario" | "pronto";
 
 export type PropsDaRedefinicao = {
@@ -343,24 +333,20 @@ export function DefinirNovaSenha() {
   }, []);
 
   /*
-    A ida para a entrada é agendada DENTRO de um efeito, e cancelada quando a
-    tela sai.
+    SEM REDIRECIONAMENTO POR TEMPO (WCAG 2.2.1, Tempo ajustável).
 
-    Solta dentro do envio, ela deixava um relógio de pé que ninguém tinha como
-    parar: quem redefine a senha e clica em "Ir para a entrada" antes dos dois
-    segundos e meio (ou fecha a tela por qualquer outro caminho) levava uma
-    navegação disparada por cima da tela seguinte, alguns segundos depois, sem
-    ter pedido nada.
+    Antes, depois de redefinir a senha a tela levava sozinha para a entrada em
+    cerca de 2,5 segundos. Quem lê devagar, quem usa leitor de tela (o anúncio
+    de "Senha redefinida" leva mais que isso) e quem tem dificuldade de leitura
+    perdia a única confirmação, e a entrada que carregava não a repetia
+    (validação da V2-F00-E10, rodada 2). Agora a confirmação fica até a pessoa
+    decidir: o botão "Entrar com a nova senha" é um link de navegação COMPLETA
+    (`href`, e não o roteador), pela razão escrita na `Moldura`: a política de
+    referenciador desta página não pode seguir a pessoa para dentro do painel.
 
-    É navegação COMPLETA (`location.assign`) e não do roteador, pela razão
-    escrita na `Moldura`: a política de referenciador desta página não pode
-    seguir a pessoa para dentro do painel.
+    Não existe mais relógio nesta tela, e o teste reprova se alguém o trouxer
+    de volta (`recuperar-senha.test.ts` e o fluxo ponta a ponta).
   */
-  useEffect(() => {
-    if (fase !== "pronto") return;
-    const relogio = setTimeout(() => window.location.assign("/entrar"), ESPERA_ATE_A_ENTRADA_MS);
-    return () => clearTimeout(relogio);
-  }, [fase]);
 
   async function enviar(evento: FormEvent) {
     evento.preventDefault();

@@ -758,16 +758,22 @@ describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", (
    `saida/pacote.ts`), e a documentação chegou a responder "Sim" a "o laudo do
    pacote diz o mesmo que o laudo emitido" porque só o aviso de equipe tinha
    sido comparado. A validação de 7005a60 gerou os dois laudos da mesma vistoria
-   e achou quatro diferenças. Este bloco prende o estado REAL:
+   e achou quatro diferenças, e a de 4b96ea7 achou a quinta (a assinatura
+   declarada e ausente no armazenamento). Este bloco prende o estado REAL:
 
      - a coordenada da vistoria foi consertada (era trivial: duas colunas na
        consulta do pacote) e tem de ser igual nos dois;
-     - as outras três diferenças continuam, são da V2-F09-E02 (montador único),
-       e estão TRAVADAS como diferenças conhecidas. Se alguém as conserta, o
-       teste reprova de propósito: é o aviso para apagar a ressalva de
-       `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md` no mesmo
-       commit, em vez de a documentação envelhecer sozinha. Se alguém abre uma
-       diferença NOVA, reprova do mesmo jeito.
+     - as outras quatro diferenças continuam, são da V2-F09-E02 (montador
+       único), e estão TRAVADAS como diferenças conhecidas. Se alguém conserta
+       uma delas, o teste reprova de propósito: é o aviso para apagar a
+       ressalva de `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md`
+       no mesmo commit, em vez de a documentação envelhecer sozinha.
+
+   O QUE ESTE BLOCO NÃO FAZ: comparar o laudo inteiro. Ele olha os títulos das
+   seções, a coordenada, a posição da foto avulsa e o bloco da assinatura de
+   quem estava no local. Uma diferença nova em outro campo passa por ele sem
+   reprovar; quem acrescenta campo ao laudo acrescenta o caso aqui (até a
+   V2-F09-E02 unificar os montadores).
 
    Fica depois do bloco do aviso de equipe e limpa o que cria.
    ========================================================================== */
@@ -856,5 +862,39 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
     // No pacote, o montador traz TODA evidência da ocorrência: a avulsa vira
     // foto da vistoria, e o documento atribui ao agente uma imagem que ele não fez.
     expect(secao(doPacote, "Registro fotográfico")).toContain("Avulsa do Joao");
+  }, 60_000);
+
+  /** O bloco da assinatura de quem estava no local (a que o aparelho coleta). */
+  function assinaturaNoLocal(html: string): string {
+    const papel = html.indexOf('<div class="papel">Presente no local</div>');
+    expect(papel, "o laudo não tem o bloco da assinatura de quem estava no local").toBeGreaterThan(0);
+    return html.slice(html.lastIndexOf('<div class="assinatura">', papel), papel);
+  }
+
+  it("DIFERENÇA CONHECIDA (F09-E02): assinatura declarada e ausente no armazenamento", async () => {
+    // A vistoria diz que há traço, e o armazenamento não tem o arquivo (envio
+    // interrompido, objeto apagado). A rota descreve o objeto antes de
+    // imprimir; o pacote monta o caminho só pela chave.
+    const fantasma = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/assinatura-fantasma.png`;
+    await mem.bruto.exec(`UPDATE vistorias SET assinatura_chave = '${fantasma}' WHERE id = '${VISTORIA_F1}'`);
+    try {
+      const daRota = assinaturaNoLocal(await laudoDaRota());
+      const pacote = await baixarPacote(tokenAdministradora);
+      const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
+
+      // A rota afirma que não há traço.
+      expect(daRota).toContain('<div class="traco-ausente">Assinatura não coletada</div>');
+      expect(daRota).not.toContain('<img class="traco"');
+      // O pacote imprime uma imagem que aponta para um arquivo que ele não leva:
+      // no papel, um quadro quebrado em cima do nome da pessoa.
+      expect(doPacote).toContain('<img class="traco" src="../../evidencias/000473-2026/assinatura-fantasma.png"');
+      expect(doPacote).not.toContain("Assinatura não coletada");
+      expect(pacote.has("evidencias/000473-2026/assinatura-fantasma.png")).toBe(false);
+      // A falta fica escrita, e é só ali que o pacote a declara.
+      expect(pacote.get("PENDENCIAS-DA-EXTRACAO.txt")!.toString("utf8"))
+        .toContain(`Assinatura ausente no armazenamento: protocolo 000473/2026, chave ${fantasma}`);
+    } finally {
+      await mem.bruto.exec(`UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}' WHERE id = '${VISTORIA_F1}'`);
+    }
   }, 60_000);
 });

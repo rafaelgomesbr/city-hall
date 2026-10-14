@@ -1,0 +1,30 @@
+PASS src/push/aviso-local.test.ts
+PASS src/dados/catalogo-de-orgaos.test.ts
+PASS src/dados/numeros-do-agente.test.ts
+PASS src/dados/precisao-do-gps.test.ts
+PASS src/dados/historico-da-casa.test.ts
+PASS src/push/registro.test.ts
+PASS src/ui/hierarquia.test.ts
+PASS src/dados/pausa-da-fila.test.ts
+PASS src/dados/lista-cortada-no-cliente.test.ts
+PASS src/push/aviso.test.ts
+PASS src/ui/retorno-tatil.test.ts
+PASS src/dados/lista-cortada.test.ts
+PASS src/dados/atualizacao.test.ts
+PASS src/ui/mapa/estilo-do-google.test.ts
+PASS src/dados/api-acesso-suspenso.test.ts
+PASS src/push/permissao.test.ts
+PASS src/dados/conquistas.test.ts
+PASS src/dados/aviso-da-saida.test.ts
+PASS src/dados/api-tempo-limite.test.ts
+PASS src/ui/tokens-que-faltavam.test.ts
+PASS src/push/canais.test.ts
+PASS src/dados/api-aparelho.test.ts
+PASS src/ui/mapa/pinos.test.ts
+PASS src/__tests__/vistoria-como-produto.test.tsx (27.69 s)
+
+Test Suites: 133 passed, 133 total
+Tests:       1915 passed, 1915 total
+Snapshots:   0 total
+Time:        28.887 s, estimated 40 s
+Ran all test suites.

@@ -1474,7 +1474,8 @@ describe("a fila não promete envio em segundo plano nem com o aplicativo fechad
     mockItens = [item({ id: "teimosa", estado: "pendente", tentativas: 8 })];
     await abrirATela();
 
-    expect(screen.getByText(/vai continuar tentando sozinha/)).toBeTruthy();
+    expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
+    expect(screen.queryByText(/sozinha/)).toBeNull();
     nenhumTextoPromete();
   });
 

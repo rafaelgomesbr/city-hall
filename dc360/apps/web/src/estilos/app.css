@@ -715,6 +715,24 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   .modal__rodape .botao { width: 100%; }
 }
 
+/*
+  `.botao--quebra` é o mesmo tratamento para o botão que mora FORA de janela e
+  repete o objeto ou diz uma frase comprida: "Encerrar minhas outras sessões" em
+  Minha conta passava cerca de 16 px da coluna a 320 px, porque o conserto acima
+  só alcançava `.modal__rodape .botao` (reprovação da V2-F00-E09, rodada 2). Em
+  tela estreita ele também ocupa a largura da coluna, como os da janela. A regra é
+  própria, e não um seletor a mais na de cima, para um não quebrar o outro.
+*/
+.botao--quebra {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .botao--quebra { width: 100%; }
+}
+
 /* ---------- Filtros ---------- */
 
 .filtros {

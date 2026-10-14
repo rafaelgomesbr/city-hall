@@ -23,11 +23,10 @@ que resta, numa linha cada:
 | --- | --- | --- |
 | O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
 | A vigência (conta, papel, sessão) vale na escrita e nos GET marcados como com efeito; a LEITURA PURA confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
-| A janela de milissegundos entre revogar e abrir sessão na renovação | "A vigência de conta, papel e sessão" | F03-E02 |
 | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
 | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
 | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
-| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias e não imprime as seções das fotos avulsas e dos registros perdidos | "Dois montadores de dados do documento" | F09-E02 |
+| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias, não imprime as seções das fotos avulsas e dos registros perdidos, e imprime imagem quebrada quando a assinatura declarada falta no armazenamento | "Dois montadores de dados do documento" | F09-E02 |
 | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
 | Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
 | Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
@@ -116,12 +115,30 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   coleta na fila.
 - **Cadeia da sessão:** o token de acesso emitido antes de uma renovação só
   escreve enquanto a família (`sessoes.familia_id`, migração 047) tem sessão
-  não revogada. Limite conhecido: entre `revogar_sessao` (a antiga) e
-  `abrir_sessao` (a nova) da própria renovação a família não tem sessão viva
-  por alguns milissegundos, e uma escrita com o token antigo nessa janela leva
-  401 `sessao_encerrada`. A fila do campo (E06) mantém o item pendente e a
-  pessoa entra de novo; fechar a janela exige renovar numa só transação
-  (F03-E02, claims enxutas e rotação).
+  não revogada.
+- **Renovação contra encerramento (correção 2 da E07, migração 049):** até
+  aqui a renovação revogava a antiga e abria a nova em DUAS transações, e o
+  instante entre elas tinha dois efeitos. O grave: quem administra (ou a
+  própria pessoa, a troca de senha, o reuso de token) encerrava as sessões
+  nesse instante, não achava nada da cadeia para encerrar, e a renovação abria
+  a nova herdando a família encerrada (a validação de 4b96ea7 viu sessão viva
+  sobrar em 5 de 60 corridas). O benigno: a escrita com o token antigo nesse
+  instante levava 401 `sessao_encerrada`. Uma transação só fecha o benigno,
+  mas NÃO o grave: em READ COMMITTED o UPDATE de quem encerra não enxerga a
+  linha que a renovação inseriu e ainda não confirmou. Por isso a renovação é
+  uma transação só E toma `travar_sessoes_do_usuario` antes de revogar, e
+  todo encerramento em massa toma a mesma trava num comando anterior ao UPDATE
+  (`auth/sessoes.ts`, `revogar_sessoes_do_usuario`, `trocar_senha`,
+  `consumir_recuperacao`). `abrir_sessao` também recusa herdar família
+  encerrada. Provado em `test/renovacao-contra-encerramento.test.ts`: o bloco
+  de PGlite roda sempre; o de Postgres real só com `DC360_POSTGRES_DE_PROVA`
+  (o CI ainda não o liga). Fora da trava: a suspensão do município pelo console
+  (`console_suspender_municipio`), que encerra por município e não por
+  pessoa. Uma renovação que confirme no mesmo instante da suspensão ainda pode
+  deixar uma sessão de pé; ela não escreve nem renova enquanto a suspensão
+  durar (a vigência e `abrir_sessao` leem a suspensão), mas volta a valer se
+  o município for reativado dentro do prazo dela. Não medido; fica aqui até
+  alguém decidir se a suspensão também toma trava.
 - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
   Entrar e renovar já recusavam.
@@ -250,10 +267,13 @@ seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
 mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
 
 **As diferenças entre os dois laudos, para a MESMA vistoria** (a validação de
-7005a60 gerou os dois e comparou; o bloco "campo por campo" de
-`test/saida-de-municipio.test.ts` trava o estado abaixo, e reprova se uma
-diferença some ou se aparece outra, para este texto e o de
-`docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto):
+7005a60 gerou os dois e comparou, e a de 4b96ea7 achou a assinatura; o bloco
+"campo por campo" de `test/saida-de-municipio.test.ts` trava as diferenças
+abaixo, e reprova se uma delas some, para este texto e o de
+`docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto. Ele NÃO compara o laudo
+inteiro: olha os títulos das seções, a coordenada, a posição da foto avulsa e
+o bloco da assinatura de quem estava no local, e uma diferença nova noutro
+campo passa por ele):
 
 | Campo | Rota | Pacote | Estado |
 | --- | --- | --- | --- |
@@ -262,12 +282,15 @@ diferença some ou se aparece outra, para este texto e o de
 | Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
 | Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
 | Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime | não existe | **continua**, F09-E02 |
-| Assinatura | confere o prefixo do município e descreve no armazenamento | usa só a chave (a falta vira `PENDENCIAS-DA-EXTRACAO.txt`) | diferença de mecanismo, sem efeito no papel |
+| Assinatura declarada (`assinatura_chave`) e AUSENTE no armazenamento | confere o prefixo do município, descreve o objeto e imprime "Assinatura não coletada" | monta o caminho só pela chave e imprime uma imagem quebrada em cima do nome de quem estava no local; a falta fica registrada só em `PENDENCIAS-DA-EXTRACAO.txt` ("Assinatura ausente no armazenamento: protocolo ..., chave ...") | **continua**, F09-E02 |
 
-A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
+A gravidade das quatro que continuam: a foto avulsa aparece no pacote como feita
 pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
-defeito que a rota já tinha consertado), e a seção dos registros perdidos
-some, então o laudo do pacote parece completo sendo incompleto. Por isso
+defeito que a rota já tinha consertado), a seção dos registros perdidos
+some, então o laudo do pacote parece completo sendo incompleto, e a assinatura
+que falta no armazenamento vira um quadro quebrado em cima do nome da pessoa,
+que no papel pode ser lido como assinatura que houve (a ressalva está só no
+arquivo de pendências do pacote, não no laudo). Por isso
 `docs/SAIDA-DE-MUNICIPIO.md` não afirma mais que o laudo do pacote diz o mesmo
 que o emitido: só o aviso de equipe e a coordenada estão provados iguais.
 

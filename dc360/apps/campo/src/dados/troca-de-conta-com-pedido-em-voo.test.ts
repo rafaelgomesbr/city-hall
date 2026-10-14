@@ -45,7 +45,6 @@ jest.mock("expo-file-system", () => ({
   Directory: class { list() { return []; } },
 }));
 
-import { obterFila } from "./fila";
 import type { Identidade } from "./api";
 
 const ANA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -87,11 +86,33 @@ function resposta(status: number, corpo: Record<string, unknown>): Response {
 /*
   A fila do aplicativo é memoizada e o transporte captura o `fetch` na criação:
   o que muda de um teste para outro é o delegado, e não o `fetch` global.
+
+  CADA CASO COMEÇA DO ZERO (V2-F00-E06, correção 2). Antes, o módulo `./fila`
+  (a fila é um singleton) e o banco em memória viviam o arquivo inteiro, e o
+  segundo caso só passava porque encontrava o item que o primeiro tinha
+  enfileirado: rodado sozinho, ou numa ordem aleatória (`jest --randomize`), ele
+  reprovava. O CI só roda a ordem declarada e nunca viu. Agora o módulo é
+  recarregado e o banco é novo a cada caso, e o caso enfileira o que usa.
 */
 let mockFetch: (url: string, init: RequestInit) => Promise<Response> = async () => {
   throw new Error("fetch nao configurado");
 };
 (globalThis as unknown as { fetch: unknown }).fetch = (url: string, init: RequestInit) => mockFetch(url, init);
+
+type ObterFila = typeof import("./fila").obterFila;
+
+/** `obterFila` do módulo recém-carregado: fila nova, banco novo. */
+function obterFilaDoZero(): ObterFila {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return (require("./fila") as typeof import("./fila")).obterFila;
+}
+
+beforeEach(() => {
+  mockBanco = null;
+  quem.atual = identidade(ANA, "Ana Ribeiro");
+  mockFetch = async () => { throw new Error("fetch nao configurado"); };
+  jest.resetModules();
+});
 
 describe("a fila real do aplicativo com a conta trocando no meio do pedido", () => {
   it("o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela", async () => {
@@ -102,6 +123,7 @@ describe("a fila real do aplicativo com a conta trocando no meio do pedido", () 
       pedidos.push((init.headers as Record<string, string>)["authorization"]!);
       return new Promise<Response>((r) => { responder = r; });
     };
+    const obterFila = obterFilaDoZero();
     const fila = await obterFila(
       "http://api.exemplo",
       async () => (quem.atual?.usuarioId === ANA ? "token-da-ana" : "token-do-bruno"),
@@ -137,10 +159,10 @@ describe("a fila real do aplicativo com a conta trocando no meio do pedido", () 
   });
 
   it("403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada", async () => {
-    quem.atual = identidade(ANA, "Ana Ribeiro");
     mockFetch = async () =>
       resposta(403, { erro: "troca_de_senha_obrigatoria", mensagem: "Defina a sua senha." });
-    const fila = await obterFila("http://api.exemplo", async () => "token", () => quem.atual);
+    const fila = await obterFilaDoZero()("http://api.exemplo", async () => "token", () => quem.atual);
+    await fila.enfileirar(envelope("22222222-2222-4222-8222-222222222222"), { protocolo: "000472/2026" });
 
     const r = await fila.drenar();
 

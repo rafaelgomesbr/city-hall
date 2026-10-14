@@ -1,0 +1,9 @@
+### -t ESPERA a cópia
+  ● a foto recém tirada › ESPERA a cópia terminar antes de medir (a cópia do expo-file-system é assíncrona)
+Tests:       1 failed, 17 skipped, 18 total
+### -t o tamanho vem dos bytes
+  ● a foto recém tirada › o tamanho vem dos bytes de verdade, e não do `size` que pode vir zerado
+Tests:       1 failed, 17 skipped, 18 total
+### -t declara o tamanho
+  ● a foto recém tirada › declara o tamanho do arquivo que ficou, e não o do original
+Tests:       1 failed, 17 skipped, 18 total

@@ -421,3 +421,30 @@ O que continua aberto:
 2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
 3. A lista `ESPERADOS` de `fluxo-api.e2e.mjs` ainda aceita 403 em qualquer rota:
    o teste novo é quem prova a ausência do 403 de devolvidas, por papel.
+
+## 12. Minha conta a 320 px, foco depois de encerrar e senha redefinida sem relógio (V2-F00-E09 e E10, correção 2)
+
+A rodada 2 da validação reprovou três pontos, todos presos agora por teste:
+
+- **Botão de Minha conta a 320 px (E09).** "Encerrar minhas outras sessões" passava
+  cerca de 16 px da coluna porque `.botao` é `nowrap` e o conserto da correção 1 só
+  alcançava `.modal__rodape .botao`. `.botao--quebra` (`app.css`) faz o rótulo
+  quebrar e, até 600 px, o botão ocupar a coluna. `layout-estreito.e2e.mjs`
+  (seções 5 e 6) mede por retângulo Minha conta a 320, 390, 768 e 1280 px, Usuários
+  (fora da tabela que rola) a 320, 390 e 768 px e a janela da senha temporária a
+  320 e 390 px.
+- **Foco depois de encerrar as outras sessões (E09, WCAG 2.4.3).** O botão some
+  quando a lista é relida e o foco caía em `BODY`. Um efeito sobre `sucesso` em
+  `MinhaConta.tsx` leva o foco para a confirmação (`tabIndex={-1}`). Preso por
+  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real).
+- **Senha redefinida sem redirecionamento por tempo (E10, WCAG 2.2.1).** A tela de
+  redefinição não tem mais relógio: mostra a confirmação (`role="status"`) e o
+  botão "Entrar com a nova senha", um link de navegação completa. Preso por
+  `test/recuperar-senha.test.ts` (nenhum `setTimeout`, `location.assign` ou
+  navegação por código na tela) e pela seção 14 do e2e, que espera 5 s e confere
+  que a confirmação continua lá.
+
+Continua aberto, com dono em outra fase: foco em `BODY` depois do envio do pedido
+e do sucesso da recuperação, e aviso de sucesso que entra no DOM já com o texto
+(anúncio de região inserida não é garantido), ambos de F10-E11; telas de
+recuperação sem landmark `main`.

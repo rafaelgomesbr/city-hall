@@ -277,11 +277,17 @@ describe("Tela de definir a senha nova, estado por estado", () => {
     expect(html).not.toContain("<input");
   });
 
-  it("sucesso: confirma, avisa que vai para a entrada e oferece o botão para ir agora", () => {
+  it("sucesso: confirma com role=status e oferece o botão Entrar, sem prometer ida automática", () => {
     const html = redefinicao({ fase: "pronto" });
     expect(html).toContain("aviso--sucesso");
+    // A confirmação é anunciada pelo leitor de tela como região de status.
+    expect(html).toMatch(/class="aviso aviso--sucesso" role="status"/);
     expect(texto(html)).toContain("Senha redefinida. Entre com a nova senha.");
-    expect(texto(html)).toContain("Você será levado para a entrada em instantes.");
+    // V2-F00-E10, correção 2: a tela não leva ninguém a lugar nenhum por conta própria (WCAG 2.2.1).
+    expect(texto(html)).not.toMatch(/será levad|em instantes|redirecion/i);
+    expect(html).not.toMatch(/http-equiv="refresh"/i);
+    expect(texto(html)).toContain(FRASES.novaProntaBotao);
+    expect(FRASES.novaProntaBotao).toMatch(/^Entrar/);
     // O título da tela não continua pedindo "Escolha uma senha" depois de a senha ser trocada.
     expect(texto(html)).toContain("Sua senha foi alterada");
     expect(texto(html)).not.toContain("Escolha uma senha para sua conta");
@@ -298,8 +304,9 @@ describe("O link de uso único não fica na barra de endereço", () => {
     expect(codigo).toContain("window.history.replaceState(window.history.state, \"\", window.location.pathname)");
   });
 
-  it("depois do sucesso a ida para a entrada recarrega a página, para a política de referenciador não seguir a pessoa", () => {
-    expect(codigo).toContain('window.location.assign("/entrar")');
+  it("depois do sucesso a ida para a entrada é um link de navegação completa, para a política de referenciador não seguir a pessoa", () => {
+    // O botão é um `<a href="/entrar">`: o navegador recarrega a página e o roteador não participa.
+    expect(codigo).toMatch(/<a className="botao botao--primario entrada__acao" href="\/entrar">\s*\{FRASES\.novaProntaBotao\}/);
     expect(codigo).not.toMatch(/useNavigate/);
   });
 
@@ -307,6 +314,27 @@ describe("O link de uso único não fica na barra de endereço", () => {
     // A marca no HTML não serve aqui: `seo.test.ts` define "rota pública" como a que fica fora de
     // <Protegida>, e `/redefinir-senha` fica. O robô é barrado no cabeçalho (ver o bloco do vercel.json abaixo).
     expect(ehTelaInterna("/redefinir-senha")).toBe(false);
+  });
+});
+
+describe("A confirmação da senha nova não some por tempo (WCAG 2.2.1)", () => {
+  /** O código sem comentários: a explicação da regra cita o que ela proíbe. */
+  const semComentarios = fonte("paginas/RecuperarSenha.tsx")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("a tela de redefinição não tem relógio nem navegação por código: nada leva a pessoa embora sozinho", () => {
+    for (const proibido of [
+      /setTimeout\s*\(/, /setInterval\s*\(/, /requestAnimationFrame\s*\(/,
+      /location\.(assign|replace|href)/, /useNavigate/, /<Navigate\b/, /http-equiv/i,
+    ]) {
+      expect(semComentarios, `RecuperarSenha.tsx contém ${proibido}`).not.toMatch(proibido);
+    }
+  });
+
+  it("não sobrou a constante de espera que alimentava o redirecionamento", () => {
+    expect(fonte("paginas/RecuperarSenha.tsx")).not.toContain("ESPERA_ATE_A_ENTRADA");
   });
 });
 

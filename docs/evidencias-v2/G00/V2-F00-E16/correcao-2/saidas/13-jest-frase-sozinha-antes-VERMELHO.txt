@@ -1,0 +1,3 @@
+  ● sinal ruim por muito tempo › não vira convite para apagar a vistoria
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz
+Tests:       2 failed, 80 passed, 82 total

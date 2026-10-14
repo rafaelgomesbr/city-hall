@@ -45,9 +45,10 @@ import { FalhaAutenticacao } from "./servico.js";
  * papel do banco, então o token velho não escreve com o papel antigo.
  *
  * LEITURA PURA NÃO PASSA POR AQUI, e a troca continua a de `auth/suspensao.ts`:
- * quinze minutos de leitura com token vivo não produzem registro, e o custo
- * de uma ida ao banco em cada leitura de uma noite de chuva é o que se
- * compra. As leituras do agente de campo já consultam `usuarios` pela equipe
+ * quinze minutos de leitura com token vivo não praticam ato nem mudam dado do
+ * município (o dossiê e a busca gravam só o registro de que foram lidos, ver
+ * abaixo), e o custo de uma ida ao banco em cada leitura de uma noite de chuva
+ * é o que se compra. As leituras do agente de campo já consultam `usuarios` pela equipe
  * (`rotas/recorte-do-agente.ts`), mas não a sessão. Fica declarado.
  *
  * MAS GET QUE ESCREVE PASSA, e quem decide é a rota, não o método. As rotas

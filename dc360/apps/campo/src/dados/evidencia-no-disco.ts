@@ -22,10 +22,10 @@ import { CODIGO_ARQUIVO_SUMIU, FalhaPermanente, type Arquivos } from "@dc360/cam
  * pela limpeza do logout em `banco-local.ts`, que preserva o que a fila ainda
  * referencia.
  */
-export function guardarFotoNoAparelho(
+export async function guardarFotoNoAparelho(
   uriDaCamera: string,
   ordem: number,
-): { uriLocal: string; tamanhoBytes: number } {
+): Promise<{ uriLocal: string; tamanhoBytes: number }> {
   /*
     `foto-<carimbo>-<ordem>.jpg`, e os dois números importam.
 
@@ -44,7 +44,21 @@ export function guardarFotoNoAparelho(
   let destino: File;
   try {
     destino = new File(Paths.document, `foto-${Date.now()}-${ordem}.jpg`);
-    new File(uriDaCamera).copy(destino);
+    /*
+      A cópia é ESPERADA, e isso não é detalhe (V2-F00-E16, correção 2).
+
+      No `expo-file-system` 57, `File.copy` é assíncrona (`Promise<void>`; no
+      Android é uma `AsyncFunction`): o arquivo de destino só existe quando a
+      Promise resolve. Esta linha já foi `copy(destino)` sem `await`, e o
+      tamanho era lido logo abaixo, antes de a cópia existir. Resultado no
+      emulador Android: o `size` vinha zerado, a leitura dos bytes falhava e
+      TODA foto era recusada como "o arquivo saiu vazio", com o JPEG inteiro
+      órfão no disco. Era coleta que o agente não conseguia anexar. A recusa
+      do sistema (disco cheio) também chega por aqui como Promise rejeitada, e
+      por isso o `await` fica DENTRO do `try`: sem ele a rejeição sairia solta
+      e em inglês.
+    */
+    await new File(uriDaCamera).copy(destino);
   } catch {
     throw new Error(
       "A foto não ficou guardada neste aparelho (o armazenamento pode estar "

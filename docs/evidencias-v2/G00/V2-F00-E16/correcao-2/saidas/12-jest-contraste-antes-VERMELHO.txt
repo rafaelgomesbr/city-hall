@@ -1,0 +1,30 @@
+FAIL src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx
+  a câmera aberta com o aparelho no tema light
+    × 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor (373 ms)
+  a câmera aberta com o aparelho no tema dark
+    √ 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor (103 ms)
+
+  ● a câmera aberta com o aparelho no tema light › 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 4.5
+    Received:    1.186538465852321
+
+    [0m [90m 204 |[39m     [36mconst[39m contorno [33m=[39m [33mStyleSheet[39m[33m.[39mflatten(botao[33m.[39mprops[33m.[39mstyle) [36mas[39m { borderColor[33m:[39m string }[33m;[39m
+     [90m 205 |[39m
+    [31m[1m>[22m[39m[90m 206 |[39m     expect(contraste(rotulo[33m.[39mcolor[33m,[39m visor[33m.[39mfundo))[33m.[39mtoBeGreaterThanOrEqual([35m4.5[39m)[33m;[39m
+     [90m     |[39m                                                  [31m[1m^[22m[39m
+     [90m 207 |[39m     expect(contraste(contorno[33m.[39mborderColor[33m,[39m visor[33m.[39mfundo))[33m.[39mtoBeGreaterThanOrEqual([35m3[39m)[33m;[39m
+     [90m 208 |[39m   })[33m;[39m
+     [90m 209 |[39m })[33m;[39m[0m
+
+      at Object.toBeGreaterThanOrEqual (src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx:206:50)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        3.76 s
+Ran all test suites matching /src\\__tests__\\vistoria-camera-legivel/i.
