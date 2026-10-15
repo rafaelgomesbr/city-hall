@@ -1,0 +1,11 @@
+$ # bloco 11 (texto do documento, antes das 5 substituicoes de placeholder)
+NODE_ENV=development HOST=127.0.0.1 PORT=$PORTA_API JWT_SEGREDO="$JWT_SEGREDO" \
+DATABASE_URL="postgres://dc360_api:$(cat "$TMP/.senha-api")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado" \
+node apps/api/dist/index.js > "$TMP/api.log" 2>&1 < /dev/null &
+API_PID=$!
+for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORTA_API/saude" && break; sleep 1; done
+echo
+
+--- saida ---
+{"status":"ok","banco":"ok","ultimaMigracao":"050_login_e_suspensao_na_mesma_linha.sql","eliminacoes":{"agendadas":0,"vencidas":0},"push":null}
+--- bloco terminou: sim ---

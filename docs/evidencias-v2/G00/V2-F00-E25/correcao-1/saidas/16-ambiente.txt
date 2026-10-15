@@ -1,0 +1,12 @@
+clone: um git clone local por shell (clone-bash e clone-zsh), de /Users/[usuario]/Documents/city-hall (ramo v2/f00)
+sha dos clones: 11d9446dad0199ab027f28e12e0923b3a22e72f0
+clones sem node_modules antes do passo 0: confirmado (clone novo, sem npm ci antes do bloco 01)
+ProductName:		macOS
+ProductVersion:		26.4.1
+BuildVersion:		25E253
+arm64
+node v24.15.0 npm 11.12.1 zsh zsh 5.9 (arm64-apple-darwin25.0) bash GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)
+ambiente: env -i HOME PATH=/usr/bin:/bin:/usr/sbin:/sbin:<pasta do node> TERM=dumb
+zsh: zsh -f -i, fluxo pela entrada padrao (sem interactivecomments); bash: bash --noprofile --norc ARQUIVO
+portas: bash 55601/55602/55603, zsh 55611/55612/55613, negativos 55621/55622 (documento: 55451, 55452, 3355)
+14 blocos extraidos do documento; substituicoes: PGBIN, TMP e as 3 portas

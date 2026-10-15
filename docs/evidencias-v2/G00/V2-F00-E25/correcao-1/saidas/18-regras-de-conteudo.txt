@@ -1,0 +1,7 @@
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  362ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  10:25:54
+   Duration  1.86s (transform 57ms, setup 0ms, collect 53ms, tests 651ms, environment 0ms, prepare 54ms)
+

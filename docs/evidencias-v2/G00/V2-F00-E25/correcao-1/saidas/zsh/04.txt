@@ -1,0 +1,64 @@
+$ # bloco 04 (texto do documento, antes das 5 substituicoes de placeholder)
+initdb -D "$TMP/pg-origem"  -U postgres --pwfile="$TMP/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+initdb -D "$TMP/pg-destino" -U postgres --pwfile="$TMP/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+pg_ctl -D "$TMP/pg-origem"  -l "$TMP/pg-origem.log"  -o "-p $PORTA_ORIGEM  -c listen_addresses=127.0.0.1" -w start > "$TMP/pgctl-origem.out"  2>&1 < /dev/null
+pg_ctl -D "$TMP/pg-destino" -l "$TMP/pg-destino.log" -o "-p $PORTA_DESTINO -c listen_addresses=127.0.0.1" -w start > "$TMP/pgctl-destino.out" 2>&1 < /dev/null
+
+--- saida ---
+%  
+ 
+The files belonging to this database system will be owned by user "[usuario]".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory <scratchpad>/e25/tmp-zsh/pg-origem ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default "max_connections" ... 100
+selecting default "shared_buffers" ... 128MB
+selecting default time zone ... America/Sao_Paulo
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D <scratchpad>/e25/tmp-zsh/pg-origem -l logfile start
+
+%  
+ 
+The files belonging to this database system will be owned by user "[usuario]".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory <scratchpad>/e25/tmp-zsh/pg-destino ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default "max_connections" ... 100
+selecting default "shared_buffers" ... 128MB
+selecting default time zone ... America/Sao_Paulo
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D <scratchpad>/e25/tmp-zsh/pg-destino -l logfile start
+
+%  
+ 
+%  
+ 
+%  
+ 
+--- bloco terminou: sim ---

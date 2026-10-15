@@ -1,0 +1,10 @@
+origem: https://get.enterprisedb.com/postgresql/postgresql-17.6-1-osx-binaries.zip
+sha256: 5afb85f5d764176bb00a527cfc5dd9127b9f8efaa33f5a9afbedbf6ceb985fcc
+bytes: 358923135
+postgres (PostgreSQL) 17.6
+initdb (PostgreSQL) 17.6
+pg_ctl (PostgreSQL) 17.6
+psql (PostgreSQL) 17.6
+createdb (PostgreSQL) 17.6
+pg_dump (PostgreSQL) 17.6
+pg_restore (PostgreSQL) 17.6

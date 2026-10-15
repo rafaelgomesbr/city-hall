@@ -1,0 +1,8 @@
+node:internal/modules/cjs/loader:1479
+  throw err;
+  ^
+
+Error: Cannot find module '<scratchpad>/e25/clone2/dc360/apps/api/dist/index.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1073:10)

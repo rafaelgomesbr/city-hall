@@ -1,0 +1,16 @@
+$ # bloco 07 (texto do documento, antes das 5 substituicoes de placeholder)
+super -p $PORTA_DESTINO -d postgres <<'SQL'
+\set senha_setup `cat "$DC360_SENHAS/.senha-setup"`
+\set senha_api `cat "$DC360_SENHAS/.senha-api"`
+SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
+SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
+SQL
+setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_app NOLOGIN;"
+setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_console NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;"
+
+createdb -h 127.0.0.1 -p $PORTA_DESTINO -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_restaurado
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "DROP SCHEMA public CASCADE;"
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT CREATE ON DATABASE prova_e25_restaurado TO dc360_setup;"
+
+--- saida ---
+--- bloco terminou: sim ---

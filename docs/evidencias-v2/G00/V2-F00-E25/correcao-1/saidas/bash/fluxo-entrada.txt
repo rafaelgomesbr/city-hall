@@ -1,0 +1,129 @@
+set -e
+PS1=''; PS2=''; PROMPT=''; PROMPT2=''; RPROMPT=''
+echo '@@INICIO 00'
+export PGBIN=<scratchpad>/e25/pg17/pgsql/bin
+export PATH="$PGBIN:$PATH"
+initdb --version; pg_ctl --version; psql --version; createdb --version; pg_dump --version; pg_restore --version
+echo '@@FIM 00'
+echo '@@INICIO 01'
+cd dc360
+npm ci
+rm -rf packages/shared/dist db/dist apps/api/dist
+npm run build --workspace @dc360/shared
+npm run build --workspace @dc360/db
+npm run build --workspace @dc360/api
+echo '@@FIM 01'
+echo '@@INICIO 02'
+TMP=<scratchpad>/e25/tmp-bash
+export PORTA_ORIGEM=55601 PORTA_DESTINO=55602 PORTA_API=55603
+export PGHOST=127.0.0.1
+unset PGPASSWORD PGUSER PGPORT PGDATABASE PGSERVICE PGOPTIONS DATABASE_URL
+export DC360_SENHAS="$TMP"
+mkdir -m 700 "$TMP"
+umask 077
+gerar() { node -e "process.stdout.write(require('crypto').randomBytes(18).toString('base64url'))"; }
+gerar > "$TMP/.senha-postgres"
+gerar > "$TMP/.senha-setup"
+gerar > "$TMP/.senha-api"
+{
+  printf '127.0.0.1:*:*:postgres:%s\n'   "$(cat "$TMP/.senha-postgres")"
+  printf '127.0.0.1:*:*:dc360_setup:%s\n' "$(cat "$TMP/.senha-setup")"
+  printf '127.0.0.1:*:*:dc360_api:%s\n'   "$(cat "$TMP/.senha-api")"
+} > "$TMP/.pgpass"
+export PGPASSFILE="$TMP/.pgpass"
+JWT_SEGREDO="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")"
+echo '@@FIM 02'
+echo '@@INICIO 03'
+super() { psql -X -q -v ON_ERROR_STOP=1 -U postgres "$@"; }
+setup() { psql -X -q -v ON_ERROR_STOP=1 -U dc360_setup "$@"; }
+aplic() { psql -X -q -v ON_ERROR_STOP=1 -U dc360_api "$@"; }
+echo '@@FIM 03'
+echo '@@INICIO 04'
+initdb -D "$TMP/pg-origem"  -U postgres --pwfile="$TMP/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+initdb -D "$TMP/pg-destino" -U postgres --pwfile="$TMP/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+pg_ctl -D "$TMP/pg-origem"  -l "$TMP/pg-origem.log"  -o "-p $PORTA_ORIGEM  -c listen_addresses=127.0.0.1" -w start > "$TMP/pgctl-origem.out"  2>&1 < /dev/null
+pg_ctl -D "$TMP/pg-destino" -l "$TMP/pg-destino.log" -o "-p $PORTA_DESTINO -c listen_addresses=127.0.0.1" -w start > "$TMP/pgctl-destino.out" 2>&1 < /dev/null
+echo '@@FIM 04'
+echo '@@INICIO 05'
+super -p $PORTA_ORIGEM -d postgres -c "CREATE DATABASE prova_e25_origem;"
+super -p $PORTA_ORIGEM -d prova_e25_origem <<'SQL'
+\set senha_setup `cat "$DC360_SENHAS/.senha-setup"`
+\set senha_api `cat "$DC360_SENHAS/.senha-api"`
+SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
+ALTER SCHEMA public OWNER TO dc360_setup;
+GRANT ALL ON SCHEMA public TO dc360_setup;
+GRANT CREATE ON DATABASE prova_e25_origem TO dc360_setup;
+SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
+SQL
+
+export DATABASE_URL="postgres://dc360_setup:$(cat "$TMP/.senha-setup")@127.0.0.1:$PORTA_ORIGEM/prova_e25_origem"
+npm run migrar
+npm run migrar -- --conferir
+npm run migrar -- --semear
+unset DATABASE_URL
+super -p $PORTA_ORIGEM -d prova_e25_origem -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+echo '@@FIM 05'
+echo '@@INICIO 06'
+pg_dump -h 127.0.0.1 -p $PORTA_ORIGEM -U dc360_setup --format=custom --schema=public --extension=pg_trgm \
+        --file="$TMP/dc360.dump" prova_e25_origem
+echo '@@FIM 06'
+echo '@@INICIO 07'
+super -p $PORTA_DESTINO -d postgres <<'SQL'
+\set senha_setup `cat "$DC360_SENHAS/.senha-setup"`
+\set senha_api `cat "$DC360_SENHAS/.senha-api"`
+SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
+SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
+SQL
+setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_app NOLOGIN;"
+setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_console NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;"
+
+createdb -h 127.0.0.1 -p $PORTA_DESTINO -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_restaurado
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "DROP SCHEMA public CASCADE;"
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT CREATE ON DATABASE prova_e25_restaurado TO dc360_setup;"
+echo '@@FIM 07'
+echo '@@INICIO 08'
+pg_restore -h 127.0.0.1 -p $PORTA_DESTINO -U dc360_setup --dbname=prova_e25_restaurado --exit-on-error "$TMP/dc360.dump"
+echo '@@FIM 08'
+echo '@@INICIO 09'
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+setup -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_setup WITH SET TRUE;"
+setup -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT USAGE ON SCHEMA public TO PUBLIC;"
+echo '@@FIM 09'
+echo '@@INICIO 10'
+mkdir -p "$TMP/conferencia"
+for f in linhas estrutura; do
+  super -p $PORTA_ORIGEM  -d prova_e25_origem     -At -F'|' -f "scripts/restore/$f.sql" > "$TMP/conferencia/$f-origem.txt"
+  super -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -f "scripts/restore/$f.sql" > "$TMP/conferencia/$f-restaurado.txt"
+  diff "$TMP/conferencia/$f-origem.txt" "$TMP/conferencia/$f-restaurado.txt" && echo "$f: idêntico"
+done
+aplic -p $PORTA_ORIGEM  -d prova_e25_origem     -f scripts/restore/isolamento-afirmado.sql
+aplic -p $PORTA_DESTINO -d prova_e25_restaurado -f scripts/restore/isolamento-afirmado.sql
+aplic -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -v ON_ERROR_STOP=0 -f scripts/restore/isolamento.sql
+export DATABASE_URL="postgres://dc360_setup:$(cat "$TMP/.senha-setup")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado"
+npm run migrar -- --conferir
+unset DATABASE_URL
+echo '@@FIM 10'
+echo '@@INICIO 11'
+NODE_ENV=development HOST=127.0.0.1 PORT=$PORTA_API JWT_SEGREDO="$JWT_SEGREDO" \
+DATABASE_URL="postgres://dc360_api:$(cat "$TMP/.senha-api")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado" \
+node apps/api/dist/index.js > "$TMP/api.log" 2>&1 < /dev/null &
+API_PID=$!
+for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORTA_API/saude" && break; sleep 1; done
+echo
+echo '@@FIM 11'
+echo '@@INICIO 12'
+ID_DE_VALE_FUNDO="$(super -p $PORTA_ORIGEM -d prova_e25_origem -At -c "SELECT id FROM ocorrencias WHERE organizacao_id = '22222222-2222-4222-8222-000000000002' ORDER BY id LIMIT 1")"
+echo "$ID_DE_VALE_FUNDO"
+node scripts/restore/api-contra-a-copia.mjs "http://127.0.0.1:$PORTA_API" "$ID_DE_VALE_FUNDO"
+echo '@@FIM 12'
+echo '@@INICIO 13'
+kill "$API_PID"
+super -p $PORTA_ORIGEM  -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
+super -p $PORTA_DESTINO -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
+pg_ctl -D "$TMP/pg-origem"  -m fast stop < /dev/null
+pg_ctl -D "$TMP/pg-destino" -m fast stop < /dev/null
+rm -rf "$TMP"
+test ! -e "$TMP" && echo "pasta temporária apagada"
+find .. -name '*.dump' -not -path '*/node_modules/*'
+echo '@@FIM 13'
+echo @@TUDO
