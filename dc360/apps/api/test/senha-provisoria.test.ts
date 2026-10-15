@@ -200,6 +200,37 @@ describe("A senha temporária de quem administra", () => {
       );
     }
   }, 300_000);
+
+  /*
+    O PRAZO NA VIGÊNCIA DA ESCRITA (V2-F00-E07, achado 3 do red-team da
+    validação de 52952a1). O caso de cima não prende esse ramo de
+    `exigirVigencia`: sem ele, a troca de senha ainda leva 401 pela
+    conferência do próprio serviço. Uma escrita comum não tem essa segunda
+    conferência, e sem o prazo ela sairia 403 `troca_de_senha_obrigatoria`,
+    mandando trocar uma senha que já não pode ser trocada. A resposta certa é
+    401 `sessao_encerrada`: entrar de novo, e a entrada diz que a provisória
+    venceu.
+  */
+  it("a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403", async () => {
+    const temporaria = await redefinirDiego();
+    try {
+      const sessao = await entrar(DIEGO_EMAIL, temporaria);
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_provisoria_ate = now() - interval '1 minute' WHERE id = $1", [DIEGO],
+      );
+      const escrita = await app.inject({
+        method: "POST", url: "/sincronizacao/vistoria", headers: com(sessao.acesso),
+        payload: { idempotencyKey: crypto.randomUUID(), ocorrenciaId: OC_ALFA_1 },
+      });
+      expect(escrita.statusCode, escrita.body).toBe(401);
+      expect(escrita.json().erro).toBe("sessao_encerrada");
+    } finally {
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_hash = $2, senha_provisoria_ate = NULL WHERE id = $1",
+        [DIEGO, await derivarSenha(SENHA)],
+      );
+    }
+  }, 300_000);
 });
 
 describe("A senha inicial do console", () => {

@@ -1,0 +1,29 @@
+Log do Postgres 16.13 descartavel (embedded-postgres, porta 55861, log_lock_waits=on, deadlock_timeout=200ms) de todo o complemento da correcao 3: uma primeira conferencia com o codigo deste commit (nao arquivada, igual a DEPOIS), a rodada ANTES (src de 3ee020c), as mutacoes da ordem e da releitura, a rodada DEPOIS e a rodada 2 do arquivo da corrida, nessa ordem. A mutacao M7 roda so em PGlite e nao passa por este servidor.
+linhas no log: 111
+linhas com 'deadlock': 2
+linhas ERROR: 7
+
+Mensagens de ERROR (contagem):
+   6 ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+   1 ERROR:  deadlock detected
+
+Inicio de cada rodada ("Start at" do vitest): primeira conferencia 18:31:09, ANTES 18:32:28, mutacao da ordem 18:33:14, mutacao da releitura 18:33:49, DEPOIS 18:38:25, rodada 2 18:39:01.
+O UNICO impasse do log (18:33:48, dentro da rodada da mutacao da ordem) e o da mutacao que poe a trava antes da linha do municipio (caso 20, saidas/31): a suspensao pelo console esperava a trava consultiva da Helena, segurada pelo login, e o login esperava a linha do municipio, segurada pela suspensao. Trecho:
+
+2026-10-14 18:33:48.573 -03 [6783] LOG:  process 6783 detected deadlock while waiting for ExclusiveLock on advisory lock [19277,2489233678,3185272501,2] after 202.047 ms
+2026-10-14 18:33:48.573 -03 [6783] DETAIL:  Process holding the lock: 6671. Wait queue: .
+2026-10-14 18:33:48.573 -03 [6783] CONTEXT:  SQL statement "SELECT pg_advisory_xact_lock(hashtext('dc360.sessoes_do_usuario'), hashtext(p_usuario_id::text))"
+	PL/pgSQL function travar_sessoes_do_usuario(uuid) line 3 at PERFORM
+	SQL statement "SELECT travar_sessoes_do_usuario(s.usuario_id)
+	     FROM (SELECT DISTINCT usuario_id FROM sessoes
+	            WHERE organizacao_id = p_org AND revogada_em IS NULL
+	            ORDER BY usuario_id) s"
+	PL/pgSQL function console_suspender_municipio(uuid,text) line 42 at PERFORM
+2026-10-14 18:33:48.573 -03 [6783] STATEMENT:  SELECT console_suspender_municipio($1, 'prova da ordem das travas do login')
+2026-10-14 18:33:48.574 -03 [6783] ERROR:  deadlock detected
+2026-10-14 18:33:48.574 -03 [6783] DETAIL:  Process 6783 waits for ExclusiveLock on advisory lock [19277,2489233678,3185272501,2]; blocked by process 6671.
+	Process 6671 waits for ShareLock on transaction 1955; blocked by process 6783.
+	Process 6783: SELECT console_suspender_municipio($1, 'prova da ordem das travas do login')
+
+Fora da mutacao, 0 impasse: as rodadas com o codigo deste commit (saidas/34 e 35) nao tem linha de deadlock.
+Os ERROR de municipio suspenso (DC367) sao os esperados dos casos 8, 9 e 20 (login e renovacao recusados durante a suspensao).

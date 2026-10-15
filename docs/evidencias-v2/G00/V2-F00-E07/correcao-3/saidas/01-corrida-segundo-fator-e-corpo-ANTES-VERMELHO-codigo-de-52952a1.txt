@@ -1,0 +1,219 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/corpo-ilegivel.test.ts (3 tests | 2 failed) 3648ms
+   × Corpo que não pode ser lido > JSON vazio no encerrar sessões de outra pessoa responde 400 corpo_invalido, e não 500 27ms
+     → {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"f9f932bc-b716-4ee3-a94c-75e3c3ca86d2"}: expected 500 to be 400 // Object.is equality
+   × Corpo que não pode ser lido > JSON torto responde 400 corpo_invalido 3ms
+     → {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"01b532bb-3064-4866-b969-30fcb3c189e8"}: expected 500 to be 400 // Object.is equality
+   ✓ Corpo que não pode ser lido > o corpo vazio legítimo continua aceito: sem content-type, a rota responde o que sempre respondeu 13ms
+ ❯ test/segundo-fator.test.ts (22 tests | 2 failed) 15925ms
+   ✓ Configuração > recusa subir com o segundo fator ligado e sem chave para cifrar o segredo 3ms
+   ✓ Configuração > recusa chave de tamanho errado na partida, e não na primeira ativação 1ms
+   ✓ Configuração > com o recurso desligado, a rota recusa em vez de sumir 11ms
+   ✓ A entrada em duas etapas > administrador sem segundo fator não recebe sessão nenhuma, só o desafio  308ms
+   ✓ A entrada em duas etapas > o desafio NÃO vale como token de acesso em rota nenhuma 296ms
+   ✓ A entrada em duas etapas > e é a PLATEIA que o recusa, não a sorte do conteúdo 1ms
+   ✓ A entrada em duas etapas > quem não é administrador continua entrando em uma etapa  887ms
+   ✓ A entrada em duas etapas > com a verificação ligada, a senha sozinha não abre sessão, e o código abre  574ms
+   ✓ A entrada em duas etapas > o mesmo código não vale duas vezes dentro da mesma janela  866ms
+   ✓ A entrada em duas etapas > a tolerância é de um passo para cada lado, e não mais  849ms
+   ✓ A entrada em duas etapas > o teto de tentativas do código é separado do teto da senha  1880ms
+   ✓ A entrada em duas etapas > o código de recuperação entra uma vez, e só uma  1037ms
+   × A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo 1032ms
+     → o desafio da senha antiga abriu sessão depois da troca: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"ff743a7d-e251-41a4-9875-bb259166ba6f","nome":"Tânia Moraes","matricula":"SA-11","papel":"coordenador","organizacaoId":"2d56ff22-5b64-4f7e-9826-c5db459ec101","organizacaoNome":"DC Serra Alta","municipio":"Serra Alta","uf":"MG"},"codigosDeRecuperacaoRestantes":8,"entrouComCodigoDeRecuperacao":false}: expected 200 to be 401 // Object.is equality
+   ✓ Ligar a verificação > a ativação começada e não confirmada NÃO muda o login  496ms
+   ✓ Ligar a verificação > código errado não liga a verificação 248ms
+   ✓ Ligar a verificação > o administrador obrigado liga pelo desafio e sai daqui com sessão 252ms
+   × Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele 498ms
+     → a ativação abriu sessão com a senha antiga: {"codigosDeRecuperacao":[[REDIGIDO]],"sessao":{"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"eb6768a8-6ab8-4643-9307-137004cf0f26","nome":"Ulisses Teixeira","matricula":"SA-12","papel":"administrador","organizacaoId":"2d56ff22-5b64-4f7e-9826-c5db459ec101","organizacaoNome":"DC Serra Alta","municipio":"Serra Alta","uf":"MG"}},"mensagem":"Verificação em duas etapas ligada. Guarde os códigos de recuperação em lugar seguro: eles não voltam a aparecer, e são a sua única entrada se você perder o telefone."}: expected 200 to be 401 // Object.is equality
+   ✓ Ligar a verificação > o segredo vai CIFRADO para o banco, e não em texto 246ms
+   ✓ Ligar a verificação > ligar de novo, por cima de uma verificação ativa, é recusado 255ms
+   ✓ Ligar a verificação > a ativação fica na trilha administrativa, e o segredo não 1ms
+   ✓ Desligar a verificação > exige a senha atual  744ms
+   ✓ Desligar a verificação > desligar apaga o segredo, derruba os códigos e deixa rastro  987ms
+ ❯ test/renovacao-contra-encerramento.test.ts (25 tests | 11 failed) 36257ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  374ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  692ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1486ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive  306ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar 287ms
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive 1389ms
+     → sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive 823ms
+     → sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive 531ms
+     → sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401 515ms
+     → {"erro":"sessao_encerrada","mensagem":"Sessão expirada. Entre novamente."}: expected 401 to be 403 // Object.is equality
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  308ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  538ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1268ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 254ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve 250ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  15374ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse  1267ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  558ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova  315ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive 1203ms
+     → sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive 723ms
+     → sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive 485ms
+     → sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401 497ms
+     → {"erro":"sessao_encerrada","mensagem":"Sessão expirada. Entre novamente."}: expected 401 to be 403 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login 858ms
+     → a disputa não aconteceu: o login não releu a credencial sob a trava da pessoa: expected 'terminou' to be 'segurou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login 1115ms
+     → a disputa não aconteceu: o login não releu a credencial sob a trava da pessoa: expected 'terminou' to be 'segurou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login 524ms
+     → a disputa não aconteceu: o login não releu a credencial sob a trava da pessoa: expected 'terminou' to be 'segurou' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/corpo-ilegivel.test.ts > Corpo que não pode ser lido > JSON vazio no encerrar sessões de outra pessoa responde 400 corpo_invalido, e não 500
+AssertionError: {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"f9f932bc-b716-4ee3-a94c-75e3c3ca86d2"}: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ test/corpo-ilegivel.test.ts:57:34
+     55|       payload: "",
+     56|     });
+     57|     expect(r.statusCode, r.body).toBe(400);
+       |                                  ^
+     58|     expect(r.json().erro).toBe("corpo_invalido");
+     59|     // A mensagem é nossa: nada de parser, de cabeçalho ou de código i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  test/corpo-ilegivel.test.ts > Corpo que não pode ser lido > JSON torto responde 400 corpo_invalido
+AssertionError: {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"01b532bb-3064-4866-b969-30fcb3c189e8"}: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ test/corpo-ilegivel.test.ts:69:34
+     67|       payload: "{\"email\": ",
+     68|     });
+     69|     expect(r.statusCode, r.body).toBe(400);
+       |                                  ^
+     70|     expect(r.json().erro).toBe("corpo_invalido");
+     71|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive
+AssertionError: sobrou sessão viva do login disputado (login: 200): expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ Object.exigirLoginSemSobra test/renovacao-contra-encerramento.test.ts:382:120
+    380|   ): Promise<void> {
+    381|     expect(mudanca.statusCode, mudanca.body).toBe(200);
+    382|     expect(await vivasDaHelenaFora(preservadas), `sobrou sessão viva d…
+       |                                                                                                                        ^
+    383|     if (login.statusCode === 200) {
+    384|       const depois = await pedirRenovacao(login.json().renovacao!);
+ ❯ test/renovacao-contra-encerramento.test.ts:451:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401
+AssertionError: {"erro":"sessao_encerrada","mensagem":"Sessão expirada. Entre novamente."}: expected 401 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 401
+
+ ❯ test/renovacao-contra-encerramento.test.ts:493:36
+    491|       grampo.atual = null;
+    492|       const r = await renovacao;
+    493|       expect(r.statusCode, r.body).toBe(403);
+       |                                    ^
+    494|       expect(r.json().erro).toBe("conta_desativada");
+    495|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login
+AssertionError: a disputa não aconteceu: o login não releu a credencial sob a trava da pessoa: expected 'terminou' to be 'segurou' // Object.is equality
+
+Expected: "segurou"
+Received: "terminou"
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1082:107
+    1080|           login.then(() => "terminou" as const),
+    1081|         ]);
+    1082|         expect(primeiro, "a disputa não aconteceu: o login não releu a…
+       |                                                                                                           ^
+    1083|         const m = disputa.disparar();
+    1084|         pendentes.push(m);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  test/segundo-fator.test.ts > A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo
+AssertionError: o desafio da senha antiga abriu sessão depois da troca: {"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"ff743a7d-e251-41a4-9875-bb259166ba6f","nome":"Tânia Moraes","matricula":"SA-11","papel":"coordenador","organizacaoId":"2d56ff22-5b64-4f7e-9826-c5db459ec101","organizacaoNome":"DC Serra Alta","municipio":"Serra Alta","uf":"MG"},"codigosDeRecuperacaoRestantes":8,"entrouComCodigoDeRecuperacao":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/segundo-fator.test.ts:539:7
+    537|       velho.statusCode,
+    538|       `o desafio da senha antiga abriu sessão depois da troca: ${velho…
+    539|     ).toBe(401);
+       |       ^
+    540|     expect(velho.json().acesso).toBeUndefined();
+    541| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  test/segundo-fator.test.ts > Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele
+AssertionError: a ativação abriu sessão com a senha antiga: {"codigosDeRecuperacao":[[REDIGIDO]],"sessao":{"acesso":"[JWT REDIGIDO]","renovacao":"[REDIGIDO]","expiraEm":900,"usuario":{"id":"eb6768a8-6ab8-4643-9307-137004cf0f26","nome":"Ulisses Teixeira","matricula":"SA-12","papel":"administrador","organizacaoId":"2d56ff22-5b64-4f7e-9826-c5db459ec101","organizacaoNome":"DC Serra Alta","municipio":"Serra Alta","uf":"MG"}},"mensagem":"Verificação em duas etapas ligada. Guarde os códigos de recuperação em lugar seguro: eles não voltam a aparecer, e são a sua única entrada se você perder o telefone."}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/segundo-fator.test.ts:643:87
+    641|       payload: { desafio, codigo: codigoAgora(segredo) },
+    642|     });
+    643|     expect(fim.statusCode, `a ativação abriu sessão com a senha antiga…
+       |                                                                                       ^
+    644|     expect(fim.json().sessao).toBeUndefined();
+    645| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  15 failed | 35 passed (50)
+   Start at  17:53:36
+   Duration  39.00s (transform 1.59s, setup 116ms, collect 7.46s, tests 55.83s, environment 0ms, prepare 116ms)
+

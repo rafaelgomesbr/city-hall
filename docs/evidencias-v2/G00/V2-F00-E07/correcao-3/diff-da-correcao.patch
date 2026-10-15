@@ -1,0 +1,978 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 1971fd5..fa4bd0b 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,7 +11,7 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1310 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1319 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+@@ -1336,9 +1336,9 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2970 testes em seis pacotes
++npm test                    # 2979 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1310 testes da API
++npm run test:api            # 1319 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+ npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index c548bce..bf3d817 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -154,6 +154,28 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
+   e a linha depois dela fecharia ciclo com a suspensão (que toma a linha
+   antes da trava). Provado no caso 9 de `test/renovacao-contra-encerramento.test.ts`
+   e em `db/test/login-e-suspensao-na-mesma-linha.test.ts`.
++- **Entrar no mesmo instante de uma mudança de credencial (correção 3 da E07,
++  sem migração nova):** o login lia o hash, gastava o scrypt (cerca de 230 ms)
++  e abria a sessão em outra transação, sem trava e sem reler nada; a troca de
++  senha pela própria pessoa, a redefinição por quem administra ou a
++  desativação que confirmasse nesse intervalo deixava viva a sessão do login
++  com a senha antiga (a validação de 52952a1 mediu 13 de 30, 30 de 60 e 18 de
++  30). Agora `emitirPar` (`auth/servico.ts`) abre a sessão, toma
++  `travar_sessoes_do_usuario` e relê `senha_hash` e `ativo`, nessa ordem e
++  numa transação só; se a credencial não é mais a conferida, tudo volta atrás
++  e a resposta é a recusa genérica. A ordem é linha do município (o FOR
++  SHARE da 050) antes da trava, igual à da suspensão; trava antes da linha
++  fecharia ciclo com ela. O segundo fator e a ativação pelo desafio fazem o
++  mesmo com a impressão da credencial que o desafio carrega (`cr`, HMAC do
++  hash com o segredo de assinatura), e as rotas de ligar o segundo fator
++  recusam o desafio cuja senha já mudou. Provado nos casos 6 a 8 e 10 a 16
++  de `test/renovacao-contra-encerramento.test.ts` e em dois casos de
++  `test/segundo-fator.test.ts`.
++- **Renovação que perde a trava para a desativação:** responde 403
++  `conta_desativada` (pergunta a `dono_do_token`, como o token recusado),
++  e não 401 `sessao_encerrada`. A mesma pergunta trata o reúso: quem perde
++  para outra renovação com o MESMO token cai como reúso e derruba a família,
++  que é o que já acontecia quando o segundo pedido chegava um instante depois.
+ - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
+   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
+   Entrar e renovar já recusavam.
+diff --git a/dc360/apps/api/src/auth/servico.ts b/dc360/apps/api/src/auth/servico.ts
+index 5214a78..2116b77 100644
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts
+@@ -12,7 +12,7 @@ import { encerrarSessoes } from "./sessoes.js";
+ import { exigirAcessoAtivo } from "./suspensao.js";
+ import { ContaDesativada } from "./conta-desativada.js";
+ import { registrarAtoAdministrativo } from "../trilha.js";
+-import { createHash } from "node:crypto";
++import { createHash, createHmac } from "node:crypto";
+ import { mensagemDeRecuperacao, semOsEnderecos, type Mensagem, type Notificador } from "./notificador.js";
+ import { resumirAparelho } from "./aparelho.js";
+ 
+@@ -134,6 +134,36 @@ type LinhaCredencial = {
+  */
+ const MENSAGEM_GENERICA = "Email ou senha inválidos.";
+ 
++/**
++ * A credencial mudou entre a conferência da senha e a abertura da sessão
++ * (`emitirPar`). Só existe para desfazer a transação; quem chama a traduz na
++ * recusa genérica.
++ */
++class CredencialMudou extends Error {}
++
++/**
++ * A impressão da credencial que o desafio do segundo fator carrega (`cr`,
++ * V2-F00-E07, correção 3, achado 5 da validação de 52952a1).
++ *
++ * O desafio vale cinco minutos, e a sessão só nasce na segunda etapa. Sem
++ * isto, quem tinha a senha antiga e o código abria sessão depois de uma troca
++ * ou redefinição de senha feita nesses cinco minutos. A segunda etapa não tem
++ * o hash que a primeira conferiu, então o desafio leva uma impressão dele, e
++ * `emitirPar` relê o hash sob a trava e compara.
++ *
++ * HMAC com o segredo de assinatura, e não o hash puro nem um resumo dele: o
++ * desafio é legível por quem o carrega (é assinado, não cifrado), e nada
++ * derivado da senha precisa sair do servidor de um jeito que dê para
++ * comparar fora dele. Muda a cada troca porque cada derivação sorteia um sal
++ * novo. Sem hash (conta sem senha) a impressão é de uma cadeia vazia e nunca
++ * confere com uma conta que tem senha.
++ */
++function impressaoDaCredencial(segredo: Uint8Array, senhaHash: string | null): string {
++  return createHmac("sha256", segredo)
++    .update(`dc360.credencial-do-desafio:${senhaHash ?? ""}`)
++    .digest("base64url");
++}
++
+ /**
+  * O contador de falhas dos emails que NÃO EXISTEM, em memória, com teto.
+  *
+@@ -372,7 +402,9 @@ export function servicoDeAutenticacao(
+       return desafiar(linha, exigencia);
+     }
+ 
+-    return emitirPar(linha, contexto);
++    // A sessão só nasce se a credencial ainda for a que o scrypt conferiu
++    // acima. Ver `emitirPar`.
++    return emitirPar(linha, contexto, (atual) => atual === linha.senha_hash);
+   }
+ 
+   /**
+@@ -397,6 +429,7 @@ export function servicoDeAutenticacao(
+       papel: linha.papel,
+       nome: linha.nome,
+       pp: proposito,
++      cr: impressaoDaCredencial(config.jwtSegredos[0], linha.senha_hash),
+     });
+ 
+     return {
+@@ -467,7 +500,9 @@ export function servicoDeAutenticacao(
+     await exigirAcessoAtivo(banco, conteudo.org);
+ 
+     return {
+-      ...(await emitirPar(linha, contexto)),
++      // A senha pode ter mudado depois de o desafio sair (até cinco minutos):
++      // a sessão só nasce se a credencial ainda for a que ele atesta.
++      ...(await emitirPar(linha, contexto, (atual) => credencialDoDesafioConfere(conteudo.cr, atual))),
+       codigosDeRecuperacaoRestantes: resultado.codigosRestantes,
+       entrouComCodigoDeRecuperacao: resultado.viaCodigoDeRecuperacao,
+     };
+@@ -490,13 +525,42 @@ export function servicoDeAutenticacao(
+     organizacaoId: string,
+     usuarioId: string,
+     contexto: { userAgent?: string; ip?: string },
++    /** A impressão da credencial que o desafio de ativação carrega (`cr`). */
++    credencialDoDesafio: string,
+   ): Promise<Autenticado> {
+     const linha = await lerCredencialPorId(organizacaoId, usuarioId);
+     if (!linha || !linha.ativo) {
+       throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
+     }
+     await exigirAcessoAtivo(banco, organizacaoId);
+-    return emitirPar(linha, contexto);
++    return emitirPar(linha, contexto, (atual) => credencialDoDesafioConfere(credencialDoDesafio, atual));
++  }
++
++  /**
++   * A credencial de agora é a que o desafio atesta? Confere contra todo
++   * segredo da lista, como a assinatura: o desafio emitido pouco antes de uma
++   * troca de segredo continua valendo pelos seus cinco minutos.
++   */
++  function credencialDoDesafioConfere(impressao: string, senhaHashAtual: string | null): boolean {
++    return config.jwtSegredos.some((s) => impressaoDaCredencial(s, senhaHashAtual) === impressao);
++  }
++
++  /**
++   * A mesma pergunta, para quem usa o desafio de ativação ANTES de haver
++   * sessão (as rotas de ligar o segundo fator): a conta segue ativa e a
++   * senha é a que o desafio atesta. Leitura sob o município do desafio
++   * assinado, pelo caminho comum (RLS), como `lerCredencialPorId`.
++   */
++  async function credencialDoDesafioVale(
++    organizacaoId: string, usuarioId: string, impressao: string,
++  ): Promise<boolean> {
++    const atual = await banco.comTenant(organizacaoId, async (c) => {
++      const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
++        "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
++      );
++      return r.rows[0] ?? null;
++    });
++    return atual !== null && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
+   }
+ 
+   /**
+@@ -555,13 +619,73 @@ export function servicoDeAutenticacao(
+     return r.rows[0]!.abrir_sessao;
+   }
+ 
+-  /** Login: abre a sessão (família nova) e emite o par de tokens. */
++  /**
++   * Login: abre a sessão (família nova) e emite o par de tokens, SÓ SE a
++   * credencial ainda for a que foi conferida (V2-F00-E07, correção 3).
++   *
++   * O DEFEITO, provado pela validação de 52952a1 em Postgres 17: o login lia o
++   * hash numa transação, gastava o scrypt (cerca de 230 ms) e abria a sessão
++   * em OUTRA, sem trava e sem reler nada. Se a troca de senha pela própria
++   * pessoa, a redefinição por quem administra ou a desativação confirmava
++   * nesse intervalo, o UPDATE de `sessoes` delas não via a sessão que ainda
++   * não existia, e o login a abria depois, viva: com a senha ANTIGA, e
++   * renovando por catorze dias (13 de 30 rodadas na troca pela própria
++   * pessoa, que é o remédio de quem desconfia que a senha vazou).
++   *
++   * O CONSERTO, numa transação só, nesta ordem:
++   *
++   *   1. `abrir_sessao`, que no login lê a linha do município com FOR SHARE
++   *      (migração 050);
++   *   2. a trava da pessoa (`travar_sessoes_do_usuario`, migração 049), num
++   *      comando próprio;
++   *   3. a releitura de `senha_hash` e `ativo`, que em READ COMMITTED tira
++   *      fotografia nova depois da trava. Se a credencial não é mais a que
++   *      `confere` aceita, ou a conta foi desativada, a transação volta
++   *      atrás inteira (a sessão some junto) e a resposta é a recusa
++   *      genérica de senha errada: a senha digitada de fato não vale mais.
++   *
++   * As duas ordens da disputa ficam fechadas. Mudança que confirmou antes da
++   * trava: a releitura a enxerga e recusa. Mudança que chega depois da trava:
++   * ela atualiza `usuarios` (sem esperar o login, que só lê a linha) e para na
++   * trava; o login confirma a sessão e solta a trava, e o UPDATE de `sessoes`
++   * da mudança, que vem depois da trava, enxerga a sessão e a encerra.
++   *
++   * POR QUE ESSA ORDEM, e não a trava primeiro: a suspensão pelo console
++   * atualiza a linha do município e SÓ DEPOIS toma a trava de cada pessoa
++   * (049). Se o login tomasse a trava e depois pedisse a linha do município
++   * (o FOR SHARE da 050), as duas se esperariam em ordem inversa e o Postgres
++   * mataria uma com 40P01. Linha do município antes da trava, como a
++   * suspensão; e o login nunca trava a linha de `usuarios` (a chave
++   * estrangeira de `sessoes` só pede FOR KEY SHARE, que não conflita com o
++   * UPDATE de quem troca a senha), então a regra da 049 (linha de `usuarios`
++   * antes da trava) continua sem ciclo.
++   *
++   * `confere` recebe o hash de agora: o login compara com o hash que o scrypt
++   * conferiu; o segundo fator e a ativação, que não têm o hash, comparam com a
++   * impressão que o desafio carrega (`impressaoDaCredencial`).
++   */
+   async function emitirPar(
+     linha: LinhaCredencial,
+     contexto: { userAgent?: string; ip?: string },
++    confere: (senhaHashAtual: string | null) => boolean,
+   ): Promise<Autenticado> {
+     const renovacao = gerarTokenRenovacao();
+-    const sessaoId = await banco.semTenant((c) => abrirSessao(c, linha, contexto, renovacao, null));
++    const sessaoId = await banco.comTenant(linha.organizacao_id, async (c) => {
++      const id = await abrirSessao(c, linha, contexto, renovacao, null);
++      await c.query("SELECT travar_sessoes_do_usuario($1)", [linha.usuario_id]);
++      const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
++        "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [linha.usuario_id],
++      );
++      const atual = r.rows[0];
++      if (!atual || !atual.ativo || !confere(atual.senha_hash)) throw new CredencialMudou();
++      return id;
++    }).catch((erro: unknown) => {
++      if (erro instanceof CredencialMudou) return null;
++      throw erro;
++    });
++    if (sessaoId === null) {
++      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
++    }
+     return montarPar(linha, sessaoId, renovacao);
+   }
+ 
+@@ -750,6 +874,18 @@ export function servicoDeAutenticacao(
+       throw erro;
+     });
+     if (sessaoNova === null) {
++      /*
++        PERDEU A TRAVA, e quem ganhou pode ter sido a desativação da conta
++        (V2-F00-E07, correção 3, achado 2 da validação de 52952a1). A leitura
++        acima viu a conta ativa; a desativação confirmou antes de a trava sair.
++        Responder `sessao_encerrada` aqui mandava o painel pedir login, e a
++        pessoa lia a recusa genérica ao entrar: o desfecho que a correção 1
++        da E05 consertou, de volta numa janela estreita. A mesma pergunta do
++        token recusado acima decide, e ela também trata o reúso: quem perdeu
++        para outra renovação com o MESMO token cai como reúso, que é o que já
++        acontecia quando o segundo pedido chegava um instante depois.
++      */
++      if (await tratarTokenRecusado(hash) === "conta_desativada") throw new ContaDesativada();
+       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
+@@ -1130,7 +1266,7 @@ export function servicoDeAutenticacao(
+   }
+ 
+   return {
+-    entrar, conferirSegundoFator, sessaoAposAtivacao, renovar, sair,
++    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale, renovar, sair,
+     pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
+     listarMinhasSessoes, esperarEnvios,
+   };
+diff --git a/dc360/apps/api/src/auth/tokens.ts b/dc360/apps/api/src/auth/tokens.ts
+index fcbdc9d..dbd96e0 100644
+--- a/dc360/apps/api/src/auth/tokens.ts
++++ b/dc360/apps/api/src/auth/tokens.ts
+@@ -211,6 +211,13 @@ export const CONTEUDO_DESAFIO = z.object({
+   papel: z.enum(PAPEIS),
+   nome: z.string(),
+   pp: z.enum(PROPOSITOS_DE_DESAFIO),
++  /**
++   * A impressão da credencial conferida na primeira etapa (V2-F00-E07,
++   * correção 3; `impressaoDaCredencial` em `auth/servico.ts`). Obrigatória:
++   * desafio sem ela, emitido antes desta versão, é recusado como expirado, e
++   * a pessoa digita a senha de novo. Ele vive cinco minutos.
++   */
++  cr: z.string().min(16).max(128),
+ });
+ 
+ export type ConteudoDesafio = z.infer<typeof CONTEUDO_DESAFIO>;
+@@ -230,7 +237,7 @@ export async function emitirDesafio(
+   segredo: Uint8Array,
+   dados: ConteudoDesafio,
+ ): Promise<string> {
+-  return new SignJWT({ org: dados.org, papel: dados.papel, nome: dados.nome, pp: dados.pp })
++  return new SignJWT({ org: dados.org, papel: dados.papel, nome: dados.nome, pp: dados.pp, cr: dados.cr })
+     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+     .setSubject(dados.sub)
+     .setIssuer(EMISSOR)
+@@ -263,6 +270,7 @@ export async function verificarDesafio(
+       papel: payload["papel"],
+       nome: payload["nome"],
+       pp: payload["pp"],
++      cr: payload["cr"],
+     });
+     return analisado.success ? analisado.data : null;
+   }
+diff --git a/dc360/apps/api/src/rotas/segundo-fator.ts b/dc360/apps/api/src/rotas/segundo-fator.ts
+index e0f642e..0a62eec 100644
+--- a/dc360/apps/api/src/rotas/segundo-fator.ts
++++ b/dc360/apps/api/src/rotas/segundo-fator.ts
+@@ -60,6 +60,12 @@ type Quem = {
+    * entrar. Só nesse caso a confirmação devolve uma sessão.
+    */
+   viaDesafio: boolean;
++  /**
++   * A impressão da credencial que o desafio carrega (V2-F00-E07, correção 3).
++   * Só existe com `viaDesafio`: a sessão que nasce na confirmação confere que
++   * a senha não mudou depois de o desafio sair.
++   */
++  credencialDoDesafio?: string;
+ };
+ 
+ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): Promise<void> {
+@@ -88,13 +94,25 @@ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): P
+ 
+     if (desafio) {
+       const conteudo = await verificarDesafio(config.jwtSegredos, desafio);
+-      if (conteudo && conteudo.pp === "ativacao_do_segundo_fator") {
++      /*
++        A senha não pode ter mudado depois de o desafio sair (V2-F00-E07,
++        correção 3). Sem esta pergunta, quem tinha a senha antiga de um
++        administrador obrigado ligava o segundo fator com o aparelho DELE nos
++        cinco minutos do desafio, e o administrador de verdade, já com a senha
++        nova, passava a ser pedido de um código que não tem. A sessão da
++        confirmação confere de novo, sob a trava (`emitirPar`).
++      */
++      if (
++        conteudo && conteudo.pp === "ativacao_do_segundo_fator"
++        && await autenticacao.credencialDoDesafioVale(conteudo.org, conteudo.sub, conteudo.cr)
++      ) {
+         return {
+           usuarioId: conteudo.sub,
+           organizacaoId: conteudo.org,
+           papel: conteudo.papel,
+           nome: conteudo.nome,
+           viaDesafio: true,
++          credencialDoDesafio: conteudo.cr,
+         };
+       }
+       throw new NaoAutenticado(
+@@ -197,13 +215,15 @@ export async function rotasSegundoFator(app: FastifyInstance, opcoes: Opcoes): P
+       A sessão nasce aqui SÓ para quem chegou pelo desafio de ativação, que é
+       quem ainda não tem nenhuma. As duas etapas acabaram de acontecer, na
+       ordem certa, nos últimos cinco minutos: mandar digitar a senha de novo
+-      seria atrito sem ganho de segurança.
++      seria atrito sem ganho de segurança. Mas a senha pode ter mudado nesses
++      cinco minutos, e então a sessão não nasce (a impressão da credencial do
++      desafio, V2-F00-E07, correção 3).
+     */
+     const sessao = quem.viaDesafio
+       ? await autenticacao.sessaoAposAtivacao(quem.organizacaoId, quem.usuarioId, {
+         userAgent: req.headers["user-agent"],
+         ip: enderecoDoCliente(req),
+-      })
++      }, quem.credencialDoDesafio ?? "")
+       : undefined;
+ 
+     return resposta.code(200).send({
+diff --git a/dc360/apps/api/src/servidor.ts b/dc360/apps/api/src/servidor.ts
+index 93e146c..592846d 100644
+--- a/dc360/apps/api/src/servidor.ts
++++ b/dc360/apps/api/src/servidor.ts
+@@ -637,6 +637,32 @@ export async function construirServidor(
+         campos: erro.issues.map((i) => ({ campo: i.path.join("."), mensagem: i.message })),
+       });
+     }
++    /*
++      O CORPO QUE O FASTIFY NÃO CONSEGUIU LER (V2-F00-E07, correção 3, achado
++      3 da validação de 52952a1): JSON vazio com `content-type:
++      application/json`, JSON torto, corpo grande demais, tipo que nenhuma
++      rota aceita. O Fastify já diz que é erro de quem pediu (status 4xx, código
++      `FST_ERR_CTP_*`), e até aqui isso caía no 500 lá embaixo, que manda
++      "informar o código ao suporte" por um pedido mal formado e enche o log
++      de "erro não tratado". O status do Fastify é mantido; a mensagem não
++      repete a dele, que fala de parser e de cabeçalho.
++    */
++    const doLeitorDeCorpo = erro as { code?: unknown; statusCode?: unknown };
++    if (
++      typeof doLeitorDeCorpo.code === "string" && doLeitorDeCorpo.code.startsWith("FST_ERR_CTP_")
++      && typeof doLeitorDeCorpo.statusCode === "number"
++      && doLeitorDeCorpo.statusCode >= 400 && doLeitorDeCorpo.statusCode < 500
++    ) {
++      const status = doLeitorDeCorpo.statusCode;
++      return resposta.code(status).send({
++        erro: "corpo_invalido",
++        mensagem: status === 413
++          ? "O pedido é grande demais."
++          : status === 415
++            ? "Este tipo de conteúdo não é aceito aqui."
++            : "O corpo do pedido não pôde ser lido. Confira o formato e envie de novo.",
++      });
++    }
+     if ((erro as { statusCode?: number }).statusCode === 429) {
+       return resposta.code(429).send({
+         erro: "excesso_de_requisicoes",
+diff --git a/dc360/apps/api/test/corpo-ilegivel.test.ts b/dc360/apps/api/test/corpo-ilegivel.test.ts
+new file mode 100644
+index 0000000..3440280
+--- /dev/null
++++ b/dc360/apps/api/test/corpo-ilegivel.test.ts
+@@ -0,0 +1,80 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++
++/**
++ * O CORPO QUE O SERVIDOR NÃO CONSEGUE LER É ERRO DE QUEM PEDIU, NÃO 500
++ * (V2-F00-E07, correção 3, achado 3 da validação de 52952a1).
++ *
++ * Corpo vazio com `content-type: application/json` em `POST
++ * /usuarios/:id/encerrar-sessoes` respondia 500 `erro_interno`: o Fastify
++ * marca o erro com status 400 (`FST_ERR_CTP_EMPTY_JSON_BODY`), e o tratador
++ * único de erro de `servidor.ts` não o reconhecia. A pessoa lia "informe o
++ * código ao suporte" por um pedido mal formado, e o log enchia de "erro não
++ * tratado".
++ */
++
++const HELENA = "11111111-1111-4111-8111-0000000000d1";
++const EMAIL_RITA = "rita.lopes@serraalta.exemplo.gov.br";
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++let tokenRita = "";
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria({ semear: true });
++  app = await construirServidor({
++    banco: mem.banco,
++    config: carregarConfig({
++      NODE_ENV: "test",
++      JWT_SEGREDO: "segredo-do-corpo-ilegivel-com-mais-de-32-bytes",
++      LOGIN_POR_IP: "10000",
++    } as NodeJS.ProcessEnv),
++    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++  });
++  await app.ready();
++  const r = await app.inject({
++    method: "POST", url: "/auth/entrar", payload: { email: EMAIL_RITA, senha: "defesa-civil-2026" },
++  });
++  tokenRita = r.json().acesso as string;
++}, 180_000);
++
++afterAll(async () => {
++  await app?.close();
++  await mem?.banco.encerrar();
++});
++
++describe("Corpo que não pode ser lido", () => {
++  it("JSON vazio no encerrar sessões de outra pessoa responde 400 corpo_invalido, e não 500", async () => {
++    const r = await app.inject({
++      method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`,
++      headers: { authorization: `Bearer ${tokenRita}`, "content-type": "application/json" },
++      payload: "",
++    });
++    expect(r.statusCode, r.body).toBe(400);
++    expect(r.json().erro).toBe("corpo_invalido");
++    // A mensagem é nossa: nada de parser, de cabeçalho ou de código interno.
++    expect(r.json().mensagem).not.toMatch(/FST_|content-type|parser/i);
++  });
++
++  it("JSON torto responde 400 corpo_invalido", async () => {
++    const r = await app.inject({
++      method: "POST", url: "/auth/entrar",
++      headers: { "content-type": "application/json" },
++      payload: "{\"email\": ",
++    });
++    expect(r.statusCode, r.body).toBe(400);
++    expect(r.json().erro).toBe("corpo_invalido");
++  });
++
++  it("o corpo vazio legítimo continua aceito: sem content-type, a rota responde o que sempre respondeu", async () => {
++    const r = await app.inject({
++      method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`,
++      headers: { authorization: `Bearer ${tokenRita}` },
++    });
++    expect(r.statusCode, r.body).toBe(200);
++  });
++});
+diff --git a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+index 949b917..35adb4d 100644
+--- a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
++++ b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+@@ -46,6 +46,16 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
+  *    escapar da suspensão e voltar a valer na reativação. A 050 faz o login
+  *    ler a suspensão com `FOR SHARE`; o caso 9 do segundo bloco disputa as
+  *    duas ordens.
++ * 4. O LOGIN NO MESMO INSTANTE DE UMA MUDANÇA DE CREDENCIAL (correção 3,
++ *    achados 1 e 2 da validação de 52952a1). O login lia o hash, gastava o
++ *    scrypt e abria a sessão em outra transação, sem trava: a troca de senha,
++ *    a redefinição ou a desativação que confirmasse nesse intervalo não via
++ *    a sessão que ainda ia nascer. Agora o login abre a sessão, toma a trava
++ *    da pessoa e relê a credencial na mesma transação (`emitirPar`). Os casos
++ *    6 a 8 do primeiro bloco e 10 a 12 do segundo deixam a mudança confirmar
++ *    no meio do login; os 14 a 16 seguram o login com a trava já tomada e
++ *    exigem que a mudança pare nela. O 9 e o 13 cobram que a renovação que
++ *    perde a trava para a desativação diga `conta_desativada` (403).
+  *
+  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
+  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
+@@ -274,7 +284,221 @@ function auxiliares(cenario: () => Cenario) {
+     expect(antiga.statusCode, "o token de antes da renovação voltou a escrever").toBe(401);
+   }
+ 
+-  return { entrar, pedirRenovacao, escrever, sessoesVivasDaCadeia, restaurarHelena, encerramentos, exigirCadeiaMorta };
++  /**
++   * Sessões de pé da Helena FORA das famílias preservadas. É a conta do login
++   * disputado (correção 3): a troca de senha pela própria pessoa preserva de
++   * propósito a cadeia de onde ela trocou, e todo o resto tem de estar morto.
++   */
++  async function vivasDaHelenaFora(preservadas: string[]): Promise<number> {
++    const r = await cenario().bruto(
++      `SELECT count(*)::int AS n FROM sessoes
++        WHERE usuario_id = $1 AND revogada_em IS NULL
++          AND NOT (familia_id = ANY($2::uuid[]))`,
++      [HELENA, preservadas],
++    );
++    return Number(r.rows[0]!.n);
++  }
++
++  async function familiaDe(p: Par): Promise<string> {
++    const r = await cenario().bruto(
++      "SELECT familia_id FROM sessoes WHERE token_hash = $1", [hashDoToken(p.renovacao)],
++    );
++    return String(r.rows[0]!.familia_id);
++  }
++
++  /** Começa a disputa sem sessão viva da Helena sobrando de caso anterior. */
++  async function limparSessoesDaHelena(): Promise<void> {
++    await cenario().bruto(
++      "UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'limpeza do teste' WHERE usuario_id = $1 AND revogada_em IS NULL",
++      [HELENA],
++    );
++  }
++
++  /**
++   * As três mudanças de credencial que o login com a senha ANTIGA disputa
++   * (V2-F00-E07, correção 3, achado 1 da validação de 52952a1). Todas
++   * atualizam `usuarios` e só depois tomam a trava da pessoa e encerram as
++   * sessões; a sessão que o login abrir tem de cair junto ou nem nascer.
++   */
++  type MudancaDeCredencial = {
++    nome: string;
++    /** Devolve o pedido concorrente e as famílias que ele preserva de propósito. */
++    preparar: () => Promise<{ disparar: () => ReturnType<FastifyInstance["inject"]>; preservadas: string[] }>;
++  };
++
++  const mudancasDeCredencial: MudancaDeCredencial[] = [
++    {
++      nome: "a própria pessoa troca a senha em outro aparelho",
++      preparar: async () => {
++        const quemTroca = await entrar();
++        return {
++          preservadas: [await familiaDe(quemTroca)],
++          disparar: () => cenario().app.inject({
++            method: "POST", url: "/auth/trocar-senha", headers: com(quemTroca.acesso),
++            payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
++          }),
++        };
++      },
++    },
++    {
++      nome: "quem administra redefine a senha da pessoa",
++      preparar: async () => ({
++        preservadas: [],
++        disparar: () => cenario().app.inject({
++          method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: com(cenario().tokenRita),
++        }),
++      }),
++    },
++    {
++      nome: "quem administra desativa a conta",
++      preparar: async () => ({
++        preservadas: [],
++        disparar: () => cenario().app.inject({
++          method: "PATCH", url: `/usuarios/${HELENA}/situacao`, headers: com(cenario().tokenRita),
++          payload: { ativo: false },
++        }),
++      }),
++    },
++  ];
++
++  /** O login da Helena com a senha de antes, pela rota de verdade. */
++  function entrarComASenhaAntiga() {
++    return cenario().app.inject({
++      method: "POST", url: "/auth/entrar", payload: { email: EMAIL_HELENA, senha: SENHA },
++    });
++  }
++
++  /**
++   * O que tem de valer depois de um login disputado com uma mudança de
++   * credencial: a mudança respondeu 200, nenhuma sessão da Helena ficou de pé
++   * fora da cadeia preservada e, se o login devolveu um par, ele não renova.
++   */
++  async function exigirLoginSemSobra(
++    mudanca: { statusCode: number; body: string },
++    login: { statusCode: number; body: string; json: () => { renovacao?: string } },
++    preservadas: string[],
++  ): Promise<void> {
++    expect(mudanca.statusCode, mudanca.body).toBe(200);
++    expect(await vivasDaHelenaFora(preservadas), `sobrou sessão viva do login disputado (login: ${login.statusCode})`).toBe(0);
++    if (login.statusCode === 200) {
++      const depois = await pedirRenovacao(login.json().renovacao!);
++      expect([401, 403], `o par do login disputado ainda renova: ${depois.body}`).toContain(depois.statusCode);
++    } else {
++      expect(login.statusCode, login.body).toBe(401);
++    }
++  }
++
++  return {
++    entrar, pedirRenovacao, escrever, sessoesVivasDaCadeia, restaurarHelena, encerramentos, exigirCadeiaMorta,
++    mudancasDeCredencial, entrarComASenhaAntiga, exigirLoginSemSobra, limparSessoesDaHelena,
++  };
++}
++
++/** A transação que registrou o ACERTO da senha no login (é a última antes da sessão). */
++const registrouAcerto = (chamadas: Chamada[]) =>
++  chamadas.some((c) => c.sql.includes("registrar_tentativa_login($1, true"));
++
++/** A releitura da credencial sob a trava, dentro da transação que abre a sessão do login. */
++const releCredencial = (c: Chamada) => /SELECT senha_hash, ativo\s+FROM usuarios/.test(c.sql);
++
++/** A primeira transação da renovação: a leitura da sessão pelo token, antes da trava. */
++const leuSessaoPorToken = (chamadas: Chamada[]) =>
++  chamadas.some((c) => c.sql.includes("sessao_por_token("));
++
++/**
++ * Os casos da correção 3 que valem igual nos dois bancos, porque seguram o
++ * pedido FORA de qualquer transação (no `depois`, já confirmado): o PGlite,
++ * que tem uma conexão só, não trava, e o Postgres de verdade disputa igual.
++ */
++function casosDaCorrecao3(a: ReturnType<typeof auxiliares>, grampo: { atual: Grampo | null }, primeiro: number) {
++  /*
++    O LOGIN COM A SENHA ANTIGA NO MESMO INSTANTE DE UMA MUDANÇA DE CREDENCIAL
++    (achado 1 da validação de 52952a1). O login lê o hash, gasta o scrypt
++    (centenas de milissegundos) e só então abre a sessão. Se a troca, a
++    redefinição ou a desativação confirma nesse intervalo, o UPDATE de
++    `sessoes` dela não vê a sessão que ainda não existe, e até a correção 3 o
++    login a abria depois, viva. A disputa segura o login logo depois de ele
++    registrar o acerto da senha (fora de transação), deixa a mudança terminar
++    inteira, e só então o solta: a sessão do login tem de não nascer.
++  */
++  for (const [i, mudanca] of a.mudancasDeCredencial.entries()) {
++    it(`${primeiro + i}. o login com a senha antiga confere a senha enquanto ${mudanca.nome}: a sessão do login não sobrevive`, async () => {
++      await a.limparSessoesDaHelena();
++      const disputa = await mudanca.preparar();
++      const janela = sinal();
++      const solta = sinal();
++      let segurou = false;
++      grampo.atual = {
++        depois: async (chamadas) => {
++          if (segurou || !registrouAcerto(chamadas)) return;
++          segurou = true;
++          janela.disparar();
++          await solta.disparado;
++        },
++      };
++      const pendentes: Promise<unknown>[] = [];
++      try {
++        const login = a.entrarComASenhaAntiga();
++        pendentes.push(login);
++        const primeiro = await Promise.race([
++          janela.disparado.then(() => "segurou" as const),
++          login.then(() => "terminou" as const),
++        ]);
++        expect(primeiro, "a disputa não aconteceu: o login terminou sem registrar o acerto da senha").toBe("segurou");
++        const m = await disputa.disparar();
++        solta.disparar();
++        grampo.atual = null;
++        await a.exigirLoginSemSobra(m, await login, disputa.preservadas);
++      } finally {
++        solta.disparar();
++        grampo.atual = null;
++        await Promise.allSettled(pendentes);
++        await a.restaurarHelena();
++      }
++    }, 120_000);
++  }
++
++  /*
++    A RENOVAÇÃO QUE PERDE PARA A DESATIVAÇÃO diz que a conta foi desativada
++    (achado 2 da validação de 52952a1). A renovação lê a sessão pelo token
++    (conta ativa), e a desativação confirma antes de ela tomar a trava: o
++    `revogar_sessao` da renovação devolve zero. Até a correção 3 a resposta era
++    401 `sessao_encerrada`, e o painel mandava a pessoa entrar de novo para ler
++    a recusa genérica, que é o desfecho que a correção 1 da E05 consertou.
++  */
++  it(`${primeiro + a.mudancasDeCredencial.length}. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401`, async () => {
++    await a.limparSessoesDaHelena();
++    const h = await a.entrar();
++    const janela = sinal();
++    const solta = sinal();
++    let segurou = false;
++    grampo.atual = {
++      depois: async (chamadas) => {
++        if (segurou || !leuSessaoPorToken(chamadas)) return;
++        segurou = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    const pendentes: Promise<unknown>[] = [];
++    try {
++      const renovacao = a.pedirRenovacao(h.renovacao);
++      pendentes.push(renovacao);
++      await janela.disparado;
++      const desativacao = await a.mudancasDeCredencial[2]!.preparar().then((d) => d.disparar());
++      expect(desativacao.statusCode, desativacao.body).toBe(200);
++      solta.disparar();
++      grampo.atual = null;
++      const r = await renovacao;
++      expect(r.statusCode, r.body).toBe(403);
++      expect(r.json().erro).toBe("conta_desativada");
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++      await Promise.allSettled(pendentes);
++      await a.restaurarHelena();
++    }
++  }, 120_000);
+ }
+ 
+ function configDeTeste() {
+@@ -382,6 +606,8 @@ describe("Renovação e encerramento no mesmo instante: a renovação é UMA tra
+       grampo.atual = null;
+     }
+   });
++
++  casosDaCorrecao3(a, grampo, 6);
+ });
+ 
+ // ---------------------------------------------------------------------------
+@@ -816,4 +1042,58 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
+       cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
+     }
+   }, 120_000);
++
++  // 10 a 13: os casos da correção 3 que valem nos dois bancos.
++  casosDaCorrecao3(a, grampo, 10);
++
++  /*
++    A OUTRA ORDEM DO LOGIN DISPUTADO (correção 3): o login já abriu a sessão e
++    segura a trava da pessoa, e a mudança de credencial chega nesse instante.
++    O login é segurado DENTRO da transação, entre tomar a trava e reler a
++    credencial; a mudança atualiza `usuarios` e para na trava (o teste VÊ isso
++    em `pg_locks`). Solto, o login relê a credencial de antes (a mudança não
++    confirmou), confirma a sessão e solta a trava; o UPDATE de `sessoes` da
++    mudança, que vem depois da trava, enxerga a sessão e a encerra. Sem a
++    trava no login não há onde segurá-lo, e o caso reprova por isso.
++  */
++  for (const [i, mudanca] of a.mudancasDeCredencial.entries()) {
++    it(`${14 + i}. o login já abriu a sessão sob a trava quando ${mudanca.nome}: a mudança espera e encerra a sessão do login`, async () => {
++      await a.limparSessoesDaHelena();
++      const disputa = await mudanca.preparar();
++      const janela = sinal();
++      const solta = sinal();
++      let segurou = false;
++      grampo.atual = {
++        antes: async (chamada) => {
++          if (segurou || !releCredencial(chamada)) return;
++          segurou = true;
++          janela.disparar();
++          await solta.disparado;
++        },
++      };
++      const pendentes: Promise<unknown>[] = [];
++      try {
++        const login = a.entrarComASenhaAntiga();
++        pendentes.push(login);
++        const primeiro = await Promise.race([
++          janela.disparado.then(() => "segurou" as const),
++          login.then(() => "terminou" as const),
++        ]);
++        expect(primeiro, "a disputa não aconteceu: o login não releu a credencial sob a trava da pessoa").toBe("segurou");
++        const m = disputa.disparar();
++        pendentes.push(m);
++        await exigirQueTravou(`a mudança de credencial (${mudanca.nome})`, m, "advisory");
++        solta.disparar();
++        const [rm, rl] = await Promise.all([m, login]);
++        grampo.atual = null;
++        expect(rl.statusCode, `o login segurado antes da mudança: ${rl.body}`).toBe(200);
++        await a.exigirLoginSemSobra(rm, rl, disputa.preservadas);
++      } finally {
++        solta.disparar();
++        grampo.atual = null;
++        await Promise.allSettled(pendentes);
++        await a.restaurarHelena();
++      }
++    }, 120_000);
++  }
+ });
+diff --git a/dc360/apps/api/test/segundo-fator.test.ts b/dc360/apps/api/test/segundo-fator.test.ts
+index 79ff870..e0fcfb0 100644
+--- a/dc360/apps/api/test/segundo-fator.test.ts
++++ b/dc360/apps/api/test/segundo-fator.test.ts
+@@ -200,6 +200,13 @@ async function semear(banco: BancoEmMemoria): Promise<void> {
+     */
+     ["beto", "Beto Nogueira", "SA-9", "beto@serraalta.exemplo.gov.br", "coordenador"],
+     ["clara", "Clara Rezende", "SA-10", "clara@serraalta.exemplo.gov.br", "coordenador"],
++    /*
++      Tânia e Ulisses existem só para os casos da senha que muda depois do
++      desafio (V2-F00-E07, correção 3): cada um troca a senha no meio, e
++      reaproveitar outra conta mudaria a senha de quem os outros casos usam.
++    */
++    ["tania", "Tânia Moraes", "SA-11", "tania@serraalta.exemplo.gov.br", "coordenador"],
++    ["ulisses", "Ulisses Teixeira", "SA-12", "ulisses@serraalta.exemplo.gov.br", "administrador"],
+   ];
+ 
+   for (const [apelido, nome, matricula, email, papel] of pessoas) {
+@@ -500,6 +507,45 @@ describe("A entrada em duas etapas", () => {
+     );
+     expect(ditado.statusCode, ditado.body).toBe(200);
+   });
++
++  /*
++    A SENHA MUDOU DEPOIS DE O DESAFIO SAIR (V2-F00-E07, correção 3, achado 5
++    da validação de 52952a1). O desafio vale cinco minutos e só atestava que
++    a senha conferiu quando ele foi emitido: quem tinha a senha antiga e o
++    código abria sessão depois de a própria pessoa trocar a senha (o remédio
++    de quem desconfia que ela vazou). Agora o desafio carrega a impressão da
++    credencial, e a sessão só nasce se ela ainda for a de agora.
++  */
++  it("o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo", async () => {
++    const SENHA_NOVA = "outra-senha-da-tania-2026";
++    const { acesso } = await ligar("tania", "tania@serraalta.exemplo.gov.br");
++
++    const login = await entrar("tania@serraalta.exemplo.gov.br");
++    expect(login.json().segundoFator).toBe("codigo");
++
++    const troca = await app.inject({
++      method: "POST", url: "/auth/trocar-senha", headers: comToken(acesso),
++      payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
++    });
++    expect(troca.statusCode, troca.body).toBe(200);
++
++    // O passo é zerado antes de cada etapa para a recusa não ser a do passo gasto.
++    await esquecerPassoGasto(id["tania"]!);
++    delete passoGasto["tania"];
++    const velho = await segundaEtapa(login.json().desafio, codigoNovoDe("tania"));
++    expect(
++      velho.statusCode,
++      `o desafio da senha antiga abriu sessão depois da troca: ${velho.body}`,
++    ).toBe(401);
++    expect(velho.json().acesso).toBeUndefined();
++
++    // Com a senha nova, o mesmo caminho entra.
++    await esquecerPassoGasto(id["tania"]!);
++    delete passoGasto["tania"];
++    const novo = await entrar("tania@serraalta.exemplo.gov.br", SENHA_NOVA);
++    const entrou = await segundaEtapa(novo.json().desafio, codigoNovoDe("tania"));
++    expect(entrou.statusCode, entrou.body).toBe(200);
++  });
+ });
+ 
+ describe("Ligar a verificação", () => {
+@@ -568,6 +614,49 @@ describe("Ligar a verificação", () => {
+     expect(eu.json().nome).toBe("Olavo Prado");
+   });
+ 
++  /*
++    O mesmo da segunda etapa, no desafio de ATIVAÇÃO (correção 3 da E07): a
++    senha do administrador é redefinida (aqui direto no banco, como o link de
++    recuperação faria) entre a primeira etapa e a confirmação. A sessão não
++    nasce; a pessoa entra de novo com a senha nova.
++  */
++  it("a ativação pelo desafio não abre sessão se a senha mudou depois dele", async () => {
++    const login = await entrar("ulisses@serraalta.exemplo.gov.br");
++    const desafio = login.json().desafio as string;
++    expect(login.json().segundoFator).toBe("ativacao");
++
++    const inicio = await app.inject({
++      method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
++    });
++    expect(inicio.statusCode, inicio.body).toBe(200);
++    const segredo = inicio.json().segredo as string;
++
++    await mem.bruto.query(
++      "UPDATE usuarios SET senha_hash = $2 WHERE id = $1",
++      [id["ulisses"], await derivarSenha("senha-nova-do-ulisses-2026")],
++    );
++
++    const fim = await app.inject({
++      method: "POST", url: "/segundo-fator/confirmar",
++      payload: { desafio, codigo: codigoAgora(segredo) },
++    });
++    expect(fim.statusCode, `a ativação abriu sessão com a senha antiga: ${fim.body}`).toBe(401);
++    expect(fim.json().sessao).toBeUndefined();
++
++    // E não ligou o recurso com o aparelho de quem tinha a senha antiga: o
++    // administrador de verdade, com a senha nova, não fica trancado do lado
++    // de fora pedindo um código que não tem.
++    const ligado = await mem.bruto.query<{ n: string }>(
++      "SELECT count(*)::text AS n FROM segundo_fator WHERE usuario_id = $1 AND confirmado_em IS NOT NULL",
++      [id["ulisses"]],
++    );
++    expect(Number(ligado.rows[0]!.n), "o desafio da senha antiga ligou o segundo fator").toBe(0);
++    const outraVez = await app.inject({
++      method: "POST", url: "/segundo-fator/iniciar", payload: { desafio },
++    });
++    expect(outraVez.statusCode, outraVez.body).toBe(401);
++  });
++
+   it("o segredo vai CIFRADO para o banco, e não em texto", async () => {
+     const login = await entrar("ivone@serraalta.exemplo.gov.br");
+     const desafio = login.json().desafio as string;
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index cedb75e..50c5b7d 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4897 testes somando o aplicativo** (contagem estática de `npm run
++- **4906 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-14; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -329,7 +329,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4897 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 4906 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 0f6138f..10979d4 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -357,6 +357,19 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+   "V2-F00-E04-correcao-2": { total: 2, falhas: 0, puladas: 0 },
+   "V2-F00-E07-correcao-2": { total: 14, falhas: 0, puladas: 9 },
+   "V2-F00-E12-correcao-2": { total: 4, falhas: 0, puladas: 0 },
++  /*
++    V2-F00-E07, correção 3 (2026-10-14), contada contra o `52952a1`:
++    `renovacao-contra-encerramento.test.ts` ganha 4 casos de PGlite (o login
++    com a senha antiga contra a troca, a redefinição e a desativação, e a
++    renovação que perde a trava para a desativação) e 7 de Postgres real
++    (`describe.skipIf`, pulados no roteiro: os mesmos 4 mais as três disputas
++    com a trava já tomada pelo login); `segundo-fator.test.ts` ganha 2 (o
++    desafio da senha antiga, no código e na ativação); `corpo-ilegivel.test.ts`
++    é novo, com 3 (corpo vazio e JSON torto respondem 400, e o pedido sem
++    corpo segue aceito). Soma 9 na lista (de 1310 para 1319) e 16 no `vitest
++    run` (1335, com 16 pulados por ambiente).
++  */
++  "V2-F00-E07-correcao-3": { total: 16, falhas: 0, puladas: 7 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

@@ -1,0 +1,3 @@
+$ cd dc360/apps/api && npx tsc --noEmit -p .
+(sem saída: nenhum erro de tipo)
+exit 0

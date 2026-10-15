@@ -211,6 +211,13 @@ export const CONTEUDO_DESAFIO = z.object({
   papel: z.enum(PAPEIS),
   nome: z.string(),
   pp: z.enum(PROPOSITOS_DE_DESAFIO),
+  /**
+   * A impressão da credencial conferida na primeira etapa (V2-F00-E07,
+   * correção 3; `impressaoDaCredencial` em `auth/servico.ts`). Obrigatória:
+   * desafio sem ela, emitido antes desta versão, é recusado como expirado, e
+   * a pessoa digita a senha de novo. Ele vive cinco minutos.
+   */
+  cr: z.string().min(16).max(128),
 });
 
 export type ConteudoDesafio = z.infer<typeof CONTEUDO_DESAFIO>;
@@ -230,7 +237,7 @@ export async function emitirDesafio(
   segredo: Uint8Array,
   dados: ConteudoDesafio,
 ): Promise<string> {
-  return new SignJWT({ org: dados.org, papel: dados.papel, nome: dados.nome, pp: dados.pp })
+  return new SignJWT({ org: dados.org, papel: dados.papel, nome: dados.nome, pp: dados.pp, cr: dados.cr })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(dados.sub)
     .setIssuer(EMISSOR)
@@ -263,6 +270,7 @@ export async function verificarDesafio(
       papel: payload["papel"],
       nome: payload["nome"],
       pp: payload["pp"],
+      cr: payload["cr"],
     });
     return analisado.success ? analisado.data : null;
   }
