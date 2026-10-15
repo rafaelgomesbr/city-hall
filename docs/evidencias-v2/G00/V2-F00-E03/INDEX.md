@@ -1,10 +1,11 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): este índice foi recalculado sobre os bytes que o git guarda e devolve num checkout novo. O anterior tinha sido calculado sobre os arquivos do disco do autor, no Windows, com fim de linha misto (CRLF em parte das linhas) ou CRLF puro, e por isso não batia em nenhum clone. Desta lista saíram `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/`: são do gatekeeper e mudam a cada rodada. A prova (força bruta do hash antigo) está em `docs/evidencias-v2/G00/V2-F00-E21/correcao-1/`.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | b4eb4cdf85381c81343d6819ab311b0fd92c64c0dd78ab77b44f06ff2884b755 |
-| VEREDITO.md | 109c67d8ecd32ff0e233e49ff0ab09403631338fb972b0b2720998de2ffe7db8 |
-| classificacao-dos-vermelhos.md | f7ece08bd5d7b444ccc72c0382488f5adede9b0fa46c87119945f8555ff30b77 |
+| RESUMO.md | 18c54899b8dd3d5ca57a88141e6c3ac9cc3a2246b54bd7bc481c4ba9f1340abc |
+| classificacao-dos-vermelhos.md | a16e70692c78adf7d7c3570141d24b6053eba452bf2d4d20e89d4bf98f971832 |
 | correcao-1/RESUMO.md | 3ae06b6a39f18ce1232bb700c0566e74c657da042132a15d4e56c5edbc16354b |
 | correcao-1/brutas/e2e-api-firefox-rodada-1.txt | cf71a50a3ed280752c670940a73046d8dff23004e62c5b71fd5808bcf668e547 |
 | correcao-1/brutas/e2e-api-firefox-rodada-2.txt | fd7173b5301741f55f8800286316c9b434627982c368399f06cf188ca1b87c03 |
@@ -54,12 +55,10 @@
 | correcao-1/saidas/RESUMO.md | b1c36bd3025b99ea077df4d389eb102619039e35f44738b02b0a59f3e52b049a |
 | correcao-1/saidas/resultados.json | e8e57c73fa8f24aa1a34d80cd3f47a627d0ea57738909cd910691011ed7e34bd |
 | correcao-2/RESUMO.md | 91c3a6bf013f9acdac23936969472e90d792c8c8f89885b6101f29ef6f0852d8 |
-| correcao-3/RESUMO.md | 56028fd75788f34b0bd9326a64956c026c37366a7c552e254abf83cab3c9b903 |
+| correcao-3/RESUMO.md | e64f635c012d9df0b6b44f7b405d24753d5f80022beb3642d40266991aa3d3be |
 | correcao-3/diff-da-correcao.patch | 025db3e088d40a042d83ee0ca94afd547d49d369b4d7efc48bad87f61bc9b39b |
 | correcao-3/saidas/01-auditar.txt | 2abc014b3acc03ab7b186afd12150b8bf2b95a31cdfb1b4ae64aa30fdcccbccf |
 | correcao-3/saidas/02-v-ins-02-busca.txt | d95e2a800ac0db6b1879b88b4d9aaca8a92552dd53c2c13a323ca5f3ff7c930c |
 | correcao-3/saidas/03-shared-rodada-1.txt | c6dcdc6c7329cba489e39993de69cf49dc5ad1c8f33f157512d63d84fc97ebe4 |
 | correcao-3/saidas/04-shared-rodada-2.txt | f321d54e8a14bfc20bc201210c4135f9c4670ec5cef02ec0c06e9db65180b9c2 |
 | correcao-3/saidas/05-regras-de-conteudo.txt | 22ec6fdf55a00cbd237a7bcc06574fcd407ea4309960b45f13de1a72192b37d7 |
-| validacao/4b96ea7/qa.md | 0cbdd476becaf62c495eb800aaa0ee7b25727575535fbdf5e94e1b0f1a4ea10d |
-| validacao/7005a60/qa.md | 218b43ebe25ed1b10f1f168a1c4b8827c19de2aca5e6c0c4fc72b907a93c7d61 |

@@ -1,0 +1,20 @@
+$ (mutantes do script, cada um numa copia; o teste novo precisa reprovar em todos; no codigo final reprovam 0 de 26)
+mutante "hash diferente nunca reprova": 8 de 26 testes reprovam
+mutante "arquivo faltando nunca reprova": 1 de 26 testes reprovam
+mutante "normaliza fim de linha antes do hash (o defeito original)": 4 de 26 testes reprovam
+mutante "arquivo do gatekeeper deixa de ser ignorado": 1 de 26 testes reprovam
+mutante "validacao/ trocado por includes("validacao")": 1 de 26 testes reprovam
+mutante "arquivo da pasta fora do indice passa": 2 de 26 testes reprovam
+mutante "indice so com o gatekeeper (ou vazio de arquivos) passa": 1 de 26 testes reprovam
+mutante "etapa sem INDEX.md passa": 1 de 26 testes reprovam
+mutante "pasta de topo CP-xx sem INDEX.md passa": 1 de 26 testes reprovam
+mutante "CRLF no indice do git nao e acusado": 1 de 26 testes reprovam
+mutante "fim de linha misto no indice do git nao e acusado": 1 de 26 testes reprovam
+mutante "CRLF so no disco (w/crlf com eol=lf) nao e acusado": 1 de 26 testes reprovam
+mutante "w/mixed so no disco nao e acusado": 1 de 26 testes reprovam
+mutante "w/crlf acusado tambem onde o atributo e eol=crlf (.ps1)": 2 de 26 testes reprovam
+mutante "git que nao roda passa em silencio (fail-open)": 1 de 26 testes reprovam
+mutante "indice que nao bate deixa de reprovar": 1 de 26 testes reprovam
+mutante "varredura nao desce em subpasta": 2 de 26 testes reprovam
+mutante "hash invalido aceito": 1 de 26 testes reprovam
+mutante "lista de tolerancia reintroduzida no codigo": 1 de 26 testes reprovam

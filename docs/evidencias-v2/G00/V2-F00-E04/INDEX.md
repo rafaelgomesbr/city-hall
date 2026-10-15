@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 7bd0303e7ad1a522d5f0adb09e106ec60398ba519b36a0760c8251f50631229b |
-| VEREDITO.md | ab14cb5622c30fd423d57bdd1de196f86cb8ef463bb6c2887fd6bc6ae78a5b55 |
 | baseline-teste-api/01-teste-api.txt | ee217ecd98270521988db2e2e227a9a59d99c84f16fe34c08c8b24d30c2f8673 |
 | baseline-teste-api/RESUMO.md | 6f9f4e49ba7ae81c071ad7cb4c7e454cb2045bc9039d488c28f9c5072be75fb4 |
 | baseline-teste-api/resultados.json | 760d0a774ec56c487d5b111048c045e3c4870a3dba5d50b18ceaf0fa6abedb13 |
@@ -41,11 +42,3 @@
 | saidas/05-superficie.txt | 5cd071a40ae3ca8c289b212052de01d9bea9f08b299f995bc974e9c5fa8fb210 |
 | saidas/06-e2e-api-depois.txt | b84f6f0154344d1359425164fbd5867078590f74177f820c4070891579113f66 |
 | saidas/07-api-test-sem-o-ajuste-do-coordA.txt | 6e89771983ac4b473b9e07474b39ac4592becdb19a5271f3d3f0be92305971bc |
-| validacao/4b96ea7/qa.md | 15e2e68c1040e7c305fb5f21b5e85881bc062ad2aa8ac35a2e1b0a246b627f59 |
-| validacao/4b96ea7/red-team.md | eb8321161b9f1ed0258e555f2c6c855448412d5f8105f0aeb85b633cd3d2db69 |
-| validacao/4b96ea7/seguranca-aplicacao.md | 616bca78255c3a7fd9a20c6dd3371e1fad347e10a42e0be5f82c1d8aba1ae56a |
-| validacao/7005a60/arbitragem.md | 87479e764bf9cbef7a9b0a3a6062db8752eb878b8536351032b1c07b05d7bc7c |
-| validacao/7005a60/banco-de-dados.md | dda6fb784a0f0ab5cd394feb51eb1440a569e859d8625d3536187b96c2b5277a |
-| validacao/7005a60/qa.md | 3a63d479fb74a05b4890f79cd02c1692cad0b4642b778f2474f04f979466dc00 |
-| validacao/7005a60/red-team.md | 098172406bce275d8a7ff1e6ef49c1d8c6cf89d876fb424a2807d3b8ff52c78d |
-| validacao/7005a60/seguranca-aplicacao.md | eb1c967bc5e86511615964dd69b304cda239bbaea7afd7bfc006a70c9ffb6012 |

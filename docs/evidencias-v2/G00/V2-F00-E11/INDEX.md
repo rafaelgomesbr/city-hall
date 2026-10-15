@@ -1,8 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): este índice foi recalculado sobre os bytes que o git guarda e devolve num checkout novo. O anterior tinha sido calculado sobre os arquivos do disco do autor, no Windows, com fim de linha misto (CRLF em parte das linhas), e por isso não batia em nenhum clone. Desta lista saíram `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/`: são do gatekeeper e mudam a cada rodada. A prova (força bruta do hash antigo) está em `docs/evidencias-v2/G00/V2-F00-E21/correcao-1/`.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | 05c4a748244b101a6a80558a3d9adbb6b3e90e15b3257b283783c9bcad6237c2 |
+| RESUMO.md | 30cde8f26c15f3b2b2bbca19475eda155d397e83a1f2db3eca2500a2d29f73a8 |
 | capturas/saida-carregando-1280-claro.png | 508d89dc8595917d0e2da5d4dc1167cd1bb59719904c3c4045a56b0c7e298eef |
 | capturas/saida-carregando-1280-escuro.png | a59f3cd1ebde41c19677d0fac1e2c7bfa220a0656deeab2ee51fa5956f72a3ab |
 | capturas/saida-carregando-390-claro.png | 95846b35ca609a4f3ce2038290d1a79288c0ea4ea40eff9c4167da24293eb86f |
@@ -30,20 +32,20 @@
 | saidas/00-build-shared.txt | 166d81cd74a26729acdb2bed9dd204912e2d266d267af1bc91e3e80fc72af00f |
 | saidas/01-antes-api-saida.txt | 809a602d59c14da5fa91ab6df30044d40339be606097f7d10696a30cb93de8d3 |
 | saidas/02-sonda-antes-do-conserto-web.txt | d7fab743f297c9169e9ac982f00275f012faed0a5d8add0e736da9c5a28f737d |
-| saidas/03-sonda-antes-do-conserto-e2e.txt | 567f9ff6040ce2fafe9c74ca883ac381f63cf3e91d7d44d0e5c301d2bd59feba |
+| saidas/03-sonda-antes-do-conserto-e2e.txt | 9a2bef6a9612d446416302007d6835e88a01c04b80bb1d9ec9ffb89e3fe4f2ba |
 | saidas/04-e2e-secao-28-chromium.txt | d6afdda012c8fb772d113aa3967a540031f984895c94466229978cf46aee0019 |
 | saidas/05-e2e-secao-28-firefox.txt | 627b83c38a8f786dd5fc9861ff2889e208127a506135988fa58973fe7eb685b4 |
-| saidas/06-e2e-api-completo-cai-na-secao-13.txt | e6f4cb0361107d35c883f22155dda70aefd8804c91af8011e953aa9f8d5324f0 |
+| saidas/06-e2e-api-completo-cai-na-secao-13.txt | 2b65aab74d1e823292aa410af6e8373f70efa9480f939b989eada473f21a71f1 |
 | saidas/07-api-contrato-e-saida-de-municipio.txt | b0d2a156d5a7eb0309087f7ec9bbbac1f70ae19e9528890a315980851fc7dac1 |
 | saidas/baseline-depois/01-typecheck.txt | 19d05f045bfcc4ce5053585b55735e20d47c7fcf5adb99961ff2a887943b7568 |
 | saidas/baseline-depois/02-teste-shared.txt | 2e7ac195a31641713512dac790fc7fa5b048308d9e5aabf2e3ea191c2de1f13c |
 | saidas/baseline-depois/03-teste-db.txt | 0f0eef3e6c57c5291c88eb487b70a1d0190774df0911905566c1c3e2cb62cefe |
 | saidas/baseline-depois/04-teste-api.txt | 0656b84a258624d3c64216e7d94eebf5104fdf97812a620466cfdd9c5e037875 |
-| saidas/baseline-depois/05-teste-web-com-o-temporizador-solto.txt | 5c386d353182b32f9bc564ba2eb366a8bcc44fa26311bd39d8b7200b61622e41 |
+| saidas/baseline-depois/05-teste-web-com-o-temporizador-solto.txt | d6ea1cb0e8d3f64b12792a3726bb35ec9995b308b940d098d0baf522ac7846bc |
 | saidas/baseline-depois/06-typecheck-depois-do-conserto.txt | 74686ac2aaeb709d1d2f585f4f10829a3449e8c27ddcbce6d7c8c4f196f10b18 |
-| saidas/baseline-depois/07-teste-web-depois-do-conserto.txt | 0856d6a054ef0d9b4551c36bb211bbcfd0707fb7e5ce78ad1d3c6616dece8450 |
+| saidas/baseline-depois/07-teste-web-depois-do-conserto.txt | d3d4b199e0be7f2da3d4b87d3f8e5dbfab09f6df8d181ac497d3585a4d7d16c7 |
 | saidas/baseline-depois/resultados-rodada-1.json | 36aa0a963bcfbbb822940775e6990a30ea2dfab6c64f3722f1d89d8f31332e5c |
 | saidas/baseline-depois/resultados-rodada-2.json | 21aa4cd216018e413c271ab6e957c3078765a3021a8b15b782a4bd879eadc1cc |
 | sondas/cliente-anterior.py | d24bb5a34e622a4b20e47fed98e8ca885466cce3ef5066dcf9fea5416b045eef |
-| sondas/e2e-aparado-runner.mjs | a0cfcff6391cbc0a164a67a11b52119dca30e2669e9b60b9bf373794551b1484 |
-| sondas/e2e-aparado-secao-28.mjs | f2896eba806342bc65b24eb93c477bf40b54ef23c00969e4f3f0cb0276a1e93e |
+| sondas/e2e-aparado-runner.mjs | 6ea0c368fed35c757bb1d7885db504128e984a5689bd89c116adaefe5e7aa90a |
+| sondas/e2e-aparado-secao-28.mjs | 6b93a520ab1a4024f5763b45ebbf1df713301f82e91984eee80ab7f064299750 |

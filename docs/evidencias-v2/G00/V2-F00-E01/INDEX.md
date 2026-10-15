@@ -1,11 +1,12 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | AMBIENTE.md | b5c79485f8347592c8f61392fa981db39691bd5e0a4e934cf3e2a230240ebf4c |
 | COMO-REPRODUZIR.md | 74869cdd81c234b5bada702f6cebbeec2d9db352eb03ee0fec8e1bee7e1638d1 |
 | RESUMO.md | a7daa191546dfe0d8aa1d7d646e16ff54647f2fd1bab43b4bfc56a0bcc87d4be |
-| VEREDITO.md | b9b43f08c858b463798be77b7c1b0cfcb50d6a84d6c41036f5c4464393678125 |
 | correcao-1/RESUMO.md | de980cf79bb938fa30af9a38aae9aa6a6007cc75085dc5c1bf9a07c5646c98de |
 | correcao-1/diff-da-correcao.patch | 29cc644492afa66e10e96bef5fcb20d693f1259b1af738dd81f874195e31135c |
 | correcao-1/roteiro-stdout.log | 9b118fe0109159aae781bda06c95b23dc6703dc6427c24dcd16cca3a7f15e694 |
@@ -58,8 +59,3 @@
 | saidas/17-e2e-api.txt | afdcd6af19b2388cb0e3492961e8fc0ddc452275fc03d7e4a0bbed33b7d94558 |
 | saidas/RESUMO.md | 71f9fad4367ebbda641eea9de607c6b4d0ac3cadeb6ff22b8fb53d1ee2827985 |
 | saidas/resultados.json | bdc238d3173529fdfce86914e7c239abfc16c7bf5c4ca925a02e1db620e42c82 |
-| validacao/4b96ea7/engenharia-entrega.md | cdedbbda7232053b08bba70c17fec44a40babaca7dbec2cc3f5b01e779bc650d |
-| validacao/4b96ea7/qa.md | 1eb7307931b5060b946ddac8f0322d22eb7c4257066cbce8e966ce08e36e7f58 |
-| validacao/7005a60/arbitragem.md | f8b337513c15d74930f5aaf41e4c92d422520a388db76ef8aea8e74d289d40f3 |
-| validacao/7005a60/engenharia-entrega.md | 69a2369e4ac12f1552970b381408fecb6f6cbd367146269ee1d8a86aa602c5fc |
-| validacao/7005a60/qa.md | 09fc34e9e2b8270e8f8bc81d74dc05b141510082dca5b7b65d2ab138af3fc2bc |

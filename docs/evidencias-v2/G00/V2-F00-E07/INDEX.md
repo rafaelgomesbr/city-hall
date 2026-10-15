@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 66ea9a4433fb4fe0910318a7a098f02734cb406917396864769e7800b92fe027 |
-| VEREDITO.md | 1da1b95182d2ddb777ae588b4d00dbc5604bcb492d58aa9fa6772da8ac2c1182 |
 | capturas/papel-antes-da-escrita-1280-claro.png | c22500e57a17e33e0c3aee44c1ccd17121d698b2757d8f3b902c483135151687 |
 | capturas/papel-antes-da-escrita-1280-escuro.png | 6cda9aa75b5caeff8f4d28c4145497c13348ff78424d4fab86e2c22eae519a03 |
 | capturas/papel-antes-da-escrita-390-claro.png | 85a62385e819159a111eff77ecaa34c31eee2d0a0f2f4cd16513baefe5862bde |
@@ -115,11 +116,3 @@
 | saidas/baseline-depois/RESUMO.md | 2a23d12a1af6ee0ccab818a768c48a343b6de968507230d86aaa0fc337c9a2b1 |
 | saidas/baseline-depois/resultados.json | aab023100bd1ca1b158c33b1f5da0a9be10b3b18994fe3bfd7008a0368ad4a10 |
 | sondas/e2e-aparado-secao-24.mjs | 9255d42e87582931f580a52a914892a987e09f1a6db0466551ee24a495cbdc21 |
-| validacao/4b96ea7/arbitragem.md | 7be3e858634dc12252142532ae5ae9378840bc03e0d9ce2766a176b1dfc90dcc |
-| validacao/4b96ea7/banco-de-dados.md | c7586e0b27388015339a6b07907b8a737ce60b7038a2a387664672b16341226a |
-| validacao/4b96ea7/qa.md | e8bc97e9b0546dc50eb59a687f35deb02b79d91e8b472b611897b8530cfa0631 |
-| validacao/4b96ea7/red-team.md | 4b0c8d2286168236dadf78da0b37a9e5e0709d1310bc64992957f61d1186cf17 |
-| validacao/4b96ea7/seguranca-aplicacao.md | 2b8f4db537369f0cde6bbf8cd68229f3d2181c3f3332057a20b7c6d13b24af22 |
-| validacao/7005a60/banco-de-dados.md | 2b354c2ffe8de17341201850cfcb3936094c4d96f2f5c2ca9131a57c211e7ca9 |
-| validacao/7005a60/qa.md | bb08497363b7a4172da1502459b38057abd2c0a458c4b00f8270d51bbaab685f |
-| validacao/7005a60/ux.md | a6f75a655bc1618d57b621cbbba9ba306b13ca01b252e19428a1d76d4248c42e |

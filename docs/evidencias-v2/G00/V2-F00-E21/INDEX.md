@@ -1,12 +1,14 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): este índice foi recalculado sobre os bytes que o git guarda e devolve num checkout novo. O anterior tinha sido calculado sobre os arquivos do disco do autor, no Windows, com fim de linha misto (CRLF em parte das linhas), e por isso não batia em nenhum clone. Desta lista saíram `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/`: são do gatekeeper e mudam a cada rodada. A prova (força bruta do hash antigo) está em `docs/evidencias-v2/G00/V2-F00-E21/correcao-1/`.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | 6c10902c359ab1ef4cd3108a26f5820d8e5abc608850f77b71b6f15cbdd75ab7 |
+| RESUMO.md | 74e2401ef42f67beb385bc0da927e491bc728527c4991e12e6888453e7dffe4b |
 | baseline-antes/01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
 | baseline-antes/02-teste-api.txt | 715604ad660c884e6121692a8e3091a47ee8188191d169d2dc4edeaea339a087 |
 | baseline-antes/03-teste-web.txt | 23996702a45db3535209b00f8bf1269e307f38532b0b4b9a20d44f9776d73fa1 |
-| baseline-antes/04-test-campo.txt | d23b82106235f74cccab6ec9145f142d5b8a158fc2d4ee4ef6dc82a6a26b4e53 |
+| baseline-antes/04-test-campo.txt | 3654d745ef08163082d2ddca22696934e1660808a6960d54fc2af007d8bb5399 |
 | baseline-antes/05-test-scripts.txt | 390c5d1a82a72a9ec1994f44f213d372dcad88fdab78003957dbb9d46d7fa432 |
 | baseline-antes/RESUMO.md | 73c8bfbc02d49746cf0051c7f529262976587a4bf948f5ae34d464fcb7bd023f |
 | baseline-antes/resultados.json | 9f39f2bab2f78e17cb9c54d4898fe31343eee4b6a4d9b4cefdbff9d7d835336f |
@@ -22,11 +24,27 @@
 | baseline-depois/10-conferir-numeros.txt | 8630d970d37ef0b258396df250402f3ae319a3336ae503cbcd5e830c7e9efe67 |
 | baseline-depois/RESUMO.md | 5a5b02acbb3ed6e089221a00968b3e7ac4ce9045b8a2eef0312b2b494cfdf3e5 |
 | baseline-depois/resultados.json | 41e592d20885df4ae2a84e011800b054fd4eb0016d7f2a7415dc651e161fce3e |
+| correcao-1/RESUMO.md | 893bcd2a27d34b3a209b3e9f4df38fbb42e473614d2d5c88503ba16c980cd14a |
+| correcao-1/ferramentas/candidatos.mjs | 938ccc3dd05ea59a6292989c85b8a5ab070c42e58e0b4d3d298c5c46eb3a9c97 |
+| correcao-1/ferramentas/forca-bruta.mjs | 5bad66735d181fd743da36176f43934b701dfb6c3d8b92e17d57530aa51c9002 |
+| correcao-1/saidas/00-forca-bruta-do-hash-antigo.txt | 523852e602764ad30e64b3bc6e41dd8f700b197ed8318cbe0940ae6e46744abc |
+| correcao-1/saidas/01-classificacao-dos-hashes-antigos.txt | 98ebdfcab16782fc62b5d8f17d2309954ebec87237466d5938dc42d838205f41 |
+| correcao-1/saidas/02-ANTES-VERMELHO-script-em-checkout-novo.txt | 5e043f6d49819ed36a89b906f576b96c667777c09db171e29aaa757edf1b13be |
+| correcao-1/saidas/03-ANTES-VERMELHO-teste-em-checkout-novo.txt | de3ff36dd121d6662b99e7f57509fd07439d2f96b47cb7cca57493897744eedc |
+| correcao-1/saidas/04-sem-text-o-controle-e-a-deteccao.txt | 1577f7163c76fc50bd65c8b607a3dc49e63e350038773ee7f09c8db268902eba |
+| correcao-1/saidas/05-MORDE-mutantes-do-script.txt | a66a8cad1f992b906af5727014f460233e90c8ea2efba4692609542f9d5778b5 |
+| correcao-1/saidas/06-DEPOIS-VERDE-script.txt | c3cb88bea715595268dee15d340b596e424794381f74c6af0aa2a54522bb9a67 |
+| correcao-1/saidas/07-DEPOIS-VERDE-teste-novo.txt | af946f575c7e9bc00e8cb45ffde6453f7a722eaea78e2b613afdbd31559b32d6 |
+| correcao-1/saidas/08-DEPOIS-conferir-evidencia-25-etapas.txt | 0346ef6391fe6c03b15b284ca19b6132eb73436fcff510b128ad10df2e401870 |
+| correcao-1/saidas/09-test-scripts.txt | b1d98d46f50970251ba09b28e09e48b6e707e86b91e5dd74ede447284ffb625d |
+| correcao-1/saidas/10-regras-de-conteudo.txt | 577da124a2c2c221d5dc80b95ab9d02c648258c774b567378c974173196569c3 |
+| correcao-1/saidas/11-conferir-numeros.txt | 39e3858196ce839337fff8ad9324c6a5ef305c91f6edc0ca2c41c858f0cdc5df |
+| correcao-1/saidas/13-historico-dos-nove-arquivos.txt | e3c1459c87b537272c78e0939962b8976e86ad7bc868b3ec22ae809d6696e6f5 |
 | saidas/01-git-ls-files-eol-resumo.txt | 5a8677d75a41310727417c53d4a411b45324a4cd26e70637c730239986dcaaaf |
 | saidas/02-git-ls-files-eol-completo.txt | cdd296692fc57d471e9f6c36a4445ef911da2b87699a753e09a44c660d3caad2 |
 | saidas/03-renormalize-em-indice-copiado.txt | 7662765eca32830adb2bd74d28ecff4ba828d01bff440156cdb199c4342f3911 |
 | saidas/04-banco-tls-git-bash-com-e-sem-openssl-conf.txt | 063640efaf258720705b31e8df2a18df72c23590736fb8229bee48dd59530097 |
-| saidas/05-banco-tls-powershell.txt | 3ef815b13768d8dd22a5dd7439a5fe541d3a1818832d0488f94546bbccfe5895 |
-| saidas/06-typecheck-campo-com-e-sem-cache-velho.txt | bd1f20400493ad6c9020409f49126aede7fe79b839d9b1707cc71b159a5d573e |
+| saidas/05-banco-tls-powershell.txt | c2b0e794c655b55a475ab673b314420ca52a3094394914e330e99cad520bbf36 |
+| saidas/06-typecheck-campo-com-e-sem-cache-velho.txt | 47718e33f65a339145926fab5c580e9d89066eb9e3f8b474c99fdfa22f6c0643 |
 | saidas/07-test-campo-com-cache-velho-presente.txt | fa52e1e4b52fa078f296116c4ae41ff97ff5c96ac6f953880517772793492e7f |
 | saidas/08-npm-test-raiz.txt | 704927ddb335bb36e67cc1d4e34352b677297984df620af38c8f02f4c11b334f |

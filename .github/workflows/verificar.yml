@@ -255,6 +255,15 @@ jobs:
         if: ${{ !cancelled() }}
         run: node scripts/roadmap/gerar-estado.mjs --conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/02-estado-conferir.txt"
 
+      # V2-F00-E21, correção 1. O `INDEX.md` de cada pasta de evidência grava o
+      # SHA-256 dos arquivos. Se o hash foi tirado de um disco com fim de linha
+      # que o git muda ao commitar, ele não bate em checkout nenhum e ninguém vê.
+      # Este passo roda no checkout limpo do CI (LF, sem `autocrlf`) e relê os
+      # bytes. Sem `npm ci`: o script só usa o node.
+      - name: Os INDEX.md da evidência batem com os arquivos (SHA-256)
+        if: ${{ !cancelled() }}
+        run: node dc360/scripts/conferir-indices-de-evidencia.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/03-indices-de-evidencia.txt"
+
       - name: Redigir segredo dos artefatos
         if: ${{ always() }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"

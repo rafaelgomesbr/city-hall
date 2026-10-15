@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 875d89f395aa2826a656b6a9df4c3809d14de99724b8198a332629fa875a4d0d |
-| VEREDITO.md | 3cba98ec430849aabae0a94af5eacbf130d6bb09ebf98017c67166cda6230248 |
 | antes/npm-test.txt | a1a04e3e3a8312cac8724b017bdf31a52cc6cc9f2e60e09967fc366442037a6a |
 | capturas/seguranca-1280-claro.png | 8f41e68c79ba4cb1078a0653ef6a58a114284f4768625d81d9c4eec43bec4985 |
 | capturas/seguranca-1280-escuro.png | 8d9f66d44584971b68c4ef41cb0ee16ecb771dea8303429231fb250ec17be3c1 |
@@ -49,6 +50,3 @@
 | depois/saida-a-campo-web.txt | 01adc1b3dc24767ee1f2ac3ecae23bd84f808286bb00689bf74064cb46edec7f |
 | diff-dos-documentos.txt | bbf846ba4cc7b168f3862a1a8187484c570f35719adf7dd41db83c199b8aa628 |
 | gerar-pdf.txt | 8f473e26c4cc4b2a67a52438efe4d1c2227a66f834e33afc012f062eda9fa612 |
-| validacao/4b96ea7/qa.md | 299e88efe6eac4c997a1475e7b549adef56435c10bca4a9e809e9bfe5c10bbb5 |
-| validacao/4b96ea7/ux.md | 836f53e966eedbdf956303e2f0bb111629aa08f7b53cfee95551960aad77ac75 |
-| validacao/7005a60/qa.md | b388622e751641b6c1262173024089d425bb903a4212889f26b4844a63fd97bb |

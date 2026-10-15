@@ -1,0 +1,29 @@
+##### Caso A: .gitattributes do produto, SEM -text (a decisao final). Etapa de mentira V2-F00-E98: NOTA.md com CRLF no disco e INDEX.md calculado sobre esses bytes.
+warning: in the working copy of 'docs/evidencias-v2/G00/V2-F00-E98/NOTA.md', CRLF will be replaced by LF the next time Git touches it
+$ git ls-files --eol -- docs/evidencias-v2/G00/V2-F00-E98
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E98/INDEX.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E98/NOTA.md
+$ (na MESMA copia onde o arquivo foi criado, depois do commit: o falso verde local) node scripts/conferir-indices-de-evidencia.mjs
+FALHA fim de linha no git: docs/evidencias-v2/G00/V2-F00-E98/NOTA.md está no disco com fim de linha crlf e o git o devolve em LF (i/lf    w/crlf  attr/text=auto eol=lf): o SHA-256 de um INDEX calculado agora não bate num clone novo
+RESULTADO: 0 índice(s) não batem, 1 arquivo(s) com fim de linha errado no git
+codigo=1
+$ (clone novo) node scripts/conferir-indices-de-evidencia.mjs
+Índices de evidência: 60 INDEX.md, 1910 arquivo(s) conferido(s) byte a byte.
+FALHA G00/V2-F00-E98/INDEX.md
+  - linha 5: NOTA.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+codigo=1
+
+##### Caso B: o mesmo, com a linha 'docs/evidencias-v2/** -text' (a versao anterior desta correcao, reprovada pelo revisor)
+$ git ls-files --eol -- docs/evidencias-v2/G00/V2-F00-E98
+i/lf    w/lf    attr/-text            	docs/evidencias-v2/G00/V2-F00-E98/INDEX.md
+i/crlf  w/crlf  attr/-text            	docs/evidencias-v2/G00/V2-F00-E98/NOTA.md
+$ (na MESMA copia onde o arquivo foi criado, depois do commit: o falso verde local) node scripts/conferir-indices-de-evidencia.mjs
+FALHA fim de linha no git: docs/evidencias-v2/G00/V2-F00-E98/NOTA.md está no índice do git com fim de linha crlf (i/crlf  w/crlf  attr/-text)
+RESULTADO: 0 índice(s) não batem, 1 arquivo(s) com fim de linha errado no git
+codigo=1
+$ (clone novo) node scripts/conferir-indices-de-evidencia.mjs
+Índices de evidência: 60 INDEX.md, 1910 arquivo(s) conferido(s) byte a byte.
+FALHA fim de linha no git: docs/evidencias-v2/G00/V2-F00-E98/NOTA.md está no índice do git com fim de linha crlf (i/crlf  w/crlf  attr/-text)
+RESULTADO: 0 índice(s) não batem, 1 arquivo(s) com fim de linha errado no git
+codigo=1

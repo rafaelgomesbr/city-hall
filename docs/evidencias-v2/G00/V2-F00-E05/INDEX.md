@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): este índice foi recalculado sobre os bytes que o git guarda e devolve num checkout novo. O anterior tinha sido calculado sobre os arquivos do disco do autor, no Windows, com fim de linha misto (CRLF em parte das linhas), e por isso não batia em nenhum clone. Desta lista saíram `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/`: são do gatekeeper e mudam a cada rodada. A prova (força bruta do hash antigo) está em `docs/evidencias-v2/G00/V2-F00-E21/correcao-1/`.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | b8cee8222c3a314d1c41899348321afe988b35274dc4cda388308214a4956494 |
-| VEREDITO.md | a629a89c868ab2f8818b896e7b6c17228840d1722fdd213b955ff1300e92a939 |
 | capturas/entrada-desativada-1280-claro.png | 1ab26f144ff5ad1e6dc3b89cea842a76c1193ca2e391219b2f44dcd259a3695b |
 | capturas/entrada-desativada-1280-escuro.png | 5b6613c324b88d3b4a1e55d460b657455d34339065f97bb2bedf23ed78029523 |
 | capturas/entrada-desativada-390-claro.png | a7c5f28f0760c1bce10bef7b30296c5d0c2a1c826568f60d397192dc13919cff |
@@ -45,10 +46,10 @@
 | saidas/06-e2e-secao-23-em-api-limpa.txt | 2856f2899eddd43b33b8dfc30264fd84b1e12ab4f7f5c0e5007bb3b1aa455cb6 |
 | saidas/07-web-depois.txt | 3757969cbea309c82fc1e5a2569371c6909603a1328eca7f8993297485d454dd |
 | saidas/08-campo-pacote-depois.txt | 5079063865b31e47fd04976048771459a3177621bec62a4b5a738a8f1c0359b7 |
-| saidas/09-test-campo-depois.txt | f25ea4c3e6709a23d4345a2a1219d97111b97336ca3610dc33dc7d426be656d9 |
+| saidas/09-test-campo-depois.txt | 9b69a0bf9cbe5cd991e989f0399a2313b17419b9a920cd65c95d919aa240757f |
 | saidas/10-jest-campo-direto-depois.txt | 8a3ff74468fac5f1cf3e880fcad1bf5ee6e4fdfbfca66b977f1e1947781b7dfa |
 | saidas/11-superficie.txt | f77efed612d3a8bdc8ffbf656b08fb79d53009faedfd3c20b72de592d173b13e |
-| saidas/12-e2e-api-depois.txt | 2f0611a333bc3153fc872e5604d4ccc129718a3580e6417c4ba6a8ecb35adb1d |
+| saidas/12-e2e-api-depois.txt | 1ff1912a1b49cd37c4d5b53ed265bd9185414b89f9ebbf08c4c9b0896557ceaa |
 | saidas/13-test-scripts-depois.txt | 3a74cc62936eec17ef083bce4e85e2fca9a1b7c9ec26fffd88ee7df77e593101 |
 | saidas/14-conferir-numeros-depois.txt | 40c5aa8593541228f60cd1453b252dce07a5813b19fa59dc872cb4606b7e1ab8 |
 | saidas/antes/01-teste-shared.txt | 643162b1c1d05fd18602f91a364a6263559f6a15b7fd51987577689d553e2697 |
@@ -58,10 +59,6 @@
 | saidas/baseline-depois/01-teste-shared.txt | a089036c60674fb54fc4a8012b9f1280129156c6d28d926e0d60db77707b474b |
 | saidas/baseline-depois/02-teste-db.txt | 0754ede35a1ec79dbe2a682b4bfc9f8d13a00b8eacaee57797321da9a3d1b9dc |
 | saidas/baseline-depois/03-teste-api.txt | 0dcb52a43dd041c8a0e2184a90331c9f6afdf6802169fb7168771be776ce661b |
-| saidas/baseline-depois/04-teste-web.txt | 3d22ce6d2c2903336d208a9b112c02997a4b7abd3a2942dc4aa7a3f60ca44bd9 |
+| saidas/baseline-depois/04-teste-web.txt | 2ce16932f3179c692bb258781b67b61ef61ec9807ebcfd0af68890d30f4aeb80 |
 | saidas/baseline-depois/RESUMO.md | 7728447eaf0c902fffcb0aed9538bfed7fa6d5c701e88ef9f76f55fd0ddfc6b1 |
 | saidas/baseline-depois/resultados.json | 8253f79088cb4e9f4a6baaa78a5b576a226eab6a9292ff68f1a3d17602a9459b |
-| validacao/7005a60/acessibilidade.md | 9b293f90b305ed597b791c0e531da246124ec7eadf49bb2e78450b6c6259a01d |
-| validacao/7005a60/qa.md | 1db0c58c2b63ed37211417db2572d3e0b767d9a79aa9b712fa6dc2c8a0657c60 |
-| validacao/7005a60/red-team.md | d78e5677358c95332853dc4b5ce7dbebe68d036868331b1c6e6d29dfa3f7cfb2 |
-| validacao/7005a60/ux.md | ab418da92d3c26b564dfc9c4806b6987104e2a8713706d4bb1414fca0f06c556 |

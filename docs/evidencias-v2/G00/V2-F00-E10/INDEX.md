@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 73751314299f7892d98c90ccbc5439b0249b1bdcfb4730e8791ab7cf33e7654c |
-| VEREDITO.md | d980c0bc077c0b627522dbcd934cac74a340ef3cfe3febafa3c9bdb68713510d |
 | capturas/definir-desligada-1280-claro.png | 6534cdcc6be9940af8f4827a0eda906bcdc152358268a1650374fa26f40c98e8 |
 | capturas/definir-desligada-1280-escuro.png | c1294e6bb21928a676b77b877c637d49c40a4ca1a51f981bc9d7443a50f6c704 |
 | capturas/definir-desligada-390-claro.png | cae0eee967323602bb15add4658258f0f6aad4344dd41ebd1a804cafd9663965 |
@@ -177,13 +178,3 @@
 | sondas/contraste-e10.mjs | 6e8c46cbee40cb685fcf30c59631904b4d68e7f50b3b66702777c4440ddb2a90 |
 | sondas/e2e-aparado-secao-14.mjs | 0d107e9cb709b25d682db2a29a337790dd0dee01918d1a339bafa8722f6f67db |
 | sondas/e2e-aparado-secao-27.mjs | ecde281da35e2b62b4336fea6ec9a9d131dc8429ed545efec0ecc37adc7d4af0 |
-| validacao/4b96ea7/acessibilidade.md | 95162ae22b42c4fa8f607ae38d80fa28e9b1f1a00a35644e39d5b36665af3364 |
-| validacao/4b96ea7/privacidade-lgpd.md | eb61244d51c56fea192905cae3ed5ce9abf905fc2a652437070fc2327e8aea6e |
-| validacao/4b96ea7/qa.md | 1ae502c4fdaec3def71b7a54f5a0e182576562cf105f1647cd049076794272f4 |
-| validacao/4b96ea7/red-team.md | 2c5aeb4b5a5a34da5b9a3b42a1f3878dd5a2f50016571bafeda7116d332972a2 |
-| validacao/4b96ea7/seguranca-aplicacao.md | fa625c61ef6f94d600c0482c190c8c2eed571c8965d54dcbba25c353c1aeb646 |
-| validacao/4b96ea7/ux.md | 0ecc387bb7f3db083b848e66803858abd1829138de953dd9ebe6f03c7f4ff8fd |
-| validacao/7005a60/privacidade-lgpd.md | 3c7bc4e3f497dedc29efb2ea3cd8825b4e28fad8d563f478b6264c6429edd093 |
-| validacao/7005a60/qa.md | 028fc3c49166439d481f5be81d449dafc5565d0a70f7c397a444b4dcd6539581 |
-| validacao/7005a60/red-team.md | c814cb8e6c5fc66d409763e0e4221ff831991f1d70d005fcdb2c294f7fe7d318 |
-| validacao/7005a60/ux.md | a997d2749817f3045cb452df6208b238f60e262d76cf6d459f4912a9835af68e |

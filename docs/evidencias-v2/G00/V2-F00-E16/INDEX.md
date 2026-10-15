@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | fff85c3ccef2b9cc7e17fb481f89b17e8648c92440514b2f9e04e9c72010b98d |
-| VEREDITO.md | 27224e18092d2599ef7d68852366feaa01ddd0f6374276563437563c4051d4f4 |
 | correcao-1/RESUMO.md | 9508d6c96a37aa31d0b02bd2345c6ed98151e0cc6ae5bbecf86357c6347bf164 |
 | correcao-1/diff-da-correcao.patch | f1f76ba44b11c3ccb2768aee73b8dc05e0afcdb9aa8547ccdff497bc1b335a91 |
 | correcao-1/saidas/01-portao-ANTES-do-conserto.txt | 142016cf2eebabf23cae5dab1ab6b9791e4ac5bb04a2dbd42448b0e7fe63a4c2 |
@@ -73,15 +74,3 @@
 | saidas/baseline-depois/03-test-campo.txt | 7e4ce24f898c86dc7366fd8b405502bb79d6115d8aa1e9614967ef8fd1d37bce |
 | saidas/baseline-depois/RESUMO.md | d51c6f61b0c790bec199a9439bf19002f8071a053bc461f0df5855500e0c0819 |
 | saidas/baseline-depois/resultados.json | c90a67d33181e021b59a4aef88dfe3e0bfcabf7e40e45e53f1dba891670c4517 |
-| validacao/4b96ea7/acessibilidade.md | 185ceab11685711ec0f40d271bbc88b038be58541bd7d2fd425f3cef2f36418e |
-| validacao/4b96ea7/anexos/E16-ajustes-do-aparelho-abertos.png | 76b6ae517405ac717e19efec5566067ecc87badda2fde26661e10e46e288708e |
-| validacao/4b96ea7/anexos/E16-camera-em-tela-cheia.png | 54dfdf963a4566675b2bd88eeea9bc40446eb84d75890c7bc150922f7541492e |
-| validacao/4b96ea7/anexos/E16-foto-guardada-com-copySync.png | 5c5bf2efbfa2d9aa2d34869c299cba9b250ec675e1b6233c0352d6d168e0f001 |
-| validacao/4b96ea7/anexos/E16-foto-vazia-mensagem-tire-de-novo.png | 49ad19fd90bbb4fc15db327211c9452e50b927c2fd022b3ad814ae43ea81d7d5 |
-| validacao/4b96ea7/anexos/E16-tarja-camera-negada-com-botao-de-ajustes.png | c5cbe38ca64d3437a9d64f642609c058e321360a824534d057c1a560245a42d8 |
-| validacao/4b96ea7/anexos/E16-vistoria-guardada-sem-promessa-de-segundo-plano.png | f9a81c281a446c8d7ef0cc2703f3f89152237ed6196225b17950dedec94440be |
-| validacao/4b96ea7/qa.md | 4b8316bb835907607fe4ecfe79ab681f9e055e431e28c3e76ad65cc13012b1d6 |
-| validacao/4b96ea7/testes.md | a388c406aec00998b52a50debb6bdef73d2143e876aa7bf08620c679dc741544 |
-| validacao/7005a60/arbitragem.md | 0d7ef50009d0c6bbbe3c40753b1879713f724961c735ff6b63cc1246bbd45c83 |
-| validacao/7005a60/qa.md | 0ec8cf6d94a8d6d1baeb6175d7c7ff1f9fd98083290303cd073fcf22a72dbc1c |
-| validacao/7005a60/testes.md | 27367e91e95820e0fae18b0ddc942d771ee1999110bc0fd3e23f77285d9459ac |

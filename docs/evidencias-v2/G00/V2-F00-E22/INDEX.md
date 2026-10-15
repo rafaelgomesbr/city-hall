@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 0083163cb82463808605fe368c8505ae018adc57fdae4f7f6aee5de339f411d1 |
-| VEREDITO.md | 88b00460dbb135cf922dee8d78c8c0cb08b093ed0cfed51cbc03127966417a82 |
 | correcao-1/RESUMO.md | 34023a04e48879c130fe19fdf8bd0478cbaf192b54d36fb256bb6e81924630cf |
 | correcao-1/diff-da-correcao.patch | ad503200ccef2f8863676bee65229857e5af11e8d4e0420ea7faf58a440692dc |
 | correcao-1/saidas/01-conferir-numeros-DEPOIS.txt | 93c3abc0576efae998b1a3405bd7bb1cca4b5063d46d3bbd2b291239c69b4b9e |
@@ -65,5 +66,3 @@
 | saidas/npm-test.txt | 56696e6803a6af8d232201528bc9ca4c29b14480fba635cd6cb12f1f6de2009a |
 | saidas/sonda-103-contra-a-api.txt | 43d9ca95bf9f8b66c397002bb3ed476eee1263db3c76c67a82385f9d66c2c94c |
 | saidas/sonda-103-regex-antigo.txt | 9fa84d770fcb83cd335c6235eaf024afaf2cff9868b319325a92b63ac0941393 |
-| validacao/4b96ea7/qa.md | e0eb79799ca387d73be63ed1c27d4852986285a23ce3722d8b4f8e949127c749 |
-| validacao/7005a60/qa.md | 6e5b4a5e40652f61e3cdaade496ff18c63f17feb7e7dfce9b0e81bbd2a21d8df |

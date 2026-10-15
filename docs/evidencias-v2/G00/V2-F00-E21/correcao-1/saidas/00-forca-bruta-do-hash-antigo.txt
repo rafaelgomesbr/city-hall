@@ -1,0 +1,114 @@
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E21 saidas/06-typecheck-campo-com-e-sem-cache-velho.txt
+arquivo: G00/V2-F00-E21/saidas/06-typecheck-campo-com-e-sem-cache-velho.txt
+hash no INDEX (antigo): bd1f20400493ad6c9020409f49126aede7fe79b839d9b1707cc71b159a5d573e
+hash dos bytes commitados: 47718e33f65a339145926fab5c580e9d89066eb9e3f8b474c99fdfa22f6c0643  (CRLF nos bytes commitados: 0)
+linhas: 6; combinacoes testadas: 10 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 2 a 3 (de 1 a 6) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E14 saidas/baseline-depois/04-test-campo.txt
+arquivo: G00/V2-F00-E14/saidas/baseline-depois/04-test-campo.txt
+hash no INDEX (antigo): 2f536adefb79d16e9fec0640e3f9909516b39b8b08cda9702bfdc582cbacd780
+hash dos bytes commitados: 417eae67d083b81b5abf4c01cb392dfcb25c6eca9b1d17f4e73d68250b0ad2c8  (CRLF nos bytes commitados: 0)
+linhas: 17; combinacoes testadas: 159 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 14 a 15 (de 1 a 17) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E05 saidas/09-test-campo-depois.txt
+arquivo: G00/V2-F00-E05/saidas/09-test-campo-depois.txt
+hash no INDEX (antigo): f25ea4c3e6709a23d4345a2a1219d97111b97336ca3610dc33dc7d426be656d9
+hash dos bytes commitados: 9b69a0bf9cbe5cd991e989f0399a2313b17419b9a920cd65c95d919aa240757f  (CRLF nos bytes commitados: 0)
+linhas: 14; combinacoes testadas: 108 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 11 a 12 (de 1 a 14) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> CP-02 decisao.md
+arquivo: CP-02/decisao.md
+hash no INDEX (antigo): 0714f4a2ee4c59239f3b32220917c9807aeaa5ae3c87c9ff78e7b1f59d300e8f
+hash dos bytes commitados: 954ccf1e7e8614bbd02107032ee6ebcf9bb181ab99ed4263e9796153bc1ebdb5  (CRLF nos bytes commitados: 0)
+linhas: 47; combinacoes testadas: 48 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com o arquivo INTEIRO em CRLF (as 47 linhas); o arquivo commitado esta em LF, por isso o hash de hoje e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E01/saidas 09-test-campo.txt
+arquivo: G00/V2-F00-E01/saidas/09-test-campo.txt
+hash no INDEX (antigo): e3b06001817abe70a2bdac53227c73de36df61962446777abafe9fe1dda6bd65
+hash dos bytes commitados: b4b9ee11c34179f6cdc42b8fe061ba7243d0d07604d12f07a08cd031e1831048  (CRLF nos bytes commitados: 0)
+linhas: 17; combinacoes testadas: 159 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 14 a 15 (de 1 a 17) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E01/saidas 12-auditar.txt
+arquivo: G00/V2-F00-E01/saidas/12-auditar.txt
+hash no INDEX (antigo): 577771b64fed39817ddc4f40f4b582c88f398bb14769aef6632545324dbcffa9
+hash dos bytes commitados: 91f0d20770f4a7932e14908c2b4b8e05bee9eb025ee3ba910bf0a15853482cf6  (CRLF nos bytes commitados: 0)
+linhas: 35; combinacoes testadas: 260 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 8 a 35 (de 1 a 35) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E03 correcao-3/RESUMO.md
+arquivo: G00/V2-F00-E03/correcao-3/RESUMO.md
+hash no INDEX (antigo): 56028fd75788f34b0bd9326a64956c026c37366a7c552e254abf83cab3c9b903
+hash dos bytes commitados: e64f635c012d9df0b6b44f7b405d24753d5f80022beb3642d40266991aa3d3be  (CRLF nos bytes commitados: 0)
+linhas: 24; combinacoes testadas: 25 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com o arquivo INTEIRO em CRLF (as 24 linhas); o arquivo commitado esta em LF, por isso o hash de hoje e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E16/saidas/baseline-depois 03-test-campo.txt
+arquivo: G00/V2-F00-E16/saidas/baseline-depois/03-test-campo.txt
+hash no INDEX (antigo): afead2f0279ccb5d01e04bdd5ea126b191f776306d7c30f3e6199cfc220e85af
+hash dos bytes commitados: 7e4ce24f898c86dc7366fd8b405502bb79d6115d8aa1e9614967ef8fd1d37bce  (CRLF nos bytes commitados: 0)
+linhas: 17; combinacoes testadas: 159 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 14 a 15 (de 1 a 17) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E22/saidas/baseline 10-auditar.txt
+arquivo: G00/V2-F00-E22/saidas/baseline/10-auditar.txt
+hash no INDEX (antigo): 577771b64fed39817ddc4f40f4b582c88f398bb14769aef6632545324dbcffa9
+hash dos bytes commitados: 91f0d20770f4a7932e14908c2b4b8e05bee9eb025ee3ba910bf0a15853482cf6  (CRLF nos bytes commitados: 0)
+linhas: 35; combinacoes testadas: 260 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com CRLF nas linhas 8 a 35 (de 1 a 35) e LF nas demais: fim de linha MISTO. Com todo LF o hash e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E23 RESUMO.md
+arquivo: G00/V2-F00-E23/RESUMO.md
+hash no INDEX (antigo): 793fe65a9ecc60daf0993cef6efb25ac512ad75cb2e4bf1bfbe646eec12475c0
+hash dos bytes commitados: 55cb795f860f20ef7a5b1e20bc0040e88073b48f74a3fd870ec04a73ecbbb78f  (CRLF nos bytes commitados: 0)
+linhas: 45; combinacoes testadas: 46 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com o arquivo INTEIRO em CRLF (as 45 linhas); o arquivo commitado esta em LF, por isso o hash de hoje e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E25 saidas/01-versoes.txt
+arquivo: G00/V2-F00-E25/saidas/01-versoes.txt
+hash no INDEX (antigo): eb85a7190dff3c787ad5085c8e0aca84eb745dd122c11e96700a9299ffe2b2ce
+hash dos bytes commitados: f7063d59b20493ee7f822c0b0388bef064f9bbf2aa2bb5a19235ca1207e76e06  (CRLF nos bytes commitados: 0)
+linhas: 9; combinacoes testadas: 10 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com o arquivo INTEIRO em CRLF (as 9 linhas); o arquivo commitado esta em LF, por isso o hash de hoje e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E18 saidas/08-preflight-depois-do-conserto.txt
+arquivo: G00/V2-F00-E18/saidas/08-preflight-depois-do-conserto.txt
+hash no INDEX (antigo): db5aa21a323d67a1777c8d1c5b5e5593f5fc60d68d942380dc8310b562261ce5
+hash dos bytes commitados: bd027e932404f81696e4aad44060592b18bf255efae2ff591c5c3836a3304aeb  (CRLF nos bytes commitados: 0)
+linhas: 11; combinacoes testadas: 12 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com o arquivo INTEIRO em CRLF (as 11 linhas); o arquivo commitado esta em LF, por isso o hash de hoje e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E17 RESUMO.md
+arquivo: G00/V2-F00-E17/RESUMO.md
+hash no INDEX (antigo): f067c5202038ac6d655275eb6a0780da1c511cbe295618fdcb7a5b0110f4b527
+hash dos bytes commitados: 802693aaae26e4adca5f2ae5ae1fd7014e96fd6c88918368081604f19f08e3a4  (CRLF nos bytes commitados: 0)
+linhas: 139; combinacoes testadas: 140 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+ACHOU: o hash antigo so e reproduzido com o arquivo INTEIRO em CRLF (as 139 linhas); o arquivo commitado esta em LF, por isso o hash de hoje e outro (acima).
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E09/saidas/baseline-depois 04-teste-web.txt
+arquivo: G00/V2-F00-E09/saidas/baseline-depois/04-teste-web.txt
+hash no INDEX (antigo): 0a84c9f2395db3062dd354f20c6841a3078c21203d7065a20061893bea88e195
+hash dos bytes commitados: 3279654027d539b091c1ab01a8f93b48cf9e235ce5d8afcef8e9d712b759c4d2  (CRLF nos bytes commitados: 0)
+arquivo grande: so intervalos que comecam na linha 1, terminam na ultima ou tem ate 4 linhas
+linhas: 1901; combinacoes testadas: 13293 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+NAO achou nessa familia de combinacoes
+
+$ node ferramentas/forca-bruta.mjs <checkout novo de 11d9446> G00/V2-F00-E10/saidas/baseline-depois 04-teste-web.txt
+arquivo: G00/V2-F00-E10/saidas/baseline-depois/04-teste-web.txt
+hash no INDEX (antigo): 115e6f554e9bfa8199f249864c297f3a26e84f384123d03e497f3573b3912830
+hash dos bytes commitados: 9ad71b0af49625cddb62ae0c11dfd534265ee62e1bbc4f9c0d4f0d72d6ce9e0e  (CRLF nos bytes commitados: 0)
+arquivo grande: so intervalos que comecam na linha 1, terminam na ultima ou tem ate 4 linhas
+linhas: 1903; combinacoes testadas: 13307 (todo LF, todo CRLF e todo intervalo contiguo de linhas em CRLF)
+NAO achou nessa familia de combinacoes
+
+Contraste para E09 e E10 (onde a familia de intervalos nao reproduziu o hash antigo): o INDEX.md da etapa, que estava certo, guarda para o MESMO arquivo outro hash, igual ao dos bytes commitados:
+V2-F00-E09 topo:    3279654027d539b091c1ab01a8f93b48cf9e235ce5d8afcef8e9d712b759c4d2
+V2-F00-E09 aninhado: 0a84c9f2395db3062dd354f20c6841a3078c21203d7065a20061893bea88e195
+V2-F00-E09 bytes commitados: 3279654027d539b091c1ab01a8f93b48cf9e235ce5d8afcef8e9d712b759c4d2
+V2-F00-E10 topo:    9ad71b0af49625cddb62ae0c11dfd534265ee62e1bbc4f9c0d4f0d72d6ce9e0e
+V2-F00-E10 aninhado: 115e6f554e9bfa8199f249864c297f3a26e84f384123d03e497f3573b3912830
+V2-F00-E10 bytes commitados: 9ad71b0af49625cddb62ae0c11dfd534265ee62e1bbc4f9c0d4f0d72d6ce9e0e

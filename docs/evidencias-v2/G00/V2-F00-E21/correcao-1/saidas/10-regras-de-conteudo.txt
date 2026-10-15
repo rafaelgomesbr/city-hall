@@ -1,0 +1,9 @@
+$ npx vitest run packages/shared/test/regras-de-conteudo.test.ts
+
+ ✓ packages/shared/test/regras-de-conteudo.test.ts (8 tests) 348ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  10:44:01
+   Duration  1.68s (transform 53ms, setup 0ms, collect 51ms, tests 348ms, environment 0ms, prepare 40ms)
+

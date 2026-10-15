@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | d8129fad285383d9a11f59264f39528c06977792fd2b1735459d340979f79076 |
-| VEREDITO.md | 1c7d6fe9285f252313913923c4128c689417b44d58b3e2473bce2da32200f4b6 |
 | capturas/minha-conta-confirmar-outras-1280-claro.png | ff640a0b33294467626a08846a97fc080866a24579d058880349881e525a1aef |
 | capturas/minha-conta-confirmar-outras-1280-escuro.png | 46c3741b96e5455c120ae56f9f92a23026a38ce27645d12f069fb2e200242870 |
 | capturas/minha-conta-confirmar-outras-390-claro.png | 6ef11726d250aa14ffe64816cebf74f9c4ad14fba5cb25f002920623a3ede80b |
@@ -260,12 +261,3 @@
 | saidas/baseline-depois/resultados.json | 11aef6a37c2f93ab030d00377b5c763a7ddcda73e83fc6e7e244dad81156b8ae |
 | sondas/capturas-estados-e09.mjs | e572861cb0bdd9db9ff56294325a849109e8d2cff30f0d86ee61e1872c55dda8 |
 | sondas/e2e-aparado-secao-26.mjs | 0f6722e7c722b67c34dd54dd4295564a9c7e6414ef80e678653ae2cade5c11ab |
-| validacao/4b96ea7/acessibilidade.md | a47ec2f3663f64556de1749054e637bdd597e04a3ddd43bcae95fdfaa39b7f95 |
-| validacao/4b96ea7/privacidade-lgpd.md | 25c804daa3db42697d9c362543f9969c64440cbf507495c8069c75604b1dee20 |
-| validacao/4b96ea7/qa.md | 49fee59f494dcae5fee466ff415b144df6f330c04da52d331cabcbe968c9053b |
-| validacao/4b96ea7/red-team.md | 61c4a97fb19b823a862d40a6da066b043652196c58c5274c1e08ccc7f36b4c65 |
-| validacao/4b96ea7/ux.md | bb7ebfffcf090eea18cc84ec93ba0933c1d37e8b19124df68088f560ec9dbe57 |
-| validacao/7005a60/privacidade-lgpd.md | 178036b6ec503365d704326a376cd7a11a8f8a61625f0a336d12b6275ee71c75 |
-| validacao/7005a60/qa.md | 24e543ff5b82e2f453aa68c0ec817d7e0b09a63b173486f2840f7f33f1e77b53 |
-| validacao/7005a60/red-team.md | 71b02f406d4dac2f610fbae242d67a8723a95212a2bfafa78222c872a9a57794 |
-| validacao/7005a60/ux.md | 7c78964db9a82bf6bb405a2e87be33bc3a9331e48eadd59b3a52b85b866ad421 |

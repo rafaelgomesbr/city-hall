@@ -158,17 +158,18 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E16-correcao-1": 15,
   /*
     V2-F00-E21, correção 1: `scripts/conferir-indices-de-evidencia.test.mjs` é
-    novo, com 24 casos (índice correto, tabela com nota em citação, arquivos do
+    novo, com 26 casos (índice correto, tabela com nota em citação, arquivos do
     gatekeeper fora da conta, hash adulterado, arquivo editado, arquivo faltando,
     fim de linha trocado nos dois sentidos e misturado, CRLF a mais sem normalizar,
     hash inválido, linha repetida e caminho que sai da pasta, índice sem tabela,
     arquivo da pasta fora do índice, nome que só contém "validacao", etapa sem
     INDEX.md, índice que só lista o gatekeeper, índice aninhado, a evidência
-    real inteira sem lista de tolerância, o script sem lista de exceções e quatro
-    sobre CRLF no índice do git: com `-text`, com o `.gitattributes` do produto,
-    sem git e o repositório real). O arquivo inteiro entra na conta.
+    real inteira sem lista de tolerância, o script sem lista de exceções, a
+    pasta CP-xx sem INDEX.md e cinco sobre CRLF no git: no índice (`-text`), no
+    disco com `eol=lf` (o falso verde local), com `.ps1` e binário, sem git e o
+    repositório real). O arquivo inteiro entra na conta.
   */
-  "V2-F00-E21-correcao-1": 24,
+  "V2-F00-E21-correcao-1": 26,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */

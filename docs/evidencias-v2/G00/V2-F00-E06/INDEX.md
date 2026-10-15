@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 36bd1979e670526dc863c84c4b2864d1e58f4fdce7e7e551380690e73392d97e |
-| VEREDITO.md | 8935d105b5c8d143d7d853be79f5f2db0d8e0f4719da5e922cb023d55f0a005b |
 | correcao-1/RESUMO.md | 5a542ca81a038b69b148ec6a0253a6e367f1488f4b31b4253dc520ffe95313b3 |
 | correcao-1/diff-da-correcao.patch | e38507b74fa82ed0be38adc03b1e94df0123bed553a72aafef02d426e2833ac1 |
 | correcao-1/saidas/01-motor-pausa-por-senha-provisoria-ANTES-do-conserto.txt | 4683694d84d7d8a9c2aa309b4a330c1e887fe41d8c9c5aa224a70527fd990d43 |
@@ -66,18 +67,3 @@
 | saidas/baseline-depois/02-teste-campo-app.txt | 271c1ec9d59f4e79f451ad8e059269805be206636e22fbffcbdd9d4e0bf4fbb6 |
 | saidas/baseline-depois/RESUMO.md | adb890d8c01b7eb57028ae8b95fdf496eb8a2c52a85c50cef9e26462c621792d |
 | saidas/baseline-depois/resultados.json | d12d967c131c2bfd5b8ba783c94602d337d734f3d71c64ca06d3394550f4b2c4 |
-| validacao/4b96ea7/anexos/E06-faixa-apos-drenagem.png | 0fe14c165ff2eff03f1edf3c7b9d06ed3f7719c20ad9be5bdd5a15d87495f34a |
-| validacao/4b96ea7/anexos/E06-faixa-e-fila-pausadas.png | 2fab5c32385f2542844a98a3ec52890985838750e0d85906f25309804d14ddfd |
-| validacao/4b96ea7/anexos/E06-faixa-senha-provisoria.png | 7c7efe796db0d058ed798fed5aebe9db6e09e38fee76067f378d3ae248c733fa |
-| validacao/4b96ea7/anexos/E06-faixa-sessao-encerrada-automatica-com-fila-unica.png | 14c683b70b8d75a6a688e8efc305ac96a1b619baddf2f1d0cf8c6efd488b70fc |
-| validacao/4b96ea7/anexos/E06-fila-pausada-sessao-encerrada.png | ef69a704d37fa6fd0a222b0bcd92b7b0cb72c66ceeff5270eeaa00bcfbcea257 |
-| validacao/4b96ea7/anexos/E06-fila-senha-provisoria.png | 53aefaf2754cb2ba259b507a2bec81b2a39675a9a9e3667a0ca7b20493d603c6 |
-| validacao/4b96ea7/qa.md | cb98a0e561e042b12bf30970c1ffbfd159121d2ee1da5c97be41af9481fced5e |
-| validacao/4b96ea7/red-team.md | 5d090e3dd56500eb7cae22b939eedd392ff4a29e341f050f4a3e755417da8820 |
-| validacao/4b96ea7/seguranca-aplicacao.md | 12b28ad087e30efb8c445876ed6e963ab22009d94337b602f9a42b43e35acb0a |
-| validacao/4b96ea7/testes.md | 42d3a67c72f71871eda8ad0bd2c73dd60a09086c1b18cc33ed2cca204a8acc6d |
-| validacao/7005a60/arbitragem.md | b28a1a520d615580880d2a25ada6c4d5c9b51a9daaf9f4f902c936f5c530d4db |
-| validacao/7005a60/qa.md | 31c0e0631155ec6a88ee60aaa8349cddcada56ffb46cf695eaacc7463c41dd31 |
-| validacao/7005a60/red-team.md | d54a9f61fa4817b721d50b4b216cc40f571f339fdaf42bacaa46e7bce138e623 |
-| validacao/7005a60/seguranca-aplicacao.md | 92ed3bf367caad31c6551defe5a917db8ab04842f9af16ac4556d44376e2ce2f |
-| validacao/7005a60/testes.md | ea23b3654a32fd90e0edca1ae85b02859e229b936ac37661bd2da530c92738a5 |
