@@ -1,9 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 875bb24e84b043d5029d0876b816401447921fc04de19da78646d69c5b6cb353 |
-| VEREDITO.md | e7ae2475a528def617e174bb67bd5a205378711484fa83814679b2c601f526a6 |
 | correcao-1/RESUMO.md | 86078882e53865af700b83aceb631d715561dd48737aa51062429ece4e8e9456 |
 | correcao-1/diff-da-correcao.patch | 21b854328acf59c8a1c35d76648db9050318387bdaed09f5e899b864b88f06f1 |
 | correcao-1/saidas/01-saida-de-municipio-ANTES-do-conserto.txt | 9ba6ceca671a21bf7b87b81f833d94644d23d2455a8eca6fe2a35ce4eb3e3232 |
@@ -29,6 +30,44 @@
 | correcao-2/saidas/40-test-isolamento-revisao.txt | d8070d35d63d1dc3686d693bcdee2cd12b3d1bba05bccd6a5a432fcae6f9dedd |
 | correcao-2/saidas/41-test-api-revisao.txt | 9e2b5712df3d7e12371550c045a4f5ff4e0cc9e54e7e302f00617ac9690048f3 |
 | correcao-2/saidas/42-portao-de-conteudo-revisao.txt | 4aaea8120d1c4938c80cd18204f50c569e3ffc3cb358d133c6ec23e6b61fa0e8 |
+| correcao-3/RESUMO.md | 8504a39ac338e80952f36513f57f89003c98414eb7e9542aa02738fd8a9efae1 |
+| correcao-3/diff-da-correcao.patch | 88325e8eebfa5265535475712b617176148aa4c031fc401c77f2ad40bf462184 |
+| correcao-3/saidas/01-saida-de-municipio-ANTES-VERMELHO.txt | bacc26be1a77b6947613a0e4a015193898a3c62e0e6f3bbf452ca5d7c45475ce |
+| correcao-3/saidas/02-saida-de-municipio-DEPOIS-VERDE.txt | c8be1594ae3c35496af4940cb5d363348d87cc52f805026098359a8eb2a7b5be |
+| correcao-3/saidas/03-mutacao-perdas-sem-filtro-da-vigente.txt | 5c86e3f6b6f6217695761962417169defcabe7a4dbaaf9d4128d12baf1b5a345 |
+| correcao-3/saidas/04-typecheck-da-api.txt | db5c03f6dd1269d0f977efe30a59c51c88b7c605d2652b421d9fe3795de788c7 |
+| correcao-3/saidas/10-test-api.txt | 56781aa78e9e17b23b5cc57a5736608258d49fcff20d379d4cd8ff50c71dad75 |
+| correcao-3/saidas/11-test-isolamento.txt | af915913ac2bbcbbc39f15c34e0bc611ffa39ff95cff5b94865cd2412d0ef043 |
+| correcao-3/saidas/12-portao-de-conteudo.txt | b18813ae1946fd459fdca6680c558586387be0029267a3d9dc462048d7e88978 |
+| correcao-3/saidas/13-test-e2e-api.txt | d32432446e2160288c19b23f20dae115a0f7812b77f5dac02f1b62f4f4fb9dce |
+| correcao-3/saidas/14-conferir-numeros.txt | c88a6b70903c67338bcc0094d877b059f283b8cb23c5a4f9479d2450b81df4b2 |
+| correcao-3/sonda/ANTES-execucao.txt | 963f9f9f3daf294bac94fa5cbebc26278dde0ce657ad3e93b1de3c9330b28d06 |
+| correcao-3/sonda/ANTES/4-perdida-diff-laudo-rota-x-pacote.txt | 4dc1c40ae90dd3ac553e3e9aeda4bce366ba032f409a728903928caeba16412c |
+| correcao-3/sonda/ANTES/4-perdida-diff-termo-rota-x-pacote.txt | 3f1a5233b10b2c17d836da9cb41bfc70378440db47e95f172bc63c1fe1c8f355 |
+| correcao-3/sonda/ANTES/4-perdida-pacote-laudo.html | 44daf38c09d560b8047927e04766314d09946cd0bfb3e16557344a4fff4deb22 |
+| correcao-3/sonda/ANTES/4-perdida-pacote-termo.html | 0586621188dd150b3e88995bdab28367e416f2464d26f04936452e86ab0221bd |
+| correcao-3/sonda/ANTES/4-perdida-rota-laudo.html | bd95c761602a5deb327c2e2fdafd2483a83b1f0895f3abb5deff085c5b172eba |
+| correcao-3/sonda/ANTES/4-perdida-rota-termo.html | 992d4ca8c26bd7b3c4aee6bfb80a74d526e64a758ba5a8011dc8fdd08d109e74 |
+| correcao-3/sonda/ANTES/6-revistoria-diff-laudo-rota-x-pacote.txt | ae188f96afe941a39b34f4f7a6cc981a9d1ffd1d9914e2d7ea4dd0bcb494243d |
+| correcao-3/sonda/ANTES/6-revistoria-diff-termo-rota-x-pacote.txt | 180c0494092892db736dd5ae3eea4ebfb63796cc9d82323b0f437a8100a043a9 |
+| correcao-3/sonda/ANTES/6-revistoria-pacote-laudo.html | d5de794ea92f0ab006e200e273c1503e62a5887e631f03007d4a8f0a9483fa07 |
+| correcao-3/sonda/ANTES/6-revistoria-pacote-termo.html | ed2dc4ff1be1fcd98d7ff7596da7766086d8f5ad47a2a01e695a7045b7feab6e |
+| correcao-3/sonda/ANTES/6-revistoria-rota-laudo.html | 425f05cab3b62bc195b564eded5b4d90b4502a117b0d459f968236b95421a501 |
+| correcao-3/sonda/ANTES/6-revistoria-rota-termo.html | 992d4ca8c26bd7b3c4aee6bfb80a74d526e64a758ba5a8011dc8fdd08d109e74 |
+| correcao-3/sonda/DEPOIS-execucao.txt | 365ffe824146e8502316a4d979e939d029bdc7eee5ffead642a114bd7b978ff0 |
+| correcao-3/sonda/DEPOIS/4-perdida-diff-laudo-rota-x-pacote.txt | 3d12821d750fdb1f6863a11b1dc9ccb2e1a7ba3e860c235cf05362afb98a5adf |
+| correcao-3/sonda/DEPOIS/4-perdida-diff-termo-rota-x-pacote.txt | 40cceb179fb05c2b63860b1ea48268e2d6b1ac15a3738c5b4a18052a51208d37 |
+| correcao-3/sonda/DEPOIS/4-perdida-pacote-laudo.html | cbd207f7c7b51d981d14b29dcb710974505e770c2c258aa52557aa6041e079e2 |
+| correcao-3/sonda/DEPOIS/4-perdida-pacote-termo.html | e6d1a6d45d06ad81f9d852885192d5c3af426423ba6fa6f6de7f83b6c663a47b |
+| correcao-3/sonda/DEPOIS/4-perdida-rota-laudo.html | 9f988c93a54e279c2e448cdebdd824cbd5ec5fb3eb69398924c2b51ee54baaae |
+| correcao-3/sonda/DEPOIS/4-perdida-rota-termo.html | a7fa4040707ebafd8ec6d1b08c81395ae5f572fc23b5d8ca1afed2929bbc451c |
+| correcao-3/sonda/DEPOIS/6-revistoria-diff-laudo-rota-x-pacote.txt | 2962c322f9279d41d6ae19a87759aa403fc47270bce1d3bbc4d3a366a5847ef6 |
+| correcao-3/sonda/DEPOIS/6-revistoria-diff-termo-rota-x-pacote.txt | 71437686f64867a0595a2abafa2b18d55fe5cbeb8e416cb37ba8873ed20f4852 |
+| correcao-3/sonda/DEPOIS/6-revistoria-pacote-laudo.html | aa666699a11a2881c904de5434ee233266e8dedf092dd7cbcecff26e473c7637 |
+| correcao-3/sonda/DEPOIS/6-revistoria-pacote-termo.html | 7e6f9d45a01d3c042d6d0cb79f2452d3ef6c096b25c747c920bbe50e6f6296fa |
+| correcao-3/sonda/DEPOIS/6-revistoria-rota-laudo.html | a0e0c7111f7905084b9c02cedfb020f4a7ae003e8213b343f08740a3134d4a4a |
+| correcao-3/sonda/DEPOIS/6-revistoria-rota-termo.html | a7fa4040707ebafd8ec6d1b08c81395ae5f572fc23b5d8ca1afed2929bbc451c |
+| correcao-3/sonda/sonda.mts | d8bd514f0b2c5922320a3e091c5a1b346980c89a4ab1d5d284c37501446211f3 |
 | saidas/00-antes-api-saida-de-municipio.txt | fc5bbc9d0af61c11a639f1882810982c4baa50d05c334806163473cdc5242c43 |
 | saidas/01-sonda-e2e-antes-do-conserto.txt | 2146e99beb3a738f5b6d77ea9a77ce7772662ef03021f46194ef0d1285e0dc21 |
 | saidas/02-api-saida-de-municipio-depois.txt | bdc4e933b92f5db0ec9e648d9e17d037341ec698440c62d87f094fbf1ffeb6ba |
@@ -46,10 +85,3 @@
 | sondas/e2e-aparado-secoes-28-29.mjs | bfe88afdb579c99ea4db368d335b45353ea58337647922d695402c83826aadbb |
 | trechos/trecho-do-aviso-chromium.txt | e4d475a2b12f601246703b64c785b0723aaf9dc2c58cabe2d60203bcda27362a |
 | trechos/trecho-do-aviso-firefox.txt | 4bf158b95b35c24f262ac3b51f265e0af6b25fdd779cbc229898a8f3929ab0aa |
-| validacao/4b96ea7/banco-de-dados.md | 109a84b130b0638dd00e3daf0e7bf29283389d143abc86fd30c3eeae8a469f26 |
-| validacao/4b96ea7/especificacao.md | b4a05c28da01074ffb1fe95370ccba294086de14bd12c2ee8fefd750d5d398ab |
-| validacao/4b96ea7/qa.md | ce1f5545ac25e78e865d7ca0d533aed6db028ce57c8147454464e51696ebede0 |
-| validacao/4b96ea7/seguranca-aplicacao.md | 2c5cdcf298ab7cf72ec27c98f161d5ea2b132688a067912c6c92ce582cb574b6 |
-| validacao/7005a60/arbitragem.md | c8e3eb8b78daea4df25c8baab397c66acf8ea87be5f99a255cfc6e696efb74a4 |
-| validacao/7005a60/especificacao.md | a96eea5fff6ae2b00fece348c2609c3cb92dc785a12668877b186be0a98c390d |
-| validacao/7005a60/qa.md | fcb0097d21ea429716d2aca82f2f62ff7244967b2bd08379778d8c827c7f66f1 |

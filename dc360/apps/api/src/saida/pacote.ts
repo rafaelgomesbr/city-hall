@@ -264,6 +264,14 @@ type LinhaEvidencia = {
   ordem: number;
 };
 
+/** O registro capturado em campo que não chegou (migração 030). */
+type LinhaPerdida = {
+  vistoria_id: string;
+  papel: "foto" | "assinatura";
+  capturada_em: string;
+  legenda: string | null;
+};
+
 /** A foto de perfil de um servidor, como sai do cadastro. */
 type LinhaFotoDeServidor = {
   matricula: string;
@@ -559,16 +567,47 @@ export async function* montarPacoteDeSaida(
       como em `rotas/documentos.ts`: sem ela o laudo do pacote imprimia "não
       registrada" para uma vistoria que tem ponto. A assinatura declarada que
       falta no armazenamento também sai igual desde a correção 2 da E12
-      (`conferirAssinatura`, acima). Os DOIS laudos continuam diferindo em três
+      (`conferirAssinatura`, acima), e os registros perdidos desde a correção 3
+      (consulta `perdidas`, abaixo). Os documentos continuam diferindo em três
       pontos que a V2-F09-E02 resolve com o montador único (fotos de todas as
-      vistorias, sem a seção das avulsas, sem a seção dos registros perdidos),
-      e num quarto que é deliberado: com o armazenamento sem resposta na
+      vistorias, sem a seção das avulsas, e o termo de interdição depois de
+      uma re-vistoria, que aqui sai da vigente e na rota sai da vistoria do
+      ato), e num quarto que é deliberado: com o armazenamento sem resposta na
       conferência da assinatura, a rota diz "Assinatura não coletada" e o
       pacote diz que não conseguiu conferir.
       `test/saida-de-municipio.test.ts` (bloco "campo por campo") trava as
       quatro e reprova se uma delas mudar sem a documentação. Ele não compara
       o laudo inteiro: diferença nova em outro campo passa por ele.
     */
+
+    /*
+      O QUE FOI CAPTURADO EM CAMPO E NÃO CHEGOU (V2-F00-E12, correção 3).
+
+      Mesma leitura de `rotas/documentos.ts`, e o motivo é o mais grave dos
+      que separavam os dois laudos: quando o que se perdeu foi a ASSINATURA, a
+      vistoria chega com `assinatura_chave` nula e uma linha aqui com
+      `papel = 'assinatura'`. Sem ler esta tabela, o laudo e o termo de
+      interdição do pacote imprimiam "Assinatura não coletada" em cima do nome
+      de quem estava no local, enquanto a rota, para a mesma vistoria, imprime
+      "Assinatura coletada em campo e não recuperada do aparelho". O documento
+      que o município leva embora afirmava o contrário do fato, e do próprio
+      `tabelas/vistoria_evidencias_perdidas.csv` que vai no mesmo pacote. Junto
+      voltou a seção dos registros perdidos, que sumia e deixava o laudo do
+      pacote parecendo completo sendo incompleto.
+
+      Lê a tabela inteira do município (a transação é a do tenant, sob RLS) e
+      entrega a cada documento só as perdas da VISTORIA VIGENTE, pela mesma
+      razão da rota: numa re-vistoria, a perda da ida anterior não é perda
+      desta. A ordem é a da rota (`ordem, capturada_em, id`).
+
+      Não reemite nada: o pacote gera cópias dos documentos a partir do banco,
+      e nenhum documento já emitido é tocado.
+    */
+    const perdidas = await c.query<LinhaPerdida>(
+      `SELECT vistoria_id, papel, capturada_em, legenda
+         FROM vistoria_evidencias_perdidas
+        ORDER BY vistoria_id, ordem, capturada_em, id`,
+    );
 
     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(
       `SELECT i.vistoria_id, i.nome, g.sigla
@@ -628,6 +667,7 @@ export async function* montarPacoteDeSaida(
       ocorrencias: ocorrencias.rows,
       vistorias: vistorias.rows,
       indicados: indicados.rows,
+      perdidas: perdidas.rows,
       oficios: oficios.rows,
       evidencias: evidencias.rows,
       fotosDeServidor: fotosDeServidor.rows,
@@ -718,6 +758,13 @@ export async function* montarPacoteDeSaida(
     indicadosPorVistoria.set(i.vistoria_id, lista);
   }
 
+  const perdidasPorVistoria = new Map<string, NonNullable<DadosDocumento["evidenciasPerdidas"]>>();
+  for (const p of dados.perdidas) {
+    const lista = perdidasPorVistoria.get(p.vistoria_id) ?? [];
+    lista.push({ papel: p.papel, capturadaEm: p.capturada_em, legenda: p.legenda });
+    perdidasPorVistoria.set(p.vistoria_id, lista);
+  }
+
   const evidenciasPorOcorrencia = new Map<string, LinhaEvidencia[]>();
   for (const e of dados.evidencias) {
     const lista = evidenciasPorOcorrencia.get(e.ocorrencia_id) ?? [];
@@ -756,6 +803,7 @@ export async function* montarPacoteDeSaida(
         orgaosIndicados: indicadosPorVistoria.get(vistoria.id) ?? [],
       },
       fotos,
+      evidenciasPerdidas: perdidasPorVistoria.get(vistoria.id) ?? [],
       emitidoPor,
       emitidoEm: agora,
       ...(opcoes.marcaDagua ? { marcaDagua: opcoes.marcaDagua } : {}),

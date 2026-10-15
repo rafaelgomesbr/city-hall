@@ -1,0 +1,144 @@
+$ npx vitest run test/saida-de-municipio.test.ts (em dc360/apps/api)
+# teste novo contra src/saida/pacote.ts de 11d9446 (HEAD), sem o conserto
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/saida-de-municipio.test.ts (37 tests | 4 failed) 4318ms
+   ✓ O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz 99ms
+   ✓ O pacote leva tudo que é do município > tabela nova de migração futura obriga alguém a decidir se ela sai 4ms
+   ✓ Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação 81ms
+   ✓ Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais 74ms
+   ✓ Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais 75ms
+   ✓ Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido 73ms
+   ✓ Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote 72ms
+   ✓ Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele 86ms
+   ✓ Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita 70ms
+   ✓ O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade 70ms
+   ✓ Isolamento entre municípios > o pacote de um município não carrega nada do outro 71ms
+   ✓ É ato administrativo grave > exige administrador: quem só exporta relatório não tira a base inteira 6ms
+   ✓ É ato administrativo grave > recusa operador e recusa quem não apresenta token 2ms
+   ✓ É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada 70ms
+   ✓ É ato administrativo grave > a organização vem do token, e não de parâmetro nenhum 2ms
+   ✓ O escritor de ZIP > escreve um pacote que um leitor independente abre 0ms
+   ✓ O escritor de ZIP > o caminho ZIP64 funciona, exercitado com o teto rebaixado 0ms
+   ✓ O escritor de ZIP > recusa caminho repetido, que sobrescreveria arquivo em silêncio 1ms
+   ✓ O escritor de ZIP > não deixa um nome de arquivo escapar da pasta do pacote 0ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos 78ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso 75ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe 74ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso 138ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência 76ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote 71ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção) 77ms
+   × O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem a seção das fotos avulsas que a rota tem 83ms
+     → expected [ …(2) ] to deeply equal [ 'Fotografias anexadas ao protocolo' ]
+   × O laudo do pacote e o da rota, campo por campo > a seção dos registros perdidos sai IGUAL nos dois laudos (consertada na correção 3) 78ms
+     → o laudo do pacote não diz que um registro de campo se perdeu: expected '' to be '<h2>Registros capturados que não pude…' // Object.is equality
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote 76ms
+   × O laudo do pacote e o da rota, campo por campo > isolamento: a perda registrada em Vale Fundo não entra no pacote de Serra Alta (correção 3) 315ms
+     → controle positivo: o pacote de Vale Fundo não traz a perda de Vale Fundo: expected [ …(2) ] to deeply equal ArrayContaining{…}
+   × O laudo do pacote e o da rota, campo por campo > a assinatura COLETADA E PERDIDA no aparelho sai igual nos dois, no laudo e no termo de interdição (consertada na correção 3) 87ms
+     → o laudo do pacote afirma que a assinatura não foi coletada: expected '<div class="assinatura">\n    <div cl…' not to contain 'Assinatura não coletada'
+   ✓ O laudo do pacote e o da rota, campo por campo > re-vistoria: a perda da ida anterior não entra no laudo da vigente, nos dois (correção 3) 86ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): depois da re-vistoria, o termo de interdição da rota sai da vistoria do ato e o do pacote sai da vigente 86ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2) 79ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo 76ms
+   ✓ O laudo do pacote e o da rota, campo por campo > armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência 69ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz "Assinatura não coletada" e o pacote diz que não conferiu 77ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem a seção das fotos avulsas que a rota tem
+AssertionError: expected [ …(2) ] to deeply equal [ 'Fotografias anexadas ao protocolo' ]
+
+- Expected
++ Received
+
+  [
+    "Fotografias anexadas ao protocolo",
++   "Registros capturados que não puderam ser recuperados",
+  ]
+
+ ❯ test/saida-de-municipio.test.ts:864:64
+    862|     // Só a falta: nenhuma seção do pacote pode faltar na rota.
+    863|     expect(doPacote.filter((t) => !daRota.includes(t))).toEqual([]);
+    864|     expect(daRota.filter((t) => !doPacote.includes(t)).sort()).toEqual…
+       |                                                                ^
+    865|       "Fotografias anexadas ao protocolo",
+    866|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a seção dos registros perdidos sai IGUAL nos dois laudos (consertada na correção 3)
+AssertionError: o laudo do pacote não diz que um registro de campo se perdeu: expected '' to be '<h2>Registros capturados que não pude…' // Object.is equality
+
+- Expected
++ Received
+
+- <h2>Registros capturados que não puderam ser recuperados</h2>
+-     <p class="nota">Os registros abaixo foram capturados durante esta vistoria e não puderam ser recuperados do aparelho no momento da transmissão, então não constam deste documento. A vistoria foi recebida sem eles, por decisão do agente que a coletou, e a perda está registrada na trilha de auditoria.</p>
+-     <ul class="nota"><li>Fotografia: Muro de arrimo que sumiu, capturada em 14/10/2026, 08:36.</li></ul>
+
+ ❯ test/saida-de-municipio.test.ts:888:86
+    886|     const doPacote = secaoDosPerdidos(await laudoDoPacote());
+    887|     expect(daRota).toContain("Fotografia: Muro de arrimo que sumiu");
+    888|     expect(doPacote, "o laudo do pacote não diz que um registro de cam…
+       |                                                                                      ^
+    889|   }, 60_000);
+    890| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > isolamento: a perda registrada em Vale Fundo não entra no pacote de Serra Alta (correção 3)
+AssertionError: controle positivo: o pacote de Vale Fundo não traz a perda de Vale Fundo: expected [ …(2) ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
+    "tabelas/vistoria_evidencias_perdidas.csv",
+-   StringMatching /^documentos\/[^/]+\/laudo-de-vistoria\.html$/,
++   "tabelas/vistoria_evidencias_perdidas.json",
+  ]
+
+ ❯ test/saida-de-municipio.test.ts:939:10
+    937|       const doVale = citam(await baixarPacote(await entrar("aurelio.ma…
+    938|       expect(doVale, "controle positivo: o pacote de Vale Fundo não tr…
+    939|         .toEqual(expect.arrayContaining([
+       |          ^
+    940|           "tabelas/vistoria_evidencias_perdidas.csv",
+    941|           expect.stringMatching(/^documentos\/[^/]+\/laudo-de-vistoria…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a assinatura COLETADA E PERDIDA no aparelho sai igual nos dois, no laudo e no termo de interdição (consertada na correção 3)
+AssertionError: o laudo do pacote afirma que a assinatura não foi coletada: expected '<div class="assinatura">\n    <div cl…' not to contain 'Assinatura não coletada'
+
+- Expected
++ Received
+
+- Assinatura não coletada
++ <div class="assinatura">
++     <div class="traco-ausente">Assinatura não coletada</div>
++     <div class="linha"></div>
++     <div class="nome">Cleuza Ramos de Andrade</div>
++     
+
+ ❯ test/saida-de-municipio.test.ts:1009:14
+    1007| 
+    1008|       expect(assinaturaNoLocal(laudoPacote), "o laudo do pacote afirma…
+    1009|         .not.toContain("Assinatura não coletada");
+       |              ^
+    1010|       expect(assinaturaNoLocal(laudoPacote)).toBe(assinaturaNoLocal(la…
+    1011|       expect(cienciaDoResponsavel(termoPacote), "o termo do pacote afi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 33 passed (37)
+   Start at  10:36:40
+   Duration  4.86s (transform 206ms, setup 16ms, collect 347ms, tests 4.32s, environment 0ms, prepare 35ms)
+

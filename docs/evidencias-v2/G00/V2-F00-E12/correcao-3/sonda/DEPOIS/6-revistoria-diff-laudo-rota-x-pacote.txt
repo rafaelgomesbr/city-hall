@@ -1,0 +1,36 @@
+297,301c297,298
+<     <h2>Registro fotográfico</h2>
+<       <p class="nota">Nenhuma fotografia foi anexada a esta vistoria.</p><h2>Fotografias anexadas ao protocolo</h2>
+<     <p class="nota">As imagens abaixo foram anexadas ao protocolo fora do fluxo de vistoria, então não integram o registro fotográfico desta vistoria e não têm agente responsável por elas.</p>
+<     <div class="fotos"><figure class="foto">
+<         <img src="http://127.0.0.1:55651/armazenamento/objeto?expira=1792072237&amp;assinatura=AbF6JIcEvRnlNKeMHx5TBGgbh13mY7pDGCJ4ubrSKiA&amp;chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c3%2Favulsa-do-joao.jpg" alt="Fotografia 1 anexada ao protocolo">
+---
+>     <h2>Registro fotográfico</h2><div class="fotos"><figure class="foto">
+>         <img src="../../evidencias/000473-2026/talude-fundos.jpg" alt="Fotografia da vistoria 1">
+303,305c300,307
+<           Anexo 1. Avulsa do Joao<br>
+<           Capturada em 15/10/2026, 07:20<br>
+<           Anexada por autor não registrado
+---
+>           Foto 1. Talude nos fundos<br>
+>           Capturada em 14/10/2026, 09:20
+>         </figcaption>
+>       </figure><figure class="foto">
+>         <img src="../../evidencias/000473-2026/avulsa-do-joao.jpg" alt="Fotografia da vistoria 2">
+>         <figcaption class="legenda">
+>           Foto 2. Avulsa do Joao<br>
+>           Capturada em 15/10/2026, 07:20
+316c318
+<     <img class="traco" src="http://127.0.0.1:55651/armazenamento/objeto?expira=1792072237&amp;assinatura=7jQv7K3hCj9uWu2aQujlFNEq_k5CBZQDIhEthxl_q9U&amp;chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c3%2Fassinatura-f8.png" alt="Assinatura de Cleuza Ramos de Andrade">
+---
+>     <img class="traco" src="../../evidencias/000473-2026/assinatura-f8.png" alt="Assinatura de Cleuza Ramos de Andrade">
+326c328
+<       por Helena Vasques Coutinho (coordenador)
+---
+>       por Rita Sampaio Lopes (administrador)
+329,330c331,332
+<       <div class="selo-identificador" aria-hidden="true">4DAF3670B703</div>
+<       <div>Identificador da emissão<br><strong>4DAF3670B703</strong></div>
+---
+>       <div class="selo-identificador" aria-hidden="true">447420F51FB2</div>
+>       <div>Identificador da emissão<br><strong>447420F51FB2</strong></div>

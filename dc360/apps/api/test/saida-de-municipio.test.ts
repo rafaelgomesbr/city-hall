@@ -752,31 +752,41 @@ describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", (
 });
 
 /* ==========================================================================
-   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correções 1 e 2).
+   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correções 1, 2 e 3).
 
    Existem DOIS montadores de dados do laudo (`rotas/documentos.ts` e
    `saida/pacote.ts`), e a documentação chegou a responder "Sim" a "o laudo do
    pacote diz o mesmo que o laudo emitido" porque só o aviso de equipe tinha
    sido comparado. A validação de 7005a60 gerou os dois laudos da mesma vistoria
-   e achou quatro diferenças, e a de 4b96ea7 achou a quinta (a assinatura
-   declarada e ausente no armazenamento). Este bloco prende o estado REAL:
+   e achou quatro diferenças, a de 4b96ea7 achou a quinta (a assinatura
+   declarada e ausente no armazenamento) e a de 52952a1 achou a sexta (a
+   assinatura coletada e perdida no aparelho, que o pacote dizia "não
+   coletada", no laudo e no termo de interdição). Este bloco prende o estado
+   REAL:
 
-     - a coordenada da vistoria (correção 1) e a assinatura declarada e ausente
-       no armazenamento (correção 2) foram consertadas e têm de sair iguais
-       nos dois;
-     - as outras três diferenças continuam, são da V2-F09-E02 (montador
-       único), e estão TRAVADAS como diferenças conhecidas. Se alguém conserta
-       uma delas, o teste reprova de propósito: é o aviso para apagar a
-       ressalva de `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md`
-       no mesmo commit, em vez de a documentação envelhecer sozinha;
+     - a coordenada da vistoria (correção 1), a assinatura declarada e ausente
+       no armazenamento (correção 2), e a assinatura coletada e perdida no
+       aparelho com a seção dos registros perdidos (correção 3) foram
+       consertadas e têm de sair iguais nos dois;
+     - três diferenças continuam, são da V2-F09-E02 (montador único), e
+       estão TRAVADAS como diferenças conhecidas: as fotos de todas as
+       vistorias no registro fotográfico, a seção das fotos avulsas, e a
+       vistoria que o termo de interdição imprime depois de uma re-vistoria
+       (a do ato na rota, a vigente no pacote; achada pela varredura da
+       correção 3). Se alguém conserta uma delas, o teste reprova de
+       propósito: é o aviso para apagar a ressalva de
+       `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md` no mesmo
+       commit, em vez de a documentação envelhecer sozinha;
      - uma quarta é deliberada (correção 2, revisão): com o armazenamento sem
        resposta na conferência da assinatura, a rota imprime "Assinatura não
        coletada" e o pacote imprime que não conseguiu conferir, sem imagem
        quebrada. Também está TRAVADA e na tabela da documentação.
 
    O QUE ESTE BLOCO NÃO FAZ: comparar o laudo inteiro. Ele olha os títulos das
-   seções, a coordenada, a posição da foto avulsa e o bloco da assinatura de
-   quem estava no local. Uma diferença nova em outro campo passa por ele sem
+   seções, a coordenada, a posição da foto avulsa, a seção dos registros
+   perdidos e o bloco da assinatura de quem estava no local (no laudo e, nos
+   casos da assinatura perdida e da re-vistoria, também no termo de
+   interdição). Uma diferença nova em outro campo passa por ele sem
    reprovar; quem acrescenta campo ao laudo acrescenta o caso aqui (até a
    V2-F09-E02 unificar os montadores).
 
@@ -845,7 +855,7 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
     expect(doPacote).not.toContain("não registrada");
   }, 60_000);
 
-  it("DIFERENÇA CONHECIDA (F09-E02): o pacote não tem duas seções que a rota tem", async () => {
+  it("DIFERENÇA CONHECIDA (F09-E02): o pacote não tem a seção das fotos avulsas que a rota tem", async () => {
     const daRota = titulos(await laudoDaRota());
     const doPacote = titulos(await laudoDoPacote());
 
@@ -853,8 +863,29 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
     expect(doPacote.filter((t) => !daRota.includes(t))).toEqual([]);
     expect(daRota.filter((t) => !doPacote.includes(t)).sort()).toEqual([
       "Fotografias anexadas ao protocolo",
-      "Registros capturados que não puderam ser recuperados",
     ]);
+  }, 60_000);
+
+  /**
+   * A seção dos registros perdidos: do título até o fim da lista.
+   *
+   * Não serve `secao`, que vai até o próximo `<h2>`: no pacote, sem a seção
+   * das avulsas, o próximo título não existe e a fatia pegaria a folha inteira.
+   */
+  function secaoDosPerdidos(html: string): string {
+    const inicio = html.indexOf("<h2>Registros capturados que não puderam ser recuperados</h2>");
+    if (inicio < 0) return "";
+    return html.slice(inicio, html.indexOf("</ul>", inicio) + "</ul>".length);
+  }
+
+  it("a seção dos registros perdidos sai IGUAL nos dois laudos (consertada na correção 3)", async () => {
+    // A perda de fotografia montada no `beforeAll`. Antes da correção 3 o
+    // pacote não lia `vistoria_evidencias_perdidas` e a seção inteira sumia:
+    // o laudo do pacote parecia completo sendo incompleto.
+    const daRota = secaoDosPerdidos(await laudoDaRota());
+    const doPacote = secaoDosPerdidos(await laudoDoPacote());
+    expect(daRota).toContain("Fotografia: Muro de arrimo que sumiu");
+    expect(doPacote, "o laudo do pacote não diz que um registro de campo se perdeu").toBe(daRota);
   }, 60_000);
 
   it("DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote", async () => {
@@ -869,12 +900,204 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
     expect(secao(doPacote, "Registro fotográfico")).toContain("Avulsa do Joao");
   }, 60_000);
 
-  /** O bloco da assinatura de quem estava no local (a que o aparelho coleta). */
-  function assinaturaNoLocal(html: string): string {
-    const papel = html.indexOf('<div class="papel">Presente no local</div>');
-    expect(papel, "o laudo não tem o bloco da assinatura de quem estava no local").toBeGreaterThan(0);
+  it("isolamento: a perda registrada em Vale Fundo não entra no pacote de Serra Alta (correção 3)", async () => {
+    // A consulta nova lê `vistoria_evidencias_perdidas` sem filtro de
+    // município no SQL: quem filtra é a RLS da transação do tenant. Este caso
+    // prova o filtro com CONTROLE POSITIVO: a mesma perda aparece no pacote de
+    // Vale Fundo (laudo e tabela), então a ausência no de Serra Alta não é
+    // efeito de a perda não existir. Vale Fundo não tem administrador na
+    // semente: o Aurélio é promovido só durante o caso, e volta ao papel dele.
+    const VF = "22222222-2222-4222-8222-000000000002";
+    const VF_OCORRENCIA = "22222222-2222-4222-8222-0000000000c1";
+    const VF_VISTORIA = "22222222-2222-4222-8222-0000000000f9";
+    const AURELIO = "22222222-2222-4222-8222-0000000000d1";
+    const LEGENDA = "Perda exclusiva de Vale Fundo";
+    const papel = await mem.bruto.query<{ papel: string }>(`SELECT papel FROM usuarios WHERE id = '${AURELIO}'`);
+    await mem.bruto.exec(`
+      UPDATE usuarios SET papel = 'administrador' WHERE id = '${AURELIO}';
+      INSERT INTO vistorias
+        (id, organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
+         assinante_nome, observacoes, coletada_em, sincronizada_em, idempotency_key)
+      VALUES
+        ('${VF_VISTORIA}', '${VF}', '${VF_OCORRENCIA}', '22222222-2222-4222-8222-0000000000d3',
+         '[]'::jsonb, 5, 'Morador de Vale Fundo', 'Vistoria do teste de isolamento',
+         now() - interval '2 hours', now() - interval '1 hour', '22222222-2222-4222-8222-00000000ff99');
+      INSERT INTO vistoria_evidencias_perdidas
+        (organizacao_id, vistoria_id, idempotency_key, papel, capturada_em, legenda, ordem)
+      VALUES
+        ('${VF}', '${VF_VISTORIA}', 'perda-de-vale-fundo', 'foto', now() - interval '2 hours', '${LEGENDA}', 0);
+    `);
+    try {
+      const citam = (pacote: Map<string, Buffer>) => [...pacote.entries()]
+        // `esquema/` é o SQL de criação, igual em toda instalação.
+        .filter(([caminho]) => !caminho.startsWith("esquema/"))
+        .filter(([, conteudo]) => conteudo.toString("utf8").includes(LEGENDA))
+        .map(([caminho]) => caminho);
+
+      const doVale = citam(await baixarPacote(await entrar("aurelio.machado@valefundo.exemplo.gov.br")));
+      expect(doVale, "controle positivo: o pacote de Vale Fundo não traz a perda de Vale Fundo")
+        .toEqual(expect.arrayContaining([
+          "tabelas/vistoria_evidencias_perdidas.csv",
+          expect.stringMatching(/^documentos\/[^/]+\/laudo-de-vistoria\.html$/),
+        ]));
+      expect(citam(await baixarPacote(tokenAdministradora))).toEqual([]);
+    } finally {
+      await mem.bruto.exec(`
+        DELETE FROM vistoria_evidencias_perdidas WHERE idempotency_key = 'perda-de-vale-fundo';
+        DELETE FROM vistorias WHERE id = '${VF_VISTORIA}';
+        UPDATE usuarios SET papel = '${papel.rows[0]!.papel}' WHERE id = '${AURELIO}';
+      `);
+    }
+  }, 60_000);
+
+  /** O bloco de assinatura de um papel (o rótulo embaixo da linha). */
+  function blocoDaAssinatura(html: string, rotulo: string): string {
+    const papel = html.indexOf(`<div class="papel">${rotulo}</div>`);
+    expect(papel, `o documento não tem o bloco da assinatura "${rotulo}"`).toBeGreaterThan(0);
     return html.slice(html.lastIndexOf('<div class="assinatura">', papel), papel);
   }
+
+  /** O bloco da assinatura de quem estava no local (a que o aparelho coleta). */
+  function assinaturaNoLocal(html: string): string {
+    return blocoDaAssinatura(html, "Presente no local");
+  }
+
+  /** O mesmo traço, no termo de interdição, sob outro rótulo. */
+  function cienciaDoResponsavel(html: string): string {
+    return blocoDaAssinatura(html, "Responsável pelo imóvel, ciente");
+  }
+
+  async function termoDaRota(): Promise<string> {
+    const r = await app.inject({
+      method: "GET",
+      url: `/documentos/${OCORRENCIA_C3}/termo-de-interdicao`,
+      headers: com(tokenCoordenadora),
+    });
+    expect(r.statusCode).toBe(200);
+    return r.body;
+  }
+
+  it("a assinatura COLETADA E PERDIDA no aparelho sai igual nos dois, no laudo e no termo de interdição (consertada na correção 3)", async () => {
+    // O estado que a sincronização grava quando o traço se perde no aparelho
+    // (migração 030, `rotas/sincronizacao.ts`): `assinatura_chave` nula e uma
+    // linha em `vistoria_evidencias_perdidas` com `papel = 'assinatura'`. A
+    // rota imprime que a assinatura foi coletada e não recuperada; antes da
+    // correção 3 o pacote, que não lia as perdas, imprimia "Assinatura não
+    // coletada", no laudo E no termo de interdição: o papel que tira a família
+    // de casa afirmava que ninguém deu ciência, contra o registro do próprio
+    // banco que ele exporta em `tabelas/vistoria_evidencias_perdidas.csv`.
+    const PERDIDA = "Assinatura coletada em campo e não recuperada do aparelho";
+    await mem.bruto.exec(`
+      UPDATE vistorias SET assinatura_chave = NULL WHERE id = '${VISTORIA_F1}';
+      INSERT INTO vistoria_evidencias_perdidas
+        (organizacao_id, vistoria_id, idempotency_key, papel, capturada_em, legenda, ordem)
+      VALUES
+        ('${ORG_SERRA_ALTA}', '${VISTORIA_F1}', 'assinatura-perdida-do-teste', 'assinatura',
+         now() - interval '26 hours', NULL, 1);
+    `);
+    try {
+      const laudoRota = await laudoDaRota();
+      const termoRota = await termoDaRota();
+      const pacote = await baixarPacote(tokenAdministradora);
+      const laudoPacote = pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8");
+      const termoPacote = pacote.get("documentos/000473-2026/termo-de-interdicao.html")!.toString("utf8");
+
+      expect(assinaturaNoLocal(laudoRota)).toContain(`<div class="traco-ausente">${PERDIDA}</div>`);
+      expect(cienciaDoResponsavel(termoRota)).toContain(`<div class="traco-ausente">${PERDIDA}</div>`);
+
+      expect(assinaturaNoLocal(laudoPacote), "o laudo do pacote afirma que a assinatura não foi coletada")
+        .not.toContain("Assinatura não coletada");
+      expect(assinaturaNoLocal(laudoPacote)).toBe(assinaturaNoLocal(laudoRota));
+      expect(cienciaDoResponsavel(termoPacote), "o termo do pacote afirma que ninguém deu ciência")
+        .not.toContain("Assinatura não coletada");
+      expect(cienciaDoResponsavel(termoPacote)).toBe(cienciaDoResponsavel(termoRota));
+
+      // E o parágrafo que explica a linha sem traço sai nos dois documentos.
+      expect(secaoDosPerdidos(laudoRota)).toContain("Assinatura de quem estava no local");
+      expect(secaoDosPerdidos(laudoPacote)).toBe(secaoDosPerdidos(laudoRota));
+      expect(secaoDosPerdidos(termoPacote)).toBe(secaoDosPerdidos(termoRota));
+    } finally {
+      await mem.bruto.exec(`
+        DELETE FROM vistoria_evidencias_perdidas WHERE idempotency_key = 'assinatura-perdida-do-teste';
+        UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}' WHERE id = '${VISTORIA_F1}';
+      `);
+    }
+  }, 60_000);
+
+  const REVISTORIA = "11111111-1111-4111-8111-0000000000f8";
+
+  /**
+   * A assinatura se perdeu na F1, o termo de interdição já foi emitido sobre a
+   * F1, e uma re-vistoria assinada chega depois. Desfaz tudo no fim.
+   */
+  async function comRevistoria(corpo: () => Promise<void>): Promise<void> {
+    await mem.bruto.exec(`
+      UPDATE vistorias SET assinatura_chave = NULL WHERE id = '${VISTORIA_F1}';
+      INSERT INTO vistoria_evidencias_perdidas
+        (organizacao_id, vistoria_id, idempotency_key, papel, capturada_em, legenda, ordem)
+      VALUES
+        ('${ORG_SERRA_ALTA}', '${VISTORIA_F1}', 'assinatura-perdida-da-ida-anterior', 'assinatura',
+         now() - interval '26 hours', NULL, 1);
+    `);
+    try {
+      // O termo sai sobre a F1 antes de a re-vistoria chegar: é ela a vistoria do ato.
+      await termoDaRota();
+      await mem.bruto.exec(`
+        INSERT INTO vistorias
+          (id, organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
+           assinante_nome, observacoes, coletada_em, sincronizada_em, idempotency_key, assinatura_chave)
+        SELECT '${REVISTORIA}', organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
+               assinante_nome, 'Re-vistoria do teste', now() - interval '1 hour', now(),
+               '11111111-1111-4111-8111-00000000ff08', '${CHAVE_ASSINATURA}'
+          FROM vistorias WHERE id = '${VISTORIA_F1}';
+      `);
+      await corpo();
+    } finally {
+      await mem.bruto.exec(`
+        DELETE FROM vistorias WHERE id = '${REVISTORIA}';
+        DELETE FROM vistoria_evidencias_perdidas WHERE idempotency_key = 'assinatura-perdida-da-ida-anterior';
+        UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}' WHERE id = '${VISTORIA_F1}';
+      `);
+    }
+  }
+
+  it("re-vistoria: a perda da ida anterior não entra no laudo da vigente, nos dois (correção 3)", async () => {
+    // A correção 3 lê as perdas por vistoria, e entrega a cada documento só as
+    // da VIGENTE, como a rota: nenhum dos dois laudos da re-vistoria assinada
+    // pode dizer que a assinatura desta vistoria se perdeu.
+    await comRevistoria(async () => {
+      const daRota = await laudoDaRota();
+      const doPacote = await laudoDoPacote();
+      expect(daRota).toContain("Re-vistoria do teste");
+      expect(doPacote).toContain("Re-vistoria do teste");
+      for (const laudo of [daRota, doPacote]) {
+        expect(assinaturaNoLocal(laudo)).toContain('<img class="traco"');
+        expect(laudo).not.toContain("Assinatura coletada em campo e não recuperada do aparelho");
+        expect(laudo).not.toContain("Assinatura de quem estava no local, capturada em");
+      }
+      // A perda de fotografia do `beforeAll` também é da F1, e também fica fora.
+      expect(secaoDosPerdidos(daRota)).toBe("");
+      expect(secaoDosPerdidos(doPacote)).toBe("");
+    });
+  }, 60_000);
+
+  it("DIFERENÇA CONHECIDA (F09-E02): depois da re-vistoria, o termo de interdição da rota sai da vistoria do ato e o do pacote sai da vigente", async () => {
+    // A segunda via da rota imprime a vistoria que sustentou a interdição (a
+    // gravada na emissão, `vistoria_do_ato` em `rotas/documentos.ts`); o
+    // pacote imprime a vigente em todos os documentos. A varredura da correção
+    // 3 achou esta diferença ao gerar os dois termos de uma re-vistoria; ela é
+    // da V2-F09-E02 ("vistoria do ato") e está nas tabelas da documentação.
+    await comRevistoria(async () => {
+      const daRota = await termoDaRota();
+      const pacote = await baixarPacote(tokenAdministradora);
+      const doPacote = pacote.get("documentos/000473-2026/termo-de-interdicao.html")!.toString("utf8");
+      expect(daRota).not.toContain("Re-vistoria do teste");
+      expect(cienciaDoResponsavel(daRota))
+        .toContain('<div class="traco-ausente">Assinatura coletada em campo e não recuperada do aparelho</div>');
+      expect(doPacote).toContain("Re-vistoria do teste");
+      expect(cienciaDoResponsavel(doPacote)).toContain('<img class="traco"');
+    });
+  }, 60_000);
 
   it("a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: \"Assinatura não coletada\" (consertada na correção 2)", async () => {
     // A vistoria diz que há traço, e o armazenamento não tem o arquivo (envio

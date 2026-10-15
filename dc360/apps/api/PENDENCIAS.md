@@ -26,7 +26,7 @@ que resta, numa linha cada:
 | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
 | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
 | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
-| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias e não imprime as seções das fotos avulsas e dos registros perdidos | "Dois montadores de dados do documento" | F09-E02 |
+| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias, não imprime a seção das fotos avulsas, e o termo de interdição dele sai da vistoria vigente em vez da vistoria do ato | "Dois montadores de dados do documento" | F09-E02 |
 | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
 | Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
 | Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
@@ -315,14 +315,19 @@ equipe divergente igual ao laudo da rota" em `test/saida-de-municipio.test.ts` e
 seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
 mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
 
-**As diferenças entre os dois laudos, para a MESMA vistoria** (a validação de
-7005a60 gerou os dois e comparou, e a de 4b96ea7 achou a assinatura; o bloco
-"campo por campo" de `test/saida-de-municipio.test.ts` trava as diferenças
-abaixo, e reprova se uma das que continuam some, se a deliberada muda ou se
-uma das consertadas volta, para este texto e o de `docs/SAIDA-DE-MUNICIPIO.md` serem atualizados
-junto. Ele NÃO compara o laudo inteiro: olha os títulos das seções, a
-coordenada, a posição da foto avulsa e o bloco da assinatura de quem estava no
-local, e uma diferença nova noutro campo passa por ele):
+**As diferenças entre os documentos da rota e os do pacote, para a MESMA vistoria**
+(a validação de 7005a60 gerou os dois laudos e comparou, a de 4b96ea7 achou a
+assinatura declarada e ausente, a de 52952a1 achou a assinatura coletada e
+perdida, e a varredura da correção 3, com a API rodando, achou o termo de
+interdição depois de re-vistoria; o bloco "campo por campo" de
+`test/saida-de-municipio.test.ts` trava as diferenças abaixo, e reprova se uma
+das que continuam some, se a deliberada muda ou se uma das consertadas volta,
+para este texto e o de `docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto. Ele
+NÃO compara os documentos inteiros: olha os títulos das seções, a coordenada, a
+posição da foto avulsa, a seção dos registros perdidos e o bloco da assinatura
+de quem estava no local, no laudo e, nos casos da assinatura perdida e da
+re-vistoria, no termo de interdição, e uma diferença nova noutro campo passa
+por ele):
 
 | Campo | Rota | Pacote | Estado |
 | --- | --- | --- | --- |
@@ -330,18 +335,44 @@ local, e uma diferença nova noutro campo passa por ele):
 | Coordenada da vistoria (`v.latitude`, `v.longitude`) | imprime | imprimia "não registrada" | **consertada na correção 1 da E12**: duas colunas a mais na consulta do pacote |
 | Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
 | Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
-| Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime | não existe | **continua**, F09-E02 |
+| Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime, só as perdas da vistoria vigente | não existia (o pacote não lia a tabela); agora lê `vistoria_evidencias_perdidas` sob o tenant e entrega a cada documento só as perdas da vistoria vigente, e a seção sai igual no laudo e no termo de interdição | **consertada na correção 3 da E12** |
+| Assinatura coletada e perdida no aparelho (`assinatura_chave` nula e uma perda com `papel = 'assinatura'`) | "Assinatura coletada em campo e não recuperada do aparelho" (`ausenciaDaAssinatura`), no laudo e no termo de interdição | imprimia "Assinatura não coletada" nos dois documentos, contra o `tabelas/vistoria_evidencias_perdidas.csv` do próprio pacote; com as perdas lidas, imprime a mesma frase da rota | **consertada na correção 3 da E12** |
+| Termo de interdição de protocolo que recebeu re-vistoria depois da interdição | a segunda via sai da vistoria do ato (`vistoria_do_ato`, a gravada na emissão do termo) | sai da vistoria vigente, a re-vistoria, como todos os documentos do pacote | **continua**, F09-E02 ("vistoria do ato") |
+| Assinatura presente no armazenamento, ou vistoria sem assinatura e sem perda registrada | imagem; "Assinatura não coletada" | o mesmo | igual |
 | Assinatura declarada (`assinatura_chave`) e AUSENTE no armazenamento | confere o prefixo do município, descreve o objeto e imprime "Assinatura não coletada" | imprimia uma imagem quebrada em cima do nome de quem estava no local (montava o caminho só pela chave); agora faz as mesmas duas conferências (`conferirAssinatura`) e imprime "Assinatura não coletada", e a falta continua registrada em `PENDENCIAS-DA-EXTRACAO.txt` | **consertada na correção 2 da E12** |
 | Assinatura declarada e o armazenamento SEM RESPOSTA na conferência (`descrever` lança) | trata como ausente (`.catch(() => ({ existe: false }))`) e imprime "Assinatura não coletada" | imprime "Não foi possível conferir a assinatura no armazenamento ao montar este pacote", sem imagem; leva o arquivo se a cópia funcionar, senão o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO | **diferente de propósito** (correção 2 da E12, revisão): a primeira versão mantinha a imagem, e com o provedor caído a cópia falhava junto e o quadro quebrado voltava; afirmar "não coletada" contradiria o próprio pacote, que diz que falta de resposta não é arquivo inexistente |
 
 A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
 pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
-defeito que a rota já tinha consertado), e a seção dos registros perdidos
-some, então o laudo do pacote parece completo sendo incompleto. Por isso
-`docs/SAIDA-DE-MUNICIPIO.md` não afirma que o laudo do pacote diz o mesmo
-que o emitido: só o aviso de equipe, a coordenada e a assinatura que falta no
-armazenamento estão provados iguais, e a do armazenamento sem resposta difere
-de propósito, com a tabela pública dizendo isso.
+defeito que a rota já tinha consertado), e o termo de interdição do pacote, num
+protocolo que recebeu re-vistoria depois da interdição, imprime embaixo de "Fica
+INTERDITADO" a re-vistoria, que pode ser justamente a que atestou a cessação do
+risco: um papel que se contradiz, o mesmo defeito que a segunda via da rota já
+tinha consertado. Por isso `docs/SAIDA-DE-MUNICIPIO.md` não afirma que os
+documentos do pacote dizem o mesmo que os emitidos: só o aviso de equipe, a
+coordenada, a seção dos registros perdidos e os quatro estados da assinatura
+(presente, ausente sem registro, declarada sem arquivo e coletada e perdida)
+estão provados iguais, e a do armazenamento sem resposta difere de propósito,
+com a tabela pública dizendo isso.
+
+Até a correção 3 havia uma quarta, mais grave do que as outras: o pacote não
+lia `vistoria_evidencias_perdidas`, e quando a assinatura tinha sido coletada e
+se perdido no aparelho, o laudo e o termo de interdição dele afirmavam
+"Assinatura não coletada" (no termo, embaixo de "Responsável pelo imóvel,
+ciente"), contra o registro do banco que o próprio pacote exporta. Não era só
+um documento incompleto: afirmava o contrário do fato.
+
+Depois da correção 3, o pacote imprime "Assinatura não coletada" em três casos,
+e só neles: o banco não registra assinatura nem a perda dela; o armazenamento
+respondeu que o arquivo da assinatura declarada não existe; ou a chave gravada
+não começa por `tenant/<município>/`, e `conferirAssinatura`
+(`src/saida/pacote.ts`) responde "ausente" sem perguntar ao armazenamento, como
+`enderecoDaAssinatura` faz na rota. O terceiro não acontece pela API: a
+sincronização remonta a chave a partir do município do token e aproveita do
+aparelho só o nome do arquivo (`src/rotas/sincronizacao.ts`), e o banco recusa
+chave fora do prefixo (`assinatura_com_prefixo_do_tenant`, migração 009). A
+conferência no pacote é a camada seguinte, para um registro gravado por fora da
+aplicação.
 
 ## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
 

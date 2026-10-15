@@ -156,6 +156,19 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     verdadeiros e o plantio da forma antiga na fila real). O arquivo tem 15.
   */
   "V2-F00-E16-correcao-1": 15,
+  /*
+    V2-F00-E21, correção 1: `scripts/conferir-indices-de-evidencia.test.mjs` é
+    novo, com 24 casos (índice correto, tabela com nota em citação, arquivos do
+    gatekeeper fora da conta, hash adulterado, arquivo editado, arquivo faltando,
+    fim de linha trocado nos dois sentidos e misturado, CRLF a mais sem normalizar,
+    hash inválido, linha repetida e caminho que sai da pasta, índice sem tabela,
+    arquivo da pasta fora do índice, nome que só contém "validacao", etapa sem
+    INDEX.md, índice que só lista o gatekeeper, índice aninhado, a evidência
+    real inteira sem lista de tolerância, o script sem lista de exceções e quatro
+    sobre CRLF no índice do git: com `-text`, com o `.gitattributes` do produto,
+    sem git e o repositório real). O arquivo inteiro entra na conta.
+  */
+  "V2-F00-E21-correcao-1": 24,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -163,6 +176,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E02": "portao-de-skip.test.mjs",
   "V2-F00-E19": "auditar.test.mjs",
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
+  "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -383,6 +397,18 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     ambiente).
   */
   "V2-F00-E07-correcao-3-complemento": { total: 7, falhas: 0, puladas: 4 },
+  /*
+    V2-F00-E12, correção 3 (2026-10-15), contada contra o `11d9446`:
+    `saida-de-municipio.test.ts` ganha 5 casos no bloco "campo por campo" (a
+    seção dos registros perdidos igual nos dois laudos, o isolamento das
+    perdas com controle positivo, a assinatura coletada e perdida igual no
+    laudo e no termo de interdição, a re-vistoria sem a perda da ida
+    anterior, e a diferença conhecida do termo de interdição depois da
+    re-vistoria); o caso das "duas seções" que faltavam no pacote foi
+    reescrito no lugar (agora falta uma), sem mudar a contagem. De 32 para 37
+    no arquivo. Nenhuma falha nova nem pulo.
+  */
+  "V2-F00-E12-correcao-3": { total: 5, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
