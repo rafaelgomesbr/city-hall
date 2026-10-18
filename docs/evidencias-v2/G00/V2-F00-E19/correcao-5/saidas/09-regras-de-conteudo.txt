@@ -1,0 +1,13 @@
+$ npx vitest run packages/shared/test/regras-de-conteudo.test.ts   (em dc360)
+codigo=0
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360
+
+ ✓ packages/shared/test/regras-de-conteudo.test.ts (10 tests) 366ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  13:06:54
+   Duration  1.52s (transform 28ms, setup 0ms, collect 28ms, tests 366ms, environment 0ms, prepare 28ms)
+

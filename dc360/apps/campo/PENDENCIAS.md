@@ -617,6 +617,17 @@ real do iPhone ou do Android é o que só o aparelho responde).
 
 ## 17. `expo-doctor` deu 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1; RESOLVIDO em 2026-10-13, correção 2; reaberto e RESOLVIDO de novo em 2026-10-14, correção 4)
 
+**RESOLVIDO DE NOVO em 2026-10-18 (V2-F00-E19, correção 5).** O estado atual é **21 de 21**.
+Em 2026-10-18 (linha de base sobre `6d9d09f`) o `npx expo-doctor` voltou a dar **20 de 21**
+pela mesma verificação de versões: `expo` 57.0.29 contra ~57.0.30 e `expo-router` 57.0.27
+contra ~57.0.28. O código não mudou; o Expo publicou patches. `npx expo install
+expo@~57.0.30 expo-router@~57.0.28` em `apps/campo` mudou só `package.json` e
+`package-lock.json` (o lock puxou os transitivos do Expo, como `@expo/cli` e
+`babel-preset-expo`), e o `expo-doctor` deu **21 de 21**. Prova em
+`docs/evidencias-v2/G00/V2-F00-E19/correcao-5/`. **PREMISSA, dita como premissa:** o Rafael
+não decidiu isso para estes dois pacotes; o tratamento é o mesmo da D1 por analogia, e a
+confirmação dele está pendente (H24). O que segue é o registro das correções anteriores.
+
 **RESOLVIDO DE NOVO em 2026-10-14 (V2-F00-E19, correção 4).** O estado atual é **21 de 21**.
 Na manhã de 2026-10-14 (medido na rodada de conserto da V2-F00-E22), o `npx expo-doctor`
 em `apps/campo` voltou a dar **20 de 21**, pela mesma verificação ("Check that packages match

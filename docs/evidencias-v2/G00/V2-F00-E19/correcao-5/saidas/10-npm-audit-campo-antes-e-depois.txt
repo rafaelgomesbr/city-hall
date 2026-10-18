@@ -1,0 +1,9 @@
+$ npm audit --json   (em apps/campo), antes e depois do conserto; resumo por script
+(o codigo de saida do npm audit puro e 1 nos dois: o aplicativo carrega avisos de desenvolvimento do Expo; a politica e o npm run auditar, que sai com 0)
+
+ANTES : {'info': 0, 'low': 0, 'moderate': 8, 'high': 50, 'critical': 1, 'total': 59}
+DEPOIS: {'info': 0, 'low': 0, 'moderate': 8, 'high': 50, 'critical': 1, 'total': 59}
+pacotes com aviso, so no ANTES : []
+pacotes com aviso, so no DEPOIS: []
+pares (pacote, advisory) iguais: True
+avisos de runtime novos: nenhum (npm run auditar: runtime em zero, sem advisory nova)

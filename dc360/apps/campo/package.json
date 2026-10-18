@@ -17,7 +17,7 @@
   "dependencies": {
     "@dc360/campo": "file:../../packages/campo",
     "@dc360/shared": "file:../../packages/shared",
-    "expo": "~57.0.29",
+    "expo": "~57.0.30",
     "expo-blur": "~57.0.2",
     "expo-camera": "~57.0.6",
     "expo-clipboard": "~57.0.2",
@@ -32,7 +32,7 @@
     "expo-location": "~57.0.21",
     "expo-network": "~57.0.2",
     "expo-notifications": "~57.0.23",
-    "expo-router": "~57.0.27",
+    "expo-router": "~57.0.28",
     "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.10",
     "expo-sqlite": "~57.0.4",

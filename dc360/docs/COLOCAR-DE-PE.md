@@ -44,7 +44,8 @@ D-U-N-S e a revisão não forem gargalo.
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
   15 de 17, por dois passos que dependem da máquina (README, "O roteiro da linha
   de base"). O `expo-doctor` deu 20 de 21 na manhã desse dia e 21 de 21 depois da
-  correção 4 da E19, no mesmo dia. `npm run auditar` sai com
+  correção 4 da E19, no mesmo dia; voltou a 20 de 21 em 2026-10-18 (`expo` e `expo-router`
+  um patch atrás) e fechou em 21 de 21 com a correção 5 da E19, no mesmo dia. `npm run auditar` sai com
   código 0 pela política do CP-03: dependência de runtime em zero, e os avisos de ferramenta
   do aplicativo só os da lista nomeada, com dono e prazo
   (`scripts/auditar-excecoes.mjs`). O `npm audit` puro do aplicativo continua

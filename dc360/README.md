@@ -1675,7 +1675,9 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aplicados então), 20 de 21 na manhã de 2026-10-14 (cinco patches novos) e
   21 de 21 de novo no mesmo dia, depois da correção 4 da E19 (pendência 17 de
   `apps/campo/PENDENCIAS.md`, com a premissa de que o Rafael ainda não confirmou
-  a analogia com a D1 para esses cinco pacotes); passa no
+  a analogia com a D1 para esses cinco pacotes), 20 de 21 em 2026-10-18 (`expo` e
+  `expo-router` um patch atrás) e 21 de 21 de novo no mesmo dia, depois da correção 5
+  da E19, com a mesma premissa; passa no
   `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
   aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
   de aparelho físico está arquivado**, e relato não é prova (as capturas de
