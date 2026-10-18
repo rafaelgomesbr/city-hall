@@ -1,0 +1,31 @@
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 11ms
+ ✓ test/permissoes.test.ts (16 tests) 4ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 5ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 6ms
+ ✓ test/evidencia.test.ts (10 tests) 9ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 6ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 3ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 8ms
+ ✓ src/pessoas.test.ts (11 tests) 7ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 7ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 6ms
+ ✓ test/telefone.test.ts (10 tests) 3ms
+ ✓ test/campos.test.ts (7 tests) 3ms
+ ✓ test/csv.test.ts (8 tests) 3ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 832ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  453ms
+ ✓ test/dominio.test.ts (14 tests) 934ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  927ms
+
+ Test Files  16 passed (16)
+      Tests  170 passed (170)
+   Start at  12:20:22
+   Duration  1.23s (transform 282ms, setup 0ms, collect 1.01s, tests 1.85s, environment 2ms, prepare 673ms)
+

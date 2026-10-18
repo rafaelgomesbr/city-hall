@@ -59,7 +59,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 | API: certificado de teste do banco | 13 casos (1 suíte) | E21 | feito e provado na V2-F00-E21 |
 | scripts: três testes de portabilidade e de configuração | 3 | E17 | idem |
 | API: código de erro da sessão | 3 arquivos, 7 ocorrências | E05 (e E07) | idem |
-| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos a medir (aberto) | correção 1 da E03 (o 1); a definir (os 10, proposta: E21) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos seguem como linha aberta V-INS-02 do registro, com dono e prazo |
+| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos (feito) | correção 1 da E03 (o 1); correção 4 da E03 (os 10) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos feitos e provados na correção 4 da V2-F00-E03 (2026-10-15), fechando V-INS-02 do registro |
 | fila do campo: 401 e 403 de sessão deixam de ser permanentes | 3 (2 no pacote, 1 na integração com a API) | E06 | feito e provado na V2-F00-E06 |
 | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
 | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
@@ -314,6 +314,31 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   ponto trocado na correção 1 da V2-F00-E03 em 2026-10-13. A troca nos demais
   pontos aguarda Rafael aceitar o quarto item da E21 (pergunta Q4 da seção 8.6
   da classificação).
+
+**Atualização de 2026-10-15 (correção 4 da V2-F00-E03, V-INS-02 do registro).**
+Os 10 pontos de `setTimeout(r, 20)` em `desinterdicao`, `fotos-do-documento`,
+`identificador-da-emissao` e `segunda-via-nao-reinterdita` foram trocados por
+`esperarORelogioAndar()` (`apps/api/test/esperar-o-relogio.ts`): `vi.waitFor`
+com limite de 2 s até o relógio passar do instante em que o ato anterior
+terminou, que é a condição que as asserções precisam (o segundo ato com carimbo
+estritamente maior). Das esperas de 10 a 100 ms, três de polling viraram
+`vi.waitFor` com limite e mensagem (`push-rodada-diz-o-que-fez`, `push-sem-resposta`
+e `recuperacao-sem-oraculo`, esta agora esperando a linha da falha no log), e
+três ficaram de propósito: são janelas de silêncio (provam que NÃO veio uma
+segunda rodada), onde esperar pouco só dá falso verde. Nenhuma asserção foi
+enfraquecida. Medido: nenhum dos pontos falhou antes nem depois, e o mutante
+sem espera nenhuma também fica verde, então a troca é preventiva; a prova é de
+5 rodadas dos 7 arquivos (71 de 71) sob carga
+(`V2-F00-E03/correcao-4/saidas/01` e `02`).
+
+### Estabilidade sob carga: limites explícitos, `ENOENT` e cessão do laço (correção 4 da V2-F00-E03, 2026-10-15)
+
+- **Testes:** `packages/shared/test/dominio.test.ts` ("ninguém redefine o checklist..."), `packages/shared/test/regras-de-conteudo.test.ts` (as varreduras), `db/test/isolamento.test.ts` (o caso das seis vias de privilégio e o arquivo todo) e a seção 23 de `apps/web/test/fluxo-api.e2e.mjs`.
+- **Antes:** o shared dependia do limite padrão de 5 s e da certeza de que nenhum arquivo some durante a varredura; o banco tinha 60 s no caso das 23 varreduras e rodava o arquivo inteiro sem devolver o laço de eventos; a seção 23 navegava no segundo contexto sem esperar o painel aceitar conexão.
+- **Decisão que o torna velho:** nenhuma: são instabilidades (V-INS-03 a V-INS-06 do registro), e a política manda trocar espera fixa por condição com limite (R6).
+- **Depois:** limite explícito de 60 s nos casos de varredura do shared; `ENOENT` tolerado (só ele) na varredura de `regras-de-conteudo.test.ts`, com 2 casos novos; no banco, limite de 240 s no caso das seis vias e cessão do laço (`setImmediate`) após cada caso e a cada varredura, porque a sonda mediu um único atraso de 83 s do laço no arquivo inteiro sob carga; na seção 23, `irParaQuandoOPainelResponder` repete a navegação só quando a conexão é recusada, por até 30 s. **Nenhuma asserção foi enfraquecida ou tirada.**
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/` (03 a 15) e a seção 9 de `classificacao-dos-vermelhos.md`.
+- **Etapa e data:** V2-F00-E03, correção 4, 2026-10-15.
 
 ### API: `tokens.coordA` do `api.test.ts` entra de novo depois do teste de reuso
 

@@ -22,7 +22,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 /**
@@ -95,6 +95,33 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db?.close();
+});
+
+/**
+ * Devolve o laço de eventos ao Node por um instante (V-INS-05 do registro da E03).
+ *
+ * O PGlite roda o Postgres em WebAssembly e responde por promessas já
+ * resolvidas: uma cadeia de `await db.query(...)` NUNCA volta ao laço de
+ * eventos, só à fila de microtarefas. Medido com uma sonda de atraso do laço
+ * (`setInterval` de 200 ms) enquanto este arquivo rodava com 24 laços de CPU
+ * ocupando a maquina: um unico atraso de 83 s, o arquivo inteiro. Nenhum
+ * temporizador e nenhuma mensagem do vitest foi atendida nesse tempo. O efeito
+ * visivel eram dois: o prazo do caso estourava depois do prazo (72 s para um
+ * limite de 60 s), e o vitest derrubava o comando com `Timeout calling
+ * "onTaskUpdate"` (leitura mais provavel, nao inspecionada no codigo do vitest:
+ * a resposta do processo principal so e lida quando o laço gira, e o
+ * temporizador de 60 s do RPC dispara antes dela). O fato medido e este:
+ * passando de 60 s sem ceder, o comando saia com 1 mesmo com todos os casos
+ * verdes, e com a cessao o erro some. Maquina livre o arquivo leva 23 s e o erro
+ * nao aparece, que e por que ele so surgia sob carga.
+ *
+ * `setImmediate` roda depois da fase de E/S, entao as mensagens pendentes e os
+ * temporizadores vencidos sao atendidos antes de seguir.
+ */
+const cederOLaco = (): Promise<void> => new Promise((pronto) => { setImmediate(pronto); });
+
+afterEach(async () => {
+  await cederOLaco();
 });
 
 describe("CA-06: isolamento entre organizações", () => {
@@ -3858,6 +3885,9 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
   ]);
 
   async function sobras(): Promise<Achado[]> {
+    // A varredura e cada chamada ao PGlite seguem por microtarefas, sem ceder ao
+    // laço de eventos (ver `cederOLaco`); este caso faz 23 delas em serie.
+    await cederOLaco();
     const donoAtual = await dono();
     return (await varredura()).filter((a) => {
       if (a.papel === donoAtual || a.papel === "dc360_app") return false;
@@ -4194,8 +4224,16 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       varredura pergunta privilegio efetivo papel a papel, tabela a tabela. O
       teto padrao de cinco segundos do vitest transformaria uma maquina lenta
       numa reprovacao que nao fala do banco.
+
+      O limite de 60 s antigo foi MEDIDO e estava curto (V-INS-05 do registro da
+      E03). Maquina livre este caso leva 15 s no Mac de 8 nucleos; com 24 laços
+      de CPU ocupando a maquina ele levou 72 s e reprovou com "Test timed out in
+      60000ms"; nas falhas da F00 (um `ng serve` de outro projeto a 50% de CPU)
+      ficou entre 58,8 s e mais de 60 s. O limite passa a 240 s (16 vezes o
+      tempo livre): continua sendo limite, caso preso reprova, e nenhuma
+      asserção mudou.
     */
-  }, 60_000);
+  }, 240_000);
 });
 
 /* =====================================================================

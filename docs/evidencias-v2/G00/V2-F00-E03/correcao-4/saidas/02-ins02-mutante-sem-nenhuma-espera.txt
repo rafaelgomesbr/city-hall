@@ -1,0 +1,15 @@
+Mutante: o helper `esperarORelogioAndar` trocado por função vazia, 4 arquivos, 6 rodadas, sob 16 laços de CPU.
+Resultado: verde nas 6. As esperas eram seguro, não conserto de falha observada; ver RESUMO.md.
+
+      Tests  41 passed (41)
+--- rodada 1
+      Tests  41 passed (41)
+--- rodada 2
+      Tests  41 passed (41)
+--- rodada 3
+      Tests  41 passed (41)
+--- rodada 4
+      Tests  41 passed (41)
+--- rodada 5
+      Tests  41 passed (41)
+--- rodada 6

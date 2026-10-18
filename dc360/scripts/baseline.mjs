@@ -83,9 +83,10 @@ export const SAIDA_PADRAO = join(
  * esperado é 165 mais esta constante, e quem acrescentar teste ali atualiza
  * o número aqui. 16 da entrega original mais 10 da correção 1 (divergência
  * explicada, código de saída, conferidor de contagens com número velho
- * plantado).
+ * plantado). Mais 2 da correção 4 da E03 (V-ROT-02: o passo `e2e-firefox` e o
+ * motor que vai por ambiente, não por prefixo de shell).
  */
-export const TESTES_DA_E01_EM_SCRIPTS = 27;
+export const TESTES_DA_E01_EM_SCRIPTS = 29;
 
 /**
  * Quantos testes cada etapa SEGUINTE da fase F00 soma ao `test:scripts`, por ID.
@@ -442,6 +443,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E15": { total: 3, falhas: 0 },
   // `packages/shared/test/regras-de-conteudo.test.ts`: 3 casos de âncora das isenções (árvore real e repositório sintético, o que reprova e o que passa). A falha pré-existente do travessão fecha: o literal de `trilha-detalhe.test.ts` virou escape e a saída bruta e a auditoria de 2026-09-30 saíram da varredura. O shared fecha sem vermelho.
   "V2-F00-E20": { total: 3, falhas: -1 },
+  // V2-F00-E03, correção 4 (V-INS-04): 2 casos novos em `regras-de-conteudo.test.ts` (o arquivo que some entre a listagem e a leitura não derruba a varredura; só o ENOENT é tolerado).
+  "V2-F00-E03-correcao-4": { total: 2, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -669,6 +672,8 @@ export const PASSOS = [
     titulo: "npm run test:e2e (painel local, com o painel servido)",
     cmd: "npm run test:e2e",
     cwd: ".",
+    // Fixa o motor: quem exportou `MOTOR=firefox` no terminal não troca o passo do Chromium por engano.
+    ambiente: { MOTOR: "chromium" },
     // O E2E do modo local navega em `http://localhost:4173`. Sem o painel de pé a
     // falha é só "conexão recusada", que não é o vermelho que a linha de base mede.
     // O CI faz o mesmo: constrói o painel e sobe o `vite preview` antes do teste.
@@ -686,6 +691,33 @@ export const PASSOS = [
       `.indicador`. Agora ele fecha verde, em Chromium e em Firefox, com 70
       verificacoes (as 68 de antes mais as 2 que a E13 acrescentou na secao 2).
     */
+    esperado: { codigo: 0, contem: "Passou: 70   Falhou: 0" },
+  },
+  /*
+    O mesmo E2E do painel local no Firefox (V-ROT-02 do registro da E03, a D-4
+    da validação de 2026-10-13). O texto da E01 e o item "E2E de navegador" do
+    G00 pedem Chromium E Firefox, e o roteiro só rodava o Chromium: o Firefox só
+    era conferido no CI, e quem repetisse a medição à mão num computador novo
+    não via nada dele. O motor entra por `ambiente` (`MOTOR`, lido por
+    `apps/web/test/fluxo.e2e.mjs`), não por prefixo de shell. O esperado é o
+    mesmo do Chromium, de propósito: um painel que passa 70 de 70 num motor e
+    outro número no outro tem defeito num dos dois. O Playwright guarda o
+    Firefox em `~/.cache/ms-playwright` (ou o equivalente da máquina); quem
+    ainda não o tem instala com `npx playwright install firefox`, passo 3 do
+    `COMO-REPRODUZIR.md`.
+  */
+  {
+    id: "e2e-firefox",
+    titulo: "npm run test:e2e no Firefox (painel local, com o painel servido)",
+    cmd: "npm run test:e2e",
+    cwd: ".",
+    ambiente: { MOTOR: "firefox" },
+    servidor: {
+      preparar: "npm run build --workspace @dc360/web",
+      cmd: "npx vite preview --port 4173 --strictPort",
+      cwd: "apps/web",
+      url: "http://localhost:4173",
+    },
     esperado: { codigo: 0, contem: "Passou: 70   Falhou: 0" },
   },
   /*
@@ -866,7 +898,7 @@ export function conferirContagensDoRoteiro(medidas, passos = PASSOS) {
 }
 
 export function listarComandos(passos = PASSOS) {
-  return passos.map((p, i) => `${String(i + 1).padStart(2, "0")} ${p.id.padEnd(18)} (${p.cwd})  ${p.cmd}`);
+  return passos.map((p, i) => `${String(i + 1).padStart(2, "0")} ${p.id.padEnd(18)} (${p.cwd})  ${comandoParaMostrar(p)}`);
 }
 
 export function lerOpcoes(argv) {
@@ -896,6 +928,28 @@ export function escolherPassos(opcoes, passos = PASSOS) {
 
 const LIMITE_POR_PASSO_MS = 25 * 60 * 1000;
 const ESPERA_DO_SERVIDOR_MS = 60 * 1000;
+
+/**
+ * O ambiente do comando de um passo: o do processo, sem cor, mais o que o passo
+ * declara em `ambiente` (por exemplo `MOTOR: "firefox"`). Vai por objeto, e não
+ * por `MOTOR=firefox comando` no texto do comando, porque esse prefixo é sintaxe
+ * de shell POSIX e o roteiro roda também no Windows.
+ */
+export function ambienteDoPasso(passo, base = process.env) {
+  return { ...base, NO_COLOR: "1", FORCE_COLOR: "0", ...(passo.ambiente ?? {}) };
+}
+
+/**
+ * O comando como se digita à mão, com o que o passo põe no ambiente na frente
+ * (`MOTOR=firefox npm run test:e2e`). É só para MOSTRAR (cabeçalho do passo,
+ * listagem e resumo): quem repete o passo copiando a linha tem de ver o motor,
+ * porque sem ele os dois passos do E2E parecem o mesmo comando. A execução usa
+ * `ambienteDoPasso`, e não este texto, por causa do Windows.
+ */
+export function comandoParaMostrar(passo) {
+  const prefixo = Object.entries(passo.ambiente ?? {}).map(([chave, valor]) => `${chave}=${valor}`).join(" ");
+  return prefixo ? `${prefixo} ${passo.cmd}` : passo.cmd;
+}
 
 function rodar(cmd, cwd, extra = {}) {
   return spawn(cmd, { cwd: join(RAIZ_DO_PRODUTO, cwd), shell: true, env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" }, ...extra });
@@ -938,7 +992,7 @@ function executar(passo) {
       resolver({ saida, codigo: codigo ?? 1, duracaoMs: Date.now() - inicio });
     };
     const rodarComando = () => {
-      const filho = rodar(passo.cmd, passo.cwd);
+      const filho = rodar(passo.cmd, passo.cwd, { env: ambienteDoPasso(passo) });
       const prazo = setTimeout(() => {
         saida += `
 [baseline] passo interrompido após ${LIMITE_POR_PASSO_MS / 60000} minutos
@@ -1030,14 +1084,14 @@ async function principal() {
   await mkdir(pasta, { recursive: true });
   const resultados = [];
   for (const [i, passo] of passos.entries()) {
-    console.log(`[${i + 1}/${passos.length}] ${passo.id}: ${passo.cmd} (${passo.cwd})`);
+    console.log(`[${i + 1}/${passos.length}] ${passo.id}: ${comandoParaMostrar(passo)} (${passo.cwd})`);
     const { saida, codigo, duracaoMs } = await executar(passo);
     const avaliacao = avaliar(passo, saida, codigo);
-    const cabecalho = `$ ${passo.cmd}   (em ${passo.cwd})\ncodigo=${codigo} duracao=${Math.round(duracaoMs / 1000)}s situacao=${avaliacao.status}\n\n`;
+    const cabecalho = `$ ${comandoParaMostrar(passo)}   (em ${passo.cwd})\ncodigo=${codigo} duracao=${Math.round(duracaoMs / 1000)}s situacao=${avaliacao.status}\n\n`;
     const arquivo = `${String(i + 1).padStart(2, "0")}-${passo.id}.txt`;
     await writeFile(join(pasta, arquivo), redigir(cabecalho + saida));
     console.log(`    codigo ${codigo}, ${avaliacao.status}${avaliacao.detalhes.length ? `: ${avaliacao.detalhes.join("; ")}` : ""}`);
-    resultados.push({ id: passo.id, cmd: passo.cmd, cwd: passo.cwd, codigo, duracaoMs, ...avaliacao, arquivo });
+    resultados.push({ id: passo.id, cmd: comandoParaMostrar(passo), cwd: passo.cwd, codigo, duracaoMs, ...avaliacao, arquivo });
   }
   const quando = new Date().toISOString();
   await writeFile(join(pasta, "resultados.json"), JSON.stringify(resultados, null, 2) + "\n");

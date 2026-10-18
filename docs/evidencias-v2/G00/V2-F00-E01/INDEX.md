@@ -5,7 +5,7 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | AMBIENTE.md | b5c79485f8347592c8f61392fa981db39691bd5e0a4e934cf3e2a230240ebf4c |
-| COMO-REPRODUZIR.md | 74869cdd81c234b5bada702f6cebbeec2d9db352eb03ee0fec8e1bee7e1638d1 |
+| COMO-REPRODUZIR.md | ac3fc3d1456de12cb560cc7ab255d0a29dda7ae2293769822fd89571c5aa5d94 |
 | RESUMO.md | a7daa191546dfe0d8aa1d7d646e16ff54647f2fd1bab43b4bfc56a0bcc87d4be |
 | correcao-1/RESUMO.md | de980cf79bb938fa30af9a38aae9aa6a6007cc75085dc5c1bf9a07c5646c98de |
 | correcao-1/diff-da-correcao.patch | 29cc644492afa66e10e96bef5fcb20d693f1259b1af738dd81f874195e31135c |

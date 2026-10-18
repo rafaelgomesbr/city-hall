@@ -46,7 +46,9 @@ import {
   MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA,
   BASE_DO_TESTE_CAMPO_APP,
   MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA,
+  ambienteDoPasso,
   avaliar,
+  comandoParaMostrar,
   escolherPassos,
   esperadoDoTesteApi,
   esperadoDoTesteShared,
@@ -188,6 +190,44 @@ test("o E2E do painel local declara o servidor que o teste exige", () => {
   assert.equal(e2e.servidor.url, "http://localhost:4173");
   const teste = readFileSync(new URL("../apps/web/test/fluxo.e2e.mjs", import.meta.url), "utf8");
   assert.ok(teste.includes("localhost:4173"), "o E2E mudou de porta: atualize o passo");
+});
+
+test("o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02)", () => {
+  const chromium = PASSOS.find((p) => p.id === "e2e");
+  const firefox = PASSOS.find((p) => p.id === "e2e-firefox");
+  assert.ok(firefox, "falta o passo e2e-firefox: o G00 pede Chromium e Firefox");
+  assert.equal(firefox.cmd, chromium.cmd);
+  assert.equal(firefox.cwd, chromium.cwd);
+  assert.deepEqual(firefox.servidor, chromium.servidor, "o Firefox precisa do mesmo painel servido");
+  assert.deepEqual(firefox.esperado, chromium.esperado, "um motor com número diferente do outro é defeito num dos dois");
+  // O teste de verdade lê o motor da variável MOTOR; sem isto o passo rodaria o Chromium duas vezes.
+  const teste = readFileSync(new URL("../apps/web/test/fluxo.e2e.mjs", import.meta.url), "utf8");
+  assert.ok(teste.includes("process.env.MOTOR"), "o E2E não lê MOTOR: o passo do Firefox não trocaria o motor");
+  // Aparece na lista de comandos que o roteiro imprime, depois do Chromium.
+  const ids = PASSOS.map((p) => p.id);
+  assert.ok(ids.indexOf("e2e-firefox") > ids.indexOf("e2e"));
+  assert.ok(listarComandos().some((l) => l.includes("e2e-firefox")));
+});
+
+test("o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende", () => {
+  const chromium = PASSOS.find((p) => p.id === "e2e");
+  const firefox = PASSOS.find((p) => p.id === "e2e-firefox");
+  assert.ok(!/MOTOR=/.test(firefox.cmd), "MOTOR=firefox no texto do comando só funciona em shell POSIX");
+  // Um MOTOR exportado no terminal de quem roda não troca nenhum dos dois passos.
+  const base = { PATH: "/usr/bin", MOTOR: "webkit" };
+  assert.equal(ambienteDoPasso(firefox, base).MOTOR, "firefox");
+  assert.equal(ambienteDoPasso(chromium, base).MOTOR, "chromium");
+  // O resto do ambiente do processo e a saída sem cor continuam valendo; passo sem `ambiente` não perde nada.
+  assert.equal(ambienteDoPasso(firefox, base).PATH, "/usr/bin");
+  assert.equal(ambienteDoPasso(firefox, base).NO_COLOR, "1");
+  assert.equal(ambienteDoPasso({ id: "x" }, base).MOTOR, "webkit");
+  // Quem repete à mão tem de ver o motor: o cabeçalho, a listagem e o resumo mostram `MOTOR=...` na frente.
+  assert.equal(comandoParaMostrar(firefox), "MOTOR=firefox npm run test:e2e");
+  assert.equal(comandoParaMostrar(chromium), "MOTOR=chromium npm run test:e2e");
+  assert.equal(comandoParaMostrar({ cmd: "npm run typecheck" }), "npm run typecheck");
+  const linhas = listarComandos();
+  assert.ok(linhas.some((l) => l.includes("e2e-firefox") && l.endsWith("MOTOR=firefox npm run test:e2e")));
+  assert.ok(linhas.some((l) => /\be2e\s/.test(l) && l.endsWith("MOTOR=chromium npm run test:e2e")));
 });
 
 test("as opções recusam o que não conhecem e os filtros recusam passo inexistente", () => {

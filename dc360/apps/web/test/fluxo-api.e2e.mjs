@@ -897,11 +897,45 @@ console.log("\n== 23. Sessão encerrada e conta desativada: a frase certa na tel
 const API_E05 = process.env.BASE_API ?? "http://127.0.0.1:3333";
 const SENHA_DO_MARCOS = "senha-inicial-do-marcos";
 
+/*
+  Espera o painel ACEITAR CONEXAO neste navegador, com limite, antes de abrir
+  o segundo contexto (V-INS-06 do registro da E03).
+
+  Em 2026-10-13, no Firefox do Windows, 1 de 4 rodadas caiu AQUI com
+  `CONNECTION_REFUSED` ao navegar pela primeira vez no segundo contexto que a
+  secao 23 abre; a recusa foi da conexao e nao do conteudo. Duas hipoteses: o painel nao aceitava
+  conexao naquele instante, ou o Firefox resolveu `localhost` por um caminho
+  (IPv6) em que o servidor nao escuta. Nao deu para medir qual (a falha nao
+  reproduziu depois); o conserto nao depende da resposta. A espera tenta a
+  navegacao de verdade, no navegador sob teste, e so repete quando o erro e de
+  conexao recusada; qualquer outro erro (pagina 500, certificado, rede caida)
+  sobe na hora. Se o painel nao responder em 30 s, o teste reprova com a
+  ultima mensagem do navegador, e nao fica pendurado nem passa em silencio.
+*/
+const ERRO_DE_CONEXAO = /CONNECTION_REFUSED|ERR_CONNECTION_REFUSED|NS_ERROR_CONNECTION_REFUSED|ECONNREFUSED|NS_ERROR_NET_RESET/i;
+
+async function irParaQuandoOPainelResponder(pagina, url, opcoes = {}, limiteMs = 30_000) {
+  const fim = Date.now() + limiteMs;
+  let ultima = null;
+  for (;;) {
+    try {
+      return await pagina.goto(url, opcoes);
+    } catch (erro) {
+      if (!ERRO_DE_CONEXAO.test(String(erro?.message ?? erro))) throw erro;
+      ultima = erro;
+      if (Date.now() >= fim) {
+        throw new Error(`o painel nao aceitou conexao em ${limiteMs / 1000} s (${url}): ${ultima.message}`);
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+}
+
 async function abrirComoMarcos() {
   const contextoDele = await navegador.newContext();
   const paginaDele = await contextoDele.newPage();
   registrar(paginaDele);
-  await paginaDele.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+  await irParaQuandoOPainelResponder(paginaDele, `${BASE}/entrar`, { waitUntil: "networkidle" });
   await paginaDele.waitForSelector("#entrada-email", { timeout: 30_000 });
   await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
   await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);

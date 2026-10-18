@@ -1,0 +1,45 @@
+e2e:api no Firefox, 5 rodadas seguidas, 12 laços de CPU. A falha original NÃO reproduziu (5 de 5 verdes); o conserto é a espera da seção 23.
+
+RESUMO
+D chromium livre (saida 0): Passou: 288   Falhou: 0 Passou: 64   Falhou: 0 TUDO CERTO: o caminho de produção passou de ponta a ponta. 
+D firefox sob carga rodada 1 (saida 0): Passou: 288   Falhou: 0 Passou: 64   Falhou: 0 TUDO CERTO: o caminho de produção passou de ponta a ponta. 
+D firefox sob carga rodada 2 (saida 0): Passou: 288   Falhou: 0 Passou: 64   Falhou: 0 TUDO CERTO: o caminho de produção passou de ponta a ponta. 
+D firefox sob carga rodada 3 (saida 0): Passou: 288   Falhou: 0 Passou: 64   Falhou: 0 TUDO CERTO: o caminho de produção passou de ponta a ponta. 
+D firefox sob carga rodada 4 (saida 0): Passou: 288   Falhou: 0 Passou: 64   Falhou: 0 TUDO CERTO: o caminho de produção passou de ponta a ponta. 
+D firefox sob carga rodada 5 (saida 0): Passou: 288   Falhou: 0 Passou: 64   Falhou: 0 TUDO CERTO: o caminho de produção passou de ponta a ponta. 
+
+===== rodada 1: trechos =====
+== Subindo API na 3691 ==
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+Passou: 288   Falhou: 0
+== Geometria da tela estreita, em firefox ==
+Passou: 64   Falhou: 0
+TUDO CERTO: o caminho de produção passou de ponta a ponta.
+===== rodada 2: trechos =====
+== Subindo API na 3691 ==
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+Passou: 288   Falhou: 0
+== Geometria da tela estreita, em firefox ==
+Passou: 64   Falhou: 0
+TUDO CERTO: o caminho de produção passou de ponta a ponta.
+===== rodada 3: trechos =====
+== Subindo API na 3691 ==
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+Passou: 288   Falhou: 0
+== Geometria da tela estreita, em firefox ==
+Passou: 64   Falhou: 0
+TUDO CERTO: o caminho de produção passou de ponta a ponta.
+===== rodada 4: trechos =====
+== Subindo API na 3691 ==
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+Passou: 288   Falhou: 0
+== Geometria da tela estreita, em firefox ==
+Passou: 64   Falhou: 0
+TUDO CERTO: o caminho de produção passou de ponta a ponta.
+===== rodada 5: trechos =====
+== Subindo API na 3691 ==
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+Passou: 288   Falhou: 0
+== Geometria da tela estreita, em firefox ==
+Passou: 64   Falhou: 0
+TUDO CERTO: o caminho de produção passou de ponta a ponta.

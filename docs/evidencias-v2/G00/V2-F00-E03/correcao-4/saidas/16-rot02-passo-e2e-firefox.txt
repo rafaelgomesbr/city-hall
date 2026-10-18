@@ -1,0 +1,36 @@
+===== roteiro com os dois passos do painel local (e2e e e2e-firefox), máquina livre =====
+# Resumo da linha de base
+
+Gerado em 2026-10-18T15:53:00.261Z. Resultado esperado: o da árvore verde de hoje (a linha vermelha de 2026-09-30, REL:01 seção 3.4, é o histórico). Situações: confere; divergente-explicada (achado nomeado, ver o detalhe); divergente (sem explicação, reprova).
+
+| Passo | Comando | Saída | Duração | Situação | Detalhe |
+| --- | --- | --- | --- | --- | --- |
+| e2e | `MOTOR=chromium npm run test:e2e` (.) | 0 | 26 s | confere | - |
+| e2e-firefox | `MOTOR=firefox npm run test:e2e` (.) | 0 | 29 s | confere | - |
+
+Conferem: 2 de 2. Divergentes sem explicação: 0. Divergentes explicadas: 0.
+
+$ MOTOR=chromium npm run test:e2e   (em .)
+codigo=0 duracao=26s situacao=confere
+$ MOTOR=firefox npm run test:e2e   (em .)
+codigo=0 duracao=29s situacao=confere
+Passou: 70   Falhou: 0
+
+===== baseline.test.mjs, 5 rodadas, 8 laços de CPU; passo e2e-firefox, 5 rodadas, 8 laços de CPU =====
+E baseline.test.mjs rodada 1 (saida 0): ℹ tests 29 ℹ pass 29 ℹ fail 0 
+E baseline.test.mjs rodada 2 (saida 0): ℹ tests 29 ℹ pass 29 ℹ fail 0 
+E baseline.test.mjs rodada 3 (saida 0): ℹ tests 29 ℹ pass 29 ℹ fail 0 
+E baseline.test.mjs rodada 4 (saida 0): ℹ tests 29 ℹ pass 29 ℹ fail 0 
+E baseline.test.mjs rodada 5 (saida 0): ℹ tests 29 ℹ pass 29 ℹ fail 0 
+E passo e2e-firefox sob carga rodada 1 (saida 0): Conferem: 1 de 1. Divergentes sem explicação: 0. Divergentes explicadas: 0.  Passou: 70   Falhou: 0
+E passo e2e-firefox sob carga rodada 2 (saida 0): Conferem: 1 de 1. Divergentes sem explicação: 0. Divergentes explicadas: 0.  Passou: 70   Falhou: 0
+E passo e2e-firefox sob carga rodada 3 (saida 0): Conferem: 1 de 1. Divergentes sem explicação: 0. Divergentes explicadas: 0.  Passou: 70   Falhou: 0
+E passo e2e-firefox sob carga rodada 4 (saida 0): Conferem: 1 de 1. Divergentes sem explicação: 0. Divergentes explicadas: 0.  Passou: 70   Falhou: 0
+E passo e2e-firefox sob carga rodada 5 (saida 0): Conferem: 1 de 1. Divergentes sem explicação: 0. Divergentes explicadas: 0.  Passou: 70   Falhou: 0
+
+===== mutante: ambiente MOTOR=motor-inexistente =====
+[1/1] e2e-firefox: npm run test:e2e (.)
+    codigo 2, divergente: código de saída 2, esperado 0; a saída não contém "Passou: 70   Falhou: 0"
+saida 3
+codigo=2 duracao=5s situacao=divergente
+motor desconhecido: motor-inexistente

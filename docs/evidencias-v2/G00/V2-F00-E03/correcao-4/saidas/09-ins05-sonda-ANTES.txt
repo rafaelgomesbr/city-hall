@@ -1,0 +1,20 @@
+isolamento.test.ts de HEAD (137 casos, limite de 60 s), rodado com a sonda de atraso do laço de eventos (`setInterval` de 200 ms) dentro do worker, 24 laços de CPU.
+Um único atraso de 82 s, no fim: o arquivo inteiro correu sem o laço girar. O caso das seis vias reprova com "Test timed out in 60000ms" e o comando sai com `Errors 1` (`onTaskUpdate`).
+
+--- atrasos registrados
+t=82.4s atraso do laco de eventos 81990 ms (pid 10505)
+
+--- trechos da saída do vitest
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio 70632ms
+     → Test timed out in 60000ms.
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/zz-head.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+Error: Test timed out in 60000ms.
+    4048|   it("a varredura acusa cada um dos seis caminhos de privilegio", asyn…
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ Test Files  1 failed (1)
+      Tests  1 failed | 136 passed (137)
+     Errors  1 error
+   Duration  82.69s (transform 295ms, setup 10ms, collect 282ms, tests 82.08s, environment 0ms, prepare 118ms)

@@ -1,5 +1,5 @@
 import { generateKeyPairSync } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { criarProvedorFcm } from "../src/push/fcm.js";
 import { montarAviso } from "../src/push/mensagem.js";
@@ -245,17 +245,16 @@ describe("A rodada inteira tem teto, e a trava nao fica presa", () => {
     );
 
     try {
-      const prazo = Date.now() + 5_000;
       // O vigia dispara no dobro do teto da rodada. Esperar por condição, e
       // não por tempo fixo, para o caso não ficar intermitente em runner lento.
-      while (trava.soltas === 0 && Date.now() < prazo) {
-        await new Promise((pronto) => { setTimeout(pronto, 10); });
-      }
-      expect(
-        trava.soltas,
-        "a rodada travou para sempre e a trava nunca foi solta: a outra máquina "
-        + "do Fly desistiria de todas as rodadas seguintes",
-      ).toBeGreaterThan(0);
+      await vi.waitFor(
+        () => expect(
+          trava.soltas,
+          "a rodada travou para sempre e a trava nunca foi solta: a outra máquina "
+          + "do Fly desistiria de todas as rodadas seguintes",
+        ).toBeGreaterThan(0),
+        { timeout: 5_000, interval: 10 },
+      );
     } finally {
       await agendada.parar();
     }

@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+import { esperarORelogioAndar } from "./esperar-o-relogio.js";
 
 /**
  * Reimprimir o termo de interdição não pode reinterditar o imóvel.
@@ -169,7 +170,7 @@ describe("Segunda via do termo depois do levantamento", () => {
 
     // A SEGUNDA VIA. Mesmo termo, mesma vistoria, nenhuma vistoria nova no
     // meio: o papel molhou e o processo pediu cópia.
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     expect(await emitirTermo(id)).toBe(200);
 
     const depois = await estado(id);
@@ -254,7 +255,7 @@ describe("A reinterdição legítima continua funcionando", () => {
     const primeira = (await estado(id)).interditada_em;
     await levantar(id);
 
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await vistoriar(id);
     expect(await emitirTermo(id)).toBe(200);
 
@@ -274,7 +275,7 @@ describe("A reinterdição legítima continua funcionando", () => {
     await emitirTermo(id);
     const primeira = (await estado(id)).interditada_em;
 
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await emitirTermo(id);
 
     expect((await estado(id)).interditada_em).toBe(primeira);

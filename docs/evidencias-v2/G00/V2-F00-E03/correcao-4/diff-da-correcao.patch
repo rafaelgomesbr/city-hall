@@ -1,0 +1,946 @@
+diff --git a/dc360/apps/api/test/desinterdicao.test.ts b/dc360/apps/api/test/desinterdicao.test.ts
+index a99b0c8..497efd9 100644
+--- a/dc360/apps/api/test/desinterdicao.test.ts
++++ b/dc360/apps/api/test/desinterdicao.test.ts
+@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor } from "../src/servidor.js";
+ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import { esperarORelogioAndar } from "./esperar-o-relogio.js";
+ 
+ /**
+  * A interdição tem fim, e o fim é um ato com autor, data e motivo.
+@@ -204,7 +205,7 @@ describe("Emitir o termo é interditar", () => {
+     const primeira = (await interditados(tokenCoordenador)).json()
+       .itens.find((i: { id: string }) => i.id === alvo.id).interditada_em;
+ 
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await interditar(alvo.id);
+ 
+     const segunda = (await interditados(tokenCoordenador)).json()
+@@ -381,7 +382,7 @@ describe("Reinterdição: o risco volta", () => {
+       .itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
+ 
+     // O risco volta: nova vistoria, novo termo.
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await novaVistoria(alvo.id);
+     await interditar(alvo.id);
+ 
+@@ -505,7 +506,7 @@ describe("A re-vistoria que atesta a cessação do risco", () => {
+   async function cicloCompleto(endereco: string): Promise<{ id: string; protocolo: string }> {
+     const alvo = await comVistoria(endereco);
+     await interditar(alvo.id);
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await novaVistoria(alvo.id, false);
+     const lev = await app.inject({
+       method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,
+diff --git a/dc360/apps/api/test/fotos-do-documento.test.ts b/dc360/apps/api/test/fotos-do-documento.test.ts
+index 9143e95..9bcd018 100644
+--- a/dc360/apps/api/test/fotos-do-documento.test.ts
++++ b/dc360/apps/api/test/fotos-do-documento.test.ts
+@@ -6,6 +6,7 @@ import { construirServidor } from "../src/servidor.js";
+ import {
+   armazenamentoEmMemoria, type ArmazenamentoEmMemoria,
+ } from "../src/armazenamento/memoria.js";
++import { esperarORelogioAndar } from "./esperar-o-relogio.js";
+ 
+ /**
+  * As fotos do documento são as da vistoria que ele documenta.
+@@ -175,7 +176,7 @@ describe("O laudo da re-vistoria", () => {
+     const daPrimeira = await subirFoto(id, "Talude destruído");
+     await vistoriar(id, [daPrimeira.chave], "Vistoria A: talude cedeu.");
+ 
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     const daSegunda = await subirFoto(id, "Talude contido");
+     await vistoriar(id, [daSegunda.chave], "Vistoria B: risco cessou.");
+ 
+@@ -202,7 +203,7 @@ describe("O laudo da re-vistoria", () => {
+     const daPrimeira = await subirFoto(id, "Trinca na parede");
+     await vistoriar(id, [daPrimeira.chave], "Vistoria A.");
+ 
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await vistoriar(id, [], "Vistoria B, sem registro fotográfico.");
+ 
+     const html = (await laudo(id)).body;
+diff --git a/dc360/apps/api/test/identificador-da-emissao.test.ts b/dc360/apps/api/test/identificador-da-emissao.test.ts
+index 8a8abd0..652f1e9 100644
+--- a/dc360/apps/api/test/identificador-da-emissao.test.ts
++++ b/dc360/apps/api/test/identificador-da-emissao.test.ts
+@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor } from "../src/servidor.js";
+ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import { esperarORelogioAndar } from "./esperar-o-relogio.js";
+ 
+ /**
+  * O código no rodapé do documento identifica UMA emissão, e existe onde
+@@ -147,7 +148,7 @@ describe("O identificador é da emissão", () => {
+   it("a segunda via carrega o mesmo identificador, porque é o mesmo ato", async () => {
+     const alvo = await comVistoria("Rua do Identificador, 2");
+     const primeira = identificadorImpresso((await laudo(alvo.id)).body);
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     const segunda = identificadorImpresso((await laudo(alvo.id)).body);
+     expect(segunda).toBe(primeira);
+   });
+@@ -166,7 +167,7 @@ describe("O identificador é da emissão", () => {
+   it("vistoria nova produz identificador novo", async () => {
+     const alvo = await comVistoria("Rua do Identificador, 4");
+     const antes = identificadorImpresso((await laudo(alvo.id)).body);
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await vistoriar(alvo.id);
+     const depois = identificadorImpresso((await laudo(alvo.id)).body);
+     expect(depois).not.toBe(antes);
+diff --git a/dc360/apps/api/test/push-rodada-diz-o-que-fez.test.ts b/dc360/apps/api/test/push-rodada-diz-o-que-fez.test.ts
+index fce7cdb..28b01d2 100644
+--- a/dc360/apps/api/test/push-rodada-diz-o-que-fez.test.ts
++++ b/dc360/apps/api/test/push-rodada-diz-o-que-fez.test.ts
+@@ -1,4 +1,4 @@
+-import { afterEach, beforeEach, describe, expect, it } from "vitest";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import type { EnvioDePush } from "../src/push/envio.js";
+ import { travaDeProcesso, type Trava } from "../src/push/trava.js";
+@@ -42,11 +42,17 @@ function travaEspia(): Trava & { posses: number; soltas: number } {
+   return estado;
+ }
+ 
+-async function esperarAte(condicao: () => boolean, prazoMs: number): Promise<void> {
+-  const limite = Date.now() + prazoMs;
+-  while (!condicao() && Date.now() < limite) {
+-    await new Promise((pronto) => { setTimeout(pronto, 10); });
+-  }
++/*
++  Espera por condição e com limite: volta assim que a condição vale e REPROVA,
++  com a mensagem de `o_que`, se ela não valer no prazo. Antes o laço devolvia
++  em silêncio quando o prazo estourava e a falha aparecia depois, numa
++  asserção que não dizia o que tinha faltado.
++*/
++async function esperarAte(condicao: () => boolean, prazoMs: number, o_que: string): Promise<void> {
++  await vi.waitFor(
++    () => expect(condicao(), o_que).toBe(true),
++    { timeout: prazoMs, interval: 10 },
++  );
+ }
+ 
+ async function registrarAparelho(ficha: string): Promise<void> {
+@@ -186,7 +192,7 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
+       UMA_HORA,
+     );
+     try {
+-      await esperarAte(() => trava.soltas >= 1, 5_000);
++      await esperarAte(() => trava.soltas >= 1, 5_000, "nenhuma rodada saiu na partida");
+       expect(trava.posses, "nenhuma rodada saiu na partida").toBe(1);
+     } finally {
+       await agendada.parar();
+@@ -200,11 +206,11 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
+       UMA_HORA,
+     );
+     try {
+-      await esperarAte(() => trava.soltas >= 1, 5_000);
++      await esperarAte(() => trava.soltas >= 1, 5_000, "a rodada da partida não terminou");
+       expect(trava.posses).toBe(1);
+ 
+       agendada.despertar();
+-      await esperarAte(() => trava.soltas >= 2, 5_000);
++      await esperarAte(() => trava.soltas >= 2, 5_000, "despertar() não produziu rodada");
+       expect(trava.posses, "despertar() não produziu rodada").toBe(2);
+     } finally {
+       await agendada.parar();
+@@ -232,19 +238,26 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
+     );
+     try {
+       // A rodada da partida reivindicou e está presa no envio.
+-      await esperarAte(() => soltarEnvio !== null, 5_000);
++      await esperarAte(() => soltarEnvio !== null, 5_000, "a rodada da partida não chegou ao envio");
+       expect(trava.posses).toBe(1);
+       expect(trava.soltas).toBe(0);
+ 
+       agendada.despertar();
+       agendada.despertar();
+       agendada.despertar();
++      // Janela de silêncio (ver o comentário mais abaixo): prova que NÃO abriu rodada.
+       await new Promise((pronto) => { setTimeout(pronto, 50); });
+       expect(trava.posses, "abriu rodada por cima da que estava em voo").toBe(1);
+ 
+       soltarEnvio!();
+-      await esperarAte(() => trava.soltas >= 2, 5_000);
+-      // Uma rodada a mais, e só uma.
++      await esperarAte(() => trava.soltas >= 2, 5_000, "a rodada a mais não terminou");
++      /*
++        Janela de silêncio, e não espera por evento: aqui o teste prova que NÃO
++        veio uma terceira rodada, e nada acontece para ser esperado. Esperar
++        pouco só pode dar falso verde (deixar passar um defeito), nunca falso
++        vermelho; por isso o tempo fixo é o instrumento certo e não é causa de
++        intermitência.
++      */
+       await new Promise((pronto) => { setTimeout(pronto, 100); });
+       expect(trava.posses).toBe(2);
+       expect(trava.soltas).toBe(2);
+@@ -263,7 +276,7 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
+     );
+     try {
+       expect(agendada.ultimaRodada()).toBeNull();
+-      await esperarAte(() => agendada.ultimaRodada() !== null, 5_000);
++      await esperarAte(() => agendada.ultimaRodada() !== null, 5_000, "a rodada da partida não deixou quadro");
+       const ultima = agendada.ultimaRodada()!;
+       expect(ultima).toMatchObject({ reivindicadas: 1, entregues: 1, falhas: 0, revogados: 0 });
+       expect(Date.parse(ultima.rodadaEm)).toBeGreaterThanOrEqual(antes);
+@@ -286,6 +299,7 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
+       UMA_HORA,
+     );
+     try {
++      // Janela de silêncio: a rodada perdida não deixa quadro, e nada a esperar.
+       await new Promise((pronto) => { setTimeout(pronto, 100); });
+       expect(agendada.ultimaRodada()).toBeNull();
+     } finally {
+diff --git a/dc360/apps/api/test/push-sem-resposta.test.ts b/dc360/apps/api/test/push-sem-resposta.test.ts
+index 773245d..fda4987 100644
+--- a/dc360/apps/api/test/push-sem-resposta.test.ts
++++ b/dc360/apps/api/test/push-sem-resposta.test.ts
+@@ -1,5 +1,5 @@
+ import { generateKeyPairSync } from "node:crypto";
+-import { afterEach, beforeEach, describe, expect, it } from "vitest";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { criarProvedorFcm } from "../src/push/fcm.js";
+ import { montarAviso } from "../src/push/mensagem.js";
+@@ -245,17 +245,16 @@ describe("A rodada inteira tem teto, e a trava nao fica presa", () => {
+     );
+ 
+     try {
+-      const prazo = Date.now() + 5_000;
+       // O vigia dispara no dobro do teto da rodada. Esperar por condição, e
+       // não por tempo fixo, para o caso não ficar intermitente em runner lento.
+-      while (trava.soltas === 0 && Date.now() < prazo) {
+-        await new Promise((pronto) => { setTimeout(pronto, 10); });
+-      }
+-      expect(
+-        trava.soltas,
+-        "a rodada travou para sempre e a trava nunca foi solta: a outra máquina "
+-        + "do Fly desistiria de todas as rodadas seguintes",
+-      ).toBeGreaterThan(0);
++      await vi.waitFor(
++        () => expect(
++          trava.soltas,
++          "a rodada travou para sempre e a trava nunca foi solta: a outra máquina "
++          + "do Fly desistiria de todas as rodadas seguintes",
++        ).toBeGreaterThan(0),
++        { timeout: 5_000, interval: 10 },
++      );
+     } finally {
+       await agendada.parar();
+     }
+diff --git a/dc360/apps/api/test/recuperacao-sem-oraculo.test.ts b/dc360/apps/api/test/recuperacao-sem-oraculo.test.ts
+index c6d49c8..bfb3e82 100644
+--- a/dc360/apps/api/test/recuperacao-sem-oraculo.test.ts
++++ b/dc360/apps/api/test/recuperacao-sem-oraculo.test.ts
+@@ -1,5 +1,5 @@
+ import type { FastifyInstance } from "fastify";
+-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
++import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor } from "../src/servidor.js";
+@@ -125,8 +125,15 @@ describe("O pedido não deixa o relógio nem o status contarem quem tem conta",
+     };
+ 
+     await pedir(DIEGO);
+-    // O envio roda depois da resposta: o encerramento do servidor o espera.
+-    await new Promise((ok) => setTimeout(ok, 50));
++    // O envio roda depois da resposta: espera a linha da falha chegar ao log,
++    // por condição e com limite (era um tempo fixo de 50 ms).
++    await vi.waitFor(
++      () => expect(
++        linhasDeLog.some((l) => l.includes("falha ao enviar o link de recuperacao")),
++        "a falha do envio não chegou ao log",
++      ).toBe(true),
++      { timeout: 5_000, interval: 10 },
++    );
+ 
+     const log = linhasDeLog.join("\n");
+     expect(log).toContain("recuperacao");
+diff --git a/dc360/apps/api/test/segunda-via-nao-reinterdita.test.ts b/dc360/apps/api/test/segunda-via-nao-reinterdita.test.ts
+index e45b243..e82592d 100644
+--- a/dc360/apps/api/test/segunda-via-nao-reinterdita.test.ts
++++ b/dc360/apps/api/test/segunda-via-nao-reinterdita.test.ts
+@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor } from "../src/servidor.js";
+ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import { esperarORelogioAndar } from "./esperar-o-relogio.js";
+ 
+ /**
+  * Reimprimir o termo de interdição não pode reinterditar o imóvel.
+@@ -169,7 +170,7 @@ describe("Segunda via do termo depois do levantamento", () => {
+ 
+     // A SEGUNDA VIA. Mesmo termo, mesma vistoria, nenhuma vistoria nova no
+     // meio: o papel molhou e o processo pediu cópia.
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     expect(await emitirTermo(id)).toBe(200);
+ 
+     const depois = await estado(id);
+@@ -254,7 +255,7 @@ describe("A reinterdição legítima continua funcionando", () => {
+     const primeira = (await estado(id)).interditada_em;
+     await levantar(id);
+ 
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await vistoriar(id);
+     expect(await emitirTermo(id)).toBe(200);
+ 
+@@ -274,7 +275,7 @@ describe("A reinterdição legítima continua funcionando", () => {
+     await emitirTermo(id);
+     const primeira = (await estado(id)).interditada_em;
+ 
+-    await new Promise((r) => setTimeout(r, 20));
++    await esperarORelogioAndar();
+     await emitirTermo(id);
+ 
+     expect((await estado(id)).interditada_em).toBe(primeira);
+diff --git a/dc360/apps/web/test/fluxo-api.e2e.mjs b/dc360/apps/web/test/fluxo-api.e2e.mjs
+index 5e49ad3..84a6da7 100644
+--- a/dc360/apps/web/test/fluxo-api.e2e.mjs
++++ b/dc360/apps/web/test/fluxo-api.e2e.mjs
+@@ -897,11 +897,45 @@ console.log("\n== 23. Sessão encerrada e conta desativada: a frase certa na tel
+ const API_E05 = process.env.BASE_API ?? "http://127.0.0.1:3333";
+ const SENHA_DO_MARCOS = "senha-inicial-do-marcos";
+ 
++/*
++  Espera o painel ACEITAR CONEXAO neste navegador, com limite, antes de abrir
++  o segundo contexto (V-INS-06 do registro da E03).
++
++  Em 2026-10-13, no Firefox do Windows, 1 de 4 rodadas caiu AQUI com
++  `CONNECTION_REFUSED` ao navegar pela primeira vez no segundo contexto que a
++  secao 23 abre; a recusa foi da conexao e nao do conteudo. Duas hipoteses: o painel nao aceitava
++  conexao naquele instante, ou o Firefox resolveu `localhost` por um caminho
++  (IPv6) em que o servidor nao escuta. Nao deu para medir qual (a falha nao
++  reproduziu depois); o conserto nao depende da resposta. A espera tenta a
++  navegacao de verdade, no navegador sob teste, e so repete quando o erro e de
++  conexao recusada; qualquer outro erro (pagina 500, certificado, rede caida)
++  sobe na hora. Se o painel nao responder em 30 s, o teste reprova com a
++  ultima mensagem do navegador, e nao fica pendurado nem passa em silencio.
++*/
++const ERRO_DE_CONEXAO = /CONNECTION_REFUSED|ERR_CONNECTION_REFUSED|NS_ERROR_CONNECTION_REFUSED|ECONNREFUSED|NS_ERROR_NET_RESET/i;
++
++async function irParaQuandoOPainelResponder(pagina, url, opcoes = {}, limiteMs = 30_000) {
++  const fim = Date.now() + limiteMs;
++  let ultima = null;
++  for (;;) {
++    try {
++      return await pagina.goto(url, opcoes);
++    } catch (erro) {
++      if (!ERRO_DE_CONEXAO.test(String(erro?.message ?? erro))) throw erro;
++      ultima = erro;
++      if (Date.now() >= fim) {
++        throw new Error(`o painel nao aceitou conexao em ${limiteMs / 1000} s (${url}): ${ultima.message}`);
++      }
++      await new Promise((r) => setTimeout(r, 250));
++    }
++  }
++}
++
+ async function abrirComoMarcos() {
+   const contextoDele = await navegador.newContext();
+   const paginaDele = await contextoDele.newPage();
+   registrar(paginaDele);
+-  await paginaDele.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
++  await irParaQuandoOPainelResponder(paginaDele, `${BASE}/entrar`, { waitUntil: "networkidle" });
+   await paginaDele.waitForSelector("#entrada-email", { timeout: 30_000 });
+   await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
+   await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
+diff --git a/dc360/db/test/isolamento.test.ts b/dc360/db/test/isolamento.test.ts
+index b688522..df38f50 100644
+--- a/dc360/db/test/isolamento.test.ts
++++ b/dc360/db/test/isolamento.test.ts
+@@ -22,7 +22,7 @@ import { PGlite } from "@electric-sql/pglite";
+ import { readFileSync, readdirSync } from "node:fs";
+ import { fileURLToPath } from "node:url";
+ import { dirname, join } from "node:path";
+-import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+ 
+ const aqui = dirname(fileURLToPath(import.meta.url));
+ /**
+@@ -97,6 +97,33 @@ afterAll(async () => {
+   await db?.close();
+ });
+ 
++/**
++ * Devolve o laço de eventos ao Node por um instante (V-INS-05 do registro da E03).
++ *
++ * O PGlite roda o Postgres em WebAssembly e responde por promessas já
++ * resolvidas: uma cadeia de `await db.query(...)` NUNCA volta ao laço de
++ * eventos, só à fila de microtarefas. Medido com uma sonda de atraso do laço
++ * (`setInterval` de 200 ms) enquanto este arquivo rodava com 24 laços de CPU
++ * ocupando a maquina: um unico atraso de 83 s, o arquivo inteiro. Nenhum
++ * temporizador e nenhuma mensagem do vitest foi atendida nesse tempo. O efeito
++ * visivel eram dois: o prazo do caso estourava depois do prazo (72 s para um
++ * limite de 60 s), e o vitest derrubava o comando com `Timeout calling
++ * "onTaskUpdate"` (leitura mais provavel, nao inspecionada no codigo do vitest:
++ * a resposta do processo principal so e lida quando o laço gira, e o
++ * temporizador de 60 s do RPC dispara antes dela). O fato medido e este:
++ * passando de 60 s sem ceder, o comando saia com 1 mesmo com todos os casos
++ * verdes, e com a cessao o erro some. Maquina livre o arquivo leva 23 s e o erro
++ * nao aparece, que e por que ele so surgia sob carga.
++ *
++ * `setImmediate` roda depois da fase de E/S, entao as mensagens pendentes e os
++ * temporizadores vencidos sao atendidos antes de seguir.
++ */
++const cederOLaco = (): Promise<void> => new Promise((pronto) => { setImmediate(pronto); });
++
++afterEach(async () => {
++  await cederOLaco();
++});
++
+ describe("CA-06: isolamento entre organizações", () => {
+   it("cada município enxerga apenas as próprias ocorrências", async () => {
+     const deA = await comoApp(orgA, (tx) =>
+@@ -3858,6 +3885,9 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
+   ]);
+ 
+   async function sobras(): Promise<Achado[]> {
++    // A varredura e cada chamada ao PGlite seguem por microtarefas, sem ceder ao
++    // laço de eventos (ver `cederOLaco`); este caso faz 23 delas em serie.
++    await cederOLaco();
+     const donoAtual = await dono();
+     return (await varredura()).filter((a) => {
+       if (a.papel === donoAtual || a.papel === "dc360_app") return false;
+@@ -4194,8 +4224,16 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
+       varredura pergunta privilegio efetivo papel a papel, tabela a tabela. O
+       teto padrao de cinco segundos do vitest transformaria uma maquina lenta
+       numa reprovacao que nao fala do banco.
++
++      O limite de 60 s antigo foi MEDIDO e estava curto (V-INS-05 do registro da
++      E03). Maquina livre este caso leva 15 s no Mac de 8 nucleos; com 24 laços
++      de CPU ocupando a maquina ele levou 72 s e reprovou com "Test timed out in
++      60000ms"; nas falhas da F00 (um `ng serve` de outro projeto a 50% de CPU)
++      ficou entre 58,8 s e mais de 60 s. O limite passa a 240 s (16 vezes o
++      tempo livre): continua sendo limite, caso preso reprova, e nenhuma
++      asserção mudou.
+     */
+-  }, 60_000);
++  }, 240_000);
+ });
+ 
+ /* =====================================================================
+diff --git a/dc360/packages/shared/test/dominio.test.ts b/dc360/packages/shared/test/dominio.test.ts
+index 809b567..95e699a 100644
+--- a/dc360/packages/shared/test/dominio.test.ts
++++ b/dc360/packages/shared/test/dominio.test.ts
+@@ -218,5 +218,13 @@ describe("Checklist da vistoria", () => {
+       culpados,
+       "checklist redefinido fora do pacote compartilhado: importe ROTULO_CHECKLIST",
+     ).toEqual([]);
+-  });
++  /*
++    Limite de tempo EXPLÍCITO (V-INS-03 do registro da E03). O padrão do vitest
++    é 5 s, e este caso lê o código-fonte do produto inteiro, inclusive o que
++    está sob `apps/campo` (a pasta `ios/` sozinha passa de 1 GB em disco). Livre,
++    leva cerca de 0,5 s; com a suíte inteira disputando disco e CPU ele
++    estourou os 5 s em 2 de cerca de 7 rodadas. 60 s é folga larga, e continua
++    sendo limite: varredura presa reprova com "Test timed out".
++  */
++  }, 60_000);
+ });
+diff --git a/dc360/packages/shared/test/regras-de-conteudo.test.ts b/dc360/packages/shared/test/regras-de-conteudo.test.ts
+index f5acde5..4fbe893 100644
+--- a/dc360/packages/shared/test/regras-de-conteudo.test.ts
++++ b/dc360/packages/shared/test/regras-de-conteudo.test.ts
+@@ -1,4 +1,4 @@
+-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
++import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { dirname, join, relative, sep } from "node:path";
+ import { fileURLToPath } from "node:url";
+@@ -144,14 +144,52 @@ function isento(relativo: string): boolean {
+   });
+ }
+ 
++/**
++ * Limite de tempo EXPLÍCITO dos casos que varrem a árvore inteira (V-INS-04 do
++ * registro da E03). O padrão do vitest é 5 s, e a varredura lê o repositório
++ * todo: com a máquina carregada (a suíte inteira, um `npm install` do Expo
++ * gravando em `node_modules`, outro processo no disco) ela leva muito mais que
++ * os cerca de 200 ms que leva livre. 60 s é folga larga sobre isso e continua
++ * sendo limite: varredura presa reprova com "Test timed out", não fica
++ * pendurada.
++ */
++const LIMITE_DA_VARREDURA_MS = 60_000;
++
++/**
++ * Lê um arquivo de texto, ou devolve `null` se ele sumiu entre a listagem e a
++ * leitura (`ENOENT`). Só o ENOENT é tolerado: arquivo que sumiu não tem mais
++ * travessão nem norma a achar. Qualquer outro erro (permissão, `EISDIR`, disco)
++ * continua derrubando a varredura, porque aí o portão não olhou o que devia.
++ */
++function lerSeExistir(caminho: string): string | null {
++  try {
++    return readFileSync(caminho, "utf8");
++  } catch (erro) {
++    if ((erro as NodeJS.ErrnoException).code === "ENOENT") return null;
++    throw erro;
++  }
++}
++
+ function arquivos(raiz: string, raizRepo: string = RAIZ_REPO): string[] {
+   const encontrados: string[] = [];
+ 
+   function percorrer(pasta: string): void {
+-    for (const nome of readdirSync(pasta)) {
++    let nomes: string[];
++    try {
++      nomes = readdirSync(pasta);
++    } catch (erro) {
++      // A pasta sumiu entre a listagem do pai e a dela: não há o que varrer.
++      if ((erro as NodeJS.ErrnoException).code === "ENOENT") return;
++      throw erro;
++    }
++    for (const nome of nomes) {
+       if (PASTAS_IGNORADAS.has(nome)) continue;
+       const caminho = join(pasta, nome);
+-      if (statSync(caminho).isDirectory()) {
++      // `throwIfNoEntry: false`: o arquivo (ou o alvo do link simbólico) pode
++      // sumir entre a listagem e esta leitura; some também da varredura.
++      const info = statSync(caminho, { throwIfNoEntry: false });
++      if (!info) continue;
++      if (info.isDirectory()) {
+         percorrer(caminho);
+       } else if (EXTENSOES.some((e) => nome.endsWith(e))) {
+         if (isento(relative(raizRepo, caminho))) continue;
+@@ -184,7 +222,7 @@ function nome(caminho: string, raizRepo: string = RAIZ_REPO): string {
+ function achadosDeTravessao(raizRepo: string = RAIZ_REPO): string[] {
+   const achados: string[] = [];
+   for (const caminho of superficiesDoProduto(raizRepo)) {
+-    readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
++    (lerSeExistir(caminho) ?? "").split("\n").forEach((linha, i) => {
+       if (linha.includes(TRAVESSAO)) {
+         achados.push(`${nome(caminho, raizRepo)}:${i + 1}  ${linha.trim().slice(0, 90)}`);
+       }
+@@ -208,7 +246,7 @@ describe("Regras de conteúdo", () => {
+     expect(lista.some((a) => a.endsWith("dc360/fly.toml"))).toBe(true);
+     // E a isenção da pesquisa está de fato valendo.
+     expect(lista.some((a) => a.startsWith("docs/referencia"))).toBe(false);
+-  });
++  }, LIMITE_DA_VARREDURA_MS);
+ 
+   it("nenhum travessão em texto nenhum", () => {
+     const achados = achadosDeTravessao();
+@@ -219,13 +257,13 @@ describe("Regras de conteúdo", () => {
+         ? ""
+         : `travessão encontrado; use vírgula, dois pontos ou parênteses:\n${achados.join("\n")}`,
+     ).toEqual([]);
+-  });
++  }, LIMITE_DA_VARREDURA_MS);
+ 
+   it("nenhuma norma citada fora da lista autorizada", () => {
+     const achados: string[] = [];
+ 
+     for (const caminho of superficiesDoProduto()) {
+-      readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
++      (lerSeExistir(caminho) ?? "").split("\n").forEach((linha, i) => {
+         for (const casou of linha.matchAll(CITACAO_DE_NORMA)) {
+           if (!NORMAS_AUTORIZADAS.has(casou[1]!)) {
+             achados.push(`${nome(caminho)}:${i + 1}  ${casou[0].trim()}`);
+@@ -241,7 +279,7 @@ describe("Regras de conteúdo", () => {
+         : "norma fora da lista de docs/CONTEXTO.md. Um número de lei errado num " +
+           `termo de interdição é motivo para anular o ato:\n${achados.join("\n")}`,
+     ).toEqual([]);
+-  });
++  }, LIMITE_DA_VARREDURA_MS);
+ 
+   it("nenhum número de artigo em documento oficial", () => {
+     /*
+@@ -258,14 +296,14 @@ describe("Regras de conteúdo", () => {
+ 
+     const achados: string[] = [];
+     for (const caminho of geradores) {
+-      readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
++      (lerSeExistir(caminho) ?? "").split("\n").forEach((linha, i) => {
+         if (/\bart(?:\.|igo)\s*\d/i.test(linha)) {
+           achados.push(`${nome(caminho)}:${i + 1}  ${linha.trim().slice(0, 90)}`);
+         }
+       });
+     }
+     expect(achados).toEqual([]);
+-  });
++  }, LIMITE_DA_VARREDURA_MS);
+ 
+   it("as isenções da E20 valem só no recorte, e na árvore real", () => {
+     // Âncora na árvore de verdade: o que é escrito à mão continua entrando.
+@@ -280,7 +318,7 @@ describe("Regras de conteúdo", () => {
+     expect(lista).not.toContain("docs/auditoria-v2/raw/teste-shared.txt");
+     expect(lista.some((a) => a.startsWith("docs/evidencias-v2/") && !a.endsWith(".md"))).toBe(false);
+     expect(lista.some((a) => a.startsWith("docs/auditoria-v2/raw/") && !a.endsWith(".md"))).toBe(false);
+-  });
++  }, LIMITE_DA_VARREDURA_MS);
+ 
+   describe("recorte das isenções num repositório sintético", () => {
+     /*
+@@ -331,7 +369,7 @@ describe("Regras de conteúdo", () => {
+       } finally {
+         rmSync(raiz, { recursive: true, force: true });
+       }
+-    });
++    }, LIMITE_DA_VARREDURA_MS);
+ 
+     it("deixa passar só a saída bruta e o relatório histórico pelo nome exato", () => {
+       const raiz = montar();
+@@ -341,7 +379,44 @@ describe("Regras de conteúdo", () => {
+       } finally {
+         rmSync(raiz, { recursive: true, force: true });
+       }
+-    });
++    }, LIMITE_DA_VARREDURA_MS);
++
++    it("tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura", () => {
++      /*
++        V-INS-04 do registro da E03. A varredura lista a pasta e só depois
++        abre cada arquivo; entre uma coisa e outra outro processo pode apagar ou
++        trocar o arquivo (o `npm install` do Expo, uma evidência sendo
++        regravada). Um link simbólico pendurado reproduz o instante exato:
++        `readdirSync` o lista e `statSync` falha com ENOENT. O arquivo que sumiu
++        não tem mais travessão a achar; o resto da varredura precisa seguir.
++      */
++      const raiz = montar();
++      try {
++        symlinkSync(
++          join(raiz, "alvo-que-nao-existe.md"),
++          join(raiz, "docs", "sumiu-depois-da-listagem.md"),
++        );
++        const achados = achadosDeTravessao(raiz).map((a) => a.split(":")[0]);
++        expect(achados).not.toContain("docs/sumiu-depois-da-listagem.md");
++        for (const relativo of REPROVAM) expect(achados).toContain(relativo);
++      } finally {
++        rmSync(raiz, { recursive: true, force: true });
++      }
++    }, LIMITE_DA_VARREDURA_MS);
++
++    it("só tolera ENOENT: outro erro de leitura continua derrubando a varredura", () => {
++      const raiz = montar();
++      try {
++        // Uma PASTA com nome de arquivo de texto: listada, e a leitura falha com EISDIR.
++        mkdirSync(join(raiz, "docs", "pasta-que-parece-arquivo.md"));
++        // `arquivos()` a trata como pasta (não lê); o erro que não é ENOENT só
++        // aparece na leitura de arquivo, então provamos pela função de leitura.
++        expect(() => lerSeExistir(join(raiz, "docs", "pasta-que-parece-arquivo.md"))).toThrow(/EISDIR/);
++        expect(lerSeExistir(join(raiz, "docs", "nao-existe.md"))).toBeNull();
++      } finally {
++        rmSync(raiz, { recursive: true, force: true });
++      }
++    }, LIMITE_DA_VARREDURA_MS);
+   });
+ 
+   it("as próprias expressões funcionam", () => {
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 67838f2..a2ede1c 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -83,9 +83,10 @@ export const SAIDA_PADRAO = join(
+  * esperado é 165 mais esta constante, e quem acrescentar teste ali atualiza
+  * o número aqui. 16 da entrega original mais 10 da correção 1 (divergência
+  * explicada, código de saída, conferidor de contagens com número velho
+- * plantado).
++ * plantado). Mais 2 da correção 4 da E03 (V-ROT-02: o passo `e2e-firefox` e o
++ * motor que vai por ambiente, não por prefixo de shell).
+  */
+-export const TESTES_DA_E01_EM_SCRIPTS = 27;
++export const TESTES_DA_E01_EM_SCRIPTS = 29;
+ 
+ /**
+  * Quantos testes cada etapa SEGUINTE da fase F00 soma ao `test:scripts`, por ID.
+@@ -442,6 +443,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
+   "V2-F00-E15": { total: 3, falhas: 0 },
+   // `packages/shared/test/regras-de-conteudo.test.ts`: 3 casos de âncora das isenções (árvore real e repositório sintético, o que reprova e o que passa). A falha pré-existente do travessão fecha: o literal de `trilha-detalhe.test.ts` virou escape e a saída bruta e a auditoria de 2026-09-30 saíram da varredura. O shared fecha sem vermelho.
+   "V2-F00-E20": { total: 3, falhas: -1 },
++  // V2-F00-E03, correção 4 (V-INS-04): 2 casos novos em `regras-de-conteudo.test.ts` (o arquivo que some entre a listagem e a leitura não derruba a varredura; só o ENOENT é tolerado).
++  "V2-F00-E03-correcao-4": { total: 2, falhas: 0 },
+ };
+ export function esperadoDoTesteShared() {
+   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
+@@ -669,6 +672,8 @@ export const PASSOS = [
+     titulo: "npm run test:e2e (painel local, com o painel servido)",
+     cmd: "npm run test:e2e",
+     cwd: ".",
++    // Fixa o motor: quem exportou `MOTOR=firefox` no terminal não troca o passo do Chromium por engano.
++    ambiente: { MOTOR: "chromium" },
+     // O E2E do modo local navega em `http://localhost:4173`. Sem o painel de pé a
+     // falha é só "conexão recusada", que não é o vermelho que a linha de base mede.
+     // O CI faz o mesmo: constrói o painel e sobe o `vite preview` antes do teste.
+@@ -688,6 +693,33 @@ export const PASSOS = [
+     */
+     esperado: { codigo: 0, contem: "Passou: 70   Falhou: 0" },
+   },
++  /*
++    O mesmo E2E do painel local no Firefox (V-ROT-02 do registro da E03, a D-4
++    da validação de 2026-10-13). O texto da E01 e o item "E2E de navegador" do
++    G00 pedem Chromium E Firefox, e o roteiro só rodava o Chromium: o Firefox só
++    era conferido no CI, e quem repetisse a medição à mão num computador novo
++    não via nada dele. O motor entra por `ambiente` (`MOTOR`, lido por
++    `apps/web/test/fluxo.e2e.mjs`), não por prefixo de shell. O esperado é o
++    mesmo do Chromium, de propósito: um painel que passa 70 de 70 num motor e
++    outro número no outro tem defeito num dos dois. O Playwright guarda o
++    Firefox em `~/.cache/ms-playwright` (ou o equivalente da máquina); quem
++    ainda não o tem instala com `npx playwright install firefox`, passo 3 do
++    `COMO-REPRODUZIR.md`.
++  */
++  {
++    id: "e2e-firefox",
++    titulo: "npm run test:e2e no Firefox (painel local, com o painel servido)",
++    cmd: "npm run test:e2e",
++    cwd: ".",
++    ambiente: { MOTOR: "firefox" },
++    servidor: {
++      preparar: "npm run build --workspace @dc360/web",
++      cmd: "npx vite preview --port 4173 --strictPort",
++      cwd: "apps/web",
++      url: "http://localhost:4173",
++    },
++    esperado: { codigo: 0, contem: "Passou: 70   Falhou: 0" },
++  },
+   /*
+     Verde desde a V2-F00-E18. Morria na secao 13 (o CORS nao liberava
+     `if-none-match` no preflight do PUT de evidencia). Com o arquivo inteiro
+@@ -866,7 +898,7 @@ export function conferirContagensDoRoteiro(medidas, passos = PASSOS) {
+ }
+ 
+ export function listarComandos(passos = PASSOS) {
+-  return passos.map((p, i) => `${String(i + 1).padStart(2, "0")} ${p.id.padEnd(18)} (${p.cwd})  ${p.cmd}`);
++  return passos.map((p, i) => `${String(i + 1).padStart(2, "0")} ${p.id.padEnd(18)} (${p.cwd})  ${comandoParaMostrar(p)}`);
+ }
+ 
+ export function lerOpcoes(argv) {
+@@ -897,6 +929,28 @@ export function escolherPassos(opcoes, passos = PASSOS) {
+ const LIMITE_POR_PASSO_MS = 25 * 60 * 1000;
+ const ESPERA_DO_SERVIDOR_MS = 60 * 1000;
+ 
++/**
++ * O ambiente do comando de um passo: o do processo, sem cor, mais o que o passo
++ * declara em `ambiente` (por exemplo `MOTOR: "firefox"`). Vai por objeto, e não
++ * por `MOTOR=firefox comando` no texto do comando, porque esse prefixo é sintaxe
++ * de shell POSIX e o roteiro roda também no Windows.
++ */
++export function ambienteDoPasso(passo, base = process.env) {
++  return { ...base, NO_COLOR: "1", FORCE_COLOR: "0", ...(passo.ambiente ?? {}) };
++}
++
++/**
++ * O comando como se digita à mão, com o que o passo põe no ambiente na frente
++ * (`MOTOR=firefox npm run test:e2e`). É só para MOSTRAR (cabeçalho do passo,
++ * listagem e resumo): quem repete o passo copiando a linha tem de ver o motor,
++ * porque sem ele os dois passos do E2E parecem o mesmo comando. A execução usa
++ * `ambienteDoPasso`, e não este texto, por causa do Windows.
++ */
++export function comandoParaMostrar(passo) {
++  const prefixo = Object.entries(passo.ambiente ?? {}).map(([chave, valor]) => `${chave}=${valor}`).join(" ");
++  return prefixo ? `${prefixo} ${passo.cmd}` : passo.cmd;
++}
++
+ function rodar(cmd, cwd, extra = {}) {
+   return spawn(cmd, { cwd: join(RAIZ_DO_PRODUTO, cwd), shell: true, env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" }, ...extra });
+ }
+@@ -938,7 +992,7 @@ function executar(passo) {
+       resolver({ saida, codigo: codigo ?? 1, duracaoMs: Date.now() - inicio });
+     };
+     const rodarComando = () => {
+-      const filho = rodar(passo.cmd, passo.cwd);
++      const filho = rodar(passo.cmd, passo.cwd, { env: ambienteDoPasso(passo) });
+       const prazo = setTimeout(() => {
+         saida += `
+ [baseline] passo interrompido após ${LIMITE_POR_PASSO_MS / 60000} minutos
+@@ -1030,14 +1084,14 @@ async function principal() {
+   await mkdir(pasta, { recursive: true });
+   const resultados = [];
+   for (const [i, passo] of passos.entries()) {
+-    console.log(`[${i + 1}/${passos.length}] ${passo.id}: ${passo.cmd} (${passo.cwd})`);
++    console.log(`[${i + 1}/${passos.length}] ${passo.id}: ${comandoParaMostrar(passo)} (${passo.cwd})`);
+     const { saida, codigo, duracaoMs } = await executar(passo);
+     const avaliacao = avaliar(passo, saida, codigo);
+-    const cabecalho = `$ ${passo.cmd}   (em ${passo.cwd})\ncodigo=${codigo} duracao=${Math.round(duracaoMs / 1000)}s situacao=${avaliacao.status}\n\n`;
++    const cabecalho = `$ ${comandoParaMostrar(passo)}   (em ${passo.cwd})\ncodigo=${codigo} duracao=${Math.round(duracaoMs / 1000)}s situacao=${avaliacao.status}\n\n`;
+     const arquivo = `${String(i + 1).padStart(2, "0")}-${passo.id}.txt`;
+     await writeFile(join(pasta, arquivo), redigir(cabecalho + saida));
+     console.log(`    codigo ${codigo}, ${avaliacao.status}${avaliacao.detalhes.length ? `: ${avaliacao.detalhes.join("; ")}` : ""}`);
+-    resultados.push({ id: passo.id, cmd: passo.cmd, cwd: passo.cwd, codigo, duracaoMs, ...avaliacao, arquivo });
++    resultados.push({ id: passo.id, cmd: comandoParaMostrar(passo), cwd: passo.cwd, codigo, duracaoMs, ...avaliacao, arquivo });
+   }
+   const quando = new Date().toISOString();
+   await writeFile(join(pasta, "resultados.json"), JSON.stringify(resultados, null, 2) + "\n");
+diff --git a/dc360/scripts/baseline.test.mjs b/dc360/scripts/baseline.test.mjs
+index 74a5721..0cc498d 100644
+--- a/dc360/scripts/baseline.test.mjs
++++ b/dc360/scripts/baseline.test.mjs
+@@ -46,7 +46,9 @@ import {
+   MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA,
+   BASE_DO_TESTE_CAMPO_APP,
+   MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA,
++  ambienteDoPasso,
+   avaliar,
++  comandoParaMostrar,
+   escolherPassos,
+   esperadoDoTesteApi,
+   esperadoDoTesteShared,
+@@ -190,6 +192,44 @@ test("o E2E do painel local declara o servidor que o teste exige", () => {
+   assert.ok(teste.includes("localhost:4173"), "o E2E mudou de porta: atualize o passo");
+ });
+ 
++test("o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02)", () => {
++  const chromium = PASSOS.find((p) => p.id === "e2e");
++  const firefox = PASSOS.find((p) => p.id === "e2e-firefox");
++  assert.ok(firefox, "falta o passo e2e-firefox: o G00 pede Chromium e Firefox");
++  assert.equal(firefox.cmd, chromium.cmd);
++  assert.equal(firefox.cwd, chromium.cwd);
++  assert.deepEqual(firefox.servidor, chromium.servidor, "o Firefox precisa do mesmo painel servido");
++  assert.deepEqual(firefox.esperado, chromium.esperado, "um motor com número diferente do outro é defeito num dos dois");
++  // O teste de verdade lê o motor da variável MOTOR; sem isto o passo rodaria o Chromium duas vezes.
++  const teste = readFileSync(new URL("../apps/web/test/fluxo.e2e.mjs", import.meta.url), "utf8");
++  assert.ok(teste.includes("process.env.MOTOR"), "o E2E não lê MOTOR: o passo do Firefox não trocaria o motor");
++  // Aparece na lista de comandos que o roteiro imprime, depois do Chromium.
++  const ids = PASSOS.map((p) => p.id);
++  assert.ok(ids.indexOf("e2e-firefox") > ids.indexOf("e2e"));
++  assert.ok(listarComandos().some((l) => l.includes("e2e-firefox")));
++});
++
++test("o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende", () => {
++  const chromium = PASSOS.find((p) => p.id === "e2e");
++  const firefox = PASSOS.find((p) => p.id === "e2e-firefox");
++  assert.ok(!/MOTOR=/.test(firefox.cmd), "MOTOR=firefox no texto do comando só funciona em shell POSIX");
++  // Um MOTOR exportado no terminal de quem roda não troca nenhum dos dois passos.
++  const base = { PATH: "/usr/bin", MOTOR: "webkit" };
++  assert.equal(ambienteDoPasso(firefox, base).MOTOR, "firefox");
++  assert.equal(ambienteDoPasso(chromium, base).MOTOR, "chromium");
++  // O resto do ambiente do processo e a saída sem cor continuam valendo; passo sem `ambiente` não perde nada.
++  assert.equal(ambienteDoPasso(firefox, base).PATH, "/usr/bin");
++  assert.equal(ambienteDoPasso(firefox, base).NO_COLOR, "1");
++  assert.equal(ambienteDoPasso({ id: "x" }, base).MOTOR, "webkit");
++  // Quem repete à mão tem de ver o motor: o cabeçalho, a listagem e o resumo mostram `MOTOR=...` na frente.
++  assert.equal(comandoParaMostrar(firefox), "MOTOR=firefox npm run test:e2e");
++  assert.equal(comandoParaMostrar(chromium), "MOTOR=chromium npm run test:e2e");
++  assert.equal(comandoParaMostrar({ cmd: "npm run typecheck" }), "npm run typecheck");
++  const linhas = listarComandos();
++  assert.ok(linhas.some((l) => l.includes("e2e-firefox") && l.endsWith("MOTOR=firefox npm run test:e2e")));
++  assert.ok(linhas.some((l) => /\be2e\s/.test(l) && l.endsWith("MOTOR=chromium npm run test:e2e")));
++});
++
+ test("as opções recusam o que não conhecem e os filtros recusam passo inexistente", () => {
+   assert.throws(() => lerOpcoes(["--assim-nao"]), /opção desconhecida/);
+   assert.throws(() => escolherPassos(lerOpcoes(["--so=nao-existe"])), /passo desconhecido/);
+diff --git a/docs/DECISOES-DE-TESTE-DA-FASE-00.md b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+index b172cc1..283f77a 100644
+--- a/docs/DECISOES-DE-TESTE-DA-FASE-00.md
++++ b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+@@ -59,7 +59,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ | API: certificado de teste do banco | 13 casos (1 suíte) | E21 | feito e provado na V2-F00-E21 |
+ | scripts: três testes de portabilidade e de configuração | 3 | E17 | idem |
+ | API: código de erro da sessão | 3 arquivos, 7 ocorrências | E05 (e E07) | idem |
+-| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos a medir (aberto) | correção 1 da E03 (o 1); a definir (os 10, proposta: E21) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos seguem como linha aberta V-INS-02 do registro, com dono e prazo |
++| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos (feito) | correção 1 da E03 (o 1); correção 4 da E03 (os 10) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos feitos e provados na correção 4 da V2-F00-E03 (2026-10-15), fechando V-INS-02 do registro |
+ | fila do campo: 401 e 403 de sessão deixam de ser permanentes | 3 (2 no pacote, 1 na integração com a API) | E06 | feito e provado na V2-F00-E06 |
+ | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
+ | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
+@@ -315,6 +315,31 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+   pontos aguarda Rafael aceitar o quarto item da E21 (pergunta Q4 da seção 8.6
+   da classificação).
+ 
++**Atualização de 2026-10-15 (correção 4 da V2-F00-E03, V-INS-02 do registro).**
++Os 10 pontos de `setTimeout(r, 20)` em `desinterdicao`, `fotos-do-documento`,
++`identificador-da-emissao` e `segunda-via-nao-reinterdita` foram trocados por
++`esperarORelogioAndar()` (`apps/api/test/esperar-o-relogio.ts`): `vi.waitFor`
++com limite de 2 s até o relógio passar do instante em que o ato anterior
++terminou, que é a condição que as asserções precisam (o segundo ato com carimbo
++estritamente maior). Das esperas de 10 a 100 ms, três de polling viraram
++`vi.waitFor` com limite e mensagem (`push-rodada-diz-o-que-fez`, `push-sem-resposta`
++e `recuperacao-sem-oraculo`, esta agora esperando a linha da falha no log), e
++três ficaram de propósito: são janelas de silêncio (provam que NÃO veio uma
++segunda rodada), onde esperar pouco só dá falso verde. Nenhuma asserção foi
++enfraquecida. Medido: nenhum dos pontos falhou antes nem depois, e o mutante
++sem espera nenhuma também fica verde, então a troca é preventiva; a prova é de
++5 rodadas dos 7 arquivos (71 de 71) sob carga
++(`V2-F00-E03/correcao-4/saidas/01` e `02`).
++
++### Estabilidade sob carga: limites explícitos, `ENOENT` e cessão do laço (correção 4 da V2-F00-E03, 2026-10-15)
++
++- **Testes:** `packages/shared/test/dominio.test.ts` ("ninguém redefine o checklist..."), `packages/shared/test/regras-de-conteudo.test.ts` (as varreduras), `db/test/isolamento.test.ts` (o caso das seis vias de privilégio e o arquivo todo) e a seção 23 de `apps/web/test/fluxo-api.e2e.mjs`.
++- **Antes:** o shared dependia do limite padrão de 5 s e da certeza de que nenhum arquivo some durante a varredura; o banco tinha 60 s no caso das 23 varreduras e rodava o arquivo inteiro sem devolver o laço de eventos; a seção 23 navegava no segundo contexto sem esperar o painel aceitar conexão.
++- **Decisão que o torna velho:** nenhuma: são instabilidades (V-INS-03 a V-INS-06 do registro), e a política manda trocar espera fixa por condição com limite (R6).
++- **Depois:** limite explícito de 60 s nos casos de varredura do shared; `ENOENT` tolerado (só ele) na varredura de `regras-de-conteudo.test.ts`, com 2 casos novos; no banco, limite de 240 s no caso das seis vias e cessão do laço (`setImmediate`) após cada caso e a cada varredura, porque a sonda mediu um único atraso de 83 s do laço no arquivo inteiro sob carga; na seção 23, `irParaQuandoOPainelResponder` repete a navegação só quando a conexão é recusada, por até 30 s. **Nenhuma asserção foi enfraquecida ou tirada.**
++- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/` (03 a 15) e a seção 9 de `classificacao-dos-vermelhos.md`.
++- **Etapa e data:** V2-F00-E03, correção 4, 2026-10-15.
++
+ ### API: `tokens.coordA` do `api.test.ts` entra de novo depois do teste de reuso
+ 
+ - **Teste:** `apps/api/test/api.test.ts`, "rotaciona o token de renovação e derruba tudo se o antigo reaparecer" (a asserção não muda; muda o que vem depois dela).
+diff --git a/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md b/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
+index 1be124b..954d564 100644
+--- a/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
++++ b/docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
+@@ -45,7 +45,7 @@ O código de saída do roteiro diz o que esperar:
+ 
+ | Código | Significa | O que fazer |
+ | --- | --- | --- |
+-| 0 | Todos os 19 passos "confere" | Nada. |
++| 0 | Todos os 20 passos "confere" | Nada. |
+ | 1 | Há divergência, mas SÓ de passo "divergente-explicada" | Ler a linha do `RESUMO.md`: ela traz o nome do achado e o arquivo que o descreve. |
+ | 3 | Há passo "divergente" (sem explicação) | É defeito, deriva externa nova ou contabilidade atrasada. Não se anexa um resumo assim sem explicar cada linha. |
+ | 2 | O próprio roteiro quebrou (opção inválida, pasta ilegível) | Corrigir o roteiro. |
+@@ -60,11 +60,11 @@ Cada linha do `RESUMO.md` tem uma situação:
+ 
+ O esperado de cada passo está em `PASSOS`, dentro de `scripts/baseline.mjs`, e o total de casos de cada suíte é a soma de uma base mais o que cada etapa da fase F00 declarou mudar. Em resumo, na árvore verde de 2026-10-13 (Windows e Linux do CI; o que mudou na rodada de 2026-10-14 está no fim desta seção):
+ 
+-- passam, com código 0: `typecheck`, as suítes de `packages/shared`, `db` (inclui o isolamento, com 3 pulados por ambiente em `busca.test.ts`), `packages/campo`, `apps/api` (9 pulados por ambiente: o bloco de Postgres real de `renovacao-contra-encerramento.test.ts`, que só roda com `DC360_POSTGRES_DE_PROVA`; o `vitest run` imprime 1319 casos contra 1310 da lista), `apps/console` e `apps/web`, o jest do aplicativo de campo, `npm run test:campo`, `npm run test:scripts` (4 pulados por ambiente, a pasta `ios/` que não existe), `conferir:numeros`, `auditar` e os dois E2E;
++- passam, com código 0: `typecheck`, as suítes de `packages/shared`, `db` (inclui o isolamento, com 3 pulados por ambiente em `busca.test.ts`), `packages/campo`, `apps/api` (9 pulados por ambiente: o bloco de Postgres real de `renovacao-contra-encerramento.test.ts`, que só roda com `DC360_POSTGRES_DE_PROVA`; o `vitest run` imprime 1319 casos contra 1310 da lista), `apps/console` e `apps/web`, o jest do aplicativo de campo, `npm run test:campo`, `npm run test:scripts` (4 pulados por ambiente, a pasta `ios/` que não existe), `conferir:numeros`, `auditar` e os E2E (o do painel local em Chromium, passo `e2e`, e em Firefox, passo `e2e-firefox`, e o contra a API);
+ - falham de propósito: os dois `npm audit` crus (raiz e `apps/campo`). A política do CP-03 aceita o que eles apontam, e quem decide é o `auditar`, que sai 0. Se um deles fechar em 0, o passo diverge de propósito: é a notícia de que a exceção pode sair;
+ - nenhuma divergência explicada: o `expo-doctor` deu 21 de 21 em 2026-10-13, 20 de 21 na manhã de 2026-10-14 (cinco patches novos do Expo) e 21 de 21 de novo nesse mesmo dia, depois da correção 4 da E19 (ver o fim desta seção). A deriva que o roteiro nomeava como **V-DEP-4** (seis pacotes do Expo um patch atrás do que o SDK 57 exige, publicados depois do 21 de 21 de 2026-10-08) foi fechada em 2026-10-13: o Rafael decidiu atualizar, os seis patches foram aplicados (item 17 de `dc360/apps/campo/PENDENCIAS.md`) e o passo confere sozinho. Se a deriva voltar (o Expo publica patch novo a toda hora), o passo diverge de propósito e a causa se descreve em `divergenciaExplicada` só se a decisão for não atualizar na hora.
+ 
+-Portanto uma árvore verde e rede disponível dão código **0**: 19 de 19 passos "confere" numa máquina nova, ou 17 de 17 com `--sem-instalar` (o `npm ci` das duas árvores não roda), **no dia em que o `expo-doctor` está verde**. **Medido em 2026-10-14 num Mac (Node 24, `--sem-instalar`), sobre a árvore final: 15 de 17, código 3**, por dois passos que dependem da máquina, e nenhum é regressão de teste de produto: `teste-api` (o `openssl` do macOS é LibreSSL e o caso "respeita OPENSSL_CONF válido" de `openssl-do-teste.test.ts` espera o OpenSSL 3: 1 falha, 1309 aprovados e 9 pulados de 1319) e `test-scripts` (a pasta `apps/campo/ios/` existe nesta máquina, os 4 testes que pulam sem ela rodam: 0 pulados contra 4 esperados). Os outros 15 conferem, o `expo-doctor` entre eles (21 de 21). Histórico do mesmo dia: a medição da manhã (E22, correção 2) deu 14 de 17, porque o `expo-doctor` estava em 20 de 21 (cinco patches novos do Expo, `apps/campo/PENDENCIAS.md`, item 17); a E19, correção 4, subiu esses cinco e o passo voltou a conferir (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele está pendente). As saídas da árvore final estão em `docs/evidencias-v2/G00/V2-F00-E19/correcao-4/saidas/linha-de-base-final/` (as 17 saídas brutas e o `RESUMO.md`; o LibreSSL e a pasta `ios/` estão em `saidas/09-ambiente-do-mac.txt`). Nesse caso quem reproduz vê código 3, e o RESUMO.md diz qual passo e por quê. Sem rede o resultado NÃO vale: `npm audit` e `expo-doctor` dependem do registro, e o roteiro não confere um `npm audit` cru que saiu "falha" sem trazer o relatório (`# npm audit report`), justamente porque registro fora do ar também sai com código diferente de zero sem ter auditado. Nesse caso o passo diverge (código 3).
++Portanto uma árvore verde e rede disponível dão código **0**: 20 de 20 passos "confere" numa máquina nova, ou 18 de 18 com `--sem-instalar` (o `npm ci` das duas árvores não roda), **no dia em que o `expo-doctor` está verde**. (Eram 19 e 17 até a correção 4 da E03, de 2026-10-15, que acrescentou o passo `e2e-firefox`: o mesmo E2E do painel local no Firefox do Playwright, que o passo 3 acima instala, com o mesmo esperado de 70 verificações do Chromium. As medições datadas abaixo são de antes dele e falam em 17 passos.) **Medido em 2026-10-14 num Mac (Node 24, `--sem-instalar`), sobre a árvore final: 15 de 17, código 3**, por dois passos que dependem da máquina, e nenhum é regressão de teste de produto: `teste-api` (o `openssl` do macOS é LibreSSL e o caso "respeita OPENSSL_CONF válido" de `openssl-do-teste.test.ts` espera o OpenSSL 3: 1 falha, 1309 aprovados e 9 pulados de 1319) e `test-scripts` (a pasta `apps/campo/ios/` existe nesta máquina, os 4 testes que pulam sem ela rodam: 0 pulados contra 4 esperados). Os outros 15 conferem, o `expo-doctor` entre eles (21 de 21). Histórico do mesmo dia: a medição da manhã (E22, correção 2) deu 14 de 17, porque o `expo-doctor` estava em 20 de 21 (cinco patches novos do Expo, `apps/campo/PENDENCIAS.md`, item 17); a E19, correção 4, subiu esses cinco e o passo voltou a conferir (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele está pendente). As saídas da árvore final estão em `docs/evidencias-v2/G00/V2-F00-E19/correcao-4/saidas/linha-de-base-final/` (as 17 saídas brutas e o `RESUMO.md`; o LibreSSL e a pasta `ios/` estão em `saidas/09-ambiente-do-mac.txt`). Nesse caso quem reproduz vê código 3, e o RESUMO.md diz qual passo e por quê. Sem rede o resultado NÃO vale: `npm audit` e `expo-doctor` dependem do registro, e o roteiro não confere um `npm audit` cru que saiu "falha" sem trazer o relatório (`# npm audit report`), justamente porque registro fora do ar também sai com código diferente de zero sem ter auditado. Nesse caso o passo diverge (código 3).
+ 
+ ## Quem garante que o roteiro não fica velho
+ 
+diff --git a/dc360/apps/api/test/esperar-o-relogio.ts b/dc360/apps/api/test/esperar-o-relogio.ts
+new file mode 100644
+index 0000000..bb37146
+--- /dev/null
++++ b/dc360/apps/api/test/esperar-o-relogio.ts
+@@ -0,0 +1,34 @@
++import { expect, vi } from "vitest";
++
++/**
++ * Espera o relógio andar, por CONDIÇÃO e com LIMITE, e não por tempo fixo.
++ *
++ * Vários testes precisam que o segundo ato (uma re-vistoria, uma segunda via,
++ * um levantamento) tenha carimbo ESTRITAMENTE maior que o do primeiro, porque
++ * é isso que a regra de negócio compara (`reinterditar exige vistoria posterior
++ * ao levantamento`, `a segunda via não reescreve a data`). Antes, o teste
++ * dormia 20 ms e torcia: suficiente com a máquina livre, e um chute com o relógio
++ * do runner ou o laço de eventos atrasado (V-INS-02 do registro da E03).
++ *
++ * O que o teste realmente precisa é: "o instante de agora já é depois do
++ * instante em que o ato anterior terminou". Esta função captura o agora e só
++ * volta quando `Date.now()` passou dele. Todo ato que já terminou tem carimbo
++ * menor ou igual a esse agora (o carimbo vem do mesmo processo), então o
++ * próximo ato nasce estritamente depois. Passa em 1 ms com a máquina livre e
++ * só reprova se o relógio NÃO andar em 2 s, que é defeito do ambiente e não
++ * do produto.
++ *
++ * Se for dado `desde` (o carimbo ISO de um ato, lido da API), espera passar
++ * dele, que é a condição exata da regra e vale mesmo se o carimbo tiver sido
++ * escrito um pouco no futuro.
++ */
++export async function esperarORelogioAndar(desde?: string | null): Promise<void> {
++  const referencia = Math.max(
++    Date.now(),
++    desde ? new Date(desde).getTime() : Number.NEGATIVE_INFINITY,
++  );
++  await vi.waitFor(
++    () => expect(Date.now(), "o relógio não andou").toBeGreaterThan(referencia),
++    { timeout: 2000, interval: 1 },
++  );
++}

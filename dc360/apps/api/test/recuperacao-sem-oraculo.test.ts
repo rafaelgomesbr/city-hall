@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
@@ -125,8 +125,15 @@ describe("O pedido não deixa o relógio nem o status contarem quem tem conta", 
     };
 
     await pedir(DIEGO);
-    // O envio roda depois da resposta: o encerramento do servidor o espera.
-    await new Promise((ok) => setTimeout(ok, 50));
+    // O envio roda depois da resposta: espera a linha da falha chegar ao log,
+    // por condição e com limite (era um tempo fixo de 50 ms).
+    await vi.waitFor(
+      () => expect(
+        linhasDeLog.some((l) => l.includes("falha ao enviar o link de recuperacao")),
+        "a falha do envio não chegou ao log",
+      ).toBe(true),
+      { timeout: 5_000, interval: 10 },
+    );
 
     const log = linhasDeLog.join("\n");
     expect(log).toContain("recuperacao");
