@@ -312,8 +312,9 @@ export async function rotasAvisos(
         passagem do tempo, exatamente como o prazo vencido logo acima, e por
         isso mora no mesmo lugar e pelo mesmo motivo. O push deste produto sai
         de um relógio sem ninguém logado, e relógio sem contexto de município
-        precisa de função `SECURITY DEFINER`: o orçamento está em quinze de
-        quinze e o portão CA-06 reprova a décima sexta.
+        precisa de função `SECURITY DEFINER`: o teto é de 27, hoje cheio (portão
+        CA-06, em `db/test/isolamento.test.ts`), e o portão reprova a vigésima
+        oitava.
 
         O QUE ISSO CUSTA, e está dito em voz alta no guia do coordenador em vez
         de disfarçado: o aviso só nasce quando alguém daquele município consulta

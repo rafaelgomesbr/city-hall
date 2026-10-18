@@ -588,8 +588,9 @@ node scripts/migrar-producao.mjs
 ```
 
 **Passo 2. Tirar a cópia.** Desde 15/09/2026 o passo 3 **recusa** sem uma cópia
-feita nos últimos trinta minutos, porque o único restore testado deste projeto
-(`docs/COLOCAR-DE-PE.md`, Parte 6) foi sobre uma cópia tirada antes, e migração
+feita nos últimos trinta minutos, porque o restore testado deste projeto
+(`docs/RESTORE-DO-BANCO.md`; o primeiro, de 09/09/2026, está na Parte 6 de
+`docs/COLOCAR-DE-PE.md`) parte de uma cópia tirada antes, e migração
 irreversível sem cópia é aposta.
 
 ```bash
@@ -603,9 +604,15 @@ O que o roteiro faz, e o que ele cobra:
   servidor é 17.x). Sem ele, a saída diz o que instalar (`brew install libpq` e
   o `PATH`); com um mais velho, recusa. A versão do servidor é lida antes de
   pedir o dump, e o cliente é conferido contra ela;
-- grava em `~/dc360-copias/<data>.dump`, com permissão 0600, no formato do
-  restore testado (`pg_dump --format=custom --schema=public`, que volta com
-  `pg_restore --exit-on-error`);
+- grava em `~/dc360-copias/<data>.dump`, com permissão 0600, em
+  `pg_dump --format=custom --schema=public`, o formato do restore de 09/09/2026.
+  **Atenção:** o roteiro vigente (`RESTORE-DO-BANCO.md`, passo 3) exige também
+  `--extension=pg_trgm` desde a migração 041, porque sem a opção o
+  `pg_restore --exit-on-error` para no índice de busca (`gin_trgm_ops`), e o
+  `copiar-producao.mjs` ainda não a passa. Nenhuma etapa do roteiro contém esse conserto (a V2-F01-E15, de dump antes de
+  migração, não o cita), então ele não tem dono hoje; até alguém abrir a
+  pendência, restaurar uma cópia dele exige antes criar a extensão no destino,
+  o que o roteiro de restore não ensaiou;
 - **recusa** gravar dentro do repositório, em pasta sincronizada com nuvem de
   arquivos (iCloud, Dropbox, Google Drive, OneDrive) e na Área de Trabalho. O
   dump traz dado real de cidadão: endereço, coordenada, nome e contato do
@@ -668,9 +675,9 @@ antes da API nova.
 
 - **A cópia não é testada por restore a cada migração.** O roteiro grava e
   confere que o `pg_dump` saiu com zero; ele não sobe um cluster descartável
-  para restaurar. O procedimento de restore continua sendo o da Parte 6 do
-  `COLOCAR-DE-PE.md`, e a periodicidade dele continua por definir
-  (`docs/INDISPONIBILIDADE.md`, 3.4).
+  para restaurar. O procedimento de restore é o de `RESTORE-DO-BANCO.md`
+  (a Parte 6 do `COLOCAR-DE-PE.md` é o registro histórico), e a periodicidade
+  dele continua por definir (`docs/INDISPONIBILIDADE.md`, 3.4).
 - **O endurecimento não roda sozinho depois da migração.** Ele é um passo do
   roteiro, e roteiro se pula; o que não deixa passar despercebido é a consulta
   do passo 4, que a pessoa precisa rodar. Automatizar exige a credencial de

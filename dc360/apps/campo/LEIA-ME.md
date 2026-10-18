@@ -1,6 +1,6 @@
 # Aplicativo de campo
 
-**Estado: escrito por inteiro, compila, sem artefato de aparelho arquivado.**
+**Estado: escrito por inteiro, compila, sem artefato de aparelho físico arquivado (há capturas de emulador Android, abaixo).**
 
 Este diretório traz o aplicativo do agente de proteção e defesa civil, em
 React Native com Expo. Ele está completo em código e configuração: telas,
@@ -9,13 +9,24 @@ navegação, coleta offline, câmera, GPS, assinatura no dedo, fila de envio,
 
 O que ele não tem é a única coisa que não se resolve daqui: **prova arquivada
 de que ele roda num aparelho**. Há relato de uso (o `README.md` da raiz fala de
-compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas, e
-outras sessões falaram de emulador), mas nenhuma foto, vídeo, registro ou
-captura de aparelho está no repositório, e relato não é prova. Até a
-V2-F14-E12 arquivar esse artefato, nada aqui deve ser lido como "testado em
-aparelho". Emulador de Android e simulador de iOS dependem da máquina de quem
-roda (o simulador só existe em Mac); nenhum registro de execução num deles está
-no repositório.
+compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas), mas
+nenhuma foto, vídeo, registro ou captura de aparelho FÍSICO (iPhone ou
+Android) está no repositório, e relato não é prova. Até a V2-F14-E12 arquivar
+esse artefato, nada aqui deve ser lido como "testado em aparelho".
+
+Emulador é outra coisa, e há um pouco dele arquivado: os validadores das
+etapas E06 e E16 rodaram o aplicativo no emulador Android (AVD
+`Medium_Phone_API_36.1`, APK de depuração construído do commit validado) e
+deixaram capturas e o relato. As capturas estão em
+`docs/evidencias-v2/G00/V2-F00-E06/validacao/4b96ea7/anexos/` (seis, da fila e
+da faixa de envio pausadas pela sessão encerrada e pela senha provisória) e em
+`docs/evidencias-v2/G00/V2-F00-E16/validacao/4b96ea7/anexos/` (seis, da câmera,
+da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), e o
+relato está nos `qa.md` dessas duas pastas. Duas ressalvas: parte delas foi
+tirada com remendos de QA que nunca entraram no código (cada `qa.md` diz quais),
+e emulador não prova câmera, GPS nem `expo-sqlite` sob morte de processo num
+aparelho de verdade. Não há nenhum registro de execução no simulador de iOS
+(ele só existe em Mac, e depende da máquina de quem roda).
 
 O que É verificável daqui, e está verificado:
 
@@ -115,7 +126,7 @@ src/ui/              tokens e componentes
 
 **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
 feita sem sinal vive em `packages/campo`, com 223 testes de unidade do motor de campo, e a
-integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
+integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.test.ts`). Este diretório liga os
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.
 
@@ -124,8 +135,9 @@ isso que ele é fino de propósito.
 O Expo traz quase seiscentos pacotes. Deixá-lo fora significa que
 `npm install` na raiz do produto continua rápido, e que o `npm audit` de lá
 não passa a depender do ciclo de lançamento do React Native. Este diretório
-tem o próprio `package-lock.json` e a própria auditoria, que também fecha em
-zero.
+tem o próprio `package-lock.json` e a própria auditoria, que NÃO fecha em zero
+no `npm audit` puro (fecha em `npm run auditar`, com as seis exceções nomeadas
+do CP-03; ver a tabela acima).
 
 ## Por que `react-native-reanimated` e `react-native-worklets` estão fixados
 

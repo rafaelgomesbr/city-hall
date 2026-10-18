@@ -44,7 +44,8 @@ coisas existem:
    último commit do teste; e
 2. um teste irmão que passa e afirma a decisão.
 
-O exemplo que fixa a regra: `apps/campo/src/app/(agente)/index.tsx:1222` diz que,
+O exemplo que fixa a regra: o comentário do botão "Entrar de novo" em
+`apps/campo/src/app/(agente)/index.tsx` diz que,
 desde 15/09/2026, o botão da faixa de sessão encerrada é "Entrar de novo" e não
 chama `sair()`, porque `sair()` apaga a vistoria começada. O teste irmão
 `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` passa e afirma isso; os dois
@@ -55,12 +56,12 @@ teste irmão. O teste novo continua afirmando a intenção (a pessoa não perde 
 vistoria) e não pode afirmar menos que o antigo.
 
 **R2. O teste vale e o código é consertado.** Quando o teste descreve como
-defeito algo que a leitura do código confirma, com arquivo e linha. Exemplos:
-`vistoria/[id].tsx:1447` arredonda a precisão do GPS para zero e o esquema recusa
-zero; `perfil.tsx:449-453` lê a fila uma vez só, e o diálogo de saída não conta
-as vistorias começadas que a saída apaga. Nada se reescreve e nada se registra
-aqui: o conserto é a própria prova, e o teste vermelho vira o teste que o
-guarda.
+defeito algo que a leitura do código confirma, com arquivo e linha. Exemplos da
+E03, em 2026-10-05 (os dois já foram consertados pela E15): `vistoria/[id].tsx`
+arredondava a precisão do GPS para zero e o esquema recusa zero; `perfil.tsx`
+lia a fila uma vez só, e o diálogo de saída não contava as vistorias começadas
+que a saída apaga. Nada se reescreve e nada se registra aqui: o conserto é a
+própria prova, e o teste vermelho vira o teste que o guarda.
 
 **R3. Ambiente ou portabilidade.** Quando a regra do teste vale mas ele depende
 da máquina (fim de linha, variável de ambiente, `npm` sem `shell` no Windows,
@@ -173,5 +174,8 @@ Enxerga a chamada que começa a linha e a opção `skip:` na própria linha do
 apelido, passa. Quem encontrar um jeito de pular que o portão não vê corrige o
 portão, com um teste novo, e não usa o buraco.
 
-O portão roda hoje só na máquina de quem rodar `npm run test:scripts`. A ligação
-ao CI é a etapa V2-F01-E03; até lá o CI não o enxerga.
+O portão roda dentro de `npm run test:scripts`, que o job "Testes, tipos e
+scripts" do CI (`.github/workflows/verificar.yml`) executa em todo push nos
+ramos `main`, `master` e `v2/**` e em todo pull request, e na máquina de quem rodar o mesmo comando. A V2-F01-E03 do
+roteiro (CI que roda o que hoje só roda local) ainda existe como etapa, mas este
+portão já está ligado.

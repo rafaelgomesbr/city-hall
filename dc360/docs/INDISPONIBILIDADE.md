@@ -107,8 +107,13 @@ está aberto desde a versão 1, e é decisão do dono.
 Em 2026-10-07 (V2-F00-E25) o restore foi refeito com o esquema atual, 47
 migrações, entre dois clusters PostgreSQL descartáveis no Windows, com a
 semente sintética: isolamento conferido no banco restaurado e a API respondendo
-contra a cópia. O roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de
-`COLOCAR-DE-PE.md` ficou como registro histórico. O restore a partir da
+contra a cópia. Em 2026-10-15 (correção 1 da E25) o roteiro foi seguido de novo,
+a frio, num clone limpo no macOS e nos dois shells (`zsh` e `bash`), com as 50
+migrações de hoje; e o CI repete uma versão dele em Postgres 17, num job que hoje só
+roda com `[ci completo]` no commit (o disparo manual e a agenda semanal estão
+no arquivo, mas só valem quando ele chegar ao ramo padrão). O
+roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de `COLOCAR-DE-PE.md` ficou
+como registro histórico. O restore a partir da
 produção (Supabase) com o esquema atual continua NÃO provado: o de 09/09/2026,
 com 15 migrações, segue sendo o único feito com dado do provedor.
 

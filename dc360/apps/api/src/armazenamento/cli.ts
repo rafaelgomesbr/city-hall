@@ -76,10 +76,10 @@ function emGb(bytes: number): string {
  *
  * É a única leitura deste arquivo que acontece fora de contexto de tenant, e
  * ela é do operador da plataforma, não do produto. A alternativa seria uma
- * função `SECURITY DEFINER` que enumerasse municípios, e o orçamento delas está
- * em quinze de quinze com o portão CA-06 reprovando a décima sexta: não se
- * gasta a última numa lista que um comando de linha lê com a própria
- * credencial.
+ * função `SECURITY DEFINER` que enumerasse municípios, e o teto delas é de 27,
+ * hoje cheio (portão CA-06, em `db/test/isolamento.test.ts`), que reprova a
+ * vigésima oitava: não há vaga para gastar numa lista que um comando de linha
+ * lê com a própria credencial.
  */
 async function municipios(url: string): Promise<Array<{
   id: string; municipio: string; uf: string; teto: string | null;

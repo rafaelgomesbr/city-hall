@@ -122,6 +122,7 @@ kill_timeout = 30
 [[vm]]
   size = "shared-cpu-1x"
   # 1 GB, e não 256 MB, por causa do Chromium que a imagem instala para o
-  # PDF. Se a decisão pendente no topo do Dockerfile for tirar o PDF da
-  # imagem, isto cai para 512 MB e a imagem encolhe algumas centenas de MB.
+  # PDF. A decisão foi tomada em 09/09/2026 (ver o topo do Dockerfile): o PDF
+  # fica na imagem. Se um dia o PDF virar job separado e sair da imagem, isto
+  # cai para 512 MB e a imagem encolhe algumas centenas de MB.
   memory = "1gb"

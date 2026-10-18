@@ -90,3 +90,15 @@ Ruins, e nenhuma delas é pequena:
   `dc360/apps/api/test/superficie.test.ts` (que exige token de toda rota, com
   lista curta de exceções justificadas), e o fluxo de navegador contra a API em
   `dc360/apps/web/test/fluxo-api.e2e.mjs`.
+
+## Nota de revisão de 2026-10-15 (V2-F00-E22)
+
+O texto acima não foi reescrito. Um ponto dele envelheceu: a tabela da decisão
+diz scrypt com N = 2^16, e o código usa **N = 2^17** (131072), r = 8, p = 1,
+cerca de 128 MB por verificação: `dc360/apps/api/src/auth/senha.ts`, constante
+`N` (linha 34) e o comentário acima dela. A mudança entrou no commit `6690fca`
+(2026-08-30, "scrypt 2^17"), cinco dias depois do registro desta ADR, porque o
+piso recomendado pelo OWASP subiu de 2^16 para 2^17. O formato do hash guarda o
+N usado, então senha derivada antes com 2^16 continua valendo; só as novas usam
+2^17. O resto da decisão (autenticação própria, scrypt do `node:crypto`, sem
+dependência nova) segue em vigor.

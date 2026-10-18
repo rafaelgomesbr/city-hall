@@ -19,9 +19,10 @@ Duas coisas ficaram decididas e precisam ser conhecidas antes de mexer aqui:
 
 - **`coletadaPor` é OPCIONAL, e vai continuar sendo por enquanto.** Existe
   aparelho em campo com coleta gravada antes deste campo, com `autor: null`, e
-  não existe tela para desbloquear item que o servidor recusou: campo
-  obrigatório daria 422 do Zod para sempre nessas coletas, e uma vistoria de
-  morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
+  a fila não reenvia sozinha item que o servidor recusou pelo dado (a tela só
+  oferece corrigir o rascunho, quando a coleta é da própria pessoa, ou
+  descartar): campo obrigatório daria 422 do Zod para sempre nessas coletas, e
+  uma vistoria de morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
   mesmo dia em que o cartão "Sem autor registrado" puder sair daqui (item 5), e
   não antes.
 - **O campo é montado na hora do envio**, a partir de `item.autor`
@@ -466,8 +467,9 @@ produção:
   (recarrega o módulo e zera banco e `fetch` em cada caso); reprovava com
   `--randomize` em quatro das oito sementes.
 
-Continua sem prova de aparelho: nada disto foi visto em emulador nem em aparelho. As
-capturas da correção (`docs/evidencias-v2/G00/V2-F00-E06/correcao-2/capturas/`) são de
+Continua sem prova de aparelho: esta correção não foi vista em emulador nem em aparelho
+(a validação anterior exercitou o emulador Android sobre o código sem ela; ver o
+`LEIA-ME.md`). As capturas da correção (`docs/evidencias-v2/G00/V2-F00-E06/correcao-2/capturas/`) são de
 nível E1+ (a árvore real em Chromium, sem a barra de abas nem a fonte do aparelho).
 
 ## 15. Sair da conta avisa o que apaga, e o GPS bom conclui (V2-F00-E15). Falta ver no aparelho

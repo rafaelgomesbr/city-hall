@@ -8,12 +8,12 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 170 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1327 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -126,11 +126,11 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 
 | Peça | Escolha | Por quê |
 | --- | --- | --- |
-| Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
+| Senha | scrypt do `node:crypto`, N=2^17, r=8, p=1 (cerca de 128 MB por verificação; o hash guarda o N usado, então senha derivada antes com N=2^16 continua valendo) | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
 | Token de acesso | JWT HS256, 15 minutos por padrão (`ACESSO_MINUTOS`, teto de 60) | Na LEITURA PURA (GET e HEAD de rota que só lê), verificado só pela assinatura: conta, papel e sessão NÃO são consultados, então conta desativada ainda lê até o token vencer (a F03-E03 fecha a leitura). Na ESCRITA, que é todo método que não é GET nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` e o HEAD delas (laudo, termo de interdição, termo de desinterdição e PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`, porque praticam um ato ou mudam dado do município; o dossiê e a busca, que só gravam o registro da própria leitura, seguem como leitura até a F03-E03; a lista é fixada por `apps/api/test/get-com-efeito.test.ts`), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
 | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
 | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
-| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo |
+| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo, e depois toma a mesma trava da pessoa e relê a senha e a conta antes de a sessão existir: se a senha foi trocada ou redefinida, ou a conta desativada, enquanto o scrypt rodava, a sessão volta atrás e a resposta é a recusa genérica (V2-F00-E07, correção 3; a ordem é linha do município, depois trava, para não fechar ciclo com a suspensão) |
 | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
 | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
 | Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
@@ -173,6 +173,13 @@ Três regras que não mudam com os códigos:
 O código antigo `sessao` deixou de existir. O esquema de erro único da API, com
 o catálogo inteiro (validação, regra de negócio, conflito), é da V2-F02-E03, que
 generaliza esta tabela.
+
+Um caso fora da tabela, porque não é de acesso: pedido cujo corpo o Fastify não
+consegue ler (JSON vazio com `content-type: application/json`, JSON torto, corpo
+grande demais, tipo de conteúdo que nenhuma rota aceita) responde o 4xx do próprio
+Fastify (400, 413 ou 415) com `erro: "corpo_invalido"` e uma frase em português, e
+não mais 500 com "informe o código ao suporte" (V2-F00-E07, correção 3;
+`apps/api/test/corpo-ilegivel.test.ts`).
 
 Trocar o papel de uma pessoa **não revoga as sessões dela** (decisão da
 V2-F00-E07): a escrita seguinte com o token velho responde 401 `nao_autenticado`,
@@ -257,6 +264,7 @@ que deixa entrar com um aviso é exigência de mentira.
 | Teto | Contador próprio, separado do da senha | O da senha zera a cada acerto de senha: com um contador só, adivinhar seis dígitos teria tentativas infinitas |
 | Códigos de recuperação | Oito, 80 bits cada, mostrados uma vez, guardados como resumo, cada um vale uma vez | Sem eles, telefone perdido vira SQL na produção com o papel que ignora o isolamento |
 | Ativação | Confere um código ANTES de ligar | Relógio de telefone errado ou leitura que não guardou nada trancariam a pessoa do lado de fora |
+| Desafio e senha trocada | O desafio leva uma impressão da senha conferida na primeira etapa (HMAC com o segredo de assinatura, campo `cr`), e a segunda etapa só abre sessão, ou liga o recurso, se a senha ainda for a mesma (V2-F00-E07, correção 3) | O desafio vale cinco minutos. Sem isto, quem tinha a senha antiga e o código abria sessão depois de uma troca ou redefinição feita nesse intervalo, ou ligava o segundo fator com o aparelho dele na conta de quem acabara de trocar a senha. Desafio emitido antes dessa versão não traz a impressão e é recusado como expirado |
 | Desligar | Exige a senha atual, apaga o segredo e derruba os códigos | O painel esquecido aberto na recepção não desliga a proteção de ninguém |
 
 O código QR da ativação é desenhado pelo próprio painel
@@ -305,9 +313,11 @@ exatamente o que alguém vai querer auditar depois. O registro é escrito em
 transação própria, senão o ROLLBACK da recusa o levaria junto.
 
 O campo é **opcional**, e a razão tem data de validade escrita no esquema: há
-aparelho em campo com coleta gravada antes dele, e não existe tela para
-desbloquear item recusado. Obrigatório agora, essas coletas virariam 422 para
-sempre, e uma vistoria de morro seria destruída por uma mudança de esquema. Ele
+aparelho em campo com coleta gravada antes dele, e a fila não reenvia o item
+recusado por causa do dado (o botão "Tentar de novo" some; sobram "Esta coleta é
+minha", a correção e o descarte, em `apps/campo/src/app/(agente)/fila.tsx`).
+Obrigatório agora, essas coletas virariam 422 para sempre, e uma vistoria de
+morro seria destruída por uma mudança de esquema. Ele
 passa a obrigatório quando não restar coleta antiga em nenhum aparelho.
 
 ### Rodar
@@ -718,7 +728,7 @@ some sem nada reclamar.
 `apps/web/test/acessibilidade.test.ts` calcula. Ele lê `tokens.css`, resolve as
 cadeias de `var()`, achata a transparência dos selos sobre a superfície de
 baixo (senão o número do tema escuro seria ficção, porque o selo tem 12% de
-opacidade) e aplica a fórmula de luminância da WCAG a dezessete pares de
+opacidade) e aplica a fórmula de luminância da WCAG a 21 pares de
 frente e fundo, **nos dois temas**. Onde o alvo não é texto, o mínimo cai para
 3:1, e a razão está escrita ao lado do par.
 
@@ -869,7 +879,8 @@ não encerra. Ele via tudo o que não é da conta dele e nada do que é.
 
 E a tela diz, em destaque, o que seria desastroso deixar implícito: **este
 painel precisa de conexão.** O trabalho sem sinal é o do aplicativo de campo,
-que guarda no aparelho e envia sozinho quando o sinal volta. Um agente que
+que guarda no aparelho e envia sozinho quando o sinal volta, com o aplicativo
+aberto (não há envio em segundo plano). Um agente que
 descobrisse isso no barranco perderia a vistoria inteira.
 
 O menu dele também mudou: começa em "Meu trabalho" e não oferece painel nem a
@@ -929,7 +940,7 @@ definição: **você voltou quando o sistema soube que você voltou.**
 
 | Peça | Decisão | Por quê |
 | --- | --- | --- |
-| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o portão CA-06 reprova a décima sexta. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
+| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O teto é de 27 funções e hoje está cheio (27 de 27, contadas no catálogo depois de aplicar as 50 migrações em 2026-10-15): o portão CA-06 (`db/test/isolamento.test.ts`) reprova a vigésima oitava. Cada subida do teto tem a razão escrita no próprio teste, e a mais recente foi justamente `varrer_tarefas_novas` (migração 042), que também é função de relógio. Não há vaga para gastar com um canal que o sino já cobre. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
 | Prorrogar | Existe, e é contado | Sem isso, todo serviço que demora mais que o previsto vira alarme falso, e alarme falso repetido é o único jeito conhecido de matar o recurso: a coordenação aprende a ignorar a tela. O novo prazo conta a partir de AGORA, senão uma saída vencida há duas horas continuaria vencida depois de prorrogada |
 | "O agente confirmou o retorno" | A coordenação **não** consegue marcar isso | Quem diz "voltei" é quem voltou. Se ela pudesse, a linha afirmaria que o agente confirmou quando outra pessoa decidiu por ele, e é essa a linha que alguém vai ler depois de um acidente |
 
@@ -1141,9 +1152,13 @@ A coluna Linux ficou "não provado" até existir um run de verdade do CI, e agor
 existe: o trabalho "Linha de base (baseline.mjs) em Linux" rodou o roteiro
 inteiro (19 de 19 passos, código 0) no run 38445527075, do SHA `c9895e9`, que o
 gatekeeper da V2-F00-E25 leu (`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`);
-o mesmo run passou os demais trabalhos. Isso cobre o roteiro, não cada comando
-da tabela um a um, e é anterior às correções 2 de 2026-10-14: com a árvore de
-hoje não houve run de CI. A coluna do macOS vem do roteiro rodado nesta máquina
+o mesmo run passou os demais trabalhos. Depois dele, o run 38618369218, do SHA
+`7585801` (candidato `52952a1`, de 2026-10-15), repetiu o roteiro (19 de 19,
+código 0) e fechou 9 de 9 trabalhos verdes, lido pelo gatekeeper em
+`docs/evidencias-v2/G00/V2-F00-E22/VEREDITO.md`. Isso cobre o roteiro, não cada
+comando da tabela um a um, e é anterior às correções 3 da E07 e da E12, à
+correção 1 da E21 e à correção 1 da E25: com a árvore de hoje ainda não houve run de CI. A
+coluna do macOS vem do roteiro rodado nesta máquina
 (`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
 da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
 
@@ -1336,7 +1351,7 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 2987 testes em seis pacotes
+npm test                    # 2989 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
 npm run test:api            # 1327 testes da API
 npm run test --workspace @dc360/campo   # 223 testes do motor de campo
@@ -1592,7 +1607,7 @@ E das funções `SECURITY DEFINER`, que são portas abertas na parede do RLS:
 | --- | --- |
 | Todas fixam `search_path` | Sem isso, quem controla o search_path faz a função chamar código dele com privilégio de dono. É a escalada clássica, e não precisa de bug no SQL |
 | Nenhuma executável por `PUBLIC` | O padrão do Postgres é conceder `EXECUTE` a PUBLIC: esquecer o `REVOKE` abre a função para qualquer papel conectado |
-| No máximo doze | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto |
+| No máximo 27 | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto. Começou em doze e subiu por razão escrita, uma a uma, no próprio teste (a última, de 26 para 27, foi `varrer_tarefas_novas`, migração 042) |
 | `dc360_app` não é superusuário, não ignora RLS e não é dono de tabela | Se fosse, todo o resto viraria enfeite |
 
 Verifiquei o portão contra migrações descuidadas de propósito: uma tabela nova
@@ -1609,26 +1624,34 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## Integração contínua
 
-`.github/workflows/verificar.yml` roda a cada push e a cada pull request, em
+`.github/workflows/verificar.yml` roda a cada push em `main`, `master` ou `v2/**`
+e a cada pull request, em
 trabalhos paralelos (os cinco principais abaixo; há ainda o de dependências,
-`npm run auditar`, o do restore do banco e o de ferramentas do roadmap):
+`npm run auditar`, o da linha de base em Linux (`baseline.mjs`), o do restore do
+banco e o de ferramentas do roadmap, que também confere os `INDEX.md` da
+evidência com `scripts/conferir-indices-de-evidencia.mjs`: nove ao todo; os
+dois longos, linha de base e restore, hoje só rodam em push cujo commit traga
+`[ci completo]`: o disparo manual e a agenda de segunda-feira estão escritos no
+arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
+`origin/master` ainda não os tem):
 
 <!-- numeros: nao sao contagem -->
 | Trabalho | O que ele impõe |
 | --- | --- |
-| Testes e tipos | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
+| Testes e tipos | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
 | Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
-O CA-06 roda separado e antes de tudo de propósito: isolamento entre
-municípios é a regra número um, e se ela quebrar nada mais importa.
+O CA-06 roda separado e antes da suíte inteira de propósito (o TypeScript
+estrito vem antes dele no job): isolamento entre municípios é a regra número
+um, e se ela quebrar nada mais importa.
 
 A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
 do CI foi conferida por uma pessoa durante a F00 (é validação humana pendente
 da V2-F00-E01); o gatekeeper leu o run 37739535524 do SHA 7005a60, com 9 jobs
-verdes. O CI decide dependência por `npm run auditar` (job `dependencias`), e não por
+verdes, e depois o 38618369218 do SHA 7585801, também com 9 de 9. O CI decide dependência por `npm run auditar` (job `dependencias`), e não por
 `npm audit` puro; o `npm audit` puro ainda lista os avisos aceitos pelo CP-03,
 e os relatórios brutos dele só são arquivados como evidência.
 
@@ -1655,7 +1678,8 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   a analogia com a D1 para esses cinco pacotes); passa no
   `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
   aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
-  de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
+  de aparelho físico está arquivado**, e relato não é prova (as capturas de
+  emulador Android de E06 e E16 estão listadas em `apps/campo/LEIA-ME.md`). O que falta é o que só o
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
   aparelho fica sem sinal (V2-F14-E12).

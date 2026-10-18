@@ -18,7 +18,8 @@ validação não conferiu este arquivo. Refeito contra o código de hoje, afirma
 por afirmação (o relógio do resumo em `apps/api/src/index.ts`, a migração 026, o
 console, os códigos de recuperação da 039, os papéis de `COLOCAR-DE-PE.md` e
 `IMPLANTACAO.md`, o teto de 27 funções `SECURITY DEFINER` em
-`db/test/isolamento.test.ts:626`): nada mudou. A migração 048 (V2-F00-E05,
+o caso "existem, e são poucas o bastante para caberem numa revisão" de
+`db/test/isolamento.test.ts`): nada mudou. A migração 048 (V2-F00-E05,
 correção 1) recriou `dono_do_token` com uma coluna a mais de saída, sem criar
 função privilegiada nova, então o teto continua 27 e o texto "hoje no máximo 27"
 vale.

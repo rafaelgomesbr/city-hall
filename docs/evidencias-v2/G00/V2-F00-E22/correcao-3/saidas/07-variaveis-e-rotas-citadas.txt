@@ -1,0 +1,10 @@
+$ node docs/evidencias-v2/G00/V2-F00-E22/correcao-3/sondas/variaveis-e-rotas-citadas.mjs dc360/README.md dc360/apps/api/PENDENCIAS.md dc360/apps/web/PENDENCIAS.md dc360/apps/campo/PENDENCIAS.md dc360/db/PENDENCIAS.md dc360/apps/campo/LEIA-ME.md dc360/apps/campo/LOJAS.md dc360/docs/ARMAZENAMENTO.md dc360/docs/CARTAO-DO-AGENTE.md dc360/docs/COLOCAR-DE-PE.md dc360/docs/DECLARACAO-NAS-LOJAS.md dc360/docs/DICIONARIO-DE-DADOS.md dc360/docs/GUIA-DO-COORDENADOR.md dc360/docs/IMPLANTACAO.md dc360/docs/INDISPONIBILIDADE.md dc360/docs/LEIA-ME.md dc360/docs/LIGAR-O-EMAIL.md dc360/docs/PAPEIS_E_RESPONSABILIDADES.md dc360/docs/POLITICA-DE-TESTE-VERMELHO.md dc360/docs/PRIVACIDADE.md dc360/docs/RESTORE-DO-BANCO.md dc360/docs/SAIDA-DE-MUNICIPIO.md dc360/docs/SEGURANCA-DO-AGENTE.md dc360/docs/SUBPROCESSADORES.md dc360/docs/VERCEL-PAINEL.md dc360/docs/apresentacao/README.md    (em .)
+codigo=0
+
+variaveis citadas: 101; sem nenhuma ocorrencia no codigo: 5
+  sem codigo: CNAME
+  sem codigo: DC360_SENHAS
+  sem codigo: JSONB
+  sem codigo: PGPASSFILE
+  sem codigo: VACUUM
+rotas citadas: 32; sem registro: 0

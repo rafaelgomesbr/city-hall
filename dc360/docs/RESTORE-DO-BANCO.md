@@ -58,8 +58,9 @@ macOS"). Último run lido: 38618369218, do SHA `7585801`, com Postgres 17.11, o
 cliente `pg_dump` 17, as **50 migrações** aplicadas do zero e as 27
 conferências do script todas "OK"; o gatekeeper da E25 o leu e registrou em
 `docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`. O job só roda em push cujo
-commit traga `[ci completo]`, em `workflow_dispatch` e na agenda: um run mais
-novo precisa ser conferido de novo, e este documento não afirma que ele passa.
+commit traga `[ci completo]` (`workflow_dispatch` e a agenda semanal estão no
+arquivo, mas só valem quando ele chegar ao ramo padrão, e o de `origin/master`
+ainda não os tem): um run mais novo precisa ser conferido de novo, e este documento não afirma que ele passa.
 O job `implantavel`, que roda a API contra banco real, usa o Postgres 16
 (`postgres:16`); o 17 é só do job `restore`.
 

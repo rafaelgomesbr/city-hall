@@ -430,5 +430,8 @@ Controlador: o órgão municipal de proteção e defesa civil que opera o sistem
    REFERIDA por um laudo depende do descarte no armazenamento, que ainda não
    existe; a fotografia sem dono nenhum já tem caminho, e ele está descrito em
    "O arquivo sem dono".
-4. Rever quando entrarem: notificação por push, envio de ofício por email,
-   console do fornecedor e mapa do Google. Os quatro mudam esta política.
+4. Rever, porque os quatro já existem em código e mudam esta política:
+   notificação por push, envio de ofício por email, console do fornecedor e mapa
+   do Google. O que ainda falta escrever aqui é o console do fornecedor e a série
+   `metricas_municipio` que ele lê (contagens por município e por dia, sem prazo
+   de retenção definido: ver `db/PENDENCIAS.md`, item 2).

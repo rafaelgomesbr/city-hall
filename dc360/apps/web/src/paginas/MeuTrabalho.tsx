@@ -95,7 +95,8 @@ export function MeuTrabalho() {
         <strong>Este painel precisa de conexão.</strong> Ele serve para se
         preparar antes de sair e para conferir o que já foi feito depois de
         voltar. A coleta em área sem sinal é feita no aplicativo de campo, que
-        guarda tudo no aparelho e envia sozinho quando o sinal volta.
+        guarda tudo no aparelho e envia sozinho quando o aplicativo está aberto e o
+        sinal volta.
       </Aviso>
 
       {!equipe && (

@@ -339,8 +339,8 @@ describe("Sem a lista de municípios, que é como a API roda", () => {
       Este caminho existe para a varredura poder rodar sozinha sem NENHUM
       privilégio novo. Enumerar município exigiria ler `organizacoes` fora de
       contexto de tenant, o que só uma função `SECURITY DEFINER` faria, e o
-      orçamento delas está em quinze de quinze com o portão CA-06 reprovando a
-      décima sexta.
+      teto delas é de 27, hoje cheio, e o portão CA-06 reprova a vigésima
+      oitava.
 
       A confirmação acontece debaixo do RLS: dentro do contexto do município,
       `organizacoes` devolve a linha dele e mais nada.

@@ -1,12 +1,16 @@
 # =====================================================================
 # Imagem da API.
 #
-# NÃO FOI CONSTRUÍDA NEM EXECUTADA AQUI: a máquina não tem Docker. A partida
-# da API contra Postgres real foi provada À MÃO, contra um PostgreSQL 18
-# nativo (sem contêiner), e é isso que garante que o produto sobe; a
-# construção da imagem em si é conferida pelo job `implantavel` da integração
-# contínua, onde há Docker. Construir e subir uma vez antes do primeiro deploy
-# continua obrigatório.
+# O QUE PROVA ESTA IMAGEM: nada que esteja no repositório. A integração
+# contínua NÃO constrói a imagem (o `verificar.yml` não tem `docker build`): o
+# job `implantavel` sobe a API direto no Node, contra um Postgres 16 real, e é
+# isso que prova que o produto sobe, não a imagem. A partida contra Postgres
+# real também foi provada À MÃO, contra um PostgreSQL 18 nativo, sem contêiner.
+# Esta é a imagem de produção: `fly.toml` (`[build] dockerfile`) manda o
+# `fly deploy` construí-la no construtor do Fly, e foi assim que o servidor
+# em `defesa-civil.fly.dev` (o `eas.json` aponta para ele) subiu. Fora do Fly
+# só `docker build` a constrói, e nenhum log de construção está arquivado
+# aqui. O CI que constrói a imagem é a V2-F01-E08.
 #
 # Quatro escolhas que valem explicação:
 #

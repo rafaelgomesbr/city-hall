@@ -71,8 +71,9 @@ import { autorizar, RegraDeNegocio } from "../servidor.js";
  *
  *   * SEM PUSH PARA A COORDENAÇÃO. O push deste produto sai de um relógio que
  *     roda sem ninguém logado, e relógio sem contexto de município precisa de
- *     função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o
- *     portão CA-06 reprova a décima sexta. O canal é o sino, que a coordenação
+ *     função `SECURITY DEFINER`. O teto é de 27, hoje cheio (portão CA-06, em
+ *     `db/test/isolamento.test.ts`), e o portão reprova a vigésima oitava. O
+ *     canal é o sino, que a coordenação
  *     já olha, e ele só toca para quem está com o painel aberto. Isso está
  *     dito em voz alta em vez de disfarçado.
  *   * SEM ESCALONAMENTO AUTOMÁTICO. Não existe "se ninguém encerrar em quinze

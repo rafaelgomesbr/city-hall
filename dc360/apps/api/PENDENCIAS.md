@@ -143,8 +143,8 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   depois de VER a outra conexão parada na trava (`pg_locks`), e reprovam se
   ela não parar.
 - **Entrar no mesmo instante da suspensão (consertado na migração 050):** o
-  login abre sessão sem família e não passa pela trava por pessoa, e
-  `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
+  login abria sessão sem família e (até a correção 3 da E07, abaixo) não passava
+  pela trava por pessoa, e `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
   real nas duas ordens (o login primeiro, a suspensão primeiro): a sessão do
   login escapava da suspensão e, depois da reativação, renovava. A 050 faz o
   login (só ele) ler a suspensão com `FOR SHARE`, que conflita com o UPDATE de

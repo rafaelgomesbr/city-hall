@@ -1,0 +1,4 @@
+$ node docs/evidencias-v2/G00/V2-F00-E22/correcao-3/sondas/tabelas-fora-do-dicionario.mjs   (em .)
+codigo=0
+
+36 relacoes no esquema, 0 fora do dicionario

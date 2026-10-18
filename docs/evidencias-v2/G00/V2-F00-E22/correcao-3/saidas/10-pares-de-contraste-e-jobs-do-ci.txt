@@ -1,0 +1,17 @@
+$ awk 'NR>=143 && NR<=200' dc360/apps/web/test/acessibilidade.test.ts | grep -c '^  { oQue'; grep -c '^  [a-z0-9-]*:$' .github/workflows/verificar.yml; grep -n '^  [a-z0-9-]*:$' .github/workflows/verificar.yml; grep -n -i 'docker build\|docker compose' .github/workflows/verificar.yml; echo 'docker build no CI: nenhum acerto'   (em .)
+codigo=0
+
+21
+11
+39:  push:
+51:  schedule:
+69:  produto:
+160:  dependencias:
+222:  roadmap:
+281:  navegador:
+392:  demonstracao:
+460:  aplicativo:
+568:  implantavel:
+716:  baseline:
+853:  restore:
+docker build no CI: nenhum acerto

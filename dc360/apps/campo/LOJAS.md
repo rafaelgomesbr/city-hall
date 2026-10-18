@@ -212,8 +212,8 @@ Ferramenta de trabalho do agente de proteção e defesa civil municipal.
 O aplicativo é usado em campo, onde o sinal falha: encosta, área de risco,
 zona rural. Por isso tudo funciona sem conexão. O agente baixa as ocorrências
 designadas para a equipe dele antes de sair, coleta a vistoria no local sem
-depender de rede, e o envio acontece sozinho quando o sinal volta, sem risco
-de perder ou duplicar registro.
+depender de rede, e o envio sai sozinho quando o sinal volta e o aplicativo
+está aberto, sem risco de perder ou duplicar registro.
 
 O que o agente faz no aplicativo:
 
@@ -294,9 +294,10 @@ código escrito de código comprovado.
 - **Não há prova arquivada de que o aplicativo rodou num aparelho.** Ele
   compila, passa no `expo-doctor` (20 de 21 na manhã de 2026-10-14 por patches novos e 21 de 21 depois da correção 4 da E19, no mesmo dia; o resultado depende do dia) e o TypeScript não reclama. Há
   relato de uso (o `README.md` da raiz fala de compilação nativa num iPhone em
-  08/09/2026, com três vistorias coletadas, e o `LEIA-ME.md` fala de emulador),
-  mas nenhuma foto, vídeo, registro ou captura de aparelho está no repositório,
-  e relato não é prova. Até a V2-F14-E12 arquivar esse artefato, este documento
+  08/09/2026, com três vistorias coletadas), mas nenhuma foto, vídeo, registro
+  ou captura de aparelho físico está no repositório, e relato não é prova. Há
+  capturas e relato de emulador Android das validações de E06 e E16 (ver o
+  `LEIA-ME.md`), que não contam como aparelho. Até a V2-F14-E12 arquivar esse artefato, este documento
   não afirma que alguma tela foi aberta num aparelho, nem que não foi.
 - **Câmera, GPS e assinatura não têm prova de aparelho arquivada.** A lógica
   que os cerca está escrita e testada fora do celular; o comportamento deles no

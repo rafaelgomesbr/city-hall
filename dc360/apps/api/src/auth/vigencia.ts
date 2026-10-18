@@ -33,7 +33,8 @@ import { FalhaAutenticacao } from "./servico.js";
  * compartilham `familia_id`, e a rotacionada só vale se a família ainda tem
  * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram com a
  * 047: todos atingem a sessão viva, e isso derruba a cadeia inteira. Desde a
- * migração 049 eles e a renovação tomam a mesma trava por pessoa
+ * migração 049 eles e a renovação tomam a mesma trava por pessoa, e desde a
+ * correção 3 da E07 o login também a toma
  * (`travar_sessoes_do_usuario`, ver `auth/sessoes.ts`), e a renovação é uma
  * transação só: nenhum encerramento cai no meio de uma renovação sem ver a
  * sessão nova, e a família nunca fica sem sessão de pé no meio da rotação.
