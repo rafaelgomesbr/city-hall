@@ -17,6 +17,7 @@ import {
   codigosMortos, rastrearClasses, reprovacoes, varrerFonte, varrerPasta,
   type RegrasDeConferencia, type Varredura,
 } from "./varredura-de-erros.js";
+import { CONTRATO_DE_ACESSO_DO_CONSOLE } from "../../console/src/guarda-de-codigos-de-erro.js";
 
 /**
  * Os códigos de erro de acesso (V2-F00-E05): o cliente distingue "renove o
@@ -41,8 +42,10 @@ import {
  *     que o texto não resolve) com código fora do catálogo e da lista da
  *     entrada. `sessao` (o nome antigo) não volta por nenhuma delas. Cada forma
  *     tem o seu caso de mordida, com fonte de exemplo e com o fonte real mutado
- *     em memória. O que fica fora (dado externo, código fora das pastas
- *     varridas) está escrito no cabeçalho do catálogo e no README.
+ *     em memória. A varredura é heurística, a primeira linha: a GARANTIA é a
+ *     guarda em tempo de execução (`src/guarda-de-codigos-de-erro.ts`, provada
+ *     em `guarda-de-codigos-de-erro.test.ts`), e o que nenhuma das duas cobre
+ *     está escrito no cabeçalho do catálogo e no README.
  *   - O catálogo não carrega código morto: todo código dele é emitido por
  *     algum ponto do servidor.
  *   - O que NÃO é prendido aqui (404, 409, 422, 429, 5xx, regra de negócio) é da
@@ -626,6 +629,12 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
         porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
       },
       {
+        arquivo: /[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
+        porque: "é a GUARDA em tempo de execução: o `onSend` que confere toda resposta 401 ou 403 contra o "
+          + "catálogo e troca o desvio pelo código genérico (ou por 500, em teste). É ela que reescreve, e "
+          + "só com códigos do catálogo (`test/guarda-de-codigos-de-erro.test.ts`)",
+      },
+      {
         arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
         porque: "é a tabela dos geradores de documento (laudo, termos), funções que devolvem o HTML do "
           + "documento; nenhuma recebe a resposta",
@@ -633,15 +642,20 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
     ],
   };
 
-  /** O console tem contrato próprio: estes são os 401 e 403 dele, e só eles. */
-  const CONTRATO_DO_CONSOLE: Record<string, number> = {
-    sem_sessao: 401, so_o_dono: 403, credenciais_invalidas: 401, desafio_invalido: 401,
-    codigo_invalido: 401, senha_incorreta: 401, recuperacao_invalida: 401,
-  };
+  /**
+   * O console tem contrato próprio: estes são os 401 e 403 dele, e só eles. A
+   * lista mora no console (`apps/console/src/guarda-de-codigos-de-erro.ts`),
+   * porque a guarda em tempo de execução dele usa a mesma.
+   */
+  const CONTRATO_DO_CONSOLE = CONTRATO_DE_ACESSO_DO_CONSOLE;
   const REGRAS_DO_CONSOLE: RegrasDeConferencia = {
     catalogo: {},
     aceitosAlemDoCatalogo: CONTRATO_DO_CONSOLE,
     repasses: [{
+      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
+      porque: "é a guarda em tempo de execução do console: o `onSend` que confere toda resposta 401 ou 403 "
+        + "contra o contrato e troca o desvio pelo código genérico (ou por 500, em teste)",
+    }, {
       arquivo: /console[\\/]src[\\/]servidor\.ts$/, chave: "recusa.corpo",
       porque: "o corpo vem de `traduzirRecusaDoBanco`, cujos literais (`so_o_dono` 403, `acao_recusada` 409) "
         + "a varredura lê na forma `{ status, corpo: { erro } }`",
@@ -873,6 +887,10 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       ["S4 eval", "eval(texto);"],
       ["S5 new Function", 'const f = new Function("r", texto);'],
       ["S6 redirect com 403", 'return resposta.redirect("/x", 403);'],
+      ["S7 escrita no socket (M08 da revisão; a guarda em execução não a vê)",
+        'req.socket.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n{\\"erro\\":\\"novo\\"}");'],
+      ["S8 code duas vezes na cadeia, o último é 403 (M11 da revisão)",
+        'resposta.code(200).code(403).send({ erro: "novo", mensagem: "x" });'],
     ])("correção 3, reprova: %s", (_forma, fonte) => {
       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
     });

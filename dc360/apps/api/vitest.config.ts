@@ -50,7 +50,12 @@ export default defineConfig({
       a lista que `carregarMigracoes` devolve ganha essa função no fim. Some
       sozinho no dia em que uma migração a trouxer.
     */
-    setupFiles: ["./test/duble-da-migracao-038.ts"],
+    /*
+      E o "falha alto" da guarda das respostas de acesso (V2-F00-E05, correção 3):
+      caso que passou por uma resposta 401 ou 403 fora do catálogo reprova. Ver
+      `test/guarda-falha-alto.ts`.
+    */
+    setupFiles: ["./test/duble-da-migracao-038.ts", "./test/guarda-falha-alto.ts"],
     testTimeout: 30_000,
     hookTimeout: 120_000,
     poolOptions: {

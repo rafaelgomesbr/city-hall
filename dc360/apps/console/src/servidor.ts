@@ -1,4 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+// Antes do resto, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
+import {
+  CONTRATO_DE_ACESSO_DO_CONSOLE, GENERICO_DO_CONSOLE, instalarGuardaDeAcesso, type ModoDaGuarda,
+} from "./guarda-de-codigos-de-erro.js";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
@@ -114,6 +118,12 @@ export type DependenciasDoConsole = {
   limiteDeAcoes?: number;
   /** Coletor de log, para o teste poder afirmar o que saiu. */
   destinoDeLog?: { write: (linha: string) => void };
+  /**
+   * O que a guarda das respostas de acesso faz com um desvio do contrato (ver
+   * `guarda-de-codigos-de-erro.ts`). Sem isto: "falhar" em teste, "corrigir"
+   * fora dele. Só o teste da guarda passa, para provar o modo de produção.
+   */
+  modoDaGuarda?: ModoDaGuarda;
 };
 
 /** Quem está agindo, depois do portão: o que toda rota fechada recebe. */
@@ -265,6 +275,17 @@ export async function construirConsole(
       do processo mandando megabytes para uma rota que espera trinta bytes.
     */
     bodyLimit: 16 * 1024,
+  });
+
+  /*
+    A guarda das respostas de acesso, ANTES de qualquer rota: toda resposta 401
+    ou 403 sai com um código do contrato do console e o status dele, ou não sai
+    (ver `guarda-de-codigos-de-erro.ts`).
+  */
+  instalarGuardaDeAcesso(app, {
+    modo: dep.modoDaGuarda ?? (config.NODE_ENV === "test" ? "falhar" : "corrigir"),
+    contrato: CONTRATO_DE_ACESSO_DO_CONSOLE,
+    generico: GENERICO_DO_CONSOLE,
   });
 
   /*

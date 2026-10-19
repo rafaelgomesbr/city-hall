@@ -25,6 +25,13 @@ import ts from "typescript";
  * para `statusCode: 403` escrito à mão, para corpo 401 ou 403 sem `erro` e para
  * código calculado em ponto que não está na lista de repasses conhecidos.
  *
+ * ISTO É HEURÍSTICA, a primeira linha. A garantia de que nenhuma resposta 401 ou
+ * 403 sai fora do catálogo é a guarda em tempo de execução
+ * (`src/guarda-de-codigos-de-erro.ts`): depois das regras abaixo, a revisão
+ * independente ainda achou dezesseis formas que esta varredura não lia, e a
+ * guarda pega todas as que passam pelo Fastify. O que a guarda não vê (escrita no
+ * socket, `raw`, `hijack`, `writeHead`), esta varredura proíbe.
+ *
  * Correção 3 (rodada 5, red-team): quatro formas passavam caladas, e cada uma
  * abriu uma família que agora reprova.
  *
@@ -180,6 +187,7 @@ const LIDOS_COM_PONTO = new Set([
   "send", "code", "status", "statusCode", "erro", "codigo", "corpo", "raw", "hijack", "writeHead",
   "addHook", "setErrorHandler", "httpErrors", "assign", "defineProperty", "defineProperties",
   "setPrototypeOf", "create", "call", "apply", "bind", "__proto__", "prototype", "constructor", "serializer",
+  "socket", "connection",
 ]);
 
 /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
@@ -432,8 +440,12 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
         const metodo = atual.expression.name.text;
         if ((metodo === "code" || metodo === "status") && atual.arguments.length === 1) {
           codesDeCadeiaComSend.add(atual);
-          status = numeroDoLiteral(atual.arguments[0]);
-          argumento = atual.arguments[0] ?? null;
+          // O que vale é o `code` mais perto do `send` (o último aplicado), e é o primeiro que a
+          // subida encontra. `code(403).code(200)` é 200; `code(200).code(403)` é 403 (M11 da revisão).
+          if (!achou) {
+            status = numeroDoLiteral(atual.arguments[0]);
+            argumento = atual.arguments[0] ?? null;
+          }
           achou = true;
         }
         atual = atual.expression.expression;
@@ -676,6 +688,11 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
     if (ts.isPropertyAccessExpression(no) && no.name.text === "raw") {
       problema(no, "`.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta");
     }
+    // O socket da requisição: escrever nele é responder sem passar pelo Fastify, e é a única forma que a
+    // guarda em tempo de execução não vê (M08 da revisão). Qualquer `.socket` ou `.connection` reprova.
+    if (ts.isPropertyAccessExpression(no) && (no.name.text === "socket" || no.name.text === "connection")) {
+      problema(no, `\`.${no.name.text}\`: escrita direta no socket, que nem a guarda em tempo de execução vê`, `socket:${no.getText(sf)}`);
+    }
     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
       && (no.expression.name.text === "hijack" || no.expression.name.text === "writeHead")) {
       problema(no, `\`.${no.expression.name.text}()\`: escrita direta na resposta, a varredura não vê o código dessa resposta`);
@@ -699,7 +716,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
             };
             procurar(funcao);
           }
-          if (reescreve) problema(no, `gancho \`${tipo ?? "calculado"}\` que reescreve a resposta ou lança erro de negócio: a varredura não vê o código dessa resposta`);
+          if (reescreve) problema(no, `gancho \`${tipo ?? "calculado"}\` que reescreve a resposta ou lança erro de negócio: a varredura não vê o código dessa resposta`, `gancho:${tipo ?? "calculado"}:${cb?.getText(sf) ?? ""}`);
         }
       }
       if ((m === "assign" || m === "defineProperty" || m === "defineProperties") && ts.isIdentifier(no.expression.expression) && no.expression.expression.text === "Object") {

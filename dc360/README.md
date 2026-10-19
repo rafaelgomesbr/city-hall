@@ -11,10 +11,10 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1517 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1568 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 268 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -148,11 +148,26 @@ O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
 código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
 servidor, o painel e o aplicativo importam. O catálogo cobre os erros de ACESSO
 (autenticação, vigência e permissão): toda resposta 401 ou 403 do servidor tem
-código nele. Dois testes prendem isto, e um não substitui o outro:
+código nele. Quem GARANTE isto é uma guarda em tempo de execução; dois testes
+apontam o defeito antes, e nenhum deles é garantia sozinho:
 
+- **Guarda em tempo de execução** (`apps/api/src/guarda-de-codigos-de-erro.ts`, e
+  a cópia em `apps/console/src/` com o contrato do console): um `onSend` global e
+  o último `onSend` de cada rota, instalado antes da primeira rota. Toda resposta
+  401 ou 403 que passa pelo Fastify, por qualquer caminho, tem de ter corpo JSON
+  com `erro` do catálogo (ou da entrada) e o status do catálogo. Fora disso, em
+  teste ela vira 500 `desvio_do_catalogo_de_erro` e o caso que passou por ali
+  reprova (`test/guarda-falha-alto.ts`, carregado em toda a suíte); fora de teste
+  ela sai com o código genérico do catálogo para o status (401 `nao_autenticado`,
+  403 `sem_permissao`) e o desvio vai para o log com o método, a rota e o código
+  que tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como
+  rotas as dezesseis formas que a revisão independente achou e que a varredura
+  não lia, e prova os dois modos.
 - **Varredura do código-fonte** (`apps/api/test/codigos-de-erro.test.ts`, árvore
   sintática do TypeScript, na API, no pacote compartilhado e no console do
-  fornecedor): reprova resposta 401 ou 403, ou de status que o texto não resolve,
+  fornecedor). É HEURÍSTICA, a primeira linha: a lista do que ela não lê não é
+  fechada, e a cada regra nova a revisão achou a forma seguinte. Reprova resposta
+  401 ou 403, ou de status que o texto não resolve,
   com código fora do catálogo e da lista da entrada. Lê `send({ erro })` literal
   ou por constante (só um `const` não exportado com objeto literal, resolvido pelo
   escopo, e que no arquivo só é lido: `let`, `var`, parâmetro homônimo,
@@ -161,8 +176,8 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
   (inclusive com outro nome de importação ou por `import * as`), o `super(...)` de
   qualquer subclasse delas, classe de erro com `codigo` literal, atribuído no
   construtor, por getter ou por propriedade de parâmetro, o tratador global e a
-  recusa `{ status, corpo: { erro } }` do console. O que ela não consegue ler, ela
-  reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
+  recusa `{ status, corpo: { erro } }` do console. Formas que ela reconhece como
+  ilegíveis, e reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
   corpo que não resolve (inclusive texto, com status calculado), `{ erro: "x",
   ...extra }` com spread depois de `erro`, `erro` por getter, setter ou método,
   escrita em `erro` ou `corpo` de qualquer objeto (ponto, colchete, operador
@@ -219,16 +234,13 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
   padrão).
 
-O que NENHUM deles prende: uma recusa que só sai com um corpo ou um estado que os
-perfis da prova dinâmica não criam E que o texto não mostra, o que se resume a duas
-formas: código ou `statusCode` vindos de DADO em tempo de execução (objeto do
-banco, da rede ou de `JSON.parse` lançado ou espalhado num erro) e classe de erro
-ou resposta definida fora das pastas varridas (dependência, plugin de terceiros,
-inclusive método que ele acrescente à resposta: a varredura reconhece a resposta
-pelo nome dos métodos do Fastify, `code`, `status`, `send`, `redirect`,
-`statusCode`, `raw`, `hijack`, `writeHead`). A prova dinâmica não alcança ramo que
-dependa de um valor que o corpo mínimo dela não manda (o handler das 66 rotas
-acima e qualquer `if` sobre o dado pedido): ali, a garantia é só a varredura.
+O que NENHUMA das três linhas prende: resposta que não passa pelo Fastify, escrita
+direto no Node (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no socket da
+requisição (`req.socket.end("HTTP/1.1 403 ...")`): a guarda não a vê, e a
+varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`, `.connection`),
+mas é heurística. E código no mesmo processo que reescreve o próprio Fastify, o
+protótipo da resposta ou os globais antes de a guarda carregar (ela guarda
+`JSON.parse` na carga e não usa `JSON.stringify` para montar o corpo genérico).
 Fora do escopo: erros de outros status (404, 409, 422, 429,
 5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
 cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
@@ -1486,9 +1498,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3225 testes em seis pacotes
+npm test                    # 3285 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1517 testes da API
+npm run test:api            # 1568 testes da API
 npm run test --workspace @dc360/campo   # 231 testes do motor de campo
 npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

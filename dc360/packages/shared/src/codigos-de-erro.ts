@@ -22,13 +22,35 @@
  * lista mora aqui, no pacote que o servidor, o painel e o aplicativo importam,
  * e não escrita três vezes.
  *
- * ## O que os testes prendem, exatamente
+ * ## O que garante, e o que só ajuda
  *
- * São dois, e um não substitui o outro.
+ * A GARANTIA é uma guarda em tempo de execução, não um teste do texto
+ * (V2-F00-E05, correção 3). Uma varredura estática do fonte nunca fecha a
+ * classe: a cada regra nova, a revisão achou a forma seguinte (dezesseis de uma
+ * vez: `code(200).code(403)`, `e[campo] = "x"`, `Object` apelidado, `onSend` nas
+ * opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo `.mts`...).
+ *
+ * 0. `apps/api/src/guarda-de-codigos-de-erro.ts` (e a cópia do console, com o
+ *    contrato dele) é um `onSend` global e o ÚLTIMO `onSend` de cada rota,
+ *    instalado antes da primeira rota. Toda resposta 401 ou 403 que passa pelo
+ *    Fastify, venha de onde vier, tem de ter corpo JSON com `erro` deste
+ *    catálogo (ou da lista da entrada) e o status que o catálogo dá a ele. Fora
+ *    disso, em TESTE a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso
+ *    que passou por ali reprova (`test/guarda-falha-alto.ts`, em todo arquivo da
+ *    suíte); FORA de teste ela sai com o código genérico do catálogo para o
+ *    status (401 `nao_autenticado`, 403 `sem_permissao`, com a frase deste
+ *    catálogo) e o desvio vai para o log com o método, a rota e o código que
+ *    tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta as
+ *    dezesseis formas da revisão como rotas e prova os dois modos.
+ *
+ * Os testes abaixo são as linhas ANTERIORES, que apontam o defeito antes de ele
+ * chegar à guarda, e nenhum dos dois é garantia sozinho.
  *
  * 1. `apps/api/test/codigos-de-erro.test.ts` lê o código-fonte (a API, o pacote
  *    compartilhado e o console do fornecedor) pela árvore sintática do
- *    TypeScript e reprova nestes casos:
+ *    TypeScript. É HEURÍSTICA: lê as formas que conhece e tenta reprovar o que
+ *    não sabe ler, mas a lista do que ela não lê não é fechada. Reprova nestes
+ *    casos:
  *
  *    - TODA resposta de erro de acesso, isto é, de status 401 ou 403, ou de
  *      status que o texto não resolve, carrega um código deste catálogo ou da
@@ -47,7 +69,7 @@
  *      `send(X)`, `typeof X`). `let`, `var`, parâmetro homônimo, exportação,
  *      escrita em campo, passar a uma função ou apelidar deixam o corpo sem
  *      leitura, e corpo sem leitura numa resposta de acesso reprova.
- *    - O que a varredura NÃO consegue ler, ela REPROVA em vez de deixar passar:
+ *    - Formas que ela reconhece como ilegíveis, e reprova:
  *      `.code(...)` ou `.status(...)` fora de uma cadeia com `send` (o corpo
  *      iria num `return`), 401 ou 403 sem `erro`, corpo que não resolve (inclusive
  *      texto, com status calculado), `{ erro: "x", ...extra }` com o spread
@@ -110,19 +132,16 @@
  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
  *
- * O que NENHUM dos dois prende, para ninguém ler mais do que está escrito: uma
- * recusa que só sai com um corpo ou um estado que os perfis do teste dinâmico
- * não criam E que o texto não mostra, e isso se resume a duas formas: código
- * ou `statusCode` que vêm de DADO em tempo de execução (um objeto do banco, da
- * rede ou de `JSON.parse` lançado ou espalhado num erro); e classe de erro ou
- * resposta definida FORA das pastas varridas (dependência, plugin de
- * terceiros, inclusive método que ele acrescente à resposta, porque a varredura
- * reconhece a resposta pelo NOME dos métodos do Fastify: `code`, `status`,
- * `send`, `redirect`, `statusCode`, `raw`, `hijack`, `writeHead`). A prova
- * dinâmica, por sua vez, não alcança ramo que dependa de um valor que o corpo
- * mínimo dela não manda (o handler das 66 rotas que nunca recebem 2xx, acima,
- * e qualquer `if` sobre o dado pedido). Fora do escopo: os erros de outros
- * status (404, 409, 422, 429, 5xx) e os
+ * O que NENHUMA das três linhas prende, para ninguém ler mais do que está
+ * escrito: resposta que não passa pelo Fastify, escrita direto no Node
+ * (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no SOCKET da requisição
+ * (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da revisão). A guarda não a vê;
+ * a varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`,
+ * `.connection`), mas é heurística. E código no mesmo processo que reescreve o
+ * próprio Fastify, o protótipo da resposta ou os globais ANTES de a guarda
+ * carregar (ela guarda `JSON.parse` na carga e não usa `JSON.stringify` para
+ * montar o corpo genérico, o que fecha o `JSON` trocado depois). Fora do
+ * escopo: os erros de outros status (404, 409, 422, 429, 5xx) e os
  * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
  * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o
  * código (isso é dos testes do painel e do aplicativo, que também leem este
@@ -141,9 +160,10 @@
  *
  * `apps/console` é outro processo, com a própria sessão e o próprio contrato de
  * erro (`sem_sessao`, `so_o_dono`, ...), e as páginas dele leem esses códigos.
- * Não usa este catálogo e o painel e o aplicativo nunca falam com ele. O teste
- * o varre mesmo assim, contra uma lista própria, para que um 401 ou 403 novo
- * dele também não nasça sem revisão.
+ * Não usa este catálogo e o painel e o aplicativo nunca falam com ele. A lista
+ * própria dele mora em `apps/console/src/guarda-de-codigos-de-erro.ts`: a guarda
+ * do console confere cada resposta 401 ou 403 contra ela (com os mesmos dois
+ * modos), e a varredura o lê contra a mesma lista.
  *
  * ## Recurso de outro município
  *

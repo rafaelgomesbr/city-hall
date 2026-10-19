@@ -474,8 +474,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     chave calculada, `.call`/`.apply`/`.bind`, `statusCode` abreviado, texto
     com `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`) e
     1 caso de controle (o que é só lido passa). Sem pulo nem falha novos.
+    Segunda parte da correção 3 (depois da revisão independente): a GUARDA em
+    tempo de execução. `codigos-de-erro.test.ts` ganha mais 2 (escrita no
+    socket e `code(200).code(403)`), indo a 171; `guarda-de-codigos-de-erro.test.ts`
+    é novo, com 49 (as dezesseis formas da revisão como rotas, nos dois modos,
+    o `JSON.stringify` trocado nos dois, status trocado e 401 fora, HEAD,
+    controles e 10 casos da conferência isolada). 53 + 2 + 49 = 104.
   */
-  "V2-F00-E05-correcao-3": { total: 53, falhas: 0, puladas: 0 },
+  "V2-F00-E05-correcao-3": { total: 104, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -690,7 +696,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 259, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 268, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

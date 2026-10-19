@@ -1,0 +1,45 @@
+Revisão independente da correção 3 da V2-F00-E05 (c55bb43, worktree wf_249935fe-9f4-1), 2026-10-19.
+
+(1) Script do red-team (mutar-e05.mjs) contra o worktree: as 9 mutações REPROVAM a varredura
+    (codigos-de-erro.test.ts: 7 falhas = a varredura real + as 6 mutações em memória cuja âncora some).
+    CTRL_C (antes da validação) também reprova na prova dinâmica. Saídas: 1-red-team/.
+
+(2) 16 formas NOVAS, plantadas UMA a UMA em POST /orgaos logo depois de `autorizar` (ou no arquivo),
+    `tsc` limpo em todas; a varredura REAL (`toda resposta 401 ou 403 da API`) fica VERDE em todas.
+    A prova dinâmica fica vermelha (vazamento real confirmado) porque a mutação está ANTES da validação;
+    atrás de um `if` sobre o corpo (como o red-team fez) ela não alcança, e só a varredura protege.
+    Saídas: 2-estatico-em-memoria.txt (harness), 3-plantadas/ (worktree real), scripts/mutacoes.mjs.
+
+  M01 new por colchete calculado (`new mod[k](...)`, 6b só olha CallExpression)      varredura VERDE, dinâmica 403 vazou_m01
+  M02 construtor tirado da instância (`new (e.constructor as typeof R)(...)`)         varredura VERDE, dinâmica 403 vazou_m02
+  M03 `codigo` escrito por chave const (`e[campo] = "x"`, campo = "codigo")           varredura VERDE, dinâmica 403 vazou_m03
+  M04 `Object` apelidado (`const O = Object; O.assign(e, { codigo })`)                varredura VERDE, dinâmica 403 vazou_m04
+  M05 `globalThis.Object.defineProperty(e, "codigo", ...)`                            varredura VERDE, dinâmica 403 vazou_m05
+  M06 subclasse com membro entre aspas (`override readonly "codigo" = "x"`)          varredura VERDE; tsx/HTTP 403 vazou_m06 (no vitest o handler dá 500)
+  M07 `onSend` nas OPÇÕES da rota (não `addHook`) reescrevendo o 403                  varredura VERDE, dinâmica 403 vazou_m07 (agenteA)
+  M08 `req.socket.end("HTTP/1.1 403 ...")`                                            varredura VERDE, dinâmica VERDE (inject dá 500); HTTP real porta 5401: 403 {"erro":"vazou_m08"}
+  M09 `JSON.stringify = ...` global trocado                                           varredura VERDE, dinâmica 403 vazou_m09
+  M10 `resposta[campo] = s` (statusCode por chave const e valor em variável) + corpo no `return`  varredura VERDE, dinâmica 403 vazou_m10
+  M11 `resposta.code(200).code(403).send(...)` (statusDaCadeia fica com o 200)        varredura VERDE, dinâmica e HTTP 5402: 403 vazou_m11
+  M12 `new Proxy(new RegraDeNegocio("sem_permissao",..,403), { get })`                varredura VERDE, dinâmica 403 vazou_m12
+  M13 parâmetro DESESTRUTURADO homônimo da constante de corpo (`({ corpo }) => send(corpo)`)  varredura VERDE (lê o "sem_permissao" da const de fora), dinâmica 403 vazou_m13
+  M14 variável de `for...of` homônima da constante de corpo                           varredura VERDE, dinâmica 403 vazou_m14
+  M15 `status` da RegraDeNegocio escrito por chave const (409 -> 403)                 varredura VERDE, dinâmica 403 vazou_m15
+  M16 arquivo `.mts` dentro de src (fontesDe só lê `.ts`; tsconfig inclui `.mts`)    varredura VERDE, dinâmica 403 vazou_m16
+
+  Raízes: (a) `nomeDoAcesso`/3e não resolvem `const` em colchete (M03, M10, M15) e a escrita por chave
+  calculada só reprova com 401/403 literal; (b) 6b/2b só tratam CallExpression e identificador (M01, M02);
+  (c) regras de `Object.*` exigem o identificador `Object` (M04, M05); (d) regra 3 só lê membro `codigo`
+  com nome identificador (M06); (e) ganchos só via `addHook` (M07); (f) `resolverDeclaracao` ignora
+  desestruturação e `for` (M13, M14); (g) `statusDaCadeia` sobrescreve com o code mais externo (M11);
+  (h) extensões (M16); (i) nada sobre socket, JSON global, Proxy (M08, M09, M12).
+
+(3) Estado atual: varredura verde no fonte real; os seis repasses novos conferidos no código
+    (servidor.ts `manter`, `startsWith("FST_ERR_CTP_")`, apns.ts `:method`/`:path`, index.ts `app.log[nivel]`,
+    documentos.ts `GERADOR[documento]`): motivos verdadeiros.
+
+(4) Cabeçalho do catálogo e README dizem que o que sobra "se resume a duas formas" (dado em tempo de
+    execução e código fora das pastas varridas). FALSO: M01 a M16 são texto literal dentro das pastas varridas.
+
+(5) test:api 105 arquivos, 1517 passaram, 34 pulados, codigo=0; typecheck codigo=0; conferir:numeros codigo=0 (25 afirmações);
+    nenhum travessão U+2014 nas linhas novas do diff ca5a38f..c55bb43. git status do worktree limpo no fim.

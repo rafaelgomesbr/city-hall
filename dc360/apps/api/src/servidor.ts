@@ -3,6 +3,10 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
+// Antes das rotas, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
+import {
+  CONTRATO_DE_ACESSO_DA_API, GENERICO_DA_API, instalarGuardaDeAcesso, type ModoDaGuarda,
+} from "./guarda-de-codigos-de-erro.js";
 import type { ZodError } from "zod";
 import type { Config } from "./config.js";
 import type { Banco } from "./banco/tipos.js";
@@ -156,6 +160,12 @@ export type Dependencias = {
     despertar(): void;
     ultimaRodada(): UltimaRodada | null;
   };
+  /**
+   * O que a guarda das respostas de acesso faz com um desvio do catálogo (ver
+   * `guarda-de-codigos-de-erro.ts`). Sem isto: "falhar" em teste, "corrigir"
+   * fora dele. Só o teste da guarda passa, para provar o modo de produção.
+   */
+  modoDaGuarda?: ModoDaGuarda;
 };
 
 /**
@@ -259,7 +269,7 @@ export const CAMINHOS_REDIGIDOS = [
 export async function construirServidor(
   {
     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
-    push,
+    push, modoDaGuarda,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -364,6 +374,18 @@ export async function construirServidor(
     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
     bodyLimit: 1_048_576,
+  });
+
+  /*
+    A guarda das respostas de acesso, ANTES de qualquer rota: toda resposta 401
+    ou 403 tem de sair com um código do catálogo e o status dele. É a garantia
+    em tempo de execução; a varredura do fonte é a primeira linha, e não fecha a
+    classe sozinha. Ver `guarda-de-codigos-de-erro.ts`.
+  */
+  instalarGuardaDeAcesso(app, {
+    modo: modoDaGuarda ?? (config.NODE_ENV === "test" ? "falhar" : "corrigir"),
+    contrato: CONTRATO_DE_ACESSO_DA_API,
+    generico: GENERICO_DA_API,
   });
 
   /*
