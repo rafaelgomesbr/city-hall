@@ -1,12 +1,11 @@
 
  RUN  v3.2.7 <repo>/dc360/packages/shared
 
- ✓ test/regras-de-conteudo.test.ts (10 tests) 654ms
-   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  300ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 631ms
 
  Test Files  1 passed (1)
       Tests  10 passed (10)
-   Start at  20:37:39
-   Duration  939ms (transform 39ms, setup 0ms, collect 52ms, tests 654ms, environment 0ms, prepare 56ms)
+   Start at  20:57:18
+   Duration  830ms (transform 28ms, setup 0ms, collect 29ms, tests 631ms, environment 0ms, prepare 37ms)
 
 saida=0

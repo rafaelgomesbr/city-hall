@@ -5,20 +5,20 @@
 
  RUN  v3.2.7 <repo>/dc360/packages/campo
 
- ✓ test/prazo.test.ts (12 tests) 14ms
+ ✓ test/prazo.test.ts (12 tests) 15ms
+ ✓ test/devolucao.test.ts (24 tests) 8ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 16ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 21ms
+ ✓ test/pausa-de-sessao.test.ts (29 tests) 32ms
+ ✓ test/fila.test.ts (58 tests) 27ms
+ ✓ test/pausa-por-senha-provisoria.test.ts (43 tests) 30ms
  ✓ test/prova-perdida.test.ts (10 tests) 9ms
- ✓ test/deposito-sqlite.test.ts (9 tests) 19ms
- ✓ test/pausa-de-sessao.test.ts (29 tests) 23ms
- ✓ test/correcao-da-coleta.test.ts (21 tests) 25ms
- ✓ test/pausa-por-senha-provisoria.test.ts (43 tests) 39ms
- ✓ test/fila.test.ts (58 tests) 36ms
- ✓ test/devolucao.test.ts (24 tests) 15ms
- ✓ test/conclusao.test.ts (11 tests) 3ms
- ✓ test/coleta.test.ts (14 tests) 3ms
+ ✓ test/coleta.test.ts (14 tests) 5ms
+ ✓ test/conclusao.test.ts (11 tests) 2ms
 
  Test Files  10 passed (10)
       Tests  231 passed (231)
-   Start at  20:37:37
-   Duration  679ms (transform 655ms, setup 0ms, collect 1.76s, tests 185ms, environment 1ms, prepare 479ms)
+   Start at  20:57:15
+   Duration  788ms (transform 635ms, setup 0ms, collect 1.69s, tests 166ms, environment 1ms, prepare 1.01s)
 
 saida=0

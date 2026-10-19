@@ -1,0 +1,9 @@
+diff --git a/dc360/apps/campo/src/dados/sessao.tsx b/dc360/apps/campo/src/dados/sessao.tsx
+index ed55474..414d0b1 100644
+--- a/dc360/apps/campo/src/dados/sessao.tsx
++++ b/dc360/apps/campo/src/dados/sessao.tsx
+@@ -184,3 +184,3 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
+     */
+-    await acolherNoAparelho(r.identidade.usuarioId);
++    void acolherNoAparelho(r.identidade.usuarioId);
+     credenciais.current = r.credenciais;

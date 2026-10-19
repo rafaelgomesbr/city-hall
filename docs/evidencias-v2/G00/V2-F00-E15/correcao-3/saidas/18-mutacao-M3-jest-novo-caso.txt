@@ -1,0 +1,316 @@
+  console.warn
+    Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        at prepare (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:74)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+        at Object.apply [as getAllAsync] (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:102)
+        at getAllAsync (<repo>/dc360/apps/campo/src/dados/banco-local.ts:73:29)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+        at apply (<repo>/dc360/apps/campo/src/dados/banco-local.ts:93:2)
+        at apply (<repo>/dc360/apps/campo/src/dados/banco-local.ts:69:35)
+        at arquivosAindaNaFila (<repo>/dc360/apps/campo/src/dados/banco-local.ts:367:25)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1,
+      errstr: 'SQL logic error'
+    }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+      at warn (src/dados/banco-local.ts:90:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.warn
+    Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+      at warn (src/dados/banco-local.ts:369:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.warn
+    Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        at prepare (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:74)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+        at Object.apply [as getAllAsync] (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:102)
+        at getAllAsync (<repo>/dc360/apps/campo/src/dados/banco-local.ts:73:29)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+        at apply (<repo>/dc360/apps/campo/src/dados/banco-local.ts:69:35)
+        at arquivosAindaNaFila (<repo>/dc360/apps/campo/src/dados/banco-local.ts:367:25)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1,
+      errstr: 'SQL logic error'
+    }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+      at warn (src/dados/banco-local.ts:90:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.warn
+    Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+      at warn (src/dados/banco-local.ts:369:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.warn
+    Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        at prepare (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:74)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+        at Object.apply [as getAllAsync] (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:102)
+        at getAllAsync (<repo>/dc360/apps/campo/src/dados/banco-local.ts:73:29)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+        at apply (<repo>/dc360/apps/campo/src/dados/banco-local.ts:69:35)
+        at arquivosAindaNaFila (<repo>/dc360/apps/campo/src/dados/banco-local.ts:367:25)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1,
+      errstr: 'SQL logic error'
+    }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+      at warn (src/dados/banco-local.ts:90:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.warn
+    Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+      at warn (src/dados/banco-local.ts:369:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.warn
+    Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        at prepare (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:74)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+        at Object.apply [as getAllAsync] (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:102)
+        at getAllAsync (<repo>/dc360/apps/campo/src/dados/banco-local.ts:73:29)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+        at apply (<repo>/dc360/apps/campo/src/dados/banco-local.ts:69:35)
+        at arquivosAindaNaFila (<repo>/dc360/apps/campo/src/dados/banco-local.ts:367:25)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1,
+      errstr: 'SQL logic error'
+    }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+      at warn (src/dados/banco-local.ts:90:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.warn
+    Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+      at warn (src/dados/banco-local.ts:369:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.warn
+    Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        at prepare (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:74)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+        at Object.apply [as getAllAsync] (<repo>/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:54:102)
+        at getAllAsync (<repo>/dc360/apps/campo/src/dados/banco-local.ts:73:29)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at <repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+        at apply (<repo>/dc360/apps/campo/src/dados/banco-local.ts:69:35)
+        at arquivosAindaNaFila (<repo>/dc360/apps/campo/src/dados/banco-local.ts:367:25)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+        at _next (<repo>/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1,
+      errstr: 'SQL logic error'
+    }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+      at warn (src/dados/banco-local.ts:90:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.warn
+    Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+      at warn (src/dados/banco-local.ts:369:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+  outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
+    ✓ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (32 ms)
+    ✓ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (3 ms)
+    ✓ a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo (31 ms)
+    ✕ sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono (1 ms)
+    ✓ a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa (3 ms)
+    ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (2 ms)
+  a credencial e a identidade saem do cofre do aparelho
+    ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (1 ms)
+    ✓ 'Sair da conta' tira a credencial e a identidade do cofre (1 ms)
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (1 ms)
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (1 ms)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      286 |     await entrarComo("ana@teste.gov.br");
+      287 |
+    > 288 |     expect(await listarRascunhos()).toHaveLength(1);
+          |                                     ^
+      289 |     expect([...mockNoDisco].sort()).toEqual([ASSINATURA, FOTO].sort());
+      290 |     expect(await donoDosDadosLocais()).toBe(ANA);
+      291 |   });
+
+      at Object.toHaveLength (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:288:37)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 9 passed, 10 total
+Snapshots:   0 total
+Time:        0.484 s, estimated 1 s
+Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
+jest-saida=1

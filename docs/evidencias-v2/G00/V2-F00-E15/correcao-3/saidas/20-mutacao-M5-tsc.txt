@@ -1,0 +1,2 @@
+src/dados/sessao.tsx(251,11): error TS6133: 'eu' is declared but its value is never read.
+tsc=2

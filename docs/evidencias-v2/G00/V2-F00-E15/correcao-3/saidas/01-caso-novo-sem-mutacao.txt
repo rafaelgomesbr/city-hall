@@ -1,17 +1,20 @@
 PASS src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
   outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
-    ✓ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (10 ms)
-    ✓ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (1 ms)
+    ✓ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (13 ms)
+    ✓ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (2 ms)
+    ✓ a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo (31 ms)
+    ✓ sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono (1 ms)
+    ✓ a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa (1 ms)
     ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (1 ms)
   a credencial e a identidade saem do cofre do aparelho
     ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (1 ms)
-    ✓ 'Sair da conta' tira a credencial e a identidade do cofre (1 ms)
-    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (1 ms)
-    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (1 ms)
+    ✓ 'Sair da conta' tira a credencial e a identidade do cofre
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno
 
 Test Suites: 1 passed, 1 total
-Tests:       7 passed, 7 total
+Tests:       10 passed, 10 total
 Snapshots:   0 total
-Time:        0.414 s, estimated 1 s
+Time:        0.439 s, estimated 1 s
 Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
 saida=0

@@ -1,5 +1,5 @@
 diff --git a/dc360/README.md b/dc360/README.md
-index e5f5ba1..609325d 100644
+index e5f5ba1..d59d90c 100644
 --- a/dc360/README.md
 +++ b/dc360/README.md
 @@ -13,7 +13,7 @@ build) valem lá, não aqui.
@@ -7,7 +7,7 @@ index e5f5ba1..609325d 100644
  | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1568 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
  | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
 -| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1939 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1942 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
  | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 268 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
  
  ## Os dois modos do painel
@@ -16,7 +16,7 @@ index e5f5ba1..609325d 100644
  npm run test:api            # 1568 testes da API
  npm run test --workspace @dc360/campo   # 231 testes do motor de campo
 -npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
-+npm run test:campo          # tipos e os 1939 testes do aplicativo de campo
++npm run test:campo          # tipos e os 1942 testes do aplicativo de campo
  npm run typecheck           # TypeScript estrito em todos os pacotes
  npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
  ```
@@ -35,10 +35,10 @@ index dcc4a11..6450f92 100644
   * Mora em `__tests__` e não ao lado da tela porque tudo dentro de `src/app`
 diff --git a/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx b/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
 new file mode 100644
-index 0000000..3cede92
+index 0000000..3909fbd
 --- /dev/null
 +++ b/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
-@@ -0,0 +1,303 @@
+@@ -0,0 +1,383 @@
 +/**
 + * Quem ENTRA depois não vê o dado de quem saiu, provado pelo caminho real do
 + * login, e a saída que tira a credencial do cofre (V2-F00-E15, correção 3).
@@ -71,6 +71,13 @@ index 0000000..3cede92
 +import { act, render } from "@testing-library/react-native";
 +
 +let mockBanco: DatabaseSync | null = null;
++/**
++ * Quando armado, a limpeza do banco (`DELETE FROM rascunhos`) fica esperando o
++ * teste soltar: simula o aparelho lento que apaga devagar, para provar a ORDEM
++ * em que `entrar` limpa e abre a sessão.
++ */
++let mockPortaoDaLimpeza: Promise<void> | null = null;
++
 +function mockAbrir(): DatabaseSync {
 +  mockBanco ??= new DatabaseSync(":memory:");
 +  return mockBanco;
@@ -80,7 +87,10 @@ index 0000000..3cede92
 +  openDatabaseAsync: async () => {
 +    const db = mockAbrir();
 +    return {
-+      async execAsync(sql: string) { db.exec(sql); },
++      async execAsync(sql: string) {
++        if (mockPortaoDaLimpeza && sql.includes("DELETE FROM rascunhos")) await mockPortaoDaLimpeza;
++        db.exec(sql);
++      },
 +      async runAsync(sql: string, params: unknown[] = []) { db.prepare(sql).run(...params); },
 +      async getAllAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).all(...params); },
 +      async getFirstAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).get(...params) ?? null; },
@@ -142,7 +152,7 @@ index 0000000..3cede92
 +});
 +
 +import { ProvedorDeSessao, useSessao } from "../dados/sessao";
-+import { bancoLocal, esquecerConexao } from "../dados/banco-local";
++import { bancoLocal, donoDosDadosLocais, esquecerConexao } from "../dados/banco-local";
 +import { listarRascunhos, salvarRascunho, type Rascunho } from "../dados/rascunho";
 +
 +const FOTO = "foto-1759000000000-0.jpg";
@@ -237,6 +247,8 @@ index 0000000..3cede92
 +  expect(await filaNoDisco()).toEqual([{ chave: "dc360:fila:coleta-1", valor: ITEM_DA_FILA }]);
 +  expect(JSON.parse((await filaNoDisco())[0]!.valor).estado).toBe("pendente");
 +  expect(mockNoDisco.has(ASSINATURA_NA_FILA)).toBe(true);
++  /* E o aparelho agora é do Bruno: o próximo a entrar é conferido contra ele. */
++  expect(await donoDosDadosLocais()).toBe(BRUNO);
 +}
 +
 +beforeEach(() => {
@@ -245,6 +257,7 @@ index 0000000..3cede92
 +  esquecerConexao();
 +  mockNoDisco.clear();
 +  mockCofre.clear();
++  mockPortaoDaLimpeza = null;
 +  sessao = null;
 +});
 +
@@ -266,6 +279,73 @@ index 0000000..3cede92
 +
 +    await entrarComo("bruno@teste.gov.br");
 +
++    await conferirQueOBrunoNaoViuNada();
++  });
++
++  it("a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo", async () => {
++    /*
++      O comentário de `entrar` promete limpar ANTES de a sessão abrir, para a
++      tela de tarefas nunca mostrar a lista do turno anterior. Duas
++      refatorações quebram a promessa sem quebrar o resultado final: esquecer o
++      `await` da limpeza, ou chamá-la depois de `setIdentidade`. Com o resultado
++      final igual, só a ORDEM as distingue: aqui a limpeza fica presa e o teste
++      olha o que o provedor já mostrou enquanto ela não termina.
++    */
++    await turnoDaAna();
++    await act(async () => { await sessao!.encerrarSessaoVencida(); });
++
++    let solta!: () => void;
++    mockPortaoDaLimpeza = new Promise<void>((resolve) => { solta = resolve; });
++    let entrada!: Promise<void>;
++    await act(async () => {
++      entrada = sessao!.entrar("bruno@teste.gov.br", "senha");
++      await new Promise((r) => setTimeout(r, 25));
++    });
++
++    /* Limpeza presa: ninguém logado, nada do Bruno no cofre, dado da Ana ainda lá. */
++    expect(sessao?.identidade).toBeNull();
++    expect([...mockCofre.values()].join("\n")).not.toContain("bruno");
++
++    await act(async () => { solta(); await entrada; });
++
++    await conferirQueOBrunoNaoViuNada();
++  });
++
++  it("sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono", async () => {
++    /*
++      A regra escrita em `acolherNoAparelho`: "sem dono não apaga". É o
++      aparelho atualizado de uma versão sem a marca, cuja vistoria começada não
++      pode morrer por via das dúvidas. Entrar também é o ato que carimba o dono.
++    */
++    await act(async () => { render(<ProvedorDeSessao><Sonda /></ProvedorDeSessao>); });
++    await criarATabelaDaFila();
++    await salvarRascunho(rascunhoDaAna());
++    mockNoDisco.add(FOTO);
++    mockNoDisco.add(ASSINATURA);
++    expect(await donoDosDadosLocais()).toBeNull();
++
++    await entrarComo("ana@teste.gov.br");
++
++    expect(await listarRascunhos()).toHaveLength(1);
++    expect([...mockNoDisco].sort()).toEqual([ASSINATURA, FOTO].sort());
++    expect(await donoDosDadosLocais()).toBe(ANA);
++  });
++
++  it("a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa", async () => {
++    /*
++      A marca do dono pode faltar quando a sessão vence (aparelho atualizado,
++      marca apagada). `encerrarSessaoVencida` a escreve de novo, e sem ela o
++      Bruno entraria num disco sem dono, que não apaga.
++    */
++    await turnoDaAna();
++    const db = await bancoLocal();
++    await db.runAsync("DELETE FROM marcas", []);
++    expect(await donoDosDadosLocais()).toBeNull();
++
++    await act(async () => { await sessao!.encerrarSessaoVencida(); });
++
++    expect(await donoDosDadosLocais()).toBe(ANA);
++    await entrarComo("bruno@teste.gov.br");
 +    await conferirQueOBrunoNaoViuNada();
 +  });
 +
@@ -343,7 +423,7 @@ index 0000000..3cede92
 +  });
 +});
 diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
-index d6b312d..005936b 100644
+index d6b312d..ce771bc 100644
 --- a/dc360/docs/COLOCAR-DE-PE.md
 +++ b/dc360/docs/COLOCAR-DE-PE.md
 @@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
@@ -351,7 +431,7 @@ index d6b312d..005936b 100644
    stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
    espacial), esquemas Zod compartilhados.
 -- **5217 testes somando o aplicativo** (contagem estática de `npm run
-+- **5224 testes somando o aplicativo** (contagem estática de `npm run
++- **5227 testes somando o aplicativo** (contagem estática de `npm run
    conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
    parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
    os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -360,20 +440,20 @@ index d6b312d..005936b 100644
  git clone <repo> && cd dc360
  npm ci
 -npm run verificar          # typecheck, 5217 testes com o aplicativo, auditar, números
-+npm run verificar          # typecheck, 5224 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5227 testes com o aplicativo, auditar, números
  
  # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
  cd apps/campo
 diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
-index f372899..c1c8d33 100644
+index f372899..a8cb657 100644
 --- a/dc360/scripts/baseline.mjs
 +++ b/dc360/scripts/baseline.mjs
 @@ -666,6 +666,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
    "V2-F00-E16-correcao-2": { total: 7, falhas: 0 },
    // V2-F00-E15, correção 2: `dialogo-na-conta-com-vistoria-comecada.test.tsx` ganha 5 casos (disco ilegível, item recusado da fila, item em envio, título e ordem dos botões, disco que falha na segunda pergunta). O caso do botão de perigo foi reescrito, sem mudar a contagem.
    "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },
-+  // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 7 casos (3 do login real com troca de pessoa, provedor, banco e rascunho de verdade; 4 da credencial e da identidade que saem do cofre).
-+  "V2-F00-E15-correcao-3": { total: 7, falhas: 0 },
++  // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 10 casos (6 do login real, provedor, banco e rascunho de verdade: troca de pessoa, a ordem de limpar antes de abrir a sessão e o dono do disco; 4 da credencial e da identidade que saem do cofre).
++  "V2-F00-E15-correcao-3": { total: 10, falhas: 0 },
  };
  export function esperadoDoTesteCampoApp() {
    return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

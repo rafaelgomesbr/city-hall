@@ -666,8 +666,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E16-correcao-2": { total: 7, falhas: 0 },
   // V2-F00-E15, correção 2: `dialogo-na-conta-com-vistoria-comecada.test.tsx` ganha 5 casos (disco ilegível, item recusado da fila, item em envio, título e ordem dos botões, disco que falha na segunda pergunta). O caso do botão de perigo foi reescrito, sem mudar a contagem.
   "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },
-  // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 7 casos (3 do login real com troca de pessoa, provedor, banco e rascunho de verdade; 4 da credencial e da identidade que saem do cofre).
-  "V2-F00-E15-correcao-3": { total: 7, falhas: 0 },
+  // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 10 casos (6 do login real, provedor, banco e rascunho de verdade: troca de pessoa, a ordem de limpar antes de abrir a sessão e o dono do disco; 4 da credencial e da identidade que saem do cofre).
+  "V2-F00-E15-correcao-3": { total: 10, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

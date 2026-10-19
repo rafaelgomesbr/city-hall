@@ -20,8 +20,8 @@ Contagens reais:
     70  verificações no navegador, modo local
    258  verificações no navegador, contra a API
    328  verificações no navegador, somadas
-  1939  testes do aplicativo de campo
-  5224  total de testes automatizados, somando o aplicativo
+  1942  testes do aplicativo de campo
+  5227  total de testes automatizados, somando o aplicativo
 
 Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
   0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.

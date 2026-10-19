@@ -30,6 +30,13 @@ import { DatabaseSync } from "node:sqlite";
 import { act, render } from "@testing-library/react-native";
 
 let mockBanco: DatabaseSync | null = null;
+/**
+ * Quando armado, a limpeza do banco (`DELETE FROM rascunhos`) fica esperando o
+ * teste soltar: simula o aparelho lento que apaga devagar, para provar a ORDEM
+ * em que `entrar` limpa e abre a sessão.
+ */
+let mockPortaoDaLimpeza: Promise<void> | null = null;
+
 function mockAbrir(): DatabaseSync {
   mockBanco ??= new DatabaseSync(":memory:");
   return mockBanco;
@@ -39,7 +46,10 @@ jest.mock("expo-sqlite", () => ({
   openDatabaseAsync: async () => {
     const db = mockAbrir();
     return {
-      async execAsync(sql: string) { db.exec(sql); },
+      async execAsync(sql: string) {
+        if (mockPortaoDaLimpeza && sql.includes("DELETE FROM rascunhos")) await mockPortaoDaLimpeza;
+        db.exec(sql);
+      },
       async runAsync(sql: string, params: unknown[] = []) { db.prepare(sql).run(...params); },
       async getAllAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).all(...params); },
       async getFirstAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).get(...params) ?? null; },
@@ -101,7 +111,7 @@ jest.mock("../dados/api", () => {
 });
 
 import { ProvedorDeSessao, useSessao } from "../dados/sessao";
-import { bancoLocal, esquecerConexao } from "../dados/banco-local";
+import { bancoLocal, donoDosDadosLocais, esquecerConexao } from "../dados/banco-local";
 import { listarRascunhos, salvarRascunho, type Rascunho } from "../dados/rascunho";
 
 const FOTO = "foto-1759000000000-0.jpg";
@@ -196,6 +206,8 @@ async function conferirQueOBrunoNaoViuNada(): Promise<void> {
   expect(await filaNoDisco()).toEqual([{ chave: "dc360:fila:coleta-1", valor: ITEM_DA_FILA }]);
   expect(JSON.parse((await filaNoDisco())[0]!.valor).estado).toBe("pendente");
   expect(mockNoDisco.has(ASSINATURA_NA_FILA)).toBe(true);
+  /* E o aparelho agora é do Bruno: o próximo a entrar é conferido contra ele. */
+  expect(await donoDosDadosLocais()).toBe(BRUNO);
 }
 
 beforeEach(() => {
@@ -204,6 +216,7 @@ beforeEach(() => {
   esquecerConexao();
   mockNoDisco.clear();
   mockCofre.clear();
+  mockPortaoDaLimpeza = null;
   sessao = null;
 });
 
@@ -225,6 +238,73 @@ describe("outra pessoa entra por `entrar` num aparelho com o turno da Ana, prove
 
     await entrarComo("bruno@teste.gov.br");
 
+    await conferirQueOBrunoNaoViuNada();
+  });
+
+  it("a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo", async () => {
+    /*
+      O comentário de `entrar` promete limpar ANTES de a sessão abrir, para a
+      tela de tarefas nunca mostrar a lista do turno anterior. Duas
+      refatorações quebram a promessa sem quebrar o resultado final: esquecer o
+      `await` da limpeza, ou chamá-la depois de `setIdentidade`. Com o resultado
+      final igual, só a ORDEM as distingue: aqui a limpeza fica presa e o teste
+      olha o que o provedor já mostrou enquanto ela não termina.
+    */
+    await turnoDaAna();
+    await act(async () => { await sessao!.encerrarSessaoVencida(); });
+
+    let solta!: () => void;
+    mockPortaoDaLimpeza = new Promise<void>((resolve) => { solta = resolve; });
+    let entrada!: Promise<void>;
+    await act(async () => {
+      entrada = sessao!.entrar("bruno@teste.gov.br", "senha");
+      await new Promise((r) => setTimeout(r, 25));
+    });
+
+    /* Limpeza presa: ninguém logado, nada do Bruno no cofre, dado da Ana ainda lá. */
+    expect(sessao?.identidade).toBeNull();
+    expect([...mockCofre.values()].join("\n")).not.toContain("bruno");
+
+    await act(async () => { solta(); await entrada; });
+
+    await conferirQueOBrunoNaoViuNada();
+  });
+
+  it("sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono", async () => {
+    /*
+      A regra escrita em `acolherNoAparelho`: "sem dono não apaga". É o
+      aparelho atualizado de uma versão sem a marca, cuja vistoria começada não
+      pode morrer por via das dúvidas. Entrar também é o ato que carimba o dono.
+    */
+    await act(async () => { render(<ProvedorDeSessao><Sonda /></ProvedorDeSessao>); });
+    await criarATabelaDaFila();
+    await salvarRascunho(rascunhoDaAna());
+    mockNoDisco.add(FOTO);
+    mockNoDisco.add(ASSINATURA);
+    expect(await donoDosDadosLocais()).toBeNull();
+
+    await entrarComo("ana@teste.gov.br");
+
+    expect(await listarRascunhos()).toHaveLength(1);
+    expect([...mockNoDisco].sort()).toEqual([ASSINATURA, FOTO].sort());
+    expect(await donoDosDadosLocais()).toBe(ANA);
+  });
+
+  it("a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa", async () => {
+    /*
+      A marca do dono pode faltar quando a sessão vence (aparelho atualizado,
+      marca apagada). `encerrarSessaoVencida` a escreve de novo, e sem ela o
+      Bruno entraria num disco sem dono, que não apaga.
+    */
+    await turnoDaAna();
+    const db = await bancoLocal();
+    await db.runAsync("DELETE FROM marcas", []);
+    expect(await donoDosDadosLocais()).toBeNull();
+
+    await act(async () => { await sessao!.encerrarSessaoVencida(); });
+
+    expect(await donoDosDadosLocais()).toBe(ANA);
+    await entrarComo("bruno@teste.gov.br");
     await conferirQueOBrunoNaoViuNada();
   });
 

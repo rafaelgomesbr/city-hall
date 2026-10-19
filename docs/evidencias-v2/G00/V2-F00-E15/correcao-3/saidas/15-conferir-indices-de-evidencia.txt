@@ -1,3 +1,5 @@
-Índices de evidência: 70 INDEX.md, 3180 arquivo(s) conferido(s) byte a byte.
-RESULTADO: OK
-saida=0
+Índices de evidência: 70 INDEX.md, 3201 arquivo(s) conferido(s) byte a byte.
+FALHA G00/V2-F00-E15/INDEX.md
+  - linha 73: correcao-3/saidas/15-conferir-indices-de-evidencia.txt tem SHA-256 diferente do índice
+RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+saida=1
