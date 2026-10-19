@@ -394,3 +394,31 @@ Os números de teste mudaram em duas tabelas de `scripts/baseline.mjs`, conferid
 | **Abertas** | **0** |
 
 O item do G00 "o registro da E03 tem zero itens abertos" passa a ser verdadeiro à letra: nenhuma linha de teste vermelho, skip ou instável está aberta. V-DEP-3 não é teste: é exceção de dependência com dono e prazo decididos pelo Rafael em 2026-10-07 (R5), contada à parte desde a seção 8.8.2. A pergunta H03 da seção 8.8.2 (criar etapa para V-INS-02 e V-INS-05, ou aceitar a linha aberta) deixa de existir, porque as duas linhas foram fechadas pelo trabalho.
+
+
+## 10. O vermelho do LibreSSL no macOS, que faltava no registro (correção 5, 2026-10-19)
+
+A rodada 4 (SHA `bb0f654`, `qa.md` em `validacao/bb0f654/`) reprovou a etapa porque `npm run test:api` saía com 1 num Mac (`openssl-do-teste.test.ts`, caso "respeita OPENSSL_CONF válido"), vermelho conhecido desde 2026-10-14 e citado pelo README e pela correção 4, mas sem linha neste registro e sem nenhuma das três saídas da T42, enquanto a seção 9.3 afirmava "0 abertas". Esta seção acrescenta a linha que faltava e a fecha pelo trabalho. As saídas estão em `correcao-5/saidas/` (numeradas) e o `RESUMO.md` de `correcao-5/` diz o que cada uma mostra. Uma primeira versão desta correção atribuía a causa à família do `openssl` (OpenSSL 3 contra LibreSSL); o revisor independente rodou um OpenSSL 3.0.7 de verdade, mostrou que a causa é o `openssl.cnf` padrão da máquina, e esta seção já está corrigida por isso.
+
+### 10.1 A linha
+
+| Linha | Estado | Teste | Causa (medida) | Classe e regra | Tratamento | Prova |
+| --- | --- | --- | --- | --- | --- | --- |
+| V-API-3 | **FECHADO** (dono `rafael`, sem prazo: não há skip) | `apps/api/test/openssl-do-teste.test.ts`, caso "respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado" | **Ambiente: o `openssl.cnf` padrão da máquina.** O caso afirmava que, SEM a variável, o autoassinado sai com `ca === true`. Quem marca o autoassinado como CA é o `openssl.cnf` padrão quando ele manda `x509_extensions = v3_ca`, e não a família do `openssl`. O arquivo do macOS (`/private/etc/ssl/openssl.cnf`, do LibreSSL 3.3.6) não manda, então `ca` é falso e a asserção da linha 119 reprovava com `expected false to be true`. Medido nas duas famílias (`saidas/10`): com um `openssl.cnf` sem extensões, o OpenSSL 3.0.7 e o LibreSSL dão `ca=false`; com `v3_ca`, os dois dão `ca=true`. O LibreSSL lê `OPENSSL_CONF` normalmente. O produto NÃO usa esse caminho: `grep openssl` em `apps/*/src`, `packages/*/src` e `db` não acha nada; o helper só gera o certificado do "impostor" da suíte `banco-tls`, que não depende do campo `ca` (13 de 13 nas duas famílias, `saidas/03`) | C, R3 (a regra vale, a máquina diverge) | Saída 2 da T42 (reescrever o teste, com registro; é o que a R3 manda quando o teste muda). O `ca` sem configuração saiu do caso: ele provaria o arquivo da máquina, não o que o caso promete. A prova de qual configuração foi lida é um uso estendido de chave (`extendedKeyUsage = 1.3.6.1.5.5.7.3.4`) que a configuração do teste pede e que nenhum `req -x509` põe sozinho: com a variável válida o certificado tem `keyUsage` igual ao OID (e `ca` falso, o que a configuração pede), sem ela tem `undefined`. Não há ramificação por família nem helper novo (`openssl-do-teste.ts` ficou como estava). Sem `skip`, sem marca T42. Casos do arquivo: 10, como antes | `saidas/04` (teste de HEAD: reprova no LibreSSL, passa no OpenSSL 3.0.7), `saidas/02` e `03` (depois: 10 de 10 e 13 de 13 nas duas famílias), `saidas/05` (4 mutantes reprovam nas duas), `saidas/06` (`test:api` com código 0) |
+
+O registro de reescrita exigido pela R3 está em `docs/DECISOES-DE-TESTE-DA-FASE-00.md` (seção "API: certificado de teste do banco, o caso de OPENSSL_CONF válido").
+
+### 10.2 O que esta correção NÃO prova, e o que o caso pressupõe
+
+- **As duas famílias rodaram nesta máquina**: o LibreSSL do sistema e um OpenSSL 3.0.7 osx-arm64 (conda-forge) baixado pelo revisor, com o prefixo trocado para o scratchpad (`$SP/revisao-e03-c5/dl/x/bin`), posto na frente do PATH. É uma compilação de outra origem que a do Linux do CI, e não há `openssl.cnf` de distribuição Linux aqui.
+- **O caso do certificado com `OPENSSL_CONF` inexistente depende do `openssl.cnf` padrão da instalação existir.** O helper tira a variável quebrada; o `openssl req` então lê o arquivo padrão do próprio `openssl`. Num OpenSSL 3 sem esse arquivo (a compilação do revisor antes de ele corrigir o prefixo) a geração falha com "Command failed". Isso é defeito da instalação do `openssl` e não do helper, que não pode fabricar uma configuração padrão sem mudar o que o caso prova (que o certificado sai quando a variável quebrada é descartada). Fica registrado como pressuposto: qualquer instalação normal do OpenSSL, do LibreSSL e do Git for Windows traz o arquivo.
+
+### 10.3 Contagem final depois da correção 5
+
+| Situação | Linhas |
+| --- | --- |
+| Fechadas | 72 de 73 (as 71 da seção 9.3 mais V-API-3) |
+| Tolerada por decisão de dependência (CP-03, fora da T42) | 1: V-DEP-3, com prazo 2027-01-05 |
+| **Abertas** | **0** |
+
+Total: 72 + 1 = 73, porque V-API-3 é linha nova. Onde a seção 9.3 diz 72 linhas, vale esta.

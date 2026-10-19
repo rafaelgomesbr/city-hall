@@ -451,3 +451,12 @@ sem espera nenhuma também fica verde, então a troca é preventiva; a prova é 
 - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E16/correcao-1/saidas/` (antes: o portão lista 15 achados em 5 arquivos e 12 casos de jest reprovam; depois: todos passam).
 - **Etapa e data:** V2-F00-E16, correção 1, 2026-10-13.
 
+
+### API: certificado de teste do banco, o caso de OPENSSL_CONF válido (correção 5 da V2-F00-E03, 2026-10-19)
+
+- **Teste:** `apps/api/test/openssl-do-teste.test.ts`, caso "respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado".
+- **O que afirmava:** que a configuração válida em `OPENSSL_CONF` é lida de verdade. A prova era o campo `ca` do certificado: `false` com a variável (a configuração pede `CA:FALSE`) e `true` sem ela.
+- **Decisão que o torna velho:** nenhuma decisão superada: é ambiente (R3). O `ca === true` sem a variável depende do `openssl.cnf` padrão da máquina mandar `x509_extensions = v3_ca`, e não da família do `openssl`. O do macOS (LibreSSL 3.3.6) não manda, então `ca` é falso e a asserção reprovava num Mac desde 2026-10-14. Medido nas duas famílias: com um `openssl.cnf` sem extensões, OpenSSL 3.0.7 e LibreSSL dão `ca=false`; com `v3_ca`, os dois dão `ca=true`. O produto não chama `openssl`; só este helper de teste.
+- **O que passa a afirmar:** a configuração pede também um uso estendido de chave (`extendedKeyUsage = 1.3.6.1.5.5.7.3.4`); com a variável válida o certificado sai com `keyUsage` igual a esse OID (e `ca` falso, o que a configuração pede), sem ela sai sem uso estendido. Vale igual no OpenSSL 3 e no LibreSSL. A asserção do `ca` sem configuração saiu, porque provaria o arquivo da máquina e não o que o caso promete; a intenção do caso (a configuração válida é respeitada e a quebrada é descartada) ficou inteira e a prova ficou mais forte, não mais fraca. Nada é pulado e o helper não mudou.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E03/correcao-5/saidas/`: o teste de HEAD reprova no LibreSSL e passa no OpenSSL 3.0.7 (`04`), o novo passa nos dois (`02`), quatro mutantes do gerador reprovam nos dois (`05`), e a medição do `ca` por `openssl.cnf` (`10`).
+- **Etapa e data:** V2-F00-E03, correção 5, 2026-10-19.

@@ -1,0 +1,30 @@
+Portão de skip: 658 arquivos varridos; 11 skips por ambiente em 4 arquivos; 0 incondicionais com marca T42.
+  por ambiente: 1 em apps/api/test/renovacao-contra-encerramento.test.ts
+  por ambiente: 3 em db/test/busca.test.ts
+  por ambiente: 4 em scripts/entitlements-do-ios.test.mjs
+  por ambiente: 3 em scripts/som-de-despacho.test.mjs
+✔ a árvore atual passa no portão: nenhum skip sem marca, vencido ou .only (0.972333ms)
+✔ a vigência da escrita voltou a rodar: o skip da E04 saiu e nenhum skip incondicional resta (0.073708ms)
+✔ a contagem por ambiente lista os runIf de busca e os skip de entitlements e de som (0.049542ms)
+✔ it.skip sem marca reprova (0.206083ms)
+✔ skip, todo, xit, xdescribe e t.skip incondicionais sem marca reprovam (0.160708ms)
+✔ marca sem dono, sem issue ou sem ate reprova (0.147666ms)
+✔ marca com ate no passado reprova, e ate igual a hoje ainda vale (0.133958ms)
+✔ marca com prazo além do máximo, ou com data que não existe, reprova (0.0885ms)
+✔ it.only reprova mesmo com marca válida, em it, test, describe e fit (0.071417ms)
+✔ a marca precisa estar na linha imediatamente acima (0.086416ms)
+✔ skip por opção sem condição e sem motivo textual reprova (0.058625ms)
+✔ describe.skip com marca dentro do prazo passa e aparece como marcado (0.065042ms)
+✔ skip por ambiente (runIf, skipIf e skip com condição e motivo) passa e é contado (0.048292ms)
+✔ comentário, bloco de comentário e texto entre aspas não disparam falso positivo (0.044792ms)
+✔ o fim de linha CRLF não atrapalha a leitura da marca (0.049917ms)
+✔ conferirMarca aceita o limite exato do prazo e rejeita um dia a mais que a folga de fuso (0.070708ms)
+✔ a varredura em disco acha o skip sem marca de um arquivo sintético e ignora node_modules (1.884042ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 121.179667

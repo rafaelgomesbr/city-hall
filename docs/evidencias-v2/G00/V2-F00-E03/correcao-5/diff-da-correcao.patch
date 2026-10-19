@@ -1,0 +1,47 @@
+diff --git a/dc360/apps/api/test/openssl-do-teste.test.ts b/dc360/apps/api/test/openssl-do-teste.test.ts
+index df7bf85..034344d 100644
+--- a/dc360/apps/api/test/openssl-do-teste.test.ts
++++ b/dc360/apps/api/test/openssl-do-teste.test.ts
+@@ -100,22 +100,36 @@ describe("O openssl de verdade, com cada ambiente", () => {
+ 
+   it("respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado", () => {
+     /*
+-      A configuração mínima pede `CA:FALSE`. Sem ela, o `openssl req -x509`
+-      do OpenSSL 3 marca o autoassinado como CA. Então o campo `ca` do
+-      certificado é a prova de qual configuração foi lida.
++      A configuração pede duas coisas: `CA:FALSE` e um uso estendido de chave
++      (e-mail, OID 1.3.6.1.5.5.7.3.4) que nenhum `openssl req -x509` põe por
++      conta própria. O uso estendido é a prova de qual configuração foi lida, e
++      vale igual no OpenSSL 3 e no LibreSSL: com a variável ele aparece, sem ela
++      não.
++
++      O campo `ca` SEM a variável fica de fora de propósito. Ele não depende da
++      versão nem da família do `openssl`, e sim do `openssl.cnf` padrão da
++      máquina: quando esse arquivo manda `x509_extensions = v3_ca` (o das
++      distribuições do OpenSSL), o autoassinado sai como CA; o do macOS não manda
++      e sai sem a extensão; o LibreSSL com `v3_ca` também marca CA. Afirmar o
++      `ca` sem configuração provaria o arquivo da máquina, não o que este caso
++      promete. Com a variável válida, `ca` falso é a configuração do teste
++      chegando ao certificado.
+     */
++    const USO_ESTENDIDO_DE_EMAIL = "1.3.6.1.5.5.7.3.4";
+     const pasta = pastaNova();
+     const configuracao = join(pasta, "openssl.cnf");
+     writeFileSync(configuracao, [
+       "[req]", "distinguished_name = dn", "x509_extensions = ext",
+-      "[dn]", "[ext]", "basicConstraints = critical,CA:FALSE", "",
++      "[dn]", "[ext]", "basicConstraints = critical,CA:FALSE", `extendedKeyUsage = ${USO_ESTENDIDO_DE_EMAIL}`, "",
+     ].join("\n"));
+ 
+     const comAVariavel = gerarCertificadoAutoassinado(pasta, { ...ambienteSemAVariavel(), OPENSSL_CONF: configuracao });
+     expect(comAVariavel.motivo).toBeUndefined();
+-    expect(new X509Certificate(comAVariavel.certificado).ca).toBe(false);
++    const lidoComAVariavel = new X509Certificate(comAVariavel.certificado);
++    expect(lidoComAVariavel.keyUsage).toEqual([USO_ESTENDIDO_DE_EMAIL]);
++    expect(lidoComAVariavel.ca).toBe(false);
+ 
+     const semAVariavel = gerarCertificadoAutoassinado(pastaNova(), ambienteSemAVariavel());
+-    expect(new X509Certificate(semAVariavel.certificado).ca).toBe(true);
++    expect(new X509Certificate(semAVariavel.certificado).keyUsage).toBeUndefined();
+   });
+ });

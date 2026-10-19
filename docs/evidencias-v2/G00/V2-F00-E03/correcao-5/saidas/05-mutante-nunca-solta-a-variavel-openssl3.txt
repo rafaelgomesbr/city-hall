@@ -1,0 +1,82 @@
+familia=openssl3 openssl=OpenSSL 3.0.7 1 Nov 2022 (Library: OpenSSL 3.0.7 1 Nov 2022)
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/zz-nunca-solta-a-variavel.test.ts (10 tests | 3 failed) 498ms
+   × Qual OPENSSL_CONF chega no openssl do teste > tira a variável que aponta para arquivo inexistente, e diz por quê 9ms
+     → expected { PATH: 'x', …(1) } to deeply equal { PATH: 'x' }
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > mantém a variável que aponta para arquivo que existe, sem motivo 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > sem a variável, o ambiente passa igual 0ms
+   × Qual OPENSSL_CONF chega no openssl do teste > acha a variável em qualquer caixa, porque no Windows o nome não distingue 1ms
+     → expected { PATH: 'x', …(1) } to deeply equal { PATH: 'x' }
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > não mexe no ambiente de quem chamou 0ms
+   ✓ Onde o teste acha o openssl > usa o do PATH quando ele está lá 0ms
+   ✓ Onde o teste acha o openssl > no Windows sem openssl no PATH, acha o que vem ao lado do git (o caso do PowerShell) 0ms
+   ✓ Onde o teste acha o openssl > sem openssl em lugar nenhum devolve null, e o gerador reprova dizendo o que instalar 1ms
+   × O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente 29ms
+     → Command failed: openssl req -x509 -newkey rsa:2048 -nodes -keyout /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-openssl-RbvIlS/impostor.key -out /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-openssl-RbvIlS/impostor.crt -days 3650 -subj /CN=localhost -addext subjectAltName=DNS:localhost,IP:127.0.0.1
+   ✓ O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado  454ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/zz-nunca-solta-a-variavel.test.ts > Qual OPENSSL_CONF chega no openssl do teste > tira a variável que aponta para arquivo inexistente, e diz por quê
+AssertionError: expected { PATH: 'x', …(1) } to deeply equal { PATH: 'x' }
+
+- Expected
++ Received
+
+  {
++   "OPENSSL_CONF": "C:\\nao\\existe\\openssl.cnf",
+    "PATH": "x",
+  }
+
+ ❯ test/zz-nunca-solta-a-variavel.test.ts:37:24
+     35|   it("tira a variável que aponta para arquivo inexistente, e diz por q…
+     36|     const r = ambienteDoOpenssl({ PATH: "x", OPENSSL_CONF: "C:\\nao\\e…
+     37|     expect(r.ambiente).toEqual({ PATH: "x" });
+       |                        ^
+     38|     expect(r.motivo).toContain("C:\\nao\\existe\\openssl.cnf");
+     39|     expect(r.motivo).toContain("não existe");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/zz-nunca-solta-a-variavel.test.ts > Qual OPENSSL_CONF chega no openssl do teste > acha a variável em qualquer caixa, porque no Windows o nome não distingue
+AssertionError: expected { PATH: 'x', …(1) } to deeply equal { PATH: 'x' }
+
+- Expected
++ Received
+
+  {
+    "PATH": "x",
++   "openssl_conf": "C:\\sumiu.cnf",
+  }
+
+ ❯ test/zz-nunca-solta-a-variavel.test.ts:56:24
+     54|   it("acha a variável em qualquer caixa, porque no Windows o nome não …
+     55|     const r = ambienteDoOpenssl({ PATH: "x", openssl_conf: "C:\\sumiu.…
+     56|     expect(r.ambiente).toEqual({ PATH: "x" });
+       |                        ^
+     57|     expect(r.motivo).toBeDefined();
+     58|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/zz-nunca-solta-a-variavel.test.ts > O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente
+Error: Command failed: openssl req -x509 -newkey rsa:2048 -nodes -keyout /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-openssl-RbvIlS/impostor.key -out /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-openssl-RbvIlS/impostor.crt -days 3650 -subj /CN=localhost -addext subjectAltName=DNS:localhost,IP:127.0.0.1
+ ❯ gerarCertificadoAutoassinado test/zz-nunca-solta-a-variavel-helper.ts:94:3
+     92|     throw new Error("o openssl não está no PATH (nem ao lado do git, n…
+     93|   }
+     94|   execFileSync(openssl, [
+       |   ^
+     95|     "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+     96|     "-keyout", chave, "-out", certificado,
+ ❯ test/zz-nunca-solta-a-variavel.test.ts:93:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 7 passed (10)
+   Start at  01:13:40
+   Duration  880ms (transform 69ms, setup 63ms, collect 32ms, tests 498ms, environment 0ms, prepare 60ms)
+

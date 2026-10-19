@@ -1,0 +1,12 @@
+familia=openssl3 openssl=OpenSSL 3.0.7 1 Nov 2022 (Library: OpenSSL 3.0.7 1 Nov 2022)
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/zz-antes.test.ts (10 tests) 1000ms
+   ✓ O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado  795ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  01:13:31
+   Duration  1.39s (transform 51ms, setup 36ms, collect 33ms, tests 1000ms, environment 0ms, prepare 44ms)
+
