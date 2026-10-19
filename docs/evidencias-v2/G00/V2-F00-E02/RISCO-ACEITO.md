@@ -9,3 +9,5 @@
 - Validade: até a rodada 4 da F00.
 - Quem aceitou: (vazio; só Rafael pode aceitar critério técnico)
 - O BLOCKED original continua em VEREDITO.md, rodada 3.
+- Superado na rodada 4 (2026-10-19, SHA bb0f654): o `INDEX.md` desta pasta bate byte a byte com o conteúdo commitado (correção 1 da E21, conferida por `conferir-indices-de-evidencia` e pelos validadores). O BLOCKED foi removido por revalidação, não por aceite; este rascunho nunca foi aceito e não vale mais.
+- Status: encerrado (superado na rodada 4, sem aceite).

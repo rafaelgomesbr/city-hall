@@ -1,15 +1,95 @@
 # VEREDITO de V2-F00-E15
 
-Situação atual: BLOQUEADA
+Situação atual: REPROVADA
 Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 ## Rodadas
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 4 | 2026-10-19 | bb0f654 | ausente (não lido) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 3 | 2026-10-15 | 52952a1 | 7585801 | BLOCKED | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 4 (2026-10-19, SHA bb0f654)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, entre 2026-10-18 e 2026-10-19. Candidato `bb0f654` (correção 3 da F00); HEAD durante a validação `0290af5`, que só difere em `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida). Base do lote: `afde25c`; o que mudou desde a rodada 3: `git diff 52952a1..bb0f654`. Herança: NENHUMA dimensão herdada da rodada 3 (`impacto.mjs --herdavel`, com o nome da dimensão tirado do arquivo, deu "NÃO herdável" em todos os relatórios PASS: o diff toca `dc360/**` e `.github/workflows/verificar.yml`, que estão no mapa de todas as dimensões); todas rodaram inteiras. Validadores: as dimensões obrigatórias de `tags.mjs` pelo texto da etapa, mais as acrescentadas em rodadas anteriores (mantidas). Cada validador foi um agente `general-purpose` com o papel da dimensão e o prompt de `prompt-do-validador.md` preenchido (mais as instruções comuns da rodada), em sequência estrita, um por vez, sobre a árvore principal, cobrindo uma ou mais etapas por lote e gravando um relatório por etapa. Modelo: Opus em todas as dimensões e arbitragens (gatilho 5 da seção 12 de `28`, quarta rodada; e risco alto com AUTH, AUTHZ, TENANT ou RLS), exceto privacidade-lgpd, em Claude Sonnet 5.5 (claude-sonnet-5-5), padrão da política para LGPD não estrutural. Os validadores receberam o bloco da etapa, só os FATOS dos RESUMOs (o RESUMO inicial e a seção Fatos de cada correção, sem a Justificativa), a lista da evidência, o motivo do veredito da rodada 3, as decisões da seção 9 do STATUS e o estado do CI.
+
+Veredito da rodada: **FAIL**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-opus-5-5 | PASS | media | E1, E2 | E1, E2 |  | validacao/bb0f654/qa.md |
+| Segurança | seguranca-aplicacao (general-purpose) | claude-opus-5-5 | PASS | media | E1, E2 | E1, E2 |  | validacao/bb0f654/seguranca-aplicacao.md |
+| Red-team | red-team (general-purpose) | claude-opus-5-5 | PASS | media | E1, E2 | E1, E2 |  | validacao/bb0f654/red-team.md |
+| Testes | testes (general-purpose) | claude-opus-5-5 | FAIL | alta | E1 | E1 |  | validacao/bb0f654/testes.md |
+| LGPD | privacidade-lgpd (general-purpose) | claude-sonnet-5-5 | PASS | media | E1, E2, E3a | E1, E2, E3a |  | validacao/bb0f654/privacidade-lgpd.md |
+| Arbitragem | arbitragem (general-purpose) | claude-opus-5-5 | FAIL | alta | E1, E2 | E1 |  | validacao/bb0f654/arbitragem.md |
+
+### Motivo do veredito
+
+- Testes FAIL contra QA, Segurança, Red-team e LGPD PASS: conflito arbitrado em Opus, FAIL com confiança alta. Critério decisivo: o bloco manda que o diálogo "usa o botão destrutivo" e que "os 7 casos passam", e a seção 8 de `28` exige teste que morda em risco alto. O caso "o botão de confirmar é o de perigo, porque o ato apaga" (`apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx:185`) não confere o tipo do botão: trocando `destrutiva: false` em `perfil.tsx`, o jest inteiro deu 1927 de 1927 e o tsc 0 (reproduzido pelo validador e pelo árbitro, desfeito com `git restore`). Hoje o botão é o de perigo, mas nada prova isso (nenhuma captura, snapshot ou portão). Os três PASS confiaram no nome do caso.
+- Conserto mínimo: o caso conferir o tipo `perigo` (ou `destrutiva`) do botão e morder na mutação; E8 continua sem teste (corrigir junto).
+
+### CI (job a job)
+
+Run do SHA NÃO lido nesta sessão: o `gh` em `~/.local/bin/gh` está sem login gravado, e a leitura do token pela credencial do git (o caminho da H25) foi negada pela permissão da sessão; o gatekeeper não contornou. O STATUS registra, pela sessão do implementador, "CI completo do registro `ecaad76` (run 39143791434): 9 de 9 verdes"; isso NÃO foi verificado aqui. A dimensão Infra e CI, onde é obrigatória, ficou BLOCKED por isso; nas demais dimensões o run não é a evidência mínima e as provas foram locais (seção 8 de `28`).
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | não lido | QA, Testes | run 39143791434 citado pelo implementador, não verificado |
+| A API sobe contra Postgres real | não lido | QA, Banco | run 39143791434 citado pelo implementador, não verificado |
+| Fluxo ponta a ponta no navegador | não lido | QA, UX | run 39143791434 citado pelo implementador, não verificado |
+| Linha de base (baseline.mjs) em Linux | não lido | Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+| Restore do banco, Postgres 17 (CA-08) | não lido | Banco, Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+| Dependências com vulnerabilidade conhecida (auditar) | não lido | Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+| Aplicativo de campo | não lido | QA, Testes | run 39143791434 citado pelo implementador, não verificado |
+| Pacote da demonstração | não lido | QA | run 39143791434 citado pelo implementador, não verificado |
+| Ferramentas do roadmap e estado gerado | não lido | Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-E15 --sha bb0f654`: sem falha, 0 aviso (antes da rodada; INDEX.md, segredos, travessão, capturas e sonda). `node dc360/scripts/conferir-indices-de-evidencia.mjs`: 61 INDEX.md, 2017 arquivos conferidos byte a byte, OK.
+- Regressão base do gatekeeper no SHA: `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0 (25 afirmações). Suítes por impacto rodadas pelos validadores (ver cada relatório). Divergências conhecidas da máquina, não do produto: `openssl-do-teste` com o LibreSSL do macOS e os 4 testes de iOS que no Linux ficam pulados (na E03 a primeira virou critério, ver o VEREDITO dela).
+- Formato: os 82 relatórios da rodada (todas as etapas) conferidos por script: cabeçalho com os 14 campos, as nove seções na ordem e nenhuma vazia, sem travessão e sem literal de segredo. Um desvio corrigido pelo próprio autor: o campo `veredito` da arbitragem da E11 tinha texto além de PASS; o gatekeeper pediu ao árbitro que deixasse só `PASS` (a explicação ficou em Achados).
+- Árvore: conferida antes e depois de cada um dos 23 validadores e das 6 arbitragens (`git status --porcelain` e `git diff --stat`); nenhum deixou mudança rastreada além dos próprios relatórios; as mutações para provar mordida foram desfeitas com `git restore`. Desvios fora do git: `dist` e caches ignorados foram reconstruídos; o disco do Mac chegou a encher durante o Infra e CI (ENOSPC num `teste-web`, repetido depois com 665 de 665) e o gatekeeper apagou clones e clusters descartáveis do próprio scratchpad, mantendo as saídas citadas e os binários do PostgreSQL 17.6 usados pelos validadores seguintes.
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Fazer os dois fluxos num aparelho (diálogo de saída com vistoria começada; GPS abaixo de 0,5 m concluindo) e aprovar as frases do diálogo e "Precisão de 1 metro" | Rafael | aparelho físico, E4 da etapa e texto de produto |
+| Prazo de retenção da fila e dos arquivos no aparelho; se o agente seguinte pode ver nome e protocolo da coleta de outro (CP-24, F14-E02) | DPO | decisão jurídica |
+
+Todas as pendências humanas da fase estão também em `docs/roadmap-v2/pendencias-humanas.md`.
+
+### Achados para corrigir antes de crescer (não decidem esta etapa)
+
+- Bloqueio de piloto, fora do critério da E15 (seção 7, item 3, sem risco aceito), reproduzido por Red-team, Segurança e LGPD: `acolherNoAparelho` (`apps/campo/src/dados/banco-local.ts:255`) falha aberto: a limpeza que falha no meio devolve `apagou: true`, carimba o novo dono e deixa o rascunho do agente anterior (texto do morador, coordenada, nome) para o seguinte. O bloco da V2-F14-E02 ainda não tem critério de falha fechada nem injeção de falha. Precisa de dono e de bloco antes do piloto: decisão de Rafael.
+- Anotado (Segurança e Red-team): `gpsPrecisaoMetrosSchema` (`packages/shared/src/schemas.ts:369`) aceita `Infinity` e o laudo imprime "Infinity metros" (anterior à etapa); o piso de precisão mora só no app.
+- Corrige antes de crescer (Testes e arbitragem): E9 sem teste; E2 anotado para a F14-E02.
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| 5 (quarta rodada na mesma fase) e gate crítico G00 | validadores e consolidação em Opus, exceto LGPD | feito |
+| 6 (vereditos opostos entre validadores da etapa) | arbitragem em Opus com os relatórios | ver `validacao/bb0f654/arbitragem.md` e o motivo acima |
+| seção 7, item 3, fora do critério | Rafael | `acolherNoAparelho` falha aberto: precisa de dono e bloco antes do piloto |
+| run do CI não lido | Rafael | `gh auth login` (ou autorizar a leitura pela credencial do git) para revalidar Infra e CI |
+
+### Métricas da rodada
+
+Ver os relatórios de cada dimensão (tentativas de reprovar, mutações que morderam, o que não foi verificado). Falsos verdes registrados nesta rodada (seção 11 de `28`): Segurança da E05 (refutada pela arbitragem); QA, Segurança e Red-team da E15 (confiaram no nome do caso); as rodadas 3 de E09 e E10 (os defeitos já existiam em `52952a1`).
 
 ## Rodada 3 (2026-10-15, SHA 52952a1)
 

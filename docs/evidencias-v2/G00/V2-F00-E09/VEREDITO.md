@@ -1,15 +1,96 @@
 # VEREDITO de V2-F00-E09
 
-Situação atual: VALIDADA COM PENDÊNCIA HUMANA
+Situação atual: REPROVADA
 Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 ## Rodadas
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 4 | 2026-10-19 | bb0f654 | ausente (não lido) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 4 (2026-10-19, SHA bb0f654)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, entre 2026-10-18 e 2026-10-19. Candidato `bb0f654` (correção 3 da F00); HEAD durante a validação `0290af5`, que só difere em `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida). Base do lote: `afde25c`; o que mudou desde a rodada 3: `git diff 52952a1..bb0f654`. Herança: NENHUMA dimensão herdada da rodada 3 (`impacto.mjs --herdavel`, com o nome da dimensão tirado do arquivo, deu "NÃO herdável" em todos os relatórios PASS: o diff toca `dc360/**` e `.github/workflows/verificar.yml`, que estão no mapa de todas as dimensões); todas rodaram inteiras. Validadores: as dimensões obrigatórias de `tags.mjs` pelo texto da etapa, mais as acrescentadas em rodadas anteriores (mantidas). Cada validador foi um agente `general-purpose` com o papel da dimensão e o prompt de `prompt-do-validador.md` preenchido (mais as instruções comuns da rodada), em sequência estrita, um por vez, sobre a árvore principal, cobrindo uma ou mais etapas por lote e gravando um relatório por etapa. Modelo: Opus em todas as dimensões e arbitragens (gatilho 5 da seção 12 de `28`, quarta rodada; e risco alto com AUTH, AUTHZ, TENANT ou RLS), exceto privacidade-lgpd, em Claude Sonnet 5.5 (claude-sonnet-5-5), padrão da política para LGPD não estrutural. Os validadores receberam o bloco da etapa, só os FATOS dos RESUMOs (o RESUMO inicial e a seção Fatos de cada correção, sem a Justificativa), a lista da evidência, o motivo do veredito da rodada 3, as decisões da seção 9 do STATUS e o estado do CI.
+
+Veredito da rodada: **FAIL**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-opus-5-5 | FAIL | alta | E1, E2 | E1, E2 |  | validacao/bb0f654/qa.md |
+| Red-team | red-team (general-purpose) | claude-opus-5-5 | FAIL | alta | E1, E2 | E1, E2 |  | validacao/bb0f654/red-team.md |
+| UX | ux (general-purpose) | claude-opus-5-5 | PASS | media | E2, E3a | E2, E3a |  | validacao/bb0f654/ux.md |
+| Acessibilidade | acessibilidade (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 |  | validacao/bb0f654/acessibilidade.md |
+| LGPD | privacidade-lgpd (general-purpose) | claude-sonnet-5-5 | PASS | alta | E1, E2, E3a | E1, E2, E3a |  | validacao/bb0f654/privacidade-lgpd.md |
+
+### Motivo do veredito
+
+- Red-team e QA FAIL (Opus, confiança alta), concordantes em dois defeitos: (1) as rotas recusam com 422 quem administra agir sobre a própria conta, mas aceitam o mesmo id em letras maiúsculas (`apps/api/src/rotas/administracao.ts:437` e `:560` comparam o id como texto): a administradora recebe 200 em redefinir-senha e em encerrar-sessoes sobre si mesma e redefine a própria senha sem informar a atual, o que deixa quem senta numa sessão dela aberta tomar a conta; (2) a redefinição por quem administra perde para uma troca de senha em voo da sessão que ela derruba (Red-team 5 de 5, QA 12 de 12): fica valendo a senha de quem foi derrubado. Item 2 da seção 7 de `28`: não admite risco aceito.
+- UX, Acessibilidade e LGPD PASS não contradizem: não exercitam autorização nem disputa.
+- Nota de independência: o prompt do QA desta etapa foi escrito depois do relatório do Red-team e mandou atacar "variações do identificador" e "a troca em voo"; o QA reproduziu com execução própria, mas a independência dessa reprodução é parcial.
+- Falso verde: os dois defeitos já existiam em `52952a1` (nem `administracao.ts` nem `trocarSenha` mudaram desde a rodada 3), que deu PASS a esta etapa.
+- Conserto mínimo apontado: comparar o id normalizado (ou como uuid) nas recusas sobre a própria conta; e o mesmo conserto de `trocar_senha` apontado na E07.
+
+### CI (job a job)
+
+Run do SHA NÃO lido nesta sessão: o `gh` em `~/.local/bin/gh` está sem login gravado, e a leitura do token pela credencial do git (o caminho da H25) foi negada pela permissão da sessão; o gatekeeper não contornou. O STATUS registra, pela sessão do implementador, "CI completo do registro `ecaad76` (run 39143791434): 9 de 9 verdes"; isso NÃO foi verificado aqui. A dimensão Infra e CI, onde é obrigatória, ficou BLOCKED por isso; nas demais dimensões o run não é a evidência mínima e as provas foram locais (seção 8 de `28`).
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | não lido | QA, Testes | run 39143791434 citado pelo implementador, não verificado |
+| A API sobe contra Postgres real | não lido | QA, Banco | run 39143791434 citado pelo implementador, não verificado |
+| Fluxo ponta a ponta no navegador | não lido | QA, UX | run 39143791434 citado pelo implementador, não verificado |
+| Linha de base (baseline.mjs) em Linux | não lido | Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+| Restore do banco, Postgres 17 (CA-08) | não lido | Banco, Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+| Dependências com vulnerabilidade conhecida (auditar) | não lido | Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+| Aplicativo de campo | não lido | QA, Testes | run 39143791434 citado pelo implementador, não verificado |
+| Pacote da demonstração | não lido | QA | run 39143791434 citado pelo implementador, não verificado |
+| Ferramentas do roadmap e estado gerado | não lido | Infra e CI | run 39143791434 citado pelo implementador, não verificado |
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-E09 --sha bb0f654`: sem falha, 0 aviso (antes da rodada; INDEX.md, segredos, travessão, capturas e sonda). `node dc360/scripts/conferir-indices-de-evidencia.mjs`: 61 INDEX.md, 2017 arquivos conferidos byte a byte, OK.
+- Regressão base do gatekeeper no SHA: `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0 (25 afirmações). Suítes por impacto rodadas pelos validadores (ver cada relatório). Divergências conhecidas da máquina, não do produto: `openssl-do-teste` com o LibreSSL do macOS e os 4 testes de iOS que no Linux ficam pulados (na E03 a primeira virou critério, ver o VEREDITO dela).
+- Formato: os 82 relatórios da rodada (todas as etapas) conferidos por script: cabeçalho com os 14 campos, as nove seções na ordem e nenhuma vazia, sem travessão e sem literal de segredo. Um desvio corrigido pelo próprio autor: o campo `veredito` da arbitragem da E11 tinha texto além de PASS; o gatekeeper pediu ao árbitro que deixasse só `PASS` (a explicação ficou em Achados).
+- Árvore: conferida antes e depois de cada um dos 23 validadores e das 6 arbitragens (`git status --porcelain` e `git diff --stat`); nenhum deixou mudança rastreada além dos próprios relatórios; as mutações para provar mordida foram desfeitas com `git restore`. Desvios fora do git: `dist` e caches ignorados foram reconstruídos; o disco do Mac chegou a encher durante o Infra e CI (ENOSPC num `teste-web`, repetido depois com 665 de 665) e o gatekeeper apagou clones e clusters descartáveis do próprio scratchpad, mantendo as saídas citadas e os binários do PostgreSQL 17.6 usados pelos validadores seguintes.
+- Capturas: as capturas que o validador de UX (ou a arbitragem) cita para a conferência do Rafael foram copiadas pelo gatekeeper do scratchpad para `validacao/bb0f654/capturas/`, porque o scratchpad é efêmero; os nomes são os citados em "Motivo do humano" dos relatórios.
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Fazer o fluxo no painel e aprovar a frase da senha única e as confirmações (capturas em `validacao/bb0f654/capturas/`) | Rafael | texto de produto, jornada nova, mudança grande de UX e erro crítico |
+| Prazo de retenção e base legal de guardar IP e user-agent de sessão (CP-10) | DPO e controlador | decisão jurídica |
+| Leitor de tela nas confirmações | Rafael ou CP-32 | limite da seção 4 de `28` |
+
+Todas as pendências humanas da fase estão também em `docs/roadmap-v2/pendencias-humanas.md`.
+
+### Achados para corrigir antes de crescer (não decidem esta etapa)
+
+- Corrige antes de crescer (UX): com o erro 500 real da API a tela pede "Informe o código abaixo ao suporte." e não mostra código (o painel não lê `requisicao`; defeito de todo o painel, anterior à etapa).
+- Anotados (UX e Acessibilidade): a janela da senha temporária a 320x568 abre rolada e esconde "Anote agora"; o Toast cobre essa janela a 320 px e, fechado, leva o foco ao BODY; e-mails quebram no meio da palavra na lista de usuários.
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| 5 (quarta rodada na mesma fase) e gate crítico G00 | validadores e consolidação em Opus, exceto LGPD | feito |
+| run do CI não lido | Rafael | `gh auth login` (ou autorizar a leitura pela credencial do git) para revalidar Infra e CI |
+
+### Métricas da rodada
+
+Ver os relatórios de cada dimensão (tentativas de reprovar, mutações que morderam, o que não foi verificado). Falsos verdes registrados nesta rodada (seção 11 de `28`): Segurança da E05 (refutada pela arbitragem); QA, Segurança e Red-team da E15 (confiaram no nome do caso); as rodadas 3 de E09 e E10 (os defeitos já existiam em `52952a1`).
 
 ## Rodada 3 (2026-10-15, SHA 52952a1)
 
