@@ -1,10 +1,16 @@
 # Restore do banco: o roteiro mínimo, provado e repetido pelo CI
 
-- **Versão:** 2, de 2026-10-15 (V2-F00-E25, critério CA-08). A versão 1, de
+- **Versão:** 3, de 2026-10-19 (V2-F00-E25, critério CA-08). A versão 1, de
   2026-10-07, falhava para quem a seguisse à risca (senha do `postgres` usada
-  para os outros papéis, sem compilar a API, caminhos e id faltando); esta
-  versão foi seguida do zero, num clone limpo, e a prova está na seção "Prova a
-  frio no macOS".
+  para os outros papéis, sem compilar a API, caminhos e id faltando). A versão
+  2, de 2026-10-15, ainda quebrava com caminho que tenha espaço (o
+  `/c/Program Files/...` do próprio exemplo do Windows) e entregava a senha ao
+  SQL por um comando que, pela leitura do funcionamento do `psql`, ele roda pelo
+  `cmd.exe` no Windows (isso é análise, **não foi executado no Windows**). A
+  versão 3 não depende disso e, depois da leitura de um revisor independente, foi
+  revisada no mesmo dia: a pasta da rodada nasce de `mktemp -d`, a senha vai por
+  `\getenv` e o texto diz o que é análise. Esta versão foi seguida do zero, num
+  clone limpo, e a prova está na seção "Prova a frio no macOS".
 - **Substitui:** a Parte 6 de `COLOCAR-DE-PE.md`, que passa a ser o registro
   histórico do restore de 2026-09-09 (15 migrações, Mac, origem Supabase).
 - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E25/` (saída de cada comando
@@ -71,8 +77,9 @@ Não provado (validação humana pendente):
   projeto (que tem Node e npm). Uma pessoa que nunca viu o sistema continua
   sendo a validação que fecha o CA-08 por inteiro.
 - **A prova local em outra versão do Postgres.** A prova de 2026-10-07 rodou
-  no 18.3; a de 2026-10-15 rodou no 17.6. A produção é 17.6.
-- **Linux seguindo o documento.** O CI prova o script, não o texto. As
+  no 18.3; as de 2026-10-15 e de 2026-10-19 rodaram no 17.6. A produção é 17.6.
+- **Windows (texto da versão 3) e Linux seguindo o documento.** O CI prova o
+  script, não o texto, e a prova do Windows é de 2026-10-07, do texto antigo. As
   diferenças conhecidas de Linux estão na seção "Fora do Windows".
 - **Origem Supabase.** O dump de produção tem os papéis do provedor (`anon`,
   `authenticated`, `service_role`, `supabase_admin`); o remédio está na Parte 6
@@ -93,26 +100,33 @@ foi apagado junto com os dois clusters.
 **Ponto de partida.** Um clone limpo do repositório (`git clone`), com o Node
 20 ou mais novo e o npm. **Todos os comandos abaixo rodam no mesmo terminal, em
 sequência, a partir da pasta `dc360/` do clone** (o passo 0 diz entrar nela),
-porque as variáveis de um passo são usadas nos seguintes. Os dois únicos
-valores que você troca são `PGBIN` (a pasta que tem o `psql` e o `pg_dump`) e
-`TMP` (uma pasta temporária da rodada, fora do repositório, que ainda não pode
-existir).
+porque as variáveis de um passo são usadas nos seguintes. O único
+valor que você troca é `PGBIN` (a pasta que tem o `psql` e o `pg_dump`). A pasta
+temporária da rodada, `PASTA_RESTORE`, quem cria é o próprio roteiro (adiante).
 
 **Qual shell.** `bash` ou `zsh`; os blocos foram executados nos dois (ver "Prova
 a frio"). No macOS o `zsh` padrão do Terminal serve, **desde que você cole os
 blocos como estão: não há comentário (`#`) em nenhum bloco**, porque o `zsh`
 interativo, sem a opção `interactivecomments`, trata `#` como um comando e
 quebra a linha. Se você acrescentar comentário aos seus comandos, ponha em linha
-própria e rode `setopt interactivecomments` antes. No Windows, use o Git Bash.
+própria e rode `setopt interactivecomments` antes. No Windows, use o Git Bash
+(que é um `bash`; o texto abaixo foi escrito para a gramática do `bash`).
+
+**Aspas em todo caminho.** Caminho com espaço (o `Program Files` do Windows, ou
+uma pasta sua com espaço no nome) quebra um comando sem aspas: o shell parte o
+caminho em dois e responde `command not found` (código 127). Por isso toda
+expansão de caminho deste documento, e o valor que você troca, vai **entre
+aspas duplas**. Ao trocar `PGBIN`, mantenha as aspas.
 
 **Ferramentas do PostgreSQL 17.** Precisa de `initdb`, `pg_ctl`, `psql`,
 `createdb`, `pg_dump` e `pg_restore`. O `pg_dump` precisa ser da versão maior
 do servidor de origem ou mais nova. Onde achar os binários, por sistema, está
 na seção "Fora do Windows". No Windows (Git Bash) eles vêm do instalador do
-PostgreSQL, por exemplo `/c/Program Files/PostgreSQL/17/bin`.
+PostgreSQL, por exemplo `"/c/Program Files/PostgreSQL/17/bin"` (com aspas, por
+causa do espaço).
 
 ```bash
-export PGBIN=/caminho/da/pasta/bin/do/postgresql-17
+export PGBIN="/caminho/da/pasta/bin/do/postgresql-17"
 export PATH="$PGBIN:$PATH"
 initdb --version; pg_ctl --version; psql --version; createdb --version; pg_dump --version; pg_restore --version
 ```
@@ -135,32 +149,41 @@ O `npm ci` pode terminar com um resumo de `npm audit`. O portão de
 vulnerabilidade do projeto é `npm run auditar` (fora deste roteiro); o resumo
 do `npm ci` não impede o restore.
 
-**Pasta temporária, portas e senhas.** `TMP` fica fora do repositório. Cada papel
-tem a sua senha, gerada agora, guardada em arquivo dentro de `TMP` (modo 600) e
-lida pelo cliente PostgreSQL por um arquivo de senhas (`PGPASSFILE`): o
+**Pasta temporária, portas e senhas.** `PASTA_RESTORE` é uma pasta **nova**, que
+o roteiro cria com `mktemp -d` dentro da pasta temporária do sistema (`TMPDIR`,
+ou `/tmp`), com modo 700, fora do repositório: nunca é uma pasta que já existia,
+mesmo que a variável já estivesse definida no seu terminal, e o passo 7 só a
+apaga se achar nela a marca `.criada-pelo-roteiro`. Ela **não** se chama `TMP`
+(o Windows e as ferramentas de Node tomam `TMP` como a pasta temporária do
+sistema, e apontá-la para a pasta da rodada quebrou o `tsx` na prova de
+2026-10-15). Cada papel tem a sua senha, gerada agora, guardada em arquivo
+dentro de `PASTA_RESTORE` (modo 600) e lida pelo cliente PostgreSQL por um arquivo de senhas (`PGPASSFILE`): o
 `psql`, o `pg_dump`, o `pg_restore` e o `createdb` escolhem sozinhos a senha do
 papel indicado em `-U`. **Nenhuma senha vai em linha de comando nem em saída
 arquivada**, e a senha de um papel nunca serve para outro: o `postgres`, o
 `dc360_setup` e o `dc360_api` têm três senhas diferentes.
 
+Se a linha `pasta da rodada: ...` não aparecer, a pasta não foi criada: **pare
+aqui** e resolva (`mktemp` ou `TMPDIR` sem permissão de escrita) antes de seguir,
+porque os blocos seguintes escrevem dentro dela.
+
 ```bash
-TMP=/caminho/fora/do/repositorio
+PASTA_RESTORE="$(mktemp -d "${TMPDIR:-/tmp}/dc360-restore.XXXXXX")"
+test -d "$PASTA_RESTORE" && touch "$PASTA_RESTORE/.criada-pelo-roteiro" && echo "pasta da rodada: $PASTA_RESTORE"
 export PORTA_ORIGEM=55451 PORTA_DESTINO=55452 PORTA_API=3355
 export PGHOST=127.0.0.1
 unset PGPASSWORD PGUSER PGPORT PGDATABASE PGSERVICE PGOPTIONS DATABASE_URL
-export DC360_SENHAS="$TMP"
-mkdir -m 700 "$TMP"
 umask 077
 gerar() { node -e "process.stdout.write(require('crypto').randomBytes(18).toString('base64url'))"; }
-gerar > "$TMP/.senha-postgres"
-gerar > "$TMP/.senha-setup"
-gerar > "$TMP/.senha-api"
+gerar > "$PASTA_RESTORE/.senha-postgres"
+gerar > "$PASTA_RESTORE/.senha-setup"
+gerar > "$PASTA_RESTORE/.senha-api"
 {
-  printf '127.0.0.1:*:*:postgres:%s\n'   "$(cat "$TMP/.senha-postgres")"
-  printf '127.0.0.1:*:*:dc360_setup:%s\n' "$(cat "$TMP/.senha-setup")"
-  printf '127.0.0.1:*:*:dc360_api:%s\n'   "$(cat "$TMP/.senha-api")"
-} > "$TMP/.pgpass"
-export PGPASSFILE="$TMP/.pgpass"
+  printf '127.0.0.1:*:*:postgres:%s\n'   "$(cat "$PASTA_RESTORE/.senha-postgres")"
+  printf '127.0.0.1:*:*:dc360_setup:%s\n' "$(cat "$PASTA_RESTORE/.senha-setup")"
+  printf '127.0.0.1:*:*:dc360_api:%s\n'   "$(cat "$PASTA_RESTORE/.senha-api")"
+} > "$PASTA_RESTORE/.pgpass"
+export PGPASSFILE="$PASTA_RESTORE/.pgpass"
 JWT_SEGREDO="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")"
 ```
 
@@ -179,10 +202,10 @@ Nunca restaure por cima de um banco que já existe. Dois clusters novos, cada
 um na sua porta, garantem que nada da máquina é tocado.
 
 ```bash
-initdb -D "$TMP/pg-origem"  -U postgres --pwfile="$TMP/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
-initdb -D "$TMP/pg-destino" -U postgres --pwfile="$TMP/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
-pg_ctl -D "$TMP/pg-origem"  -l "$TMP/pg-origem.log"  -o "-p $PORTA_ORIGEM  -c listen_addresses=127.0.0.1" -w start > "$TMP/pgctl-origem.out"  2>&1 < /dev/null
-pg_ctl -D "$TMP/pg-destino" -l "$TMP/pg-destino.log" -o "-p $PORTA_DESTINO -c listen_addresses=127.0.0.1" -w start > "$TMP/pgctl-destino.out" 2>&1 < /dev/null
+initdb -D "$PASTA_RESTORE/pg-origem"  -U postgres --pwfile="$PASTA_RESTORE/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+initdb -D "$PASTA_RESTORE/pg-destino" -U postgres --pwfile="$PASTA_RESTORE/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+pg_ctl -D "$PASTA_RESTORE/pg-origem"  -l "$PASTA_RESTORE/pg-origem.log"  -o "-p $PORTA_ORIGEM  -c listen_addresses=127.0.0.1" -w start > "$PASTA_RESTORE/pgctl-origem.out"  2>&1 < /dev/null
+pg_ctl -D "$PASTA_RESTORE/pg-destino" -l "$PASTA_RESTORE/pg-destino.log" -o "-p $PORTA_DESTINO -c listen_addresses=127.0.0.1" -w start > "$PASTA_RESTORE/pgctl-destino.out" 2>&1 < /dev/null
 ```
 
 **Erro encontrado no Windows:** sem o redirecionamento (`> arquivo 2>&1 <
@@ -195,9 +218,10 @@ redirecionamento ele responde `servidor iniciado` e volta.
 
 ```bash
 super -p $PORTA_ORIGEM -d postgres -c "CREATE DATABASE prova_e25_origem;"
+SENHA_SETUP="$(cat "$PASTA_RESTORE/.senha-setup")" SENHA_API="$(cat "$PASTA_RESTORE/.senha-api")" \
 super -p $PORTA_ORIGEM -d prova_e25_origem <<'SQL'
-\set senha_setup `cat "$DC360_SENHAS/.senha-setup"`
-\set senha_api `cat "$DC360_SENHAS/.senha-api"`
+\getenv senha_setup SENHA_SETUP
+\getenv senha_api SENHA_API
 SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
 ALTER SCHEMA public OWNER TO dc360_setup;
 GRANT ALL ON SCHEMA public TO dc360_setup;
@@ -205,7 +229,7 @@ GRANT CREATE ON DATABASE prova_e25_origem TO dc360_setup;
 SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
 SQL
 
-export DATABASE_URL="postgres://dc360_setup:$(cat "$TMP/.senha-setup")@127.0.0.1:$PORTA_ORIGEM/prova_e25_origem"
+export DATABASE_URL="postgres://dc360_setup:$(cat "$PASTA_RESTORE/.senha-setup")@127.0.0.1:$PORTA_ORIGEM/prova_e25_origem"
 npm run migrar
 npm run migrar -- --conferir
 npm run migrar -- --semear
@@ -217,11 +241,29 @@ O que se espera: o primeiro `migrar` imprime `aplicando 001_base.sql` até
 `aplicando 050_...sql` (a última da pasta; 50 hoje); o segundo imprime `Esquema
 em dia.`; o terceiro, `Semeado com os dois municípios fictícios.`
 
-(A senha chega ao SQL sem passar por linha de comando: o `psql` a lê do arquivo
-com o `\set` (o `cat` entre crases, dentro do `heredoc`), e o `format` com `%L` a coloca entre aspas na
-instrução. O `heredoc` é entre aspas simples, então quem lê o arquivo é o
-`psql`, e por isso a pasta das senhas vai numa variável exportada, `DC360_SENHAS` (não exporte o próprio `TMP`: as ferramentas de Node o tomam como pasta temporária). No `DATABASE_URL` a senha é variável
-de ambiente, que não aparece na lista de processos.)
+(Como a senha chega ao SQL. O shell lê o arquivo e a põe numa variável de
+ambiente que vale **só para aquele `psql`** (as duas atribuições antes do
+`super`); o `\getenv` do `psql` (do PostgreSQL 15 em diante) a lê para uma
+variável do `psql`, e o `format` com `%L` a coloca entre aspas na instrução.
+Assim não há senha em argumento de linha de comando, o `heredoc` leva aspas
+(`<<'SQL'`) e nada é expandido pelo shell dentro do SQL, e **qualquer caractere
+da senha serve**, inclusive `'` e `\`, porque o `%L` o escapa. Duas formas
+**não** valem: (1) `\set` com um comando entre crases, porque quem executa o
+`cat` é o `psql`, que no Windows o roda pelo `cmd.exe` (isso é análise, não foi
+executado no Windows), onde `$PASTA_RESTORE` não existe: o papel sai **sem
+senha**, o `psql` devolve código 0 e o login seguinte é que falha; (2) `\set`
+com `'$(cat ...)'` num `heredoc` sem aspas, porque uma senha com `'` ou `\`
+quebra o texto do `\set` (`unterminated quoted string`), o papel nasce sem
+senha e o `psql` também devolve 0. Todo `psql` deste roteiro roda com
+`-v ON_ERROR_STOP=1` (está nos atalhos `super`, `setup` e `aplic`): um erro de
+SQL, como a variável de ambiente ausente, para o bloco com código 3 e não
+executa o que vem depois.
+
+No `DATABASE_URL` a senha também é variável de ambiente. Ela não aparece nos
+**argumentos** do processo, mas o **ambiente** de um processo é visível ao
+próprio usuário que o rodou (no macOS, `ps -axwwE`): numa máquina de uso
+pessoal isso basta; numa máquina compartilhada, rode o roteiro numa conta
+sua.)
 
 **Erro encontrado (achado da E25):** exatamente com os comandos do job
 `implantavel` (sem a linha `GRANT CREATE ON DATABASE`), a migração 041 para com
@@ -237,7 +279,7 @@ o roteiro a mantém porque quem restaura sem passar por eles precisa dela.
 
 ```bash
 pg_dump -h 127.0.0.1 -p $PORTA_ORIGEM -U dc360_setup --format=custom --schema=public --extension=pg_trgm \
-        --file="$TMP/dc360.dump" prova_e25_origem
+        --file="$PASTA_RESTORE/dc360.dump" prova_e25_origem
 ```
 
 Medido no Windows: 0,25 s, 373.746 bytes (semente sintética).
@@ -255,9 +297,10 @@ criador** da origem: `dc360_app` e `dc360_console` são criados pelo
 implícitas do Postgres 16 em diante saiam iguais.
 
 ```bash
+SENHA_SETUP="$(cat "$PASTA_RESTORE/.senha-setup")" SENHA_API="$(cat "$PASTA_RESTORE/.senha-api")" \
 super -p $PORTA_DESTINO -d postgres <<'SQL'
-\set senha_setup `cat "$DC360_SENHAS/.senha-setup"`
-\set senha_api `cat "$DC360_SENHAS/.senha-api"`
+\getenv senha_setup SENHA_SETUP
+\getenv senha_api SENHA_API
 SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
 SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
 SQL
@@ -276,7 +319,7 @@ tabelas, das funções e da extensão sai igual, e o papel da aplicação nunca 
 dono de nada.
 
 ```bash
-pg_restore -h 127.0.0.1 -p $PORTA_DESTINO -U dc360_setup --dbname=prova_e25_restaurado --exit-on-error "$TMP/dc360.dump"
+pg_restore -h 127.0.0.1 -p $PORTA_DESTINO -U dc360_setup --dbname=prova_e25_restaurado --exit-on-error "$PASTA_RESTORE/dc360.dump"
 ```
 
 Medido no Windows: 0,66 s, sem erro. Sem `--exit-on-error` o `pg_restore` **segue**
@@ -326,16 +369,16 @@ como `postgres`, que lê o catálogo inteiro; os de isolamento rodam como
 prova nada sobre RLS.
 
 ```bash
-mkdir -p "$TMP/conferencia"
+mkdir -p "$PASTA_RESTORE/conferencia"
 for f in linhas estrutura; do
-  super -p $PORTA_ORIGEM  -d prova_e25_origem     -At -F'|' -f "scripts/restore/$f.sql" > "$TMP/conferencia/$f-origem.txt"
-  super -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -f "scripts/restore/$f.sql" > "$TMP/conferencia/$f-restaurado.txt"
-  diff "$TMP/conferencia/$f-origem.txt" "$TMP/conferencia/$f-restaurado.txt" && echo "$f: idêntico"
+  super -p $PORTA_ORIGEM  -d prova_e25_origem     -At -F'|' -f "scripts/restore/$f.sql" > "$PASTA_RESTORE/conferencia/$f-origem.txt"
+  super -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -f "scripts/restore/$f.sql" > "$PASTA_RESTORE/conferencia/$f-restaurado.txt"
+  diff "$PASTA_RESTORE/conferencia/$f-origem.txt" "$PASTA_RESTORE/conferencia/$f-restaurado.txt" && echo "$f: idêntico"
 done
 aplic -p $PORTA_ORIGEM  -d prova_e25_origem     -f scripts/restore/isolamento-afirmado.sql
 aplic -p $PORTA_DESTINO -d prova_e25_restaurado -f scripts/restore/isolamento-afirmado.sql
 aplic -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -v ON_ERROR_STOP=0 -f scripts/restore/isolamento.sql
-export DATABASE_URL="postgres://dc360_setup:$(cat "$TMP/.senha-setup")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado"
+export DATABASE_URL="postgres://dc360_setup:$(cat "$PASTA_RESTORE/.senha-setup")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado"
 npm run migrar -- --conferir
 unset DATABASE_URL
 ```
@@ -364,15 +407,15 @@ O que se espera ver:
 
 ```bash
 NODE_ENV=development HOST=127.0.0.1 PORT=$PORTA_API JWT_SEGREDO="$JWT_SEGREDO" \
-DATABASE_URL="postgres://dc360_api:$(cat "$TMP/.senha-api")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado" \
-node apps/api/dist/index.js > "$TMP/api.log" 2>&1 < /dev/null &
+DATABASE_URL="postgres://dc360_api:$(cat "$PASTA_RESTORE/.senha-api")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado" \
+node apps/api/dist/index.js > "$PASTA_RESTORE/api.log" 2>&1 < /dev/null &
 API_PID=$!
 for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORTA_API/saude" && break; sleep 1; done
 echo
 ```
 
 Espera-se `{"status":"ok","banco":"ok",...}`. Se não responder, leia
-`$TMP/api.log` (ele não traz a senha). Se `apps/api/dist/index.js` não existir, o
+`$PASTA_RESTORE/api.log` (ele não traz a senha). Se `apps/api/dist/index.js` não existir, o
 passo 0 não foi seguido: a API precisa ter sido compilada.
 
 A sonda faz o login da coordenadora da semente, lê a lista e o detalhe de uma
@@ -396,16 +439,17 @@ argumento a sonda reprova com 422.
 kill "$API_PID"
 super -p $PORTA_ORIGEM  -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
 super -p $PORTA_DESTINO -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
-pg_ctl -D "$TMP/pg-origem"  -m fast stop < /dev/null
-pg_ctl -D "$TMP/pg-destino" -m fast stop < /dev/null
-rm -rf "$TMP"
-test ! -e "$TMP" && echo "pasta temporária apagada"
+pg_ctl -D "$PASTA_RESTORE/pg-origem"  -m fast stop < /dev/null
+pg_ctl -D "$PASTA_RESTORE/pg-destino" -m fast stop < /dev/null
+test -f "$PASTA_RESTORE/.criada-pelo-roteiro" && rm -rf "$PASTA_RESTORE"
+test ! -e "$PASTA_RESTORE" && echo "pasta temporária apagada"
 find .. -name '*.dump' -not -path '*/node_modules/*'
 ```
 
 Confira que os bancos listados são só os da prova (`postgres`,
 `prova_e25_origem` e `prova_e25_restaurado`; cada comando lista os de um
-servidor). Depois do `rm`, o `test` deve dizer `pasta temporária apagada` e o
+servidor). O `rm` só roda se a pasta tiver a marca que o passo 0 pôs (uma pasta
+sua, sem a marca, nunca é apagada). Depois do `rm`, o `test` deve dizer `pasta temporária apagada` e o
 `find` (que procura `*.dump` no clone inteiro, onde um dump nunca pode estar)
 não deve imprimir nada.
 
@@ -422,20 +466,43 @@ executado na prova a frio abaixo. O que muda é só onde ficam os binários:
   cluster de destino. Sem Homebrew, os binários oficiais do PostgreSQL 17 da
   EDB (arquivo `postgresql-17.6-1-osx-binaries.zip`, em
   `https://get.enterprisedb.com/postgresql/`, binários universais x86_64 e
-  arm64) desempacotam numa pasta e o `PGBIN` é `<pasta>/pgsql/bin`; trazem
+  arm64) desempacotam numa pasta e o `PGBIN` é `"<pasta>/pgsql/bin"` (com aspas); trazem
   servidor, `psql`, `pg_dump`, `pg_restore`, `createdb` e a extensão `pg_trgm`.
 
-## Prova a frio no macOS, de 2026-10-15
+## Prova a frio no macOS, de 2026-10-15 e refeita em 2026-10-19
 
 Feita por um agente (Claude, sessão de correção da E25) seguindo **este
 documento, bloco a bloco, sem pular nem reordenar**, em um clone limpo por shell,
 com ambiente limpo (`env -i`, só `HOME`, um `PATH` mínimo e o do Node). Uma
 primeira versão do texto, só testada em `bash`, quebrava no `zsh` padrão do
 macOS por causa de comentários de fim de linha; um revisor independente
-reproduziu isso, e esta versão foi provada de novo, nos dois shells:
+reproduziu isso, e a versão 2 foi provada de novo, nos dois shells. Na validação
+de 2026-10-19 o primeiro bloco da versão 2 quebrou (código 127) com o
+`PGBIN` do exemplo do Windows, que tem espaço, e a senha entregue ao SQL por
+crase dependia do `cmd.exe` no Windows. A **versão 3** (este texto) pôs aspas em
+todo caminho, trocou a crase por `\getenv` (a senha vai por variável de
+ambiente de um só comando, qualquer caractere serve), trocou o nome `TMP` por
+`PASTA_RESTORE`, passou a criar essa pasta com `mktemp -d` (e o passo 7 só a
+apaga com a marca que o passo 0 pôs) e foi provada de novo, nos dois shells,
+assim:
 
-- **Clone limpo:** `git clone` local do repositório (SHA `11d9446`), sem
-  `node_modules` e sem `dist`; `npm ci` dentro do clone, como o passo 0 manda.
+- **Clone limpo:** `git clone` local do repositório (SHA `cd38410`, um clone
+  por shell), sem `node_modules` e sem `dist`; `npm ci` dentro do clone, como o
+  passo 0 manda.
+- **Caminhos com espaço e pasta que já existe:** `PGBIN` foi
+  `.../Program Files/PostgreSQL/17/bin` (uma cópia dos binários numa pasta com
+  esse nome, não um atalho); `TMPDIR` apontava para uma pasta com espaço, onde o
+  `mktemp -d` criou a pasta da rodada; o ambiente trazia `PASTA_RESTORE` já
+  definida para uma pasta do leitor com um arquivo dentro, que o roteiro não
+  tocou (a pasta nova foi outra, e o passo 7 apagou só a nova); e `TMP`
+  exportado para outra pasta com espaço, que nenhum comando do roteiro escreve ou
+  apaga (só as ferramentas de Node a usaram como pasta temporária).
+- **Guardas provadas à parte:** com a pasta do leitor sem a marca, o `rm` do
+  passo 7 não roda; com `PASTA_RESTORE` vazia, também não; uma senha com `'` ou
+  `\` cria o papel com senha pelo `\getenv` (a forma anterior, `\set` com
+  `$(cat ...)`, deixava o papel sem senha ou com a senha cortada, e o `psql`
+  saía com 0); um erro de SQL, ou o `\getenv` de variável que não existe, para o
+  `psql` com código 3 e não cria papel nenhum.
 - **Máquina:** macOS 26.4 em Apple Silicon (arm64), Node 24.15, npm 11.12.
 - **PostgreSQL 17.6 de verdade, com cliente:** o zip de binários oficiais da EDB
   (`postgresql-17.6-1-osx-binaries.zip`, SHA-256
@@ -464,12 +531,21 @@ reproduziu isso, e esta versão foi provada de novo, nos dois shells:
   (código 1); o restore completo de controle terminou com código 0; sem
   `--exit-on-error`, o mesmo caso do `public` terminou com `errors ignored on
   restore: 752` e código 1.
-- **Só substituí** os dois valores que o documento manda trocar (`PGBIN` e
-  `TMP`) e as três portas (para uma faixa livre da máquina); o resto é o texto.
+- **Só substituí** o valor que o documento manda trocar (`PGBIN`, mantendo as
+  aspas) e as três portas (para uma faixa livre da máquina); o resto é o texto.
+- **Windows, por análise, não por execução.** O Git Bash é um `bash`, e o que
+  quebrava no Windows era gramática de `bash` (o espaço sem aspas) e o `cmd.exe`
+  que o `psql` usava para a crase; os dois saíram do texto, e o `bash` do
+  macOS reproduz a primeira (a prova acima) e a segunda (o `cat` que o shell
+  de quem o roda não consegue expandir deixa o papel sem senha, ver a evidência).
+  O que não foi verificado: os caminhos do Windows (`/c/Program Files/...`) e
+  o `PGPASSFILE` no Git Bash, o `kill` do `API_PID` nele, e o `initdb` do
+  instalador do Windows.
 - **Não rodou nesta prova:** Linux e Windows seguindo o texto, e o CI executando
   o documento (ele executa `ensaiar-restore.sh`). Uma pessoa que não conheça o
   sistema continua pendente.
-- Evidência: `docs/evidencias-v2/G00/V2-F00-E25/correcao-1/`.
+- Evidência: `docs/evidencias-v2/G00/V2-F00-E25/correcao-1/` (versão 2) e
+  `docs/evidencias-v2/G00/V2-F00-E25/correcao-2/` (versão 3).
 
 ## Tempo medido na prova de 2026-10-07
 

@@ -1,0 +1,6 @@
+$ # bloco 06 (texto do documento, antes das 5 substituicoes de placeholder)
+pg_dump -h 127.0.0.1 -p $PORTA_ORIGEM -U dc360_setup --format=custom --schema=public --extension=pg_trgm \
+        --file="$PASTA_RESTORE/dc360.dump" prova_e25_origem
+
+--- saida ---
+--- bloco terminou: sim ---

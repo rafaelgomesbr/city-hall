@@ -1,0 +1,62 @@
+=== PARTE 1: bloco 0 do documento antigo, PGBIN com espaco ===
+--- texto do bloco (caminho abreviado em <dir>) ---
+export PGBIN=<dir>/Program Files/PostgreSQL/17/bin
+export PATH="$PGBIN:$PATH"
+initdb --version; pg_ctl --version; psql --version; createdb --version; pg_dump --version; pg_restore --version
+echo "codigo do ultimo comando: $?"
+--- zsh -f -i, entrada padrao ---
+export: not valid in this context: Files/PostgreSQL/17/bin
+zsh: command not found: initdb
+zsh: command not found: pg_ctl
+zsh: command not found: psql
+zsh: command not found: createdb
+zsh: command not found: pg_dump
+zsh: command not found: pg_restore
+codigo do ultimo comando: 127
+--- /bin/bash 3.2, arquivo ---
+<dir>/antigo-bloco0.sh: line 1: export: `Files/PostgreSQL/17/bin': not a valid identifier
+<dir>/antigo-bloco0.sh: line 3: initdb: command not found
+<dir>/antigo-bloco0.sh: line 3: pg_ctl: command not found
+<dir>/antigo-bloco0.sh: line 3: psql: command not found
+<dir>/antigo-bloco0.sh: line 3: createdb: command not found
+<dir>/antigo-bloco0.sh: line 3: pg_dump: command not found
+<dir>/antigo-bloco0.sh: line 3: pg_restore: command not found
+codigo do ultimo comando: 127
+
+=== PARTE 2: crase do psql sem enxergar a variavel (cmd.exe nao expande $VAR) ===
+--- forma antiga: \set s `cat "$VAR_QUE_O_CMD_NAO_ENXERGA/.senha-r"` ---
+cat: /.senha-r: No such file or directory
+NOTICE:  empty string is not a valid password, clearing password
+psql devolveu codigo: 0
+--- forma nova: \set s '$(cat "$PASTA/.senha-r")' (o shell expande) ---
+psql devolveu codigo: 0
+--- o que ficou no servidor ---
+r_antigo | f
+r_novo | t
+
+=== PARTE 3: senha com aspa simples e barra invertida ===
+--- senha q1 (aspa simples): forma da versao 3 anterior (heredoc sem aspas, \set com $(cat ...)) ---
+unterminated quoted string
+NOTICE:  empty string is not a valid password, clearing password
+psql devolveu codigo: 0
+--- senha q1: forma nova (\getenv, heredoc com aspas) ---
+psql devolveu codigo: 0
+--- senha q2 (aspa simples e barra invertida): forma da versao 3 anterior (heredoc sem aspas, \set com $(cat ...)) ---
+invalid command \c'
+psql devolveu codigo: 0
+--- senha q2: forma nova (\getenv, heredoc com aspas) ---
+psql devolveu codigo: 0
+r_q1_antigo | f
+r_q1_novo | t
+r_q2_antigo | t
+r_q2_novo | t
+--- ON_ERROR_STOP=1: um erro de SQL para o bloco e o que vem depois nao roda ---
+ERROR:  division by zero
+psql devolveu codigo: 3
+0
+--- variavel de ambiente ausente no \getenv: para com erro, nao cria papel sem senha ---
+ERROR:  syntax error at or near ":"
+LINE 1: ...ECT format('CREATE ROLE r_sem_var LOGIN PASSWORD %L', :'s') 
+                                                                 ^
+psql devolveu codigo: 3
+0

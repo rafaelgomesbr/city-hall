@@ -1,0 +1,13 @@
+$ # bloco 00 (texto do documento, antes das 5 substituicoes de placeholder)
+export PGBIN="/caminho/da/pasta/bin/do/postgresql-17"
+export PATH="$PGBIN:$PATH"
+initdb --version; pg_ctl --version; psql --version; createdb --version; pg_dump --version; pg_restore --version
+
+--- saida ---
+initdb (PostgreSQL) 17.6
+pg_ctl (PostgreSQL) 17.6
+psql (PostgreSQL) 17.6
+createdb (PostgreSQL) 17.6
+pg_dump (PostgreSQL) 17.6
+pg_restore (PostgreSQL) 17.6
+--- bloco terminou: sim ---

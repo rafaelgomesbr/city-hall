@@ -1,0 +1,12 @@
+Conferência de evidência de V2-F00-E25 no SHA 8067003
+OK    etapa: V2-F00-E25 existe (docs/roadmap-v2/03-fase-00-estabilizacao.md:740)
+OK    sha: 8067003 existe e é ancestral do HEAD
+OK    lista-permitida: 8067003..HEAD só toca a lista permitida (0 arquivo(s))
+OK    regras-commitadas: política, mapa de impacto, skill e scripts sem mudança não commitada
+OK    pasta: docs/evidencias-v2/G00/V2-F00-E25 existe
+OK    indice: INDEX.md bate com os 128 arquivo(s) listado(s), SHA-256 a SHA-256
+FALHA segredos: possível segredo em 7 linha(s): VEREDITO.md:129 (PASSWORD com valor); validacao/4b96ea7/qa.md:63 (PASSWORD com valor); validacao/4b96ea7/qa.md:63 (URL com usuário e senha); validacao/52952a1/arbitragem.md:28 (PASSWORD com valor); validacao/52952a1/arbitragem.md:41 (PASSWORD com valor); e mais 2
+OK    travessao: nenhum travessão nos .md da pasta
+OK    capturas: etapa sem tag UI: capturas não exigidas por esta conferência
+OK    sonda: sonda antes e depois presentes (saidas/00-isolamento-antes.txt e saidas/14-remedios-depois-do-restore.txt)
+RESULTADO: 1 FALHA(S), 0 aviso(s). A validação não pode seguir.

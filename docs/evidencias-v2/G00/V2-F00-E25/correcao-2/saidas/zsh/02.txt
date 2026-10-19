@@ -1,0 +1,50 @@
+$ # bloco 02 (texto do documento, antes das 5 substituicoes de placeholder)
+PASTA_RESTORE="$(mktemp -d "${TMPDIR:-/tmp}/dc360-restore.XXXXXX")"
+test -d "$PASTA_RESTORE" && touch "$PASTA_RESTORE/.criada-pelo-roteiro" && echo "pasta da rodada: $PASTA_RESTORE"
+export PORTA_ORIGEM=55451 PORTA_DESTINO=55452 PORTA_API=3355
+export PGHOST=127.0.0.1
+unset PGPASSWORD PGUSER PGPORT PGDATABASE PGSERVICE PGOPTIONS DATABASE_URL
+umask 077
+gerar() { node -e "process.stdout.write(require('crypto').randomBytes(18).toString('base64url'))"; }
+gerar > "$PASTA_RESTORE/.senha-postgres"
+gerar > "$PASTA_RESTORE/.senha-setup"
+gerar > "$PASTA_RESTORE/.senha-api"
+{
+  printf '127.0.0.1:*:*:postgres:%s\n'   "$(cat "$PASTA_RESTORE/.senha-postgres")"
+  printf '127.0.0.1:*:*:dc360_setup:%s\n' "$(cat "$PASTA_RESTORE/.senha-setup")"
+  printf '127.0.0.1:*:*:dc360_api:%s\n'   "$(cat "$PASTA_RESTORE/.senha-api")"
+} > "$PASTA_RESTORE/.pgpass"
+export PGPASSFILE="$PASTA_RESTORE/.pgpass"
+JWT_SEGREDO="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")"
+
+--- saida ---
+%  
+ 
+%  
+ 
+pasta da rodada: /private/tmp/claude-501/tmpdir com espaco/dc360-restore.htXTHM
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+--- bloco terminou: sim ---

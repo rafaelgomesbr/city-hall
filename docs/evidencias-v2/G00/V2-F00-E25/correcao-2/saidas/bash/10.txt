@@ -1,0 +1,133 @@
+$ # bloco 10 (texto do documento, antes das 5 substituicoes de placeholder)
+mkdir -p "$PASTA_RESTORE/conferencia"
+for f in linhas estrutura; do
+  super -p $PORTA_ORIGEM  -d prova_e25_origem     -At -F'|' -f "scripts/restore/$f.sql" > "$PASTA_RESTORE/conferencia/$f-origem.txt"
+  super -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -f "scripts/restore/$f.sql" > "$PASTA_RESTORE/conferencia/$f-restaurado.txt"
+  diff "$PASTA_RESTORE/conferencia/$f-origem.txt" "$PASTA_RESTORE/conferencia/$f-restaurado.txt" && echo "$f: idêntico"
+done
+aplic -p $PORTA_ORIGEM  -d prova_e25_origem     -f scripts/restore/isolamento-afirmado.sql
+aplic -p $PORTA_DESTINO -d prova_e25_restaurado -f scripts/restore/isolamento-afirmado.sql
+aplic -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -v ON_ERROR_STOP=0 -f scripts/restore/isolamento.sql
+export DATABASE_URL="postgres://dc360_setup:$(cat "$PASTA_RESTORE/.senha-setup")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado"
+npm run migrar -- --conferir
+unset DATABASE_URL
+
+--- saida ---
+linhas: idêntico
+estrutura: idêntico
+== o papel da aplicacao nao e superusuario, nao tem BYPASSRLS e nao e dono de nada
+psql:scripts/restore/isolamento-afirmado.sql:38: NOTICE:  papeis: ok
+== sem contexto: toda tabela de negocio que a aplicacao le devolve 0 linhas
+psql:scripts/restore/isolamento-afirmado.sql:58: NOTICE:  sem contexto: 31 tabelas lidas, todas com 0 linhas
+== contexto de A: nenhuma linha fora de A em nenhuma tabela com organizacao_id
+ contexto_de_a 
+---------------
+ t
+(1 row)
+
+psql:scripts/restore/isolamento-afirmado.sql:85: NOTICE:  contexto A: 30 tabelas com organizacao_id, 47 linhas de A, 0 fora de A
+== contexto de B: o espelho
+ contexto_de_b 
+---------------
+ t
+(1 row)
+
+== escrita cruzada: com contexto de A, alterar linha de B nao alcanca nada
+ contexto_de_a 
+---------------
+ t
+(1 row)
+
+== trilha append-only: UPDATE e DELETE recusados por permissao
+ contexto_de_a 
+---------------
+ t
+(1 row)
+
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  UPDATE em trilha_eventos: recusado, como deve
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  DELETE em trilha_eventos: recusado, como deve
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  UPDATE em trilha_administrativa: recusado, como deve
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  DELETE em trilha_administrativa: recusado, como deve
+== fila de interesse: o papel de aplicacao nao le (migracao 011)
+psql:scripts/restore/isolamento-afirmado.sql:153: NOTICE:  interesse_municipio: leitura recusada, como deve
+ISOLAMENTO: TODAS AS AFIRMACOES PASSARAM
+== o papel da aplicacao nao e superusuario, nao tem BYPASSRLS e nao e dono de nada
+psql:scripts/restore/isolamento-afirmado.sql:38: NOTICE:  papeis: ok
+== sem contexto: toda tabela de negocio que a aplicacao le devolve 0 linhas
+psql:scripts/restore/isolamento-afirmado.sql:58: NOTICE:  sem contexto: 31 tabelas lidas, todas com 0 linhas
+== contexto de A: nenhuma linha fora de A em nenhuma tabela com organizacao_id
+ contexto_de_a 
+---------------
+ t
+(1 row)
+
+psql:scripts/restore/isolamento-afirmado.sql:85: NOTICE:  contexto A: 30 tabelas com organizacao_id, 47 linhas de A, 0 fora de A
+== contexto de B: o espelho
+ contexto_de_b 
+---------------
+ t
+(1 row)
+
+== escrita cruzada: com contexto de A, alterar linha de B nao alcanca nada
+ contexto_de_a 
+---------------
+ t
+(1 row)
+
+== trilha append-only: UPDATE e DELETE recusados por permissao
+ contexto_de_a 
+---------------
+ t
+(1 row)
+
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  UPDATE em trilha_eventos: recusado, como deve
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  DELETE em trilha_eventos: recusado, como deve
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  UPDATE em trilha_administrativa: recusado, como deve
+psql:scripts/restore/isolamento-afirmado.sql:141: NOTICE:  DELETE em trilha_administrativa: recusado, como deve
+== fila de interesse: o papel de aplicacao nao le (migracao 011)
+psql:scripts/restore/isolamento-afirmado.sql:153: NOTICE:  interesse_municipio: leitura recusada, como deve
+ISOLAMENTO: TODAS AS AFIRMACOES PASSARAM
+== quem sou (login e papel assumido), e os atributos dos dois
+dc360_api|dc360_app
+dc360_api|f|f
+dc360_app|f|f
+tabelas de public cujo dono e o papel atual ou o login|0
+== sem contexto: toda tabela de public que dc360_app pode ler devolve 0 linhas
+psql:scripts/restore/isolamento.sql:35: NOTICE:  sem privilegio de leitura: console_codigos_de_recuperacao
+psql:scripts/restore/isolamento.sql:35: NOTICE:  sem privilegio de leitura: console_operadores
+psql:scripts/restore/isolamento.sql:35: NOTICE:  sem privilegio de leitura: eliminacoes_de_municipio
+psql:scripts/restore/isolamento.sql:35: NOTICE:  sem privilegio de leitura: interesse_municipio
+psql:scripts/restore/isolamento.sql:35: NOTICE:  SEM CONTEXTO VE LINHA: schema_migracoes (50)
+psql:scripts/restore/isolamento.sql:35: NOTICE:  sem contexto: 32 tabelas lidas, 1 com alguma linha, 4 sem privilegio de leitura
+== com contexto de A: nenhuma linha de B em nenhuma tabela com organizacao_id
+t
+psql:scripts/restore/isolamento.sql:55: NOTICE:  contexto A: 30 tabelas com organizacao_id lidas, 47 linhas de A, 0 linhas fora de A
+ocorrencias visiveis com contexto A|8
+ocorrencias de B visiveis com contexto A|0
+organizacoes visiveis com contexto A|Serra Alta
+== com contexto de B: o espelho
+t
+ocorrencias visiveis com contexto B|2
+ocorrencias de A visiveis com contexto B|0
+== escrita cruzada: com contexto de A, gravar ocorrencia em B tem que ser recusado
+t
+== trilha append-only: com contexto de A, UPDATE e DELETE na trilha
+t
+eventos de trilha visiveis com contexto A|25
+psql:scripts/restore/isolamento.sql:78: ERROR:  permission denied for table trilha_eventos
+t
+psql:scripts/restore/isolamento.sql:82: ERROR:  permission denied for table trilha_eventos
+t
+psql:scripts/restore/isolamento.sql:86: ERROR:  permission denied for table trilha_administrativa
+== fila de interesse: o papel de aplicacao nao le (migracao 011)
+psql:scripts/restore/isolamento.sql:90: ERROR:  permission denied for table interesse_municipio
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --conferir
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --conferir
+
+Esquema em dia.
+--- bloco terminou: sim ---

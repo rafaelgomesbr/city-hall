@@ -1,0 +1,100 @@
+$ # bloco 05 (texto do documento, antes das 5 substituicoes de placeholder)
+super -p $PORTA_ORIGEM -d postgres -c "CREATE DATABASE prova_e25_origem;"
+SENHA_SETUP="$(cat "$PASTA_RESTORE/.senha-setup")" SENHA_API="$(cat "$PASTA_RESTORE/.senha-api")" \
+super -p $PORTA_ORIGEM -d prova_e25_origem <<'SQL'
+\getenv senha_setup SENHA_SETUP
+\getenv senha_api SENHA_API
+SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
+ALTER SCHEMA public OWNER TO dc360_setup;
+GRANT ALL ON SCHEMA public TO dc360_setup;
+GRANT CREATE ON DATABASE prova_e25_origem TO dc360_setup;
+SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
+SQL
+
+export DATABASE_URL="postgres://dc360_setup:$(cat "$PASTA_RESTORE/.senha-setup")@127.0.0.1:$PORTA_ORIGEM/prova_e25_origem"
+npm run migrar
+npm run migrar -- --conferir
+npm run migrar -- --semear
+unset DATABASE_URL
+super -p $PORTA_ORIGEM -d prova_e25_origem -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+
+--- saida ---
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db --
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts
+
+aplicando 001_base.sql
+aplicando 002_autenticacao.sql
+aplicando 003_evidencias.sql
+aplicando 004_evidencia_idempotente.sql
+aplicando 005_recuperacao_de_senha.sql
+aplicando 006_resposta_de_providencia.sql
+aplicando 007_registro_de_exportacao.sql
+aplicando 008_chaves_coerentes_por_municipio.sql
+aplicando 009_assinatura_data_e_emissao.sql
+aplicando 010_trilha_administrativa.sql
+aplicando 011_interesse_de_municipio.sql
+aplicando 012_ponto_de_referencia.sql
+aplicando 013_matricula_no_login.sql
+aplicando 014_interdicao_tem_fim.sql
+aplicando 015_pessoas_atingidas.sql
+aplicando 016_aparelho_e_aviso_de_prazo.sql
+aplicando 017_orgaos_oficio_e_email.sql
+aplicando 018_sino_de_avisos.sql
+aplicando 019_tipo_a_classificar.sql
+aplicando 020_orgaos_indicados_na_vistoria.sql
+aplicando 021_minimizacao_e_registro_de_consulta.sql
+aplicando 022_segundo_fator.sql
+aplicando 023_metricas_do_municipio.sql
+aplicando 024_prova_tem_autor_e_equipe.sql
+aplicando 025_provisionar_deixa_linha_espelho.sql
+aplicando 026_relogio_do_resumo.sql
+aplicando 027_recibo_do_provedor_de_email.sql
+aplicando 028_devolucao_de_tarefa_vencida.sql
+aplicando 029_minimizacao_alcanca_a_devolucao.sql
+aplicando 030_prova_perdida_e_ponto_da_vistoria.sql
+aplicando 031_saida_a_campo.sql
+aplicando 032_prova_que_nao_se_apaga_e_prorrogacao_idempotente.sql
+aplicando 033_as_outras_duas_que_prometiam_append_only.sql
+aplicando 034_as_tabelas_centrais_tambem_nao_se_apagam.sql
+aplicando 035_teto_e_objeto_orfao.sql
+aplicando 036_o_console_cadastra_prefeitura.sql
+aplicando 037_o_expurgo_de_notificacao_nao_depende_de_bypassrls.sql
+aplicando 038_suspensao_eliminacao_e_operadores_do_console.sql
+aplicando 039_codigos_de_recuperacao_do_console.sql
+aplicando 040_foto_do_agente.sql
+aplicando 041_busca_com_tolerancia_a_erro.sql
+aplicando 042_aviso_de_despacho_nasce_no_despacho.sql
+aplicando 043_minimizacao_alcanca_relato_vistoria_e_trilha.sql
+aplicando 044_ambiente_da_apns_por_aparelho.sql
+aplicando 045_varredura_de_prazo_sem_bypassrls_e_a_foto_no_teto.sql
+aplicando 046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql
+aplicando 047_familia_da_sessao.sql
+aplicando 048_dono_do_token_diz_se_a_conta_esta_ativa.sql
+aplicando 049_renovacao_e_encerramento_na_mesma_trava.sql
+aplicando 050_login_e_suspensao_na_mesma_linha.sql
+Aplicadas: 001_base.sql, 002_autenticacao.sql, 003_evidencias.sql, 004_evidencia_idempotente.sql, 005_recuperacao_de_senha.sql, 006_resposta_de_providencia.sql, 007_registro_de_exportacao.sql, 008_chaves_coerentes_por_municipio.sql, 009_assinatura_data_e_emissao.sql, 010_trilha_administrativa.sql, 011_interesse_de_municipio.sql, 012_ponto_de_referencia.sql, 013_matricula_no_login.sql, 014_interdicao_tem_fim.sql, 015_pessoas_atingidas.sql, 016_aparelho_e_aviso_de_prazo.sql, 017_orgaos_oficio_e_email.sql, 018_sino_de_avisos.sql, 019_tipo_a_classificar.sql, 020_orgaos_indicados_na_vistoria.sql, 021_minimizacao_e_registro_de_consulta.sql, 022_segundo_fator.sql, 023_metricas_do_municipio.sql, 024_prova_tem_autor_e_equipe.sql, 025_provisionar_deixa_linha_espelho.sql, 026_relogio_do_resumo.sql, 027_recibo_do_provedor_de_email.sql, 028_devolucao_de_tarefa_vencida.sql, 029_minimizacao_alcanca_a_devolucao.sql, 030_prova_perdida_e_ponto_da_vistoria.sql, 031_saida_a_campo.sql, 032_prova_que_nao_se_apaga_e_prorrogacao_idempotente.sql, 033_as_outras_duas_que_prometiam_append_only.sql, 034_as_tabelas_centrais_tambem_nao_se_apagam.sql, 035_teto_e_objeto_orfao.sql, 036_o_console_cadastra_prefeitura.sql, 037_o_expurgo_de_notificacao_nao_depende_de_bypassrls.sql, 038_suspensao_eliminacao_e_operadores_do_console.sql, 039_codigos_de_recuperacao_do_console.sql, 040_foto_do_agente.sql, 041_busca_com_tolerancia_a_erro.sql, 042_aviso_de_despacho_nasce_no_despacho.sql, 043_minimizacao_alcanca_relato_vistoria_e_trilha.sql, 044_ambiente_da_apns_por_aparelho.sql, 045_varredura_de_prazo_sem_bypassrls_e_a_foto_no_teto.sql, 046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql, 047_familia_da_sessao.sql, 048_dono_do_token_diz_se_a_conta_esta_ativa.sql, 049_renovacao_e_encerramento_na_mesma_trava.sql, 050_login_e_suspensao_na_mesma_linha.sql
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --conferir
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --conferir
+
+Esquema em dia.
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --semear
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --semear
+
+Nada a fazer: 50 migração(ões) já aplicada(s).
+Semeado com os dois municípios fictícios.
+--- bloco terminou: sim ---

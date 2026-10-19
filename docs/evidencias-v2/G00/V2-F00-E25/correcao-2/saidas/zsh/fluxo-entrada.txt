@@ -1,0 +1,130 @@
+set -e
+PS1=''; PS2=''; PROMPT=''; PROMPT2=''; RPROMPT=''
+echo '@@INICIO 00'
+export PGBIN="<scratchpad>/e25/c2/Program Files/PostgreSQL/17/bin"
+export PATH="$PGBIN:$PATH"
+initdb --version; pg_ctl --version; psql --version; createdb --version; pg_dump --version; pg_restore --version
+echo '@@FIM 00'
+echo '@@INICIO 01'
+cd dc360
+npm ci
+rm -rf packages/shared/dist db/dist apps/api/dist
+npm run build --workspace @dc360/shared
+npm run build --workspace @dc360/db
+npm run build --workspace @dc360/api
+echo '@@FIM 01'
+echo '@@INICIO 02'
+PASTA_RESTORE="$(mktemp -d "${TMPDIR:-/tmp}/dc360-restore.XXXXXX")"
+test -d "$PASTA_RESTORE" && touch "$PASTA_RESTORE/.criada-pelo-roteiro" && echo "pasta da rodada: $PASTA_RESTORE"
+export PORTA_ORIGEM=55761 PORTA_DESTINO=55762 PORTA_API=55763
+export PGHOST=127.0.0.1
+unset PGPASSWORD PGUSER PGPORT PGDATABASE PGSERVICE PGOPTIONS DATABASE_URL
+umask 077
+gerar() { node -e "process.stdout.write(require('crypto').randomBytes(18).toString('base64url'))"; }
+gerar > "$PASTA_RESTORE/.senha-postgres"
+gerar > "$PASTA_RESTORE/.senha-setup"
+gerar > "$PASTA_RESTORE/.senha-api"
+{
+  printf '127.0.0.1:*:*:postgres:%s\n'   "$(cat "$PASTA_RESTORE/.senha-postgres")"
+  printf '127.0.0.1:*:*:dc360_setup:%s\n' "$(cat "$PASTA_RESTORE/.senha-setup")"
+  printf '127.0.0.1:*:*:dc360_api:%s\n'   "$(cat "$PASTA_RESTORE/.senha-api")"
+} > "$PASTA_RESTORE/.pgpass"
+export PGPASSFILE="$PASTA_RESTORE/.pgpass"
+JWT_SEGREDO="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")"
+echo '@@FIM 02'
+echo '@@INICIO 03'
+super() { psql -X -q -v ON_ERROR_STOP=1 -U postgres "$@"; }
+setup() { psql -X -q -v ON_ERROR_STOP=1 -U dc360_setup "$@"; }
+aplic() { psql -X -q -v ON_ERROR_STOP=1 -U dc360_api "$@"; }
+echo '@@FIM 03'
+echo '@@INICIO 04'
+initdb -D "$PASTA_RESTORE/pg-origem"  -U postgres --pwfile="$PASTA_RESTORE/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+initdb -D "$PASTA_RESTORE/pg-destino" -U postgres --pwfile="$PASTA_RESTORE/.senha-postgres" -A scram-sha-256 -E UTF8 --locale=C
+pg_ctl -D "$PASTA_RESTORE/pg-origem"  -l "$PASTA_RESTORE/pg-origem.log"  -o "-p $PORTA_ORIGEM  -c listen_addresses=127.0.0.1" -w start > "$PASTA_RESTORE/pgctl-origem.out"  2>&1 < /dev/null
+pg_ctl -D "$PASTA_RESTORE/pg-destino" -l "$PASTA_RESTORE/pg-destino.log" -o "-p $PORTA_DESTINO -c listen_addresses=127.0.0.1" -w start > "$PASTA_RESTORE/pgctl-destino.out" 2>&1 < /dev/null
+echo '@@FIM 04'
+echo '@@INICIO 05'
+super -p $PORTA_ORIGEM -d postgres -c "CREATE DATABASE prova_e25_origem;"
+SENHA_SETUP="$(cat "$PASTA_RESTORE/.senha-setup")" SENHA_API="$(cat "$PASTA_RESTORE/.senha-api")" \
+super -p $PORTA_ORIGEM -d prova_e25_origem <<'SQL'
+\getenv senha_setup SENHA_SETUP
+\getenv senha_api SENHA_API
+SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
+ALTER SCHEMA public OWNER TO dc360_setup;
+GRANT ALL ON SCHEMA public TO dc360_setup;
+GRANT CREATE ON DATABASE prova_e25_origem TO dc360_setup;
+SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
+SQL
+
+export DATABASE_URL="postgres://dc360_setup:$(cat "$PASTA_RESTORE/.senha-setup")@127.0.0.1:$PORTA_ORIGEM/prova_e25_origem"
+npm run migrar
+npm run migrar -- --conferir
+npm run migrar -- --semear
+unset DATABASE_URL
+super -p $PORTA_ORIGEM -d prova_e25_origem -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+echo '@@FIM 05'
+echo '@@INICIO 06'
+pg_dump -h 127.0.0.1 -p $PORTA_ORIGEM -U dc360_setup --format=custom --schema=public --extension=pg_trgm \
+        --file="$PASTA_RESTORE/dc360.dump" prova_e25_origem
+echo '@@FIM 06'
+echo '@@INICIO 07'
+SENHA_SETUP="$(cat "$PASTA_RESTORE/.senha-setup")" SENHA_API="$(cat "$PASTA_RESTORE/.senha-api")" \
+super -p $PORTA_DESTINO -d postgres <<'SQL'
+\getenv senha_setup SENHA_SETUP
+\getenv senha_api SENHA_API
+SELECT format('CREATE ROLE dc360_setup LOGIN PASSWORD %L CREATEROLE BYPASSRLS NOSUPERUSER', :'senha_setup') \gexec
+SELECT format('CREATE ROLE dc360_api LOGIN PASSWORD %L NOSUPERUSER', :'senha_api') \gexec
+SQL
+setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_app NOLOGIN;"
+setup -p $PORTA_DESTINO -d postgres -c "CREATE ROLE dc360_console NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;"
+
+createdb -h 127.0.0.1 -p $PORTA_DESTINO -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_restaurado
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "DROP SCHEMA public CASCADE;"
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT CREATE ON DATABASE prova_e25_restaurado TO dc360_setup;"
+echo '@@FIM 07'
+echo '@@INICIO 08'
+pg_restore -h 127.0.0.1 -p $PORTA_DESTINO -U dc360_setup --dbname=prova_e25_restaurado --exit-on-error "$PASTA_RESTORE/dc360.dump"
+echo '@@FIM 08'
+echo '@@INICIO 09'
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+setup -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_setup WITH SET TRUE;"
+setup -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT USAGE ON SCHEMA public TO PUBLIC;"
+echo '@@FIM 09'
+echo '@@INICIO 10'
+mkdir -p "$PASTA_RESTORE/conferencia"
+for f in linhas estrutura; do
+  super -p $PORTA_ORIGEM  -d prova_e25_origem     -At -F'|' -f "scripts/restore/$f.sql" > "$PASTA_RESTORE/conferencia/$f-origem.txt"
+  super -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -f "scripts/restore/$f.sql" > "$PASTA_RESTORE/conferencia/$f-restaurado.txt"
+  diff "$PASTA_RESTORE/conferencia/$f-origem.txt" "$PASTA_RESTORE/conferencia/$f-restaurado.txt" && echo "$f: idêntico"
+done
+aplic -p $PORTA_ORIGEM  -d prova_e25_origem     -f scripts/restore/isolamento-afirmado.sql
+aplic -p $PORTA_DESTINO -d prova_e25_restaurado -f scripts/restore/isolamento-afirmado.sql
+aplic -p $PORTA_DESTINO -d prova_e25_restaurado -At -F'|' -v ON_ERROR_STOP=0 -f scripts/restore/isolamento.sql
+export DATABASE_URL="postgres://dc360_setup:$(cat "$PASTA_RESTORE/.senha-setup")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado"
+npm run migrar -- --conferir
+unset DATABASE_URL
+echo '@@FIM 10'
+echo '@@INICIO 11'
+NODE_ENV=development HOST=127.0.0.1 PORT=$PORTA_API JWT_SEGREDO="$JWT_SEGREDO" \
+DATABASE_URL="postgres://dc360_api:$(cat "$PASTA_RESTORE/.senha-api")@127.0.0.1:$PORTA_DESTINO/prova_e25_restaurado" \
+node apps/api/dist/index.js > "$PASTA_RESTORE/api.log" 2>&1 < /dev/null &
+API_PID=$!
+for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORTA_API/saude" && break; sleep 1; done
+echo
+echo '@@FIM 11'
+echo '@@INICIO 12'
+ID_DE_VALE_FUNDO="$(super -p $PORTA_ORIGEM -d prova_e25_origem -At -c "SELECT id FROM ocorrencias WHERE organizacao_id = '22222222-2222-4222-8222-000000000002' ORDER BY id LIMIT 1")"
+echo "$ID_DE_VALE_FUNDO"
+node scripts/restore/api-contra-a-copia.mjs "http://127.0.0.1:$PORTA_API" "$ID_DE_VALE_FUNDO"
+echo '@@FIM 12'
+echo '@@INICIO 13'
+kill "$API_PID"
+super -p $PORTA_ORIGEM  -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
+super -p $PORTA_DESTINO -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
+pg_ctl -D "$PASTA_RESTORE/pg-origem"  -m fast stop < /dev/null
+pg_ctl -D "$PASTA_RESTORE/pg-destino" -m fast stop < /dev/null
+test -f "$PASTA_RESTORE/.criada-pelo-roteiro" && rm -rf "$PASTA_RESTORE"
+test ! -e "$PASTA_RESTORE" && echo "pasta temporária apagada"
+find .. -name '*.dump' -not -path '*/node_modules/*'
+echo '@@FIM 13'
+echo @@TUDO
