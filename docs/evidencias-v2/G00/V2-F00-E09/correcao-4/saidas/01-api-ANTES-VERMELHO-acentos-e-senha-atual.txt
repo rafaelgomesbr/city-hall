@@ -1,0 +1,124 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts (12 tests | 3 failed) 581ms
+   ✓ A varredura de acentos morde > acha o erro de verdade: a frase da senha atual, sem acento, num erro de negócio 4ms
+   ✓ A varredura de acentos morde > acha na propriedade `mensagem` da resposta e no texto que o Zod devolve 2ms
+   ✓ A varredura de acentos morde > não acha o que a pessoa não lê: comentário, log, erro de desenvolvedor, código e SQL 1ms
+   ✓ A varredura de acentos morde > no modo `tudo`, acha o texto da tela em JSX e em cadeia, e deixa passar classe, email de exemplo e variável 1ms
+   ✓ A varredura de acentos morde > a palavra com acento e as que também se escrevem sem acento passam 0ms
+   × Nenhuma frase de tela sai sem acento > apps/api/src (mensagens) 133ms
+     → frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(3) ] to deeply equal []
+   ✓ Nenhuma frase de tela sai sem acento > apps/console/src (mensagens) 22ms
+   × Nenhuma frase de tela sai sem acento > apps/web/src (tudo) 103ms
+     → frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ Array(1) ] to deeply equal []
+   ✓ Nenhuma frase de tela sai sem acento > packages/shared/src (tudo) 15ms
+   × Nenhuma frase de tela sai sem acento > packages/campo/src (tudo) 17ms
+     → frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(5) ] to deeply equal []
+   ✓ Nenhuma frase de tela sai sem acento > apps/campo/src (tudo) 128ms
+   ✓ Nenhuma frase de tela sai sem acento > cada exceção ainda existe (lista velha esconde regressão) 154ms
+ ❯ test/senha-provisoria.test.ts (9 tests | 1 failed) 6481ms
+   ✓ A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera  962ms
+   × A senha temporária de quem administra > a senha atual errada na troca responde em português correto e diz o que fazer 923ms
+     → expected 'A senha atual nao confere.' to be 'A senha atual não confere. Confira e …' // Object.is equality
+   ✓ A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403  695ms
+   ✓ A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha  913ms
+   ✓ A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova  692ms
+   ✓ A senha temporária de quem administra > a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403  689ms
+   ✓ A senha inicial do console > provisionar_municipio carimba 72 horas no administrador que nasce 3ms
+   ✓ A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa  457ms
+   ✓ A senha inicial do console > a coluna não existe para ninguém que não passou pela senha sorteada 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/mensagens-visiveis-com-acento.test.ts > Nenhuma frase de tela sai sem acento > apps/api/src (mensagens)
+AssertionError: frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "apps/api/src/auth/segundo-fator.ts:341 [nao] A senha atual nao confere.",
++   "apps/api/src/auth/servico.ts:1094 [nao] A senha atual nao confere.",
++   "apps/api/src/auth/servico.ts:1178 [nao] A senha atual nao confere.",
++ ]
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts:134:9
+    132|         achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a…
+    133|         "frase sem acento onde o português pede: acentue, ou, se NÃO é…
+    134|       ).toEqual([]);
+       |         ^
+    135|     });
+    136|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/mensagens-visiveis-com-acento.test.ts > Nenhuma frase de tela sai sem acento > apps/web/src (tudo)
+AssertionError: frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "apps/web/src/main.tsx:10 [nao] Elemento #root nao encontrado",
++ ]
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts:134:9
+    132|         achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a…
+    133|         "frase sem acento onde o português pede: acentue, ou, se NÃO é…
+    134|       ).toEqual([]);
+       |         ^
+    135|     });
+    136|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/mensagens-visiveis-com-acento.test.ts > Nenhuma frase de tela sai sem acento > packages/campo/src (tudo)
+AssertionError: frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "packages/campo/src/transporte.ts:220 [conexao] Sem conexao com o servidor.",
++   "packages/campo/src/transporte.ts:226 [indisponivel] Servidor indisponivel (",
++   "packages/campo/src/transporte.ts:268 [conexao] Sem conexao com o armazenamento.",
++   "packages/campo/src/transporte.ts:276 [indisponivel] Armazenamento indisponivel (",
++   "packages/campo/src/transporte.ts:280 [autorizacao] A autorizacao de envio venceu.",
++ ]
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts:134:9
+    132|         achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a…
+    133|         "frase sem acento onde o português pede: acentue, ou, se NÃO é…
+    134|       ).toEqual([]);
+       |         ^
+    135|     });
+    136|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/senha-provisoria.test.ts > A senha temporária de quem administra > a senha atual errada na troca responde em português correto e diz o que fazer
+AssertionError: expected 'A senha atual nao confere.' to be 'A senha atual não confere. Confira e …' // Object.is equality
+
+Expected: "A senha atual não confere. Confira e digite de novo."
+Received: "A senha atual nao confere."
+
+ ❯ test/senha-provisoria.test.ts:126:38
+    124|       expect(errada.statusCode, errada.body).toBe(401);
+    125|       expect(errada.json().erro).toBe("credenciais");
+    126|       expect(errada.json().mensagem).toBe("A senha atual não confere. …
+       |                                      ^
+    127|     } finally {
+    128|       await mem.bruto.query(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  4 failed | 17 passed (21)
+   Start at  18:35:20
+   Duration  7.15s (transform 241ms, setup 30ms, collect 664ms, tests 7.06s, environment 0ms, prepare 60ms)
+

@@ -455,6 +455,16 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     não muda (1356) e o `vitest run` soma 2 (1390, com 34 pulados).
   */
   "V2-F00-E07-correcao-4-complemento": { total: 2, falhas: 0, puladas: 2 },
+  /*
+    V2-F00-E09, correção 4 (2026-10-19), arbitragem da rodada 5:
+    `mensagens-visiveis-com-acento.test.ts` é novo, com 12 casos (a varredura
+    morde numa fonte sintética, e a árvore real da API, do painel, do
+    compartilhado e do motor de campo não tem frase de tela sem acento), e
+    `senha-provisoria.test.ts` ganha 1 caso de PGlite (a senha atual errada na
+    troca responde 401 com a frase acentuada que diz o que fazer). Soma 13 na
+    lista e 13 no `vitest run`, sem pulo novo.
+  */
+  "V2-F00-E09-correcao-4": { total: 13, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -526,6 +536,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
   // V2-F00-E05, correção 2: `sessao-e-entrada.test.ts` ganha 4 casos (403 de cada código novo do catálogo, sem ação, não renova nem derruba a tela).
   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
+  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 12 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos). Nenhuma falha nova.
+  "V2-F00-E09-correcao-4": { total: 12, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -795,13 +807,18 @@ export const PASSOS = [
     temas, geometria a 320 px): 288 verificacoes executadas no fluxo contra a
     API (as `ok(` no inicio de linha, que o `conferir` conta, sao 258) e 64 na
     largura estreita. Medido no Mac, Node 24, Chromium.
+
+    Correcao 4 da E09 (2026-10-19): `layout-estreito.e2e.mjs` ganha tres secoes
+    (o aviso passageiro por cima da janela da senha temporaria, o email que nao
+    quebra no meio da palavra e a frase da senha atual errada nas duas telas):
+    de 64 para 104 verificacoes executadas na largura estreita.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 64   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 104   Falhou: 0"] },
   },
 ];
 

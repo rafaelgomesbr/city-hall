@@ -526,6 +526,14 @@ a:hover { color: var(--ds-accent-hover); }
   legítimo; no meio da palavra, não.
 */
 .tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
+/*
+  Email na linha secundária: quebra SÓ onde o componente `EmailQuebravel` põe um
+  `<wbr>` (depois do "@" e de cada ponto). Sem `normal` aqui, o `anywhere` da
+  regra-mãe voltaria a cortar "exemplo.gov.br" no meio, e o `<wbr>` não valeria
+  de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
+  tabela (que rola), e não a palavra.
+*/
+.tabela__secundario--email { overflow-wrap: normal; word-break: normal; }
 
 .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
 .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
@@ -1497,7 +1505,7 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
   tabela dividia o que sobrava de modo que o nome quebrava em três linhas
   ("Diego / Nakamura / Alves"). O piso de largura segura o nome em até duas
-  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, continua quebrando onde precisar.
+  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, quebra só depois do "@" e dos pontos (`EmailQuebravel`), nunca no meio de uma palavra.
 */
 .tabela__pessoa {
   display: flex; align-items: center; gap: var(--ds-sp-3);

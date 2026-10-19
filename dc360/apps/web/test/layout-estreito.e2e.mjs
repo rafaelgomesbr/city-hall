@@ -453,6 +453,202 @@ ok("a confirmação é o próprio aviso (tabindex -1), sem papel de região viva
    foco.eOAviso && foco.tabindex === "-1" && foco.papel === null && !foco.regiaoViva, `(${JSON.stringify(foco)})`);
 await ctxConta.close();
 
+
+console.log("\n== 8. O aviso passageiro não cobre a janela da senha temporária (V2-F00-E09, correção 4) ==");
+/*
+  O defeito da arbitragem da rodada 5: encerrar as sessões de alguém e, logo em
+  seguida, redefinir a senha dessa mesma pessoa (o "perdi o celular"). O aviso de
+  "sessões encerradas" ficava por cima da janela da senha temporária, no
+  `z-index` 50 contra os 40 da janela; a 320x568 escondia "Copiar senha" e "Já
+  anotei a senha", e o toque no texto do aviso caía no botão escondido e fechava
+  a janela, perdendo a senha de uso único.
+
+  Mede o que a pessoa vê e toca: nenhum aviso visível sobrepõe o retângulo da
+  janela, e o centro de cada botão da janela recebe o toque (o que o navegador
+  entrega a `elementFromPoint`, que já ignora o ramo `inert`).
+*/
+for (const [largura, altura] of [[320, 568], [390, 844], [1280, 900]]) {
+  await page.setViewportSize({ width: largura, height: altura });
+  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+  const alvo = page.locator("tbody tr", { hasText: emailLongo });
+  await alvo.getByRole("button", { name: "Encerrar sessões", exact: true }).scrollIntoViewIfNeeded();
+  await alvo.getByRole("button", { name: "Encerrar sessões", exact: true }).click();
+  const confirmacao = page.getByRole("dialog");
+  await confirmacao.waitFor({ timeout: 10_000 });
+  await confirmacao.getByRole("button", { name: /^Encerrar sessões de Marcos/ }).click();
+  await page.waitForSelector(".toast", { timeout: 20_000 });
+  await alvo.getByRole("button", { name: "Redefinir senha", exact: true }).click();
+  const janelaSenha = page.getByRole("dialog");
+  await janelaSenha.waitFor({ timeout: 10_000 });
+  await janelaSenha.getByRole("button", { name: /^Redefinir a senha de Marcos/ }).click();
+  await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(500);
+  const medida = await page.evaluate(() => {
+    const painel = document.querySelector(".modal__painel").getBoundingClientRect();
+    const visiveis = [...document.querySelectorAll(".toast")].filter(
+      (t) => t.getClientRects().length > 0 && getComputedStyle(t).visibility !== "hidden",
+    );
+    const sobre = visiveis.filter((t) => {
+      const a = t.getBoundingClientRect();
+      return !(a.right <= painel.left || a.left >= painel.right || a.bottom <= painel.top || a.top >= painel.bottom);
+    });
+    const botoes = [...document.querySelectorAll(".modal__painel button")].map((b) => {
+      const r = b.getBoundingClientRect();
+      const topo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { texto: b.textContent.trim(), recebeOToque: topo?.closest("button") === b };
+    });
+    return { visiveis: visiveis.length, sobreAJanela: sobre.length, botoes };
+  });
+  ok(`a ${largura} px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre`,
+     medida.sobreAJanela === 0, `(${medida.sobreAJanela} aviso(s) sobre a janela)`);
+  ok(`a ${largura} px, o centro de cada botão da janela da senha temporária recebe o toque`,
+     medida.botoes.length >= 2 && medida.botoes.every((b) => b.recebeOToque),
+     `(${JSON.stringify(medida.botoes)})`);
+  // Fechar a janela pelo botão dela: o aviso, que esperava, volta, e o "Fechar" dele responde.
+  await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).click();
+  await janelaSenha.waitFor({ state: "detached", timeout: 10_000 });
+  const aviso = page.locator(".toast");
+  await aviso.waitFor({ timeout: 10_000 });
+  ok(`a ${largura} px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)`,
+     /Marcos/.test((await aviso.textContent()) ?? ""));
+  await aviso.getByRole("button", { name: "Fechar" }).click({ timeout: 5_000 });
+  await aviso.waitFor({ state: "detached", timeout: 5_000 });
+  ok(`a ${largura} px, o Fechar do aviso responde e o aviso sai da tela`, (await page.locator(".toast").count()) === 0);
+}
+
+console.log("\n== 9. O email da lista de usuários não quebra no meio da palavra (V2-F00-E09, correção 4) ==");
+/*
+  Mede por caractere (Range), e não por classe CSS: o defeito era o navegador
+  cortar "serraalta.exemplo.gov.br" onde a coluna acabava ("serraalta.ex /
+  emplo.gov.br", "exemplo.gov.b / r"). Toda linha de email, menos a última,
+  tem de terminar em "@" ou em ponto; e o email inteiro tem de caber na célula.
+*/
+async function quebrasDosEmails(pg) {
+  return pg.evaluate(() => {
+    const saida = [];
+    for (const el of document.querySelectorAll("tbody td:first-child .tabela__secundario")) {
+      if (!el.textContent.includes("@")) continue;
+      const nos = [];
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) nos.push(w.currentNode);
+      const linhas = [];
+      let atual = "", y = null;
+      for (const no of nos) {
+        for (let i = 0; i < no.textContent.length; i++) {
+          const r = document.createRange();
+          r.setStart(no, i); r.setEnd(no, i + 1);
+          const ry = Math.round(r.getBoundingClientRect().top);
+          if (y !== null && ry > y + 2) { linhas.push(atual); atual = ""; }
+          y = ry; atual += no.textContent[i];
+        }
+      }
+      linhas.push(atual);
+      const celula = el.closest("td").getBoundingClientRect();
+      const texto = el.getBoundingClientRect();
+      saida.push({
+        email: nos.map((n) => n.textContent).join(""), linhas,
+        noMeioDaPalavra: linhas.slice(0, -1).filter((l) => !/[@.]$/.test(l)),
+        passaDaCelula: texto.right > celula.right + 0.5,
+      });
+    }
+    return saida;
+  });
+}
+await page.setViewportSize({ width: 1280, height: 900 });
+await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+for (const largura of [1440, 1280, 768, 390, 320]) {
+  await page.setViewportSize({ width: largura, height: 900 });
+  await page.waitForTimeout(200);
+  const emails = await quebrasDosEmails(page);
+  ok(`a ${largura} px a lista mostra pelo menos 5 emails para medir`, emails.length >= 5, `(${emails.length})`);
+  const mal = emails.filter((e) => e.noMeioDaPalavra.length > 0);
+  ok(`a ${largura} px nenhum email quebra no meio da palavra`,
+     mal.length === 0, `(${mal.map((e) => e.linhas.join(" / ")).join(" | ")})`);
+  const estouro = emails.filter((e) => e.passaDaCelula);
+  ok(`a ${largura} px nenhum email passa da própria célula`,
+     estouro.length === 0, `(${estouro.map((e) => e.email).join(", ")})`);
+}
+
+console.log("\n== 10. A senha atual errada diz o que fazer, com acento, no campo certo (V2-F00-E09, correção 4) ==");
+/*
+  Duas telas fazem o mesmo pedido (`/auth/trocar-senha`) e dão nomes diferentes
+  ao campo: "Senha que você usa hoje" em Minha conta e "Senha provisória que você
+  recebeu" em "Defina a sua senha". A frase tem de nomear o campo da tela, ter
+  acento e dizer o que fazer. O 401 que o teste provoca é esperado e fica fora do
+  registro de erros de console; qualquer outro erro continua reprovando.
+*/
+async function contextoQueEsperaOs401() {
+  const ctx = await navegador.newContext({ locale: "pt-BR" });
+  const pg = await ctx.newPage();
+  pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+  pg.on("console", (m) => {
+    if (m.type() !== "error") return;
+    if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
+    erros.push(`console: ${m.text()}`);
+  });
+  return { ctx, pg };
+}
+/** O texto do erro do campo, ou uma frase que reprova com clareza se o campo não mostrou erro nenhum. */
+async function textoDoErro(erro) {
+  try {
+    await erro.waitFor({ timeout: 8_000 });
+    return ((await erro.textContent()) ?? "").trim();
+  } catch {
+    return "(o campo não mostrou erro nenhum)";
+  }
+}
+{
+  const { ctx, pg } = await contextoQueEsperaOs401();
+  await entrar(emailCoordenacao, SENHA_DO_TESTE, pg);
+  for (const [largura, altura] of [[1280, 900], [390, 844], [320, 568]]) {
+    await pg.setViewportSize({ width: largura, height: altura });
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-dela");
+    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
+    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
+    await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
+    const erro = pg.locator("#conta-senha-atual-erro");
+    const texto = await textoDoErro(erro);
+    ok(`Minha conta a ${largura} px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer`,
+       texto.endsWith("A senha que você usa hoje não confere. Confira e digite de novo."), `("${texto}")`);
+    ok(`Minha conta a ${largura} px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento`,
+       ((await pg.locator("#conta-senha-atual").getAttribute("aria-describedby")) ?? "").includes("conta-senha-atual-erro")
+         && !/\bnao\b/.test(texto), `("${texto}")`);
+  }
+  await ctx.close();
+}
+{
+  const admin = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  const redefinida = await viaApi(`/usuarios/${criada.json.id}/redefinir-senha`, { metodo: "POST", token: admin.json.acesso, corpo: {} });
+  ok("a administradora redefine a senha da pessoa de teste (200 com senha temporária)",
+     redefinida.status === 200 && typeof redefinida.json.senhaTemporaria === "string", `(${redefinida.status})`);
+  const { ctx, pg } = await contextoQueEsperaOs401();
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+  await pg.locator("#entrada-email").fill(emailLongo);
+  await pg.locator("#entrada-senha").fill(redefinida.json.senhaTemporaria);
+  await pg.getByRole("button", { name: "Entrar", exact: true }).click();
+  await pg.getByRole("heading", { name: "Defina a sua senha" }).waitFor({ timeout: 30_000 });
+  for (const [largura, altura] of [[390, 844], [1280, 900], [320, 568]]) {
+    await pg.setViewportSize({ width: largura, height: altura });
+    await pg.locator("#senha-nova-atual").fill("provisoria-digitada-errada");
+    await pg.locator("#senha-nova").fill("frase-nova-do-teste-2026");
+    await pg.locator("#senha-nova-repetida").fill("frase-nova-do-teste-2026");
+    await pg.getByRole("button", { name: "Definir senha e entrar" }).click();
+    const erro = pg.locator("#senha-nova-atual-erro");
+    const texto = await textoDoErro(erro);
+    ok(`"Defina a sua senha" a ${largura} px: a frase da provisória errada nomeia a provisória e diz o que fazer`,
+       texto.endsWith("A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo."),
+       `("${texto}")`);
+    ok(`"Defina a sua senha" a ${largura} px: o erro está no campo da provisória, e não na senha nova`,
+       ((await pg.locator("#senha-nova-atual").getAttribute("aria-describedby")) ?? "").includes("senha-nova-atual-erro")
+         && (await pg.locator("#senha-nova-erro").count()) === 0 && !/\bnao\b/.test(texto), `("${texto}")`);
+  }
+  await ctx.close();
+}
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);

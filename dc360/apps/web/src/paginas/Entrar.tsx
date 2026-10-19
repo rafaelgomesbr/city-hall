@@ -14,7 +14,7 @@ import { Campo } from "../componentes/Campo";
 import { AtivarSegundoFator } from "../componentes/SegundoFator";
 import { useTitulo } from "../seo/titulo";
 import { conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada } from "./entrar-regras";
-import { conferirSenhaNova, passoDepoisDeEntrar } from "./senha-provisoria-regras";
+import { conferirSenhaNova, erroDaSenhaAtual, passoDepoisDeEntrar } from "./senha-provisoria-regras";
 
 /**
  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
@@ -526,7 +526,11 @@ function PassoDaSenhaNova(
       await trocarSenha(atual, nova);
       aoConcluir();
     } catch (e: unknown) {
-      if (e instanceof ErroDaApi && e.campos.length > 0) {
+      const daSenha = erroDaSenhaAtual(e, "senha-provisoria");
+      if (daSenha) {
+        // O erro mora no campo que a pessoa digitou errado, com o nome que ele tem na tela.
+        setErrosDeCampo({ atual: daSenha });
+      } else if (e instanceof ErroDaApi && e.campos.length > 0) {
         setErrosDeCampo(errosPorCampo(e.campos));
       } else {
         setErro(e instanceof Error ? e.message : String(e));

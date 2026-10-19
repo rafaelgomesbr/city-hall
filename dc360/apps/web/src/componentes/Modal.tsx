@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as EventoDeTecla, ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { registrarModalAberto } from "./modais-abertos";
 
 /**
  * A janela modal que o painel não tinha.
@@ -379,6 +380,12 @@ export function Modal({
 
     const quemAbriu = document.activeElement;
     document.body.appendChild(hospedeiro);
+    /*
+      Avisa quem não pode aparecer por cima da janela (o aviso passageiro, ver
+      `modais-abertos.ts`). Vem antes da interdição porque o aviso que estava
+      na tela sai dela agora, e não depois de a página virar `inert`.
+    */
+    const liberarAvisos = registrarModalAberto();
     const restaurar = interditarFundo(
       [...document.body.children].filter((filho) => filho !== hospedeiro),
     );
@@ -395,6 +402,7 @@ export function Modal({
     return () => {
       restaurar();
       hospedeiro.remove();
+      liberarAvisos();
       /*
         Quem abriu pode ter sumido: encerrar a ocorrência tira da tela o
         próprio botão de encerrar. `focus()` em nó desconectado não falha e não

@@ -1,0 +1,1219 @@
+
+> dc360@0.1.0 test:campo
+> node scripts/testar-campo.mjs
+
+
+== Cache .expo/types: não há cache de rotas tipadas ==
+
+== TypeScript estrito do aplicativo de campo ==
+
+> @dc360/campo-app@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+== Testes do aplicativo de campo ==
+
+> @dc360/campo-app@0.1.0 test
+> jest --json --outputFile=node_modules/.cache/dc360-contagem.json
+
+PASS src/ui/folha-arrastavel.test.tsx (6.666 s)
+PASS src/ui/mapa/mapa-do-imovel.test.tsx
+PASS src/__tests__/menu-de-vidro-e-transicoes.test.tsx (9.668 s)
+PASS src/ui/fila-como-produto.test.tsx (10.07 s)
+PASS src/__tests__/hoje-lista-e-mapa.test.tsx
+PASS src/ui/dialogo.test.tsx
+PASS src/dados/ordem-do-dia.test.ts
+PASS src/__tests__/vistoria-mapa-e-historico.test.tsx (11.603 s)
+PASS src/__tests__/devolver-tarefa-vencida.test.tsx (11.493 s)
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/__tests__/tarefas-em-sanfona.test.tsx
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/ui/artefato-de-documento.test.tsx
+PASS src/__tests__/lista-de-tarefas-nao-pula.test.tsx
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/ui/linha-de-acoes.test.tsx
+PASS src/__tests__/mapa-tela-dedicada.test.tsx (14.205 s)
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1045 |       /* Texto não tem como ser interpolado na thread de interface. */
+      1046 |       useNativeDriver: false,
+    > 1047 |     }).start(({ finished }) => { if (finished) setTerminou(true); });
+           |                                                ^
+      1048 |     return () => {
+      1049 |       progresso.removeListener(ouvinte);
+      1050 |       progresso.stopAnimation();
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/dados/evidencia-no-disco.test.ts
+PASS src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
+PASS src/dados/avisos.test.ts
+PASS src/ui/item-de-tarefa.test.tsx
+PASS src/ui/faixa-de-sincronizacao.test.tsx
+PASS src/ui/dialogo-na-fila.test.tsx
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/dados/foto-do-agente.test.ts
+PASS src/__tests__/vistoria-como-produto.test.tsx (17.782 s)
+PASS src/dados/mapa.test.ts
+PASS src/dados/token.test.ts
+PASS src/__tests__/vistoria-nao-sai-quebrada.test.tsx
+PASS src/dados/mapa-de-base.test.ts
+PASS src/dados/tarefa-nova-avisa.test.ts
+  ● Console
+
+    console.warn
+      Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+
+    console.warn
+      Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+
+    console.warn
+      Um ouvinte de tarefa nova estourou Error: motor tátil ausente
+
+      185 |       // O aviso é conforto em cima da lista, que já está em disco. Falhar em
+      186 |       // avisar não pode virar falha em atualizar.
+    > 187 |       console.warn("Um ouvinte de tarefa nova estourou", erro);
+          |               ^
+      188 |     }
+      189 |   }
+      190 | }
+
+
+PASS src/__tests__/orgaos-a-acionar.test.tsx (8.102 s)
+  ● Console
+
+    console.error
+      An update to Dialogo inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      208 |   const fixarMontado = (valor: boolean) => {
+      209 |     montadoRef.current = valor;
+    > 210 |     setMontado(valor);
+          |     ^
+      211 |   };
+      212 |
+      213 |   useEffect(() => {
+
+
+PASS src/__tests__/tela-de-vistoria.test.tsx (6.639 s)
+PASS src/__tests__/avisos-a-tela-do-sino.test.tsx
+PASS src/__tests__/tema-a-escolha-do-agente.test.tsx
+PASS src/__tests__/perfil-a-foto-os-numeros-e-a-equipe.test.tsx (7.164 s)
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/ui/dialogo-na-vistoria.test.tsx
+PASS src/ui/identidade-do-produto.test.tsx
+PASS src/ui/aviso-e-vazio.test.tsx
+PASS src/__tests__/a-lista-de-tarefas-entra-e-sai.test.tsx
+PASS src/dados/rota.test.ts
+  ● Console
+
+    console.warn
+      Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+
+    console.warn
+      Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+
+PASS src/__tests__/vistoria-ao-voltar-ao-foco.test.tsx
+PASS src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+PASS src/__tests__/a-aba-nao-fica-escura.test.tsx
+PASS src/ui/icones.test.tsx
+PASS src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+PASS src/__tests__/vistoria-ja-coletada.test.tsx
+PASS src/ui/fontes.test.tsx
+PASS src/__tests__/perfil-equipe-e-concluidas.test.tsx
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/__tests__/vistoria-ainda-nao-baixada.test.tsx
+PASS src/push/provedor-descarta-outro-municipio.test.tsx
+PASS src/ui/hierarquia.test.ts
+PASS src/ui/corrigir-na-fila.test.tsx
+PASS src/ui/campo.test.tsx
+PASS src/ui/chip.test.tsx
+PASS src/ui/tokens-que-faltavam.test.ts
+PASS src/push/tarefa-nova-com-o-aplicativo-aberto.test.tsx
+PASS src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx
+PASS src/dados/coletas.test.ts
+  ● Console
+
+    console.warn
+      Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+
+    console.warn
+      Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+
+PASS src/dados/historico-da-casa.test.ts
+PASS src/__tests__/o-cartao-responde-ao-dedo.test.tsx
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/ui/sino.test.tsx
+PASS src/ui/item-de-lista.test.tsx
+PASS src/__tests__/perfil-identidade-e-estado.test.tsx
+PASS src/__tests__/perfil-o-que-eu-conclui.test.tsx
+PASS src/ui/fila-pausada-pela-sessao.test.tsx
+  ● Console
+
+    console.error
+      An update to Dado inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      1037 |     if (!animar) return;
+      1038 |     const ouvinte = progresso.addListener(({ value }) => {
+    > 1039 |       setDesenhado(String(Math.round(value * alvo)));
+           |       ^
+      1040 |     });
+      1041 |     Animated.timing(progresso, {
+      1042 |       toValue: 1,
+
+
+PASS src/ui/dado-que-conta.test.tsx
+PASS src/push/volta-do-segundo-plano.test.tsx
+PASS src/ui/pilula-do-produto.test.tsx
+PASS src/dados/falha-de-atualizacao.test.ts
+PASS src/dados/reconciliacao-ligada.test.ts
+PASS src/ui/devolucao-na-fila.test.tsx
+PASS src/push/logout-cala-o-aparelho.test.tsx
+PASS src/dados/sessao.test.tsx
+  ● Console
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+
+    console.warn
+      Falha ao limpar o banco local no logout TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      346 |     );
+      347 |   } catch (erro) {
+    > 348 |     console.warn("Falha ao limpar o banco local no logout", erro);
+          |             ^
+      349 |   }
+      350 |
+      351 |   /*
+
+
+    console.warn
+      Falha ao apagar arquivos de prova no logout TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+
+      379 |     }
+      380 |   } catch (erro) {
+    > 381 |     console.warn("Falha ao apagar arquivos de prova no logout", erro);
+          |             ^
+      382 |   }
+      383 |
+      384 |   /*
+
+
+PASS src/dados/sair-e-entrar-nao-perde-a-coleta.test.ts
+PASS src/ui/guarda-de-saida-da-vistoria.test.tsx
+PASS src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+PASS src/__tests__/perfil-um-indicador-por-fato.test.tsx
+PASS src/ui/espera.test.tsx
+PASS src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx
+PASS src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
+PASS src/ui/botoes-que-chamam.test.tsx
+PASS src/ui/dialogo-na-conta.test.tsx
+PASS src/dados/contagem-de-avisos.test.tsx
+  ● Console
+
+    console.error
+      You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one.
+
+
+    console.error
+      You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one.
+
+
+PASS src/ui/cena-da-aba.test.tsx
+  ● Console
+
+    console.error
+      An update to Animated(View) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+
+    console.error
+      An update to Animated(View) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+
+    console.error
+      An update to Animated(View) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+
+    console.error
+      An update to Animated(View) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+
+PASS src/dados/rascunho-da-correcao.test.ts
+PASS src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx
+PASS src/push/canais.test.ts
+PASS src/ui/retorno-tatil.test.ts
+PASS src/ui/faixa-ligada-a-fila-real.test.tsx
+PASS src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+PASS src/push/registro.test.ts
+PASS src/dados/catalogo-de-orgaos.test.ts
+PASS src/push/despacho-toca-uma-vez.test.tsx
+PASS src/__tests__/entrar-responde-ao-dedo.test.tsx
+PASS src/dados/preferencia-de-tema.test.ts
+PASS src/__tests__/mapa-a-legenda-nao-mente.test.tsx
+PASS src/push/aviso.test.ts
+PASS src/dados/numeros-do-agente.test.ts
+PASS src/__tests__/lista-de-tarefas-coletadas.test.tsx
+PASS src/push/canal-padrao-do-android.test.ts
+PASS src/__tests__/perfil-caminho-para-os-ajustes.test.tsx
+PASS src/ui/escolha-de-mapa.test.tsx
+PASS src/dados/rascunho-de-versao-antiga.test.ts
+PASS src/ui/mapa/estilo-do-google.test.ts
+PASS src/push/registro-tenta-de-novo.test.tsx
+PASS src/push/aviso-local.test.ts
+PASS src/ui/resposta-ao-toque.test.tsx
+PASS src/dados/obter-fila-uma-so.test.ts
+PASS src/ui/mapa/use-mapa-do-municipio.test.tsx
+PASS src/dados/pausa-da-fila.test.ts
+PASS src/ui/grafico.test.tsx
+PASS src/ui/mapa/plano-esquematico.test.tsx
+PASS src/ui/mapa/criticidade.test.ts
+PASS src/dados/api-avisos.test.ts
+PASS src/dados/logout-nao-apaga-prova.test.ts
+  ● Console
+
+    console.warn
+      Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 1,
+        errstr: 'SQL logic error'
+      }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+
+    console.warn
+      Arquivos de prova preservados: não deu para conferir a fila
+
+      367 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      368 |     if (emUso === null) {
+    > 369 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      370 |     } else {
+      371 |       const dir = new Directory(Paths.document);
+      372 |       for (const item of dir.list()) {
+
+
+PASS src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx
+PASS src/dados/correcao-da-coleta.test.ts
+PASS src/ui/mapa/plano-das-tarefas.test.tsx
+PASS src/dados/lista-cortada.test.ts
+PASS src/ui/folha-de-escolha.test.tsx
+PASS src/dados/api-tempo-limite.test.ts
+PASS src/dados/atualizacao.test.ts
+PASS src/dados/aviso-da-saida.test.ts
+PASS src/ui/elevacao-no-cartao.test.tsx
+PASS src/push/permissao.test.ts
+PASS src/ui/avatar.test.tsx
+PASS src/ui/mapa/pinos.test.ts
+PASS src/dados/conquistas.test.ts
+PASS src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx
+PASS src/dados/lista-cortada-no-cliente.test.ts
+PASS src/dados/api-acesso-suspenso.test.ts
+PASS src/dados/api-aparelho.test.ts
+PASS src/dados/api-conta-desativada.test.ts
+PASS src/ui/cracha.test.tsx
+PASS src/ui/mapa/desenho-da-criticidade.test.tsx
+PASS src/dados/precisao-do-gps.test.ts
+PASS src/__tests__/perfil-o-atalho-dos-avisos.test.tsx
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 134 passed, 134 total
+Tests:       1932 passed, 1932 total
+Snapshots:   0 total
+Time:        39.45 s
+Ran all test suites.
+Test results written to: node_modules/.cache/dc360-contagem.json
+
+A leitura do código e o jest concordam: 1932 casos.
+
+O aplicativo de campo passou: tipos limpos e testes verdes.

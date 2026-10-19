@@ -1,0 +1,98 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts (12 tests | 3 failed) 483ms
+   ✓ A varredura de acentos morde > acha o erro de verdade: a frase da senha atual, sem acento, num erro de negócio 4ms
+   ✓ A varredura de acentos morde > acha na propriedade `mensagem` da resposta e no texto que o Zod devolve 2ms
+   ✓ A varredura de acentos morde > não acha o que a pessoa não lê: comentário, log, erro de desenvolvedor, código e SQL 1ms
+   ✓ A varredura de acentos morde > no modo `tudo`, acha o texto da tela em JSX e em cadeia, e deixa passar classe, email de exemplo e variável 1ms
+   ✓ A varredura de acentos morde > a palavra com acento e as que também se escrevem sem acento passam 0ms
+   × Nenhuma frase de tela sai sem acento > apps/api/src (mensagens) 133ms
+     → frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(4) ] to deeply equal []
+   ✓ Nenhuma frase de tela sai sem acento > apps/console/src (mensagens) 20ms
+   × Nenhuma frase de tela sai sem acento > apps/web/src (tudo) 114ms
+     → frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ Array(1) ] to deeply equal []
+   ✓ Nenhuma frase de tela sai sem acento > packages/shared/src (tudo) 13ms
+   × Nenhuma frase de tela sai sem acento > packages/campo/src (tudo) 12ms
+     → frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(5) ] to deeply equal []
+   ✓ Nenhuma frase de tela sai sem acento > apps/campo/src (tudo) 121ms
+   ✓ Nenhuma frase de tela sai sem acento > cada exceção ainda existe (lista velha esconde regressão) 62ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/mensagens-visiveis-com-acento.test.ts > Nenhuma frase de tela sai sem acento > apps/api/src (mensagens)
+AssertionError: frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "apps/api/src/auth/segundo-fator.ts:341 [nao] A senha atual nao confere.",
++   "apps/api/src/auth/servico.ts:1094 [nao] A senha atual nao confere.",
++   "apps/api/src/auth/servico.ts:1178 [nao] A senha atual nao confere.",
++   "apps/api/src/rotas/aparelhos.ts:42 [producao] Ambiente precisa ser producao ou teste",
++ ]
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts:128:9
+    126|         achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a…
+    127|         "frase sem acento onde o português pede: acentue, ou, se NÃO é…
+    128|       ).toEqual([]);
+       |         ^
+    129|     });
+    130|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/mensagens-visiveis-com-acento.test.ts > Nenhuma frase de tela sai sem acento > apps/web/src (tudo)
+AssertionError: frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "apps/web/src/main.tsx:10 [nao] Elemento #root nao encontrado",
++ ]
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts:128:9
+    126|         achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a…
+    127|         "frase sem acento onde o português pede: acentue, ou, se NÃO é…
+    128|       ).toEqual([]);
+       |         ^
+    129|     });
+    130|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/mensagens-visiveis-com-acento.test.ts > Nenhuma frase de tela sai sem acento > packages/campo/src (tudo)
+AssertionError: frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "packages/campo/src/transporte.ts:220 [conexao] Sem conexao com o servidor.",
++   "packages/campo/src/transporte.ts:226 [indisponivel] Servidor indisponivel (",
++   "packages/campo/src/transporte.ts:268 [conexao] Sem conexao com o armazenamento.",
++   "packages/campo/src/transporte.ts:276 [indisponivel] Armazenamento indisponivel (",
++   "packages/campo/src/transporte.ts:280 [autorizacao] A autorizacao de envio venceu.",
++ ]
+
+ ❯ test/mensagens-visiveis-com-acento.test.ts:128:9
+    126|         achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a…
+    127|         "frase sem acento onde o português pede: acentue, ou, se NÃO é…
+    128|       ).toEqual([]);
+       |         ^
+    129|     });
+    130|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 9 passed (12)
+   Start at  18:32:16
+   Duration  862ms (transform 26ms, setup 17ms, collect 181ms, tests 483ms, environment 0ms, prepare 32ms)
+

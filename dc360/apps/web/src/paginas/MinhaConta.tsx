@@ -17,6 +17,7 @@ import {
   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
 } from "./sessoes-regras";
 import { useTitulo } from "../seo/titulo";
+import { erroDaSenhaAtual } from "./senha-provisoria-regras";
 
 /**
  * A conta de quem está usando o sistema, e a troca da própria senha.
@@ -76,7 +77,9 @@ export function MinhaConta() {
       setSucesso(mensagem);
       setAtual(""); setNova(""); setRepetida("");
     } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : String(e));
+      const daSenha = erroDaSenhaAtual(e, "minha-conta");
+      if (daSenha) setErrosDeCampo({ atual: daSenha });
+      else setErro(e instanceof Error ? e.message : String(e));
     } finally {
       setEnviando(false);
     }
