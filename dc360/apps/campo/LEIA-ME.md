@@ -15,18 +15,25 @@ Android) está no repositório, e relato não é prova. Até a V2-F14-E12 arquiv
 esse artefato, nada aqui deve ser lido como "testado em aparelho".
 
 Emulador é outra coisa, e há um pouco dele arquivado: os validadores das
-etapas E06 e E16 rodaram o aplicativo no emulador Android (AVD
+etapas E06, E15 e E16 rodaram o aplicativo no emulador Android (AVD
 `Medium_Phone_API_36.1`, APK de depuração construído do commit validado) e
 deixaram capturas e o relato. As capturas estão em
 `docs/evidencias-v2/G00/V2-F00-E06/validacao/4b96ea7/anexos/` (seis, da fila e
 da faixa de envio pausadas pela sessão encerrada e pela senha provisória) e em
 `docs/evidencias-v2/G00/V2-F00-E16/validacao/4b96ea7/anexos/` (seis, da câmera,
-da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), e o
-relato está nos `qa.md` dessas duas pastas. Duas ressalvas: parte delas foi
+da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), mais
+uma da E15 em `docs/evidencias-v2/G00/V2-F00-E15/validacao/4b96ea7/anexos/`
+(`E15-dialogo-sair-da-conta.png`, o diálogo "Sair da conta?" com a coleta
+guardada no aparelho), e o relato está nos `qa.md` dessas três pastas. Duas ressalvas: parte delas foi
 tirada com remendos de QA que nunca entraram no código (cada `qa.md` diz quais),
 e emulador não prova câmera, GPS nem `expo-sqlite` sob morte de processo num
-aparelho de verdade. Não há nenhum registro de execução no simulador de iOS
-(ele só existe em Mac, e depende da máquina de quem roda).
+aparelho de verdade. Do simulador de iOS há só o relato, e sem captura no
+repositório: o validador da E06 (rodada 3, `qa.md` em
+`docs/evidencias-v2/G00/V2-F00-E06/validacao/52952a1/`) construiu o aplicativo
+em Debug e o abriu no Simulador (iPhone 17 Pro, iOS 26.5) apontando para uma API
+local, e o da E15 repete a frase; ninguém conseguiu dirigir a interface lá (a
+captura da tela de entrada que o `qa.md` cita não está no repositório). Ou
+seja: compila e abre no simulador de iOS, e nada além disso foi visto.
 
 O que É verificável daqui, e está verificado:
 

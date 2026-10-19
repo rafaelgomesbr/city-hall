@@ -883,7 +883,10 @@ export type SaidaACampo = z.infer<typeof saidaACampoSchema>;
 export const prorrogacaoDeSaidaSchema = z.object({
   idempotencyKey: uuidSchema,
   saidaId: uuidSchema,
-  /** Quantos minutos A MAIS, contados a partir do prazo corrente no servidor. */
+  /**
+   * Quantos minutos A MAIS, contados a partir de AGORA no servidor (`now()`); o prazo
+   * novo nunca fica abaixo do corrente (`GREATEST`, ver `rotas/saida-a-campo.ts`).
+   */
   minutosAdicionais: duracaoDeSaidaSchema,
   pedidaEm: z.string().datetime(),
 });

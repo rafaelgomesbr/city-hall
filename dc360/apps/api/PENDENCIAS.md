@@ -481,3 +481,20 @@ aplicação.
    Quem perdeu o telefone usa os códigos de recuperação; quem perdeu o telefone
    E os códigos não tem caminho pela tela. É uma porta para retirar a proteção
    de uma conta alheia e merece etapa própria (F03-E11).
+4. **Encerrar sem triagem é regra só da tela.** `POST /ocorrencias/:id/encerramento`
+   (`src/rotas/ocorrencias.ts`) exige a permissão `encerrar_ocorrencia` e a
+   transição, e `TRANSICOES_PERMITIDAS` (`packages/shared/src/dominio.ts`) deixa
+   `rascunho` e `registrada` irem para `encerrada`. Quem esconde o botão antes
+   da triagem é `apps/web/src/paginas/ocorrencia-regras.ts`. Isso contraria a
+   regra do projeto de que regra de negócio mora no banco e no pacote
+   compartilhado, não na tela: ou a máquina de estados passa a exigir a
+   triagem, ou o documento assume que encerrar cedo é permitido (o comentário
+   da máquina diz que é, para o chamado improcedente). Achado da V2-F00-E22,
+   correção 4; decisão de produto (a F10, consolidação do painel, é uma sugestão de
+   dono, não decisão).
+5. **A API mede o motivo da desinterdição antes do `trim`.**
+   `desinterdicaoSchema` (`packages/shared/src/schemas.ts`) exige 15 caracteres
+   sobre o texto bruto, e a rota grava `motivo.trim()`: quem chamar a API direto
+   passa 15 espaços e uma letra. O painel não tem esse furo, porque apara antes de
+   validar (`apps/web/src/paginas/Ocorrencia.tsx`, `desinterdicaoSchema.safeParse({
+   motivo: motivo.trim() })`); o guia do coordenador descreve a tela. Anotado.

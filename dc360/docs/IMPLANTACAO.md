@@ -22,7 +22,7 @@ Nada disto é software, e tudo isto trava a implantação se ficar para depois.
 | Aceitar ou recusar o envio de coordenada ao Google, no mapa | Município | O mapa não pode ser ligado |
 | Quem é o administrador do município | Município | Não há a quem entregar o primeiro acesso |
 | Equipes, e quem está em cada uma | Município | Despacho não tem para quem despachar |
-| Prazos por severidade | Município | O relógio de atraso não tem base |
+| Concordar com os prazos por severidade do sistema (72, 48, 24 e 4 horas; hoje não há tela para o município mudá-los) | Município | O relógio de atraso não teria o aval de quem responde por ele |
 | Lista de órgãos para acionamento | Município | O checklist trava justamente sem sinal |
 | Aparelhos: quantos, de quem, iOS ou Android | Município | Não dá para preparar a instalação |
 
@@ -36,9 +36,9 @@ gente resolve depois" chega no primeiro temporal com isso não resolvido.
 
 | Etapa | O que acontece | Duração |
 | --- | --- | --- |
-| 1 | Provisionamento do município e do primeiro administrador, por linha de comando. A senha inicial é impressa **uma vez** e entregue em mãos | 1 hora |
+| 1 | Provisionamento do município e do primeiro administrador, por linha de comando ou pela tela "Cadastrar prefeitura" do console do fornecedor (nunca pelo painel do município). A senha inicial é impressa **uma vez** e entregue em mãos | 1 hora |
 | 2 | O administrador cria equipes e usuários. Cada um troca a senha no primeiro acesso | 2 horas |
-| 3 | Cadastro dos prazos por severidade e da lista de órgãos | 1 hora |
+| 3 | Cadastro da lista de órgãos (os prazos por severidade são os do sistema, não se cadastram) | 1 hora |
 | 4 | Instalação do aplicativo nos aparelhos, e primeiro acesso de cada agente **com sinal**, para baixar a lista | 30 minutos por aparelho |
 | 5 | **Operação assistida:** duas semanas com os dois sistemas em paralelo, o novo e o que existia | 2 semanas |
 | 6 | Corte, com o antigo em modo de leitura por mais 30 dias | 1 dia |
@@ -76,7 +76,10 @@ aí existem dois sistemas.
 
 Ele também sai sabendo três coisas que evitam chamado de suporte:
 
-- Tarefa que sumiu da lista tem explicação, e o aplicativo diz qual.
+- Tarefa que sumiu da lista tem explicação (concluída, encerrada, devolvida ou
+  passou para outra equipe), mas o aplicativo ainda não a mostra: o servidor
+  devolve o desfecho (e o motivo, quando há) e a tela do aplicativo não os lê. O agente aprende a perguntar
+  à coordenação, com o protocolo.
 - Ocorrência já coletada neste aparelho mostra aviso, e refazer é ato
   deliberado.
 - Espera que passa de seis segundos avisa e oferece saída.

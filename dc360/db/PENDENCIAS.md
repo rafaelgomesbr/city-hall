@@ -53,9 +53,9 @@ da policy, e não só na cláusula de quem chama.
 Não é urgente. A linha é pequena, só números, e a tabela leva anos para
 incomodar. Mas é dado novo com regra de retenção própria, e a ADR 0008
 registrou que ela precisa entrar na política de privacidade junto com o resto.
-Isso continua sem ser feito: `docs/PRIVACIDADE.md` não menciona
-`metricas_municipio` (só lista o console do fornecedor entre o que, quando
-entrar, muda a política).
+Isso continua sem ser feito: o corpo de `docs/PRIVACIDADE.md` não trata
+`metricas_municipio` nem o console do fornecedor; o documento só os cita na
+lista "Pendências desta política" (item 4), como o que falta escrever.
 
 ## 3. Papel de login do console (feito, com um cuidado ainda não escrito)
 

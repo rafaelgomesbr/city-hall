@@ -2,7 +2,7 @@
  * O pontuador da busca: como uma consulta digitada casa com um item.
  *
  * Escrito aqui, sem dependência, por duas razões que o produto já assumiu: o
- * `npm audit` fecha em zero e cada dependência é dívida, e a régua de
+ * `npm audit --omit=dev` da raiz fecha em zero (o aplicativo de campo só passa com exceções aceitas, ver `scripts/auditar.mjs`) e cada dependência é dívida, e a régua de
  * "quantos erros de digitação são tolerados" precisa poder ser lida por quem
  * chega, e não descoberta dentro de uma biblioteca.
  *

@@ -1,0 +1,23 @@
+$ cd apps/api && npx vitest run test/vigencia-na-escrita.test.ts test/acesso-suspenso.test.ts test/prova-dinamica-dos-codigos-de-erro.test.ts
+(cwd dc360/, código de saída 0)
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/acesso-suspenso.test.ts (20 tests) 6126ms
+   ✓ Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel  503ms
+   ✓ Sessao viva de municipio suspenso > renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403  506ms
+ ✓ test/vigencia-na-escrita.test.ts (13 tests) 6138ms
+   ✓ Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive  519ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  504ms
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  512ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  514ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  515ms
+ ✓ test/prova-dinamica-dos-codigos-de-erro.test.ts (1 test) 6756ms
+   ✓ Prova dinâmica: nenhuma recusa de acesso do servidor real sai fora do catálogo > em toda rota registrada, com cada perfil, todo 401 e todo 403 traz um `erro` do catálogo e o status do catálogo  2979ms
+
+ Test Files  3 passed (3)
+      Tests  34 passed (34)
+   Start at  05:56:37
+   Duration  7.26s (transform 253ms, setup 57ms, collect 950ms, tests 19.02s, environment 0ms, prepare 101ms)
+

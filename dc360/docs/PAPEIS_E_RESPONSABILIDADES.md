@@ -5,8 +5,12 @@ não o que se pretende construir. Onde o produto diverge da especificação
 preliminar, o texto diz isso na cara, porque decidir a divergência é o motivo
 deste documento existir.
 
-Gerado a partir de `packages/shared/src/permissoes.ts` em 28/08/2026. Um teste
-reprova se esta tabela divergir do código.
+Gerado a partir de `packages/shared/src/permissoes.ts` em 28/08/2026 e
+reconferido em 19/10/2026 (V2-F00-E22, correção 4). A tabela "A tabela, de uma
+vez", no fim da primeira metade, é presa ao código por
+`packages/shared/test/permissoes-no-readme.test.ts`: o teste reprova se faltar ou
+sobrar ação, ou se um "sim" ou "não" divergir de `acoesDoPapel`. O texto em
+volta, não: ele é lido por gente.
 
 ---
 
@@ -15,7 +19,8 @@ reprova se esta tabela divergir do código.
 Uma ocorrência entra pelo telefone, é classificada, é despachada para uma
 equipe, é vistoriada em campo mesmo sem sinal, vira documento oficial, gera
 providência para outra secretaria e é encerrada com motivo. Tudo isso deixa
-rastro que não se reescreve.
+rastro que a aplicação não reescreve (as duas exceções, definidas no banco, estão
+em "Três regras que valem para todos").
 
 O produto tem **quatro papéis**. Cada um existe porque alguém diferente faz
 aquela parte do trabalho, e porque juntar duas delas na mesma pessoa tira o
@@ -104,7 +109,10 @@ consegue registrar o que fez**. Se isso for verdade no piloto, muda no
 primeiro dia.
 
 **Segundo ponto em aberto:** a especificação dá ao agente "propõe
-providências". O produto não dá: ele coleta e cala.
+providências". O produto dá a metade: no checklist ele marca "Necessário acionar
+outro órgão" e indica QUAIS órgãos (a lista fica em `vistoria_orgaos_indicados`),
+o que é uma proposta de encaminhamento; mas ele não cria a providência, que só a
+coordenação encaminha.
 
 ### Coordenador da Defesa Civil
 
@@ -120,16 +128,19 @@ providências". O produto não dá: ele coleta e cala.
 - Encerrar ocorrência, com motivo
 - Emitir laudo e termo de interdição
 - Consultar os ofícios de encaminhamento (e emitir e enviar)
+- Levantar a interdição de um imóvel (desinterdição, com motivo escrito)
+- Acompanhar quem está em campo agora (em construção, como no operador)
 - Gerenciar equipes e usuários
-- Consultar a trilha de auditoria e exportar dados
+- Consultar a trilha de auditoria e exportar dados (a exportação com dados
+  pessoais, o CSV completo, é só do administrador; a do coordenador é a básica)
 
 **Por que o encerramento é dele:** encerrar é encerrar a responsabilidade do
 órgão sobre aquele caso. É ato de coordenação, e a trilha registra quem
 encerrou e por quê.
 
-**Por que a emissão de documento é dele:** o laudo reúne numa página só o nome,
-o contato, o endereço, a descrição da vulnerabilidade da família e todas as
-fotos da casa. Cada pedaço já circula em algum lugar do sistema; a
+**Por que a emissão de documento é dele:** o laudo reúne numa página só o nome
+do solicitante, o endereço, a coordenada, a descrição da vulnerabilidade da família
+e todas as fotos da casa (o contato do solicitante não é impresso). Cada pedaço já circula em algum lugar do sistema; a
 concentração é que muda a natureza da coisa, e é ela que sai impressa e vai
 parar num processo.
 
@@ -143,20 +154,41 @@ com a linha de assinatura do **agente de campo**, e a permissão de emitir é da
 **Quem é:** quem responde pelo cadastro do município dentro do sistema.
 
 **O que faz:** tudo o que o coordenador faz, **mais** alterar os dados do
-município.
+município, exportar o CSV completo com dados pessoais, gerar o pacote de saída do
+município e trocar o e-mail de outra pessoa.
 
 **Ele não é um coordenador com outro nome.** A diferença está no sistema de
 postos: administrador é posto 3, coordenador é posto 2, operador e agente são
-posto 1. **Ninguém gerencia uma conta de posto igual ou acima do seu.** Um
-coordenador não rebaixa um administrador, e ninguém se promove.
+posto 1. **Ninguém gerencia uma conta de posto acima do seu, e só o administrador
+gerencia uma de posto igual** (alguém precisa poder criar o segundo
+administrador): o coordenador não gerencia outro coordenador, não rebaixa um
+administrador, e ninguém se promove.
 
-**Não existe papel acima dele.** Nem para nós, os fornecedores. Não há
-super-administrador que enxergue todos os municípios, e isso é decisão de
-arquitetura registrada: o dia em que existir uma conta capaz de ver dois
+**Não existe papel de aplicação acima dele.** Nenhum papel do painel ou do
+aplicativo enxerga dois municípios, e isso é decisão de arquitetura registrada
+(ADR 0008): o dia em que existir uma conta capaz de ler os dados de dois
 municípios, o isolamento vira promessa em vez de mecanismo.
 
-**Consequência prática:** provisionar um município novo é feito por linha de
-comando, com credencial de banco, não por uma tela.
+**O que o fornecedor tem, e é outra coisa:** o console do fornecedor
+(`apps/console`), um processo separado, com segundo fator obrigatório e credencial
+própria. Ele **lista todos os municípios com contagens**. A tela mostra, por
+município (nome e UF): o sinal (em dia, ou "calado" depois de 36 horas sem o
+resumo diário do município escrever), o estado do acesso e, em números,
+ocorrências que entraram, encerradas, vistorias recebidas, abertas, atrasadas,
+servidores ativos, aparelhos sumidos e a mediana de minutos até a vistoria. (A
+consulta do console devolve ainda ofícios emitidos e aparelhos ativos, que a tela
+não desenha.) Ele
+**faz**: cadastrar prefeitura, suspender e reativar o acesso, e agendar a
+eliminação do município (com prazo de arrependimento de sete dias, em que o
+cancelamento é possível); quem executa o apagamento é o relógio da API, não o
+console, e só o dono do console desativa e elimina. Ele **não vê** nome,
+contato, relato, endereço, foto nem trilha de nenhum cidadão ou ocorrência:
+só números e o cadastro do município.
+
+**Consequência prática:** provisionar um município novo não é feito pelo painel
+do município. É feito por linha de comando (`scripts/cadastrar-prefeitura.mjs`,
+com credencial de banco) ou pela tela "Cadastrar prefeitura" do console do
+fornecedor, que é outro processo, com segundo fator.
 
 ---
 
@@ -172,6 +204,9 @@ comando, com credencial de banco, não por uma tela.
 | Responder providência | sim | não | sim | sim |
 | Encerrar ocorrência | não | não | sim | sim |
 | Emitir laudo ou termo | não | não | sim | sim |
+| Consultar os ofícios de encaminhamento | sim | não | sim | sim |
+| Levantar a interdição de um imóvel | não | não | sim | sim |
+| Acompanhar quem está em campo agora | sim | não | sim | sim |
 | Gerenciar equipes | não | não | sim | sim |
 | Gerenciar usuários | não | não | sim | sim |
 | Consultar a trilha | não | não | sim | sim |
@@ -201,8 +236,14 @@ antigos, e apagar reescreveria o histórico.
 ## Três regras que valem para todos
 
 **Nada se apaga.** Ocorrência se encerra com motivo. Usuário e equipe se
-desativam. A trilha de auditoria não tem como ser alterada nem excluída, nem
-pela aplicação, nem por quem administra: correção entra como evento novo.
+desativam. A trilha de auditoria não tem policy de alteração nem de exclusão: nem
+a aplicação, nem quem administra, reescreve ou apaga um evento; correção entra
+como evento novo. Duas exceções existem, e as duas são funções do banco, não
+telas: a minimização por prazo (`minimizar_por_prazo`, migração 043) troca o nome de
+quem assinou a vistoria, dentro do evento `vistoria` da trilha, por "removido por
+prazo" quando o prazo da privacidade vence, e registra que fez isso; e a
+eliminação do município, agendada pelo console do fornecedor com sete dias de
+arrependimento, apaga tudo dele, trilha inclusa, depois do pacote de saída.
 
 **O município vem do login, e de mais lugar nenhum.** Um usuário nunca alcança
 dado de outro município, e a recusa é "não encontrado", nunca "sem permissão",
@@ -265,13 +306,16 @@ Concretamente, `emitir_documento` vira duas ações:
 
 | Ato | Quem | Estado |
 | --- | --- | --- |
-| Gerar a **minuta** no aparelho, offline, logo após a vistoria | agente de campo | rascunho |
+| Gerar a **minuta** no aparelho, offline, logo após a vistoria (existe) | agente de campo | rascunho |
 | Revisar e **aprovar** | coordenação, ou o técnico responsável quando existir | aprovado |
 | **Emitir** o documento oficial, com código de validação | quem aprovou | aprovado |
 | Cancelar | coordenação | cancelado |
 
-A minuta sai marcada "MINUTA, SEM VALIDADE, AGUARDANDO APROVAÇÃO" e sem código
-de validação. O agente entrega um papel na mão do morador ainda na porta da
+A minuta no aparelho JÁ existe (`packages/shared/src/minuta.ts`, tela
+`MinutaDoLaudo`), marcada "MINUTA SEM VALOR DE DOCUMENTO. Aguardando conferência
+e emissão pela coordenação."; o que falta é a aprovação e o papel entregue ao
+morador. A proposta é que ela saia marcada "MINUTA, SEM VALIDADE, AGUARDANDO
+APROVAÇÃO" e sem código de validação. O agente entrega um papel na mão do morador ainda na porta da
 casa, o que ele precisa. A coordenação passa a controlar a **validade do ato**,
 que é o que ela deveria controlar desde o começo.
 

@@ -367,9 +367,12 @@ describe("Sessao viva de municipio suspenso", () => {
       assinatura, e essa é a mesma janela que o produto já aceita quando um
       usuário é desativado ou expulso: a sessão cai, o token vivo termina o
       prazo. Suspensão contratual não é incidente de segurança, e quinze
-      minutos de leitura não criam registro nenhum sob o contrato suspenso. O
-      que se compra com isso é nenhuma consulta a mais em nenhuma leitura, que
-      é a maior parte do tráfego de uma noite de chuva. O argumento inteiro
+      minutos de leitura não praticam ato nem mudam dado do município (a
+      leitura do dossiê e a busca gravam só o registro de que foram lidas, em
+      `ocorrencia_consultas`, e por isso o dossiê não tem a marca de vigência:
+      ver `auth/suspensao.ts`). O que se compra com isso é nenhuma consulta a
+      mais em nenhuma leitura, que é a maior parte do tráfego de uma noite de
+      chuva. O argumento inteiro
       está em `auth/suspensao.ts`.
     */
     const tokens = await entrar(EMAIL_A);

@@ -206,7 +206,14 @@ disse que está completo**. O console não sabe se o passo 5 aconteceu; quem sab
   sincronizar vistoria) é recusada na hora. Leitura com token vivo dura até o
   token vencer, quinze minutos, que é a mesma janela que o produto já aceita
   quando um usuário é desativado. Suspensão contratual não é incidente de
-  segurança, e quinze minutos de leitura não criam registro nenhum.
+  segurança, e quinze minutos de leitura não praticam ato nem mudam dado do
+  município. Mas abrir o dossiê de uma ocorrência (e a busca) grava uma linha
+  em `ocorrencia_consultas` (o registro de quem leu dado de cidadão, sem o
+  dado), e essa linha entra mesmo sob suspensão: dizer que a leitura "não
+  cria registro nenhum" seria falso. Se o contrato exigir que nada novo
+  apareça no banco do município enquanto ele estiver suspenso, essa leitura
+  precisa passar a ser recusada, e isso é decisão de produto pendente
+  (a vigência da leitura é da F03-E03).
 - **O aparelho de campo** recebe uma recusa própria, inclusive com o token
   vencido, e a tela diz a frase certa sem oferecer "entrar de novo". **A coleta
   que estava no aparelho não se perde**: a API responde à fila de sincronização

@@ -35,7 +35,7 @@ inventadas, e enquanto houver um `[[ ]]` o documento não vai para o ar.
 | --- | --- |
 | [COLOCAR-DE-PE.md](COLOCAR-DE-PE.md) | Subir servidor, banco, domínio e o aplicativo |
 | [VERCEL-PAINEL.md](VERCEL-PAINEL.md) | Publicar o painel |
-| [DICIONARIO-DE-DADOS.md](DICIONARIO-DE-DADOS.md) | O que cada tabela e cada coluna significam. Vai junto com a exportação de saída |
+| [DICIONARIO-DE-DADOS.md](DICIONARIO-DE-DADOS.md) | O que cada tabela e cada coluna significam. Deve acompanhar a exportação de saída, mas o pacote gerado pela API ainda não o inclui: é entregue à parte |
 | [RESTORE-DO-BANCO.md](RESTORE-DO-BANCO.md) | O roteiro de restore do banco, provado a frio e repetido pelo CI (a Parte 6 de `COLOCAR-DE-PE.md` é o registro histórico) |
 | [LIGAR-O-EMAIL.md](LIGAR-O-EMAIL.md) | Ligar o e-mail de recuperação de senha e de ofício: conta, domínio e variáveis |
 | [ARMAZENAMENTO.md](ARMAZENAMENTO.md) | O teto de armazenamento por município e a varredura de objeto órfão, com os comandos do operador |

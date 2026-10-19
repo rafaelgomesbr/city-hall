@@ -239,7 +239,7 @@ super -p $PORTA_ORIGEM -d prova_e25_origem -c "GRANT dc360_app TO dc360_api WITH
 ```
 
 O que se espera: o primeiro `migrar` imprime `aplicando 001_base.sql` até
-`aplicando 050_...sql` (a última da pasta; 50 hoje); o segundo imprime `Esquema
+`aplicando 051_...sql` (a última da pasta; 51 hoje); o segundo imprime `Esquema
 em dia.`; o terceiro, `Semeado com os dois municípios fictícios.`
 
 (Como a senha chega ao SQL. O shell lê o arquivo e a põe numa variável de

@@ -1,0 +1,4409 @@
+$ SAIDA_ALCANCE=alcance.json npx vitest run test/prova-dinamica-dos-codigos-de-erro.test.ts   (cwd dc360/apps/api; o json gravado pelo teste)
+
+{
+  "pares": 114,
+  "pedidos": 2064,
+  "limitados": 0,
+  "passamDaAutorizacao": 112,
+  "comRespostaDeSucesso": 48,
+  "nuncaPassamDaAutorizacao": [
+    "PUT /armazenamento/objeto",
+    "GET /armazenamento/objeto"
+  ],
+  "porPerfil": {
+    "semToken": {
+      "passouDaAutorizacao": 10,
+      "deuCerto": 2
+    },
+    "lixo": {
+      "passouDaAutorizacao": 10,
+      "deuCerto": 2
+    },
+    "vencido": {
+      "passouDaAutorizacao": 10,
+      "deuCerto": 2
+    },
+    "outraAssinatura": {
+      "passouDaAutorizacao": 10,
+      "deuCerto": 2
+    },
+    "coordA": {
+      "passouDaAutorizacao": 93,
+      "deuCerto": 38
+    },
+    "agenteA": {
+      "passouDaAutorizacao": 62,
+      "deuCerto": 27
+    },
+    "operadorA": {
+      "passouDaAutorizacao": 61,
+      "deuCerto": 29
+    },
+    "adminA": {
+      "passouDaAutorizacao": 100,
+      "deuCerto": 44
+    },
+    "desativadoA": {
+      "passouDaAutorizacao": 47,
+      "deuCerto": 32
+    },
+    "provisoriaA": {
+      "passouDaAutorizacao": 49,
+      "deuCerto": 33
+    },
+    "coordB": {
+      "passouDaAutorizacao": 96,
+      "deuCerto": 36
+    },
+    "suspensoC": {
+      "passouDaAutorizacao": 54,
+      "deuCerto": 33
+    }
+  },
+  "matriz": {
+    "GET /saude": {
+      "semToken": [
+        "200"
+      ],
+      "lixo": [
+        "200"
+      ],
+      "vencido": [
+        "200"
+      ],
+      "outraAssinatura": [
+        "200"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /saida-a-campo": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /saida-a-campo": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /saida-a-campo/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /saida-a-campo/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /saida-a-campo/prorrogar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /saida-a-campo/retorno": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /saida-a-campo/encerrar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /saida-a-campo/minha": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:sem_permissao"
+      ],
+      "provisoriaA": [
+        "403:sem_permissao"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:sem_permissao"
+      ]
+    },
+    "POST /saida/pacote.zip": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /sincronizacao/vistoria": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "503:acesso_suspenso"
+      ]
+    },
+    "POST /sincronizacao/devolucao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "503:acesso_suspenso"
+      ]
+    },
+    "GET /sincronizacao/pendencias": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:sem_permissao"
+      ],
+      "provisoriaA": [
+        "403:sem_permissao"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:sem_permissao"
+      ]
+    },
+    "POST /sincronizacao/pendencias/reconciliar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /auth/entrar": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "GET /auth/eu": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /auth/sessoes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /auth/recuperar": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "GET /auth/recuperacao": {
+      "semToken": [
+        "200"
+      ],
+      "lixo": [
+        "200"
+      ],
+      "vencido": [
+        "200"
+      ],
+      "outraAssinatura": [
+        "200"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /auth/redefinir": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "POST /aparelhos": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:push_desligado"
+      ],
+      "agenteA": [
+        "503:push_desligado"
+      ],
+      "operadorA": [
+        "503:push_desligado"
+      ],
+      "adminA": [
+        "503:push_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:push_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /aparelhos/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:push_desligado"
+      ],
+      "agenteA": [
+        "503:push_desligado"
+      ],
+      "operadorA": [
+        "503:push_desligado"
+      ],
+      "adminA": [
+        "503:push_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:push_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /aparelhos/revogar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:push_desligado"
+      ],
+      "agenteA": [
+        "503:push_desligado"
+      ],
+      "operadorA": [
+        "503:push_desligado"
+      ],
+      "adminA": [
+        "503:push_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:push_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /avisos": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /avisos/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /avisos/lidos": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /armazenamento/uso": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:sem_permissao"
+      ],
+      "provisoriaA": [
+        "403:sem_permissao"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "PUT /armazenamento/objeto": {
+      "semToken": [
+        "403:assinatura"
+      ],
+      "lixo": [
+        "403:assinatura"
+      ],
+      "vencido": [
+        "403:assinatura"
+      ],
+      "outraAssinatura": [
+        "403:assinatura"
+      ],
+      "coordA": [
+        "403:assinatura"
+      ],
+      "agenteA": [
+        "403:assinatura"
+      ],
+      "operadorA": [
+        "403:assinatura"
+      ],
+      "adminA": [
+        "403:assinatura"
+      ],
+      "desativadoA": [
+        "403:assinatura"
+      ],
+      "provisoriaA": [
+        "403:assinatura"
+      ],
+      "coordB": [
+        "403:assinatura"
+      ],
+      "suspensoC": [
+        "403:assinatura"
+      ]
+    },
+    "GET /armazenamento/objeto": {
+      "semToken": [
+        "403:assinatura"
+      ],
+      "lixo": [
+        "403:assinatura"
+      ],
+      "vencido": [
+        "403:assinatura"
+      ],
+      "outraAssinatura": [
+        "403:assinatura"
+      ],
+      "coordA": [
+        "403:assinatura"
+      ],
+      "agenteA": [
+        "403:assinatura"
+      ],
+      "operadorA": [
+        "403:assinatura"
+      ],
+      "adminA": [
+        "403:assinatura"
+      ],
+      "desativadoA": [
+        "403:assinatura"
+      ],
+      "provisoriaA": [
+        "403:assinatura"
+      ],
+      "coordB": [
+        "403:assinatura"
+      ],
+      "suspensoC": [
+        "403:assinatura"
+      ]
+    },
+    "GET /ocorrencias": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /ocorrencias": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /ocorrencias/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /ocorrencias/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /ocorrencias/devolvidas": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /ocorrencias/duplicidades/consulta": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "GET /ocorrencias/mapa": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /ocorrencias/interditados": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /ocorrencias/indicadores/painel": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /ocorrencias/providencias/pendentes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /ocorrencias/:id": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "404:nao_encontrada"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "404:nao_encontrada"
+      ]
+    },
+    "POST /ocorrencias/:id/triagem": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /ocorrencias/:id/despacho": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /ocorrencias/:id/desinterdicao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos",
+        "409:nao_interditada"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos",
+        "409:nao_interditada"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos",
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /ocorrencias/:id/providencia": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /ocorrencias/:id/providencia/:providenciaId/resposta": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /ocorrencias/:id/encerramento": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos",
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos",
+        "409:ja_no_estado_final"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos",
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /ocorrencias/:id/coordenada": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /organizacao/retencao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:sem_permissao"
+      ],
+      "provisoriaA": [
+        "403:sem_permissao"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "PATCH /organizacao/retencao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /orgaos": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /orgaos": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /orgaos/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /orgaos/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "PATCH /orgaos/:id": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /orgaos/:id/reativacao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "404:nao_encontrado"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "404:nao_encontrado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /oficios": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /oficios": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /oficios/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /oficios/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /oficios/:id": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "404:nao_encontrado"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "404:nao_encontrado"
+      ],
+      "adminA": [
+        "404:nao_encontrado"
+      ],
+      "desativadoA": [
+        "404:nao_encontrado"
+      ],
+      "provisoriaA": [
+        "404:nao_encontrado"
+      ],
+      "coordB": [
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "404:nao_encontrado"
+      ]
+    },
+    "GET /oficios/:id/documento": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "404:nao_encontrado"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "404:nao_encontrado"
+      ],
+      "desativadoA": [
+        "404:nao_encontrado"
+      ],
+      "provisoriaA": [
+        "404:nao_encontrado"
+      ],
+      "coordB": [
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "404:nao_encontrado"
+      ]
+    },
+    "POST /oficios/:id/envio": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:envio_desligado"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "503:envio_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:envio_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /equipes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /equipes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "PATCH /equipes/:id": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /evidencias/autorizar-envio": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "503:acesso_suspenso"
+      ]
+    },
+    "POST /evidencias/confirmar-envio": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "503:acesso_suspenso"
+      ]
+    },
+    "GET /evidencias/ocorrencia/:id": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /evidencias/:id/url": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "404:nao_encontrada"
+      ],
+      "agenteA": [
+        "404:nao_encontrada"
+      ],
+      "operadorA": [
+        "404:nao_encontrada"
+      ],
+      "adminA": [
+        "404:nao_encontrada"
+      ],
+      "desativadoA": [
+        "404:nao_encontrada"
+      ],
+      "provisoriaA": [
+        "404:nao_encontrada"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "404:nao_encontrada"
+      ]
+    },
+    "GET /usuarios": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /usuarios": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /usuarios/eu": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /usuarios/eu/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "PUT /usuarios/eu/foto": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "DELETE /usuarios/eu/foto": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "204"
+      ],
+      "agenteA": [
+        "204"
+      ],
+      "operadorA": [
+        "204"
+      ],
+      "adminA": [
+        "204"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "204"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /usuarios/eu/foto/autorizar-envio": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "PATCH /usuarios/:id": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /usuarios/:id/sessoes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:posto_insuficiente"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:posto_insuficiente"
+      ],
+      "provisoriaA": [
+        "403:posto_insuficiente"
+      ],
+      "coordB": [
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "404:nao_encontrado"
+      ]
+    },
+    "GET /campo/meu-trabalho": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:sem_permissao"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "403:sem_permissao"
+      ],
+      "desativadoA": [
+        "403:sem_permissao"
+      ],
+      "provisoriaA": [
+        "403:sem_permissao"
+      ],
+      "coordB": [
+        "403:sem_permissao"
+      ],
+      "suspensoC": [
+        "403:sem_permissao"
+      ]
+    },
+    "GET /configuracao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /configuracao/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /rota": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:caminho_desligado"
+      ],
+      "agenteA": [
+        "503:caminho_desligado"
+      ],
+      "operadorA": [
+        "503:caminho_desligado"
+      ],
+      "adminA": [
+        "503:caminho_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:caminho_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /rota/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:caminho_desligado"
+      ],
+      "agenteA": [
+        "503:caminho_desligado"
+      ],
+      "operadorA": [
+        "503:caminho_desligado"
+      ],
+      "adminA": [
+        "503:caminho_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:caminho_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /relatorios/ocorrencias.csv": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /relatorios/resumo": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /relatorios/exportacoes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /relatorios/consultas": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /mapa/resolver-link": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /busca": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "GET /busca/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "POST /publico/interesse": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "GET /publico/oficio/:token": {
+      "semToken": [
+        "404"
+      ],
+      "lixo": [
+        "404"
+      ],
+      "vencido": [
+        "404"
+      ],
+      "outraAssinatura": [
+        "404"
+      ],
+      "coordA": [
+        "404"
+      ],
+      "agenteA": [
+        "404"
+      ],
+      "operadorA": [
+        "404"
+      ],
+      "adminA": [
+        "404"
+      ],
+      "desativadoA": [
+        "404"
+      ],
+      "provisoriaA": [
+        "404"
+      ],
+      "coordB": [
+        "404"
+      ],
+      "suspensoC": [
+        "404"
+      ]
+    },
+    "GET /trilha": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /trilha/tipos": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /documentos/validar/:codigo": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "GET /documentos/:id/laudo": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "409:sem_vistoria"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "409:sem_vistoria"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /documentos/:id/laudo.pdf": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "409:sem_vistoria"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "409:sem_vistoria"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /documentos/:id/termo-de-interdicao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "409:ocorrencia_encerrada"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "409:ocorrencia_encerrada"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /documentos/:id/termo-de-interdicao.pdf": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "409:ocorrencia_encerrada"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "409:ocorrencia_encerrada"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /documentos/:id/termo-de-desinterdicao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "409:nao_desinterditada"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "409:nao_desinterditada"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrada"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "GET /segundo-fator": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "GET /segundo-fator/": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "200"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "200"
+      ]
+    },
+    "POST /segundo-fator/iniciar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "503:segundo_fator_desligado"
+      ],
+      "agenteA": [
+        "503:segundo_fator_desligado"
+      ],
+      "operadorA": [
+        "503:segundo_fator_desligado"
+      ],
+      "adminA": [
+        "503:segundo_fator_desligado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "503:segundo_fator_desligado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /segundo-fator/confirmar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /segundo-fator/desativar": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /auth/encerrar-sessoes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "200"
+      ],
+      "agenteA": [
+        "200"
+      ],
+      "operadorA": [
+        "200"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "200"
+      ],
+      "coordB": [
+        "200"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /auth/segundo-fator": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "POST /auth/sair": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "POST /auth/renovar": {
+      "semToken": [
+        "422:dados_invalidos"
+      ],
+      "lixo": [
+        "422:dados_invalidos"
+      ],
+      "vencido": [
+        "422:dados_invalidos"
+      ],
+      "outraAssinatura": [
+        "422:dados_invalidos"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "422:dados_invalidos"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "422:dados_invalidos"
+      ]
+    },
+    "POST /auth/trocar-senha": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos"
+      ],
+      "agenteA": [
+        "422:dados_invalidos"
+      ],
+      "operadorA": [
+        "422:dados_invalidos"
+      ],
+      "adminA": [
+        "422:dados_invalidos"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "422:dados_invalidos"
+      ],
+      "coordB": [
+        "422:dados_invalidos"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /orgaos/:id/desativacao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos",
+        "404:nao_encontrado"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos",
+        "404:nao_encontrado"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos",
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "PATCH /usuarios/:id/situacao": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "422:dados_invalidos",
+        "422:autodesativacao"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "422:dados_invalidos",
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "422:dados_invalidos",
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /usuarios/:id/redefinir-senha": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:conta_desativada"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    },
+    "POST /usuarios/:id/encerrar-sessoes": {
+      "semToken": [
+        "401:nao_autenticado"
+      ],
+      "lixo": [
+        "401:nao_autenticado"
+      ],
+      "vencido": [
+        "401:nao_autenticado"
+      ],
+      "outraAssinatura": [
+        "401:nao_autenticado"
+      ],
+      "coordA": [
+        "403:conta_desativada"
+      ],
+      "agenteA": [
+        "403:sem_permissao"
+      ],
+      "operadorA": [
+        "403:sem_permissao"
+      ],
+      "adminA": [
+        "200"
+      ],
+      "desativadoA": [
+        "403:conta_desativada"
+      ],
+      "provisoriaA": [
+        "403:troca_de_senha_obrigatoria"
+      ],
+      "coordB": [
+        "404:nao_encontrado"
+      ],
+      "suspensoC": [
+        "403:acesso_suspenso"
+      ]
+    }
+  }
+}

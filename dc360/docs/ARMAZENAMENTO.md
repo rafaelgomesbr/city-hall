@@ -293,8 +293,12 @@ operador, que traz a lista completa.
   plataforma (`--uso`). Levar o número para a métrica que o console lê é uma
   coluna numérica a mais em `metricas_municipio` (migração 023), que ainda não
   foi feita.
-- **Não existe tela.** O número sai por rota e por comando, e nenhuma página do
-  painel o mostra ainda.
+- **A tela do painel é só leitura.** O cartão "Uso de armazenamento" da página
+  Organização (`apps/web/src/paginas/Organizacao.tsx`, visível a quem tem
+  `gerenciar_organizacao`) lê `GET /armazenamento/uso` e mostra o número com a
+  situação (sem teto, normal, aviso, acima do teto, recusado). Quem amplia o teto
+  continua sendo a plataforma, por comando; o painel não tem botão para isso, e o
+  console do fornecedor continua sem o número (item acima).
 - **O aviso não usa o sino.** `avisos.ocorrencia_id` é obrigatório, e este aviso
   não é sobre uma ocorrência. Ele viaja na resposta da autorização de envio, que
   é o caminho que já acontece seis vezes por vistoria.

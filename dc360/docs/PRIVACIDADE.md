@@ -386,8 +386,12 @@ O que **ainda não** está pronto, dito aqui porque omitir seria enganar:
 - **A listagem da fila de ocorrências ainda não gera registro de acesso.** O
   registro cobre o dossiê e os documentos oficiais, que são onde o dado pessoal
   se concentra. A listagem do painel, recarregada o dia inteiro por todo mundo,
-  ficou de fora por volume, e ela ainda devolve nome e contato junto: estreitar
-  as colunas dela é o passo que falta.
+  ficou de fora por volume, e por isso ela foi estreitada: a resposta não leva o
+  contato, a descrição nem a descrição de vulnerabilidade
+  (`apps/api/src/privacidade/lista.ts`). Continuam na lista o nome de quem ligou,
+  o endereço e a coordenada, entre os outros campos da ocorrência, porque a
+  coordenação precisa reconhecer a família e achar o ponto no mapa. Quem precisa do resto abre a ocorrência, e
+  aquela rota registra a consulta.
 
 ## 7. Incidente
 

@@ -38,8 +38,8 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **5062 testes somando o aplicativo** (contagem estática de `npm run
-  conferir:numeros` em 2026-10-15; a execução imprime pulos por ambiente à
+- **5072 testes somando o aplicativo** (contagem estática de `npm run
+  conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
   15 de 17, por dois passos que dependem da máquina (README, "O roteiro da linha
@@ -60,7 +60,7 @@ D-U-N-S e a revisão não forem gargalo.
   compilação nativa e três vistorias coletadas num iPhone em 08/09/2026, mas
   **nenhum artefato de aparelho físico está arquivado** (a prova é a
   V2-F14-E12), e relato não é prova. Do emulador Android há capturas e relato
-  das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não contam como
+  das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não contam como
   aparelho. O que você vai fazer no Mac é refazer essa prova com o que o
   repositório consiga guardar.
 
@@ -219,7 +219,7 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
 - **Fly.io**, **Railway** ou **Render**. O repositório tem `Dockerfile` e
   `compose.yaml`. O `Dockerfile` é a imagem de produção: o `fly.toml`
   (`[build] dockerfile`) manda o `fly deploy` construí-lo, o próprio `Dockerfile`
-  registra o 503 dos botões de PDF que a imagem sem navegador deu em produção, e
+  registra o 503 dos botões de PDF que a imagem deu em produção (sem o pacote `playwright`, que estava em `devDependencies`; o Chromium estava lá), e
   o `eas.json` aponta o perfil `producao` para `defesa-civil.fly.dev`. O que não
   existe é prova no repositório: o CI não constrói a imagem (o job `implantavel`
   sobe a API direto no Node contra um Postgres 16 real, sem contêiner) e não há
@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 5062 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, 5072 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -693,8 +693,13 @@ enquanto o piloto estiver de pé. O sinal de que ele continua válido é a linha
 
 ## Parte 7: a fila de pedidos de contato (e por que ela não é uma tela)
 
-O formulário público grava em `interesse_municipio`. Ele é a única rota de
-escrita sem autenticação do produto, e hoje **ninguém lê o que ele grava**. Um
+O formulário público grava em `interesse_municipio`. Ele é a única rota pública
+que grava um pedido de contato de gente de fora, e hoje **ninguém lê o que ele
+grava**. (Não é a única rota sem token que escreve: `/auth/entrar`, `/auth/recuperar`
+e afins mexem em credencial e sessão; `GET /publico/oficio/:token` grava a abertura
+do ofício em `oficio_aberturas`; e `PUT /armazenamento/objeto` grava o arquivo da
+foto, autenticado pela assinatura da URL. A lista inteira está em
+`apps/api/test/superficie-registrada.ts`.) Um
 funil de entrada que ninguém abre não é funil, é caixa fechada. Esta seção
 existe para fechar essa lacuna com o que dá para fazer sem inventar um poder que
 o produto recusa ter.

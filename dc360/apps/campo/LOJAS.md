@@ -271,7 +271,7 @@ npx expo-doctor      # 21 verificações da própria Expo (21 de 21 em 2026-10-1
                      # manhã de 2026-10-14 por patches novos e 21 de 21 de novo nesse mesmo
                      # dia, depois da E19 correção 4; o resultado depende do dia)
 npm run typecheck
-npm run auditar --prefix ..   # política do CP-03: dependência de runtime em zero;
+npm run auditar --prefix ../..   # política do CP-03: dependência de runtime em zero;
                               # avisos de ferramenta do Expo só os da lista
                               # nomeada, com dono e prazo (scripts/auditar-excecoes.mjs).
                               # O `npm audit` puro daqui não fecha em zero.
@@ -296,7 +296,7 @@ código escrito de código comprovado.
   relato de uso (o `README.md` da raiz fala de compilação nativa num iPhone em
   08/09/2026, com três vistorias coletadas), mas nenhuma foto, vídeo, registro
   ou captura de aparelho físico está no repositório, e relato não é prova. Há
-  capturas e relato de emulador Android das validações de E06 e E16 (ver o
+  capturas e relato de emulador Android das validações de E06, E15 e E16 (ver o
   `LEIA-ME.md`), que não contam como aparelho. Até a V2-F14-E12 arquivar esse artefato, este documento
   não afirma que alguma tela foi aberta num aparelho, nem que não foi.
 - **Câmera, GPS e assinatura não têm prova de aparelho arquivada.** A lógica

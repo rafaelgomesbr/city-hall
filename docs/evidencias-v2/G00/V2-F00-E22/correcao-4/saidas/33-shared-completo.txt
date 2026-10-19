@@ -1,0 +1,35 @@
+$ npm run test --workspace @dc360/shared
+(cwd dc360/, código de saída 0)
+
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/precisao-do-gps.test.ts (3 tests) 4ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 5ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 10ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 9ms
+ ✓ test/evidencia.test.ts (10 tests) 9ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 6ms
+ ✓ src/localizacao.test.ts (16 tests) 10ms
+ ✓ test/codigos-de-erro.test.ts (15 tests) 7ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 14ms
+ ✓ src/pessoas.test.ts (11 tests) 9ms
+ ✓ test/telefone.test.ts (10 tests) 4ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 6ms
+ ✓ test/permissoes.test.ts (16 tests) 7ms
+ ✓ test/campos.test.ts (7 tests) 2ms
+ ✓ test/csv.test.ts (8 tests) 4ms
+ ✓ test/dominio.test.ts (14 tests) 531ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  524ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 681ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  341ms
+
+ Test Files  17 passed (17)
+      Tests  185 passed (185)
+   Start at  06:14:30
+   Duration  917ms (transform 296ms, setup 0ms, collect 1.12s, tests 1.32s, environment 2ms, prepare 806ms)
+

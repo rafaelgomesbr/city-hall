@@ -80,7 +80,7 @@ não subiu.
 
 | Situação | O que fazer |
 | --- | --- |
-| A tarefa sumiu da lista | O aplicativo explica o motivo (concluída, cancelada, devolvida, mudou de equipe). Não é falha |
+| A tarefa sumiu da lista | O aplicativo ainda NÃO diz o motivo: a tarefa só sai da lista. Pode ter sido concluída, encerrada, devolvida ou passado para outra equipe. Não é falha. Pergunte à coordenação, com o protocolo |
 | "Esta ocorrência já foi coletada neste aparelho" | Você já vistoriou. Se precisar mesmo refazer, existe o botão, e ele pergunta antes |
 | Preciso parar no meio | **Salvar e sair.** Volta depois de onde parou |
 | Fica "Carregando" | Depois de 6 segundos aparece uma saída. Use a lista guardada e siga trabalhando |

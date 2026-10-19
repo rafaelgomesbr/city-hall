@@ -53,28 +53,24 @@ está torto é o caminho de volta:
 3. **Enquanto isso não existir, não mexer no filtro em `prontos`** sem ler o
    comentário que está lá: é ele que impede a recusa de acontecer no uso normal.
 
-## 2. API: vistoria não pode morrer porque um arquivo sumiu
+## 2. ~~API: vistoria não pode morrer porque um arquivo sumiu~~ (feita)
 
-**Fora da faixa.** Exige campo no envelope e decisão de produto sobre o laudo.
+**Resolvido, conferido em 2026-10-19 (V2-F00-E22, correção 4).** Este item
+descrevia como pendente o que o código já tem. O envelope ganhou
+`evidenciasPerdidas` (`packages/shared/src/schemas.ts`), o motor
+`abrirMaoDasEvidenciasPerdidas` (`packages/campo/src/fila.ts`) solta o item que
+travou por `arquivo_sumiu` quando o agente assume a perda, a tela da fila
+pergunta antes (`fila.tsx`: "Enviar sem os registros perdidos", com a contagem
+e a assinatura dita à parte), a API grava a perda em `vistoria_evidencias_perdidas`
+(`apps/api/src/rotas/sincronizacao.ts`) e o laudo ganha a seção que declara a
+causa (`apps/api/src/documentos/laudo.ts`). O pacote de saída de município
+também leva a tabela (`docs/SAIDA-DE-MUNICIPIO.md`).
 
-As fotos sobem ANTES do envelope, de propósito (o laudo não pode apontar para
-arquivo que não existe). A consequência: se um arquivo não estiver mais no
-aparelho, a leitura falha e o envelope inteiro (checklist, GPS, assinatura,
-observações, órgãos a acionar) nunca sai. Uma foto perdida destrói a vistoria
-inteira.
-
-Neste turno isso deixou de ser silencioso e deixou de ser eterno: a foto passou a
-ser copiada para o diretório de documentos na hora da captura
-(`src/dados/evidencia-no-disco.ts`), e o arquivo ausente virou falha permanente
-com frase em português que termina numa ação, em vez de erro cru do sistema
-repetido a cada cinco minutos para sempre.
-
-O que falta, e é decisão de produto antes de ser código: **a vistoria deveria
-poder subir SEM o arquivo perdido, com a perda registrada.** Isso exige um campo
-no envelope (algo como `evidenciasPerdidas: [{ idempotencyKey, capturadaEm }]`),
-um evento na trilha, e uma linha no laudo dizendo que houve registro fotográfico
-que não pôde ser recuperado. Sem esse registro, subir a vistoria sem a foto seria
-entregar um laudo que parece completo e não é, que é pior do que não entregar.
+O que continua verdade do texto antigo, e vale conhecer: as fotos sobem ANTES do
+envelope, de propósito (o laudo não pode apontar para arquivo que não existe), e
+o aplicativo só marca como perdido o arquivo que SUMIU do disco (ou ficou com zero
+byte), nunca decide sozinho jogar uma foto fora; a escolha de seguir sem ela é do agente, com a
+frase na tela. Nada disto rodou em aparelho (item 7).
 
 ## 3. Aparelho que atualiza com foto antiga ainda no cache
 
@@ -262,11 +258,11 @@ portão de design reprova quem escrever `fonteMinima` de novo.
   botão primário e a sombra que sobe na folha foram provados por teste e por
   portão, e nenhum deles foi olhado num iPhone. A reclamação de origem foi
   visual, e prova visual exige o aparelho na mão.
-- **A cascata de entrada de lista não tem uso ainda.** `cascata` e
-  `atrasoEmCascata()` existem para as quatro frentes de tela usarem o MESMO
-  ritmo, que é o defeito que a régua de densidade documenta (cinco frentes,
-  cinco decisões certas sozinhas, uma tela poluída no fim). Enquanto nenhuma
-  lista a chamar, ela é vocabulário e não comportamento.
+- ~~**A cascata de entrada de lista não tem uso ainda.**~~ Passou a ter, conferido
+  em 2026-10-19: `atrasoEmCascata()` é chamada em quatro telas (`avisos.tsx`,
+  `fila.tsx`, `index.tsx` e `perfil.tsx`), pelo `ItemDeLista`. O que resta do
+  argumento original é a régua de densidade: uma quinta tela deve usar o mesmo
+  ritmo, e não escolher o dela.
 - **A altura de linha própria para a fonte tabular NÃO foi criada**, e a
   ausência é deliberada: a Roboto Mono tem métrica diferente da Work Sans, e um
   protocolo ao lado de texto de corpo pode desalinhar a linha de base, mas isso
@@ -315,8 +311,10 @@ consequências, e nenhuma delas quebra nada hoje:
   tabelas diferentes no servidor, e ligá-las exige decidir o que "lido"
   significa quando a pessoa só viu o texto na tela bloqueada.
 
-O sino sincroniza quando a aba Perfil é aberta, e não em segundo plano: o crachá
-na barra de abas mostra o que o último `sincronizarAvisos` trouxe. É escolha e
+O sino sincroniza quando a tela de avisos abre (se há sinal, ou se ainda não há
+cópia no aparelho) e quando a pessoa puxa a lista para atualizar, e não em
+segundo plano: o crachá na barra de abas mostra o que o último
+`sincronizarAvisos` trouxe. É escolha e
 não descuido (rede em segundo plano gasta bateria e dado do agente no morro),
 mas quem olhar o crachá esperando tempo real vai se enganar.
 
@@ -678,3 +676,17 @@ pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
   (prazo das exceções: 2027-01-05).
 - **Efeito no G00:** o critério "`expo-doctor` 21 de 21" da E19 e do gate G00
   estava BLOQUEADO; deixou de estar com a correção 2 (21 de 21).
+
+## 18. A tarefa sai da lista sem o aplicativo dizer por quê (achado da V2-F00-E22, correção 4)
+
+`POST /sincronizacao/pendencias/reconciliar` (`apps/api/src/rotas/sincronizacao.ts`)
+devolve, para cada ocorrência que saiu da lista do agente, o `desfecho` (concluída,
+encerrada, devolvida ou passou para outra equipe, que é quem carrega os quatro
+casos) e o `motivo`, que só vem preenchido no encerramento (o texto da coordenação)
+e na devolução (o rótulo do motivo), e é nulo nos outros dois. O aplicativo só usa o `status` dessa resposta, para apagar a
+lápide da coleta já recebida (`aplicarReconciliacao`, `src/dados/pendencias.ts`); nenhuma
+tela lê `desfecho` nem `motivo`. Resultado: a tarefa some da lista e o agente não
+sabe se foi concluída, encerrada ou passada a um colega. `docs/CARTAO-DO-AGENTE.md`,
+`docs/IMPLANTACAO.md` e `docs/GUIA-DO-COORDENADOR.md` agora dizem isso. O conserto
+é uma frase na lista ou no sino a partir dos dois campos que já chegam; não foi
+feito aqui (resolver pendência não é desta etapa).

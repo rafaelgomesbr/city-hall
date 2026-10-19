@@ -681,10 +681,13 @@ export async function construirServidor(
   /**
    * Saúde e prontidão numa rota só.
    *
-   * `esquemaEmDia: false` é a informação que importa num rolling deploy: um
-   * processo novo servindo requisição contra banco sem a coluna que o código
-   * espera falha de um jeito difícil de diagnosticar. Melhor o balanceador
-   * saber que este processo ainda não está pronto.
+   * A resposta traz `ultimaMigracao` (a última versão aplicada no banco), que
+   * quem opera um rolling deploy pode comparar com a que o código novo espera.
+   * Não existe campo `esquemaEmDia`: processo com esquema atrasado nem chega a
+   * subir (o boot confere e sai com erro, ver `index.ts`), então um processo
+   * que responde aqui já nasceu com o esquema em dia. O 503 sai só quando a
+   * consulta ao banco falha. Junto vão `eliminacoes` e `push`, sem nome de município nem de pessoa (contagens, e
+   * o instante da última rodada do push).
    */
   app.get("/saude", async (req, resposta) => {
     let ultimaMigracao: string | null;

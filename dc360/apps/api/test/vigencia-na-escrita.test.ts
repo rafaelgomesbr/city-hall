@@ -121,7 +121,7 @@ describe("Token vivo de quem já não pode", () => {
     }
   });
 
-  it("papel rebaixado escreve como o papel NOVO, não como o do token", async () => {
+  it("papel rebaixado: a escrita com o token do papel antigo leva 401 nao_autenticado (vale o banco; renovar e repetir)", async () => {
     const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
     // Coordenadora: a triagem é dela.
     const antes = await app.inject({

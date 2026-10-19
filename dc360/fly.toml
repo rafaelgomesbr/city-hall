@@ -109,9 +109,9 @@ kill_timeout = 30
   min_machines_running = 1
   processes = ["app"]
 
-  # `/saude` responde 503 enquanto o banco não responde ou o esquema está
-  # atrasado, então o balanceador não manda tráfego para um processo que
-  # ainda não pode servir. É rota pública e não vaza detalhe de erro.
+  # `/saude` responde 503 enquanto o banco não responde, então o balanceador não
+  # manda tráfego para um processo que ainda não pode servir. Esquema atrasado
+  # não vira 503 aqui: ele impede a partida do processo (apps/api/src/index.ts). É rota pública e não vaza detalhe de erro.
   [[http_service.checks]]
     interval = "15s"
     timeout = "5s"

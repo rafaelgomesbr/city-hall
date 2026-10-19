@@ -1,9 +1,9 @@
 # Dicionário de dados
 
 - **Versão:** 4, de 15/09/2026 (a 3 e a 2 eram do mesmo dia; a 1, de 09/09/2026)
-- **Para quê:** entregar junto com a exportação de saída de município
-  (`SAIDA-DE-MUNICIPIO.md`), e servir de referência para quem for auditar ou
-  migrar. `status = 'em_campo'` não se explica sozinho.
+- **Para quê:** ser entregue ao município junto com a exportação de saída
+  (`SAIDA-DE-MUNICIPIO.md`; hoje o pacote gerado pela API NÃO o inclui, a
+  entrega é à parte), e servir de referência para quem for auditar ou migrar. `status = 'em_campo'` não se explica sozinho.
 
 Este documento descreve o **significado**. A estrutura autoritativa são as
 migrações em `db/migrations/`, e elas mandam em caso de divergência.
@@ -19,8 +19,16 @@ município vem sempre do token verificado, colocado na transação com `SET LOCA
 e nunca de parâmetro de requisição.
 
 **Nada se apaga.** Ocorrência se encerra com motivo; usuário e equipe se
-desativam. As chaves estrangeiras usam `ON DELETE RESTRICT` justamente para que
-uma remoção acidental esbarre no banco.
+desativam. A maioria das chaves estrangeiras usa `ON DELETE RESTRICT`, para que
+uma remoção acidental esbarre no banco, mas não todas: desde a migração 001 há
+`CASCADE` no que só existe dentro do pai (por exemplo as evidências de uma
+vistoria) e `SET NULL` em vínculo opcional (por exemplo a equipe de um usuário).
+Por isso a barreira que vale não é a chave estrangeira. São duas: a ausência de
+`GRANT DELETE` nas tabelas centrais (as concessões são só `SELECT`, `INSERT` e
+`UPDATE`, desde as migrações 001, 002, 005, 016, 017 e 022) e a ausência de policy
+de `DELETE` sob RLS forçada (as migrações 032 a 034 recortaram as policies que
+valiam para tudo, para a segunda barreira existir). As exceções, como `avisos`,
+estão nomeadas nas migrações.
 
 **A trilha não se reescreve.** `trilha_eventos` e `trilha_administrativa` não
 têm política de alteração nem de remoção: o banco simplesmente não permite.

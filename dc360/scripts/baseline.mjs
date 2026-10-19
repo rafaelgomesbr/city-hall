@@ -491,6 +491,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E03-correcao-4": { total: 2, falhas: 0 },
   // V2-F00-E05, correção 2: `codigos-de-erro.test.ts` ganha 5 casos (as quatro recusas novas do catálogo, quem tem ação para o cliente e os três da lista da entrada); o catálogo passa de seis para dez códigos.
   "V2-F00-E05-correcao-2": { total: 5, falhas: 0 },
+  // V2-F00-E22, correção 4: `packages/shared/test/permissoes-no-readme.test.ts` (10 casos) prende a tabela de permissões do README e a de `docs/PAPEIS_E_RESPONSABILIDADES.md` ao catálogo `acoesDoPapel` (falta, sobra, papel sem linha, ordem, marcador, sim ou não trocado). A base do shared não conta puladas, por isso a entrada também não traz o campo.
+  "V2-F00-E22-correcao-4": { total: 10, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

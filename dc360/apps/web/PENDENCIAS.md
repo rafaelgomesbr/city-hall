@@ -20,6 +20,12 @@ o que continua pendente (a conferência humana da V2-F00-E01); o 9.2 ganhou a
 remissão ao item 11. Os demais itens batem com o código (os comandos e arquivos
 citados existem; os pedidos de rede e o CORS não mudaram).
 
+**Terceira conferência de 2026-10-19 (correção 4 da V2-F00-E22).** A rodada 4 achou
+que a "janela de milissegundos na renovação" continuava listada como pendente de
+F03-E02 em três lugares (tabela, item 6.5 e item 9.3), e o código a fechou na
+V2-F00-E07 (migração 049). Saiu da tabela e os dois itens passaram a dizer que
+está resolvida.
+
 | O que resta | Item | Quem fecha |
 | --- | --- | --- |
 | Prova do link encurtado contra o Google de verdade (todos os testes usam dublê) | 2 | validação humana |
@@ -33,7 +39,6 @@ citados existem; os pedidos de rede e o CORS não mudaram).
 | Frase de permissão fala em "alterar" no download do pacote | 8.3 | F03 |
 | Município suspenso não baixa o pacote | 8.4 | Rafael com o jurídico (CP-29) |
 | Barra de navegação a 390 px ainda rola na horizontal (mas sem ladrilho cortado desde a V2-F00-E09, correção 1) | 9.2, 11 | F10 |
-| Janela de milissegundos na renovação | 9.3 | F03-E02 |
 | e2e contra a API no Firefox fora do CI; o gatekeeper leu o run do CI, falta a conferência humana | 10.1 | F01-E03, validação humana |
 | CORS por ambiente e do armazenamento externo | 10.2 | F01-E10, F06-E15 |
 | Ver a foto subir na seção 13 | 10.3 | validação humana |
@@ -267,8 +272,8 @@ O que não é desta etapa e continua aberto:
    FAMÍLIA da sessão (`encerrarSessoes` em `apps/api/src/auth/sessoes.ts`, que
    compara `familia_id`), igual ao que a lista de "Minhas sessões" marca como
    "esta"; quem clica com um token anterior à última renovação mantém a sessão
-   viva da própria cadeia. O que continua de F03-E02 é só a janela de
-   milissegundos da renovação (item 9.3).
+   viva da própria cadeia. A janela de milissegundos da renovação, que ficava
+   pendente aqui, também fechou (item 9.3).
 
 ## 7. Recuperação de senha por e-mail (V2-F00-E10): o que ficou de fora
 
@@ -351,15 +356,18 @@ O que não é desta etapa e continua aberto:
    RESOLVIDO na V2-F00-E21 (`.gitattributes` e `test/ler-fonte.ts`): o painel
    fecha com zero falha.
 2. **A barra de navegação em 390 px rola na horizontal** e isso continua sendo
-   de propósito: dez destinos não cabem na largura, e o rótulo por extenso vale
+   de propósito: os destinos não cabem na largura (dez no código, mais "Tema" e "Sair"), e o rótulo por extenso vale
    mais do que um ícone a adivinhar. Medido: `scrollWidth` 1484 contra
    `clientWidth` 390, toque arrasta, Tab alcança os dez. O que foi corrigido
    aqui é o Tab parar num item PELA METADE (a V2-F00-E09, correção 1, mudou a
    barra para ladrilhos inteiros: ver o item 11; os números acima são da medição
    original). Transformar a barra em outra coisa
    (menu "mais", ícones sem rótulo, abas) é decisão de interface da F10.
-3. **A janela de milissegundos entre revogar e abrir sessão** na renovação
-   continua como estava (F03-E02); esta etapa não tocou em sessão no servidor.
+3. ~~**A janela de milissegundos entre revogar e abrir sessão** na renovação.~~
+   RESOLVIDO na V2-F00-E07 (correção 2, migração 049): a renovação é uma
+   transação só, sob `travar_sessoes_do_usuario` (`apps/api/src/auth/servico.ts`),
+   e quem encerra sessões em massa toma a mesma trava; quem lê vê a sessão
+   antiga de pé ou a nova de pé, nunca nenhuma. Nada a fazer no painel.
 
 ## 10. E2E de navegador e CORS do PUT de evidência (V2-F00-E18): o que ficou de fora
 
@@ -414,8 +422,9 @@ por `test/layout-estreito.e2e.mjs` (mede retângulos no navegador a 320, 360, 36
 
 O que continua aberto:
 
-1. **A barra ainda rola na horizontal** a 320 e 390 px (onze destinos, três ou
-   quatro ladrilhos à vista). Já não corta rótulo, mas não há dica visual de que
+1. **A barra ainda rola na horizontal** a 320 e 390 px (até onze ladrilhos para o administrador: nove
+   destinos, que são todos menos "Meu trabalho", mais "Tema" e "Sair" da mesma
+   barra; três ou quatro à vista). Já não corta rótulo, mas não há dica visual de que
    rola além do ladrilho que espia na borda. Menu "mais" ou abas continuam sendo
    decisão da F10.
 2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
