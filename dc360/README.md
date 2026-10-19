@@ -8,12 +8,12 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 170 testes do pacote compartilhado passando |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 175 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1327 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 669 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1422 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -142,10 +142,75 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 
 O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
 código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
-servidor, o painel e o aplicativo importam, e `apps/api/test/codigos-de-erro.test.ts`
-confere que o servidor emite exatamente ela (código novo fora da lista reprova).
-Até a V2-F00-E05 os três primeiros eram um só, `401 sessao`, e o cliente não
-distinguia token vencido de conta desativada.
+servidor, o painel e o aplicativo importam. O catálogo cobre os erros de ACESSO
+(autenticação, vigência e permissão): toda resposta 401 ou 403 do servidor tem
+código nele. Dois testes prendem isto, e um não substitui o outro:
+
+- **Varredura do código-fonte** (`apps/api/test/codigos-de-erro.test.ts`, árvore
+  sintática do TypeScript, na API, no pacote compartilhado e no console do
+  fornecedor): reprova resposta 401 ou 403, ou de status que o texto não resolve,
+  com código fora do catálogo e da lista da entrada. Lê `send({ erro })` literal
+  ou por constante, `new RegraDeNegocio(...)` e `new FalhaAutenticacao(...)`
+  (inclusive com outro nome de importação ou por `import * as`), o `super(...)` de
+  qualquer subclasse delas, classe de erro com `codigo` literal, atribuído no
+  construtor, por getter ou por propriedade de parâmetro, o tratador global e a
+  recusa `{ status, corpo: { erro } }` do console. O que ela não consegue ler, ela
+  reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
+  corpo que não resolve (inclusive texto, com status calculado), `{ erro: "x",
+  ...extra }` com spread depois de `erro`, `statusCode`/`status` escritos à mão
+  (propriedade, chave computada, colchete, `Object.defineProperty`),
+  `Object.assign`, `.raw`, `.hijack()`, `.writeHead()`, ganchos `onSend` que
+  recebem o corpo ou que enviam resposta ou lançam erro de negócio, argumentos
+  espalhados em `new RegraDeNegocio(...)`, `status` declarado em classe de erro,
+  classe de erro guardada em variável ou passada a `Reflect.construct`, código
+  calculado, classe nova com `codigo` calculado, qualquer `Reflect`, atribuição ao
+  `codigo` de um erro fora do construtor, reatribuição do parâmetro do tratador
+  global. Só passam os repasses conferidos
+  à mão e listados no teste, cada um com o porquê e preso à origem conferida (o
+  `erro` do tratador global é o parâmetro do `setErrorHandler`; o status do
+  `corpo_invalido` vem de `doLeitorDeCorpo.statusCode`). Reprova ainda código do
+  catálogo emitido com status diferente do escrito e código do catálogo que
+  nenhum ponto do servidor emite.
+- **Prova dinâmica** (`apps/api/test/prova-dinamica-dos-codigos-de-erro.test.ts`),
+  que é a SEGUNDA linha, depois da varredura: sobe o servidor, lê as rotas que ELE
+  registrou (a árvore do Fastify concatenada, a mesma leitura de
+  `superficie.test.ts`) e pede cada uma, com 12 perfis em estados negativos (sem
+  token, token lixo, vencido, de outra assinatura, perfil errado, conta
+  desativada, senha provisória, município suspenso, município de fora). Cada
+  pedido sai de um endereço de rede distinto, para não esbarrar no limitador de
+  300 por minuto (que continua ligado no resto da suíte), e o teste exige zero
+  429. Exige que o número de pares método + caminho pedidos seja o de pares
+  registrados (conferido por uma segunda contagem da árvore), que nenhum pedido
+  caia fora das rotas, e que todo 401 e todo 403 traga um `erro` do catálogo ou
+  da entrada com o status do catálogo. O que ela EXERCITA de verdade, medido e
+  com piso declarado no teste (rodar com `SAIDA_ALCANCE=arquivo.json` grava a
+  matriz status por rota e por perfil): dos 114 pares, 112 chegam ao handler com
+  algum perfil (status que não é 401, 403 nem 429), 48 recebem 2xx de algum
+  perfil, e **66 nunca recebem 2xx de perfil nenhum** (só 422, 404, 409 ou 503
+  além das recusas de acesso), isto é, o corpo mínimo que a prova manda não leva
+  esses handlers até o fim e a autorização DELES é exercitada só até a validação;
+  2 (as do armazenamento local, que autenticam pela assinatura da URL) só recebem
+  403 `assinatura`. Por perfil, as rotas que chegam ao handler: sem token, token
+  lixo, vencido e de outra assinatura 10 cada (as públicas), coordenador 93,
+  agente 62, operador 61, administrador 100, conta desativada 47, senha
+  provisória 49, coordenador de outro município 96, município suspenso 54. Ou
+  seja, a prova dinâmica NÃO é "todas as rotas com todos os perfis até o fim": a
+  garantia de que nenhuma recusa de acesso sai fora do catálogo vem primeiro da
+  varredura do fonte, e a prova dinâmica fecha o que o texto esconde só onde ela
+  chega.
+- **Execução por código** (no mesmo arquivo da varredura): cada um dos dez códigos sai do servidor real, por
+  requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
+  padrão).
+
+O que NENHUM deles prende: uma recusa que só sai com um corpo ou um estado que os
+perfis da prova dinâmica não criam E que o texto esconde (código montado por dado
+externo, classe definida fora das pastas varridas, `Object.assign` num erro,
+resposta de um plugin de terceiros); erros de outros status (404, 409, 422, 429,
+5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
+cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
+código (isso é dos testes do painel e do aplicativo). Até a V2-F00-E05 os três
+primeiros eram um só, `401 sessao`, e o cliente não distinguia token vencido de
+conta desativada.
 
 | Código | Status | O que o cliente faz | Quando sai |
 | --- | --- | --- | --- |
@@ -155,6 +220,10 @@ distinguia token vencido de conta desativada.
 | `acesso_suspenso` | 403 (503 nas rotas da fila) | Espera: quem resolve é quem administra o contrato | Município suspenso pelo fornecedor |
 | `troca_de_senha_obrigatoria` | 403 | Leva à troca de senha | Sessão nascida de senha provisória |
 | `sem_permissao` | 403 | Nada a repetir | O perfil não pode fazer isto |
+| `posto_insuficiente` | 403 | Nada a repetir | A pessoa administra usuários, mas não aquela conta (posto igual ou acima do dela). É 403 e não 404 porque a conta é do próprio município |
+| `posto_insuficiente_para_dado_pessoal` | 403 | Nada a repetir | Exportação com dados pessoais por quem não administra o município |
+| `email_so_por_administrador` | 403 | Nada a repetir | Troca do email de outra pessoa por quem não é administrador |
+| `assinatura` | 403 | Nada a repetir | URL assinada de envio ou de download de arquivo sem assinatura, adulterada ou vencida (não há sessão: a assinatura é a credencial) |
 
 Três regras que não mudam com os códigos:
 
@@ -170,9 +239,13 @@ Três regras que não mudam com os códigos:
   as sessões dela; se a ordem fosse outra, o cliente leria `sessao_encerrada` e
   mandaria entrar de novo, que não resolve.
 
-O código antigo `sessao` deixou de existir. O esquema de erro único da API, com
-o catálogo inteiro (validação, regra de negócio, conflito), é da V2-F02-E03, que
-generaliza esta tabela.
+O código antigo `sessao` deixou de existir. Os da **entrada** (`credenciais` 401,
+`senha_provisoria_vencida` 401, `bloqueado` 429) ficam numa lista própria,
+`CODIGOS_DA_ENTRADA`, fora do catálogo de acesso: respondem a outra pergunta e o
+cliente nunca os lê como sessão morta. O console do fornecedor (`apps/console`) é
+outro processo, com contrato de erro próprio, e o teste o varre contra a lista
+dele. O esquema de erro único da API, com o catálogo inteiro (validação, regra de
+negócio, conflito), é da V2-F02-E03, que generaliza esta tabela.
 
 Um caso fora da tabela, porque não é de acesso: pedido cujo corpo o Fastify não
 consegue ler (JSON vazio com `content-type: application/json`, JSON torto, corpo
@@ -1125,15 +1198,20 @@ eram da máquina, e não do código, foram fechados no próprio repositório:
   existente é respeitada. O `openssl` vem do PATH; no Windows, quando o PATH
   não o tem (o caso do PowerShell), o teste o procura ao lado do `git` (Git for
   Windows). Sem `openssl` em lugar nenhum a suíte reprova dizendo o que
-  instalar, em vez de pular. **No macOS há uma falha de ambiente conhecida:**
-  `apps/api/test/openssl-do-teste.test.ts`, o caso "respeita OPENSSL_CONF válido",
-  espera o comportamento do OpenSSL 3 (o autoassinado de `openssl req -x509`
-  sai marcado como CA sem a configuração mínima) e o `openssl` do sistema é o
-  LibreSSL (3.3.6 medido em 2026-10-14), que não marca. É uma falha do teste
-  contra o LibreSSL, não do produto (não foi tentado aqui com um OpenSSL 3 no
-  PATH). Por isso o `test:api` numa máquina Mac sem OpenSSL 3 dá uma falha a
-  mais que o esperado do roteiro (o passo `teste-api` diverge só por ela), e a
-  contagem de casos não muda.
+  instalar, em vez de pular. **No macOS o `openssl` do sistema é o LibreSSL**
+  (3.3.6 medido em 2026-10-19), e o caso "respeita OPENSSL_CONF válido" de
+  `apps/api/test/openssl-do-teste.test.ts` reprovava lá (medido em 2026-10-14):
+  ele esperava que o autoassinado, sem a variável, saísse marcado como CA. Quem
+  marca é o `openssl.cnf` padrão da máquina (`x509_extensions = v3_ca`), e não a
+  família do `openssl`; o do macOS não manda, e com `v3_ca` o próprio LibreSSL
+  marca. Foi uma falha do teste, não do produto (o produto não chama `openssl`;
+  só a suíte de TLS do banco, para gerar o certificado do impostor). Consertado
+  em 2026-10-19 (V-API-3 do registro da E03, seção 10): a asserção do `ca` sem
+  configuração saiu, e a prova de que a configuração foi lida passou a ser um
+  uso estendido de chave que ela pede (aparece com a variável válida, não
+  aparece sem ela). O arquivo passa no LibreSSL do Mac e num OpenSSL 3.0.7
+  osx-arm64. O caso do `OPENSSL_CONF` inexistente pressupõe que a instalação do
+  `openssl` tenha o seu `openssl.cnf` padrão, como toda instalação normal tem.
 - *Cache do Expo.* `npm run test:campo` apaga `apps/campo/.expo/types` quando o
   `router.d.ts` gerado ali não conhece alguma rota de `src/app` (ver
   `apps/campo/LEIA-ME.md`).
@@ -1142,7 +1220,7 @@ eram da máquina, e não do código, foram fechados no próprio repositório:
 | --- | --- | --- | --- |
 | `npm run typecheck` | rodado em 2026-10-07, código 0 | código 0 (passo `typecheck` do roteiro) | CI, ver abaixo |
 | `npm test` | rodado em 2026-10-07, código 0 | não rodado como comando único; cada pacote rodou no roteiro, ver a linha seguinte | CI, ver abaixo |
-| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | **código 1**: 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`") e 9 pulados por ambiente (o Postgres real), 1319 casos impressos | CI, ver abaixo |
+| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | 2026-10-14: código 1, 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`"); **2026-10-19, depois do conserto V-API-3: código 0**, nenhuma falha e 20 pulados por ambiente (o Postgres real, sem `DC360_POSTGRES_DE_PROVA`) | CI, ver abaixo |
 | `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | código 0 | CI, ver abaixo |
 | `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | código 0 | CI, ver abaixo |
 | `npm run test:scripts` | rodado em 2026-10-07, código 0 | código 0, 260 de 260, 0 pulados (existe `apps/campo/ios/`) | CI, ver abaixo |
@@ -1217,6 +1295,9 @@ verde (premissa e limites no item 17 de `apps/campo/PENDENCIAS.md`). As saídas
 estão em `docs/evidencias-v2/G00/V2-F00-E22/correcao-2/` (medição da manhã, 14 de
 17) e em `docs/evidencias-v2/G00/V2-F00-E19/correcao-4/saidas/linha-de-base-final/`
 (árvore final, 15 de 17, com as 17 saídas brutas).
+Desde 2026-10-19 o passo `teste-api` deixou de divergir num Mac: a falha do
+LibreSSL era do teste e foi consertada (V-API-3, seção 10 do registro da E03).
+A divergência de `teste-api` descrita acima é, portanto, a de 2026-10-14.
 Os dois `npm audit` crus são os únicos passos esperados como "falha", e só
 conferem se a saída trouxer o relatório (`# npm audit report`): `npm audit` que
 sai diferente de zero porque o registro estava fora do ar não audita nada e
@@ -1351,11 +1432,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 2989 testes em seis pacotes
+npm test                    # 3101 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1327 testes da API
-npm run test --workspace @dc360/campo   # 223 testes do motor de campo
-npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
+npm run test:api            # 1422 testes da API
+npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
 ```
@@ -1686,7 +1767,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
   aparelho fica sem sinal (V2-F14-E12).
 
-  Essa última já tem 223 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 231 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

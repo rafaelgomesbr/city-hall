@@ -411,6 +411,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     no arquivo. Nenhuma falha nova nem pulo.
   */
   "V2-F00-E12-correcao-3": { total: 5, falhas: 0, puladas: 0 },
+  // V2-F00-E05, correção 2: `codigos-de-erro.test.ts` foi de 22 para 116 casos: saem os 4 de leitura por texto e entram 98, sendo 4 de execução (as quatro recusas de permissão por posto e URL assinada saindo do servidor real) e 94 da varredura pela árvore sintática (API, pacote compartilhado e console, código morto, `sessao`, os dez códigos, as formas de emitir que reprovam e que falham para o lado seguro em fonte de exemplo, inclusive as da revisão independente das três passadas, os repasses presos à origem, o controle negativo e as mutações no fonte real, em memória); e `prova-dinamica-dos-codigos-de-erro.test.ts` é novo, com 1 caso (todos os pares método + caminho registrados, 12 perfis, endereço distinto por pedido, zero 429, alcance medido com piso, todo 401 e 403 no catálogo com o status do catálogo). Total 22 para 117. Sem pulo nem falha novos.
+  "V2-F00-E05-correcao-2": { total: 95, falhas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -445,6 +447,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E20": { total: 3, falhas: -1 },
   // V2-F00-E03, correção 4 (V-INS-04): 2 casos novos em `regras-de-conteudo.test.ts` (o arquivo que some entre a listagem e a leitura não derruba a varredura; só o ENOENT é tolerado).
   "V2-F00-E03-correcao-4": { total: 2, falhas: 0 },
+  // V2-F00-E05, correção 2: `codigos-de-erro.test.ts` ganha 5 casos (as quatro recusas novas do catálogo, quem tem ação para o cliente e os três da lista da entrada); o catálogo passa de seis para dez códigos.
+  "V2-F00-E05-correcao-2": { total: 5, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -476,6 +480,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-2": { total: 6, falhas: 0 },
   // V2-F00-E10, correção 2: `recuperar-senha.test.ts` foi de 37 para 47 casos (a tela de sucesso não promete ida automática nem tem relógio, o foco na confirmação, o rodapé, o hover e o pedido de novo). Contado contra o `4b96ea7`.
   "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
+  // V2-F00-E05, correção 2: `sessao-e-entrada.test.ts` ganha 4 casos (403 de cada código novo do catálogo, sem ação, não renova nem derruba a tela).
+  "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -552,6 +558,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E05-correcao-1": { total: 1, falhas: 0 },
   // V2-F00-E06, correcao 1: `pausa-por-senha-provisoria.test.ts` (matriz de classificacao, senha provisoria, corridas de troca de conta).
   "V2-F00-E06-correcao-1": { total: 35, falhas: 0 },
+  // V2-F00-E05, correção 2: a matriz de `pausa-por-senha-provisoria.test.ts` ganha 4 linhas (403 de cada código novo do catálogo é recusa permanente), com 2 casos por linha.
+  "V2-F00-E05-correcao-2": { total: 8, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -583,6 +591,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   */
   "V2-F00-E06-correcao-2": { total: 17, falhas: 0 },
   "V2-F00-E16-correcao-2": { total: 7, falhas: 0 },
+  // V2-F00-E15, correção 2: `dialogo-na-conta-com-vistoria-comecada.test.tsx` ganha 5 casos (disco ilegível, item recusado da fila, item em envio, título e ordem dos botões, disco que falha na segunda pergunta). O caso do botão de perigo foi reescrito, sem mudar a contagem.
+  "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

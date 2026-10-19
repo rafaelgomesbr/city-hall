@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  CODIGOS_DE_ERRO_DE_ACESSO, LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO, acaoParaOCodigo,
-  ehCodigoDeErroDeAcesso,
+  CODIGOS_DA_ENTRADA, CODIGOS_DE_ERRO_DE_ACESSO, LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO, acaoParaOCodigo,
+  ehCodigoDaEntrada, ehCodigoDeErroDeAcesso,
 } from "../src/index.js";
 
 /**
@@ -40,7 +40,23 @@ describe("Catálogo dos códigos de erro de acesso", () => {
     expect([...LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO].sort()).toEqual(
       Object.keys(CODIGOS_DE_ERRO_DE_ACESSO).sort(),
     );
-    expect(LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO).toHaveLength(6);
+    expect(LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO).toHaveLength(10);
+  });
+
+  it("as quatro recusas que antes saíam fora da lista são 403 sem ação para o cliente: erro comum, nunca sessão morta", () => {
+    for (const c of [
+      "posto_insuficiente", "posto_insuficiente_para_dado_pessoal", "email_so_por_administrador", "assinatura",
+    ] as const) {
+      expect(CODIGOS_DE_ERRO_DE_ACESSO[c], c).toMatchObject({ status: 403, acao: "nenhuma" });
+      expect(acaoParaOCodigo(c), c).toBe("nenhuma");
+    }
+  });
+
+  it("só cinco dos dez têm ação para o cliente: os do acesso à conta e à sessão, que já existiam", () => {
+    const comAcao = LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO.filter((c) => CODIGOS_DE_ERRO_DE_ACESSO[c].acao !== "nenhuma");
+    expect(comAcao.sort()).toEqual([
+      "acesso_suspenso", "conta_desativada", "nao_autenticado", "sessao_encerrada", "troca_de_senha_obrigatoria",
+    ]);
   });
 
   it("toda mensagem é uma frase em português para quem usa o sistema, sem jargão de código", () => {
@@ -60,7 +76,7 @@ describe("Catálogo dos códigos de erro de acesso", () => {
 });
 
 describe("ehCodigoDeErroDeAcesso", () => {
-  it("reconhece os seis códigos", () => {
+  it("reconhece os dez códigos", () => {
     for (const codigo of LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO) {
       expect(ehCodigoDeErroDeAcesso(codigo), codigo).toBe(true);
     }
@@ -75,6 +91,29 @@ describe("ehCodigoDeErroDeAcesso", () => {
   it("recusa o que não é texto e as chaves herdadas de Object", () => {
     for (const fora of [undefined, null, 401, {}, ["nao_autenticado"], "constructor", "toString", "__proto__", "hasOwnProperty"]) {
       expect(ehCodigoDeErroDeAcesso(fora), String(fora)).toBe(false);
+    }
+  });
+});
+
+describe("Os códigos da entrada ficam FORA do catálogo de acesso", () => {
+  it("são três, com o status que a entrada responde", () => {
+    expect(CODIGOS_DA_ENTRADA.credenciais.status).toBe(401);
+    expect(CODIGOS_DA_ENTRADA.senha_provisoria_vencida.status).toBe(401);
+    expect(CODIGOS_DA_ENTRADA.bloqueado.status).toBe(429);
+    for (const c of Object.keys(CODIGOS_DA_ENTRADA)) expect(ehCodigoDaEntrada(c), c).toBe(true);
+  });
+
+  it("`credenciais` não é código de acesso: senha atual errada na troca de senha não derruba a tela", () => {
+    for (const c of Object.keys(CODIGOS_DA_ENTRADA)) {
+      expect(ehCodigoDeErroDeAcesso(c), c).toBe(false);
+      expect(acaoParaOCodigo(c), c).toBeNull();
+    }
+  });
+
+  it("nenhum código está nas duas listas, e o que não é texto ou é chave herdada de Object não conta", () => {
+    for (const c of LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO) expect(ehCodigoDaEntrada(c), c).toBe(false);
+    for (const fora of [undefined, null, 401, {}, "constructor", "toString", "__proto__", "sessao"]) {
+      expect(ehCodigoDaEntrada(fora), String(fora)).toBe(false);
     }
   });
 });

@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/prova-dinamica-dos-codigos-de-erro.test.ts (1 test) 5883ms
+   ✓ Prova dinâmica: nenhuma recusa de acesso do servidor real sai fora do catálogo > em toda rota registrada, com cada perfil, todo 401 e todo 403 traz um `erro` do catálogo e o status do catálogo  2900ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  02:23:04
+   Duration  6.39s (transform 204ms, setup 16ms, collect 316ms, tests 5.88s, environment 0ms, prepare 34ms)
+

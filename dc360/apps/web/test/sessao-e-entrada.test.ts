@@ -239,6 +239,19 @@ describe("O 401 de sessão morta avisa a tela", () => {
     expect(expirou).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("dc360:tokens"), "a sessão continua de pé").not.toBeNull();
   });
+
+  it.each([
+    "posto_insuficiente", "posto_insuficiente_para_dado_pessoal", "email_so_por_administrador", "assinatura",
+  ])("403 %s (do catálogo, sem ação) é erro comum: não renova nem derruba a tela (correção 2 da E05)", async (codigo) => {
+    const buscar = vi.fn(async () => resposta(403, { erro: codigo, mensagem: "Seu perfil não alcança isto." }));
+    vi.stubGlobal("fetch", buscar);
+    const expirou = vi.fn();
+    http.aoExpirar(expirou);
+    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 403, codigo });
+    expect(expirou, "recusa de permissão não é sessão morta").not.toHaveBeenCalled();
+    expect(buscar, "403 não pede renovação nem repete").toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("dc360:tokens"), "a sessão continua de pé").not.toBeNull();
+  });
 });
 
 describe("As regras da entrada, fora do React", () => {

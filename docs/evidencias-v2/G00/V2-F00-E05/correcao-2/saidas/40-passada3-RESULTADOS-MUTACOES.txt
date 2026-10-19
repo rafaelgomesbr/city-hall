@@ -1,0 +1,10 @@
+A1-orgaos-reativacao                         varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+A2-oficios-documento                         varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+A3-documentos-laudo                          varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+A4-evidencias-url                            varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+A5-ocorrencias-triagem                       varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+B1-401-sem-token-rota-tardia-Reflect.set     varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+B0-controle-mesma-forma-rota-cedo            varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+B2-401-literal-sem-token-rota-tardia         varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True
+S1-reatribui-parametro-do-tratador           varredura=REPROVA (Tests  14 failed | 80 passed | 22 skipped (116)) | dinamica=VERDE (Tests  1 passed (1)) | restaurado=True
+S3-codigo-por-ponto-rota-cedo                varredura=REPROVA (Tests  1 failed | 93 passed | 22 skipped (116)) | dinamica=REPROVA (Tests  1 failed (1)) | restaurado=True

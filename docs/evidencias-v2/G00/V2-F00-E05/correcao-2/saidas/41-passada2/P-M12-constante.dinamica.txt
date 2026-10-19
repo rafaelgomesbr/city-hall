@@ -1,0 +1,47 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/prova-dinamica-dos-codigos-de-erro.test.ts (1 test | 1 failed) 5765ms
+   × Prova dinâmica: nenhuma recusa de acesso do servidor real sai fora do catálogo > em toda rota registrada, com cada perfil, todo 401 e todo 403 traz um `erro` do catálogo e o status do catálogo 2910ms
+     → expected [ …(12) ] to deeply equal []
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  02:21:15
+   Duration  6.25s (transform 196ms, setup 15ms, collect 306ms, tests 5.76s, environment 0ms, prepare 29ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/prova-dinamica-dos-codigos-de-erro.test.ts > Prova dinâmica: nenhuma recusa de acesso do servidor real sai fora do catálogo > em toda rota registrada, com cada perfil, todo 401 e todo 403 traz um `erro` do catálogo e o status do catálogo
+AssertionError: expected [ …(12) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "GET /zz-teste como semToken: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como lixo: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como vencido: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como outraAssinatura: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como coordA: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como agenteA: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como operadorA: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como adminA: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como desativadoA: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como provisoriaA: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como coordB: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++   "GET /zz-teste como suspensoC: 403 {\"erro\":\"controle_m12\",\"mensagem\":\"m\"}",
++ ]
+
+ ❯ test/prova-dinamica-dos-codigos-de-erro.test.ts:238:18
+    236|     expect([...new Set(naoAlcancadas)], "pedidos que o roteador não re…
+    237|     expect(total, "a prova disparou pedidos de verdade").toBeGreaterTh…
+    238|     expect(fora).toEqual([]);
+       |                  ^
+    239| 
+    240|     // ---- Alcance: o que a prova EXERCITOU de verdade, e não só o qu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

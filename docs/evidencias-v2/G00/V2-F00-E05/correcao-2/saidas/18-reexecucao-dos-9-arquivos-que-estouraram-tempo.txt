@@ -1,0 +1,125 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/get-com-efeito.test.ts (10 tests) 77418ms
+   ✓ Controle: quem está vigente continua emitindo, e as pegadas enxergam a escrita > termo de interdição interdita e grava; o CSV grava a exportação  3094ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > conta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  1801ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > papel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  3949ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > sessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  11090ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > cadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  7136ms
+   ✓ A lista de GET com efeito é a decisão, e o comportamento a obedece > com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista  2965ms
+   ✓ PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve > toda rota de escrita autenticada recusa com 403 conta_desativada, sem tocar no banco  2462ms
+   ✓ /auth/encerrar-sessoes com o token anterior à renovação > a mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu  1773ms
+ ✓ test/endereco-de-origem.test.ts (6 tests) 85668ms
+   ✓ O teto de login nao se contorna por cabecalho > sem borda declarada, trocar Fly-Client-IP nao ganha balde novo  34039ms
+   ✓ O teto de login nao se contorna por cabecalho > com a borda declarada, o cabecalho do edge volta a valer  39153ms
+ ✓ test/codigos-de-erro.test.ts (61 tests) 70884ms
+   ✓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde  2040ms
+   ✓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada  1758ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve  3113ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada  2910ms
+   ✓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou  1929ms
+   ✓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto  2070ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município  1328ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo  1077ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo  1613ms
+   ✓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum  1788ms
+   ✓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo  2300ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete  7142ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada  2362ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada  1692ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada  1784ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar  2285ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token  6813ms
+   ✓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente  9158ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe  3169ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também  3278ms
+ ✓ test/eliminacao-de-municipio.test.ts (18 tests) 93121ms
+   ✓ O relogio que elimina municipio > sem eliminacao agendada, a rodada nao toca em nada e nao faz barulho  2196ms
+   ✓ O relogio que elimina municipio > eliminacao agendada para o futuro NAO acontece: os sete dias sao de arrependimento  1845ms
+   ✓ O relogio que elimina municipio > eliminacao vencida: banco limpo, armazenamento purgado, linha da organizacao fechada, e o vizinho intacto  2239ms
+   ✓ O relogio que elimina municipio > o log diz o identificador e quantos objetos foram apagados, por organizacao  2623ms
+   ✓ O relogio que elimina municipio > listagem que falha no meio NAO conclui: a linha fica, e a proxima rodada termina o servico  4837ms
+   ✓ O relogio que elimina municipio > um eliminador novo (processo reiniciado) REDESCOBRE a purga pendente e termina o trabalho  7787ms
+   ✓ O relogio que elimina municipio > um apagar que falha NAO conclui, os outros objetos saem, e a proxima rodada termina  9438ms
+   ✓ O relogio que elimina municipio > a retomada reconfere no banco: organizacao concluida pela outra maquina sai da memoria sem purgar nada  9761ms
+   ✓ O relogio que elimina municipio > o relogio do resumo nao escreve metrica de municipio eliminado: senao a conclusao bate na chave estrangeira  3636ms
+   ✓ O relogio que elimina municipio > purga alem de uma pagina de listagem: mil e um objetos, todos apagados  6318ms
+   ✓ O relogio que elimina municipio > recusa purgar um prefixo que nao e o da propria organizacao  4460ms
+   ✓ O relogio que elimina municipio > com a trava tomada por outra maquina, a rodada desiste sem tocar em nada  7732ms
+   ✓ O relogio que elimina municipio > a trava tem numero proprio, distinto das outras rotinas  8008ms
+   ✓ O relogio que elimina municipio > uma falha inteira no banco solta a trava para a proxima rodada  7277ms
+   ✓ O relogio que elimina municipio > a partida da API liga o relogio SEM chave de ambiente, e nao apenas o declara  4078ms
+   ✓ A rota de saude diz se o relogio tem trabalho > sem nada agendado, diz zero  2456ms
+   ✓ A rota de saude diz se o relogio tem trabalho > conta as agendadas e as vencidas, sem nome nenhum  3026ms
+   ✓ A rota de saude diz se o relogio tem trabalho > a eliminacao vencida some da conta quando o relogio conclui  5394ms
+ ✓ test/api.test.ts (52 tests) 42350ms
+   ✓ Autenticação > recusa senha errada com a mesma resposta de email inexistente  1177ms
+   ✓ Autenticação > nunca devolve o hash da senha  887ms
+   ✓ Autenticação > bloqueia a conta depois das tentativas configuradas  4350ms
+   ✓ Autenticação > rotaciona o token de renovação e derruba tudo se o antigo reaparecer  1606ms
+   ✓ Isolamento entre municípios pela API > não cadastra usuário carimbado para outro município  1067ms
+   ✓ Fluxo e trilha auditável > a troca de email de outra conta entra na trilha, de/para  1016ms
+   ✓ Superfície e respostas de erro > desativar usuário derruba as sessões dele na hora  1880ms
+   ✓ Limite de tentativas por endereço > recusa depois do teto configurado, com 429  2420ms
+   ✓ Resposta do orgao a providencia > encerrar avisa quais providencias ficaram sem resposta  341ms
+   ✓ Vinculo de duplicidade e providencias vencendo > o vinculo aparece nos DOIS lados  341ms
+   ✓ Posto entre papeis > o administrador cria administrador  1192ms
+   ✓ Trilha dos atos administrativos > promover, rebaixar e desativar deixa os três registros  1077ms
+ ✓ test/segundo-fator.test.ts (23 tests) 73168ms
+   ✓ A entrada em duas etapas > administrador sem segundo fator não recebe sessão nenhuma, só o desafio  1437ms
+   ✓ A entrada em duas etapas > o desafio NÃO vale como token de acesso em rota nenhuma  1748ms
+   ✓ A entrada em duas etapas > quem não é administrador continua entrando em uma etapa  6822ms
+   ✓ A entrada em duas etapas > com a verificação ligada, a senha sozinha não abre sessão, e o código abre  7416ms
+   ✓ A entrada em duas etapas > o mesmo código não vale duas vezes dentro da mesma janela  9307ms
+   ✓ A entrada em duas etapas > a tolerância é de um passo para cada lado, e não mais  3512ms
+   ✓ A entrada em duas etapas > o teto de tentativas do código é separado do teto da senha  4990ms
+   ✓ A entrada em duas etapas > o código de recuperação entra uma vez, e só uma  3513ms
+   ✓ A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo  4633ms
+   ✓ Ligar a verificação > a ativação começada e não confirmada NÃO muda o login  1762ms
+   ✓ Ligar a verificação > código errado não liga a verificação  693ms
+   ✓ Ligar a verificação > o administrador obrigado liga pelo desafio e sai daqui com sessão  804ms
+   ✓ Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele  2384ms
+   ✓ Ligar a verificação > a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator  2256ms
+   ✓ Ligar a verificação > o segredo vai CIFRADO para o banco, e não em texto  1317ms
+   ✓ Ligar a verificação > ligar de novo, por cima de uma verificação ativa, é recusado  1630ms
+   ✓ Desligar a verificação > exige a senha atual  4106ms
+   ✓ Desligar a verificação > desligar apaga o segredo, derruba os códigos e deixa rastro  6608ms
+ ✓ test/resolver-link.test.ts (37 tests) 22647ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  941ms
+ ✓ test/acesso-suspenso.test.ts (20 tests) 18116ms
+   ✓ Entrar num municipio suspenso > recusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato  638ms
+   ✓ Entrar num municipio suspenso > nunca responde 401: a credencial esta certa, o que falta e o contrato  752ms
+   ✓ Entrar num municipio suspenso > senha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao  699ms
+   ✓ Entrar num municipio suspenso > nao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou  865ms
+   ✓ Entrar num municipio suspenso > o municipio vizinho continua entrando normalmente  570ms
+   ✓ Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel  1387ms
+   ✓ Entrar num municipio suspenso > municipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra  1405ms
+   ✓ Sessao viva de municipio suspenso > renovar recusa com 403 mesmo com a sessao ainda de pe no banco  892ms
+   ✓ Sessao viva de municipio suspenso > renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403  1619ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: escrita recusa na hora, com 403  957ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: leitura continua ate o token vencer  912ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD)  748ms
+   ✓ A fila do aparelho num municipio suspenso > a sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario  934ms
+   ✓ A fila do aparelho num municipio suspenso > as quatro rotas que a fila chama recusam com 503, e as demais escritas com 403  793ms
+   ✓ A fila do aparelho num municipio suspenso > nada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso  502ms
+ ✓ test/vigencia-na-escrita.test.ts (13 tests) 18205ms
+   ✓ Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte  923ms
+   ✓ Token vivo de quem já não pode > papel rebaixado escreve como o papel NOVO, não como o do token  662ms
+   ✓ Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive  1876ms
+   ✓ Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada  518ms
+   ✓ Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão  593ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro  622ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  2368ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca  1200ms
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  1367ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  1361ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  959ms
+   ✓ Token de renovação vencido não é reuso > H1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão  640ms
+
+ Test Files  9 passed (9)
+      Tests  240 passed (240)
+   Start at  01:02:08
+   Duration  265.61s (transform 3.27s, setup 374ms, collect 13.75s, tests 501.58s, environment 2ms, prepare 1.34s)
+
+codigo=0

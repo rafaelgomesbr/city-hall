@@ -1,0 +1,13 @@
+Conferência de evidência de V2-F00-E05 no SHA a0dfc8a
+OK    etapa: V2-F00-E05 existe (docs/roadmap-v2/03-fase-00-estabilizacao.md:139)
+OK    sha: a0dfc8a existe e é ancestral do HEAD
+OK    lista-permitida: a0dfc8a..HEAD só toca a lista permitida (0 arquivo(s))
+OK    regras-commitadas: política, mapa de impacto, skill e scripts sem mudança não commitada
+OK    pasta: docs/evidencias-v2/G00/V2-F00-E05 existe
+OK    indice: INDEX.md bate com os 78 arquivo(s) listado(s), SHA-256 a SHA-256
+OK    segredos: nenhum padrão de segredo em 91 arquivo(s) de texto
+OK    travessao: nenhum travessão nos .md da pasta
+OK    capturas: capturas em 1280 e 390 px, claro e escuro (22 imagem(ns))
+OK    sonda: risco médio: sonda antes e depois não exigida por esta conferência
+RESULTADO: sem falha, 0 aviso(s).
+codigo=0
