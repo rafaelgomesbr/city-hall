@@ -424,6 +424,15 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     ambiente).
   */
   "V2-F00-E07-correcao-4": { total: 20, falhas: 0, puladas: 11 },
+  /*
+    V2-F00-E09, correção 3 (2026-10-19), contada contra o commit da correção 4
+    da E07: `id-da-propria-conta.test.ts` é novo, com 13 casos de PGlite (as
+    três recusas sobre a própria conta com o id em minúsculas, em maiúsculas e
+    com caixa misturada, os formatos alternativos de uuid nas três rotas, e o
+    id de outra pessoa em maiúsculas continuando a valer). Soma 13 na lista
+    (de 1336 para 1349) e 13 no `vitest run` (1380, com 31 pulados).
+  */
+  "V2-F00-E09-correcao-3": { total: 13, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

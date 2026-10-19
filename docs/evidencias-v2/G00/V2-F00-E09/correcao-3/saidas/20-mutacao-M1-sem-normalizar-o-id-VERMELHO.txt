@@ -1,0 +1,148 @@
+mutação M1: sem a normalização (o id da rota comparado como veio)
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/id-da-propria-conta.test.ts (13 tests | 6 failed) 10922ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em minúsculas: 422 autoredefinicao (controle)  788ms
+   × A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em maiúsculas: 422 autoredefinicao, e nada muda 875ms
+     → redefinir a senha sobre a própria conta, id em maiúsculas: {"senhaTemporaria":"7vby-9h4m-uaps","sessoesEncerradas":3,"mensagem":"Senha temporária de Rita Sampaio Lopes. Ela aparece uma única vez: entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela."}: expected 200 to be 422 // Object.is equality
+   × A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id com caixa misturada: 422 autoredefinicao, e nada muda 874ms
+     → redefinir a senha sobre a própria conta, id com caixa misturada: {"senhaTemporaria":"xuqj-edem-n6b4","sessoesEncerradas":1,"mensagem":"Senha temporária de Rita Sampaio Lopes. Ela aparece uma única vez: entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela."}: expected 200 to be 422 // Object.is equality
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  897ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em minúsculas: 422 autoencerramento (controle)  778ms
+   × A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em maiúsculas: 422 autoencerramento, e nada muda 508ms
+     → encerrar as sessões sobre a própria conta, id em maiúsculas: {"id":"11111111-1111-4111-8111-0000000000D4","sessoesEncerradas":5}: expected 200 to be 422 // Object.is equality
+   × A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id com caixa misturada: 422 autoencerramento, e nada muda 509ms
+     → encerrar as sessões sobre a própria conta, id com caixa misturada: {"id":"11111111-1111-4111-8111-0000000000D4","sessoesEncerradas":1}: expected 200 to be 422 // Object.is equality
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  778ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em minúsculas: 422 autodesativacao (controle)  765ms
+   × A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em maiúsculas: 422 autodesativacao, e nada muda 522ms
+     → desativar a conta sobre a própria conta, id em maiúsculas: {"id":"11111111-1111-4111-8111-0000000000D4","ativo":false}: expected 200 to be 422 // Object.is equality
+   × A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id com caixa misturada: 422 autodesativacao, e nada muda 526ms
+     → desativar a conta sobre a própria conta, id com caixa misturada: {"id":"11111111-1111-4111-8111-0000000000D4","ativo":false}: expected 200 to be 422 // Object.is equality
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  775ms
+   ✓ A própria conta com o id escrito de outro jeito > o id de outra pessoa em maiúsculas continua valendo: a redefinição da Helena responde 200  1027ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em maiúsculas: 422 autoredefinicao, e nada muda
+AssertionError: redefinir a senha sobre a própria conta, id em maiúsculas: {"senhaTemporaria":"7vby-9h4m-uaps","sessoesEncerradas":3,"mensagem":"Senha temporária de Rita Sampaio Lopes. Ela aparece uma única vez: entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela."}: expected 200 to be 422 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 422[39m
+[31m+ 200[39m
+
+ ❯ test/id-da-propria-conta.test.ts:166:95
+    164|         try {
+    165|           const r = await rota.pedir(id);
+    166|           expect(r.statusCode, `${rota.nome} sobre a própria conta, id…
+       |                                                                                               ^
+    167|           expect(r.json().erro).toBe(rota.erro);
+    168|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id com caixa misturada: 422 autoredefinicao, e nada muda
+AssertionError: redefinir a senha sobre a própria conta, id com caixa misturada: {"senhaTemporaria":"xuqj-edem-n6b4","sessoesEncerradas":1,"mensagem":"Senha temporária de Rita Sampaio Lopes. Ela aparece uma única vez: entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela."}: expected 200 to be 422 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 422[39m
+[31m+ 200[39m
+
+ ❯ test/id-da-propria-conta.test.ts:166:95
+    164|         try {
+    165|           const r = await rota.pedir(id);
+    166|           expect(r.statusCode, `${rota.nome} sobre a própria conta, id…
+       |                                                                                               ^
+    167|           expect(r.json().erro).toBe(rota.erro);
+    168|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em maiúsculas: 422 autoencerramento, e nada muda
+AssertionError: encerrar as sessões sobre a própria conta, id em maiúsculas: {"id":"11111111-1111-4111-8111-0000000000D4","sessoesEncerradas":5}: expected 200 to be 422 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 422[39m
+[31m+ 200[39m
+
+ ❯ test/id-da-propria-conta.test.ts:166:95
+    164|         try {
+    165|           const r = await rota.pedir(id);
+    166|           expect(r.statusCode, `${rota.nome} sobre a própria conta, id…
+       |                                                                                               ^
+    167|           expect(r.json().erro).toBe(rota.erro);
+    168|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id com caixa misturada: 422 autoencerramento, e nada muda
+AssertionError: encerrar as sessões sobre a própria conta, id com caixa misturada: {"id":"11111111-1111-4111-8111-0000000000D4","sessoesEncerradas":1}: expected 200 to be 422 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 422[39m
+[31m+ 200[39m
+
+ ❯ test/id-da-propria-conta.test.ts:166:95
+    164|         try {
+    165|           const r = await rota.pedir(id);
+    166|           expect(r.statusCode, `${rota.nome} sobre a própria conta, id…
+       |                                                                                               ^
+    167|           expect(r.json().erro).toBe(rota.erro);
+    168|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em maiúsculas: 422 autodesativacao, e nada muda
+AssertionError: desativar a conta sobre a própria conta, id em maiúsculas: {"id":"11111111-1111-4111-8111-0000000000D4","ativo":false}: expected 200 to be 422 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 422[39m
+[31m+ 200[39m
+
+ ❯ test/id-da-propria-conta.test.ts:166:95
+    164|         try {
+    165|           const r = await rota.pedir(id);
+    166|           expect(r.statusCode, `${rota.nome} sobre a própria conta, id…
+       |                                                                                               ^
+    167|           expect(r.json().erro).toBe(rota.erro);
+    168|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id com caixa misturada: 422 autodesativacao, e nada muda
+AssertionError: desativar a conta sobre a própria conta, id com caixa misturada: {"id":"11111111-1111-4111-8111-0000000000D4","ativo":false}: expected 200 to be 422 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 422[39m
+[31m+ 200[39m
+
+ ❯ test/id-da-propria-conta.test.ts:166:95
+    164|         try {
+    165|           const r = await rota.pedir(id);
+    166|           expect(r.statusCode, `${rota.nome} sobre a própria conta, id…
+       |                                                                                               ^
+    167|           expect(r.json().erro).toBe(rota.erro);
+    168|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 7 passed (13)
+   Start at  00:35:02
+   Duration  11.57s (transform 240ms, setup 22ms, collect 436ms, tests 10.92s, environment 0ms, prepare 54ms)
+
+codigo de saida: 1

@@ -294,6 +294,22 @@ sobra:
 3. **O resumo do aparelho** (`auth/aparelho.ts`) é uma lista curta de padrões de
    user-agent. O que não reconhece vira "Aparelho não identificado" em vez de
    palpite; ampliar a lista é barato e fica para quando houver caso real.
+4. **A própria conta com o id em outra caixa** (achado 1 da validação de
+   bb0f654). As recusas de redefinir a própria senha, encerrar as próprias
+   sessões e desativar a si mesma comparavam o id da rota com o do token como
+   texto, e o Postgres lê o uuid sem caixa: o próprio id em maiúsculas passava
+   (a administradora redefinia a própria senha sem a atual). Corrigido na
+   correção 3 da E09: o esquema do id em `rotas/administracao.ts` devolve o id
+   em minúsculas antes de qualquer comparação; os formatos alternativos de uuid
+   (chaves, sem hífens, `urn:uuid:`) o `uuid()` do zod já recusa com 422.
+   Travado em `test/id-da-propria-conta.test.ts`. As outras comparações de id
+   do corpo com o do token (`agenteId` em `saida-a-campo.ts`, `coletadaPor` em
+   `evidencias.ts` e `sincronizacao.ts`, `devolvidaPor` em `sincronizacao.ts`)
+   usam `!==` para RECUSAR: um id em outra caixa é recusado (`autor_divergente`),
+   nunca aceito, e o aplicativo manda o id do próprio token. Sem pendência de
+   segurança; a recusa falsa de um cliente que mandasse maiúsculas não existe
+   hoje. A redefinição que perdia para a troca de senha em voo (achado 2 da
+   mesma validação) foi fechada pela correção 4 da E07.
 
 ## Recuperação de senha por e-mail (V2-F00-E10)
 

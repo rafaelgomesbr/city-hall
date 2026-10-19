@@ -10,7 +10,18 @@ import { registrarAtoAdministrativo } from "../trilha.js";
 import { derivarSenha, gerarSenhaTemporaria } from "../auth/senha.js";
 import { encerrarSessoes } from "../auth/sessoes.js";
 
-const idSchema = z.object({ id: z.string().uuid() });
+/*
+  O id da rota sai daqui em MINÚSCULAS (V2-F00-E09, correção 3, achado 1 da
+  validação de bb0f654). As recusas sobre a própria conta (autoredefinição,
+  autoencerramento, autodesativação) comparam este id com o do token, que vem
+  do banco em minúsculas; o Postgres lê o uuid sem caixa. Comparado como veio,
+  o próprio id em maiúsculas passava pela recusa e chegava ao banco como a
+  própria conta: a administradora redefinia a própria senha sem a atual. A
+  forma canônica antes de qualquer comparação fecha isso em todas as rotas que
+  usam este esquema. Os outros formatos que o Postgres aceita como uuid
+  (chaves, sem hífens, `urn:uuid:`) o `uuid()` do zod já recusa.
+*/
+const idSchema = z.object({ id: z.string().uuid().transform((id) => id.toLowerCase()) });
 
 /**
  * O prazo de retenção, em dias, por município.
