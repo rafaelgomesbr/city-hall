@@ -41,13 +41,32 @@
  *      `codigo` literal na declaração, atribuído no construtor, por getter ou
  *      por propriedade de parâmetro; o tratador global; e a recusa
  *      `{ status, corpo: { erro } }` do console.
+ *    - O corpo por constante (`send(RESPOSTA_X)`) só é lido quando o nome
+ *      resolve, pelo escopo, a um `const` não exportado com objeto literal, e
+ *      todo outro uso dele no arquivo é leitura (`X.campo`, `...X`, outro
+ *      `send(X)`, `typeof X`). `let`, `var`, parâmetro homônimo, exportação,
+ *      escrita em campo, passar a uma função ou apelidar deixam o corpo sem
+ *      leitura, e corpo sem leitura numa resposta de acesso reprova.
  *    - O que a varredura NÃO consegue ler, ela REPROVA em vez de deixar passar:
  *      `.code(...)` ou `.status(...)` fora de uma cadeia com `send` (o corpo
  *      iria num `return`), 401 ou 403 sem `erro`, corpo que não resolve (inclusive
  *      texto, com status calculado), `{ erro: "x", ...extra }` com o spread
- *      depois de `erro` (só passa o spread de objeto literal sem `erro`),
- *      `statusCode` ou `status` escritos à mão por qualquer forma (propriedade,
- *      chave computada, colchete, `Object.defineProperty`), `Object.assign`,
+ *      depois de `erro` (só passa o spread de objeto literal sem `erro`), `erro`
+ *      do corpo por getter, setter ou método, escrita em `erro` ou `corpo` de
+ *      qualquer objeto (ponto, colchete, operador composto, `delete`, `++`,
+ *      desestruturação), colchete com chave literal nos nomes que ela lê com
+ *      ponto (`resposta["code"](403)`, `["send"]`, `["erro"]`...), chamada por
+ *      chave calculada (`resposta[m](403)`), `.send` usado sem ser chamado,
+ *      `.call`, `.apply` e `.bind` (salvo `Object.prototype.hasOwnProperty.call`),
+ *      chave calculada que não resolve a um `const` de texto, em objeto ou
+ *      classe, texto com `FST_` (forja o código do Fastify cujo status o
+ *      tratador repassa), `Object.setPrototypeOf`, `Object.create`, `__proto__`
+ *      e `extends` de expressão que não é nome (forjam a classe de um erro),
+ *      `toJSON`, `setReplySerializer`, `setSerializerCompiler`,
+ *      `.serializer(...)`, `eval` e `Function`, `.redirect(url, status)` fora de
+ *      3xx, `statusCode` ou `status` escritos à mão por qualquer forma
+ *      (propriedade, abreviação, método, acessor, chave computada, colchete,
+ *      operador composto, `Object.defineProperty`), `Object.assign`,
  *      `httpErrors`, `createError`, `.raw`, `.hijack()` e `.writeHead()`
  *      (escrita direta na resposta do Node), ganchos `onSend` que recebem o
  *      corpo ou qualquer gancho que envia resposta ou lança erro de negócio,
@@ -93,9 +112,17 @@
  *
  * O que NENHUM dos dois prende, para ninguém ler mais do que está escrito: uma
  * recusa que só sai com um corpo ou um estado que os perfis do teste dinâmico
- * não criam E que o texto esconde (código montado por dado externo, classe
- * definida fora das pastas varridas, `Object.assign` num erro, resposta de um
- * plugin de terceiros); os erros de outros status (404, 409, 422, 429, 5xx) e os
+ * não criam E que o texto não mostra, e isso se resume a duas formas: código
+ * ou `statusCode` que vêm de DADO em tempo de execução (um objeto do banco, da
+ * rede ou de `JSON.parse` lançado ou espalhado num erro); e classe de erro ou
+ * resposta definida FORA das pastas varridas (dependência, plugin de
+ * terceiros, inclusive método que ele acrescente à resposta, porque a varredura
+ * reconhece a resposta pelo NOME dos métodos do Fastify: `code`, `status`,
+ * `send`, `redirect`, `statusCode`, `raw`, `hijack`, `writeHead`). A prova
+ * dinâmica, por sua vez, não alcança ramo que dependa de um valor que o corpo
+ * mínimo dela não manda (o handler das 66 rotas que nunca recebem 2xx, acima,
+ * e qualquer `if` sobre o dado pedido). Fora do escopo: os erros de outros
+ * status (404, 409, 422, 429, 5xx) e os
  * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
  * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o
  * código (isso é dos testes do painel e do aplicativo, que também leem este

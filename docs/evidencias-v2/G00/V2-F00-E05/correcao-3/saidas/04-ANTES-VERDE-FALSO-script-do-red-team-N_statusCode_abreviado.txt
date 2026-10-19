@@ -1,0 +1,15 @@
+== mutação N_statusCode_abreviado em src/rotas/orgaos.ts ==
+    const dados = orgaoSchema.parse(req.body);
+    const statusCode = 403;
+    if (dados.nome === "Mutacao N") throw Object.freeze({ code: "FST_ERR_CTP_MUTACAO", statusCode });
+
+    try {
+      const criado
+
+$ npx tsc -p tsconfig.json --noEmit
+
+codigo=0
+
+ Test Files  1 passed (1)
+      Tests  116 passed (116)
+codigo=0

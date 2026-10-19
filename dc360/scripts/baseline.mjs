@@ -465,6 +465,17 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     lista e 13 no `vitest run`, sem pulo novo.
   */
   "V2-F00-E09-correcao-4": { total: 13, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correção 3 (2026-10-19), contada contra o `ca5a38f`:
+    `codigos-de-erro.test.ts` vai de 116 para 169 casos. Entram 6 mutações do
+    red-team da rodada 5 no texto real de `rotas/orgaos.ts`, em memória (A, B,
+    C, N, N2 e o homônimo D), 46 formas da família delas em fonte de exemplo
+    (corpo por constante escrito, `let`, exportado ou apelidado, colchete,
+    chave calculada, `.call`/`.apply`/`.bind`, `statusCode` abreviado, texto
+    com `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`) e
+    1 caso de controle (o que é só lido passa). Sem pulo nem falha novos.
+  */
+  "V2-F00-E05-correcao-3": { total: 53, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

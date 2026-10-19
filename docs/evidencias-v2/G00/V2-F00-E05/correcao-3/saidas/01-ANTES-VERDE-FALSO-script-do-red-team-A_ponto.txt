@@ -1,0 +1,16 @@
+== mutação A_ponto em src/rotas/orgaos.ts ==
+    const dados = orgaoSchema.parse(req.body);
+    const recusaA: { erro: string; mensagem: string } = { erro: "sem_permissao", mensagem: "Sem permissão." };
+    recusaA.erro = "vazou_por_ponto";
+    if (dados.nome === "Mutacao A") return resposta.code(403).send(recusaA);
+
+    try {
+      const criado
+
+$ npx tsc -p tsconfig.json --noEmit
+
+codigo=0
+
+ Test Files  1 passed (1)
+      Tests  116 passed (116)
+codigo=0

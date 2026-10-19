@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 384ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  19:48:58
+   Duration  565ms (transform 27ms, setup 0ms, collect 27ms, tests 384ms, environment 0ms, prepare 35ms)
+
+codigo=0

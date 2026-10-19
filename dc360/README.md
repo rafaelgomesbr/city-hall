@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1464 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1517 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
@@ -154,15 +154,28 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
   sintática do TypeScript, na API, no pacote compartilhado e no console do
   fornecedor): reprova resposta 401 ou 403, ou de status que o texto não resolve,
   com código fora do catálogo e da lista da entrada. Lê `send({ erro })` literal
-  ou por constante, `new RegraDeNegocio(...)` e `new FalhaAutenticacao(...)`
+  ou por constante (só um `const` não exportado com objeto literal, resolvido pelo
+  escopo, e que no arquivo só é lido: `let`, `var`, parâmetro homônimo,
+  exportação, escrita em campo, passar a uma função ou apelidar deixam o corpo sem
+  leitura, e isso reprova), `new RegraDeNegocio(...)` e `new FalhaAutenticacao(...)`
   (inclusive com outro nome de importação ou por `import * as`), o `super(...)` de
   qualquer subclasse delas, classe de erro com `codigo` literal, atribuído no
   construtor, por getter ou por propriedade de parâmetro, o tratador global e a
   recusa `{ status, corpo: { erro } }` do console. O que ela não consegue ler, ela
   reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
   corpo que não resolve (inclusive texto, com status calculado), `{ erro: "x",
-  ...extra }` com spread depois de `erro`, `statusCode`/`status` escritos à mão
-  (propriedade, chave computada, colchete, `Object.defineProperty`),
+  ...extra }` com spread depois de `erro`, `erro` por getter, setter ou método,
+  escrita em `erro` ou `corpo` de qualquer objeto (ponto, colchete, operador
+  composto, `delete`, `++`, desestruturação), colchete com chave literal nos nomes
+  que ela lê com ponto (`resposta["code"](403)`, `["send"]`), chamada por chave
+  calculada (`resposta[m](403)`), `.send` sem ser chamado, `.call`, `.apply` e
+  `.bind` (salvo `Object.prototype.hasOwnProperty.call`), chave calculada que não
+  resolve a um `const` de texto, texto com `FST_` (forja o código do Fastify cujo
+  status o tratador repassa), `Object.setPrototypeOf`, `Object.create`,
+  `__proto__` e `extends` de expressão (forjam a classe de um erro), `toJSON`, o
+  serializador da resposta, `eval`, `Function`, `.redirect(url, status)` fora de
+  3xx, `statusCode`/`status` escritos à mão (propriedade, abreviação, método,
+  acessor, chave computada, colchete, operador composto, `Object.defineProperty`),
   `Object.assign`, `.raw`, `.hijack()`, `.writeHead()`, ganchos `onSend` que
   recebem o corpo ou que enviam resposta ou lançam erro de negócio, argumentos
   espalhados em `new RegraDeNegocio(...)`, `status` declarado em classe de erro,
@@ -207,9 +220,16 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
   padrão).
 
 O que NENHUM deles prende: uma recusa que só sai com um corpo ou um estado que os
-perfis da prova dinâmica não criam E que o texto esconde (código montado por dado
-externo, classe definida fora das pastas varridas, `Object.assign` num erro,
-resposta de um plugin de terceiros); erros de outros status (404, 409, 422, 429,
+perfis da prova dinâmica não criam E que o texto não mostra, o que se resume a duas
+formas: código ou `statusCode` vindos de DADO em tempo de execução (objeto do
+banco, da rede ou de `JSON.parse` lançado ou espalhado num erro) e classe de erro
+ou resposta definida fora das pastas varridas (dependência, plugin de terceiros,
+inclusive método que ele acrescente à resposta: a varredura reconhece a resposta
+pelo nome dos métodos do Fastify, `code`, `status`, `send`, `redirect`,
+`statusCode`, `raw`, `hijack`, `writeHead`). A prova dinâmica não alcança ramo que
+dependa de um valor que o corpo mínimo dela não manda (o handler das 66 rotas
+acima e qualquer `if` sobre o dado pedido): ali, a garantia é só a varredura.
+Fora do escopo: erros de outros status (404, 409, 422, 429,
 5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
 cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
 código (isso é dos testes do painel e do aplicativo). Até a V2-F00-E05 os três
@@ -1466,9 +1486,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3172 testes em seis pacotes
+npm test                    # 3225 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1464 testes da API
+npm run test:api            # 1517 testes da API
 npm run test --workspace @dc360/campo   # 231 testes do motor de campo
 npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

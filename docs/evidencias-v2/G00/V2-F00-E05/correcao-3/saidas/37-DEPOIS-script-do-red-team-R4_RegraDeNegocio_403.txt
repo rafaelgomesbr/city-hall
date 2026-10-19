@@ -1,0 +1,37 @@
+== mutação R4_RegraDeNegocio_403 em src/rotas/orgaos.ts ==
+    const dados = orgaoSchema.parse(req.body);
+    if (dados.nome === "Mutacao R4b") throw new RegraDeNegocio("vazou_regra_403", "x", 403);
+
+    try {
+      const criado
+
+$ npx tsc -p tsconfig.json --noEmit
+
+codigo=0
+
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir 12ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > A: campo `erro` trocado depois de declarar a constante 7ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > B: `let` reatribuída antes do send 6ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > C: code e send chamados por colchete 5ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N: `statusCode` abreviado num objeto com código do Fastify 3ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N2: o mesmo, espalhado num erro 3ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > D: parâmetro homônimo de uma constante de corpo do módulo 3ms
+ Test Files  1 failed (1)
+      Tests  7 failed | 162 passed (169)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir
+AssertionError: expected [ Array(1) ] to deeply equal []
+- Expected
++ Received
++   "src/rotas/orgaos.ts:116: código `vazou_regra_403` (RegraDeNegocio, status 403) em resposta de acesso e fora do catálogo",
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > A: campo `erro` trocado depois de declarar a constante
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > B: `let` reatribuída antes do send
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > C: code e send chamados por colchete
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N: `statusCode` abreviado num objeto com código do Fastify
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N2: o mesmo, espalhado num erro
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > D: parâmetro homônimo de uma constante de corpo do módulo
+AssertionError: rotas/orgaos.ts tem de conter o trecho mutado: expected 'import type { FastifyInstance } from …' to contain '    const dados = orgaoSchema.parse(r…'
+- Expected
++ Received
++     if (dados.nome === "Mutacao R4b") throw new RegraDeNegocio("vazou_regra_403", "x", 403);
+codigo=1
