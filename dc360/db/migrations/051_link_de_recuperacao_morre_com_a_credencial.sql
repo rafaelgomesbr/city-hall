@@ -47,13 +47,34 @@
 -- linha do link primeiro e a de `usuarios` depois: o link consumido no mesmo
 -- instante de uma redefinicao por quem administra fecharia ciclo (o link
 -- espera a linha da pessoa, a redefinicao espera a linha do link) e o
--- Postgres mataria uma das duas com 40P01. Agora a ordem e uma so em todo
--- caminho: linha de `usuarios`, linhas de `recuperacoes_senha`, trava da
--- pessoa (049). `abrir_recuperacao` nao segura a linha de `usuarios` (a chave
--- estrangeira so pede FOR KEY SHARE, que nao conflita com FOR NO KEY UPDATE),
--- entao nunca espera quem segura a linha da pessoa. O caso 32 do bloco de
--- Postgres real de `apps/api/test/renovacao-contra-encerramento.test.ts`
--- segura o link dentro desta funcao e mede.
+-- Postgres mataria uma das duas com 40P01. A ordem real de cada caminho,
+-- depois desta migracao:
+--
+--   - redefinicao por quem administra, desativacao, `consumir_recuperacao`:
+--     linha de `usuarios`, linhas dos links, trava da pessoa (049);
+--   - troca de senha pela propria pessoa (`trocarSenha` na API, correcao 4
+--     da E07): linha de `usuarios`, trava da pessoa, e so entao as linhas
+--     dos links, porque o gatilho dispara no UPDATE de `trocar_senha`, que
+--     vem depois da trava;
+--   - `abrir_recuperacao`: so as linhas dos links da pessoa (o link anterior
+--     e o novo); a chave estrangeira pede FOR KEY SHARE na linha de
+--     `usuarios`, que nao conflita com FOR NO KEY UPDATE, e ela nao toma a
+--     trava.
+--
+-- POR QUE A TROCA NAO FECHA CICLO mesmo pegando a trava antes dos links: o
+-- unico jeito de fechar ciclo com ela seria alguem segurar uma linha de link
+-- da pessoa e esperar a trava ou a linha de `usuarios`. Todo caminho que
+-- segura linha de link E depois pede a trava (o gatilho nas rotas e em
+-- `consumir_recuperacao`) segura antes a linha de `usuarios` da mesma
+-- pessoa, que a troca ja tem: os dois nao andam juntos, um espera o outro na
+-- linha da pessoa. `abrir_recuperacao`, o unico que segura linha de link sem
+-- a linha da pessoa, nao espera nada depois disso (nem a trava, nem a linha
+-- da pessoa), entao termina e solta. Quem segura a trava e nao a linha
+-- (login, renovacao, encerramento, ativacao do segundo fator) nao toca link
+-- nem pede a linha de `usuarios` em modo que conflite. O caso 32 do bloco
+-- de Postgres real de `apps/api/test/renovacao-contra-encerramento.test.ts`
+-- segura o link dentro desta funcao e mede a ordem de `consumir_recuperacao`;
+-- o 29 mede a troca contra o link.
 --
 -- O QUE NAO MUDA: nenhuma tabela, coluna, policy ou funcao SECURITY DEFINER
 -- nova. A reativacao nao ressuscita link nenhum. Trocar papel, nome, foto ou

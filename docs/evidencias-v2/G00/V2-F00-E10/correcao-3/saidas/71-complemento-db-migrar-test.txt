@@ -1,0 +1,22 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/db
+
+ ✓ test/migrar.test.ts (17 tests) 5663ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  528ms
+   ✓ Aplicação > rodar de novo não faz nada  316ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  311ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  310ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  305ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  304ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  303ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  459ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  454ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  305ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  302ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  02:39:36
+   Duration  5.86s (transform 27ms, setup 0ms, collect 38ms, tests 5.66s, environment 0ms, prepare 33ms)
+
+codigo de saida: 0

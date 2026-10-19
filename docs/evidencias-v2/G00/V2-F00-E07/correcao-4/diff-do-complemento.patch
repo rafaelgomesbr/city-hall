@@ -1,0 +1,221 @@
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index b863db1..4ac61f2 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -352,6 +352,23 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
+    remédio que vence sempre é a redefinição por quem administra, que derruba as
+    sessões. A redefinição pelo link que perdia para a troca em voo (o FAIL do QA na
+    rodada 4) foi fechada pela correção 4 da E07.
++6. **O gatilho da 051 roda sob RLS forçada, com o papel de quem atualizou
++   `usuarios`** (anotado pela revisão do complemento, sem defeito hoje). A função
++   `invalidar_recuperacoes_pendentes` é comum (SECURITY INVOKER) para não gastar
++   vaga no teto de 27 funções SECURITY DEFINER, e `recuperacoes_senha` tem RLS
++   forçada (034). Hoje todo caminho que muda senha ou desativa conta passa por
++   uma de duas portas que funcionam: a rota com `dc360_app` e o município no
++   contexto (a policy de UPDATE deixa marcar os links do município), ou uma
++   função SECURITY DEFINER cujo dono ignora RLS. O risco é de um caminho FUTURO:
++   um UPDATE de `senha_hash` ou `ativo` sem município no contexto (um relógio,
++   um script de operação, o console) feito por um papel sem BYPASSRLS. O
++   UPDATE do gatilho não estoura: enxerga zero linhas e marca zero links, em
++   silêncio, e o link pendente sobrevive à mudança. É o mesmo risco que a 037
++   descreve para o expurgo de `notificacoes_enviadas` (o que funciona depende
++   de um atributo do papel, que nada no produto garante). Quem escrever um
++   caminho assim precisa pôr o município no contexto antes do UPDATE, ou fazer a
++   mudança por uma função SECURITY DEFINER; e um teste que mude a senha por esse
++   caminho e confira o link morto.
+ 
+ ## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
+ 
+diff --git a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+index 8b43034..0208f1a 100644
+--- a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
++++ b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+@@ -75,7 +75,10 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
+  *    terminar; os 28 a 31 seguram a troca já com a linha e a trava e exigem
+  *    que a reação pare nelas; o 7 do segundo bloco passou a exigir que a
+  *    redefinição vença. O 18 cobra que a troca com o token de antes de uma
+- *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos.
++ *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos. Os
++ *    33 e 34 (complemento) seguram um encerramento e uma renovação com a
++ *    trava já tomada e exigem que a troca espere a trava antes de reler a
++ *    sessão.
+  * 7. O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO NO MESMO INSTANTE (V2-F00-E10,
+  *    correção 3, migração 051): o link pendente morre com toda mudança de
+  *    senha, por gatilho que segura a linha da pessoa antes das dos links, e
+@@ -1845,4 +1848,111 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
+       await a.restaurarHelena();
+     }
+   }, 120_000);
++
++  /*
++    A TRAVA DA PESSOA NA TROCA, ANTES DA RELEITURA DA SESSÃO (complemento da
++    correção 4 da E07, pedido da revisão). A troca segura a linha da pessoa,
++    toma a trava e só então confere se a cadeia de quem pede está de pé. Sem a
++    trava ali, a conferência leria a sessão sem esperar um encerramento ou uma
++    renovação que já segura a trava e ainda não confirmou: ela a veria viva,
++    e `trocar_senha` (que toma a trava por dentro, depois) esperaria e gravaria
++    por cima. Os dois casos seguram o outro lado DENTRO da transação, com a
++    trava já tomada, e exigem que a troca pare na trava (o teste VÊ em
++    `pg_locks`).
++
++    33: quem administra encerra as sessões da pessoa, segurado logo antes do
++    UPDATE de `sessoes`. Solta, a troca tem de ver a sessão encerrada e
++    recusar (401 `sessao_encerrada`), sem gravar a senha: a sessão revogada
++    não pratica a escrita que mais importa.
++  */
++  it("33. a troca chega enquanto quem administra encerra as sessões da pessoa: espera a trava e é recusada", async () => {
++    await a.limparSessoesDaHelena();
++    const invasor = await a.entrar();
++    const janela = sinal();
++    const solta = sinal();
++    let segurando = false;
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (segurando || !/UPDATE sessoes\s+SET revogada_em = now\(\), motivo_revogacao = \$2/.test(chamada.sql)) return;
++        segurando = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    const pendentes: Promise<unknown>[] = [];
++    try {
++      const encerramento = cen.app.inject({
++        method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: { authorization: `Bearer ${cen.tokenRita}` },
++      });
++      pendentes.push(encerramento);
++      const quem = await Promise.race([
++        janela.disparado.then(() => "segurou" as const),
++        encerramento.then(() => "terminou" as const),
++      ]);
++      expect(quem, "a disputa não aconteceu: o encerramento terminou sem chegar ao UPDATE de sessoes").toBe("segurou");
++      const troca = a.trocarComoInvasor(invasor);
++      pendentes.push(troca);
++      await exigirQueTravou("a troca de senha", troca, "advisory");
++      solta.disparar();
++      const [re, rt] = await Promise.all([encerramento, troca]);
++      grampo.atual = null;
++      expect(re.statusCode, re.body).toBe(200);
++      expect(rt.statusCode, `a troca da sessão que o encerramento derrubou: ${rt.body}`).toBe(401);
++      expect(rt.json().erro, rt.body).toBe("sessao_encerrada");
++      expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a sessão encerrada gravou a senha dela").toBe(401);
++      expect((await a.tentarEntrar(SENHA)).statusCode, "a senha de antes deixou de entrar").toBe(200);
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++      await Promise.allSettled(pendentes);
++      await a.restaurarHelena();
++    }
++  }, 120_000);
++
++  /*
++    34: a renovação da própria cadeia, segurada entre revogar a sessão antiga
++    e abrir a nova. Solta, a troca tem de enxergar a sessão nova da cadeia e
++    preservá-la: a cadeia continua renovando e escrevendo. Sem a trava antes
++    da releitura, a troca preservaria a sessão já rotacionada e derrubaria a
++    nova da própria cadeia (o achado 2 da rodada 4, de volta sob disputa).
++  */
++  it("34. a troca chega no meio da renovação da própria cadeia: espera a trava e preserva a sessão nova", async () => {
++    await a.limparSessoesDaHelena();
++    const h = await a.entrar();
++    const janela = sinal();
++    const solta = sinal();
++    let segurando = false;
++    grampo.atual = {
++      antes: async (chamada) => {
++        if (!abreHerdando(chamada) || segurando) return;
++        segurando = true;
++        janela.disparar();
++        await solta.disparado;
++      },
++    };
++    const pendentes: Promise<unknown>[] = [];
++    try {
++      const renovacao = a.pedirRenovacao(h.renovacao);
++      pendentes.push(renovacao);
++      await janela.disparado;
++      const troca = a.trocarComo(h, SENHA_NOVA);
++      pendentes.push(troca);
++      await exigirQueTravou("a troca de senha", troca, "advisory");
++      solta.disparar();
++      const [rr, rt] = await Promise.all([renovacao, troca]);
++      grampo.atual = null;
++      expect(rr.statusCode, rr.body).toBe(200);
++      expect(rt.statusCode, rt.body).toBe(200);
++      const novo = rr.json() as Par;
++      expect((await a.escrever(rt.json().acesso)).statusCode, "o token que a troca devolveu não escreve").toBe(200);
++      expect((await a.escrever(novo.acesso)).statusCode, "o token da renovação não escreve depois da troca").toBe(200);
++      const outra = await a.pedirRenovacao(novo.renovacao);
++      expect(outra.statusCode, `a própria cadeia não renova depois da troca: ${outra.body}`).toBe(200);
++    } finally {
++      solta.disparar();
++      grampo.atual = null;
++      await Promise.allSettled(pendentes);
++      await a.restaurarHelena();
++    }
++  }, 120_000);
+ });
+diff --git a/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql b/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql
+index ae1f85a..c7bffc2 100644
+--- a/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql
++++ b/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql
+@@ -47,13 +47,34 @@
+ -- linha do link primeiro e a de `usuarios` depois: o link consumido no mesmo
+ -- instante de uma redefinicao por quem administra fecharia ciclo (o link
+ -- espera a linha da pessoa, a redefinicao espera a linha do link) e o
+--- Postgres mataria uma das duas com 40P01. Agora a ordem e uma so em todo
+--- caminho: linha de `usuarios`, linhas de `recuperacoes_senha`, trava da
+--- pessoa (049). `abrir_recuperacao` nao segura a linha de `usuarios` (a chave
+--- estrangeira so pede FOR KEY SHARE, que nao conflita com FOR NO KEY UPDATE),
+--- entao nunca espera quem segura a linha da pessoa. O caso 32 do bloco de
+--- Postgres real de `apps/api/test/renovacao-contra-encerramento.test.ts`
+--- segura o link dentro desta funcao e mede.
++-- Postgres mataria uma das duas com 40P01. A ordem real de cada caminho,
++-- depois desta migracao:
++--
++--   - redefinicao por quem administra, desativacao, `consumir_recuperacao`:
++--     linha de `usuarios`, linhas dos links, trava da pessoa (049);
++--   - troca de senha pela propria pessoa (`trocarSenha` na API, correcao 4
++--     da E07): linha de `usuarios`, trava da pessoa, e so entao as linhas
++--     dos links, porque o gatilho dispara no UPDATE de `trocar_senha`, que
++--     vem depois da trava;
++--   - `abrir_recuperacao`: so as linhas dos links da pessoa (o link anterior
++--     e o novo); a chave estrangeira pede FOR KEY SHARE na linha de
++--     `usuarios`, que nao conflita com FOR NO KEY UPDATE, e ela nao toma a
++--     trava.
++--
++-- POR QUE A TROCA NAO FECHA CICLO mesmo pegando a trava antes dos links: o
++-- unico jeito de fechar ciclo com ela seria alguem segurar uma linha de link
++-- da pessoa e esperar a trava ou a linha de `usuarios`. Todo caminho que
++-- segura linha de link E depois pede a trava (o gatilho nas rotas e em
++-- `consumir_recuperacao`) segura antes a linha de `usuarios` da mesma
++-- pessoa, que a troca ja tem: os dois nao andam juntos, um espera o outro na
++-- linha da pessoa. `abrir_recuperacao`, o unico que segura linha de link sem
++-- a linha da pessoa, nao espera nada depois disso (nem a trava, nem a linha
++-- da pessoa), entao termina e solta. Quem segura a trava e nao a linha
++-- (login, renovacao, encerramento, ativacao do segundo fator) nao toca link
++-- nem pede a linha de `usuarios` em modo que conflite. O caso 32 do bloco
++-- de Postgres real de `apps/api/test/renovacao-contra-encerramento.test.ts`
++-- segura o link dentro desta funcao e mede a ordem de `consumir_recuperacao`;
++-- o 29 mede a troca contra o link.
+ --
+ -- O QUE NAO MUDA: nenhuma tabela, coluna, policy ou funcao SECURITY DEFINER
+ -- nova. A reativacao nao ressuscita link nenhum. Trocar papel, nome, foto ou
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 0748bb6..37952e8 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -445,6 +445,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     com 32 pulados).
+   */
+   "V2-F00-E10-correcao-3": { total: 8, falhas: 0, puladas: 1 },
++  /*
++    V2-F00-E07, complemento da correção 4 (2026-10-19), pedido da revisão:
++    `renovacao-contra-encerramento.test.ts` ganha 2 casos de Postgres real
++    (`describe.skipIf`, pulados no roteiro: a troca chegando com um
++    encerramento e com uma renovação já segurando a trava da pessoa). A lista
++    não muda (1356) e o `vitest run` soma 2 (1390, com 34 pulados).
++  */
++  "V2-F00-E07-correcao-4-complemento": { total: 2, falhas: 0, puladas: 2 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

@@ -445,6 +445,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     com 32 pulados).
   */
   "V2-F00-E10-correcao-3": { total: 8, falhas: 0, puladas: 1 },
+  /*
+    V2-F00-E07, complemento da correção 4 (2026-10-19), pedido da revisão:
+    `renovacao-contra-encerramento.test.ts` ganha 2 casos de Postgres real
+    (`describe.skipIf`, pulados no roteiro: a troca chegando com um
+    encerramento e com uma renovação já segurando a trava da pessoa). A lista
+    não muda (1356) e o `vitest run` soma 2 (1390, com 34 pulados).
+  */
+  "V2-F00-E07-correcao-4-complemento": { total: 2, falhas: 0, puladas: 2 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

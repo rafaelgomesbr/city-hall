@@ -178,8 +178,9 @@
 | sondas/contraste-e10.mjs | 6e8c46cbee40cb685fcf30c59631904b4d68e7f50b3b66702777c4440ddb2a90 |
 | sondas/e2e-aparado-secao-14.mjs | 0d107e9cb709b25d682db2a29a337790dd0dee01918d1a339bafa8722f6f67db |
 | sondas/e2e-aparado-secao-27.mjs | ecde281da35e2b62b4336fea6ec9a9d131dc8429ed545efec0ecc37adc7d4af0 |
-| correcao-3/RESUMO.md | 04b281cdf772166395b863d1322ba05181bb3e7d68ded96962bbb8c65a119725 |
+| correcao-3/RESUMO.md | 625a5379806d6b6ed7f0f8727f9d6bff3c8593ff1bb7dd657224d1d14a780de5 |
 | correcao-3/diff-da-correcao.patch | e942faaa82f2f01ee1febf63de2f4264f894eaa65c1b8a215c8f75a9695a98a8 |
+| correcao-3/diff-do-complemento.patch | fdd4f1bf53e9f0df0e0951c2ad9b28fbe41f642088add40ef2af923be79f12f3 |
 | correcao-3/saidas/01-link-e-corrida-ANTES-VERMELHO-sem-a-051.txt | 73c375df0600316469d046c0d240da77d3630ed2c8587a0bea937fa4429d74f9 |
 | correcao-3/saidas/10-link-corrida-e-recuperacao-postgres-real-DEPOIS-VERDE.txt | a0fd4c8de3f5821ebe606a0563f0b72b8d38773f565debc26c55e6c043c7dd31 |
 | correcao-3/saidas/20-mutacao-M1-sem-o-gatilho-VERMELHO.txt | 8b63932428e8e51ee8cf7e0eaf3ccc006f17a6c2b62db15ecabe46756d413b33 |
@@ -196,5 +197,7 @@
 | correcao-3/saidas/46-portao-de-conteudo.txt | d92966b3c545347396bfd70a19da02521eca5e4390ee5af00ad84ffaba524658 |
 | correcao-3/saidas/47-log-do-postgres-resumo.txt | 40e2e55bc7af00099ae10e6d7073c3f0fcd4cba04c533d429382aea1c75b7ae0 |
 | correcao-3/saidas/48-test-console.txt | de73193d6162431d3de3796dce8f077f664b3dbb40d21c8e46f9b864aee50ae9 |
+| correcao-3/saidas/70-complemento-migrar-e-conferir-com-a-051-corrigida.txt | 8a61410b5142d712e88367c316410f74048979b1ca7d8851c3ebd5730ecf478d |
+| correcao-3/saidas/71-complemento-db-migrar-test.txt | 39a595564a77c1b00b94cf905180721715936b0ca1d5e5a3044f874865150c69 |
 | correcao-3/sondas/migrar-por-cima.mjs | 3c5da8d649cfddb485a99dcc2a73d0b72c9f9408c6b662c1d1de0c1405f46ee0 |
 | correcao-3/sondas/mutar-051.py | b6731cda6bf0f40ae2ece97ddbe27a67af0c3eb9bc4f8a17e81452c3489633f1 |

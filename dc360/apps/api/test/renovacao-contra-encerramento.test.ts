@@ -75,7 +75,10 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
  *    terminar; os 28 a 31 seguram a troca já com a linha e a trava e exigem
  *    que a reação pare nelas; o 7 do segundo bloco passou a exigir que a
  *    redefinição vença. O 18 cobra que a troca com o token de antes de uma
- *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos.
+ *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos. Os
+ *    33 e 34 (complemento) seguram um encerramento e uma renovação com a
+ *    trava já tomada e exigem que a troca espere a trava antes de reler a
+ *    sessão.
  * 7. O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO NO MESMO INSTANTE (V2-F00-E10,
  *    correção 3, migração 051): o link pendente morre com toda mudança de
  *    senha, por gatilho que segura a linha da pessoa antes das dos links, e
@@ -1842,6 +1845,113 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
       await Promise.allSettled(pendentes);
       await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
       await cen.bruto("DROP FUNCTION IF EXISTS prova_segurar_o_link()");
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+
+  /*
+    A TRAVA DA PESSOA NA TROCA, ANTES DA RELEITURA DA SESSÃO (complemento da
+    correção 4 da E07, pedido da revisão). A troca segura a linha da pessoa,
+    toma a trava e só então confere se a cadeia de quem pede está de pé. Sem a
+    trava ali, a conferência leria a sessão sem esperar um encerramento ou uma
+    renovação que já segura a trava e ainda não confirmou: ela a veria viva,
+    e `trocar_senha` (que toma a trava por dentro, depois) esperaria e gravaria
+    por cima. Os dois casos seguram o outro lado DENTRO da transação, com a
+    trava já tomada, e exigem que a troca pare na trava (o teste VÊ em
+    `pg_locks`).
+
+    33: quem administra encerra as sessões da pessoa, segurado logo antes do
+    UPDATE de `sessoes`. Solta, a troca tem de ver a sessão encerrada e
+    recusar (401 `sessao_encerrada`), sem gravar a senha: a sessão revogada
+    não pratica a escrita que mais importa.
+  */
+  it("33. a troca chega enquanto quem administra encerra as sessões da pessoa: espera a trava e é recusada", async () => {
+    await a.limparSessoesDaHelena();
+    const invasor = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurando = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (segurando || !/UPDATE sessoes\s+SET revogada_em = now\(\), motivo_revogacao = \$2/.test(chamada.sql)) return;
+        segurando = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const encerramento = cen.app.inject({
+        method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: { authorization: `Bearer ${cen.tokenRita}` },
+      });
+      pendentes.push(encerramento);
+      const quem = await Promise.race([
+        janela.disparado.then(() => "segurou" as const),
+        encerramento.then(() => "terminou" as const),
+      ]);
+      expect(quem, "a disputa não aconteceu: o encerramento terminou sem chegar ao UPDATE de sessoes").toBe("segurou");
+      const troca = a.trocarComoInvasor(invasor);
+      pendentes.push(troca);
+      await exigirQueTravou("a troca de senha", troca, "advisory");
+      solta.disparar();
+      const [re, rt] = await Promise.all([encerramento, troca]);
+      grampo.atual = null;
+      expect(re.statusCode, re.body).toBe(200);
+      expect(rt.statusCode, `a troca da sessão que o encerramento derrubou: ${rt.body}`).toBe(401);
+      expect(rt.json().erro, rt.body).toBe("sessao_encerrada");
+      expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a sessão encerrada gravou a senha dela").toBe(401);
+      expect((await a.tentarEntrar(SENHA)).statusCode, "a senha de antes deixou de entrar").toBe(200);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+
+  /*
+    34: a renovação da própria cadeia, segurada entre revogar a sessão antiga
+    e abrir a nova. Solta, a troca tem de enxergar a sessão nova da cadeia e
+    preservá-la: a cadeia continua renovando e escrevendo. Sem a trava antes
+    da releitura, a troca preservaria a sessão já rotacionada e derrubaria a
+    nova da própria cadeia (o achado 2 da rodada 4, de volta sob disputa).
+  */
+  it("34. a troca chega no meio da renovação da própria cadeia: espera a trava e preserva a sessão nova", async () => {
+    await a.limparSessoesDaHelena();
+    const h = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurando = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (!abreHerdando(chamada) || segurando) return;
+        segurando = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const renovacao = a.pedirRenovacao(h.renovacao);
+      pendentes.push(renovacao);
+      await janela.disparado;
+      const troca = a.trocarComo(h, SENHA_NOVA);
+      pendentes.push(troca);
+      await exigirQueTravou("a troca de senha", troca, "advisory");
+      solta.disparar();
+      const [rr, rt] = await Promise.all([renovacao, troca]);
+      grampo.atual = null;
+      expect(rr.statusCode, rr.body).toBe(200);
+      expect(rt.statusCode, rt.body).toBe(200);
+      const novo = rr.json() as Par;
+      expect((await a.escrever(rt.json().acesso)).statusCode, "o token que a troca devolveu não escreve").toBe(200);
+      expect((await a.escrever(novo.acesso)).statusCode, "o token da renovação não escreve depois da troca").toBe(200);
+      const outra = await a.pedirRenovacao(novo.renovacao);
+      expect(outra.statusCode, `a própria cadeia não renova depois da troca: ${outra.body}`).toBe(200);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
       await a.restaurarHelena();
     }
   }, 120_000);

@@ -352,6 +352,23 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
    remédio que vence sempre é a redefinição por quem administra, que derruba as
    sessões. A redefinição pelo link que perdia para a troca em voo (o FAIL do QA na
    rodada 4) foi fechada pela correção 4 da E07.
+6. **O gatilho da 051 roda sob RLS forçada, com o papel de quem atualizou
+   `usuarios`** (anotado pela revisão do complemento, sem defeito hoje). A função
+   `invalidar_recuperacoes_pendentes` é comum (SECURITY INVOKER) para não gastar
+   vaga no teto de 27 funções SECURITY DEFINER, e `recuperacoes_senha` tem RLS
+   forçada (034). Hoje todo caminho que muda senha ou desativa conta passa por
+   uma de duas portas que funcionam: a rota com `dc360_app` e o município no
+   contexto (a policy de UPDATE deixa marcar os links do município), ou uma
+   função SECURITY DEFINER cujo dono ignora RLS. O risco é de um caminho FUTURO:
+   um UPDATE de `senha_hash` ou `ativo` sem município no contexto (um relógio,
+   um script de operação, o console) feito por um papel sem BYPASSRLS. O
+   UPDATE do gatilho não estoura: enxerga zero linhas e marca zero links, em
+   silêncio, e o link pendente sobrevive à mudança. É o mesmo risco que a 037
+   descreve para o expurgo de `notificacoes_enviadas` (o que funciona depende
+   de um atributo do papel, que nada no produto garante). Quem escrever um
+   caminho assim precisa pôr o município no contexto antes do UPDATE, ou fazer a
+   mudança por uma função SECURITY DEFINER; e um teste que mude a senha por esse
+   caminho e confira o link morto.
 
 ## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
 

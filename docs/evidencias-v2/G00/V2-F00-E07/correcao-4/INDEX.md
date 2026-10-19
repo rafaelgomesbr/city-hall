@@ -2,8 +2,9 @@
 
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | f36bc330b84b35f9a677c60ba3478e0112e7751dad5060e6cec66fa69bec4eaf |
+| RESUMO.md | d69e30397343c7fc45d4d02647ddf08e5c1254439d93c2fb383b822f4d526c47 |
 | diff-da-correcao.patch | 23f23d110099b6183e5207e92dbe219ddfc15f5a2077a035b512bfc5ea94fbba |
+| diff-do-complemento.patch | fdd4f1bf53e9f0df0e0951c2ad9b28fbe41f642088add40ef2af923be79f12f3 |
 | saidas/01-corrida-ANTES-VERMELHO-codigo-de-0290af5.txt | ecaf5f23616eeb1c9557b647cfb2aa8db3441e57aa9eea87d32e21ab374c4e6a |
 | saidas/02-sonda-caos-ANTES-VERMELHO-codigo-de-0290af5.txt | 5a4865b1cc741ce57c32dcae26f8f9423fefdb4a1a59f39c578e545137fadcae |
 | saidas/10-sete-arquivos-de-autenticacao-postgres-real-DEPOIS-VERDE.txt | a0844c4d280d43d10e49c63207badcb4187b7fd09e2a3d49a191cc4f095b277c |
@@ -24,5 +25,13 @@
 | saidas/45-baseline-test.txt | 5ec26bed9193c6dff10c5724d4d7df0b96504124810e5fedb85236c9b972e4e9 |
 | saidas/46-portao-de-conteudo.txt | cc561cd35fb8ebb5da50fb687ab901c8436b2d13cf4550c5d53fc2e43f267a3c |
 | saidas/47-log-do-postgres-resumo.txt | 3cfd40ac00c6faa29c33f7013966532ade0e7b7d184f7ad87ba84ddbf998f1f4 |
+| saidas/60-complemento-corrida-com-33-e-34-DEPOIS-VERDE.txt | 25fd006b7f3856902dc14a7117fedcc21cab98bb1f94f93760d814308fa6ce46 |
+| saidas/61-complemento-mutacao-M8-sem-a-trava-na-troca-VERMELHO.txt | ac9ee20681a7f5fee18029e877f43adfbf364389142f7288d234d8d15e49522d |
+| saidas/62-complemento-test-isolamento.txt | 2e9cc821c7fe7fe927ec86cc441ee423993cd868528f57742e4b4c5eaabbe07b |
+| saidas/63-complemento-test-api.txt | 0b401ddcf3f72b559b3659d4078dbe115d0609807fb83c630887e7676ad9189b |
+| saidas/64-complemento-tsc-api.txt | f73f936f3a7d100d51188ad57f7584922e33eec577c004f94057fc4a40138fb9 |
+| saidas/65-complemento-conferir-numeros.txt | bf2ac17f7d0dcedc5f60f5b461739809c2771c13b9b842d2917092ecb20c2b87 |
+| saidas/66-complemento-baseline-test.txt | 12f6bd356598643ec0e885b577219079708f12c29db9659f49fd495fff6dd39b |
+| saidas/67-complemento-portao-de-conteudo.txt | 6e332af58e4f6d28dbeef10f1f0f31530d6f42b64d13522e8f3ef8c57132ebea |
 | sondas/mutar.py | 76f7f7a02a899c090970929851c373b2383612fb388a75a003e6c218cc4050b1 |
 | sondas/sonda-c4-caos.test.ts | cd90c33cf1ec5978acb7240e35b9335b823b7f87f298e600a438729a5d61ac7e |
