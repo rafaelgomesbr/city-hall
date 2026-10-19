@@ -64,6 +64,27 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
  *    caso 10 do primeiro bloco confere a sequência de comandos; o 20 do
  *    segundo disputa o login com a suspensão e exige que ela espere a linha
  *    do município, e não a trava, sem impasse.
+ * 6. A TROCA DE SENHA DE QUEM TEM A SENHA ANTIGA, EM VOO DURANTE A REAÇÃO
+ *    (correção 4, achados 1 e 2 da validação de bb0f654). A troca conferia a
+ *    senha atual numa transação e gravava a nova em outra, sem conferir nada:
+ *    a redefinição, o link, a desativação, a troca pela própria pessoa ou o
+ *    encerramento que confirmasse no meio era desfeito pela senha do invasor.
+ *    Agora a troca segura a linha da pessoa, toma a trava e relê tudo na
+ *    transação que grava. Os casos 11 a 17 do primeiro bloco e 21 a 27 do
+ *    segundo seguram a troca depois de ler a senha atual e deixam a reação
+ *    terminar; os 28 a 31 seguram a troca já com a linha e a trava e exigem
+ *    que a reação pare nelas; o 7 do segundo bloco passou a exigir que a
+ *    redefinição vença. O 18 cobra que a troca com o token de antes de uma
+ *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos. Os
+ *    33 e 34 (complemento) seguram um encerramento e uma renovação com a
+ *    trava já tomada e exigem que a troca espere a trava antes de reler a
+ *    sessão.
+ * 7. O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO NO MESMO INSTANTE (V2-F00-E10,
+ *    correção 3, migração 051): o link pendente morre com toda mudança de
+ *    senha, por gatilho que segura a linha da pessoa antes das dos links, e
+ *    `consumir_recuperacao` segue a mesma ordem. O caso 32 do segundo bloco
+ *    segura o link dentro da função e exige que a redefinição espere, sem
+ *    impasse.
  *
  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
@@ -86,6 +107,9 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
 
 const SENHA = "defesa-civil-2026";
 const SENHA_NOVA = "outra-senha-bem-forte-2026";
+const SENHA_DO_INVASOR = "senha-escolhida-pelo-invasor-2026";
+const SENHA_DA_VITIMA = "senha-nova-da-propria-pessoa-2026";
+const SENHA_DO_LINK = "senha-definida-pelo-link-do-email-2026";
 const HELENA = "11111111-1111-4111-8111-0000000000d1";
 const OC_ALFA_1 = "11111111-1111-4111-8111-0000000000c1";
 const EMAIL_HELENA = "helena.coutinho@serraalta.exemplo.gov.br";
@@ -396,9 +420,157 @@ function auxiliares(cenario: () => Cenario) {
     }
   }
 
+  /** Login da Helena com uma senha qualquer, pela rota de verdade, sem exigir 200. */
+  function tentarEntrar(senha: string) {
+    return cenario().app.inject({
+      method: "POST", url: "/auth/entrar", payload: { email: EMAIL_HELENA, senha },
+    });
+  }
+
+  /** A troca de senha de quem tem a senha ANTIGA e uma sessão (o invasor). */
+  function trocarComoInvasor(invasor: Par) {
+    return cenario().app.inject({
+      method: "POST", url: "/auth/trocar-senha", headers: com(invasor.acesso),
+      payload: { senhaAtual: SENHA, senha: SENHA_DO_INVASOR },
+    });
+  }
+
+  /** A troca de senha com o token de `quem`, da senha antiga para `senha`. */
+  function trocarComo(quem: Par, senha: string) {
+    return cenario().app.inject({
+      method: "POST", url: "/auth/trocar-senha", headers: com(quem.acesso),
+      payload: { senhaAtual: SENHA, senha },
+    });
+  }
+
+  type Resposta = Awaited<ReturnType<FastifyInstance["inject"]>>;
+
+  /**
+   * As reações de quem desconfia de vazamento, que a troca de senha do
+   * invasor disputa (correção 4, achado 1 da validação de bb0f654). `senha`
+   * diz qual senha tem de valer no fim, se a reação vencer; `recusa` é o que a
+   * troca do invasor tem de receber quando confirma DEPOIS da reação.
+   */
+  type ReacaoAoInvasor = {
+    nome: string;
+    preparar: () => Promise<{ disparar: () => ReturnType<FastifyInstance["inject"]> }>;
+    senha: (reacao: Resposta) => string | null;
+    recusa: { status: number; erro: string };
+    /** A reação muda a senha (a do invasor não pode valer depois dela, em nenhuma ordem). */
+    mudaASenha: boolean;
+  };
+
+  const reacoesAoInvasor: ReacaoAoInvasor[] = [
+    {
+      nome: "quem administra redefine a senha da pessoa",
+      preparar: async () => ({
+        disparar: () => cenario().app.inject({
+          method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: com(cenario().tokenRita),
+        }),
+      }),
+      senha: (r) => String(r.json().senhaTemporaria),
+      recusa: { status: 401, erro: "sessao_encerrada" },
+      mudaASenha: true,
+    },
+    {
+      nome: "a pessoa redefine a senha pelo link do email",
+      preparar: async () => {
+        const token = gerarTokenRenovacao();
+        await cenario().bruto(
+          `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
+           SELECT organizacao_id, id, $2, now() + interval '30 minutes' FROM usuarios WHERE id = $1`,
+          [HELENA, hashDoToken(token)],
+        );
+        return {
+          disparar: () => cenario().app.inject({
+            method: "POST", url: "/auth/redefinir", payload: { token, senha: SENHA_DO_LINK },
+          }),
+        };
+      },
+      senha: () => SENHA_DO_LINK,
+      recusa: { status: 401, erro: "sessao_encerrada" },
+      mudaASenha: true,
+    },
+    {
+      nome: "quem administra desativa a conta",
+      preparar: async () => ({
+        disparar: () => cenario().app.inject({
+          method: "PATCH", url: `/usuarios/${HELENA}/situacao`, headers: com(cenario().tokenRita),
+          payload: { ativo: false },
+        }),
+      }),
+      senha: () => null,
+      recusa: { status: 403, erro: "conta_desativada" },
+      mudaASenha: false,
+    },
+    {
+      nome: "a própria pessoa troca a senha em outro aparelho",
+      preparar: async () => {
+        const vitima = await entrar();
+        return {
+          disparar: () => cenario().app.inject({
+            method: "POST", url: "/auth/trocar-senha", headers: com(vitima.acesso),
+            payload: { senhaAtual: SENHA, senha: SENHA_DA_VITIMA },
+          }),
+        };
+      },
+      senha: () => SENHA_DA_VITIMA,
+      recusa: { status: 401, erro: "sessao_encerrada" },
+      mudaASenha: true,
+    },
+    {
+      nome: "quem administra encerra as sessões da pessoa",
+      preparar: async () => ({
+        disparar: () => cenario().app.inject({
+          method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: com(cenario().tokenRita),
+        }),
+      }),
+      senha: () => SENHA,
+      recusa: { status: 401, erro: "sessao_encerrada" },
+      mudaASenha: false,
+    },
+  ];
+
+  /** Sessões de pé na família do par `p` (a cadeia do invasor). */
+  async function vivasNaFamilia(familia: string): Promise<number> {
+    const r = await cenario().bruto(
+      "SELECT count(*)::int AS n FROM sessoes WHERE familia_id = $1 AND revogada_em IS NULL", [familia],
+    );
+    return Number(r.rows[0]!.n);
+  }
+
+  /**
+   * O que tem de valer quando a reação confirmou ANTES da gravação do
+   * invasor: a reação respondeu 200; a troca do invasor foi recusada com o
+   * código do caso; a cadeia dele não tem sessão de pé; a senha dele não
+   * entra; a senha da reação entra (a temporária da redefinição continua
+   * provisória); e, desativada a conta, reativá-la não devolve a senha dele.
+   */
+  async function exigirQueAReacaoVenceu(
+    reacao: ReacaoAoInvasor, rr: Resposta, troca: Resposta, familiaDoInvasor: string,
+  ): Promise<void> {
+    expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(200);
+    expect(troca.statusCode, `a troca do invasor, que confirmou depois da reação: ${troca.body}`).toBe(reacao.recusa.status);
+    expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invasor ficou com sessão de pé").toBe(0);
+    if (reacao.recusa.erro === "conta_desativada") {
+      await cenario().bruto("UPDATE usuarios SET ativo = true WHERE id = $1", [HELENA]);
+    }
+    const doInvasor = await tentarEntrar(SENHA_DO_INVASOR);
+    expect(doInvasor.statusCode, `a senha do invasor entra depois da reação: ${doInvasor.body}`).toBe(401);
+    const senhaDaReacao = reacao.senha(rr) ?? SENHA;
+    const daReacao = await tentarEntrar(senhaDaReacao);
+    expect(daReacao.statusCode, `a senha que a reação deixou não entra: ${daReacao.body}`).toBe(200);
+    if (reacao.nome.startsWith("quem administra redefine")) {
+      expect(daReacao.json().trocaDeSenhaObrigatoria, "a temporária deixou de ser provisória").toBe(true);
+    }
+  }
+
   return {
     entrar, pedirRenovacao, escrever, sessoesVivasDaCadeia, restaurarHelena, encerramentos, exigirCadeiaMorta,
     mudancasDeCredencial, entrarComASenhaAntiga, exigirLoginSemSobra, limparSessoesDaHelena,
+    tentarEntrar, trocarComoInvasor, trocarComo, reacoesAoInvasor, vivasNaFamilia, exigirQueAReacaoVenceu, familiaDe,
+    bruto: (sql: string, params?: unknown[]) => cenario().bruto(sql, params),
   };
 }
 
@@ -500,6 +672,167 @@ function casosDaCorrecao3(a: ReturnType<typeof auxiliares>, grampo: { atual: Gra
       const r = await renovacao;
       expect(r.statusCode, r.body).toBe(403);
       expect(r.json().erro).toBe("conta_desativada");
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+}
+
+/** A transação em que a troca de senha leu a senha atual (antes dos dois scrypt). */
+const leuASenhaAtualDaTroca = (chamadas: Chamada[]) =>
+  chamadas.some((c) => /SELECT senha_hash, senha_provisoria_ate\s+FROM usuarios/.test(c.sql));
+
+/**
+ * Os casos da correção 4 que valem igual nos dois bancos, porque seguram a
+ * troca do invasor FORA de qualquer transação: logo depois de ela ler a senha
+ * atual e antes dos dois scrypt (conferir a atual e derivar a nova).
+ */
+function casosDaCorrecao4(a: ReturnType<typeof auxiliares>, grampo: { atual: Grampo | null }, primeiro: number) {
+  /*
+    A TROCA DE SENHA DO INVASOR EM VOO DURANTE A REAÇÃO (achado 1 da validação
+    de bb0f654). O invasor tem a senha antiga e uma sessão, e manda trocar a
+    senha por uma dele. A troca lê a senha atual e é SEGURADA ali; a reação
+    (redefinição por quem administra, link do email, desativação, troca pela
+    própria pessoa em outro aparelho, encerrar as sessões) termina inteira;
+    solta, a troca tem de ser recusada, e a senha que vale no fim é a da
+    reação. Até a correção 4 a troca respondia 200 e gravava a senha do
+    invasor por cima da reação.
+  */
+  for (const [i, reacao] of a.reacoesAoInvasor.entries()) {
+    it(`${primeiro + i}. a troca de senha do invasor conferiu a senha antiga quando ${reacao.nome}: a troca é recusada e a reação vale`, async () => {
+      await a.limparSessoesDaHelena();
+      const invasor = await a.entrar();
+      const familia = await a.familiaDe(invasor);
+      const disputa = await reacao.preparar();
+      const janela = sinal();
+      const solta = sinal();
+      let segurou = false;
+      grampo.atual = {
+        depois: async (chamadas) => {
+          if (segurou || !leuASenhaAtualDaTroca(chamadas)) return;
+          segurou = true;
+          janela.disparar();
+          await solta.disparado;
+        },
+      };
+      const pendentes: Promise<unknown>[] = [];
+      try {
+        const troca = a.trocarComoInvasor(invasor);
+        pendentes.push(troca);
+        const quem = await Promise.race([
+          janela.disparado.then(() => "segurou" as const),
+          troca.then(() => "terminou" as const),
+        ]);
+        expect(quem, "a disputa não aconteceu: a troca terminou sem ler a senha atual").toBe("segurou");
+        const rr = await disputa.disparar();
+        solta.disparar();
+        const rt = await troca;
+        grampo.atual = null;
+        await a.exigirQueAReacaoVenceu(reacao, rr, rt, familia);
+      } finally {
+        solta.disparar();
+        grampo.atual = null;
+        await Promise.allSettled(pendentes);
+        await a.restaurarHelena();
+      }
+    }, 120_000);
+  }
+
+  /*
+    A MESMA SESSÃO TROCA A SENHA DUAS VEZES AO MESMO TEMPO (o token de acesso
+    copiado por quem invadiu, ou a mesma pessoa em duas abas). A troca da
+    pessoa preserva a própria cadeia, que é também a do invasor: a sessão
+    continua de pé, e o que muda é o hash. Solta, a troca do invasor tem de
+    ver que a senha atual não é mais a que o scrypt conferiu e responder a
+    mesma recusa da senha atual errada (401 `credenciais`).
+  */
+  it(`${primeiro + a.reacoesAoInvasor.length}. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale`, async () => {
+    await a.limparSessoesDaHelena();
+    const invasor = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurou = false;
+    grampo.atual = {
+      depois: async (chamadas) => {
+        if (segurou || !leuASenhaAtualDaTroca(chamadas)) return;
+        segurou = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const troca = a.trocarComoInvasor(invasor);
+      pendentes.push(troca);
+      const quem = await Promise.race([
+        janela.disparado.then(() => "segurou" as const),
+        troca.then(() => "terminou" as const),
+      ]);
+      expect(quem, "a disputa não aconteceu: a troca terminou sem ler a senha atual").toBe("segurou");
+      // `segurou` já é verdadeiro: a troca da pessoa passa sem ser segurada.
+      const daPessoa = await a.trocarComo(invasor, SENHA_DA_VITIMA);
+      expect(daPessoa.statusCode, daPessoa.body).toBe(200);
+      solta.disparar();
+      const rt = await troca;
+      grampo.atual = null;
+      expect(rt.statusCode, `a troca do invasor, que confirmou depois: ${rt.body}`).toBe(401);
+      expect(rt.json().erro, rt.body).toBe("credenciais");
+      expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a senha do invasor entra").toBe(401);
+      expect((await a.tentarEntrar(SENHA_DA_VITIMA)).statusCode, "a senha da pessoa não entra").toBe(200);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+
+  /*
+    A SENHA PROVISÓRIA QUE VENCE NO MEIO DA TROCA. A troca lê a provisória no
+    prazo, é segurada, e o prazo passa (o teste o move para trás, que é o
+    efeito do relógio). Solta, ela tem de responder 401 `sessao_encerrada` sem
+    gravar nada, a mesma recusa de quem chega com o prazo já vencido.
+  */
+  it(`${primeiro + a.reacoesAoInvasor.length + 1}. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica`, async () => {
+    await a.limparSessoesDaHelena();
+    // A provisória no prazo, e uma sessão aberta com ela (o token traz a marca).
+    await a.bruto("UPDATE usuarios SET senha_provisoria_ate = now() + interval '1 hour' WHERE id = $1", [HELENA]);
+    const comProvisoria = await a.entrar();
+    const familia = await a.familiaDe(comProvisoria);
+    const hashAntes = String((await a.bruto("SELECT senha_hash FROM usuarios WHERE id = $1", [HELENA])).rows[0]!.senha_hash);
+    const janela = sinal();
+    const solta = sinal();
+    let segurou = false;
+    grampo.atual = {
+      depois: async (chamadas) => {
+        if (segurou || !leuASenhaAtualDaTroca(chamadas)) return;
+        segurou = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const troca = a.trocarComoInvasor(comProvisoria);
+      pendentes.push(troca);
+      const quem = await Promise.race([
+        janela.disparado.then(() => "segurou" as const),
+        troca.then(() => "terminou" as const),
+      ]);
+      expect(quem, "a disputa não aconteceu: a troca terminou sem ler a senha atual").toBe("segurou");
+      await a.bruto("UPDATE usuarios SET senha_provisoria_ate = now() - interval '1 minute' WHERE id = $1", [HELENA]);
+      solta.disparar();
+      const rt = await troca;
+      grampo.atual = null;
+      expect(rt.statusCode, `a troca com a provisória vencida no meio: ${rt.body}`).toBe(401);
+      expect(rt.json().erro, rt.body).toBe("sessao_encerrada");
+      const depois = await a.bruto("SELECT senha_hash, senha_provisoria_ate FROM usuarios WHERE id = $1", [HELENA]);
+      expect(String(depois.rows[0]!.senha_hash), "a troca gravou o hash com a provisória vencida").toBe(hashAntes);
+      expect(depois.rows[0]!.senha_provisoria_ate, "a troca tirou a marca de provisória").not.toBeNull();
+      expect(await a.vivasNaFamilia(familia), "a troca recusada encerrou a própria cadeia").toBe(1);
     } finally {
       solta.disparar();
       grampo.atual = null;
@@ -643,6 +976,69 @@ describe("Renovação e encerramento no mesmo instante: a renovação é UMA tra
         .toEqual(["abrir_sessao", "trava", "releitura"]);
     } finally {
       grampo.atual = null;
+    }
+  });
+
+  // 11 a 17: os casos da correção 4 que valem nos dois bancos.
+  casosDaCorrecao4(a, grampo, 11);
+
+  /*
+    A TROCA DE SENHA COM O TOKEN DE ANTES DA RENOVAÇÃO preserva a própria
+    cadeia (correção 4, achado 2 da validação de bb0f654). O `sid` desse token
+    é a sessão já rotacionada; até a correção 4 `trocar_senha` preservava só
+    essa linha, encerrava a viva da mesma cadeia e respondia "as outras
+    sessões foram encerradas" a quem acabava de ser expulso.
+  */
+  it("18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé", async () => {
+    await a.limparSessoesDaHelena();
+    const h = await a.entrar();
+    const r = await a.pedirRenovacao(h.renovacao);
+    expect(r.statusCode, r.body).toBe(200);
+    const novo = r.json() as Par;
+    try {
+      const troca = await cen.app.inject({
+        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${h.acesso}` },
+        payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
+      });
+      expect(troca.statusCode, troca.body).toBe(200);
+      expect((await a.escrever(troca.json().acesso)).statusCode, "o token que a troca devolveu não escreve").toBe(200);
+      expect((await a.escrever(novo.acesso)).statusCode, "o token da renovação não escreve depois da troca").toBe(200);
+      const outra = await a.pedirRenovacao(novo.renovacao);
+      expect(outra.statusCode, `a própria cadeia não renova depois da troca: ${outra.body}`).toBe(200);
+    } finally {
+      await a.restaurarHelena();
+    }
+  });
+
+  /*
+    A ORDEM DOS COMANDOS DA TROCA (correção 4). O PGlite não trava nada, então
+    a guarda aqui é a sequência na transação que grava: a linha da pessoa em
+    `usuarios` (FOR NO KEY UPDATE), depois a trava da pessoa, depois
+    `trocar_senha`. A trava antes da linha fecha ciclo com a redefinição por
+    quem administra (linha, depois trava): o caso 7 do segundo bloco mede.
+  */
+  it("19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela", async () => {
+    await a.limparSessoesDaHelena();
+    const h = await a.entrar();
+    const sequencia: string[] = [];
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (/FROM usuarios WHERE id = \$1 FOR NO KEY UPDATE/.test(chamada.sql)) sequencia.push("linha");
+        else if (chamada.sql.includes("travar_sessoes_do_usuario(")) sequencia.push("trava");
+        else if (chamada.sql.includes("trocar_senha(")) sequencia.push("grava");
+      },
+    };
+    try {
+      const troca = await cen.app.inject({
+        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${h.acesso}` },
+        payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
+      });
+      expect(troca.statusCode, troca.body).toBe(200);
+      expect(sequencia, "a ordem da troca é linha da pessoa, trava e gravação; a trava antes da linha fecha ciclo com a redefinição")
+        .toEqual(["linha", "trava", "grava"]);
+    } finally {
+      grampo.atual = null;
+      await a.restaurarHelena();
     }
   });
 });
@@ -870,9 +1266,13 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
     senha pela própria pessoa, e só solta quando o teste VÊ a troca parada
     esperando a linha de `usuarios` que a redefinição segura (`pg_locks`).
     Desde a revisão da correção 2 o caso exige que a disputa aconteça: sem a
-    trava da 049 não há onde segurar a redefinição, e ele reprova.
+    trava da 049 não há onde segurar a redefinição, e ele reprova. Desde a
+    correção 4 a troca para no FOR NO KEY UPDATE da linha (antes de tomar a
+    trava), relê tudo depois que a redefinição confirma e é recusada (401): a
+    temporária é a senha que vale. Com a trava ANTES da linha na troca, este
+    caso termina em impasse (40P01).
   */
-  it("7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse", async () => {
+  it("7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale", async () => {
     const quemTroca = await a.entrar();
     const janela = sinal();
     const solta = sinal();
@@ -911,8 +1311,15 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
       const [r1, r2] = await Promise.all([redefinicao, troca]);
       grampo.atual = null;
       expect(r1.statusCode, `redefinição: ${r1.body}`).toBe(200);
-      expect(r2.statusCode, `troca de senha: ${r2.body}`).toBe(200);
+      // A troca conferiu a senha de antes da redefinição; quando ela grava, a
+      // redefinição já confirmou e encerrou a sessão de quem trocou. Até a
+      // correção 4 ela respondia 200 e a senha dela apagava a temporária.
+      expect(r2.statusCode, `troca de senha: ${r2.body}`).toBe(401);
+      expect(r2.json().erro, r2.body).toBe("sessao_encerrada");
       expect(await a.sessoesVivasDaCadeia(quemTroca), "a sessão de quem trocou sobreviveu à redefinição").toBe(0);
+      const temporaria = await a.tentarEntrar(String(r1.json().senhaTemporaria));
+      expect(temporaria.statusCode, `a temporária da redefinição não entra: ${temporaria.body}`).toBe(200);
+      expect((await a.tentarEntrar(SENHA_NOVA)).statusCode, "a senha da troca apagou a redefinição").toBe(401);
     } finally {
       solta.disparar();
       grampo.atual = null;
@@ -1278,6 +1685,274 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
         "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
       );
       cen.tokenRita = (await a.entrar(EMAIL_RITA)).acesso;
+    }
+  }, 120_000);
+
+  // 21 a 27: os casos da correção 4 que valem nos dois bancos.
+  casosDaCorrecao4(a, grampo, 21);
+
+  /*
+    A OUTRA ORDEM DA TROCA DISPUTADA (correção 4): a troca do invasor já
+    segura a linha da pessoa e a trava, e a reação chega nesse instante. A
+    troca é segurada DENTRO da transação, logo antes de `trocar_senha`; a
+    reação tem de PARAR (o teste VÊ em `pg_locks`) na linha de `usuarios` que
+    a troca segura. Solta, a troca confirma (200) e a reação passa por cima
+    dela: a ordem serial "troca, depois reação". Sem a linha segura pela troca
+    a reação não espera ninguém, termina antes, e o caso reprova por isso.
+    Na troca pela própria pessoa em outro aparelho, quem chega segundo é a
+    vítima, e ela é recusada às claras (401), em vez de ver 200 e perder. No
+    link do email também, desde a migração 051 (correção 3 da E10): a troca
+    que confirmou primeiro mata o link pendente, e ele responde 401.
+  */
+  for (const [i, reacao] of a.reacoesAoInvasor.filter((r) => r.nome !== "quem administra encerra as sessões da pessoa").entries()) {
+    it(`${28 + i}. a troca do invasor já segura a linha e a trava quando ${reacao.nome}: a reação espera e vem depois`, async () => {
+      await a.limparSessoesDaHelena();
+      const invasor = await a.entrar();
+      const familia = await a.familiaDe(invasor);
+      const disputa = await reacao.preparar();
+      const janela = sinal();
+      const solta = sinal();
+      let segurou = false;
+      grampo.atual = {
+        antes: async (chamada) => {
+          if (segurou || !chamada.sql.includes("trocar_senha(")) return;
+          segurou = true;
+          janela.disparar();
+          await solta.disparado;
+        },
+      };
+      const pendentes: Promise<unknown>[] = [];
+      try {
+        const troca = a.trocarComoInvasor(invasor);
+        pendentes.push(troca);
+        const quem = await Promise.race([
+          janela.disparado.then(() => "segurou" as const),
+          troca.then(() => "terminou" as const),
+        ]);
+        expect(quem, "a disputa não aconteceu: a troca terminou sem chegar à gravação").toBe("segurou");
+        const reagiu = disputa.disparar();
+        pendentes.push(reagiu);
+        await exigirQueTravou(`a reação (${reacao.nome})`, reagiu, null);
+        solta.disparar();
+        const [rt, rr] = await Promise.all([troca, reagiu]);
+        grampo.atual = null;
+        expect(rt.statusCode, `a troca do invasor, que confirmou primeiro: ${rt.body}`).toBe(200);
+        if (reacao.nome === "a própria pessoa troca a senha em outro aparelho"
+          || reacao.nome === "a pessoa redefine a senha pelo link do email") {
+          // A vítima chegou segundo: a sessão dela caiu com a troca do
+          // invasor, ou o link pendente morreu com ela (migração 051, correção
+          // 3 da E10). A recusa é às claras, e a senha dela não passa a valer.
+          expect(rr.statusCode, `a reação da vítima, que chegou depois: ${rr.body}`).toBe(401);
+          expect(rr.json().erro, rr.body).toBe("sessao_encerrada");
+          expect((await a.tentarEntrar(reacao.senha(rr) ?? "")).statusCode, "a senha da vítima, recusada, entrou").toBe(401);
+          return;
+        }
+        expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(200);
+        expect(await a.vivasNaFamilia(familia), "a cadeia do invasor ficou com sessão de pé depois da reação").toBe(0);
+        if (reacao.mudaASenha) {
+          expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a senha do invasor entra depois da reação").toBe(401);
+          const daReacao = await a.tentarEntrar(reacao.senha(rr)!);
+          expect(daReacao.statusCode, `a senha da reação não entra: ${daReacao.body}`).toBe(200);
+        } else {
+          const ativo = await a.bruto("SELECT ativo FROM usuarios WHERE id = $1", [HELENA]);
+          expect(ativo.rows[0]!.ativo, "a conta continuou ativa depois da desativação").toBe(false);
+        }
+      } finally {
+        solta.disparar();
+        grampo.atual = null;
+        await Promise.allSettled(pendentes);
+        await a.restaurarHelena();
+      }
+    }, 120_000);
+  }
+
+  /*
+    O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO POR QUEM ADMINISTRA NO MESMO
+    INSTANTE (V2-F00-E10, correção 3, migração 051). Desde a 051 toda mudança
+    de senha marca os links pendentes da pessoa por gatilho, depois de
+    atualizar a linha dela em `usuarios`: a ordem é linha da pessoa, linhas
+    dos links. `consumir_recuperacao` passou a seguir a mesma ordem. Na ordem
+    antiga (linha do link, depois a da pessoa), o link segurando a própria
+    linha e a redefinição segurando a da pessoa se esperariam em ordem
+    inversa, e o Postgres mataria uma das duas (40P01, um 500).
+
+    O caso segura o link DENTRO de `consumir_recuperacao`, no UPDATE que o
+    marca como usado, por um gatilho de prova instalado só neste banco (ele
+    espera uma trava consultiva que o teste segura; só no primeiro nível, para
+    não segurar o gatilho da 051). Com a ordem certa, nesse ponto o link já
+    segura a linha da pessoa; a redefinição tem de parar nela (trava de linha,
+    não consultiva, o teste VÊ em `pg_locks`). Solto, o link confirma e a
+    redefinição vem depois: a temporária vale e a senha do link não.
+  */
+  it("32. o link do email e a redefinição por quem administra no mesmo instante: sem impasse, e a redefinição vem depois", async () => {
+    const CHAVE = 51_051;
+    await a.limparSessoesDaHelena();
+    await cen.bruto(`
+      CREATE OR REPLACE FUNCTION prova_segurar_o_link() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF pg_trigger_depth() = 1 THEN
+          PERFORM pg_advisory_lock(${CHAVE});
+          PERFORM pg_advisory_unlock(${CHAVE});
+        END IF;
+        RETURN NEW;
+      END;
+      $$`);
+    await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
+    await cen.bruto("CREATE TRIGGER prova_segurar_o_link BEFORE UPDATE ON recuperacoes_senha FOR EACH ROW EXECUTE FUNCTION prova_segurar_o_link()");
+    const token = gerarTokenRenovacao();
+    await cen.bruto(
+      `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
+       SELECT organizacao_id, id, $2, now() + interval '30 minutes' FROM usuarios WHERE id = $1`,
+      [HELENA, hashDoToken(token)],
+    );
+    const naoConsultivas = async () => Number((await cen.bruto(
+      `SELECT count(*)::int AS n FROM pg_locks l JOIN pg_stat_activity s ON s.pid = l.pid
+        WHERE NOT l.granted AND s.datname = current_database() AND l.locktype <> 'advisory'`,
+    )).rows[0]!.n);
+    await cen.bruto("SELECT pg_advisory_lock($1)", [CHAVE]);
+    let soltou = false;
+    const soltar = async () => {
+      if (soltou) return;
+      soltou = true;
+      await cen.bruto("SELECT pg_advisory_unlock($1)", [CHAVE]);
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const link = cen.app.inject({ method: "POST", url: "/auth/redefinir", payload: { token, senha: SENHA_DO_LINK } });
+      pendentes.push(link);
+      // O link chega ao UPDATE que o marca e para na trava consultiva do teste.
+      expect(await travouOuTerminou(link, "advisory"), "a disputa não aconteceu: o link não chegou ao ponto segurado").toBe("travou");
+      const redefinicao = cen.app.inject({
+        method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: { authorization: `Bearer ${cen.tokenRita}` },
+      });
+      pendentes.push(redefinicao);
+      let parou = false;
+      const ate = Date.now() + 15_000;
+      while (Date.now() < ate && !parou) {
+        parou = await naoConsultivas() > 0;
+        if (!parou) await esperar(20);
+      }
+      expect(parou, "a disputa não aconteceu: a redefinição não parou numa trava de linha enquanto o link estava segurado").toBe(true);
+      await soltar();
+      const [rl, rr] = await Promise.all([link, redefinicao]);
+      expect(rl.statusCode, `o link: ${rl.body}`).toBe(200);
+      expect(rr.statusCode, `a redefinição (40P01 é impasse): ${rr.body}`).toBe(200);
+      const temporaria = await a.tentarEntrar(String(rr.json().senhaTemporaria));
+      expect(temporaria.statusCode, `a temporária, que veio depois, não entra: ${temporaria.body}`).toBe(200);
+      expect((await a.tentarEntrar(SENHA_DO_LINK)).statusCode, "a senha do link passou por cima da redefinição").toBe(401);
+    } finally {
+      await soltar();
+      await Promise.allSettled(pendentes);
+      await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
+      await cen.bruto("DROP FUNCTION IF EXISTS prova_segurar_o_link()");
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+
+  /*
+    A TRAVA DA PESSOA NA TROCA, ANTES DA RELEITURA DA SESSÃO (complemento da
+    correção 4 da E07, pedido da revisão). A troca segura a linha da pessoa,
+    toma a trava e só então confere se a cadeia de quem pede está de pé. Sem a
+    trava ali, a conferência leria a sessão sem esperar um encerramento ou uma
+    renovação que já segura a trava e ainda não confirmou: ela a veria viva,
+    e `trocar_senha` (que toma a trava por dentro, depois) esperaria e gravaria
+    por cima. Os dois casos seguram o outro lado DENTRO da transação, com a
+    trava já tomada, e exigem que a troca pare na trava (o teste VÊ em
+    `pg_locks`).
+
+    33: quem administra encerra as sessões da pessoa, segurado logo antes do
+    UPDATE de `sessoes`. Solta, a troca tem de ver a sessão encerrada e
+    recusar (401 `sessao_encerrada`), sem gravar a senha: a sessão revogada
+    não pratica a escrita que mais importa.
+  */
+  it("33. a troca chega enquanto quem administra encerra as sessões da pessoa: espera a trava e é recusada", async () => {
+    await a.limparSessoesDaHelena();
+    const invasor = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurando = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (segurando || !/UPDATE sessoes\s+SET revogada_em = now\(\), motivo_revogacao = \$2/.test(chamada.sql)) return;
+        segurando = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const encerramento = cen.app.inject({
+        method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: { authorization: `Bearer ${cen.tokenRita}` },
+      });
+      pendentes.push(encerramento);
+      const quem = await Promise.race([
+        janela.disparado.then(() => "segurou" as const),
+        encerramento.then(() => "terminou" as const),
+      ]);
+      expect(quem, "a disputa não aconteceu: o encerramento terminou sem chegar ao UPDATE de sessoes").toBe("segurou");
+      const troca = a.trocarComoInvasor(invasor);
+      pendentes.push(troca);
+      await exigirQueTravou("a troca de senha", troca, "advisory");
+      solta.disparar();
+      const [re, rt] = await Promise.all([encerramento, troca]);
+      grampo.atual = null;
+      expect(re.statusCode, re.body).toBe(200);
+      expect(rt.statusCode, `a troca da sessão que o encerramento derrubou: ${rt.body}`).toBe(401);
+      expect(rt.json().erro, rt.body).toBe("sessao_encerrada");
+      expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a sessão encerrada gravou a senha dela").toBe(401);
+      expect((await a.tentarEntrar(SENHA)).statusCode, "a senha de antes deixou de entrar").toBe(200);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
+    }
+  }, 120_000);
+
+  /*
+    34: a renovação da própria cadeia, segurada entre revogar a sessão antiga
+    e abrir a nova. Solta, a troca tem de enxergar a sessão nova da cadeia e
+    preservá-la: a cadeia continua renovando e escrevendo. Sem a trava antes
+    da releitura, a troca preservaria a sessão já rotacionada e derrubaria a
+    nova da própria cadeia (o achado 2 da rodada 4, de volta sob disputa).
+  */
+  it("34. a troca chega no meio da renovação da própria cadeia: espera a trava e preserva a sessão nova", async () => {
+    await a.limparSessoesDaHelena();
+    const h = await a.entrar();
+    const janela = sinal();
+    const solta = sinal();
+    let segurando = false;
+    grampo.atual = {
+      antes: async (chamada) => {
+        if (!abreHerdando(chamada) || segurando) return;
+        segurando = true;
+        janela.disparar();
+        await solta.disparado;
+      },
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const renovacao = a.pedirRenovacao(h.renovacao);
+      pendentes.push(renovacao);
+      await janela.disparado;
+      const troca = a.trocarComo(h, SENHA_NOVA);
+      pendentes.push(troca);
+      await exigirQueTravou("a troca de senha", troca, "advisory");
+      solta.disparar();
+      const [rr, rt] = await Promise.all([renovacao, troca]);
+      grampo.atual = null;
+      expect(rr.statusCode, rr.body).toBe(200);
+      expect(rt.statusCode, rt.body).toBe(200);
+      const novo = rr.json() as Par;
+      expect((await a.escrever(rt.json().acesso)).statusCode, "o token que a troca devolveu não escreve").toBe(200);
+      expect((await a.escrever(novo.acesso)).statusCode, "o token da renovação não escreve depois da troca").toBe(200);
+      const outra = await a.pedirRenovacao(novo.renovacao);
+      expect(outra.statusCode, `a própria cadeia não renova depois da troca: ${outra.body}`).toBe(200);
+    } finally {
+      solta.disparar();
+      grampo.atual = null;
+      await Promise.allSettled(pendentes);
+      await a.restaurarHelena();
     }
   }, 120_000);
 });

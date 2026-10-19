@@ -22,13 +22,14 @@ como conferir isso, em vez de supor.
 
 ## O que foi provado, e o que não foi
 
-**Quantas migrações.** A pasta `db/migrations/` tem hoje 50 (001 a 050) <!-- numeros: migracoes=50 -->. Os
+**Quantas migrações.** A pasta `db/migrations/` tem hoje 51 (001 a 051) <!-- numeros: migracoes=51 -->. Os
 números de migração abaixo são fatos datados: cada prova vale para a árvore em
 que rodou, e quem quiser o número de hoje conta os arquivos
 (`ls db/migrations | wc -l`). O roteiro não depende da quantidade: o `migrar`
-aplica as que existem. A 048, a 049 e a 050 não acrescentam tabela, policy
-nem função `SECURITY DEFINER` (recriam funções que já existiam, e a 049 cria
-uma função comum; o teto de 27 em `db/test/isolamento.test.ts` segue o mesmo).
+aplica as que existem. A 048, a 049, a 050 e a 051 não acrescentam tabela, policy
+nem função `SECURITY DEFINER` (recriam funções que já existiam, a 049 cria
+uma função comum e a 051 um gatilho com função comum; o teto de 27 em
+`db/test/isolamento.test.ts` segue o mesmo).
 
 **Prova do Windows, de 2026-10-07**, no Windows 11 com Git Bash, por quem
 escreveu o sistema:

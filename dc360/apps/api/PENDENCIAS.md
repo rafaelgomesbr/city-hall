@@ -191,6 +191,41 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   52952a1): a escrita comum com a provisória vencida responde 401
   `sessao_encerrada`, e não 403 `troca_de_senha_obrigatoria`
   (`test/senha-provisoria.test.ts`).
+- **Trocar a senha no mesmo instante de uma reação (correção 4 da E07, sem
+  migração nova):** `trocarSenha` conferia a senha atual numa transação,
+  gastava os dois scrypt fora do banco e chamava `trocar_senha` em outra, que
+  grava sem conferir nada. Quem tinha a senha antiga e uma sessão, com a troca
+  em voo, desfazia a redefinição por quem administra, o link do email, a
+  desativação ou a troca pela própria pessoa que confirmasse no meio, e ficava
+  com a senha DELE, definitiva, e sessão viva (a validação de bb0f654 mediu 20
+  de 30 sem grampo na redefinição). Agora a gravação é uma transação só, sob o
+  município: a linha da pessoa com FOR NO KEY UPDATE, depois a trava da
+  pessoa, depois a releitura (conta ativa, senão 403 `conta_desativada`;
+  sessão de pé na cadeia de quem pede e provisória no prazo, senão 401
+  `sessao_encerrada`; hash igual ao que o scrypt conferiu, senão a recusa da
+  senha atual errada), e só então `trocar_senha`. A ordem é linha de
+  `usuarios` antes da trava, a mesma da 049; trava antes da linha fecha ciclo
+  com a redefinição (40P01 medido pela mutação). A sessão preservada é a VIVA
+  da cadeia, e não o `sid` do token: com o token de antes de uma renovação a
+  troca derrubava a própria cadeia (achado 2 da mesma validação). O token
+  devolvido leva o `sid` da sessão viva e o papel relido sob a trava. Provado
+  nos casos 11 a 19 do primeiro bloco e 7 e 21 a 31 do segundo de
+  `test/renovacao-contra-encerramento.test.ts`.
+- **Outros caminhos varridos na correção 4, sem o mesmo defeito:** a
+  redefinição por quem administra, a desativação, a troca de papel e o link de
+  recuperação conferem e gravam na MESMA transação, e não conferem segredo de
+  quem pede (o link é conferido e gasto dentro de `consumir_recuperacao`, com
+  FOR UPDATE na linha do link); a autoridade de quem administra vem da
+  vigência do começo do pedido, e o ato dele é serializável antes de qualquer
+  mudança que confirme depois (nenhuma delas lê o que ele grava). Desligar o
+  segundo fator confere a senha e grava `segundo_fator` na mesma transação, e
+  nenhuma reação lê ou grava `segundo_fator`: o resultado é o de desligar um
+  instante antes da reação. Ligar o segundo fator pelo desafio já confere sob a
+  trava desde a correção 3. **Fica anotado, fora desta correção:** desativar e
+  rebaixar conferem "não é o último administrador" com uma contagem sem trava;
+  dois administradores que se desativam (ou se rebaixam) no mesmo instante
+  podem deixar o município sem administrador ativo. Lido no código, não
+  medido; não é credencial nem sessão, e não entrou nesta correção.
 - **`troca_de_senha_obrigatoria` na fila do campo:** PAUSA a fila (correção 1
   da E06, 2026-10-13), e não é mais recusa permanente. A decisão da E07, de deixar
   esse 403 bloquear a coleta porque o aparelho "praticamente não chega a ele",
@@ -259,6 +294,22 @@ sobra:
 3. **O resumo do aparelho** (`auth/aparelho.ts`) é uma lista curta de padrões de
    user-agent. O que não reconhece vira "Aparelho não identificado" em vez de
    palpite; ampliar a lista é barato e fica para quando houver caso real.
+4. **A própria conta com o id em outra caixa** (achado 1 da validação de
+   bb0f654). As recusas de redefinir a própria senha, encerrar as próprias
+   sessões e desativar a si mesma comparavam o id da rota com o do token como
+   texto, e o Postgres lê o uuid sem caixa: o próprio id em maiúsculas passava
+   (a administradora redefinia a própria senha sem a atual). Corrigido na
+   correção 3 da E09: o esquema do id em `rotas/administracao.ts` devolve o id
+   em minúsculas antes de qualquer comparação; os formatos alternativos de uuid
+   (chaves, sem hífens, `urn:uuid:`) o `uuid()` do zod já recusa com 422.
+   Travado em `test/id-da-propria-conta.test.ts`. As outras comparações de id
+   do corpo com o do token (`agenteId` em `saida-a-campo.ts`, `coletadaPor` em
+   `evidencias.ts` e `sincronizacao.ts`, `devolvidaPor` em `sincronizacao.ts`)
+   usam `!==` para RECUSAR: um id em outra caixa é recusado (`autor_divergente`),
+   nunca aceito, e o aplicativo manda o id do próprio token. Sem pendência de
+   segurança; a recusa falsa de um cliente que mandasse maiúsculas não existe
+   hoje. A redefinição que perdia para a troca de senha em voo (achado 2 da
+   mesma validação) foi fechada pela correção 4 da E07.
 
 ## Recuperação de senha por e-mail (V2-F00-E10)
 
@@ -285,6 +336,39 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
    O `NOTIFICADOR_ARQUIVO` só é recusado quando `NODE_ENV=production`: em
    `staging` ou em qualquer outro valor ele funciona, e a F01 (ambientes) decide se
    o HML precisa da mesma trava.
+5. **O link pendente morre com a credencial** (correção 3 da E10, migração 051;
+   bloqueava o CP-19 pela rodada 4 da validação). Toda mudança de senha (a
+   redefinição por quem administra, a troca pela própria pessoa, o próprio link e
+   qualquer caminho futuro) e toda desativação marcam `usada_em` nos links
+   pendentes da pessoa, por gatilho em `usuarios`, na mesma transação; a
+   reativação não ressuscita nenhum. `consumir_recuperacao` confere a conta ativa
+   (conta desativada: o link é gasto e nada mais muda) e segura a linha da pessoa
+   antes da linha do link, a mesma ordem do gatilho (a ordem inversa fecha ciclo
+   com a redefinição; 40P01 medido pela mutação). Travado em
+   `test/recuperacao-morre-com-a-credencial.test.ts` e no caso 32 de
+   `test/renovacao-contra-encerramento.test.ts`. Efeito aceito, escrito para não
+   virar surpresa: quem tem uma sessão e a senha atual e troca a senha também mata
+   o link que a pessoa acabou de pedir; a pessoa vê "este link não vale mais" e o
+   remédio que vence sempre é a redefinição por quem administra, que derruba as
+   sessões. A redefinição pelo link que perdia para a troca em voo (o FAIL do QA na
+   rodada 4) foi fechada pela correção 4 da E07.
+6. **O gatilho da 051 roda sob RLS forçada, com o papel de quem atualizou
+   `usuarios`** (anotado pela revisão do complemento, sem defeito hoje). A função
+   `invalidar_recuperacoes_pendentes` é comum (SECURITY INVOKER) para não gastar
+   vaga no teto de 27 funções SECURITY DEFINER, e `recuperacoes_senha` tem RLS
+   forçada (034). Hoje todo caminho que muda senha ou desativa conta passa por
+   uma de duas portas que funcionam: a rota com `dc360_app` e o município no
+   contexto (a policy de UPDATE deixa marcar os links do município), ou uma
+   função SECURITY DEFINER cujo dono ignora RLS. O risco é de um caminho FUTURO:
+   um UPDATE de `senha_hash` ou `ativo` sem município no contexto (um relógio,
+   um script de operação, o console) feito por um papel sem BYPASSRLS. O
+   UPDATE do gatilho não estoura: enxerga zero linhas e marca zero links, em
+   silêncio, e o link pendente sobrevive à mudança. É o mesmo risco que a 037
+   descreve para o expurgo de `notificacoes_enviadas` (o que funciona depende
+   de um atributo do papel, que nada no produto garante). Quem escrever um
+   caminho assim precisa pôr o município no contexto antes do UPDATE, ou fazer a
+   mudança por uma função SECURITY DEFINER; e um teste que mude a senha por esse
+   caminho e confira o link morto.
 
 ## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
 

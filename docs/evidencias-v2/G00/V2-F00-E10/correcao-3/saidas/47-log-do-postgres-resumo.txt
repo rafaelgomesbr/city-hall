@@ -1,0 +1,35 @@
+Resumo do log do Postgres 17.6 descartável da correção 3 da E10 (porta 55852, log_lock_waits=on, deadlock_timeout=200ms).
+Linhas no log:      383
+Linhas com 'deadlock detected': 4
+
+Todas as linhas ERROR, com horário:
+2026-10-19 01:12:25.472 -03 [81945] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:16:44.191 -03 [87842] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:18:12.518 -03 [88715] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:19:23.360 -03 [89588] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:19:45.678 -03 [89544] ERROR:  deadlock detected
+2026-10-19 01:19:49.437 -03 [89544] ERROR:  deadlock detected
+2026-10-19 01:20:29.448 -03 [89721] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:22:34.287 -03 [90288] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:23:56.301 -03 [90592] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:25:13.793 -03 [90889] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:26:19.516 -03 [91016] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:27:25.259 -03 [91106] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 01:27:47.030 -03 [91103] ERROR:  deadlock detected
+2026-10-19 01:27:50.761 -03 [91103] ERROR:  deadlock detected
+2026-10-19 01:28:30.720 -03 [91221] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+
+Horário de cada saída (mtime), para casar os impasses com as execuções da mutação M3:
+01:23:14 01-antes.txt
+01:24:22 10-depois.txt
+01:25:39 2M1.txt
+01:26:45 2M2.txt
+01:27:51 2M3.txt
+01:28:57 2M4.txt
+01:33:06 30-sonda-caos-com-a-051.txt
+
+Leitura: os quatro 'deadlock detected' caem nas duas execuções da mutação M3 (a ordem velha em
+consumir_recuperacao): 01:19:45 e 01:19:49 na primeira bateria de mutações (rodada antes de o caso 29
+ser ajustado ao link que morre com a troca; aquela bateria foi refeita e as saídas dela substituídas),
+e 01:27:47 e 01:27:50 na bateria arquivada (2M3, de 01:26:45 a 01:27:51). Nenhum nas execuções do
+conserto, nem na sonda de caos (que começou depois de 01:28:57).

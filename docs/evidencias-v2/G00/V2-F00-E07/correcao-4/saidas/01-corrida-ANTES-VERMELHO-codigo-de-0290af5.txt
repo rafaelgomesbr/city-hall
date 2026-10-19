@@ -1,0 +1,489 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/renovacao-contra-encerramento.test.ts (50 tests | 21 failed) 56339ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 250ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  514ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1163ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 245ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar 242ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1153ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  695ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  464ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  472ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela 232ms
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale 1155ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale 1144ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale 917ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 403 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale 1600ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale 915ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale 1374ms
+     → a troca do invasor, que confirmou depois: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica 916ms
+     → a troca com a provisória vencida no meio: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé 918ms
+     → o token que a troca devolveu não escreve: expected 401 to be 200 // Object.is equality
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela 914ms
+     → a ordem da troca é linha da pessoa, trava e gravação; a trava antes da linha fecha ciclo com a redefinição: expected [ 'grava' ] to deeply equal [ 'linha', 'trava', 'grava' ]
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 263ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  488ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1161ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 261ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve 239ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  13981ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale 1155ms
+     → troca de senha: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  491ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova 267ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1142ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  698ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  458ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login  1162ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login  709ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login  483ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado  1138ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado  684ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado  457ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse  719ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 21. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale 1142ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 22. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale 1196ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 23. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale 918ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 403 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 24. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale 1601ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 25. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale 921ms
+     → a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 26. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale 1364ms
+     → a troca do invasor, que confirmou depois: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 27. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica 910ms
+     → a troca com a provisória vencida no meio: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois 1162ms
+     → a disputa não aconteceu: a reação (quem administra redefine a senha da pessoa) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois 1161ms
+     → a disputa não aconteceu: a reação (a pessoa redefine a senha pelo link do email) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois 978ms
+     → a disputa não aconteceu: a reação (quem administra desativa a conta) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 31. a troca do invasor já segura a linha e a trava quando a própria pessoa troca a senha em outro aparelho: a reação espera e vem depois 1617ms
+     → a disputa não aconteceu: a reação (a própria pessoa troca a senha em outro aparelho) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 403 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 403[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale
+AssertionError: a troca do invasor, que confirmou depois: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:772:85
+    770|       const rt = await troca;
+    771|       grampo.atual = null;
+    772|       expect(rt.statusCode, `a troca do invasor, que confirmou depois:…
+       |                                                                                     ^
+    773|       expect(rt.json().erro, rt.body).toBe("credenciais");
+    774|       expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica
+AssertionError: a troca com a provisória vencida no meio: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:821:85
+    819|       const rt = await troca;
+    820|       grampo.atual = null;
+    821|       expect(rt.statusCode, `a troca com a provisória vencida no meio:…
+       |                                                                                     ^
+    822|       expect(rt.json().erro, rt.body).toBe("sessao_encerrada");
+    823|       const depois = await a.bruto("SELECT senha_hash, senha_provisori…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé
+AssertionError: o token que a troca devolveu não escreve: expected 401 to be 200 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 401[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:995:110
+    993|       });
+    994|       expect(troca.statusCode, troca.body).toBe(200);
+    995|       expect((await a.escrever(troca.json().acesso)).statusCode, "o to…
+       |                                                                                                              ^
+    996|       expect((await a.escrever(novo.acesso)).statusCode, "o token da r…
+    997|       const outra = await a.pedirRenovacao(novo.renovacao);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela
+AssertionError: a ordem da troca é linha da pessoa, trava e gravação; a trava antes da linha fecha ciclo com a redefinição: expected [ 'grava' ] to deeply equal [ 'linha', 'trava', 'grava' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   "linha",[39m
+[32m-   "trava",[39m
+[2m    "grava",[22m
+[2m  ][22m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1029:10
+    1027|       expect(troca.statusCode, troca.body).toBe(200);
+    1028|       expect(sequencia, "a ordem da troca é linha da pessoa, trava e g…
+    1029|         .toEqual(["linha", "trava", "grava"]);
+       |          ^
+    1030|     } finally {
+    1031|       grampo.atual = null;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale
+AssertionError: troca de senha: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1308:59
+    1306|       // redefinição já confirmou e encerrou a sessão de quem trocou. …
+    1307|       // correção 4 ela respondia 200 e a senha dela apagava a temporá…
+    1308|       expect(r2.statusCode, `troca de senha: ${r2.body}`).toBe(401);
+       |                                                           ^
+    1309|       expect(r2.json().erro, r2.body).toBe("sessao_encerrada");
+    1310|       expect(await a.sessoesVivasDaCadeia(quemTroca), "a sessão de que…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 21. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 22. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 23. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 403 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 403[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 24. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 25. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale
+AssertionError: a troca do invasor, que confirmou depois da reação: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ Object.exigirQueAReacaoVenceu test/renovacao-contra-encerramento.test.ts:544:99
+    542|   ): Promise<void> {
+    543|     expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(…
+    544|     expect(troca.statusCode, `a troca do invasor, que confirmou depois…
+       |                                                                                                   ^
+    545|     expect(troca.json().erro, troca.body).toBe(reacao.recusa.erro);
+    546|     expect(await vivasNaFamilia(familiaDoInvasor), "a cadeia do invaso…
+ ❯ test/renovacao-contra-encerramento.test.ts:725:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 26. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale
+AssertionError: a troca do invasor, que confirmou depois: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:772:85
+    770|       const rt = await troca;
+    771|       grampo.atual = null;
+    772|       expect(rt.statusCode, `a troca do invasor, que confirmou depois:…
+       |                                                                                     ^
+    773|       expect(rt.json().erro, rt.body).toBe("credenciais");
+    774|       expect((await a.tentarEntrar(SENHA_DO_INVASOR)).statusCode, "a s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 27. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica
+AssertionError: a troca com a provisória vencida no meio: {"mensagem":"Senha trocada. As outras sessões foram encerradas.","acesso":"[JWT REDIGIDO]","expiraEm":900}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:821:85
+    819|       const rt = await troca;
+    820|       grampo.atual = null;
+    821|       expect(rt.statusCode, `a troca com a provisória vencida no meio:…
+       |                                                                                     ^
+    822|       expect(rt.json().erro, rt.body).toBe("sessao_encerrada");
+    823|       const depois = await a.bruto("SELECT senha_hash, senha_provisori…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois
+AssertionError: a disputa não aconteceu: a reação (quem administra redefine a senha da pessoa) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: [32m"t[7mrav[27mou"[39m
+Received: [31m"t[7mermin[27mou"[39m
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:1144:8
+    1142|     const desfecho = await travouOuTerminou(pedido, tipo);
+    1143|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    1144|       .toBe("travou");
+       |        ^
+    1145|   }
+    1146| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1724:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois
+AssertionError: a disputa não aconteceu: a reação (a pessoa redefine a senha pelo link do email) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: [32m"t[7mrav[27mou"[39m
+Received: [31m"t[7mermin[27mou"[39m
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:1144:8
+    1142|     const desfecho = await travouOuTerminou(pedido, tipo);
+    1143|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    1144|       .toBe("travou");
+       |        ^
+    1145|   }
+    1146| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1724:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois
+AssertionError: a disputa não aconteceu: a reação (quem administra desativa a conta) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: [32m"t[7mrav[27mou"[39m
+Received: [31m"t[7mermin[27mou"[39m
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:1144:8
+    1142|     const desfecho = await travouOuTerminou(pedido, tipo);
+    1143|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    1144|       .toBe("travou");
+       |        ^
+    1145|   }
+    1146| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1724:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/21]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 31. a troca do invasor já segura a linha e a trava quando a própria pessoa troca a senha em outro aparelho: a reação espera e vem depois
+AssertionError: a disputa não aconteceu: a reação (a própria pessoa troca a senha em outro aparelho) não ficou esperando trava enquanto o outro lado estava segurado: expected 'terminou' to be 'travou' // Object.is equality
+
+Expected: [32m"t[7mrav[27mou"[39m
+Received: [31m"t[7mermin[27mou"[39m
+
+ ❯ exigirQueTravou test/renovacao-contra-encerramento.test.ts:1144:8
+    1142|     const desfecho = await travouOuTerminou(pedido, tipo);
+    1143|     expect(desfecho, `a disputa não aconteceu: ${quem} não ficou esper…
+    1144|       .toBe("travou");
+       |        ^
+    1145|   }
+    1146| 
+ ❯ test/renovacao-contra-encerramento.test.ts:1724:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/21]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  21 failed | 29 passed (50)
+   Start at  00:08:24
+   Duration  56.98s (transform 250ms, setup 16ms, collect 444ms, tests 56.34s, environment 0ms, prepare 40ms)
+
+codigo de saida: 1

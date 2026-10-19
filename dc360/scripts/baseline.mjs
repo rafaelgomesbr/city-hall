@@ -412,7 +412,49 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   */
   "V2-F00-E12-correcao-3": { total: 5, falhas: 0, puladas: 0 },
   // V2-F00-E05, correção 2: `codigos-de-erro.test.ts` foi de 22 para 116 casos: saem os 4 de leitura por texto e entram 98, sendo 4 de execução (as quatro recusas de permissão por posto e URL assinada saindo do servidor real) e 94 da varredura pela árvore sintática (API, pacote compartilhado e console, código morto, `sessao`, os dez códigos, as formas de emitir que reprovam e que falham para o lado seguro em fonte de exemplo, inclusive as da revisão independente das três passadas, os repasses presos à origem, o controle negativo e as mutações no fonte real, em memória); e `prova-dinamica-dos-codigos-de-erro.test.ts` é novo, com 1 caso (todos os pares método + caminho registrados, 12 perfis, endereço distinto por pedido, zero 429, alcance medido com piso, todo 401 e 403 no catálogo com o status do catálogo). Total 22 para 117. Sem pulo nem falha novos.
-  "V2-F00-E05-correcao-2": { total: 95, falhas: 0 },
+  "V2-F00-E05-correcao-2": { total: 95, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E07, correção 4 (2026-10-19), contada contra o `0290af5`:
+    `renovacao-contra-encerramento.test.ts` ganha 9 casos de PGlite (a troca
+    de senha do invasor segurada depois de ler a senha atual contra cinco
+    reações, a mesma sessão trocando duas vezes, a provisória que vence no
+    meio, a troca com o token de antes da renovação preservando a própria
+    cadeia, e a ordem dos comandos da troca) e 11 de Postgres real
+    (`describe.skipIf`, pulados no roteiro: os mesmos 7 da troca segurada e as
+    quatro disputas com a troca já segurando a linha e a trava). Soma 9 na
+    lista (de 1327 para 1336) e 20 no `vitest run` (1367, com 31 pulados por
+    ambiente).
+  */
+  "V2-F00-E07-correcao-4": { total: 20, falhas: 0, puladas: 11 },
+  /*
+    V2-F00-E09, correção 3 (2026-10-19), contada contra o commit da correção 4
+    da E07: `id-da-propria-conta.test.ts` é novo, com 13 casos de PGlite (as
+    três recusas sobre a própria conta com o id em minúsculas, em maiúsculas e
+    com caixa misturada, os formatos alternativos de uuid nas três rotas, e o
+    id de outra pessoa em maiúsculas continuando a valer). Soma 13 na lista
+    (de 1336 para 1349) e 13 no `vitest run` (1380, com 31 pulados).
+  */
+  "V2-F00-E09-correcao-3": { total: 13, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E10, correção 3 (2026-10-19), contada contra o commit da correção 3
+    da E09: `recuperacao-morre-com-a-credencial.test.ts` é novo, com 7 casos de
+    PGlite (o controle, o link pendente contra a redefinição, a troca e a
+    desativação, o link vivo numa conta desativada, dois links pendentes, e o
+    que não é senha nem desativação não matando o link);
+    `renovacao-contra-encerramento.test.ts` ganha 1 de Postgres real
+    (`describe.skipIf`, pulado no roteiro: o link e a redefinição no mesmo
+    instante). Soma 7 na lista (de 1349 para 1356) e 8 no `vitest run` (1388,
+    com 32 pulados).
+  */
+  "V2-F00-E10-correcao-3": { total: 8, falhas: 0, puladas: 1 },
+  /*
+    V2-F00-E07, complemento da correção 4 (2026-10-19), pedido da revisão:
+    `renovacao-contra-encerramento.test.ts` ganha 2 casos de Postgres real
+    (`describe.skipIf`, pulados no roteiro: a troca chegando com um
+    encerramento e com uma renovação já segurando a trava da pessoa). A lista
+    não muda (1356) e o `vitest run` soma 2 (1390, com 34 pulados).
+  */
+  "V2-F00-E07-correcao-4-complemento": { total: 2, falhas: 0, puladas: 2 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

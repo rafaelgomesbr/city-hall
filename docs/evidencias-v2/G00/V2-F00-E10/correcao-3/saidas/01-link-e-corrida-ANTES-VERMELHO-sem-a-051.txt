@@ -1,0 +1,218 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/recuperacao-morre-com-a-credencial.test.ts (7 tests | 5 failed) 6552ms
+   ✓ O link de recuperação pendente morre com a credencial > controle: sem nada no meio, o link redefine; a senha nova entra e a antiga não  803ms
+   × O link de recuperação pendente morre com a credencial > quem administra redefine a senha: o link pendente não vale mais, e a temporária entra 837ms
+     → o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+   × O link de recuperação pendente morre com a credencial > a própria pessoa troca a senha: o link pendente não vale mais, e a senha nova dela entra 1062ms
+     → o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+   × O link de recuperação pendente morre com a credencial > quem administra desativa a conta: o link não vale mais, nem depois da reativação 511ms
+     → o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+   × O link de recuperação pendente morre com a credencial > link vivo numa conta desativada: recusado, gasto, e a senha não muda (consumir_recuperacao confere a conta) 251ms
+     → o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+   × O link de recuperação pendente morre com a credencial > dois links pendentes: usar um mata o outro 561ms
+     → o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+   ✓ O link de recuperação pendente morre com a credencial > o que não é senha nem desativação não mata o link: falha de login, edição do cadastro e reativação  1020ms
+ ❯ test/renovacao-contra-encerramento.test.ts (51 tests | 2 failed) 80729ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 273ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  605ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1301ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 273ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar  308ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1310ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  761ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  487ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  468ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela 233ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1610ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1607ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1380ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2256ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1468ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1834ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  914ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé  924ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela  911ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 262ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  495ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1166ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 261ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve 244ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  15019ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale  1620ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  494ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova 269ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1150ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  688ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  463ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login  1167ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login  708ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login  485ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado  1145ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado  689ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado  462ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse  727ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 21. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1601ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 22. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1602ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 23. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1374ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 24. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2056ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 25. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1380ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 26. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1822ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 27. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  910ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois  1620ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois 1170ms
+     → a reação da vítima, que chegou depois: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois  936ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 31. a troca do invasor já segura a linha e a trava quando a própria pessoa troca a senha em outro aparelho: a reação espera e vem depois  1844ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 32. o link do email e a redefinição por quem administra no mesmo instante: sem impasse, e a redefinição vem depois 15518ms
+     → a disputa não aconteceu: a redefinição não parou numa trava de linha enquanto o link estava segurado: expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/recuperacao-morre-com-a-credencial.test.ts > O link de recuperação pendente morre com a credencial > quem administra redefine a senha: o link pendente não vale mais, e a temporária entra
+AssertionError: o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ exigirLinkMorto test/recuperacao-morre-com-a-credencial.test.ts:99:78
+     97| async function exigirLinkMorto(token: string, quem: Apelido, hashEsper…
+     98|   const r = await usarLink(token);
+     99|   expect(r.statusCode, `o link pendente ainda redefiniu a senha: ${r.b…
+       |                                                                              ^
+    100|   expect(r.json().erro).toBe("sessao_encerrada");
+    101|   expect(await hashDe(quem), "o link recusado mudou a senha").toBe(has…
+ ❯ test/recuperacao-morre-com-a-credencial.test.ts:154:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  test/recuperacao-morre-com-a-credencial.test.ts > O link de recuperação pendente morre com a credencial > a própria pessoa troca a senha: o link pendente não vale mais, e a senha nova dela entra
+AssertionError: o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ exigirLinkMorto test/recuperacao-morre-com-a-credencial.test.ts:99:78
+     97| async function exigirLinkMorto(token: string, quem: Apelido, hashEsper…
+     98|   const r = await usarLink(token);
+     99|   expect(r.statusCode, `o link pendente ainda redefiniu a senha: ${r.b…
+       |                                                                              ^
+    100|   expect(r.json().erro).toBe("sessao_encerrada");
+    101|   expect(await hashDe(quem), "o link recusado mudou a senha").toBe(has…
+ ❯ test/recuperacao-morre-com-a-credencial.test.ts:166:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  test/recuperacao-morre-com-a-credencial.test.ts > O link de recuperação pendente morre com a credencial > quem administra desativa a conta: o link não vale mais, nem depois da reativação
+AssertionError: o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ exigirLinkMorto test/recuperacao-morre-com-a-credencial.test.ts:99:78
+     97| async function exigirLinkMorto(token: string, quem: Apelido, hashEsper…
+     98|   const r = await usarLink(token);
+     99|   expect(r.statusCode, `o link pendente ainda redefiniu a senha: ${r.b…
+       |                                                                              ^
+    100|   expect(r.json().erro).toBe("sessao_encerrada");
+    101|   expect(await hashDe(quem), "o link recusado mudou a senha").toBe(has…
+ ❯ test/recuperacao-morre-com-a-credencial.test.ts:177:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  test/recuperacao-morre-com-a-credencial.test.ts > O link de recuperação pendente morre com a credencial > link vivo numa conta desativada: recusado, gasto, e a senha não muda (consumir_recuperacao confere a conta)
+AssertionError: o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ exigirLinkMorto test/recuperacao-morre-com-a-credencial.test.ts:99:78
+     97| async function exigirLinkMorto(token: string, quem: Apelido, hashEsper…
+     98|   const r = await usarLink(token);
+     99|   expect(r.statusCode, `o link pendente ainda redefiniu a senha: ${r.b…
+       |                                                                              ^
+    100|   expect(r.json().erro).toBe("sessao_encerrada");
+    101|   expect(await hashDe(quem), "o link recusado mudou a senha").toBe(has…
+ ❯ test/recuperacao-morre-com-a-credencial.test.ts:192:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  test/recuperacao-morre-com-a-credencial.test.ts > O link de recuperação pendente morre com a credencial > dois links pendentes: usar um mata o outro
+AssertionError: o link pendente ainda redefiniu a senha: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ exigirLinkMorto test/recuperacao-morre-com-a-credencial.test.ts:99:78
+     97| async function exigirLinkMorto(token: string, quem: Apelido, hashEsper…
+     98|   const r = await usarLink(token);
+     99|   expect(r.statusCode, `o link pendente ainda redefiniu a senha: ${r.b…
+       |                                                                              ^
+    100|   expect(r.json().erro).toBe("sessao_encerrada");
+    101|   expect(await hashDe(quem), "o link recusado mudou a senha").toBe(has…
+ ❯ test/recuperacao-morre-com-a-credencial.test.ts:209:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois
+AssertionError: a reação da vítima, que chegou depois: {"mensagem":"Senha redefinida. Entre com a nova senha."}: expected 200 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 200[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1742:86
+    1740|           // invasor, ou o link pendente morreu com ela (migração 051,…
+    1741|           // 3 da E10). A recusa é às claras, e a senha dela não passa…
+    1742|           expect(rr.statusCode, `a reação da vítima, que chegou depois…
+       |                                                                                      ^
+    1743|           expect(rr.json().erro, rr.body).toBe("sessao_encerrada");
+    1744|           expect((await a.tentarEntrar(reacao.senha(rr) ?? "")).status…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 32. o link do email e a redefinição por quem administra no mesmo instante: sem impasse, e a redefinição vem depois
+AssertionError: a disputa não aconteceu: a redefinição não parou numa trava de linha enquanto o link estava segurado: expected false to be true // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1832:125
+    1830|         if (!parou) await esperar(20);
+    1831|       }
+    1832|       expect(parou, "a disputa não aconteceu: a redefinição não parou …
+       |                                                                                                                             ^
+    1833|       await soltar();
+    1834|       const [rl, rr] = await Promise.all([link, redefinicao]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 51 passed (58)
+   Start at  01:21:53
+   Duration  81.48s (transform 331ms, setup 33ms, collect 1.07s, tests 87.28s, environment 0ms, prepare 80ms)
+
+codigo de saida: 1
