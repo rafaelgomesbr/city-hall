@@ -533,7 +533,26 @@ a:hover { color: var(--ds-accent-hover); }
   de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
   tabela (que rola), e não a palavra.
 */
-.tabela__secundario--email { overflow-wrap: normal; word-break: normal; }
+.tabela__secundario--email { overflow-wrap: break-word; word-break: normal; }
+/*
+  O teto da linha do email (V2-F00-E09, correção 4, revisão): um email com uma
+  parte de uns 48 caracteres sem ponto ("joanaplantao24horas...@") tem largura
+  mínima de quase 300 px, a coluna Pessoa cresce junto, a tabela passa a rolar a
+  1280 px e a coluna Ação sai da tela. Com o teto, a linha quebra nos pontos
+  permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
+  (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
+  `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
+  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
+*/
+@media (max-width: 1399px) {
+  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
+}
+/*
+  Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
+  se a coluna for estreita demais quem cede é a tabela, que rola.
+*/
+.tabela__secundario--telefone { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
+.campo__erro svg { flex-shrink: 0; }
 
 .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
 .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }

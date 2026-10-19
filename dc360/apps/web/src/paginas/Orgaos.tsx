@@ -11,6 +11,7 @@ import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
 import { Toast } from "../componentes/Toast";
+import { EmailQuebravel } from "../componentes/EmailQuebravel";
 import { FORMULARIO_VAZIO, conferirMotivo, conferirOrgao } from "./orgaos-regras";
 import { useTitulo } from "../seo/titulo";
 
@@ -296,8 +297,10 @@ export function Orgaos() {
                             importa, porque é ela que decide se o ofício sai do
                             sistema ou vai impresso.
                           */}
-                          <div className="tabela__secundario">{o.email ?? "Sem email"}</div>
-                          <div className="tabela__secundario">{o.telefone ?? "Sem telefone"}</div>
+                          <div className="tabela__secundario tabela__secundario--email">
+                            {o.email ? <EmailQuebravel email={o.email} /> : "Sem email"}
+                          </div>
+                          <div className="tabela__secundario tabela__secundario--telefone">{o.telefone ?? "Sem telefone"}</div>
                         </td>
                         <td className="mono">
                           {o.providencias} {o.abertas > 0 && `(${o.abertas} em aberto)`}

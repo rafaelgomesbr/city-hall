@@ -536,8 +536,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
   // V2-F00-E05, correção 2: `sessao-e-entrada.test.ts` ganha 4 casos (403 de cada código novo do catálogo, sem ação, não renova nem derruba a tela).
   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
-  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 12 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos). Nenhuma falha nova.
-  "V2-F00-E09-correcao-4": { total: 12, falhas: 0 },
+  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
+  "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -811,14 +811,14 @@ export const PASSOS = [
     Correcao 4 da E09 (2026-10-19): `layout-estreito.e2e.mjs` ganha tres secoes
     (o aviso passageiro por cima da janela da senha temporaria, o email que nao
     quebra no meio da palavra e a frase da senha atual errada nas duas telas):
-    de 64 para 104 verificacoes executadas na largura estreita.
+    de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 104   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
   },
 ];
 

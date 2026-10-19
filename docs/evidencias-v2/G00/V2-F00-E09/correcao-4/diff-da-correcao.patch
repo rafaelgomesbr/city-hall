@@ -1,5 +1,5 @@
 diff --git a/dc360/README.md b/dc360/README.md
-index 637acc2..896b72e 100644
+index 637acc2..b33ab64 100644
 --- a/dc360/README.md
 +++ b/dc360/README.md
 @@ -10,8 +10,8 @@ build) valem lá, não aqui.
@@ -8,7 +8,7 @@ index 637acc2..896b72e 100644
  | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 -| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 669 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 -| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1451 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
-+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 681 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 +| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1464 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
  | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
  | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
@@ -18,7 +18,7 @@ index 637acc2..896b72e 100644
  
  ```bash
 -npm test                    # 3140 testes em seis pacotes
-+npm test                    # 3165 testes em seis pacotes
++npm test                    # 3172 testes em seis pacotes
  npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
 -npm run test:api            # 1451 testes da API
 +npm run test:api            # 1464 testes da API
@@ -493,7 +493,7 @@ index 0000000..16a57ef
 +  );
 +}
 diff --git a/dc360/apps/web/src/componentes/Modal.tsx b/dc360/apps/web/src/componentes/Modal.tsx
-index cd7b939..6066f39 100644
+index cd7b939..cfecb91 100644
 --- a/dc360/apps/web/src/componentes/Modal.tsx
 +++ b/dc360/apps/web/src/componentes/Modal.tsx
 @@ -1,6 +1,7 @@
@@ -517,7 +517,34 @@ index cd7b939..6066f39 100644
      const restaurar = interditarFundo(
        [...document.body.children].filter((filho) => filho !== hospedeiro),
      );
-@@ -395,6 +402,7 @@ export function Modal({
+@@ -389,12 +396,32 @@ export function Modal({
+       lá atrás, e a pessoa continuaria digitando numa página que ela não vê
+       mais.
+     */
+-    const alvo = focoInicial?.current ?? focaveisDentro(painel.current)[0] ?? painel.current;
+-    alvo?.focus();
++    /*
++      A janela abre NO TOPO (V2-F00-E09, correção 4, revisão). O painel rola
++      (`overflow-y: auto`, 84vh) e `focus()` rola até o elemento focado: a 320x568
++      a janela da senha temporária abria rolada 229 px, porque o primeiro botão
++      fica no pé dela, e o título, que é o que se lê primeiro, ficava fora da
++      vista. Quando ninguém pediu um foco inicial e o primeiro controle está fora da
++      parte visível do painel, o foco vai para o próprio painel (que se anuncia
++      pelo título e pela descrição, e o Tab segue para o primeiro botão), sem
++      rolar. Se o primeiro controle está à vista (a janela cabe, ou o botão
++      Fechar do cabeçalho de uma janela alta), nada muda: o foco vai a ele.
++    */
++    const primeiro = focaveisDentro(painel.current)[0];
++    const aVista = (el: HTMLElement | undefined): boolean => {
++      if (!el || !painel.current) return false;
++      const p = painel.current.getBoundingClientRect();
++      const r = el.getBoundingClientRect();
++      return r.top >= p.top - 0.5 && r.bottom <= p.bottom + 0.5;
++    };
++    const alvo = focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current);
++    alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });
++    if (painel.current) painel.current.scrollTop = 0;
+ 
      return () => {
        restaurar();
        hospedeiro.remove();
@@ -560,6 +587,26 @@ index 7445e06..16cc4fc 100644
  
    return (
      <div className="toast" role="status" aria-live="polite"
+diff --git a/dc360/apps/web/src/componentes/comuns.tsx b/dc360/apps/web/src/componentes/comuns.tsx
+index b533d88..6b089f2 100644
+--- a/dc360/apps/web/src/componentes/comuns.tsx
++++ b/dc360/apps/web/src/componentes/comuns.tsx
+@@ -391,9 +391,13 @@ export function iniciais(nome: string): string {
+  * que o campo referencia em `aria-describedby`, para que a pessoa navegando
+  * por teclado ouça o motivo ao chegar no campo, e não só ao submeter.
+  */
+-export function ErroCampo({ id, children }: { id: string; children: ReactNode }) {
++export function ErroCampo({ id, children, focavel = false }: {
++  id: string; children: ReactNode;
++  /** Para a mensagem que a tela leva o foco a ela (erro que não é de um campo só). */
++  focavel?: boolean;
++}) {
+   return (
+-    <p className="campo__erro" id={id} role="alert">
++    <p className="campo__erro" id={id} role="alert" tabIndex={focavel ? -1 : undefined}>
+       <IconeAlerta tamanho={14} />
+       <span>{children}</span>
+     </p>
 diff --git a/dc360/apps/web/src/componentes/modais-abertos.ts b/dc360/apps/web/src/componentes/modais-abertos.ts
 new file mode 100644
 index 0000000..d50fd47
@@ -628,10 +675,10 @@ index 0000000..d50fd47
 +  return useSyncExternalStore(assinar, haModalAberto, () => false);
 +}
 diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
-index 2855b59..2ea07c9 100644
+index 2855b59..1537d8c 100644
 --- a/dc360/apps/web/src/estilos/app.css
 +++ b/dc360/apps/web/src/estilos/app.css
-@@ -526,6 +526,14 @@ a:hover { color: var(--ds-accent-hover); }
+@@ -526,6 +526,33 @@ a:hover { color: var(--ds-accent-hover); }
    legítimo; no meio da palavra, não.
  */
  .tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
@@ -642,11 +689,30 @@ index 2855b59..2ea07c9 100644
 +  de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
 +  tabela (que rola), e não a palavra.
 +*/
-+.tabela__secundario--email { overflow-wrap: normal; word-break: normal; }
++.tabela__secundario--email { overflow-wrap: break-word; word-break: normal; }
++/*
++  O teto da linha do email (V2-F00-E09, correção 4, revisão): um email com uma
++  parte de uns 48 caracteres sem ponto ("joanaplantao24horas...@") tem largura
++  mínima de quase 300 px, a coluna Pessoa cresce junto, a tabela passa a rolar a
++  1280 px e a coluna Ação sai da tela. Com o teto, a linha quebra nos pontos
++  permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
++  (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
++  `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
++  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
++*/
++@media (max-width: 1399px) {
++  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
++}
++/*
++  Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
++  se a coluna for estreita demais quem cede é a tabela, que rola.
++*/
++.tabela__secundario--telefone { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
++.campo__erro svg { flex-shrink: 0; }
  
  .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
  .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
-@@ -1497,7 +1505,7 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+@@ -1497,7 +1524,7 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
    A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
    tabela dividia o que sobrava de modo que o nome quebrava em três linhas
    ("Diego / Nakamura / Alves"). O piso de largura segura o nome em até duas
@@ -669,19 +735,55 @@ index a240acb..26498fb 100644
  createRoot(raiz).render(
    <StrictMode>
 diff --git a/dc360/apps/web/src/paginas/Entrar.tsx b/dc360/apps/web/src/paginas/Entrar.tsx
-index 63f12bd..ee63ab5 100644
+index 63f12bd..f4d6b5c 100644
 --- a/dc360/apps/web/src/paginas/Entrar.tsx
 +++ b/dc360/apps/web/src/paginas/Entrar.tsx
-@@ -14,7 +14,7 @@ import { Campo } from "../componentes/Campo";
+@@ -1,4 +1,4 @@
+-import { useEffect, useState } from "react";
++import { useEffect, useRef, useState } from "react";
+ import { Link, useLocation, useNavigate } from "react-router-dom";
+ import { ROTULO_PAPEL, errosPorCampo } from "@dc360/shared";
+ import {
+@@ -13,8 +13,9 @@ import {
+ import { Campo } from "../componentes/Campo";
  import { AtivarSegundoFator } from "../componentes/SegundoFator";
  import { useTitulo } from "../seo/titulo";
++import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
  import { conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada } from "./entrar-regras";
 -import { conferirSenhaNova, passoDepoisDeEntrar } from "./senha-provisoria-regras";
 +import { conferirSenhaNova, erroDaSenhaAtual, passoDepoisDeEntrar } from "./senha-provisoria-regras";
  
  /**
   * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
-@@ -526,7 +526,11 @@ function PassoDaSenhaNova(
+@@ -511,6 +512,19 @@ function PassoDaSenhaNova(
+   const [erro, setErro] = useState<string | null>(null);
+   const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
+   const [enviando, setEnviando] = useState(false);
++  const formulario = useRef<HTMLFormElement>(null);
++
++  /*
++    O foco depois de enviar (V2-F00-E09, correção 4, revisão): o botão fica
++    desabilitado enquanto grava e, ao terminar, o foco estava no `<body>`. Erro
++    de campo leva ao campo inválido; erro que não é de campo, à própria
++    mensagem (`#senha-nova-erro`, focável por código).
++  */
++  function levarOFocoAoErro() {
++    depoisDePintar(() => {
++      if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
++    });
++  }
+ 
+   async function enviar(evento: React.FormEvent) {
+     evento.preventDefault();
+@@ -518,6 +532,7 @@ function PassoDaSenhaNova(
+     const conferida = conferirSenhaNova({ atual, nova, repetida });
+     if (!conferida.ok) {
+       setErrosDeCampo(conferida.erros);
++      levarOFocoAoErro();
+       return;
+     }
+     setErrosDeCampo({});
+@@ -526,12 +541,17 @@ function PassoDaSenhaNova(
        await trocarSenha(atual, nova);
        aoConcluir();
      } catch (e: unknown) {
@@ -694,29 +796,145 @@ index 63f12bd..ee63ab5 100644
          setErrosDeCampo(errosPorCampo(e.campos));
        } else {
          setErro(e instanceof Error ? e.message : String(e));
+       }
+       setEnviando(false);
++      levarOFocoAoErro();
+     }
+   }
+ 
+@@ -544,7 +564,7 @@ function PassoDaSenhaNova(
+           entrada. Escolha agora a senha que vai usar daqui em diante: pelo
+           menos 12 caracteres, e que só você saiba.
+         </Aviso>
+-        <form onSubmit={enviar} noValidate>
++        <form onSubmit={enviar} noValidate ref={formulario}>
+           <AvisoDeObrigatorios />
+           <Campo id="senha-nova-atual" rotulo="Senha provisória que você recebeu"
+                  erro={errosDeCampo["atual"]}>
+@@ -567,7 +587,7 @@ function PassoDaSenhaNova(
+             )}
+           </Campo>
+ 
+-          {erro && <ErroCampo id="senha-nova-erro">{erro}</ErroCampo>}
++          {erro && <ErroCampo id="senha-nova-erro" focavel>{erro}</ErroCampo>}
+ 
+           <button type="submit" className="botao botao--primario" style={{ width: "100%" }}
+                   disabled={enviando}>
 diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
-index 8255f05..5e65b0e 100644
+index 8255f05..b3c646d 100644
 --- a/dc360/apps/web/src/paginas/MinhaConta.tsx
 +++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
-@@ -17,6 +17,7 @@ import {
+@@ -17,6 +17,8 @@ import {
    SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
  } from "./sessoes-regras";
  import { useTitulo } from "../seo/titulo";
++import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 +import { erroDaSenhaAtual } from "./senha-provisoria-regras";
  
  /**
   * A conta de quem está usando o sistema, e a troca da própria senha.
-@@ -76,7 +77,9 @@ export function MinhaConta() {
+@@ -43,6 +45,27 @@ export function MinhaConta() {
+   const [erro, setErro] = useState<string | null>(null);
+   const [sucesso, setSucesso] = useState<string | null>(null);
+   const [enviando, setEnviando] = useState(false);
++  const formulario = useRef<HTMLFormElement>(null);
++  const avisoDeErro = useRef<HTMLDivElement>(null);
++  const confirmacaoDaTroca = useRef<HTMLDivElement>(null);
++
++  /*
++    O FOCO DEPOIS DE ENVIAR (V2-F00-E09, correção 4, revisão).
++
++    O botão "Trocar senha" fica desabilitado enquanto grava, e elemento
++    desabilitado perde o foco: ao terminar, quem usa teclado ou leitor de tela
++    estava no `<body>`, sem saber se deu certo nem onde errou. Erro de campo leva
++    o foco ao campo inválido (`focarPrimeiroInvalido`, o mesmo gesto dos outros
++    formulários); erro que não é de campo e a confirmação são o próprio alvo do
++    foco (`Aviso` com `foco`, que por isso não é região viva: um mecanismo só, o
++    mesmo das sessões, abaixo).
++  */
++  useEffect(() => {
++    if (erro) avisoDeErro.current?.focus();
++  }, [erro]);
++  useEffect(() => {
++    if (sucesso) confirmacaoDaTroca.current?.focus();
++  }, [sucesso]);
+ 
+   async function submeter(evento: React.FormEvent) {
+     evento.preventDefault();
+@@ -65,18 +88,28 @@ export function MinhaConta() {
+       setErrosDeCampo(problemas);
+       setErro(null);
+       setSucesso(null);
++      depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
+       return;
+     }
+ 
+     setErrosDeCampo({});
+     setErro(null);
++    // A confirmação da troca anterior sai agora: junto de um erro novo ela
++    // diria "Senha trocada" e "não confere" na mesma tela.
++    setSucesso(null);
+     setEnviando(true);
+     try {
+       const mensagem = await trocarSenha(atual, nova);
        setSucesso(mensagem);
        setAtual(""); setNova(""); setRepetida("");
      } catch (e: unknown) {
 -      setErro(e instanceof Error ? e.message : String(e));
 +      const daSenha = erroDaSenhaAtual(e, "minha-conta");
-+      if (daSenha) setErrosDeCampo({ atual: daSenha });
-+      else setErro(e instanceof Error ? e.message : String(e));
++      if (daSenha) {
++        setErrosDeCampo({ atual: daSenha });
++        depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
++      } else {
++        setErro(e instanceof Error ? e.message : String(e));
++      }
      } finally {
        setEnviando(false);
      }
+@@ -123,15 +156,15 @@ export function MinhaConta() {
+               </Aviso>
+             ) : (
+               <>
+-                {erro && <Aviso tom="perigo">{erro}</Aviso>}
+-                {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
++                {erro && <Aviso tom="perigo" foco={avisoDeErro}>{erro}</Aviso>}
++                {sucesso && <Aviso tom="sucesso" foco={confirmacaoDaTroca}>{sucesso}</Aviso>}
+ 
+                 <p className="campo__dica" style={{ marginTop: 0 }}>
+                   Trocar a senha encerra as suas outras sessões, em outros
+                   navegadores e aparelhos. Esta continua aberta.
+                 </p>
+ 
+-                <form onSubmit={submeter} noValidate>
++                <form onSubmit={submeter} noValidate ref={formulario}>
+                   <AvisoDeObrigatorios />
+                   <Campo
+                     id="conta-senha-atual"
+diff --git a/dc360/apps/web/src/paginas/Orgaos.tsx b/dc360/apps/web/src/paginas/Orgaos.tsx
+index f338c75..9fff124 100644
+--- a/dc360/apps/web/src/paginas/Orgaos.tsx
++++ b/dc360/apps/web/src/paginas/Orgaos.tsx
+@@ -11,6 +11,7 @@ import { Campo } from "../componentes/Campo";
+ import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
+ import { IconeMais } from "../componentes/Icones";
+ import { Toast } from "../componentes/Toast";
++import { EmailQuebravel } from "../componentes/EmailQuebravel";
+ import { FORMULARIO_VAZIO, conferirMotivo, conferirOrgao } from "./orgaos-regras";
+ import { useTitulo } from "../seo/titulo";
+ 
+@@ -296,8 +297,10 @@ export function Orgaos() {
+                             importa, porque é ela que decide se o ofício sai do
+                             sistema ou vai impresso.
+                           */}
+-                          <div className="tabela__secundario">{o.email ?? "Sem email"}</div>
+-                          <div className="tabela__secundario">{o.telefone ?? "Sem telefone"}</div>
++                          <div className="tabela__secundario tabela__secundario--email">
++                            {o.email ? <EmailQuebravel email={o.email} /> : "Sem email"}
++                          </div>
++                          <div className="tabela__secundario tabela__secundario--telefone">{o.telefone ?? "Sem telefone"}</div>
+                         </td>
+                         <td className="mono">
+                           {o.providencias} {o.abertas > 0 && `(${o.abertas} em aberto)`}
 diff --git a/dc360/apps/web/src/paginas/Usuarios.tsx b/dc360/apps/web/src/paginas/Usuarios.tsx
 index 5d070b2..071fbbc 100644
 --- a/dc360/apps/web/src/paginas/Usuarios.tsx
@@ -780,10 +998,10 @@ index 2f964c5..89b3afe 100644
 +}
 diff --git a/dc360/apps/web/test/correcao-4-da-e09.test.ts b/dc360/apps/web/test/correcao-4-da-e09.test.ts
 new file mode 100644
-index 0000000..a648e1a
+index 0000000..5a6e330
 --- /dev/null
 +++ b/dc360/apps/web/test/correcao-4-da-e09.test.ts
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,212 @@
 +import { dirname, join } from "node:path";
 +import { fileURLToPath } from "node:url";
 +import { createElement as h } from "react";
@@ -848,7 +1066,7 @@ index 0000000..a648e1a
 +  it("as duas telas usam a função, e põem a frase no campo da senha atual (não no aviso de cima)", () => {
 +    const conta = fonte("paginas", "MinhaConta.tsx");
 +    expect(conta).toContain('erroDaSenhaAtual(e, "minha-conta")');
-+    expect(conta).toMatch(/if \(daSenha\) setErrosDeCampo\(\{ atual: daSenha \}\)/);
++    expect(conta).toMatch(/if \(daSenha\) \{\s+setErrosDeCampo\(\{ atual: daSenha \}\);/);
 +    const entrar = fonte("paginas", "Entrar.tsx");
 +    expect(entrar).toContain('erroDaSenhaAtual(e, "senha-provisoria")');
 +    expect(entrar).toMatch(/setErrosDeCampo\(\{ atual: daSenha \}\)/);
@@ -920,17 +1138,87 @@ index 0000000..a648e1a
 +    expect(fonte("paginas", "Usuarios.tsx"))
 +      .toContain('<div className="tabela__secundario tabela__secundario--email"><EmailQuebravel email={u.email} /></div>');
 +    const css = fonte("estilos", "app.css");
-+    expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: normal; word-break: normal; \}/);
++    expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: break-word; word-break: normal; \}/);
 +    // A regra nova vem DEPOIS da regra-mãe (`anywhere`), senão a ordem a desfaz.
 +    expect(css.indexOf(".tabela__secundario--email {"))
 +      .toBeGreaterThan(css.indexOf(".tabela__secundario { color"));
 +  });
 +});
++
++/**
++ * A segunda rodada da correção 4: seis itens da revisão independente. A prova no
++ * navegador (geometria, foco real, rolagem) está em `layout-estreito.e2e.mjs`,
++ * seções 10 a 12; aqui ficam as causas, na fonte.
++ */
++describe("Revisão 1: o ícone do erro de campo não encolhe", () => {
++  it("o svg do `.campo__erro` não é espremido pelo texto (flex-shrink: 0)", () => {
++    // Sem isto o ícone de 14 px, irmão do texto num flex, media 4,9x14 px a 320 px.
++    expect(fonte("estilos", "app.css")).toMatch(/\.campo__erro svg \{ flex-shrink: 0; \}/);
++  });
++});
++
++describe("Revisão 2: confirmação e erro não ficam juntos na troca de senha", () => {
++  it("o envio limpa a confirmação anterior antes de gravar", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    const envio = conta.slice(conta.indexOf("setErrosDeCampo({});"), conta.indexOf("setEnviando(true);"));
++    expect(envio).toContain("setSucesso(null);");
++  });
++});
++
++describe("Revisão 3: depois de enviar o foco não cai em BODY", () => {
++  it("Minha conta leva o foco ao campo inválido, ao erro e à confirmação", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    expect(conta).toContain("depoisDePintar(() => focarPrimeiroInvalido(formulario.current));");
++    expect(conta).toContain("<Aviso tom=\"perigo\" foco={avisoDeErro}>");
++    expect(conta).toContain("<Aviso tom=\"sucesso\" foco={confirmacaoDaTroca}>");
++    expect(conta).toMatch(/if \(erro\) avisoDeErro\.current\?\.focus\(\);/);
++    expect(conta).toMatch(/if \(sucesso\) confirmacaoDaTroca\.current\?\.focus\(\);/);
++    expect(conta).toContain("<form onSubmit={submeter} noValidate ref={formulario}>");
++  });
++
++  it("a tela da senha provisória leva o foco ao campo inválido ou à mensagem focável", () => {
++    const entrar = fonte("paginas", "Entrar.tsx");
++    expect(entrar).toContain('document.getElementById("senha-nova-erro")?.focus()');
++    expect(entrar).toContain('<ErroCampo id="senha-nova-erro" focavel>');
++    expect(entrar).toContain("<form onSubmit={enviar} noValidate ref={formulario}>");
++    // As três saídas do envio passam por ele: conferência da tela, recusa e erro de rede.
++    expect(entrar.match(/levarOFocoAoErro\(\);/g)?.length).toBe(2);
++    expect(fonte("componentes", "comuns.tsx")).toContain("tabIndex={focavel ? -1 : undefined}");
++  });
++});
++
++describe("Revisão 4: um email de parte comprida não empurra a coluna Ação", () => {
++  it("a linha do email tem teto até 1399 px e quebra a palavra só se ela não couber", () => {
++    const css = fonte("estilos", "app.css");
++    expect(css).toMatch(/@media \(max-width: 1399px\) \{\s+\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}\s+\}/);
++    expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: break-word;/);
++  });
++});
++
++describe("Revisão 5: a janela abre no topo", () => {
++  it("o foco inicial não rola o painel, e o painel começa em zero", () => {
++    const modal = fonte("componentes", "Modal.tsx");
++    expect(modal).toContain("alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });");
++    expect(modal).toContain("if (painel.current) painel.current.scrollTop = 0;");
++    // Primeiro controle fora da parte visível (o botão do pé): o foco vai ao painel.
++    expect(modal).toContain("focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current)");
++  });
++});
++
++describe("Revisão 6: a lista de órgãos usa a mesma regra de email e de telefone", () => {
++  it("o email do órgão quebra pelo EmailQuebravel e o telefone nunca é partido", () => {
++    const orgaos = fonte("paginas", "Orgaos.tsx");
++    expect(orgaos).toContain("<EmailQuebravel email={o.email} />");
++    expect(orgaos).toContain('className="tabela__secundario tabela__secundario--email"');
++    expect(orgaos).toContain('className="tabela__secundario tabela__secundario--telefone"');
++    expect(fonte("estilos", "app.css")).toMatch(/\.tabela__secundario--telefone \{[^}]*white-space: nowrap;/);
++  });
++});
 diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
-index 595e40c..3f4478e 100644
+index 595e40c..ce5f43d 100644
 --- a/dc360/apps/web/test/layout-estreito.e2e.mjs
 +++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
-@@ -453,6 +453,202 @@ ok("a confirmação é o próprio aviso (tabindex -1), sem papel de região viva
+@@ -453,6 +453,317 @@ ok("a confirmação é o próprio aviso (tabindex -1), sem papel de região viva
     foco.eOAviso && foco.tabindex === "-1" && foco.papel === null && !foco.regiaoViva, `(${JSON.stringify(foco)})`);
  await ctxConta.close();
  
@@ -974,18 +1262,34 @@ index 595e40c..3f4478e 100644
 +      const a = t.getBoundingClientRect();
 +      return !(a.right <= painel.left || a.left >= painel.right || a.bottom <= painel.top || a.top >= painel.bottom);
 +    });
++    const focoDentro = document.querySelector(".modal__painel").contains(document.activeElement);
++    // Medido DEPOIS de abrir no topo e de rolar o painel até cada botão, como a pessoa faz.
++    const rolagemDeAbertura = document.querySelector(".modal__painel").scrollTop;
 +    const botoes = [...document.querySelectorAll(".modal__painel button")].map((b) => {
++      b.scrollIntoView({ block: "nearest" });
 +      const r = b.getBoundingClientRect();
 +      const topo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
 +      return { texto: b.textContent.trim(), recebeOToque: topo?.closest("button") === b };
 +    });
-+    return { visiveis: visiveis.length, sobreAJanela: sobre.length, botoes };
++    document.querySelector(".modal__painel").scrollTop = rolagemDeAbertura;
++    // A janela abre NO TOPO: o painel rola, e o foco inicial o rolava até o botão do pé.
++    const painelEl = document.querySelector(".modal__painel");
++    const titulo = painelEl.querySelector("h2").getBoundingClientRect();
++    const topoDoPainel = painelEl.getBoundingClientRect().top;
++    return {
++      visiveis: visiveis.length, sobreAJanela: sobre.length, botoes,
++      rolagemDoPainel: painelEl.scrollTop, focoDentro,
++      tituloVisivel: titulo.top >= topoDoPainel - 0.5 && titulo.bottom <= window.innerHeight,
++    };
 +  });
 +  ok(`a ${largura} px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre`,
 +     medida.sobreAJanela === 0, `(${medida.sobreAJanela} aviso(s) sobre a janela)`);
 +  ok(`a ${largura} px, o centro de cada botão da janela da senha temporária recebe o toque`,
 +     medida.botoes.length >= 2 && medida.botoes.every((b) => b.recebeOToque),
 +     `(${JSON.stringify(medida.botoes)})`);
++  ok(`a ${largura} px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista`,
++     medida.rolagemDoPainel === 0 && medida.tituloVisivel, `(rolagem ${medida.rolagemDoPainel}, título à vista: ${medida.tituloVisivel})`);
++  ok(`a ${largura} px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)`, medida.focoDentro);
 +  // Fechar a janela pelo botão dela: o aviso, que esperava, volta, e o "Fechar" dele responde.
 +  await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).click();
 +  await janelaSenha.waitFor({ state: "detached", timeout: 10_000 });
@@ -1008,7 +1312,7 @@ index 595e40c..3f4478e 100644
 +async function quebrasDosEmails(pg) {
 +  return pg.evaluate(() => {
 +    const saida = [];
-+    for (const el of document.querySelectorAll("tbody td:first-child .tabela__secundario")) {
++    for (const el of document.querySelectorAll("tbody td .tabela__secundario")) {
 +      if (!el.textContent.includes("@")) continue;
 +      const nos = [];
 +      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -1094,10 +1398,42 @@ index 595e40c..3f4478e 100644
 +    const texto = await textoDoErro(erro);
 +    ok(`Minha conta a ${largura} px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer`,
 +       texto.endsWith("A senha que você usa hoje não confere. Confira e digite de novo."), `("${texto}")`);
++    const icone = await erro.locator("svg").evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
++    ok(`Minha conta a ${largura} px: o ícone do erro não é espremido (14x14)`,
++       icone[0] >= 13.5 && icone[1] >= 13.5, `(${icone.map((n) => n.toFixed(1)).join("x")})`);
++    ok(`Minha conta a ${largura} px: depois do envio o foco está no campo da senha atual, e não em BODY`,
++       (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual",
++       `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
 +    ok(`Minha conta a ${largura} px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento`,
 +       ((await pg.locator("#conta-senha-atual").getAttribute("aria-describedby")) ?? "").includes("conta-senha-atual-erro")
 +         && !/\bnao\b/.test(texto), `("${texto}")`);
 +  }
++  /*
++    Troca certa e, logo depois, senha errada: a confirmação verde da primeira não
++    pode ficar na tela junto do erro vermelho da segunda, e o foco acompanha cada
++    resultado (a confirmação no sucesso, o campo no erro).
++  */
++  await pg.setViewportSize({ width: 390, height: 844 });
++  await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++  await pg.locator("#conta-senha-atual").fill(SENHA_DO_TESTE);
++  await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
++  await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
++  await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
++  await pg.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
++  await pg.waitForTimeout(300);
++  ok("Minha conta: depois da troca certa o foco vai à confirmação (e não a BODY)",
++     await pg.evaluate(() => document.activeElement?.classList.contains("aviso--sucesso") === true),
++     `(${await pg.evaluate(() => document.activeElement?.className || document.activeElement?.tagName)})`);
++  await pg.locator("#conta-senha-atual").fill("outra-senha-errada-12345");
++  await pg.locator("#conta-senha-nova").fill("outra-frase-comprida-2026-b");
++  await pg.locator("#conta-senha-repetida").fill("outra-frase-comprida-2026-b");
++  await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
++  await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
++  await pg.waitForTimeout(300);
++  ok("Minha conta: a senha errada logo depois de uma troca certa tira a confirmação verde da tela",
++     (await pg.locator(".aviso--sucesso").count()) === 0, `(${await pg.locator(".aviso--sucesso").count()} confirmação(ões) na tela)`);
++  ok("Minha conta: e o foco vai ao campo da senha atual",
++     (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual");
 +  await ctx.close();
 +}
 +{
@@ -1123,11 +1459,78 @@ index 595e40c..3f4478e 100644
 +    ok(`"Defina a sua senha" a ${largura} px: a frase da provisória errada nomeia a provisória e diz o que fazer`,
 +       texto.endsWith("A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo."),
 +       `("${texto}")`);
++    const iconeProv = await erro.locator("svg").evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
++    ok(`"Defina a sua senha" a ${largura} px: o ícone do erro não é espremido (14x14)`,
++       iconeProv[0] >= 13.5 && iconeProv[1] >= 13.5, `(${iconeProv.map((n) => n.toFixed(1)).join("x")})`);
++    ok(`"Defina a sua senha" a ${largura} px: depois do envio o foco está no campo da provisória, e não em BODY`,
++       (await pg.evaluate(() => document.activeElement?.id)) === "senha-nova-atual",
++       `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
 +    ok(`"Defina a sua senha" a ${largura} px: o erro está no campo da provisória, e não na senha nova`,
 +       ((await pg.locator("#senha-nova-atual").getAttribute("aria-describedby")) ?? "").includes("senha-nova-atual-erro")
 +         && (await pg.locator("#senha-nova-erro").count()) === 0 && !/\bnao\b/.test(texto), `("${texto}")`);
 +  }
 +  await ctx.close();
++}
++
++
++console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a lista de órgãos não parte email nem telefone (V2-F00-E09, correção 4, revisão) ==");
++{
++  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++  const mat = () => `RV-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
++  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixo}@serraalta.exemplo.gov.br`;
++  const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
++  for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
++    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++      corpo: { nome, matricula: mat(), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
++    ok(`${nome} foi cadastrada para a medida`, r.status === 201 || r.status === 200, `(${r.status})`);
++  }
++  const org = await viaApi("/orgaos", { metodo: "POST", token: adm.json.acesso,
++    corpo: { nome: `Companhia de Saneamento ${sufixo}`, sigla: "CSR", email: `atendimento.emergencial.${sufixo}@saneamento.serraalta.exemplo.gov.br`, telefone: "(35) 3333-0000" } });
++  ok("o órgão de teste foi cadastrado", org.status === 201 || org.status === 200, `(${org.status})`);
++
++  // A coluna Pessoa a 1280 e 1440 px: a tabela não rola, e os botões de ação ficam dentro dela.
++  await page.setViewportSize({ width: 1280, height: 900 });
++  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++  for (const largura of [1280, 1440]) {
++    await page.setViewportSize({ width: largura, height: 900 });
++    await page.waitForTimeout(250);
++    const m = await page.evaluate(() => {
++      const t = document.querySelector("table.tabela"); const env = t.parentElement;
++      const caixa = env.getBoundingClientRect();
++      const fora = [...t.querySelectorAll(".tabela__acoes button")].filter((b) => b.getBoundingClientRect().right > caixa.right + 0.5);
++      return { rola: env.scrollWidth > env.clientWidth + 1, largura: `${env.scrollWidth}/${env.clientWidth}`, acoesFora: fora.length };
++    });
++    ok(`a ${largura} px, com um email de parte comprida na lista, a tabela não rola`, !m.rola, `(${m.largura})`);
++    ok(`a ${largura} px, todos os botões de ação continuam dentro da tabela`, m.acoesFora === 0, `(${m.acoesFora} fora)`);
++    const ana = (await quebrasDosEmails(page)).find((e) => e.email === subdominios);
++    ok(`a ${largura} px, o email de subdomínios quebra só depois do @ e dos pontos`,
++       Boolean(ana) && ana.noMeioDaPalavra.length === 0, `(${ana?.linhas.join(" / ")})`);
++  }
++
++  // A lista de órgãos: o email quebra só nos pontos permitidos e o telefone nunca é partido.
++  await page.goto(`${BASE}/orgaos`, { waitUntil: "networkidle" });
++  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++  for (const largura of [1440, 1280, 768, 390, 320]) {
++    await page.setViewportSize({ width: largura, height: 900 });
++    await page.waitForTimeout(250);
++    const emails = await quebrasDosEmails(page);
++    const meu = emails.find((e) => e.email.includes(sufixo));
++    ok(`Órgãos a ${largura} px: o email do órgão quebra só depois do @ e dos pontos`,
++       Boolean(meu) && meu.noMeioDaPalavra.length === 0, `(${meu?.linhas.join(" / ")})`);
++    const telefones = await page.evaluate(() => [...document.querySelectorAll("tbody td .tabela__secundario")]
++      .filter((el) => /\d{4}-\d{4}/.test(el.textContent)).map((el) => {
++        const no = el.firstChild; const topos = new Set();
++        for (let i = 0; i < no.textContent.length; i++) {
++          const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
++          topos.add(Math.round(r.getBoundingClientRect().top));
++        }
++        return { texto: no.textContent, linhas: topos.size };
++      }));
++    ok(`Órgãos a ${largura} px: há telefone para medir`, telefones.length >= 1, `(${telefones.length})`);
++    ok(`Órgãos a ${largura} px: nenhum telefone é partido em duas linhas`,
++       telefones.every((t) => t.linhas === 1), `(${telefones.filter((t) => t.linhas > 1).map((t) => t.texto).join(", ")})`);
++  }
 +}
 +
  await navegador.close();
@@ -1153,7 +1556,7 @@ index 5bf61da..01916be 100644
  });
  
 diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
-index dcd581a..86f47d0 100644
+index dcd581a..e1affbd 100644
 --- a/dc360/docs/COLOCAR-DE-PE.md
 +++ b/dc360/docs/COLOCAR-DE-PE.md
 @@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
@@ -1161,7 +1564,7 @@ index dcd581a..86f47d0 100644
    stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
    espacial), esquemas Zod compartilhados.
 -- **5072 testes somando o aplicativo** (contagem estática de `npm run
-+- **5097 testes somando o aplicativo** (contagem estática de `npm run
++- **5104 testes somando o aplicativo** (contagem estática de `npm run
    conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
    parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
    os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -1170,7 +1573,7 @@ index dcd581a..86f47d0 100644
  git clone <repo> && cd dc360
  npm ci
 -npm run verificar          # typecheck, 5072 testes com o aplicativo, auditar, números
-+npm run verificar          # typecheck, 5097 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5104 testes com o aplicativo, auditar, números
  
  # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
  cd apps/campo
@@ -1218,7 +1621,7 @@ index e39b155..e8af6bc 100644
        throw new FalhaPermanente(
          `O armazenamento recusou o arquivo (${resposta.status}).`,
 diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
-index 6e48ae7..5e92474 100644
+index 6e48ae7..17a1c72 100644
 --- a/dc360/scripts/baseline.mjs
 +++ b/dc360/scripts/baseline.mjs
 @@ -455,6 +455,16 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
@@ -1242,8 +1645,8 @@ index 6e48ae7..5e92474 100644
    "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
    // V2-F00-E05, correção 2: `sessao-e-entrada.test.ts` ganha 4 casos (403 de cada código novo do catálogo, sem ação, não renova nem derruba a tela).
    "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
-+  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 12 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos). Nenhuma falha nova.
-+  "V2-F00-E09-correcao-4": { total: 12, falhas: 0 },
++  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
++  "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
  };
  export function esperadoDoTesteWeb() {
    return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -1255,7 +1658,7 @@ index 6e48ae7..5e92474 100644
 +    Correcao 4 da E09 (2026-10-19): `layout-estreito.e2e.mjs` ganha tres secoes
 +    (o aviso passageiro por cima da janela da senha temporaria, o email que nao
 +    quebra no meio da palavra e a frase da senha atual errada nas duas telas):
-+    de 64 para 104 verificacoes executadas na largura estreita.
++    de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
    */
    {
      id: "e2e-api",
@@ -1263,7 +1666,7 @@ index 6e48ae7..5e92474 100644
      cmd: "npm run test:e2e:api",
      cwd: ".",
 -    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 64   Falhou: 0"] },
-+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 104   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
    },
  ];
  

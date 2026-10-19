@@ -493,18 +493,34 @@ for (const [largura, altura] of [[320, 568], [390, 844], [1280, 900]]) {
       const a = t.getBoundingClientRect();
       return !(a.right <= painel.left || a.left >= painel.right || a.bottom <= painel.top || a.top >= painel.bottom);
     });
+    const focoDentro = document.querySelector(".modal__painel").contains(document.activeElement);
+    // Medido DEPOIS de abrir no topo e de rolar o painel até cada botão, como a pessoa faz.
+    const rolagemDeAbertura = document.querySelector(".modal__painel").scrollTop;
     const botoes = [...document.querySelectorAll(".modal__painel button")].map((b) => {
+      b.scrollIntoView({ block: "nearest" });
       const r = b.getBoundingClientRect();
       const topo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return { texto: b.textContent.trim(), recebeOToque: topo?.closest("button") === b };
     });
-    return { visiveis: visiveis.length, sobreAJanela: sobre.length, botoes };
+    document.querySelector(".modal__painel").scrollTop = rolagemDeAbertura;
+    // A janela abre NO TOPO: o painel rola, e o foco inicial o rolava até o botão do pé.
+    const painelEl = document.querySelector(".modal__painel");
+    const titulo = painelEl.querySelector("h2").getBoundingClientRect();
+    const topoDoPainel = painelEl.getBoundingClientRect().top;
+    return {
+      visiveis: visiveis.length, sobreAJanela: sobre.length, botoes,
+      rolagemDoPainel: painelEl.scrollTop, focoDentro,
+      tituloVisivel: titulo.top >= topoDoPainel - 0.5 && titulo.bottom <= window.innerHeight,
+    };
   });
   ok(`a ${largura} px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre`,
      medida.sobreAJanela === 0, `(${medida.sobreAJanela} aviso(s) sobre a janela)`);
   ok(`a ${largura} px, o centro de cada botão da janela da senha temporária recebe o toque`,
      medida.botoes.length >= 2 && medida.botoes.every((b) => b.recebeOToque),
      `(${JSON.stringify(medida.botoes)})`);
+  ok(`a ${largura} px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista`,
+     medida.rolagemDoPainel === 0 && medida.tituloVisivel, `(rolagem ${medida.rolagemDoPainel}, título à vista: ${medida.tituloVisivel})`);
+  ok(`a ${largura} px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)`, medida.focoDentro);
   // Fechar a janela pelo botão dela: o aviso, que esperava, volta, e o "Fechar" dele responde.
   await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).click();
   await janelaSenha.waitFor({ state: "detached", timeout: 10_000 });
@@ -527,7 +543,7 @@ console.log("\n== 9. O email da lista de usuários não quebra no meio da palavr
 async function quebrasDosEmails(pg) {
   return pg.evaluate(() => {
     const saida = [];
-    for (const el of document.querySelectorAll("tbody td:first-child .tabela__secundario")) {
+    for (const el of document.querySelectorAll("tbody td .tabela__secundario")) {
       if (!el.textContent.includes("@")) continue;
       const nos = [];
       const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -613,10 +629,42 @@ async function textoDoErro(erro) {
     const texto = await textoDoErro(erro);
     ok(`Minha conta a ${largura} px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer`,
        texto.endsWith("A senha que você usa hoje não confere. Confira e digite de novo."), `("${texto}")`);
+    const icone = await erro.locator("svg").evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
+    ok(`Minha conta a ${largura} px: o ícone do erro não é espremido (14x14)`,
+       icone[0] >= 13.5 && icone[1] >= 13.5, `(${icone.map((n) => n.toFixed(1)).join("x")})`);
+    ok(`Minha conta a ${largura} px: depois do envio o foco está no campo da senha atual, e não em BODY`,
+       (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual",
+       `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
     ok(`Minha conta a ${largura} px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento`,
        ((await pg.locator("#conta-senha-atual").getAttribute("aria-describedby")) ?? "").includes("conta-senha-atual-erro")
          && !/\bnao\b/.test(texto), `("${texto}")`);
   }
+  /*
+    Troca certa e, logo depois, senha errada: a confirmação verde da primeira não
+    pode ficar na tela junto do erro vermelho da segunda, e o foco acompanha cada
+    resultado (a confirmação no sucesso, o campo no erro).
+  */
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+  await pg.locator("#conta-senha-atual").fill(SENHA_DO_TESTE);
+  await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
+  await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
+  await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
+  await pg.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
+  await pg.waitForTimeout(300);
+  ok("Minha conta: depois da troca certa o foco vai à confirmação (e não a BODY)",
+     await pg.evaluate(() => document.activeElement?.classList.contains("aviso--sucesso") === true),
+     `(${await pg.evaluate(() => document.activeElement?.className || document.activeElement?.tagName)})`);
+  await pg.locator("#conta-senha-atual").fill("outra-senha-errada-12345");
+  await pg.locator("#conta-senha-nova").fill("outra-frase-comprida-2026-b");
+  await pg.locator("#conta-senha-repetida").fill("outra-frase-comprida-2026-b");
+  await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
+  await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
+  await pg.waitForTimeout(300);
+  ok("Minha conta: a senha errada logo depois de uma troca certa tira a confirmação verde da tela",
+     (await pg.locator(".aviso--sucesso").count()) === 0, `(${await pg.locator(".aviso--sucesso").count()} confirmação(ões) na tela)`);
+  ok("Minha conta: e o foco vai ao campo da senha atual",
+     (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual");
   await ctx.close();
 }
 {
@@ -642,11 +690,78 @@ async function textoDoErro(erro) {
     ok(`"Defina a sua senha" a ${largura} px: a frase da provisória errada nomeia a provisória e diz o que fazer`,
        texto.endsWith("A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo."),
        `("${texto}")`);
+    const iconeProv = await erro.locator("svg").evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
+    ok(`"Defina a sua senha" a ${largura} px: o ícone do erro não é espremido (14x14)`,
+       iconeProv[0] >= 13.5 && iconeProv[1] >= 13.5, `(${iconeProv.map((n) => n.toFixed(1)).join("x")})`);
+    ok(`"Defina a sua senha" a ${largura} px: depois do envio o foco está no campo da provisória, e não em BODY`,
+       (await pg.evaluate(() => document.activeElement?.id)) === "senha-nova-atual",
+       `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
     ok(`"Defina a sua senha" a ${largura} px: o erro está no campo da provisória, e não na senha nova`,
        ((await pg.locator("#senha-nova-atual").getAttribute("aria-describedby")) ?? "").includes("senha-nova-atual-erro")
          && (await pg.locator("#senha-nova-erro").count()) === 0 && !/\bnao\b/.test(texto), `("${texto}")`);
   }
   await ctx.close();
+}
+
+
+console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a lista de órgãos não parte email nem telefone (V2-F00-E09, correção 4, revisão) ==");
+{
+  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  const mat = () => `RV-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixo}@serraalta.exemplo.gov.br`;
+  const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
+  for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
+    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+      corpo: { nome, matricula: mat(), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+    ok(`${nome} foi cadastrada para a medida`, r.status === 201 || r.status === 200, `(${r.status})`);
+  }
+  const org = await viaApi("/orgaos", { metodo: "POST", token: adm.json.acesso,
+    corpo: { nome: `Companhia de Saneamento ${sufixo}`, sigla: "CSR", email: `atendimento.emergencial.${sufixo}@saneamento.serraalta.exemplo.gov.br`, telefone: "(35) 3333-0000" } });
+  ok("o órgão de teste foi cadastrado", org.status === 201 || org.status === 200, `(${org.status})`);
+
+  // A coluna Pessoa a 1280 e 1440 px: a tabela não rola, e os botões de ação ficam dentro dela.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+  for (const largura of [1280, 1440]) {
+    await page.setViewportSize({ width: largura, height: 900 });
+    await page.waitForTimeout(250);
+    const m = await page.evaluate(() => {
+      const t = document.querySelector("table.tabela"); const env = t.parentElement;
+      const caixa = env.getBoundingClientRect();
+      const fora = [...t.querySelectorAll(".tabela__acoes button")].filter((b) => b.getBoundingClientRect().right > caixa.right + 0.5);
+      return { rola: env.scrollWidth > env.clientWidth + 1, largura: `${env.scrollWidth}/${env.clientWidth}`, acoesFora: fora.length };
+    });
+    ok(`a ${largura} px, com um email de parte comprida na lista, a tabela não rola`, !m.rola, `(${m.largura})`);
+    ok(`a ${largura} px, todos os botões de ação continuam dentro da tabela`, m.acoesFora === 0, `(${m.acoesFora} fora)`);
+    const ana = (await quebrasDosEmails(page)).find((e) => e.email === subdominios);
+    ok(`a ${largura} px, o email de subdomínios quebra só depois do @ e dos pontos`,
+       Boolean(ana) && ana.noMeioDaPalavra.length === 0, `(${ana?.linhas.join(" / ")})`);
+  }
+
+  // A lista de órgãos: o email quebra só nos pontos permitidos e o telefone nunca é partido.
+  await page.goto(`${BASE}/orgaos`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+  for (const largura of [1440, 1280, 768, 390, 320]) {
+    await page.setViewportSize({ width: largura, height: 900 });
+    await page.waitForTimeout(250);
+    const emails = await quebrasDosEmails(page);
+    const meu = emails.find((e) => e.email.includes(sufixo));
+    ok(`Órgãos a ${largura} px: o email do órgão quebra só depois do @ e dos pontos`,
+       Boolean(meu) && meu.noMeioDaPalavra.length === 0, `(${meu?.linhas.join(" / ")})`);
+    const telefones = await page.evaluate(() => [...document.querySelectorAll("tbody td .tabela__secundario")]
+      .filter((el) => /\d{4}-\d{4}/.test(el.textContent)).map((el) => {
+        const no = el.firstChild; const topos = new Set();
+        for (let i = 0; i < no.textContent.length; i++) {
+          const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
+          topos.add(Math.round(r.getBoundingClientRect().top));
+        }
+        return { texto: no.textContent, linhas: topos.size };
+      }));
+    ok(`Órgãos a ${largura} px: há telefone para medir`, telefones.length >= 1, `(${telefones.length})`);
+    ok(`Órgãos a ${largura} px: nenhum telefone é partido em duas linhas`,
+       telefones.every((t) => t.linhas === 1), `(${telefones.filter((t) => t.linhas > 1).map((t) => t.texto).join(", ")})`);
+  }
 }
 
 await navegador.close();

@@ -17,6 +17,7 @@ import {
   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
 } from "./sessoes-regras";
 import { useTitulo } from "../seo/titulo";
+import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 import { erroDaSenhaAtual } from "./senha-provisoria-regras";
 
 /**
@@ -44,6 +45,27 @@ export function MinhaConta() {
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const formulario = useRef<HTMLFormElement>(null);
+  const avisoDeErro = useRef<HTMLDivElement>(null);
+  const confirmacaoDaTroca = useRef<HTMLDivElement>(null);
+
+  /*
+    O FOCO DEPOIS DE ENVIAR (V2-F00-E09, correção 4, revisão).
+
+    O botão "Trocar senha" fica desabilitado enquanto grava, e elemento
+    desabilitado perde o foco: ao terminar, quem usa teclado ou leitor de tela
+    estava no `<body>`, sem saber se deu certo nem onde errou. Erro de campo leva
+    o foco ao campo inválido (`focarPrimeiroInvalido`, o mesmo gesto dos outros
+    formulários); erro que não é de campo e a confirmação são o próprio alvo do
+    foco (`Aviso` com `foco`, que por isso não é região viva: um mecanismo só, o
+    mesmo das sessões, abaixo).
+  */
+  useEffect(() => {
+    if (erro) avisoDeErro.current?.focus();
+  }, [erro]);
+  useEffect(() => {
+    if (sucesso) confirmacaoDaTroca.current?.focus();
+  }, [sucesso]);
 
   async function submeter(evento: React.FormEvent) {
     evento.preventDefault();
@@ -66,11 +88,15 @@ export function MinhaConta() {
       setErrosDeCampo(problemas);
       setErro(null);
       setSucesso(null);
+      depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
       return;
     }
 
     setErrosDeCampo({});
     setErro(null);
+    // A confirmação da troca anterior sai agora: junto de um erro novo ela
+    // diria "Senha trocada" e "não confere" na mesma tela.
+    setSucesso(null);
     setEnviando(true);
     try {
       const mensagem = await trocarSenha(atual, nova);
@@ -78,8 +104,12 @@ export function MinhaConta() {
       setAtual(""); setNova(""); setRepetida("");
     } catch (e: unknown) {
       const daSenha = erroDaSenhaAtual(e, "minha-conta");
-      if (daSenha) setErrosDeCampo({ atual: daSenha });
-      else setErro(e instanceof Error ? e.message : String(e));
+      if (daSenha) {
+        setErrosDeCampo({ atual: daSenha });
+        depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
+      } else {
+        setErro(e instanceof Error ? e.message : String(e));
+      }
     } finally {
       setEnviando(false);
     }
@@ -126,15 +156,15 @@ export function MinhaConta() {
               </Aviso>
             ) : (
               <>
-                {erro && <Aviso tom="perigo">{erro}</Aviso>}
-                {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
+                {erro && <Aviso tom="perigo" foco={avisoDeErro}>{erro}</Aviso>}
+                {sucesso && <Aviso tom="sucesso" foco={confirmacaoDaTroca}>{sucesso}</Aviso>}
 
                 <p className="campo__dica" style={{ marginTop: 0 }}>
                   Trocar a senha encerra as suas outras sessões, em outros
                   navegadores e aparelhos. Esta continua aberta.
                 </p>
 
-                <form onSubmit={submeter} noValidate>
+                <form onSubmit={submeter} noValidate ref={formulario}>
                   <AvisoDeObrigatorios />
                   <Campo
                     id="conta-senha-atual"
