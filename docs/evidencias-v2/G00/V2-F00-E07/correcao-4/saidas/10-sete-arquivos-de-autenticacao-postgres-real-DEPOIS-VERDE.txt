@@ -1,0 +1,124 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ✓ test/corpo-ilegivel.test.ts (3 tests) 4036ms
+ ✓ test/vigencia-na-escrita.test.ts (13 tests) 9626ms
+   ✓ Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte  338ms
+   ✓ Token vivo de quem já não pode > papel rebaixado escreve como o papel NOVO, não como o do token  333ms
+   ✓ Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive  585ms
+   ✓ Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada  320ms
+   ✓ Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão  332ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro  327ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  652ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca  327ms
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  649ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  635ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  613ms
+ ✓ test/senha-provisoria.test.ts (8 tests) 9980ms
+   ✓ A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera  1277ms
+   ✓ A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403  918ms
+   ✓ A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha  1240ms
+   ✓ A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova  962ms
+   ✓ A senha temporária de quem administra > a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403  879ms
+   ✓ A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa  569ms
+ ✓ test/codigos-de-erro.test.ts (22 tests) 13246ms
+   ✓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde  337ms
+   ✓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada  322ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve  331ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada  333ms
+   ✓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou  326ms
+   ✓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto  627ms
+   ✓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum  329ms
+   ✓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo  329ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete  668ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada  663ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada  906ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada  874ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar  768ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token  1009ms
+   ✓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente  754ms
+ ✓ test/familia-da-sessao.test.ts (20 tests) 17001ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > renovação normal: o token antigo escreve até vencer e o novo também  324ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada  393ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever  330ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo  632ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > sair encerra a cadeia: o token anterior à renovação deixa de escrever  335ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai  356ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > troca de senha em outra sessão encerra a cadeia das demais  1614ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login  635ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > cada login abre família nova e cada renovação herda a família: o banco guarda isso  601ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa  592ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > depois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao  513ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > a troca de papel NÃO revoga as sessões da pessoa (decisão registrada)  505ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > sessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar  508ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > isolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404)  517ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > no prazo, a senha provisória troca  1251ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada  1002ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes  998ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > senha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida  994ms
+ ✓ test/segundo-fator.test.ts (23 tests) 17680ms
+   ✓ A entrada em duas etapas > quem não é administrador continua entrando em uma etapa  925ms
+   ✓ A entrada em duas etapas > com a verificação ligada, a senha sozinha não abre sessão, e o código abre  673ms
+   ✓ A entrada em duas etapas > o mesmo código não vale duas vezes dentro da mesma janela  997ms
+   ✓ A entrada em duas etapas > a tolerância é de um passo para cada lado, e não mais  1021ms
+   ✓ A entrada em duas etapas > o teto de tentativas do código é separado do teto da senha  1897ms
+   ✓ A entrada em duas etapas > o código de recuperação entra uma vez, e só uma  1034ms
+   ✓ A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo  1300ms
+   ✓ Ligar a verificação > a ativação começada e não confirmada NÃO muda o login  503ms
+   ✓ Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele  503ms
+   ✓ Ligar a verificação > a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator  504ms
+   ✓ Desligar a verificação > exige a senha atual  765ms
+   ✓ Desligar a verificação > desligar apaga o segredo, derruba os códigos e deixa rastro  1002ms
+ ✓ test/renovacao-contra-encerramento.test.ts (50 tests) 68471ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  363ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  642ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1562ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive  341ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar  333ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1521ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  895ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  525ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  511ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1759ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1750ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1499ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2177ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1393ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1829ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  917ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé  933ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela  913ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  489ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1169ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  13978ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale  1613ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  492ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1142ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  685ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  462ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login  1159ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login  703ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login  482ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado  1143ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado  690ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado  462ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse  720ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 21. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1598ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 22. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1597ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 23. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1371ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 24. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2053ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 25. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1378ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 26. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1822ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 27. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  912ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois  1637ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois  1616ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois  959ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 31. a troca do invasor já segura a linha e a trava quando a própria pessoa troca a senha em outro aparelho: a reação espera e vem depois  1840ms
+
+ Test Files  7 passed (7)
+      Tests  139 passed (139)
+   Start at  00:25:19
+   Duration  69.11s (transform 466ms, setup 189ms, collect 2.97s, tests 140.04s, environment 1ms, prepare 309ms)
+
+codigo de saida: 0

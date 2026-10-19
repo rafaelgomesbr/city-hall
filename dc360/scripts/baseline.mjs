@@ -411,6 +411,19 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     no arquivo. Nenhuma falha nova nem pulo.
   */
   "V2-F00-E12-correcao-3": { total: 5, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E07, correção 4 (2026-10-19), contada contra o `0290af5`:
+    `renovacao-contra-encerramento.test.ts` ganha 9 casos de PGlite (a troca
+    de senha do invasor segurada depois de ler a senha atual contra cinco
+    reações, a mesma sessão trocando duas vezes, a provisória que vence no
+    meio, a troca com o token de antes da renovação preservando a própria
+    cadeia, e a ordem dos comandos da troca) e 11 de Postgres real
+    (`describe.skipIf`, pulados no roteiro: os mesmos 7 da troca segurada e as
+    quatro disputas com a troca já segurando a linha e a trava). Soma 9 na
+    lista (de 1327 para 1336) e 20 no `vitest run` (1367, com 31 pulados por
+    ambiente).
+  */
+  "V2-F00-E07-correcao-4": { total: 20, falhas: 0, puladas: 11 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

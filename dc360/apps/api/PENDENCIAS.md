@@ -191,6 +191,41 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
   52952a1): a escrita comum com a provisória vencida responde 401
   `sessao_encerrada`, e não 403 `troca_de_senha_obrigatoria`
   (`test/senha-provisoria.test.ts`).
+- **Trocar a senha no mesmo instante de uma reação (correção 4 da E07, sem
+  migração nova):** `trocarSenha` conferia a senha atual numa transação,
+  gastava os dois scrypt fora do banco e chamava `trocar_senha` em outra, que
+  grava sem conferir nada. Quem tinha a senha antiga e uma sessão, com a troca
+  em voo, desfazia a redefinição por quem administra, o link do email, a
+  desativação ou a troca pela própria pessoa que confirmasse no meio, e ficava
+  com a senha DELE, definitiva, e sessão viva (a validação de bb0f654 mediu 20
+  de 30 sem grampo na redefinição). Agora a gravação é uma transação só, sob o
+  município: a linha da pessoa com FOR NO KEY UPDATE, depois a trava da
+  pessoa, depois a releitura (conta ativa, senão 403 `conta_desativada`;
+  sessão de pé na cadeia de quem pede e provisória no prazo, senão 401
+  `sessao_encerrada`; hash igual ao que o scrypt conferiu, senão a recusa da
+  senha atual errada), e só então `trocar_senha`. A ordem é linha de
+  `usuarios` antes da trava, a mesma da 049; trava antes da linha fecha ciclo
+  com a redefinição (40P01 medido pela mutação). A sessão preservada é a VIVA
+  da cadeia, e não o `sid` do token: com o token de antes de uma renovação a
+  troca derrubava a própria cadeia (achado 2 da mesma validação). O token
+  devolvido leva o `sid` da sessão viva e o papel relido sob a trava. Provado
+  nos casos 11 a 19 do primeiro bloco e 7 e 21 a 31 do segundo de
+  `test/renovacao-contra-encerramento.test.ts`.
+- **Outros caminhos varridos na correção 4, sem o mesmo defeito:** a
+  redefinição por quem administra, a desativação, a troca de papel e o link de
+  recuperação conferem e gravam na MESMA transação, e não conferem segredo de
+  quem pede (o link é conferido e gasto dentro de `consumir_recuperacao`, com
+  FOR UPDATE na linha do link); a autoridade de quem administra vem da
+  vigência do começo do pedido, e o ato dele é serializável antes de qualquer
+  mudança que confirme depois (nenhuma delas lê o que ele grava). Desligar o
+  segundo fator confere a senha e grava `segundo_fator` na mesma transação, e
+  nenhuma reação lê ou grava `segundo_fator`: o resultado é o de desligar um
+  instante antes da reação. Ligar o segundo fator pelo desafio já confere sob a
+  trava desde a correção 3. **Fica anotado, fora desta correção:** desativar e
+  rebaixar conferem "não é o último administrador" com uma contagem sem trava;
+  dois administradores que se desativam (ou se rebaixam) no mesmo instante
+  podem deixar o município sem administrador ativo. Lido no código, não
+  medido; não é credencial nem sessão, e não entrou nesta correção.
 - **`troca_de_senha_obrigatoria` na fila do campo:** PAUSA a fila (correção 1
   da E06, 2026-10-13), e não é mais recusa permanente. A decisão da E07, de deixar
   esse 403 bloquear a coleta porque o aparelho "praticamente não chega a ele",

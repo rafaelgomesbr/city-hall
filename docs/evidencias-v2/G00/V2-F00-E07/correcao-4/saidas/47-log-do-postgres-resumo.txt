@@ -1,0 +1,46 @@
+Resumo do log do Postgres 17.10 descartável da correção 4 (porta 55851, log_lock_waits=on, deadlock_timeout=200ms).
+Linhas no log:      215
+Linhas com 'deadlock detected': 5
+
+Todas as linhas ERROR, com horário (as de 'deadlock detected' caem nas execuções das mutações M5 e M6, entre 00:14 e 00:16; nenhuma nas execuções do conserto nem na sonda de caos):
+2026-10-19 00:02:27.576 -03 [36804] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:03:39.721 -03 [38082] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:04:56.474 -03 [38397] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:06:04.121 -03 [38506] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:07:50.828 -03 [38690] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:09:00.474 -03 [38816] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:10:26.710 -03 [39229] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:11:29.151 -03 [39775] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:12:31.175 -03 [39878] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:13:34.979 -03 [39988] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:14:38.520 -03 [40106] ERROR:  deadlock detected
+2026-10-19 00:14:39.311 -03 [40114] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:14:59.504 -03 [40105] ERROR:  deadlock detected
+2026-10-19 00:15:00.881 -03 [40105] ERROR:  deadlock detected
+2026-10-19 00:15:02.029 -03 [40105] ERROR:  deadlock detected
+2026-10-19 00:15:42.491 -03 [40204] ERROR:  deadlock detected
+2026-10-19 00:15:43.285 -03 [40253] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:16:47.564 -03 [40427] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:26:03.568 -03 [45634] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+2026-10-19 00:27:07.867 -03 [45800] ERROR:  O acesso deste municipio esta suspenso pelo fornecedor.
+
+Horário de cada saída (mtime):
+00:09:21 01-antes-vermelho.txt
+00:20:37 02-sonda-caos-ANTES.txt
+00:26:28 10-depois-verde.txt
+00:27:33 11-depois-verde-corrida-rodada-2.txt
+00:10:51 20-mutacao-M1.txt
+00:11:52 20-mutacao-M2.txt
+00:12:55 20-mutacao-M3.txt
+00:14:00 20-mutacao-M4.txt
+00:15:04 20-mutacao-M5.txt
+00:16:08 20-mutacao-M6.txt
+00:17:12 20-mutacao-M7.txt
+00:19:22 30-sonda-caos-DEPOIS.txt
+00:22:36 40-test-api.txt
+00:24:25 41-test-isolamento.txt
+00:25:08 42-test-console.txt
+00:24:02 43-tsc-api.txt
+00:23:51 44-conferir-numeros.txt
+00:23:51 45-baseline-test.txt
+00:27:41 47-log-do-postgres-resumo.txt

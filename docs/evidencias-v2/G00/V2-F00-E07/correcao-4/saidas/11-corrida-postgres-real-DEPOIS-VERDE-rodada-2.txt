@@ -1,0 +1,53 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ✓ test/renovacao-contra-encerramento.test.ts (50 tests) 63125ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  482ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1152ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1142ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  692ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  462ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  488ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1601ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1600ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1373ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2065ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1373ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1827ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  927ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé  926ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela  912ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  487ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1170ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  13969ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale  1618ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  493ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1140ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  687ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  459ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login  1167ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login  704ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login  483ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado  1142ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado  685ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado  459ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse  717ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 21. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1595ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 22. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1602ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 23. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1395ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 24. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2059ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 25. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1370ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 26. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1824ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 27. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  925ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois  1618ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois  1615ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois  939ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 31. a troca do invasor já segura a linha e a trava quando a própria pessoa troca a senha em outro aparelho: a reação espera e vem depois  1842ms
+
+ Test Files  1 passed (1)
+      Tests  50 passed (50)
+   Start at  00:26:29
+   Duration  63.74s (transform 219ms, setup 15ms, collect 409ms, tests 63.13s, environment 0ms, prepare 43ms)
+
+codigo de saida: 0

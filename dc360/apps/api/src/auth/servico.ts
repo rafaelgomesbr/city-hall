@@ -1095,35 +1095,118 @@ export function servicoDeAutenticacao(
     }
 
     const hash = await derivarSenha(senhaNova);
-    /*
-      `trocar_senha` grava o hash e derruba as outras sessões. A senha deixa
-      de ser provisória no MESMO UPDATE, por gatilho do banco (migração 046):
-      a regra "senha escolhida pela pessoa não é provisória" mora lá, e vale
-      para este caminho e para o link de recuperação.
-    */
-    await banco.semTenant((c) =>
-      c.query("SELECT trocar_senha($1,$2,$3)", [
-        identidade.usuarioId, hash, identidade.sessaoId,
-      ]),
-    );
+    const hashConferido = atual?.senha_hash ?? null;
 
     /*
-      UM TOKEN DE ACESSO NOVO PARA A MESMA SESSÃO, e sempre, não só quando a
-      senha era provisória. A sessão de onde a pessoa trocou é preservada;
-      o token que ela tem na mão foi emitido antes da troca e, se a senha era
-      provisória, carrega a marca que tranca todo o resto. Sem isto, quem
-      acabou de definir a própria senha continuaria trancado por até quinze
-      minutos. Sempre, porque devolver o token só às vezes obrigaria o
-      painel a tratar dois formatos de resposta.
+      A GRAVAÇÃO SÓ VALE SE NADA MUDOU DESDE A CONFERÊNCIA (V2-F00-E07,
+      correção 4, achado 1 da validação de bb0f654).
+
+      O DEFEITO: a senha atual era conferida numa transação, os dois scrypt
+      (conferir a atual e derivar a nova, cerca de 450 ms) rodavam fora do
+      banco, e só então `trocar_senha` gravava o hash novo em OUTRA transação,
+      sem conferir nada. Quem tinha a senha antiga e uma sessão mandava a troca;
+      se nesse intervalo quem administra redefinia a senha (o remédio contra
+      invasão), a própria pessoa trocava a dela em outro aparelho, usava o link
+      do email ou a conta era desativada, a reação respondia 200 e encerrava a
+      sessão do invasor, e a troca dele confirmava depois e gravava a senha
+      DELE, definitiva, com sessão viva. Nenhuma ordem serial produz isso:
+      antes da reação a troca seria sobrescrita, depois dela seria recusada.
+
+      O CONSERTO, numa transação só, nesta ordem (o desenho de `emitirPar`):
+
+        1. a linha da pessoa em `usuarios`, com FOR NO KEY UPDATE (o mesmo
+           modo que o UPDATE de `trocar_senha` tomaria). Toda mudança de
+           credencial ou de `ativo` atualiza essa linha ANTES de tomar a trava
+           da pessoa (049); se uma delas está no meio, esperamos ela confirmar,
+           e o FOR NO KEY UPDATE devolve a versão nova da linha;
+        2. a trava da pessoa (`travar_sessoes_do_usuario`, 049), num comando
+           próprio, para a leitura das sessões enxergar todo encerramento e
+           toda renovação já confirmados;
+        3. a releitura, na ordem de `exigirVigencia`: conta desativada é 403
+           `conta_desativada`; a cadeia da sessão de quem pede sem sessão de pé
+           (encerrada por quem administra, pela redefinição, por outra troca,
+           pelo link) ou a provisória vencida é 401 `sessao_encerrada`; o hash
+           diferente do que o scrypt conferiu é a mesma recusa da senha atual
+           errada (401 `credenciais`), porque ela de fato não é mais a atual;
+        4. `trocar_senha`, que atualiza a linha que já seguramos e encerra as
+           outras sessões, preservando a sessão VIVA da cadeia de quem pede
+           (achado 2 da mesma validação: com o token de antes de uma
+           renovação, o `sid` é a sessão já rotacionada, e preservar só ela
+           derrubava a própria cadeia enquanto a resposta dizia o contrário).
+
+      A ORDEM DAS TRAVAS, sem ciclo com a 049 e a 050: linha de `usuarios`
+      antes da trava da pessoa, como a redefinição, a desativação, o link e a
+      própria `trocar_senha`. O login e a renovação seguram a trava da pessoa
+      e só pedem a linha de `usuarios` em FOR KEY SHARE (a chave estrangeira
+      de `sessoes`), que não conflita com FOR NO KEY UPDATE. Esta transação não
+      toca a linha do município, então não cruza com a suspensão pelo console
+      (linha do município, depois a trava). Invertida (trava antes da linha),
+      ela fecharia ciclo com a redefinição por quem administra: o caso 7 do
+      bloco de Postgres real de `renovacao-contra-encerramento.test.ts` mede.
+
+      Nenhuma migração: `trocar_senha` (049) continua a mesma, só passa a ser
+      chamada dentro da transação que conferiu tudo, sob o município (RLS).
+    */
+    const sessaoPreservada = await banco.comTenant(identidade.organizacaoId, async (c) => {
+      const linha = await c.query<{
+        ativo: boolean; senha_hash: string | null; senha_provisoria_ate: string | null; papel: Papel;
+      }>(
+        "SELECT ativo, senha_hash, senha_provisoria_ate, papel FROM usuarios WHERE id = $1 FOR NO KEY UPDATE",
+        [identidade.usuarioId],
+      );
+      await c.query("SELECT travar_sessoes_do_usuario($1)", [identidade.usuarioId]);
+      const viva = await c.query<{ id: string }>(
+        `SELECT v.id
+           FROM sessoes s
+           JOIN sessoes v ON v.familia_id = s.familia_id
+                         AND v.usuario_id = s.usuario_id
+                         AND v.revogada_em IS NULL
+                         AND v.expira_em > now()
+          WHERE s.id = $2 AND s.usuario_id = $1
+            AND (s.revogada_em IS NULL OR s.motivo_revogacao = 'rotacionada na renovacao')
+          ORDER BY v.criada_em DESC
+          LIMIT 1`,
+        [identidade.usuarioId, identidade.sessaoId],
+      );
+
+      const agora = linha.rows[0];
+      if (agora && !agora.ativo) throw new ContaDesativada();
+      if (!agora || !viva.rows[0] || senhaProvisoriaVencida(agora)) {
+        throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+      }
+      if (agora.senha_hash !== hashConferido) {
+        throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
+      }
+
+      /*
+        `trocar_senha` grava o hash e derruba as outras sessões. A senha deixa
+        de ser provisória no MESMO UPDATE, por gatilho do banco (migração 046):
+        a regra "senha escolhida pela pessoa não é provisória" mora lá, e vale
+        para este caminho e para o link de recuperação.
+      */
+      await c.query("SELECT trocar_senha($1,$2,$3)", [identidade.usuarioId, hash, viva.rows[0].id]);
+      return { id: viva.rows[0].id, papel: agora.papel };
+    });
+
+    /*
+      UM TOKEN DE ACESSO NOVO PARA A SESSÃO PRESERVADA, e sempre, não só
+      quando a senha era provisória. O token que a pessoa tem na mão foi
+      emitido antes da troca e, se a senha era provisória, carrega a marca que
+      tranca todo o resto. Sem isto, quem acabou de definir a própria senha
+      continuaria trancado por até quinze minutos. Sempre, porque devolver o
+      token só às vezes obrigaria o painel a tratar dois formatos de resposta.
+      O `sid` é o da sessão viva da cadeia, e o papel é o relido sob a trava
+      (correção 4): se o papel mudou no meio, o token novo já nasce com o de
+      agora, em vez de cunhar mais quinze minutos de leitura com o anterior.
     */
     const acesso = await emitirAcesso(
       config.jwtSegredos[0],
       {
         sub: identidade.usuarioId,
         org: identidade.organizacaoId,
-        papel: identidade.papel,
+        papel: sessaoPreservada.papel,
         nome: identidade.nome,
-        sid: identidade.sessaoId,
+        sid: sessaoPreservada.id,
       },
       config.ACESSO_MINUTOS,
     );

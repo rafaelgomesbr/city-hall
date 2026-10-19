@@ -1,0 +1,175 @@
+mutação M5: sem o FOR NO KEY UPDATE da linha da pessoa
+
+--- diff aplicado sobre o conserto ---
+- FROM usuarios WHERE id = $1 FOR NO KEY UPDATE",
++ FROM usuarios WHERE id = $1",
+
+--- saída do vitest ---
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/renovacao-contra-encerramento.test.ts (50 tests | 5 failed) 62757ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 249ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  478ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1159ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 245ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar 243ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1144ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  689ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  462ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  465ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela 232ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1606ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1609ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1380ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2064ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1380ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1833ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  917ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé  935ms
+   × Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela 921ms
+     → a ordem da troca é linha da pessoa, trava e gravação; a trava antes da linha fecha ciclo com a redefinição: expected [ 'trava', 'grava' ] to deeply equal [ 'linha', 'trava', 'grava' ]
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 262ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  491ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1167ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 260ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve 239ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  13982ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale 1382ms
+     → troca de senha: {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"800d806a-93a5-4e57-861a-2eb051b27040"}: expected 500 to be 401 // Object.is equality
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  491ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova 267ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 10. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  1154ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 11. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  690ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 12. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  460ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 13. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  462ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 14. o login já abriu a sessão sob a trava quando a própria pessoa troca a senha em outro aparelho: a mudança espera e encerra a sessão do login  1173ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 15. o login já abriu a sessão sob a trava quando quem administra redefine a senha da pessoa: a mudança espera e encerra a sessão do login  707ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 16. o login já abriu a sessão sob a trava quando quem administra desativa a conta: a mudança espera e encerra a sessão do login  482ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 17. o login abriu a sessão e ainda não tomou a trava quando a própria pessoa troca a senha em outro aparelho: a mudança termina e o login é recusado  1139ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 18. o login abriu a sessão e ainda não tomou a trava quando quem administra redefine a senha da pessoa: a mudança termina e o login é recusado  684ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 19. o login abriu a sessão e ainda não tomou a trava quando quem administra desativa a conta: a mudança termina e o login é recusado  459ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 20. o login já tomou a trava quando o console suspende o município: a suspensão espera a linha do município, sem impasse  716ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 21. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  1595ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 22. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  1594ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 23. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  1370ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 24. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  2051ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 25. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  1370ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 26. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  1823ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 27. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  915ms
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois 1377ms
+     → reação (quem administra redefine a senha da pessoa): {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"470fc738-6565-4ecd-9711-f99963c38165"}: expected 500 to be 200 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois 1376ms
+     → reação (a pessoa redefine a senha pelo link do email): {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"7cfd4fda-a5f1-4bb7-aa31-bd74d3b4c7e6"}: expected 500 to be 200 // Object.is equality
+   × Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois 1151ms
+     → reação (quem administra desativa a conta): {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"6c4d3cf1-9885-4b5a-a621-e8592b483f5a"}: expected 500 to be 200 // Object.is equality
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 31. a troca do invasor já segura a linha e a trava quando a própria pessoa troca a senha em outro aparelho: a reação espera e vem depois  1844ms
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 45 passed (50)
+   Start at  00:14:00
+   Duration  63.36s (transform 226ms, setup 15ms, collect 389ms, tests 62.76s, environment 0ms, prepare 35ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela
+AssertionError: a ordem da troca é linha da pessoa, trava e gravação; a trava antes da linha fecha ciclo com a redefinição: expected [ 'trava', 'grava' ] to deeply equal [ 'linha', 'trava', 'grava' ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   "linha",[39m
+[2m    "trava",[22m
+[2m    "grava",[22m
+[2m  ][22m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1029:10
+    1027|       expect(troca.statusCode, troca.body).toBe(200);
+    1028|       expect(sequencia, "a ordem da troca é linha da pessoa, trava e g…
+    1029|         .toEqual(["linha", "trava", "grava"]);
+       |          ^
+    1030|     } finally {
+    1031|       grampo.atual = null;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse, e a redefinição vale
+AssertionError: troca de senha: {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"800d806a-93a5-4e57-861a-2eb051b27040"}: expected 500 to be 401 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 401[39m
+[31m+ 500[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1308:59
+    1306|       // redefinição já confirmou e encerrou a sessão de quem trocou. …
+    1307|       // correção 4 ela respondia 200 e a senha dela apagava a temporá…
+    1308|       expect(r2.statusCode, `troca de senha: ${r2.body}`).toBe(401);
+       |                                                           ^
+    1309|       expect(r2.json().erro, r2.body).toBe("sessao_encerrada");
+    1310|       expect(await a.sessoesVivasDaCadeia(quemTroca), "a sessão de que…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 28. a troca do invasor já segura a linha e a trava quando quem administra redefine a senha da pessoa: a reação espera e vem depois
+AssertionError: reação (quem administra redefine a senha da pessoa): {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"470fc738-6565-4ecd-9711-f99963c38165"}: expected 500 to be 200 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1736:70
+    1734|           return;
+    1735|         }
+    1736|         expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).t…
+       |                                                                      ^
+    1737|         expect(await a.vivasNaFamilia(familia), "a cadeia do invasor f…
+    1738|         if (reacao.mudaASenha) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 29. a troca do invasor já segura a linha e a trava quando a pessoa redefine a senha pelo link do email: a reação espera e vem depois
+AssertionError: reação (a pessoa redefine a senha pelo link do email): {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"7cfd4fda-a5f1-4bb7-aa31-bd74d3b4c7e6"}: expected 500 to be 200 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1736:70
+    1734|           return;
+    1735|         }
+    1736|         expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).t…
+       |                                                                      ^
+    1737|         expect(await a.vivasNaFamilia(familia), "a cadeia do invasor f…
+    1738|         if (reacao.mudaASenha) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 30. a troca do invasor já segura a linha e a trava quando quem administra desativa a conta: a reação espera e vem depois
+AssertionError: reação (quem administra desativa a conta): {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"6c4d3cf1-9885-4b5a-a621-e8592b483f5a"}: expected 500 to be 200 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+ ❯ test/renovacao-contra-encerramento.test.ts:1736:70
+    1734|           return;
+    1735|         }
+    1736|         expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).t…
+       |                                                                      ^
+    1737|         expect(await a.vivasNaFamilia(familia), "a cadeia do invasor f…
+    1738|         if (reacao.mudaASenha) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+codigo de saida: 1
