@@ -1,0 +1,115 @@
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+  outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
+    ✕ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (13 ms)
+    ✕ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (2 ms)
+    ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (1 ms)
+  a credencial e a identidade saem do cofre do aparelho
+    ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (1 ms)
+    ✓ 'Sair da conta' tira a credencial e a identidade do cofre (1 ms)
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (1 ms)
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (1 ms)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 28
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "assinanteNome": "Moradora de exemplo",
+    +     "assinaturaIdempotencyKey": null,
+    +     "assinaturaUri": "file:///documentos/assinatura-1759000000000.png",
+    +     "atualizadoEm": "2026-10-19T23:35:50.299Z",
+    +     "checklist": Object {
+    +       "risco_iminente": true,
+    +     },
+    +     "coletadaEm": "2026-10-07T09:00:00.000Z",
+    +     "coordenada": Object {
+    +       "lat": -27.5959,
+    +       "lng": -48.5489,
+    +     },
+    +     "fotos": Array [
+    +       Object {
+    +         "uriLocal": "file:///documentos/foto-1759000000000-0.jpg",
+    +       },
+    +     ],
+    +     "gpsPrecisaoMetros": 1,
+    +     "idempotencyKey": "22222222-2222-4222-8222-222222222222",
+    +     "observacoes": "Trinca na parede dos fundos.",
+    +     "ocorrenciaId": "11111111-1111-4111-8111-111111111111",
+    +     "orgaosParaAcionar": Array [],
+    +     "pessoas": Object {},
+    +     "protocolo": "000471/2026",
+    +   },
+    + ]
+
+      190 | async function conferirQueOBrunoNaoViuNada(): Promise<void> {
+      191 |   expect(sessao?.identidade?.usuarioId).toBe(BRUNO);
+    > 192 |   expect(await listarRascunhos()).toEqual([]);
+          |                                   ^
+      193 |   expect(mockNoDisco.has(FOTO)).toBe(false);
+      194 |   expect(mockNoDisco.has(ASSINATURA)).toBe(false);
+      195 |   /* A coleta da Ana na fila é dela e fica: pendente, intacta, com a prova no disco. */
+
+      at toEqual (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:192:35)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 28
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "assinanteNome": "Moradora de exemplo",
+    +     "assinaturaIdempotencyKey": null,
+    +     "assinaturaUri": "file:///documentos/assinatura-1759000000000.png",
+    +     "atualizadoEm": "2026-10-19T23:35:50.311Z",
+    +     "checklist": Object {
+    +       "risco_iminente": true,
+    +     },
+    +     "coletadaEm": "2026-10-07T09:00:00.000Z",
+    +     "coordenada": Object {
+    +       "lat": -27.5959,
+    +       "lng": -48.5489,
+    +     },
+    +     "fotos": Array [
+    +       Object {
+    +         "uriLocal": "file:///documentos/foto-1759000000000-0.jpg",
+    +       },
+    +     ],
+    +     "gpsPrecisaoMetros": 1,
+    +     "idempotencyKey": "22222222-2222-4222-8222-222222222222",
+    +     "observacoes": "Trinca na parede dos fundos.",
+    +     "ocorrenciaId": "11111111-1111-4111-8111-111111111111",
+    +     "orgaosParaAcionar": Array [],
+    +     "pessoas": Object {},
+    +     "protocolo": "000471/2026",
+    +   },
+    + ]
+
+      190 | async function conferirQueOBrunoNaoViuNada(): Promise<void> {
+      191 |   expect(sessao?.identidade?.usuarioId).toBe(BRUNO);
+    > 192 |   expect(await listarRascunhos()).toEqual([]);
+          |                                   ^
+      193 |   expect(mockNoDisco.has(FOTO)).toBe(false);
+      194 |   expect(mockNoDisco.has(ASSINATURA)).toBe(false);
+      195 |   /* A coleta da Ana na fila é dela e fica: pendente, intacta, com a prova no disco. */
+
+      at toEqual (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:192:35)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 5 passed, 7 total
+Snapshots:   0 total
+Time:        0.534 s, estimated 1 s
+Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
+jest-saida=1

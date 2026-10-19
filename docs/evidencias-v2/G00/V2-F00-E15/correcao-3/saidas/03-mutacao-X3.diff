@@ -1,0 +1,9 @@
+diff --git a/dc360/apps/campo/src/dados/banco-local.ts b/dc360/apps/campo/src/dados/banco-local.ts
+index dd1b5b6..d4a96f0 100644
+--- a/dc360/apps/campo/src/dados/banco-local.ts
++++ b/dc360/apps/campo/src/dados/banco-local.ts
+@@ -256,3 +256,3 @@ export async function acolherNoAparelho(usuarioId: string): Promise<{ apagou: bo
+   const dono = await donoDosDadosLocais();
+-  const apagou = dono !== null && dono !== usuarioId;
++  const apagou = false && dono !== usuarioId;
+   if (apagou) await apagarDadosLocais();

@@ -12,7 +12,7 @@
  * O caminho certo é outro verbo da sessão, `encerrarSessaoVencida`, que
  * derruba a credencial e deixa o disco como está. Quem confere se a pessoa
  * que entra em seguida é a mesma fica no login (`acolherNoAparelho`), e a
- * prova disso está em `dados/sessao-vencida-nao-apaga.test.tsx`. Aqui se prova
+ * prova disso está em `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx`. Aqui se prova
  * a tela: o botão da faixa chama o verbo que NÃO apaga, e diz "Entrar de novo".
  *
  * Mora em `__tests__` e não ao lado da tela porque tudo dentro de `src/app`
