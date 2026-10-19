@@ -1,0 +1,15 @@
+✔ R1: nenhuma peça empilha mais de um bloco preenchido (1.757833ms)
+✔ a varredura enxerga o aplicativo de verdade (0.340542ms)
+✔ a varredura pega o cartão da reclamação, bloco a bloco (0.614667ms)
+✔ a varredura não confunde o que está calmo com o que grita (0.456333ms)
+✔ R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo (1.8045ms)
+✔ R5 é aritmética, e o portão refaz a conta (0.425458ms)
+✔ nenhuma pendência de densidade sobreviveu ao próprio conserto (0.155667ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.109667

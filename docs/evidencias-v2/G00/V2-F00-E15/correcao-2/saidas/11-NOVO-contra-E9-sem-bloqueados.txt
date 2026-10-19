@@ -1,0 +1,759 @@
+# mutacao em src/app/(agente)/perfil.tsx
+# - resumoDaFila.pendentes + resumoDaFila.enviando + resumoDaFila.bloqueados
+# + resumoDaFila.pendentes + resumoDaFila.enviando
+# teste: src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+FAIL src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+  a pergunta antes de sair, com vistoria começada
+    ✓ diz quantas vistorias começadas serão apagadas, e que as fotos vão junto (122 ms)
+    ✓ uma só, sem foto: singular, e sem prometer foto que não existe (37 ms)
+    ✓ o botão de confirmar é o de perigo, porque o ato apaga (37 ms)
+    ✓ a pergunta se chama 'Sair da conta?' e a ação vem antes da recusa (37 ms)
+    ✓ o item que está sendo enviado agora também conta como não enviado (42 ms)
+    ✓ o disco respondeu zero e na segunda pergunta falha: avisa, e não repete o zero de antes (34 ms)
+    ✓ o disco não responde: o diálogo avisa do mesmo jeito, e não promete que não há nada (26 ms)
+    ✕ o item recusado pelo servidor também conta como coleta não enviada (21 ms)
+    ✓ sem vistoria começada e sem fila, a pergunta não fala em apagar (19 ms)
+  a fila lida ao vivo, e não uma vez
+    ✓ quando a fila esvazia, o chip e o aviso de esperar somem sem trocar de aba (18 ms)
+    ✓ o diálogo de saída conta a fila de AGORA, e não a da montagem (28 ms)
+
+  ● a pergunta antes de sair, com vistoria começada › o item recusado pelo servidor também conta como coleta não enviada
+
+    Unable to find an element with text: /2 coletas ainda não enviadas/
+
+    [36m<RCTScrollView[39m
+      [33mtestID[39m=[32m"tela-do-perfil"[39m
+    [36m>[39m
+      [36m<RCTRefreshControl />[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityRole[39m=[32m"text"[39m
+        [36m>[39m
+          [36m<View>[39m
+            [36m<View[39m
+              [33maccessibilityLabel[39m=[32m"Atenção"[39m
+              [33maccessible[39m=[32m{true}[39m
+            [36m>[39m
+              [36m<Text>[39m
+                [0m![0m
+              [36m</Text>[39m
+            [36m</View>[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0mNão deu para atualizar agora[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mNão deu para atualizar agora. Mostrando o que já estava no aparelho.[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Dispensar o aviso de atualização"[39m
+            [33maccessibilityRole[39m=[32m"button"[39m
+            [33maccessibilityState[39m=[32m{
+              {
+                "busy": false,
+                "disabled": false,
+              }
+            }[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0mDispensar[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<Text>[39m
+            [0mEu[0m
+          [36m</Text>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Agente de teste, sem foto de perfil. Adicionar foto"[39m
+                  [33maccessibilityRole[39m=[32m"button"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "disabled": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                  [33mtestID[39m=[32m"trocar-foto"[39m
+                [36m>[39m
+                  [36m<View[39m
+                    [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                    [33maccessible[39m=[32m{false}[39m
+                    [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                    [33mtestID[39m=[32m"avatar-do-agente"[39m
+                  [36m>[39m
+                    [36m<Text>[39m
+                      [0mAT[0m
+                    [36m</Text>[39m
+                    [36m<RNSVGSvgView[39m
+                      [33mpointerEvents[39m=[32m"none"[39m
+                    [36m>[39m
+                      [36m<RNSVGGroup>[39m
+                        [36m<RNSVGDefs>[39m
+                          [36m<RNSVGLinearGradient />[39m
+                        [36m</RNSVGDefs>[39m
+                        [36m<RNSVGCircle />[39m
+                      [36m</RNSVGGroup>[39m
+                    [36m</RNSVGSvgView>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mAgente de teste[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAgente de campo[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mDefesa Civil de Teste[0m
+                    [0m, [0m
+                    [0mTeste[0m
+                    [0m/[0m
+                    [0mSC[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mMatrícula [0m
+                    [0m0001[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Adicionar uma foto de perfil"[39m
+                [33maccessibilityRole[39m=[32m"button"[39m
+                [33maccessibilityState[39m=[32m{
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }[39m
+                [33maccessible[39m=[32m{true}[39m
+                [33mtestID[39m=[32m"abrir-escolha-de-foto"[39m
+              [36m>[39m
+                [36m<View[39m
+                  [33mtestID[39m=[32m"abrir-escolha-de-foto-rotulo"[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0mAdicionar foto[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGCircle />[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0mO seu trabalho ainda não foi baixado[0m
+                [36m</Text>[39m
+                [36m<Text>[39m
+                  [0mIsto precisa de sinal uma vez só. Faça na base, antes de sair, e depois a sua equipe e as suas vistorias aparecem aqui mesmo sem conexão.[0m
+                [36m</Text>[39m
+              [36m</View>[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Baixar o meu trabalho"[39m
+                [33maccessibilityRole[39m=[32m"button"[39m
+                [33maccessibilityState[39m=[32m{
+                  {
+                    "busy": false,
+                    "disabled": true,
+                  }
+                }[39m
+                [33maccessible[39m=[32m{true}[39m
+                [33mtestID[39m=[32m"baixar-meu-trabalho"[39m
+              [36m>[39m
+                [36m<RNSVGSvgView[39m
+                  [33mpointerEvents[39m=[32m"none"[39m
+                [36m>[39m
+                  [36m<RNSVGGroup>[39m
+                    [36m<RNSVGDefs>[39m
+                      [36m<RNSVGLinearGradient />[39m
+                    [36m</RNSVGDefs>[39m
+                    [36m<RNSVGRect />[39m
+                  [36m</RNSVGGroup>[39m
+                [36m</RNSVGSvgView>[39m
+                [36m<View[39m
+                  [33mtestID[39m=[32m"baixar-meu-trabalho-rotulo"[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0mBaixar o meu trabalho[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View[39m
+                [33maccessibilityRole[39m=[32m"text"[39m
+              [36m>[39m
+                [36m<View>[39m
+                  [36m<View[39m
+                    [33maccessibilityLabel[39m=[32m"Atenção"[39m
+                    [33maccessible[39m=[32m{true}[39m
+                  [36m>[39m
+                    [36m<Text>[39m
+                      [0m![0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mSem sinal agora. Tente de novo quando a conexão voltar.[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<Text>[39m
+            [0mO que aconteceu no município[0m
+          [36m</Text>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Abrir a lista de avisos do município"[39m
+                [33maccessibilityRole[39m=[32m"button"[39m
+                [33maccessibilityState[39m=[32m{
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }[39m
+                [33maccessible[39m=[32m{true}[39m
+                [33mtestID[39m=[32m"ver-avisos"[39m
+              [36m>[39m
+                [36m<RNSVGSvgView>[39m
+                  [36m<RNSVGGroup>[39m
+                    [36m<RNSVGCircle />[39m
+                    [36m<RNSVGCircle />[39m
+                    [36m<RNSVGPath />[39m
+                  [36m</RNSVGGroup>[39m
+                [36m</RNSVGSvgView>[39m
+                [36m<View[39m
+                  [33mtestID[39m=[32m"ver-avisos-rotulo"[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0mVer avisos[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mVistoria recebida, prazo vencido, órgão que respondeu. É o canal que funciona quando a notificação não chega.[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<Text>[39m
+            [0mAjustes[0m
+          [36m</Text>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGCircle />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mEste aparelho[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mO que muda sozinho, para conferir de relance.[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGCircle />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mConexão agora[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mSem sinal[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mColetas esperando envio[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mNenhuma[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View />[39m
+              [36m<View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mVersão do aplicativo[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0m0.1.0[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mServidor[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mhttps://api.exemplo[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mAparência[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mA tela clara se lê melhor com sol, e a escura cansa menos no plantão da noite.[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Tema da tela"[39m
+                [33maccessibilityRole[39m=[32m"radiogroup"[39m
+              [36m>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Acompanhar o sistema. O sistema está no modo escuro agora"[39m
+                  [33maccessibilityRole[39m=[32m"radio"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "checked": true,
+                      "disabled": false,
+                      "selected": true,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                  [33mtestID[39m=[32m"tema-sistema"[39m
+                [36m>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0m✓[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mAcompanhar o sistema[0m
+                    [36m</Text>[39m
+                    [36m<Text>[39m
+                      [0mO sistema está no modo escuro agora[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Sempre claro"[39m
+                  [33maccessibilityRole[39m=[32m"radio"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "checked": false,
+                      "disabled": false,
+                      "selected": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                  [33mtestID[39m=[32m"tema-claro"[39m
+                [36m>[39m
+                  [36m<View />[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mSempre claro[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Sempre escuro"[39m
+                  [33maccessibilityRole[39m=[32m"radio"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "checked": false,
+                      "disabled": false,
+                      "selected": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                  [33mtestID[39m=[32m"tema-escuro"[39m
+                [36m>[39m
+                  [36m<View />[39m
+                  [36m<View>[39m
+                    [36m<Text>[39m
+                      [0mSempre escuro[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mA escolha vale só neste aparelho e continua valendo depois de sair da conta.[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGCircle />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mNotificação[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mO aviso de tarefa nova e de prazo vencendo, na tela bloqueada.[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mNotificação de tarefa e de prazo[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<View[39m
+                    [33maccessibilityLabel[39m=[32m"Ligados"[39m
+                    [33maccessibilityRole[39m=[32m"text"[39m
+                    [33maccessible[39m=[32m{true}[39m
+                  [36m>[39m
+                    [36m<Text>[39m
+                      [0m✓[0m
+                    [36m</Text>[39m
+                    [36m<Text>[39m
+                      [0mLigados[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mEste aparelho recebe aviso de tarefa nova e de prazo vencendo. O que aparece na tela bloqueada não traz endereço nem protocolo.[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View[39m
+            [33mstyle[39m=[32m{
+              {
+                "opacity": 0,
+              }
+            }[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mConta[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mQuem assina o laudo, e como entrar de novo.[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mMatrícula[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0m0001[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mSenha[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mTrocada no painel[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Por que a troca de senha não é feita no aplicativo"[39m
+                [33maccessibilityRole[39m=[32m"button"[39m
+                [33maccessibilityState[39m=[32m{
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }[39m
+                [33maccessible[39m=[32m{true}[39m
+                [33mtestID[39m=[32m"por-que-a-senha"[39m
+              [36m>[39m
+                [36m<View[39m
+                  [33mtestID[39m=[32m"por-que-a-senha-rotulo"[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0mPor que não aqui?[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<View />[39m
+              [36m<View[39m
+                [33maccessibilityLabel[39m=[32m"Sair da conta"[39m
+                [33maccessibilityRole[39m=[32m"button"[39m
+                [33maccessibilityState[39m=[32m{
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }[39m
+                [33maccessible[39m=[32m{true}[39m
+              [36m>[39m
+                [36m<View>[39m
+                  [36m<Text>[39m
+                    [0mSair da conta[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mAtualizado [0m
+          [0mainda não baixada[0m
+        [36m</Text>[39m
+        [36m<Modal>[39m
+          [36m<View[39m
+            [33mpointerEvents[39m=[32m"auto"[39m
+          [36m>[39m
+            [36m<View[39m
+              [33mstyle[39m=[32m{
+                {
+                  "opacity": 0,
+                }
+              }[39m
+            [36m>[39m
+              [36m<View[39m
+                [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                [33maccessible[39m=[32m{true}[39m
+                [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [33mtestID[39m=[32m"dialogo-fundo"[39m
+              [36m/>[39m
+            [36m</View>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessibilityViewIsModal[39m=[32m{true}[39m
+              [33mstyle[39m=[32m{
+                {
+                  "opacity": 0,
+                }
+              }[39m
+              [33mtestID[39m=[32m"dialogo"[39m
+            [36m>[39m
+              [36m<Text>[39m
+                [0mSair da conta?[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mVocê vai precisar de sinal e da sua senha para entrar de novo.[0m
+              [36m</Text>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Sair da conta"[39m
+                  [33maccessibilityRole[39m=[32m"button"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                  [33mtestID[39m=[32m"dialogo-acao"[39m
+                [36m>[39m
+                  [36m<View[39m
+                    [33mtestID[39m=[32m"dialogo-acao-rotulo"[39m
+                  [36m>[39m
+                    [36m<Text>[39m
+                      [0mSair da conta[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Continuar conectado"[39m
+                  [33maccessibilityRole[39m=[32m"button"[39m
+                  [33maccessibilityState[39m=[32m{
+                    {
+                      "busy": false,
+                      "disabled": false,
+                    }
+                  }[39m
+                  [33maccessible[39m=[32m{true}[39m
+                  [33mtestID[39m=[32m"dialogo-recusa"[39m
+                [36m>[39m
+                  [36m<View[39m
+                    [33mtestID[39m=[32m"dialogo-recusa-rotulo"[39m
+                  [36m>[39m
+                    [36m<Text>[39m
+                      [0mContinuar conectado[0m
+                    [36m</Text>[39m
+                  [36m</View>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</Modal>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+      299 |
+      300 |     const dialogo = within(screen.getByTestId("dialogo"));
+    > 301 |     expect(dialogo.getByText(/2 coletas ainda não enviadas/)).toBeTruthy();
+          |                    ^
+      302 |     expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
+      303 |   });
+      304 |
+
+      at Object.getByText (src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx:301:20)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 passed, 11 total
+Snapshots:   0 total
+Time:        1.126 s, estimated 2 s
+Ran all test suites matching /src\/ui\/dialogo-na-conta-com-vistoria-comecada.test.tsx/i.
+codigo 1

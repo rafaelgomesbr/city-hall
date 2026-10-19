@@ -1,0 +1,24 @@
+✔ a varredura enxerga os arquivos do aplicativo de verdade (6.184ms)
+✔ nenhum valor de design escrito à mão no aplicativo (106.108625ms)
+✔ a varredura pega o que deveria pegar (0.307166ms)
+✔ a varredura não reclama do que está certo (0.275208ms)
+✔ o marcador de exceção dispensa o que declarou, e só isso (0.106083ms)
+✔ os comentários são apagados antes da varredura, e o código da mesma linha não (0.089042ms)
+✔ a dívida de peso de fonte morre no dia em que o token nascer (0.241416ms)
+✔ nenhuma espera de tela cheia fica sem saída (36.30175ms)
+✔ a varredura de espera sem saída enxerga alguma coisa (29.104041ms)
+✔ nenhum token declarado fica sem alguém apontando para ele (115.050875ms)
+✔ a dívida de token sem dono não sobrevive ao próprio conserto (23.193958ms)
+✔ a varredura de token sem dono enxerga o que deveria (0.793792ms)
+✔ H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui (1.701333ms)
+✔ H1: nenhuma peça desenha mais de um protagonista (92.811375ms)
+✔ a varredura de protagonista enxerga o que deveria (0.288458ms)
+✔ o gradiente é pontual: ele não escapa de `src/ui/` (81.78675ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 686.692458

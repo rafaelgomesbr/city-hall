@@ -1,0 +1,18 @@
+✔ contraste calculado: temaClaro passa no mínimo exigido em todo par (2.214334ms)
+✔ contraste calculado: temaEscuro passa no mínimo exigido em todo par (0.122583ms)
+✔ o cálculo confere com valores conhecidos (0.213708ms)
+✔ os dois temas são de fato dois, e a leitura resolve as primitivas (0.124541ms)
+✔ nenhuma pendência de contraste sobreviveu ao próprio conserto (0.084791ms)
+✔ a varredura enxerga os elementos tocáveis de verdade (84.285208ms)
+✔ nenhum alvo de toque abaixo de 52 (159.082417ms)
+✔ todo elemento tocável se apresenta ao leitor de tela (82.246625ms)
+✔ as três varreduras pegam o que deveriam pegar (0.614375ms)
+✔ o escape nomeado dispensa quem foi declarado, e ninguém mais (162.378583ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 576.48425
