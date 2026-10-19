@@ -433,6 +433,18 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     (de 1336 para 1349) e 13 no `vitest run` (1380, com 31 pulados).
   */
   "V2-F00-E09-correcao-3": { total: 13, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E10, correção 3 (2026-10-19), contada contra o commit da correção 3
+    da E09: `recuperacao-morre-com-a-credencial.test.ts` é novo, com 7 casos de
+    PGlite (o controle, o link pendente contra a redefinição, a troca e a
+    desativação, o link vivo numa conta desativada, dois links pendentes, e o
+    que não é senha nem desativação não matando o link);
+    `renovacao-contra-encerramento.test.ts` ganha 1 de Postgres real
+    (`describe.skipIf`, pulado no roteiro: o link e a redefinição no mesmo
+    instante). Soma 7 na lista (de 1349 para 1356) e 8 no `vitest run` (1388,
+    com 32 pulados).
+  */
+  "V2-F00-E10-correcao-3": { total: 8, falhas: 0, puladas: 1 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

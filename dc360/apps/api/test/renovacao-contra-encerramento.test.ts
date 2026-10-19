@@ -76,6 +76,12 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
  *    que a reação pare nelas; o 7 do segundo bloco passou a exigir que a
  *    redefinição vença. O 18 cobra que a troca com o token de antes de uma
  *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos.
+ * 7. O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO NO MESMO INSTANTE (V2-F00-E10,
+ *    correção 3, migração 051): o link pendente morre com toda mudança de
+ *    senha, por gatilho que segura a linha da pessoa antes das dos links, e
+ *    `consumir_recuperacao` segue a mesma ordem. O caso 32 do segundo bloco
+ *    segura o link dentro da função e exige que a redefinição espere, sem
+ *    impasse.
  *
  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
@@ -1691,7 +1697,9 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
     dela: a ordem serial "troca, depois reação". Sem a linha segura pela troca
     a reação não espera ninguém, termina antes, e o caso reprova por isso.
     Na troca pela própria pessoa em outro aparelho, quem chega segundo é a
-    vítima, e ela é recusada às claras (401), em vez de ver 200 e perder.
+    vítima, e ela é recusada às claras (401), em vez de ver 200 e perder. No
+    link do email também, desde a migração 051 (correção 3 da E10): a troca
+    que confirmou primeiro mata o link pendente, e ele responde 401.
   */
   for (const [i, reacao] of a.reacoesAoInvasor.filter((r) => r.nome !== "quem administra encerra as sessões da pessoa").entries()) {
     it(`${28 + i}. a troca do invasor já segura a linha e a trava quando ${reacao.nome}: a reação espera e vem depois`, async () => {
@@ -1726,11 +1734,14 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
         const [rt, rr] = await Promise.all([troca, reagiu]);
         grampo.atual = null;
         expect(rt.statusCode, `a troca do invasor, que confirmou primeiro: ${rt.body}`).toBe(200);
-        if (reacao.nome === "a própria pessoa troca a senha em outro aparelho") {
-          // A vítima chegou segundo: a sessão dela caiu com a troca do invasor.
-          expect(rr.statusCode, `a troca da vítima, que chegou depois: ${rr.body}`).toBe(401);
+        if (reacao.nome === "a própria pessoa troca a senha em outro aparelho"
+          || reacao.nome === "a pessoa redefine a senha pelo link do email") {
+          // A vítima chegou segundo: a sessão dela caiu com a troca do
+          // invasor, ou o link pendente morreu com ela (migração 051, correção
+          // 3 da E10). A recusa é às claras, e a senha dela não passa a valer.
+          expect(rr.statusCode, `a reação da vítima, que chegou depois: ${rr.body}`).toBe(401);
           expect(rr.json().erro, rr.body).toBe("sessao_encerrada");
-          expect((await a.tentarEntrar(SENHA_DA_VITIMA)).statusCode, "a senha da vítima, recusada, entrou").toBe(401);
+          expect((await a.tentarEntrar(reacao.senha(rr) ?? "")).statusCode, "a senha da vítima, recusada, entrou").toBe(401);
           return;
         }
         expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(200);
@@ -1751,4 +1762,87 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
       }
     }, 120_000);
   }
+
+  /*
+    O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO POR QUEM ADMINISTRA NO MESMO
+    INSTANTE (V2-F00-E10, correção 3, migração 051). Desde a 051 toda mudança
+    de senha marca os links pendentes da pessoa por gatilho, depois de
+    atualizar a linha dela em `usuarios`: a ordem é linha da pessoa, linhas
+    dos links. `consumir_recuperacao` passou a seguir a mesma ordem. Na ordem
+    antiga (linha do link, depois a da pessoa), o link segurando a própria
+    linha e a redefinição segurando a da pessoa se esperariam em ordem
+    inversa, e o Postgres mataria uma das duas (40P01, um 500).
+
+    O caso segura o link DENTRO de `consumir_recuperacao`, no UPDATE que o
+    marca como usado, por um gatilho de prova instalado só neste banco (ele
+    espera uma trava consultiva que o teste segura; só no primeiro nível, para
+    não segurar o gatilho da 051). Com a ordem certa, nesse ponto o link já
+    segura a linha da pessoa; a redefinição tem de parar nela (trava de linha,
+    não consultiva, o teste VÊ em `pg_locks`). Solto, o link confirma e a
+    redefinição vem depois: a temporária vale e a senha do link não.
+  */
+  it("32. o link do email e a redefinição por quem administra no mesmo instante: sem impasse, e a redefinição vem depois", async () => {
+    const CHAVE = 51_051;
+    await a.limparSessoesDaHelena();
+    await cen.bruto(`
+      CREATE OR REPLACE FUNCTION prova_segurar_o_link() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF pg_trigger_depth() = 1 THEN
+          PERFORM pg_advisory_lock(${CHAVE});
+          PERFORM pg_advisory_unlock(${CHAVE});
+        END IF;
+        RETURN NEW;
+      END;
+      $$`);
+    await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
+    await cen.bruto("CREATE TRIGGER prova_segurar_o_link BEFORE UPDATE ON recuperacoes_senha FOR EACH ROW EXECUTE FUNCTION prova_segurar_o_link()");
+    const token = gerarTokenRenovacao();
+    await cen.bruto(
+      `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
+       SELECT organizacao_id, id, $2, now() + interval '30 minutes' FROM usuarios WHERE id = $1`,
+      [HELENA, hashDoToken(token)],
+    );
+    const naoConsultivas = async () => Number((await cen.bruto(
+      `SELECT count(*)::int AS n FROM pg_locks l JOIN pg_stat_activity s ON s.pid = l.pid
+        WHERE NOT l.granted AND s.datname = current_database() AND l.locktype <> 'advisory'`,
+    )).rows[0]!.n);
+    await cen.bruto("SELECT pg_advisory_lock($1)", [CHAVE]);
+    let soltou = false;
+    const soltar = async () => {
+      if (soltou) return;
+      soltou = true;
+      await cen.bruto("SELECT pg_advisory_unlock($1)", [CHAVE]);
+    };
+    const pendentes: Promise<unknown>[] = [];
+    try {
+      const link = cen.app.inject({ method: "POST", url: "/auth/redefinir", payload: { token, senha: SENHA_DO_LINK } });
+      pendentes.push(link);
+      // O link chega ao UPDATE que o marca e para na trava consultiva do teste.
+      expect(await travouOuTerminou(link, "advisory"), "a disputa não aconteceu: o link não chegou ao ponto segurado").toBe("travou");
+      const redefinicao = cen.app.inject({
+        method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: { authorization: `Bearer ${cen.tokenRita}` },
+      });
+      pendentes.push(redefinicao);
+      let parou = false;
+      const ate = Date.now() + 15_000;
+      while (Date.now() < ate && !parou) {
+        parou = await naoConsultivas() > 0;
+        if (!parou) await esperar(20);
+      }
+      expect(parou, "a disputa não aconteceu: a redefinição não parou numa trava de linha enquanto o link estava segurado").toBe(true);
+      await soltar();
+      const [rl, rr] = await Promise.all([link, redefinicao]);
+      expect(rl.statusCode, `o link: ${rl.body}`).toBe(200);
+      expect(rr.statusCode, `a redefinição (40P01 é impasse): ${rr.body}`).toBe(200);
+      const temporaria = await a.tentarEntrar(String(rr.json().senhaTemporaria));
+      expect(temporaria.statusCode, `a temporária, que veio depois, não entra: ${temporaria.body}`).toBe(200);
+      expect((await a.tentarEntrar(SENHA_DO_LINK)).statusCode, "a senha do link passou por cima da redefinição").toBe(401);
+    } finally {
+      await soltar();
+      await Promise.allSettled(pendentes);
+      await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
+      await cen.bruto("DROP FUNCTION IF EXISTS prova_segurar_o_link()");
+      await a.restaurarHelena();
+    }
+  }, 120_000);
 });

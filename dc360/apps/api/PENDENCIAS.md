@@ -336,6 +336,22 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
    O `NOTIFICADOR_ARQUIVO` só é recusado quando `NODE_ENV=production`: em
    `staging` ou em qualquer outro valor ele funciona, e a F01 (ambientes) decide se
    o HML precisa da mesma trava.
+5. **O link pendente morre com a credencial** (correção 3 da E10, migração 051;
+   bloqueava o CP-19 pela rodada 4 da validação). Toda mudança de senha (a
+   redefinição por quem administra, a troca pela própria pessoa, o próprio link e
+   qualquer caminho futuro) e toda desativação marcam `usada_em` nos links
+   pendentes da pessoa, por gatilho em `usuarios`, na mesma transação; a
+   reativação não ressuscita nenhum. `consumir_recuperacao` confere a conta ativa
+   (conta desativada: o link é gasto e nada mais muda) e segura a linha da pessoa
+   antes da linha do link, a mesma ordem do gatilho (a ordem inversa fecha ciclo
+   com a redefinição; 40P01 medido pela mutação). Travado em
+   `test/recuperacao-morre-com-a-credencial.test.ts` e no caso 32 de
+   `test/renovacao-contra-encerramento.test.ts`. Efeito aceito, escrito para não
+   virar surpresa: quem tem uma sessão e a senha atual e troca a senha também mata
+   o link que a pessoa acabou de pedir; a pessoa vê "este link não vale mais" e o
+   remédio que vence sempre é a redefinição por quem administra, que derruba as
+   sessões. A redefinição pelo link que perdia para a troca em voo (o FAIL do QA na
+   rodada 4) foi fechada pela correção 4 da E07.
 
 ## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
 

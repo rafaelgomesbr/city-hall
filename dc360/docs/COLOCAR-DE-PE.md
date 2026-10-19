@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **4938 testes somando o aplicativo** (contagem estática de `npm run
+- **4945 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-15; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -206,6 +206,12 @@ com os dois erros que ele encontrou pelo caminho.
   `abrir_sessao` (o login passa a ler a suspensão do município com `FOR SHARE`),
   a API não muda por causa dela e a ordem é indiferente.
 
+  **Migração 051 (V2-F00-E10, correção 3): ordem indiferente.** Cria o gatilho
+  que marca como gastos os links de recuperação pendentes em toda mudança de
+  senha e em toda desativação, e recria `consumir_recuperacao` (mesma
+  assinatura) para conferir a conta ativa e segurar a linha da pessoa antes
+  da linha do link. A API não muda por causa dela.
+
 ### 3. Servidor da API
 
 PaaS que dá HTTPS automático e roda contêiner ou Node:
@@ -343,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 4938 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, 4945 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
