@@ -969,6 +969,359 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a 
   }
 }
 
+
+console.log("\n== 13. O campo focado depois do erro fica inteiro entre o topo fixo e a barra do pé, e o ofício não sai do cartão (V2-F00-E09, correção 6) ==");
+/*
+  A rodada 7 da validação (sobre fd17ff4) viu o rótulo e o campo focados depois
+  do erro por BAIXO de uma das duas bordas fixas do painel: do topo, acima de
+  600 px e no zoom de 200 por cento (o topo quebra em duas linhas até uns 700
+  px, e a folga era um número por faixa de largura); da barra do pé, até 900 px,
+  quando o campo inválido estava abaixo da janela (não havia folga nenhuma no
+  pé). A seção 10 media só "o rótulo abaixo do topo" e só até 390 px. A
+  validação de acessibilidade da mesma rodada mediu também o zoom de 400 por
+  cento (320x256 de CSS: topo e barra deixavam 48 px de página), todas as telas
+  que usam `focar` e o Tab natural, que deixava o elemento sob a barra do pé.
+
+  Aqui a medida é a do portão: o retângulo do RÓTULO e o do CAMPO, inteiros,
+  entre a borda de baixo do topo e a borda de cima da barra do pé (ou o fim da
+  janela, onde a barra não existe), e o ponto do meio de cada um sem nada por
+  cima (`elementFromPoint`). O zoom de 200 por cento de uma tela de 1280x900 é
+  640x450 de CSS com dois pixels de tela por pixel de CSS; o de 400 por cento
+  de uma tela de 1280x1024 é 320x256.
+*/
+async function contextoDeFoco(largura, altura, dpr = 1) {
+  const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr });
+  const pg = await ctx.newPage();
+  pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+  pg.on("console", (m) => {
+    if (m.type() !== "error") return;
+    if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
+    erros.push(`console: ${m.text()}`);
+  });
+  return { ctx, pg };
+}
+/** Rótulo e campo focados, inteiros entre o topo fixo e a barra do pé, sem nada por cima. */
+async function campoFocadoAVista(pg) {
+  return pg.evaluate(() => {
+    const campo = document.activeElement;
+    const rotulo = campo?.id ? document.querySelector(`label[for="${campo.id}"]`) : null;
+    if (!campo || !rotulo) return { ok: false, foco: campo?.id || campo?.tagName, txt: "sem rótulo" };
+    const rc = campo.getBoundingClientRect(), rr = rotulo.getBoundingClientRect();
+    const elTopo = document.querySelector(".topo");
+    const topo = elTopo && ["sticky", "fixed"].includes(getComputedStyle(elTopo).position) ? elTopo.getBoundingClientRect().bottom : 0;
+    const barra = document.querySelector(".lateral");
+    const rb = barra?.getBoundingClientRect();
+    const pe = barra && getComputedStyle(barra).position === "sticky" && rb.top > innerHeight / 2 ? rb.top : innerHeight;
+    const coberto = (r, el) => {
+      const achado = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), r.top + r.height / 2);
+      return !(achado === el || el.contains(achado));
+    };
+    const cima = Math.min(rc.top, rr.top), baixo = Math.max(rc.bottom, rr.bottom);
+    return {
+      ok: cima >= topo - 0.5 && baixo <= pe + 0.5 && !coberto(rc, campo) && !coberto(rr, rotulo),
+      foco: campo.id,
+      txt: `rótulo ${Math.round(rr.top)}..${Math.round(rr.bottom)}, campo ${Math.round(rc.top)}..${Math.round(rc.bottom)}, topo até ${Math.round(topo)}, pé desde ${Math.round(pe)}`,
+    };
+  });
+}
+const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l === 320 && a === 256 ? " (zoom de 400 por cento)" : ""}`;
+{
+  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  let n = 0;
+  const idDasContas = new Map();
+  async function contaDeOperador() {
+    n++;
+    const email = `foco.${n}.${sufixo}@serraalta.exemplo.gov.br`;
+    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+      corpo: { nome: `Foco à Vista ${n}`, matricula: `FV-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+    if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} não foi criada (${r.status})`);
+    idDasContas.set(email, r.json.id);
+    return email;
+  }
+
+  // A) Minha conta, senha atual errada (o 401 do servidor): uma conta por tamanho, para não chegar ao bloqueio por tentativas.
+  for (const [l, a, d] of [[640, 450, 2], [320, 256, 1], [601, 700, 1], [700, 600, 1], [768, 600, 1], [900, 600, 1], [1024, 600, 1], [1280, 600, 1], [390, 700, 1], [360, 700, 1], [320, 568, 1]]) {
+    const email = await contaDeOperador();
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await entrar(email, SENHA_DO_TESTE, pg);
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-desta-conta");
+    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
+    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
+    const botao = pg.getByRole("button", { name: "Trocar senha", exact: true });
+    await botao.click();
+    await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
+    await pg.waitForFunction((el) => !el.disabled, await botao.elementHandle(), { timeout: 20_000 });
+    await pg.waitForTimeout(300);
+    const m = await campoFocadoAVista(pg);
+    ok(`Minha conta a ${tamanho(l, a, d)}, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé`,
+       m.ok && m.foco === "conta-senha-atual", `(foco ${m.foco}; ${m.txt})`);
+    await ctx.close();
+  }
+
+  // B) Minha conta, conferência da tela (senha nova curta) com a página no alto e Enter no último campo: o campo inválido está abaixo da janela.
+  const emailDaConferencia = await contaDeOperador();
+  for (const [l, a, d] of [[320, 568, 1], [390, 700, 1], [640, 450, 2], [320, 256, 1], [768, 600, 1]]) {
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await entrar(emailDaConferencia, SENHA_DO_TESTE, pg);
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.locator("#conta-senha-atual").fill("qualquer-coisa-aqui");
+    await pg.locator("#conta-senha-nova").fill("curta");
+    await pg.locator("#conta-senha-repetida").fill("curta");
+    await pg.evaluate(() => window.scrollTo(0, 0));
+    await pg.waitForTimeout(150);
+    await pg.locator("#conta-senha-repetida").press("Enter");
+    await pg.locator("#conta-senha-nova-erro").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(400);
+    const m = await campoFocadoAVista(pg);
+    ok(`Minha conta a ${tamanho(l, a, d)}, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé`,
+       m.ok && m.foco === "conta-senha-nova", `(foco ${m.foco}; ${m.txt})`);
+    await ctx.close();
+  }
+
+  // C) Nova ocorrência: o nome do solicitante e Enter (o "Ir" do teclado do celular); o primeiro campo que falta, Endereço, está abaixo da janela.
+  const emailDaOcorrencia = await contaDeOperador();
+  for (const [l, a, d] of [[320, 640, 1], [390, 844, 1], [640, 450, 2], [320, 256, 1], [768, 600, 1], [1280, 600, 1]]) {
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await entrar(emailDaOcorrencia, SENHA_DO_TESTE, pg);
+    await pg.goto(`${BASE}/ocorrencias/nova`, { waitUntil: "networkidle" });
+    await pg.locator("#nova-solicitante").fill("Joana Prado");
+    await pg.locator("#nova-solicitante").press("Enter");
+    await pg.locator("#nova-endereco-erro").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(400);
+    const m = await campoFocadoAVista(pg);
+    ok(`Nova ocorrência a ${tamanho(l, a, d)}, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé`,
+       m.ok && m.foco === "nova-endereco", `(foco ${m.foco}; ${m.txt})`);
+    await ctx.close();
+  }
+
+  /*
+    D) A linha "Tentativa N para <email>" na tela de Ocorrência DE VERDADE (a
+    seção 12 mede o markup montado à parte). O envio real exige provedor de
+    email, então a resposta do detalhe do ofício ganha uma tentativa no caminho
+    (`route`): a tela, o markup e o CSS são os do painel. O email é o que a
+    rodada 7 usou: parte local de 38 letras sem ponto.
+  */
+  const OC_DO_OFICIO = "11111111-1111-4111-8111-0000000000c4";
+  let oficio = (await viaApi(`/oficios?ocorrenciaId=${OC_DO_OFICIO}`, { token: adm.json.acesso })).json.itens?.[0];
+  if (!oficio) {
+    const pendentes = await viaApi("/ocorrencias/providencias/pendentes", { token: adm.json.acesso });
+    const daOcorrencia = pendentes.json.itens.find((p) => p.ocorrencia_id === OC_DO_OFICIO);
+    const emitido = await viaApi("/oficios", { metodo: "POST", token: adm.json.acesso, corpo: { providenciaId: daOcorrencia?.id } });
+    oficio = { id: emitido.json.id };
+  }
+  ok("há um ofício emitido na ocorrência da Equipe Alfa para medir", Boolean(oficio?.id));
+  const emailSemPonto = "plantaocoordenacaodefesacivilserraalta@serraalta.exemplo.gov.br";
+  const emailDoOficio = await contaDeOperador();
+  for (const largura of [320, 360]) {
+    const { ctx, pg } = await contextoDeFoco(largura, 700);
+    await pg.route("**/oficios?ocorrenciaId=*", async (rota) => {
+      const r = await rota.fetch(); const j = await r.json();
+      for (const o of j.itens) if (o.id === oficio.id) { o.envios = 1; o.ultimo_envio = null; }
+      await rota.fulfill({ response: r, json: j });
+    });
+    await pg.route(`**/oficios/${oficio.id}`, async (rota) => {
+      if (rota.request().method() !== "GET") return rota.continue();
+      const r = await rota.fetch(); const j = await r.json();
+      j.envios = [{ id: "11111111-1111-4111-8111-00000000e001", tentativa: 1, destinatario_email: emailSemPonto,
+        solicitado_em: new Date().toISOString(), solicitado_por_nome: "Jonas Ferreira", desfecho: "falhou",
+        detalhe: null, provedor_id: null, expira_em: null }];
+      await rota.fulfill({ response: r, json: j });
+    });
+    await entrar(emailDoOficio, SENHA_DO_TESTE, pg);
+    await pg.goto(`${BASE}/ocorrencias/${OC_DO_OFICIO}`, { waitUntil: "networkidle" });
+    const botao = pg.locator(".oficio button", { hasText: /tentativa/ }).first();
+    const rotuloFechado = ((await botao.textContent()) ?? "").trim();
+    await botao.click();
+    await pg.locator("li.oficio__linha").first().waitFor({ timeout: 10_000 });
+    const rotuloAberto = ((await botao.textContent()) ?? "").trim();
+    await pg.locator("li.oficio__linha").first().scrollIntoViewIfNeeded();
+    const m = await pg.evaluate(() => {
+      const li = document.querySelector("li.oficio__linha");
+      const cartao = li.closest(".cartao");
+      const util = cartao.getBoundingClientRect().right - parseFloat(getComputedStyle(cartao).paddingRight);
+      return {
+        rola: document.documentElement.scrollWidth > innerWidth + 1, largura: document.documentElement.scrollWidth,
+        texto: li.querySelector("span").getBoundingClientRect().right, util,
+        frase: li.closest(".oficio").textContent.match(/(A tentativa|As \d+ tentativas)[^.]*\./)?.[0] ?? "",
+      };
+    });
+    ok(`Ocorrência a ${largura} px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal`,
+       !m.rola, `(${m.largura} de ${largura})`);
+    ok(`Ocorrência a ${largura} px, a linha da tentativa fica dentro do cartão`,
+       m.texto <= m.util + 0.5, `(texto até ${Math.round(m.texto)}, cartão até ${Math.round(m.util)})`);
+    if (largura === 320) {
+      ok('com uma tentativa só, o botão diz "Ver a tentativa" e "Esconder a tentativa" (sem "as 1")',
+         rotuloFechado === "Ver a tentativa" && rotuloAberto === "Esconder a tentativa", `("${rotuloFechado}" / "${rotuloAberto}")`);
+      ok('e a explicação concorda no singular ("A tentativa ficou registrada")',
+         m.frase === "A tentativa ficou registrada e o provedor de email não aceitou a mensagem.", `("${m.frase}")`);
+    }
+    await ctx.close();
+  }
+
+  // F) As outras telas que usam `focar`: "Defina a sua senha", Usuários, Ocorrência (corrigir a coordenada) e Quero conhecer.
+  const TAMANHOS_DAS_OUTRAS = [[320, 256, 1], [640, 450, 2], [390, 844, 1]];
+  for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
+    // "Defina a sua senha" (tela pública, sem topo fixo): a provisória digitada errada.
+    const email = await contaDeOperador();
+    const provisoria = (await viaApi(`/usuarios/${idDasContas.get(email)}/redefinir-senha`, { metodo: "POST", token: adm.json.acesso, corpo: {} })).json.senhaTemporaria;
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await pg.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+    await pg.locator("#entrada-email").fill(email);
+    await pg.locator("#entrada-senha").fill(provisoria);
+    await pg.getByRole("button", { name: "Entrar", exact: true }).click();
+    await pg.getByRole("heading", { name: "Defina a sua senha" }).waitFor({ timeout: 30_000 });
+    await pg.locator("#senha-nova-atual").fill("provisoria-digitada-errada");
+    await pg.locator("#senha-nova").fill("frase-nova-do-teste-2026");
+    await pg.locator("#senha-nova-repetida").fill("frase-nova-do-teste-2026");
+    const botao = pg.getByRole("button", { name: "Definir senha e entrar" });
+    await botao.click();
+    await pg.locator("#senha-nova-atual-erro").waitFor({ timeout: 20_000 });
+    await pg.waitForFunction((el) => !el.disabled, await botao.elementHandle(), { timeout: 20_000 });
+    await pg.waitForTimeout(300);
+    const m = await campoFocadoAVista(pg);
+    const folgaDeCima = await pg.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop);
+    ok(`"Defina a sua senha" a ${tamanho(l, a, d)}: a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (${folgaDeCima})`,
+       m.ok && m.foco === "senha-nova-atual" && parseFloat(folgaDeCima) <= 12.5, `(foco ${m.foco}; ${m.txt})`);
+    await ctx.close();
+  }
+  for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
+    // Usuários: o email preenchido e Enter, sem o nome; o foco volta ao Nome completo, acima.
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+    await pg.locator("#usuario-email").fill(`alguem.${sufixo}@serraalta.exemplo.gov.br`);
+    await pg.locator("#usuario-email").press("Enter");
+    await pg.locator("#usuario-nome-erro").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(400);
+    const m = await campoFocadoAVista(pg);
+    ok(`Usuários a ${tamanho(l, a, d)}, cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé`,
+       m.ok && m.foco === "usuario-nome", `(foco ${m.foco}; ${m.txt})`);
+    // Ocorrência: "Corrigir a coordenada" abre o formulário e o foco vai ao primeiro campo dele.
+    await pg.goto(`${BASE}/ocorrencias/${OC_DO_OFICIO}`, { waitUntil: "networkidle" });
+    const abrir = pg.getByRole("button", { name: /^(Corrigir|Informar) a coordenada$/ }).first();
+    await abrir.scrollIntoViewIfNeeded();
+    await abrir.click();
+    await pg.waitForTimeout(500);
+    const c = await campoFocadoAVista(pg);
+    ok(`Ocorrência a ${tamanho(l, a, d)}, "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé`,
+       c.ok && c.foco === "corrigir-coordenada-ponto", `(foco ${c.foco}; ${c.txt})`);
+    await ctx.close();
+  }
+  for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
+    // Quero conhecer (tela pública): município, UF e email preenchidos, sem o nome; o foco sobe ao "Seu nome".
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await pg.goto(`${BASE}/quero-conhecer`, { waitUntil: "networkidle" });
+    await pg.locator("#ic-municipio").fill("Serra Alta");
+    await pg.locator("#ic-uf").fill("MG");
+    await pg.locator("#ic-email").fill("contato@serraalta.exemplo.gov.br");
+    await pg.getByRole("button", { name: "Quero conhecer", exact: true }).click();
+    await pg.locator("#ic-nome-erro").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(400);
+    const m = await campoFocadoAVista(pg);
+    ok(`Quero conhecer a ${tamanho(l, a, d)}, sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista`,
+       m.ok && m.foco === "ic-nome", `(foco ${m.foco}; ${m.txt})`);
+    await ctx.close();
+  }
+
+  /*
+    G) O Tab natural, sem erro nenhum: cada parada no conteúdo fica inteira entre
+    o topo e a barra do pé (achado 2 da acessibilidade). No WebKit do Mac, como no
+    Safari, o Tab não para em botão nem link; lá cada elemento que o Tab
+    alcançaria recebe o foco por código, na ordem do documento, que faz a mesma
+    rolagem do motor.
+  */
+  for (const [l, a, d] of [[390, 844, 1], [320, 640, 1], [640, 450, 2], [320, 256, 1]]) {
+    for (const rota of ["/ocorrencias/nova", "/minha-conta", "/orgaos"]) {
+      const { ctx, pg } = await contextoDeFoco(l, a, d);
+      await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+      await pg.goto(`${BASE}${rota}`, { waitUntil: "networkidle" });
+      await pg.waitForTimeout(300);
+      const medirParada = () => pg.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body || el.id === "conteudo" || el.closest(".topo, .lateral, .pular-para-conteudo")) return null;
+        const r = el.getBoundingClientRect();
+        const topo = document.querySelector(".topo"), barra = document.querySelector(".lateral");
+        const cima = ["sticky", "fixed"].includes(getComputedStyle(topo).position) ? topo.getBoundingClientRect().bottom : 0;
+        const rb = barra.getBoundingClientRect();
+        const baixo = getComputedStyle(barra).position === "sticky" && rb.top > innerHeight / 2 ? rb.top : innerHeight;
+        const meio = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
+        /*
+          Inteiro na faixa livre. O que é mais alto que ela (a caixa que rola uma
+          tabela larga, que o Firefox põe no Tab) não cabe: aí vale o começo dele à
+          vista e sem nada por cima.
+        */
+        const alto = r.height > baixo - cima;
+        const yDoTeste = alto ? r.top + Math.min(r.height, baixo - cima) / 4 : r.top + r.height / 2;
+        const meioAlto = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), Math.min(Math.max(yDoTeste, 0), innerHeight - 1));
+        const ok = alto
+          ? r.top >= cima - 0.5 && r.top < baixo && (meioAlto === el || el.contains(meioAlto))
+          : r.top >= cima - 0.5 && r.bottom <= baixo + 0.5 && (meio === el || el.contains(meio));
+        return { ok, nome: `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ` "${(el.textContent || "").trim().slice(0, 20)}"`} ${Math.round(r.top)}..${Math.round(r.bottom)} entre ${Math.round(cima)} e ${Math.round(baixo)}` };
+      });
+      const fora = []; let paradas = 0;
+      if (MOTOR === "webkit") {
+        const total = await pg.evaluate(() => {
+          const els = [...document.querySelectorAll("#conteudo a[href], #conteudo button, #conteudo input, #conteudo select, #conteudo textarea")]
+            .filter((e) => !e.disabled && e.getClientRects().length);
+          els.forEach((e, i) => e.setAttribute("data-ordem-do-tab", String(i)));
+          return els.length;
+        });
+        for (let i = 0; i < Math.min(total, 30); i++) {
+          await pg.locator(`[data-ordem-do-tab="${i}"]`).evaluate((e) => e.focus());
+          await pg.waitForTimeout(60);
+          const m = await medirParada(); if (!m) continue; paradas++; if (!m.ok) fora.push(m.nome);
+        }
+      } else {
+        for (let i = 0; i < 40; i++) {
+          await pg.keyboard.press("Tab");
+          await pg.waitForTimeout(60);
+          const m = await medirParada(); if (!m) continue; paradas++; if (!m.ok) fora.push(m.nome);
+        }
+      }
+      ok(`Tab em ${rota} a ${tamanho(l, a, d)}: as ${paradas} paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé`,
+         paradas > 0 && fora.length === 0, `(${fora.slice(0, 4).join("; ")})`);
+      await ctx.close();
+    }
+  }
+
+  // H) O link do topo para Minha conta tem nome também até 600 px, onde o nome e o papel saem da tela (achado 3 da acessibilidade).
+  {
+    const { ctx, pg } = await contextoDeFoco(390, 844);
+    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+    await pg.setViewportSize({ width: 1280, height: 844 });
+    const nomeVisivel = ((await pg.locator(".identidade__nome").textContent()) ?? "").trim();
+    const esperado = `${nomeVisivel}, Administrador da organização, Minha conta`;
+    for (const largura of [390, 320, 1280]) {
+      await pg.setViewportSize({ width: largura, height: 844 });
+      await pg.waitForTimeout(150);
+      const n = await pg.getByRole("link", { name: esperado, exact: true }).count();
+      ok(`a ${largura} px, o link do topo para Minha conta tem nome ("${esperado}")`, nomeVisivel.length > 0 && n === 1, `(${n} link(s) com esse nome)`);
+    }
+    await ctx.close();
+  }
+
+  // E) O texto de exemplo da busca do topo cabe inteiro no campo (a 320 px saía "Buscar registro ou funç").
+  const { ctx, pg } = await contextoDeFoco(320, 568);
+  await entrar(emailDoOficio, SENHA_DO_TESTE, pg);
+  for (const largura of [320, 360]) {
+    await pg.setViewportSize({ width: largura, height: 700 });
+    await pg.waitForTimeout(200);
+    const m = await pg.evaluate(() => {
+      const campo = document.querySelector("#busca-global");
+      const cs = getComputedStyle(campo);
+      const regua = document.createElement("canvas").getContext("2d");
+      regua.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const area = campo.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)
+        - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      return { texto: regua.measureText(campo.placeholder).width, area };
+    });
+    ok(`a ${largura} px, o texto de exemplo da busca do topo cabe inteiro no campo`,
+       m.texto <= m.area + 0.5, `(texto ${m.texto.toFixed(1)} px, área ${m.area.toFixed(1)} px)`);
+  }
+  await ctx.close();
+}
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);

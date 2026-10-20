@@ -607,6 +607,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
   // V2-F00-E09, correção 5: `correcao-5-da-e09.test.ts` é novo, com 11 casos (o detector de email solto no JSX e a varredura de todo .tsx do painel, as duas janelas e a tentativa de envio do ofício usando o EmailQuebravel, a regra da dica da janela sem `anywhere`, o hook que leva o foco depois do commit e as duas telas que o usam, o `scroll-padding-top` e a margem do campo no topo de duas linhas, e o foco que rola pelo `scrollIntoView`). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o foco por efeito), sem caso novo. Nenhuma falha nova.
   "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
+  // V2-F00-E09, correção 6: `correcao-6-da-e09.test.ts` é novo, com 17 casos (o foco que leva à vista a moldura do campo e depois o controle, as folgas medidas do topo e da barra do pé, a janela muito baixa em que os dois rolam com a página, o Tab que respeita as bordas, a margem do rótulo em qualquer largura, o ofício que encolhe abaixo da palavra mais longa, o singular e o plural das tentativas, a busca a 320 px e o nome do link de Minha conta). `correcao-5-da-e09.test.ts` trocou duas asserções no lugar (a folga medida e a regra do ofício), sem caso novo. Nenhuma falha nova.
+  "V2-F00-E09-correcao-6": { total: 17, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -910,13 +912,22 @@ export const PASSOS = [
     Firefox; no WebKit 196 (uma verificacao do Tab
     e PULADA la, por escolha antiga do arquivo) e so a tela estreita, ver
     `e2e-api.mjs --so-layout`.
+
+    Correcao 6 da E09 (2026-10-20): de 197 para 255 (mais 58), secao 13: o
+    rotulo e o campo focados depois do erro inteiros entre o topo fixo e a barra
+    do pe em Minha conta (11 tamanhos, com os zooms de 200 e 400 por cento, mais
+    5 com Enter e a pagina no alto), Nova ocorrencia (6), "Defina a sua senha",
+    Usuarios, Ocorrencia e Quero conhecer (12), o Tab natural em tres telas e
+    quatro tamanhos (12), a linha do oficio na tela de verdade a 320 e 360 px
+    (7), a busca do topo a 320 e 360 px (2) e o nome do link de Minha conta (3).
+    Medido no Mac, Node 24: 255 no Chromium e no Firefox, 254 no WebKit.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 197   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 255   Falhou: 0"] },
   },
 ];
 

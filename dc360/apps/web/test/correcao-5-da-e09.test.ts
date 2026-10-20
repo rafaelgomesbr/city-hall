@@ -68,7 +68,7 @@ describe("Achado 2: nenhum email aparece solto em tela do painel", () => {
     expect(li.indexOf("<span>")).toBeGreaterThan(-1);
     expect(li.indexOf("<span>")).toBeLessThan(li.indexOf("<EmailQuebravel"));
     expect(li.indexOf("</span>")).toBeGreaterThan(li.indexOf("<EmailQuebravel"));
-    expect(fonte("estilos", "app.css")).toMatch(/\.oficio__linha > span \{ overflow-wrap: break-word; word-break: normal; \}/);
+    expect(fonte("estilos", "app.css")).toMatch(/\.oficio__linha > span \{ (?:min-width: 0; )?overflow-wrap: break-word; word-break: normal; \}/);
   });
 
   it("a regra da dica da janela deixou de cortar em qualquer lugar (anywhere ignora o <wbr>)", () => {
@@ -111,12 +111,12 @@ describe("Achado 1: o foco depois do erro é levado depois do commit, e não por
 
 describe("Achado 3 (visto nas capturas): o campo focado não fica atrás do topo de duas linhas", () => {
   it("em tela de celular o scroll-padding-top cobre as duas linhas do topo, e o de cima segue para o topo de uma linha", () => {
+    // Correção 6: a folga do topo é MEDIDA (`usar-bordas-fixas.ts`), em qualquer largura; sem medida (tela pública) é só o respiro.
     const css = fonte("estilos", "app.css");
-    expect(css).toMatch(/html \{ scroll-padding-top: calc\(var\(--ds-sp-8\) \+ var\(--ds-sp-4\)\); \}/);
-    const celular = css.slice(css.indexOf("@media (max-width: 600px) {\n  .topo {"));
-    expect(celular).toMatch(/html \{ scroll-padding-top: calc\(var\(--ds-touch\) \* 2 \+ var\(--ds-sp-3\) \* 3 \+ var\(--ds-sp-4\)\); \}/);
-    // E o rótulo, uns 32 px acima do campo, também fica à vista: a margem vale para os controles do `Campo`.
-    expect(celular).toMatch(/\.campo input, \.campo select, \.campo textarea \{ scroll-margin-top: calc\(var\(--ds-sp-5\) \+ var\(--ds-sp-3\)\); \}/);
+    expect(css).toMatch(/scroll-padding-top: var\(--topo-fixo-folga, var\(--ds-sp-3\)\);/);
+    expect(fonte("componentes", "Estrutura.tsx")).toMatch(/useBordasFixas\(topoRef, barraRef, Boolean\(sessao\)\);/);
+    // E o rótulo, uns 32 px acima do campo, também fica à vista: a margem vale para os controles do `Campo` (desde a correção 6, em qualquer largura).
+    expect(css).toMatch(/\.campo input, \.campo select, \.campo textarea \{ scroll-margin-top: calc\(var\(--ds-sp-5\) \+ var\(--ds-sp-3\)\); \}/);
   });
 });
 

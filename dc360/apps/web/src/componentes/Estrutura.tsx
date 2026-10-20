@@ -12,6 +12,7 @@ import {
 } from "./Icones";
 import { Sino } from "./Sino";
 import { BuscaGlobal } from "./BuscaGlobal";
+import { useBordasFixas, useFocoForaDasBordas } from "./usar-bordas-fixas";
 
 /**
  * Estrutura fixa da aplicação: lateral de navegação, topo com busca e
@@ -129,6 +130,10 @@ export function Estrutura() {
   const navegar = useNavigate();
   const { pathname } = useLocation();
   const barraRef = useRef<HTMLElement>(null);
+  const topoRef = useRef<HTMLElement>(null);
+  // O topo e a barra do pé são fixos: a rolagem da página deixa folga para os dois (ver o hook).
+  useBordasFixas(topoRef, barraRef, Boolean(sessao));
+  useFocoForaDasBordas(Boolean(sessao));
 
   /*
     A barra do celular mostra poucos ladrilhos por vez e o resto rola. Quem
@@ -224,7 +229,7 @@ export function Estrutura() {
         </div>
       </nav>
 
-      <header className="topo">
+      <header className="topo" ref={topoRef}>
         {/*
           A MARCA NO TOPO. Em tela estreita a lateral vai para o rodapé e a
           marca dela some (`.lateral__marca { display: none }`), e o painel
@@ -264,7 +269,15 @@ export function Estrutura() {
             conta, que é onde se troca a senha: quem recebe uma senha inicial
             ditada por telefone procura a troca aqui, e não num menu escondido.
           */}
-          <NavLink to="/minha-conta" className="identidade identidade--acionavel">
+          {/*
+            Até 600 px o nome e o papel saem da tela e fica só o avatar, que é
+            `aria-hidden`: o link ficava sem nome nenhum para quem ouve a tela
+            (axe `link-name`, achado 3 da acessibilidade na rodada 7 da
+            V2-F00-E09). O nome dito começa pelo texto que se vê na largura de
+            mesa (o nome e o papel) e termina no destino.
+          */}
+          <NavLink to="/minha-conta" className="identidade identidade--acionavel"
+                   aria-label={`${sessao.usuarioNome}, ${ROTULO_PAPEL[sessao.papel]}, Minha conta`}>
             <span className="identidade__avatar" aria-hidden="true">{iniciais(sessao.usuarioNome)}</span>
             <span>
               <span className="identidade__nome">{sessao.usuarioNome}</span>

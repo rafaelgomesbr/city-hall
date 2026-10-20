@@ -1,0 +1,58 @@
+[antes chromium minha-conta-senha-errada 640x450-dpr2] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 601x700] ESCONDIDO foco=conta-senha-atual rótulo=52..76 campo=84..128 topo até 141 pé desde 621 janela 601x700 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 700x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 700x600 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 768x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 900x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 900x600 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 1024x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1024x600 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 1280x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes chromium minha-conta-senha-errada 390x700] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 621 janela 390x700 spt=140px spb=auto
+[antes chromium minha-conta-senha-errada 360x700] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 621 janela 360x700 spt=140px spb=auto
+[antes chromium minha-conta-senha-errada 320x568] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 489 janela 320x568 spt=140px spb=auto
+[antes chromium minha-conta-enter-pagina-no-alto 320x568] ESCONDIDO foco=conta-senha-nova rótulo=492..516 campo=524..568 topo até 129 pé desde 489 janela 320x568 spt=140px spb=auto
+[antes chromium minha-conta-enter-pagina-no-alto 390x700] ESCONDIDO foco=conta-senha-nova rótulo=624..648 campo=656..700 topo até 129 pé desde 621 janela 390x700 spt=140px spb=auto
+[antes chromium minha-conta-enter-pagina-no-alto 640x450-dpr2] ESCONDIDO foco=conta-senha-nova rótulo=374..398 campo=406..450 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium minha-conta-enter-pagina-no-alto 768x600] ESCONDIDO foco=conta-senha-nova rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium nova-ocorrencia-enter-no-solicitante 320x640] ESCONDIDO foco=nova-endereco rótulo=554..578 campo=586..630 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes chromium nova-ocorrencia-enter-no-solicitante 390x844] ESCONDIDO foco=nova-endereco rótulo=768..792 campo=800..844 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes chromium nova-ocorrencia-enter-no-solicitante 640x450-dpr2] ESCONDIDO foco=nova-endereco rótulo=303..327 campo=335..379 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium nova-ocorrencia-enter-no-solicitante 768x600] ESCONDIDO foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium nova-ocorrencia-enter-no-solicitante 1280x600] À VISTA foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 640x450-dpr2] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 601x700] ESCONDIDO foco=conta-senha-atual rótulo=52..76 campo=84..128 topo até 141 pé desde 621 janela 601x700 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 700x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 700x600 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 768x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 900x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 900x600 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 1024x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1024x600 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 1280x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox minha-conta-senha-errada 390x700] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 621 janela 390x700 spt=140px spb=auto
+[antes firefox minha-conta-senha-errada 360x700] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 621 janela 360x700 spt=140px spb=auto
+[antes firefox minha-conta-senha-errada 320x568] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 489 janela 320x568 spt=140px spb=auto
+[antes firefox minha-conta-enter-pagina-no-alto 320x568] À VISTA foco=conta-senha-nova rótulo=341..365 campo=373..417 topo até 129 pé desde 489 janela 320x568 spt=140px spb=auto
+[antes firefox minha-conta-enter-pagina-no-alto 390x700] À VISTA foco=conta-senha-nova rótulo=489..513 campo=521..565 topo até 129 pé desde 621 janela 390x700 spt=140px spb=auto
+[antes firefox minha-conta-enter-pagina-no-alto 640x450-dpr2] À VISTA foco=conta-senha-nova rótulo=255..279 campo=287..331 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox minha-conta-enter-pagina-no-alto 768x600] À VISTA foco=conta-senha-nova rótulo=405..429 campo=437..481 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox nova-ocorrencia-enter-no-solicitante 320x640] ESCONDIDO foco=nova-endereco rótulo=536..560 campo=568..612 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes firefox nova-ocorrencia-enter-no-solicitante 390x844] ESCONDIDO foco=nova-endereco rótulo=768..792 campo=800..844 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes firefox nova-ocorrencia-enter-no-solicitante 640x450-dpr2] ESCONDIDO foco=nova-endereco rótulo=303..327 campo=335..379 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox nova-ocorrencia-enter-no-solicitante 768x600] ESCONDIDO foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox nova-ocorrencia-enter-no-solicitante 1280x600] À VISTA foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 640x450-dpr2] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 601x700] ESCONDIDO foco=conta-senha-atual rótulo=52..76 campo=84..128 topo até 141 pé desde 621 janela 601x700 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 700x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 700x600 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 768x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 900x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 900x600 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 1024x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1024x600 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 1280x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit minha-conta-senha-errada 390x700] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 621 janela 390x700 spt=140px spb=auto
+[antes webkit minha-conta-senha-errada 360x700] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 621 janela 360x700 spt=140px spb=auto
+[antes webkit minha-conta-senha-errada 320x568] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 489 janela 320x568 spt=140px spb=auto
+[antes webkit minha-conta-enter-pagina-no-alto 320x568] ESCONDIDO foco=conta-senha-nova rótulo=492..516 campo=524..568 topo até 129 pé desde 489 janela 320x568 spt=140px spb=auto
+[antes webkit minha-conta-enter-pagina-no-alto 390x700] ESCONDIDO foco=conta-senha-nova rótulo=624..648 campo=656..700 topo até 129 pé desde 621 janela 390x700 spt=140px spb=auto
+[antes webkit minha-conta-enter-pagina-no-alto 640x450-dpr2] ESCONDIDO foco=conta-senha-nova rótulo=374..398 campo=406..450 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit minha-conta-enter-pagina-no-alto 768x600] ESCONDIDO foco=conta-senha-nova rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit nova-ocorrencia-enter-no-solicitante 320x640] ESCONDIDO foco=nova-endereco rótulo=554..578 campo=586..630 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes webkit nova-ocorrencia-enter-no-solicitante 390x844] ESCONDIDO foco=nova-endereco rótulo=768..792 campo=800..844 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes webkit nova-ocorrencia-enter-no-solicitante 640x450-dpr2] ESCONDIDO foco=nova-endereco rótulo=303..327 campo=335..379 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit nova-ocorrencia-enter-no-solicitante 768x600] ESCONDIDO foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit nova-ocorrencia-enter-no-solicitante 1280x600] À VISTA foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes] resumo: 16 de 57 à vista, 41 escondidos

@@ -28,7 +28,16 @@
 export type NoFocavel = {
   focus(opcoes?: FocusOptions): void;
   scrollIntoView?(opcoes?: ScrollIntoViewOptions): void;
+  /** A moldura do campo (rótulo, controle, erro e dica), quando o nó sabe achá-la. */
+  closest?(seletor: string): { scrollIntoView?(opcoes?: ScrollIntoViewOptions): void } | null;
 };
+
+/**
+ * A moldura que o `Campo` desenha em volta do controle: o rótulo em cima, o
+ * controle, o erro e a dica embaixo. É ela que precisa caber à vista depois do
+ * foco, e não só o controle.
+ */
+export const SELETOR_MOLDURA = ".campo";
 
 /** O mínimo que uma raiz precisa saber fazer: achar o primeiro nó de um seletor. */
 export type RaizDeBusca = { querySelector(seletor: string): NoFocavel | null };
@@ -61,7 +70,7 @@ export function focarPrimeiroCampo(raiz: RaizDeBusca | null | undefined): boolea
 }
 
 /**
- * Foca e leva o nó à vista, em DUAS chamadas, e não só com `focus()`.
+ * Foca e leva à vista a MOLDURA do campo, e depois o próprio controle.
  *
  * O defeito (V2-F00-E09, correção 5, visto nas capturas): o `focus()` sozinho
  * rola a página por conta do motor, e cada motor escolhe uma posição. O
@@ -70,11 +79,22 @@ export function focarPrimeiroCampo(raiz: RaizDeBusca | null | undefined): boolea
  * do celular (rótulo a 94 px, topo até 129 px). `scrollIntoView` é o gesto que
  * os três motores fazem com `scroll-padding` e `scroll-margin`. `nearest` não
  * mexe na página se o campo já está à vista.
+ *
+ * O segundo defeito (correção 6, rodada 7): levar à vista só o CONTROLE deixava
+ * o rótulo de fora. Acima de 600 px o rótulo ficava atrás do topo (o controle
+ * parava no `scroll-padding-top`, e o rótulo 32 px acima dele), e com o campo
+ * abaixo da janela o controle parava na borda de baixo, atrás da barra do pé
+ * do celular. Agora vai à vista a moldura inteira (rótulo, controle e erro),
+ * entre as duas folgas que `usar-bordas-fixas.ts` mede (o topo e a barra do
+ * pé). A segunda chamada, sobre o controle, só mexe quando a moldura é mais
+ * alta que o espaço livre: aí o que não pode faltar é o controle, com o rótulo
+ * logo acima pela `scroll-margin-top` dele.
  */
 function focar(raiz: RaizDeBusca | null | undefined, seletor: string): boolean {
   const alvo = raiz?.querySelector(seletor) ?? null;
   if (!alvo) return false;
   alvo.focus({ preventScroll: true });
+  alvo.closest?.(SELETOR_MOLDURA)?.scrollIntoView?.({ block: "nearest" });
   alvo.scrollIntoView?.({ block: "nearest" });
   return true;
 }

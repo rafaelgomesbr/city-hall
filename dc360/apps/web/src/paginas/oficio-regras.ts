@@ -55,8 +55,8 @@ export function estadoDoEnvio(oficio: {
       tom: "perigo",
       rotulo: "Nenhuma tentativa foi aceita",
       explicacao:
-        `${oficio.envios === 1 ? "A tentativa" : `As ${oficio.envios} tentativas`} `
-        + "ficou registrada e o provedor de email não aceitou a mensagem. "
+        `${oficio.envios === 1 ? "A tentativa ficou registrada" : `As ${oficio.envios} tentativas ficaram registradas`} `
+        + "e o provedor de email não aceitou a mensagem. "
         + "Ninguém do órgão foi avisado: tente de novo, ou imprima o ofício e "
         + "encaminhe pelo canal de sempre.",
     };
@@ -106,4 +106,17 @@ export function providenciasSemOficio(
 export function rotuloDoEnvio(oficio: { numero: string; orgao_nome: string } | null): string {
   if (!oficio) return "Enviar ofício";
   return `Enviar ${oficio.numero} para ${oficio.orgao_nome}`;
+}
+
+/**
+ * O rótulo do botão que mostra ou esconde as tentativas de envio de um ofício.
+ *
+ * Era "Ver as {n} tentativa(s)" montado no JSX, e com uma tentativa só saía
+ * "Ver as 1 tentativa" (correção 6 da V2-F00-E09, rodada 7: texto mal escrito
+ * pelo portão visual). Uma tentativa é "a tentativa", sem número; mais de uma
+ * leva o número e o plural, no artigo e no nome.
+ */
+export function rotuloDasTentativas(envios: number, abertas: boolean): string {
+  const verbo = abertas ? "Esconder" : "Ver";
+  return envios === 1 ? `${verbo} a tentativa` : `${verbo} as ${envios} tentativas`;
 }
