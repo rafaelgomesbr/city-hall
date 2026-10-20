@@ -675,6 +675,14 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },
   // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 10 casos (6 do login real, provedor, banco e rascunho de verdade: troca de pessoa, a ordem de limpar antes de abrir a sessão e o dono do disco; 4 da credencial e da identidade que saem do cofre).
   "V2-F00-E15-correcao-3": { total: 10, falhas: 0 },
+  /*
+    V2-F00-E06, correção 3 (41 casos, contados contra o `b17949a`): "Enviar
+    agora" e os outros pontos que prometiam sinal com a fila pausada.
+    `enviar-agora-com-a-fila-pausada.test.tsx` (7), `fila-pausada-nao-promete-sinal.test.tsx` (14),
+    `vistoria-guardada-com-a-fila-pausada.test.tsx` (8), 9 em `aviso-da-saida.test.ts`
+    e 3 em `dialogo-na-conta.test.tsx`; os `it.each` entram com uma linha por motivo.
+  */
+  "V2-F00-E06-correcao-3": { total: 41, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

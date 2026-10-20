@@ -1,0 +1,19 @@
+FAIL src/dados/aviso-da-saida.test.ts
+FAIL src/ui/fila-pausada-nao-promete-sinal.test.tsx
+                        ✓
+                        ✓
+                        ✓
+FAIL src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx
+                        ✓
+                        ✓
+                        ✓
+                        ✓
+                        ✓
+                        ✓
+FAIL src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx
+FAIL src/ui/dialogo-na-conta.test.tsx
+                      ✓
+                      ✓
+                      ✓
+Test Suites: 5 failed, 5 total
+Tests:       34 failed, 23 passed, 57 total

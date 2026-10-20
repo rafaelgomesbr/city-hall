@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * A ressalva da saída a campo, presa por teste (V2-F00-E24, correção 3).
+ * A ressalva da saída a campo, presa por teste (V2-F00-E24, correções 3 e 3b).
  *
  * A decisão: o aplicativo do agente ainda NÃO declara a saída a campo
  * (V2-F14-E01). Enquanto isso, nenhum texto que o município lê pode afirmar
@@ -18,109 +18,256 @@ import { describe, expect, it } from "vitest";
  * ninguém viu até a validação. Regra que só roda quando alguém lembra não
  * existe: aqui ela roda no `npm test`.
  *
- * A unidade conferida é a linha nos HTML e o parágrafo nos Markdown, com uma
- * exceção que fecha um buraco do guarda antigo: em tabela Markdown a unidade é
- * a LINHA da tabela. Como a tabela inteira é um parágrafo só, uma ressalva em
- * qualquer célula dela absolvia todas as outras linhas.
+ * O que a revisão independente da correção 3 achou e este arquivo fecha:
+ *  1. Ressalva numa célula só passava. Numa linha de tabela, TODA célula "sim"
+ *     precisa da ressalva.
+ *  2. Ressalva negada passava ("sim (não está mais em construção)"). Negação
+ *     deixa de valer como ressalva.
+ *  3. Padrão com espaço literal deixava a frase quebrada em duas linhas
+ *     escapar. Os padrões usam `\s+`, e o texto do Markdown é conferido sem o
+ *     prefixo "> " das citações (a ressalva do cartão quebra no meio de
+ *     "em construção").
+ *  4. Em lista Markdown, outro item com "em construção" absolvia o item
+ *     errado. A unidade da lista é o ITEM; da tabela, a LINHA; do HTML, o
+ *     bloco (linha de tabela, item, parágrafo, cartão), não a linha do arquivo.
+ *  5. Faltavam documentos: SEGURANCA-DO-AGENTE, GUIA-DO-COORDENADOR (seção 9),
+ *     LEIA-ME, CARTAO-DO-AGENTE e o quadro de estado do README ("O agente que
+ *     sobe o morro sozinho") passam a ter o quadro exigido.
+ *  6. As linhas "Perfil com foto e números" e "Segurança do agente sozinho" da
+ *     apresentação de 15/09 entram na cobertura. A segunda não pode voltar a
+ *     "Pronto". A forma de ressalva "ainda não declara/faz" é aceita onde a
+ *     frase é sobre o aplicativo do agente.
  *
  * Exceção deliberada: a tabela de permissões do README (`### Quem pode o quê`)
  * é GERADA do catálogo `acoesDoPapel`, com teste que reprova edição manual
- * (`permissoes-no-readme.test.ts`), por isso a regra do README só cobre a frase
- * em negrito do texto corrido. Já a tabela de papéis é escrita à mão, e a
- * ressalva cabe nela: "sim (em construção)".
+ * (`permissoes-no-readme.test.ts`); por isso linhas de tabela do README ficam
+ * fora da regra. A tabela de papéis é escrita à mão, e a ressalva cabe nela:
+ * "sim (em construção)".
  */
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ_REPO = join(AQUI, "..", "..", "..", "..");
 
-const RESSALVA = /em constru[cç][aã]o/i;
+/** A ressalva aceita: "em construção", ou a forma que fala do aplicativo ("ainda não declara/faz/registra"). */
+const POSITIVA = /em\s+constru[cç][aã]o|ainda\s+n[aã]o\s+(?:declara|faz|registra)/i;
+/** Negada, a ressalva não vale: "não está (mais) em construção", "deixou de estar em construção". */
+const NEGADA = /(?:\bn[aã]o|\bnunca|\bsem|deixou\s+de|\bj[aá]\s+n[aã]o)\s+(?:est[aá]\s+|estar\s+|fica\s+|ficou\s+)?(?:mais\s+)?em\s+constru[cç][aã]o/i;
+export const temRessalva = (u: string): boolean => POSITIVA.test(u) && !NEGADA.test(u);
+
+type Tipo = "markdown" | "html";
 
 export interface Regra {
   arquivo: string;
-  unidade: "linha" | "paragrafo";
+  tipo: Tipo;
   padrao: RegExp;
+  /** Linhas de tabela ficam fora (a tabela de permissões do README é gerada do catálogo). */
+  semTabela?: boolean;
 }
 
+export interface Quadro {
+  arquivo: string;
+  /** Acha a unidade que é o quadro de estado. */
+  ancora: RegExp;
+  /** O que o quadro tem de dizer, além de trazer a ressalva. */
+  deve: readonly RegExp[];
+}
+
+const FRASE = /quem\s+est[aá]\s+em\s+campo/i;
+
 export const REGRAS: readonly Regra[] = [
-  { arquivo: "docs/apresentacao-produto-alyson.html", unidade: "linha", padrao: /acompanha(r)? quem est[aá] em campo/i },
-  { arquivo: "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html", unidade: "linha", padrao: /acompanha(r)? quem est[aá] em campo|retorno n[aã]o confirmado/i },
-  { arquivo: "dc360/docs/PRIVACIDADE.md", unidade: "paragrafo", padrao: /sa[ií]da a campo declarada pelo agente/i },
-  { arquivo: "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md", unidade: "paragrafo", padrao: /acompanhar quem est[aá] em campo|acompanha quem est[aá] em campo/i },
-  { arquivo: "dc360/README.md", unidade: "paragrafo", padrao: /\*\*acompanha quem est[aá] em campo\*\*/i },
+  { arquivo: "docs/apresentacao-produto-alyson.html", tipo: "html", padrao: FRASE },
+  { arquivo: "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html", tipo: "html", padrao: /quem\s+est[aá]\s+em\s+campo|retorno\s+n[aã]o\s+confirmado/i },
+  { arquivo: "dc360/docs/PRIVACIDADE.md", tipo: "markdown", padrao: /sa[ií]da\s+a\s+campo\s+declarada\s+pelo\s+agente/i, semTabela: true },
+  { arquivo: "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md", tipo: "markdown", padrao: FRASE },
+  { arquivo: "dc360/README.md", tipo: "markdown", padrao: FRASE, semTabela: true },
+  { arquivo: "dc360/docs/LEIA-ME.md", tipo: "markdown", padrao: /SEGURANCA-DO-AGENTE\.md\]/ },
 ];
 
-/** Divide o texto em unidades; parágrafo que é tabela Markdown vira uma unidade por linha. */
-function unidadesDe(texto: string, unidade: Regra["unidade"]): string[] {
-  const linhas = texto.split(/\r?\n/);
-  if (unidade === "linha") return linhas;
-  const paragrafos = texto.split(/\r?\n\s*\r?\n/);
-  return paragrafos.flatMap((p) => (p.trimStart().startsWith("|") ? p.split(/\r?\n/) : [p]));
+export const QUADROS: readonly Quadro[] = [
+  { arquivo: "dc360/docs/SEGURANCA-DO-AGENTE.md", ancora: /ainda\s+n[aã]o\s+declara\s+a\s+sa[ií]da/i, deve: [/fica\s+vazia/i] },
+  { arquivo: "dc360/docs/GUIA-DO-COORDENADOR.md", ancora: /ainda\s+n[aã]o\s+declara\s+a\s+sa[ií]da/i, deve: [/fica\s+vazia/i] },
+  { arquivo: "dc360/docs/CARTAO-DO-AGENTE.md", ancora: /ainda\s+n[aã]o\s+registra\s+a\s+sua\s+sa[ií]da/i, deve: [/n[aã]o\s+avisa\s+ningu[eé]m/i] },
+  { arquivo: "dc360/README.md", ancora: /Estado\s+em\s+07\/10\/2026/i, deve: [/nenhuma\s+sa[ií]da\s+[eé]\s+declarada/i, /fica\s+vazia/i] },
+];
+
+/** A linha da apresentação de 15/09 que já foi "Pronto" por engano e não pode voltar a ser. */
+const SELO_DA_SEGURANCA = { arquivo: "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html", ancora: /Seguran[cç]a\s+do\s+agente\s+sozinho/i };
+
+const ITEM = /^\s*(?:[-*]|\d+[.)])\s/;
+
+/** Markdown: parágrafo; tabela vira uma unidade por LINHA; lista vira uma unidade por ITEM. Sem o prefixo "> ". */
+function unidadesMarkdown(texto: string): string[] {
+  const out: string[] = [];
+  for (const par of texto.split(/\r?\n\s*\r?\n/)) {
+    const linhas = par.split(/\r?\n/).map((l) => l.replace(/^\s*>\s?/, (m) => (m.includes(">") ? "" : m)));
+    if (par.trimStart().startsWith("|")) { out.push(...linhas); continue; }
+    if (linhas.some((l) => ITEM.test(l))) {
+      let atual: string[] = [];
+      for (const l of linhas) {
+        if (ITEM.test(l) && atual.length > 0) { out.push(atual.join("\n")); atual = []; }
+        atual.push(l);
+      }
+      out.push(atual.join("\n"));
+      continue;
+    }
+    out.push(linhas.join("\n"));
+  }
+  return out;
+}
+
+/** HTML: o bloco que se fecha (linha de tabela, item, parágrafo, cartão), não a linha do arquivo. */
+function unidadesHtml(texto: string): string[] {
+  return texto.split(/(?<=<\/(?:tr|li|p|h[1-6]|dd|dt|ul|ol|table|tbody|thead|section|article|div)>)/i);
+}
+
+const unidadesDe = (texto: string, tipo: Tipo) => (tipo === "html" ? unidadesHtml(texto) : unidadesMarkdown(texto));
+const resumo = (u: string) => u.replace(/\s+/g, " ").trim().slice(0, 120);
+
+/** Linha de tabela Markdown cuja primeira célula traz a frase: cada célula "sim" precisa da própria ressalva. */
+function semRessalvaNaUnidade(u: string, regra: Regra): boolean {
+  const t = u.trim();
+  if (regra.tipo === "markdown" && t.startsWith("|")) {
+    const celulas = t.split("|").slice(1, -1).map((c) => c.trim());
+    if (regra.padrao.test(celulas[0] ?? "")) {
+      const sims = celulas.slice(1).filter((c) => /^sim\b/i.test(c));
+      if (sims.length > 0) return !sims.every(temRessalva);
+    }
+  }
+  return !temRessalva(u);
 }
 
 export function conferir(texto: string, regra: Regra): { conferidas: number; semRessalva: string[] } {
-  const ocorrencias = unidadesDe(texto, regra.unidade).filter((u) => regra.padrao.test(u));
-  return {
-    conferidas: ocorrencias.length,
-    semRessalva: ocorrencias.filter((u) => !RESSALVA.test(u)).map((u) => u.trim().slice(0, 110)),
-  };
+  const ocorrencias = unidadesDe(texto, regra.tipo).filter(
+    (u) => regra.padrao.test(u) && !(regra.semTabela && regra.tipo === "markdown" && u.trim().startsWith("|")),
+  );
+  return { conferidas: ocorrencias.length, semRessalva: ocorrencias.filter((u) => semRessalvaNaUnidade(u, regra)).map(resumo) };
 }
 
+export function conferirQuadro(texto: string, quadro: Quadro): string[] {
+  const tipo: Tipo = quadro.arquivo.endsWith(".html") ? "html" : "markdown";
+  const achadas = unidadesDe(texto, tipo).filter((u) => quadro.ancora.test(u));
+  if (achadas.length === 0) return [`${quadro.arquivo}: o quadro de estado (${quadro.ancora}) sumiu`];
+  const out: string[] = [];
+  for (const u of achadas) {
+    if (!temRessalva(u)) out.push(`${quadro.arquivo}: o quadro não traz a ressalva: ${resumo(u)}`);
+    for (const d of quadro.deve) if (!d.test(u)) out.push(`${quadro.arquivo}: o quadro não diz ${d}: ${resumo(u)}`);
+  }
+  return out;
+}
+
+/** Tudo o que reprova em UM arquivo. Vazio é aprovado. */
+export function auditar(arquivo: string, texto: string): string[] {
+  const out: string[] = [];
+  for (const r of REGRAS.filter((x) => x.arquivo === arquivo)) {
+    const c = conferir(texto, r);
+    if (c.conferidas === 0) out.push(`${arquivo}: o padrão ${r.padrao} não casa mais com nada (a regra ficaria vazia)`);
+    for (const s of c.semRessalva) out.push(`${arquivo}: sem a ressalva: ${s}`);
+  }
+  for (const q of QUADROS.filter((x) => x.arquivo === arquivo)) out.push(...conferirQuadro(texto, q));
+  if (arquivo === SELO_DA_SEGURANCA.arquivo) {
+    const linha = unidadesHtml(texto).filter((u) => SELO_DA_SEGURANCA.ancora.test(u));
+    if (linha.length === 0) out.push(`${arquivo}: a linha "Segurança do agente sozinho" sumiu`);
+    for (const u of linha) {
+      if (/pilula\s+p-(?:ok|pronto)/i.test(u) || !/p-parcial/i.test(u)) out.push(`${arquivo}: "Segurança do agente sozinho" deixou de ser Parcial`);
+    }
+  }
+  return out;
+}
+
+const ARQUIVOS = [...new Set([...REGRAS.map((r) => r.arquivo), ...QUADROS.map((q) => q.arquivo)])];
 const lerDoRepo = (arquivo: string) => readFileSync(join(RAIZ_REPO, arquivo), "utf8");
 
-/** Quantas ocorrências cada documento tem hoje: padrão que some do texto não pode virar aprovação em silêncio. */
-const OCORRENCIAS_ESPERADAS: Record<string, number> = {
-  "docs/apresentacao-produto-alyson.html": 3,
-  "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html": 2,
-  "dc360/docs/PRIVACIDADE.md": 1,
-  "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md": 4,
-  "dc360/README.md": 1,
-};
+const PAPEIS = "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md";
+const README = "dc360/README.md";
+const ALYSON = "docs/apresentacao-produto-alyson.html";
+const H1509 = "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html";
+const PRIVACIDADE = "dc360/docs/PRIVACIDADE.md";
+const SEGURANCA = "dc360/docs/SEGURANCA-DO-AGENTE.md";
+const GUIA = "dc360/docs/GUIA-DO-COORDENADOR.md";
+const LEIAME = "dc360/docs/LEIA-ME.md";
+const CARTAO = "dc360/docs/CARTAO-DO-AGENTE.md";
+
+const LINHA_209 = "| Acompanhar quem está em campo agora | sim (em construção) | não | sim (em construção) | sim (em construção) |";
+const LINHA_209_ANTIGA = "| Acompanhar quem está em campo agora | sim | não | sim | sim |";
+
+/** Cada mutação é um defeito plausível; TODAS têm de reprovar. */
+const MUTACOES: ReadonlyArray<{ nome: string; arquivo: string; muta: (t: string) => string }> = [
+  { nome: "M0 a regressão real da E22: linha 209 sem a ressalva", arquivo: PAPEIS, muta: (t) => t.replace(LINHA_209, LINHA_209_ANTIGA) },
+  { nome: "M1 linha 209 com a ressalva só na última célula", arquivo: PAPEIS, muta: (t) => t.replace(LINHA_209, "| Acompanhar quem está em campo agora | sim | não | sim | sim (em construção) |") },
+  { nome: "M2 ressalva negada: 'sim (não está mais em construção)'", arquivo: PAPEIS, muta: (t) => t.replace(LINHA_209, "| Acompanhar quem está em campo agora | sim (não está mais em construção) | não | sim (não está mais em construção) | sim (não está mais em construção) |") },
+  { nome: "M3 linha 209 com 'em breve' no lugar de 'em construção'", arquivo: PAPEIS, muta: (t) => t.replace(LINHA_209, LINHA_209.replaceAll("em construção", "em breve")) },
+  { nome: "M4 linha reescrita 'Ver quem está em campo agora | sim'", arquivo: PAPEIS, muta: (t) => t.replace(LINHA_209, "| Ver quem está em campo agora | sim | não | sim | sim |") },
+  { nome: "M5 item da lista sem ressalva, com outro item da lista que tem", arquivo: PAPEIS, muta: (t) => t.replace("- Acompanhar quem está em campo agora (em construção, como no operador)", "- Acompanhar quem está em campo agora").replace("- Gerenciar equipes e usuários", "- Gerenciar equipes e usuários (importação em construção)") },
+  { nome: "M6 o bloco 'Estado do recurso' vira 'não está em construção'", arquivo: PAPEIS, muta: (t) => t.replace(/\*\*Estado do recurso: em construção\.\*\*[\s\S]*?quem está no morro\./, "O recurso não está em construção: funciona hoje.") },
+  { nome: "M7 parágrafo novo 'O operador vê, em tempo real, quem está em campo'", arquivo: PAPEIS, muta: (t) => t.replace("## A tabela, de uma vez", "O operador vê, em tempo real, quem está em campo e é avisado do prazo estourado.\n\n## A tabela, de uma vez") },
+  { nome: "M7b a frase quebrada em duas linhas, sem ressalva", arquivo: PAPEIS, muta: (t) => t.replace("- Acompanhar quem está em campo agora (em construção, como no operador)", "- Acompanhar quem está\n  em campo agora") },
+  { nome: "M8 README: 'está em construção' vira 'chega futuramente'", arquivo: README, muta: (t) => t.replace("Esse acompanhamento está em construção:", "Esse acompanhamento chega futuramente:") },
+  { nome: "M9 README: negrito quebrado em duas linhas e sem a ressalva", arquivo: README, muta: (t) => t.replace("E ele **acompanha quem está em campo**", "E ele **acompanha quem está\nem campo**").replace("Esse acompanhamento está em construção:", "Esse acompanhamento funciona:") },
+  { nome: "M10 README: o quadro de estado do agente sozinho some", arquivo: README, muta: (t) => t.replace(/> \*\*Estado em 07\/10\/2026[\s\S]*?\n\n/, "") },
+  { nome: "M10b README: o quadro diz que a tela funciona", arquivo: README, muta: (t) => t.replace(/nenhuma saída é declarada, a tela "Quem está em campo" fica vazia/, 'toda saída é declarada, a tela "Quem está em campo" mostra todos') },
+  { nome: "M11 15/09: 'Segurança do agente sozinho' volta a 'Pronto' (só o selo)", arquivo: H1509, muta: (t) => t.replace('p-parcial">Parcial</span></td><td>Pronto no servidor', 'p-ok">Pronto</span></td><td>Pronto no servidor') },
+  { nome: "M11b 15/09: volta a 'Pronto' e some a frase 'ainda não declara'", arquivo: H1509, muta: (t) => t.replace('p-parcial">Parcial</span></td><td>Pronto no servidor', 'p-ok">Pronto</span></td><td>Pronto no servidor').replace(/ O aplicativo do agente ainda não declara a saída[^<]*?Pronto"/, "") },
+  { nome: "M12 15/09: some '(o indicador depende... não acende)' do Perfil", arquivo: H1509, muta: (t) => t.replace(/ \(o indicador depende da saída a campo declarada[^)]*\)/, "") },
+  { nome: "M12b 15/09: o Perfil com a frase quebrada e sem ressalva", arquivo: H1509, muta: (t) => t.replace(/equipe com quem está em campo agora \(o indicador[^)]*\)/, "equipe com quem está\nem campo agora") },
+  { nome: "M13 Alyson: '(em construção)' vira '(planejado)' na matriz", arquivo: ALYSON, muta: (t) => t.replace("Acompanhar quem está em campo (em construção)", "Acompanhar quem está em campo (planejado)") },
+  { nome: "M14 PRIVACIDADE: 'declarada no aplicativo' sem ressalva", arquivo: PRIVACIDADE, muta: (t) => t.replace("saída a campo declarada pelo agente", "saída a campo declarada pelo agente\n\nA saída a campo declarada pelo agente é gravada na trilha.").replace(/Recurso em construção:[^\n]*(\n[^\n]+)*/, "") },
+  { nome: "M15 linha 209 sem ressalva e linha NOVA com ressalva (contagem igual)", arquivo: PAPEIS, muta: (t) => t.replace(LINHA_209, LINHA_209_ANTIGA).replace("| Gerenciar equipes |", "| Acompanhar quem está em campo, histórico (em construção) | não | não | sim | sim |\n| Gerenciar equipes |") },
+  { nome: "M16 SEGURANCA-DO-AGENTE: o quadro de estado some", arquivo: SEGURANCA, muta: (t) => t.replace(/> \*\*Estado atual[\s\S]*?sem data marcada\.\n/, "") },
+  { nome: "M16b SEGURANCA-DO-AGENTE: o quadro diz que a tela mostra os agentes", arquivo: SEGURANCA, muta: (t) => t.replace("fica vazia", "mostra todos os agentes") },
+  { nome: "M17 GUIA seção 9: o quadro de estado some", arquivo: GUIA, muta: (t) => t.replace(/> \*\*Estado atual: a tela existe[\s\S]*?até ele estar no aplicativo\.\n/, "") },
+  { nome: "M18 LEIA-ME: a linha da segurança do agente perde o 'Em construção'", arquivo: LEIAME, muta: (t) => t.replace("**Em construção:** o servidor e a tela da coordenação estão prontos, o aplicativo do agente ainda não declara a saída", "Pronto para ligar") },
+  { nome: "M19 CARTAO-DO-AGENTE: o quadro de estado some", arquivo: CARTAO, muta: (t) => t.replace(/> \*\*O aplicativo ainda não registra[\s\S]*?disse a ela\.\n/, "") },
+];
 
 describe("Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção'", () => {
-  for (const regra of REGRAS) {
-    it(`${regra.arquivo}: toda ocorrência traz a ressalva`, () => {
-      const r = conferir(lerDoRepo(regra.arquivo), regra);
-      expect(r.semRessalva).toEqual([]);
-      expect(r.conferidas).toBe(OCORRENCIAS_ESPERADAS[regra.arquivo]);
+  for (const arquivo of ARQUIVOS) {
+    it(`${arquivo}: toda ocorrência e todo quadro de estado estão em ordem`, () => {
+      expect(auditar(arquivo, lerDoRepo(arquivo))).toEqual([]);
     });
   }
 
-  it("morde: tirar a ressalva de qualquer ocorrência de qualquer documento reprova", () => {
-    for (const regra of REGRAS) {
-      const texto = lerDoRepo(regra.arquivo);
-      const unidades = unidadesDe(texto, regra.unidade);
-      const alvos = unidades.filter((u) => regra.padrao.test(u));
-      expect(alvos.length).toBeGreaterThan(0);
-      for (const alvo of alvos) {
-        const sem = alvo.replace(/\s*\(?em constru[cç][aã]o[^)\n]*\)?/gi, "").replace(/em constru[cç][aã]o/gi, "");
-        expect(RESSALVA.test(sem)).toBe(false);
-        const r = conferir(texto.replace(alvo, sem), regra);
-        expect(r.semRessalva.length, `${regra.arquivo}: sem a ressalva em "${alvo.trim().slice(0, 60)}"`).toBeGreaterThan(0);
-      }
+  describe("morde: cada defeito plausível reprova", () => {
+    for (const m of MUTACOES) {
+      it(m.nome, () => {
+        const texto = lerDoRepo(m.arquivo);
+        const mutado = m.muta(texto);
+        expect(mutado, "a mutação não mudou o texto: o trecho-alvo mudou de lugar").not.toBe(texto);
+        expect(auditar(m.arquivo, mutado).length).toBeGreaterThan(0);
+      });
     }
   });
 
-  it("morde na regressão real da E22: a linha da tabela de papéis sem a ressalva é acusada, com ela passa", () => {
-    const regra = REGRAS.find((r) => r.arquivo.endsWith("PAPEIS_E_RESPONSABILIDADES.md"))!;
-    const texto = lerDoRepo(regra.arquivo);
-    const certa = "| Acompanhar quem está em campo agora | sim (em construção) | não | sim (em construção) | sim (em construção) |";
-    const antiga = "| Acompanhar quem está em campo agora | sim | não | sim | sim |";
-    expect(texto).toContain(certa);
-    const reprovada = conferir(texto.replace(certa, antiga), regra);
-    expect(reprovada.semRessalva.join("\n")).toContain("Acompanhar quem está em campo agora");
-    expect(conferir(texto, regra).semRessalva).toEqual([]);
-  });
+  describe("as regras em si", () => {
+    it("ressalva negada ou ausente não vale; a afirmativa vale", () => {
+      expect(temRessalva("sim (em construção)")).toBe(true);
+      expect(temRessalva("o aplicativo ainda não declara a saída")).toBe(true);
+      expect(temRessalva("sim (não está mais em construção)")).toBe(false);
+      expect(temRessalva("deixou de estar em construção")).toBe(false);
+      expect(temRessalva("sim")).toBe(false);
+    });
 
-  it("a ressalva de uma linha da tabela não absolve as outras (unidade é a linha da tabela)", () => {
-    const regra = REGRAS.find((r) => r.arquivo.endsWith("PAPEIS_E_RESPONSABILIDADES.md"))!;
-    const tabela = [
-      "| Ação | Operador |",
-      "| --- | :---: |",
-      "| Acompanhar quem está em campo agora | sim |",
-      "| Outra ação qualquer | sim (em construção) |",
-    ].join("\n");
-    const r = conferir(tabela, regra);
-    expect(r.conferidas).toBe(1);
-    expect(r.semRessalva).toHaveLength(1);
+    it("em tabela, a ressalva de uma linha não absolve a outra", () => {
+      const regra = REGRAS.find((r) => r.arquivo === PAPEIS)!;
+      const tabela = [
+        "| Ação | Operador |",
+        "| --- | :---: |",
+        "| Acompanhar quem está em campo agora | sim |",
+        "| Outra ação qualquer | sim (em construção) |",
+      ].join("\n");
+      const r = conferir(tabela, regra);
+      expect(r.conferidas).toBe(1);
+      expect(r.semRessalva).toHaveLength(1);
+    });
+
+    it("em lista, a ressalva de um item não absolve o outro", () => {
+      const regra = REGRAS.find((r) => r.arquivo === PAPEIS)!;
+      const lista = "- Acompanhar quem está em campo agora\n- Outro item (em construção)\n";
+      expect(conferir(lista, regra).semRessalva).toHaveLength(1);
+    });
+
+    it("a frase quebrada em duas linhas é achada", () => {
+      const regra = REGRAS.find((r) => r.arquivo === README)!;
+      expect(conferir("Ele acompanha quem está\nem campo agora.", regra).conferidas).toBe(1);
+    });
   });
 });

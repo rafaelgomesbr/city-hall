@@ -64,14 +64,20 @@ jest.mock("../dados/avisos", () => ({
 
 /** Quantas coletas o aparelho diz ter esperando. Cada teste ajusta. */
 let mockPendentes = 0;
+/* A pausa que a fila entrega no resumo (V2-F00-E06, correção 3). */
+let mockPausadaPor: string | null = null;
 jest.mock("../dados/fila", () => ({
   obterFila: async () => ({
     resumo: async () => ({
       pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
+      pausadaPor: mockPausadaPor,
     }),
     /* O Perfil assina a fila (V2-F00-E15), e a fila de verdade avisa quem assina na hora. */
     assinar: (ouvinte: (r: unknown) => void) => {
-      ouvinte({ pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0 });
+      ouvinte({
+        pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
+        pausadaPor: mockPausadaPor,
+      });
       return () => undefined;
     },
   }),
@@ -121,10 +127,12 @@ jest.mock("../dados/preferencia-de-tema", () => ({
 }));
 
 import Perfil from "../app/(agente)/perfil";
+import { frasesDaPausa } from "../dados/pausa-da-fila";
 import { ProvedorDeTema } from "./componentes";
 
 beforeEach(() => {
   mockPendentes = 0;
+  mockPausadaPor = null;
   mockSair.mockClear();
   (router.replace as jest.Mock).mockClear();
 });
@@ -165,6 +173,28 @@ describe("a pergunta antes de sair", () => {
     await tocar("Sair da conta");
 
     expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
+  });
+
+  /*
+    Com a fila pausada pela sessão, "volta a subir quando você entrar de novo,
+    com sinal" é a promessa errada (V2-F00-E06, correção 3): sinal não destrava
+    nenhum dos três casos, e na conta desativada nem entrar de novo destrava. A
+    pergunta diz a frase da pausa, a mesma da faixa do topo.
+  */
+  it.each([
+    "sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria",
+  ] as const)("com a fila pausada por %s, a pergunta diz a frase da pausa e não promete sinal", async (motivo) => {
+    mockPendentes = 3;
+    mockPausadaPor = motivo;
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(
+      frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    ))).toBeTruthy();
+    expect(screen.queryByText(/entrar de novo, com sinal|entrar de novo,\s+com sinal/)).toBeNull();
   });
 
   it("sem coleta pendente, a pergunta continua existindo, com outro texto", async () => {

@@ -545,7 +545,7 @@ export default function Perfil() {
     : null;
 
   /* O que a saída apaga e o que ela guarda, dito antes do toque que confirma. */
-  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida);
+  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida, resumoDaFila?.pausadaPor ?? null);
 
   /* As contas dos números, memoizadas: mudam com os dados e com o relógio. */
   const concluidas = dados?.concluidas ?? [];

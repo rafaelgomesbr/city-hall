@@ -13,7 +13,7 @@ import {
   montarMinuta, rotuloDoCampo,
   type EnvelopeSincronizacao, type MotivoDeDevolucao, type PessoasAtingidas,
 } from "@dc360/shared";
-import type { CampoRecusado, ColetaLocal, FotoLocal } from "@dc360/campo";
+import type { CampoRecusado, ColetaLocal, FotoLocal, MotivoDeSessao } from "@dc360/campo";
 import { enderecoDaApi, type OrgaoDoCatalogo, type Pendencia } from "../../../dados/api";
 import {
   comoContarAFalha, ehFimDeLinha, motivoDaFalha, type MotivoDaFalha,
@@ -26,6 +26,7 @@ import {
   apagarFotoDoAparelho, guardarFotoNoAparelho, medirArquivoNoAparelho,
 } from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
+import { frasesDaPausa } from "../../../dados/pausa-da-fila";
 import { precisaoDoGpsEmMetros } from "../../../dados/precisao-do-gps";
 import {
   buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
@@ -902,6 +903,41 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     fez", que era invisível enquanto isto era `Alert.alert`.
   */
   const [avisandoQueGuardou, setAvisandoQueGuardou] = useState(false);
+  /*
+    A fila parada pela sessão, para as duas telas que dizem "isto sobe quando
+    houver sinal" (a da coleta já feita e a de depois de guardar). Com a pausa
+    o sinal não resolve nada, e a frase tem de ser a da pausa, a mesma da faixa
+    do topo e do cartão da fila (V2-F00-E06, correção 3).
+
+    A fila só é consultada quando uma dessas duas telas está aberta: o resto da
+    vistoria não tem nada a dizer sobre envio. Fila que não abre deixa a frase
+    de sempre, que é o que esta tela dizia antes de saber da pausa.
+  */
+  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
+  const dizOQueFazComAColeta = Boolean(jaColetada) || avisandoQueGuardou;
+  useEffect(() => {
+    if (!dizOQueFazComAColeta) return;
+    let vivo = true;
+    let desassinar: (() => void) | undefined;
+    void (async () => {
+      try {
+        const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
+        if (!vivo) return;
+        desassinar = fila.assinar((resumo) => {
+          if (vivo) setPausadaPor(resumo?.pausadaPor ?? null);
+        });
+      } catch {
+        /* Sem fila, sem pausa conhecida: vale a frase de sempre. */
+      }
+    })();
+    return () => {
+      vivo = false;
+      desassinar?.();
+    };
+    // As funções da sessão passam direto para a fila única, como em
+    // `useResumoDaFila`; só mostrar ou esconder as telas refaz a assinatura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dizOQueFazComAColeta]);
   /*
     O que o servidor, ou a conferência de antes de enfileirar, recusou na
     última tentativa de concluir. Vem do rascunho ao abrir (a coleta que voltou
@@ -2160,13 +2196,19 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           Esta ocorrência já foi coletada neste aparelho.
           {jaColetada.situacao === "enviada"
             ? " A vistoria já foi enviada ao servidor."
-            : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
+            : pausadaPor
+              ? ` ${frasesDaPausa(pausadaPor).detalhe}`
+              : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
         </Aviso>
 
         <Txt variante="corpoP" discreto>
-          A tarefa continua aparecendo na sua lista porque ela só sai de lá
-          quando o aparelho conseguir falar com o servidor. Isso pode demorar
-          horas sem sinal, e não significa que a vistoria se perdeu.
+          {jaColetada.situacao !== "enviada" && pausadaPor
+            ? "A tarefa continua aparecendo na sua lista porque ela só sai de lá "
+              + "depois que o servidor receber a vistoria, e isso não significa "
+              + "que a vistoria se perdeu."
+            : "A tarefa continua aparecendo na sua lista porque ela só sai de lá "
+              + "quando o aparelho conseguir falar com o servidor. Isso pode demorar "
+              + "horas sem sinal, e não significa que a vistoria se perdeu."}
         </Txt>
 
         <Botao
@@ -2340,12 +2382,18 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           F14-E06 e depende do CP-24.
         */}
         <View style={{ alignSelf: "stretch" }}>
-          <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
-            Nada depende de sinal agora. A coleta está guardada neste aparelho e
-            sobe quando o aplicativo estiver aberto e houver rede: se agora não
-            há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
-            de envio mostra o andamento.
-          </Aviso>
+          {pausadaPor ? (
+            <Aviso tom="alerta" peso="leve" titulo={frasesDaPausa(pausadaPor).titulo}>
+              {frasesDaPausa(pausadaPor).detalhe}
+            </Aviso>
+          ) : (
+            <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
+              Nada depende de sinal agora. A coleta está guardada neste aparelho e
+              sobe quando o aplicativo estiver aberto e houver rede: se agora não
+              há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
+              de envio mostra o andamento.
+            </Aviso>
+          )}
         </View>
 
         <View style={{ alignSelf: "stretch" }}>

@@ -97,6 +97,12 @@ jest.mock("../dados/fila", () => ({
         deste arquivo.
       */
       if (mockDrenarConfirma) mockItensDaFila = [];
+      /* O contrato de `drenar` é devolver o resultado do dreno; a tela lê
+         `paradaPor` dele (V2-F00-E06, correção 3). */
+      return {
+        fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
+        interrompido: false,
+      };
     },
   }),
 }));
