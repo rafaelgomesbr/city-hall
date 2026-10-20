@@ -7,12 +7,92 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 5 | 2026-10-20 | 4ce0433 | 766bc0a | INTERROMPIDA, sem veredito (relatórios parciais em validacao/4ce0433/ quando houver) | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 4 | 2026-10-19 | bb0f654 | ausente (não lido) | BLOCKED | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 7 (2026-10-20, SHA fd17ff4)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-20. Candidato `fd17ff4` (correção 6 da F00); HEAD durante a validação `55209ab`, que só difere em `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida). Base do lote: `afde25c`; o que mudou desde a rodada 6: `git diff 1ed0b71..fd17ff4` (guarda de códigos de erro da API e do console, `servidor.ts`, `auth/suspensao.ts`, `codigos-de-erro.ts`, foco e e-mail quebrável no painel, `app.css`, `auditar.mjs` e `auditar-excecoes.mjs`, `conferir-indices-de-evidencia.mjs`, `baseline.mjs`, `e2e-api.mjs`, `verificar.yml`, README e testes). Herança (`impacto.mjs --herdavel` sobre cada relatório PASS da rodada 6): herdáveis só Banco de E05, E07, E12 e E25 e LGPD de E09, E10, E11, E15 e E17 (o diff não toca o mapa delas); as demais dimensões PASS não são herdáveis porque o diff toca o mapa (`.github/workflows/verificar.yml`, `apps/api/src/auth/suspensao.ts`, a guarda do console, `apps/api/test/codigos-de-erro.test.ts`). A Especificação da E12, herdada da rodada 4 na rodada 6, NÃO foi herdada: o mapa dela é vazio e o gatekeeper não herda às cegas. Validadores: as dimensões da rodada 6 de cada etapa (nenhuma tirada). Foram 12 validadores `general-purpose` com o papel da dimensão e o prompt de `prompt-do-validador.md` preenchido (instruções comuns da rodada no scratchpad), chamados em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, cada um cobrindo uma ou mais etapas e gravando um relatório por etapa (67 relatórios). Modelo: Opus em todas (gatilho 5 da seção 12, rodada acima da terceira, e gate crítico). Os validadores receberam o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` (a Justificativa proibida), a lista da evidência, o motivo e os relatórios da rodada 6 como pista, as decisões e o run do CI. Ambiente: PostgreSQL 17.6 real (binários da distribuição EDB no scratchpad), PGlite, Chromium, Firefox e WebKit do Playwright, Node 24.15.0 (o `.nvmrc` pede 22); sem emulador Android, sem aparelho e sem Windows.
+
+Veredito da rodada: **FAIL**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-opus-5-5 | FAIL | alta | E1, E2 | E1, E2 |  | validacao/fd17ff4/qa.md |
+| Infra e CI | engenharia-entrega (general-purpose) | claude-opus-5-5 | FAIL | alta | E1 | E1, E2 |  | validacao/fd17ff4/engenharia-entrega.md |
+
+### Motivo do veredito
+
+- QA FAIL e Infra e CI FAIL (Opus, alta), concordantes e reproduzidos de forma independente (npm 11 e npm 10.9.2): `dc360/scripts/auditar-excecoes.mjs` (`BANDEIRAS_DA_CONSULTA_REAL`, linhas 327 a 333) não anula `package-lock`. Com `package-lock=false` num `dc360/.npmrc` (uma linha) e um `package-lock.json` com `fast-uri` 3.0.1 (advisory alta, dependência de runtime, aninhada em `ajv`), o `npm audit` deixa de ler o lockfile e audita a árvore ideal das faixas do `package.json` (os mesmos 249 pacotes, então a contagem não denuncia), e o `auditar` sai 0 com "Runtime limpo". Sem o `.npmrc`, o mesmo lockfile sai 1. O estágio `dependencias` do `Dockerfile` (`npm ci --omit=dev`, que não copia o `.npmrc`) instala o 3.0.1 e o próprio npm acusa "1 high". O job 118619736543 roda sem instalar, pelo mesmo caminho da reprodução: prova só que a árvore real, sem `.npmrc`, está limpa.
+- O README (seção do `auditar`) diz que o portão nunca aprova sem ter auditado e que `.npmrc` do projeto não muda o resultado; este caminho não está nem na lista do que ele anula nem na do que fica fora do alcance.
+- O FAIL da rodada 6 está consertado: `offline`, `prefer-offline`, cache, registro que responde `{}` ou `{"advisories":{}}`, canário forjado, HTTP 500, timeout, proxy seletivo, `.npmrc` hostil do projeto e do usuário, variáveis `npm_config_*`, npm falso no PATH, advisory nova (`forge-nova`) e exceção vencida, 40 negativos, todos seguraram.
+- Item 7 da seção 7 de `28` (dependência de execução com vulnerabilidade conhecida): NÃO admite risco aceito. É a mesma classe do FAIL da rodada 6 (configuração do npm produz verde falso): falso verde repetido (seção 11 de `28`).
+- Conserto mínimo, provado pelos dois validadores numa cópia (não implementado): `--package-lock=true` nas bandeiras da consulta real, mais um caso em `auditar.test.mjs` com `package-lock=false` no `.npmrc` da raiz; avaliar `--workspaces` e `--include-workspace-root` explícitos.
+
+### CI (job a job)
+
+Run 39420436042 (workflow "Verificar", evento push, CI completo pedido por `[ci completo]`) sobre `55209ab`, registro do candidato: o diff `fd17ff4..55209ab` só toca `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida da seção 6 de `28`; `conferir-evidencia` confirmou), então vale como run do candidato. Lido pela API REST pública do GitHub, sem token (repositório público desde 2026-10-20): 9 de 9 jobs `success`, 9 artefatos com o SHA no nome (navegador, baseline, implantavel, produto, dependencias, restore, demonstracao, aplicativo, roadmap). Os logs e o download dos artefatos exigem token (HTTP 401) e não foram lidos; os validadores de Infra e CI conferiram os passos de cada job contra `.github/workflows/verificar.yml`. Informativo: não há run sobre `fd17ff4` em si; o run 39366804765 do candidato anterior foi reexecutado depois de o repositório virar público.
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 118619736871 |
+| A API sobe contra Postgres real | success | QA, Banco | job 118619736336 |
+| Fluxo ponta a ponta no navegador | success | QA, UX | job 118619736549 |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 118619736620; sem divergência explicada nas anotações |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 118619736536; 13 passos |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 118619736543; verde sobre a árvore real, sem `.npmrc`; não pega o caminho de `package-lock=false` (FAIL da E19) |
+| Aplicativo de campo | success | QA, Testes | job 118619736571 |
+| Pacote da demonstração | success | QA | job 118619736521 |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 118619736579 |
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-E19 --sha fd17ff4`: sem falha, 0 aviso (INDEX.md SHA-256 a SHA-256, segredos, travessão, capturas, sonda). `node dc360/scripts/conferir-indices-de-evidencia.mjs`: 77 INDEX.md, 3703 arquivos conferidos byte a byte, OK.
+- Regressão base do gatekeeper no SHA: `npm run typecheck` código 0 (com `build:shared`); `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0. Suítes por impacto rodadas pelos validadores (ver cada relatório).
+- Formato: os 67 relatórios novos da rodada conferidos por script do gatekeeper (cabeçalho com os 14 campos na ordem, veredito de uma palavra, `sha_validado` e `rodada` certos, nível obtido sem E3b, E4 ou E5, as nove seções na ordem e nenhuma vazia, sem travessão, sem literal de segredo): todos conferem. Evidência mínima: os cinco relatórios de Red-team de risco alto (E04, E06, E07, E08, E15) saíram sem a prova de que o teste morde; o gatekeeper devolveu ao próprio validador, que fez as mutações numa cópia do SHA e as gravou (vermelho com a proteção desfeita, verde restaurada, arquivo restaurado conferido com `cmp`), antes de qualquer outro validador começar.
+- Árvore: conferida antes e depois de cada um dos 12 validadores e da complementação do Red-team (`git status --porcelain --untracked-files=all` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/fd17ff4/`; nenhum processo deles ficou vivo. A partir do terceiro validador as mutações foram feitas em cópias do SHA no scratchpad (`git archive`), porque uma edição na árvore foi recusada pela permissão da sessão. Os processos vivos vistos durante a rodada (`vite preview` nas portas 5811 e 5812, Chromium, vitest) eram de outra sessão do Claude, que trabalhava no worktree `.claude/worktrees/wf_249935fe-9f4-1` (ramo `trab/correcao-7`) e não tocou a árvore principal; os validadores foram avisados para não usar essas portas. O validador de Testes regravou por link simbólico o cache ignorado `apps/campo/node_modules/.cache/dc360-contagem.json`, com o mesmo valor (1997); o de Infra e CI recompilou o `dist` (ignorado) de shared, db e api.
+- Capturas: as dos validadores de UX e de Acessibilidade estão em `validacao/fd17ff4/capturas/` de cada etapa (as de UX nos três motores e em larguras extras).
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| H24: confirmar ou mandar desfazer a subida dos pacotes do Expo das correções 4 e 5 | Rafael | decisão de produto |
+| Recompilar o binário nativo com os pacotes novos e abrir num aparelho (V2-F14-E12) | Rafael | aparelho físico |
+| Decidir o conserto do `package-lock=false` antes do G00 (item 7 da seção 7 de `28`: não admite risco aceito) e confirmar o `auditar` no Windows | Rafael | decisão sobre o portão de dependências e plataforma que nenhum agente tem |
+
+Todas as pendências humanas da fase estão também em `docs/roadmap-v2/pendencias-humanas.md`.
+
+### Achados para corrigir antes de crescer (não decidem esta etapa)
+
+- Corrige antes de crescer (Infra e CI): o CI inteiro confia em `npm run`; uma linha `script-shell=/usr/bin/true` num `.npmrc` versionado em `dc360/` faz todos os passos saírem 0 sem executar nada, com os 9 jobs verdes. Exige mudança deliberada visível no diff; nenhum passo confere que o script rodou (chamar `node scripts/auditar.mjs` direto, exigir "Runtime limpo" na saída, ou o job `roadmap` recusar `.npmrc` versionado). Este run não foi afetado (não há `.npmrc` no repositório).
+- Anotado (QA): lockfile adulterado que marca pacote de runtime vulnerável como `dev: true` passa com 0, mas o `npm ci --omit=dev` usa a mesma marca e não o instala; o prazo das exceções é comparado em UTC (vence às 21 h de Brasília); a decisão do CP-03 não tem pasta em `docs/evidencias-v2/CP-03/`.
+- Anotado (Infra e CI): `auditar` verde no Windows segue sem prova neste SHA.
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| 5 (rodada acima da terceira na mesma fase) e gate crítico G00 | validadores e consolidação em Opus (as dimensões de LGPD foram herdadas da rodada 6, em Sonnet) | feito |
+| 6 (vereditos opostos na mesma dimensão) | arbitragem em Opus | não acionado: nenhuma dimensão teve vereditos opostos; onde uma etapa tem PASS e FAIL, são dimensões diferentes sobre critérios diferentes |
+| item 7 da seção 7 de `28` e falso verde repetido (seção 11 de `28`), declarados por QA e Infra e CI | Rafael | o critério não admite risco aceito; conserto numa sessão de implementador |
+
+### Métricas da rodada
+
+Achados por severidade: ver Motivo e Achados acima e cada relatório (tentativas de reprovar, mutações que morderam, o que não foi verificado). Dimensões herdadas: nenhuma. Dimensões que reprovaram: QA, Infra e CI. Gatilhos visuais: os da rodada 6, sem novo. Tokens e tempo não gravados por dimensão (cada validador cobriu um lote de etapas; os 12 validadores e a complementação do Red-team somaram cerca de 3,7 milhões de tokens de subagente e 6 horas e 46 minutos de execução).
 
 ## Rodada 6 (2026-10-20, SHA 1ed0b71)
 

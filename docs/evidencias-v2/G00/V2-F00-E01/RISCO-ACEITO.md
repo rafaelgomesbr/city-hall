@@ -12,3 +12,5 @@ RASCUNHO preparado pelo gatekeeper da rodada 6 (2026-10-20). NÃO ACEITO. Só va
 - Validade: até o GATE G00 (reavaliado nele)
 - Quem aceitou: (vazio) em (vazio)
 - O BLOCKED original continua em VEREDITO.md, rodada 6.
+- Superado na rodada 7 (2026-10-20, SHA `fd17ff4`): o run 39420436042 (sobre `55209ab`, registro do candidato) existe e deu 9 de 9 jobs verdes; a dimensão Infra e CI foi revalidada sobre ele e deu PASS (`VEREDITO.md`, rodada 7). O BLOCKED foi removido por revalidação, não por aceite; este rascunho nunca foi aceito e não vale mais.
+- Status: encerrado (superado na rodada 7, sem aceite).
