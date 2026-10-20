@@ -1,0 +1,40 @@
+modo=falhar sonda=calc: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=destruct: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=header: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=header-401: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 401 fora do catálogo: linha de status 401 escrita desvios=1
+modo=falhar sonda=store: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=writeraw: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=writeraw-base64: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=writeraw-buffer: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=continue-junto: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=linha-partida: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: bytes da resposta que não c desvios=1
+modo=falhar sonda=fila: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar sonda=send-com-header: HTTP 200 OK corpo={"ok":true} desvios=0
+modo=falhar sonda=depois-do-fim: HTTP 200 OK corpo={} desvios=1
+modo=falhar sonda=ok-403: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Frase da rota."} desvios=0
+modo=falhar sonda=ok-continue: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"x"} desvios=0
+modo=falhar sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=falhar mesma-conexao sonda=store: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: linha de status 403 escrita desvios=1
+modo=falhar mesma-conexao sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=falhar mesma-conexao sonda=depois-do-fim: HTTP 200 OK corpo={} desvios=1
+modo=falhar mesma-conexao sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=corrigir sonda=calc: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=destruct: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=header: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=header-401: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Token inválido ou expirado."} desvios=0
+modo=corrigir sonda=store: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=writeraw: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=writeraw-base64: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=writeraw-buffer: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=continue-junto: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=linha-partida: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=fila: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=send-com-header: HTTP 200 OK corpo={"ok":true} desvios=0
+modo=corrigir sonda=depois-do-fim: HTTP 200 OK corpo={} desvios=0
+modo=corrigir sonda=ok-403: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Frase da rota."} desvios=0
+modo=corrigir sonda=ok-continue: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"x"} desvios=0
+modo=corrigir sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=corrigir mesma-conexao sonda=store: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir mesma-conexao sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=corrigir mesma-conexao sonda=depois-do-fim: HTTP 200 OK corpo={} desvios=0
+modo=corrigir mesma-conexao sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0

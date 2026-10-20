@@ -4,7 +4,7 @@ Base: `1ed0b71`, ramo `trab/correcao-6`. Motivo: rodada 6 (SHA `1ed0b71`), red-t
 
 ## Fatos
 
-Patch: `diff-da-correcao.patch` (`1ed0b71` até este commit, só os caminhos desta correção).
+Patches: `diff-da-correcao.patch` (`1ed0b71` a `05ab42d`, a parte do status torto) e `diff-da-correcao-4b.patch` (`05ab42d` até o commit da parte 4b, a linha de status escrita por baixo de `writeHead`). Os dois só levam os caminhos desta correção; a parte 4b está na seção dela, no fim dos Fatos.
 
 As sondas estão em `scripts/`: `sonda-node-writeHead.mjs` (o Node sozinho), `zz-sonda-e05c4.test.ts` (a API real por HTTP, posta em `apps/api/test/` só durante a execução e apagada depois) e `plantar.py` (o plantio em `rotas/orgaos.ts`, desfeito com `git restore`).
 
@@ -95,6 +95,82 @@ As sondas estão em `scripts/`: `sonda-node-writeHead.mjs` (o Node sozinho), `zz
 - Status torto que o Node escreve como outro status (200.5 vira 200) passa com o inteiro, sem desvio. Não é resposta de acesso, e os outros status são da V2-F02-E03.
 - No desvio por status torto com o corpo no catálogo, o log grava `erroVisto: null`: o código estava certo, o status é que não estava.
 - `test:campo`, painel e E2E não foram rodados. Esta correção não toca `apps/web` nem `apps/campo`, e a resposta só muda em status que o produto não emite.
+
+### Parte 4b: a linha de status escrita por baixo de `writeHead` (revisão de `05ab42d`)
+
+**O que a revisão provou** contra `05ab42d`, por HTTP de verdade e nos dois modos: `403 {"erro":"inventado_c6"}` com zero desvios, varredura com 0 problemas e typecheck limpo. A rota chega à resposta do Node por `resposta["ra" + "w"]` ou por `const { raw: r } = resposta`. Depois grava a cabeça por `r._storeHeader("HTTP/1.1 403 Forbidden\r\n", ...)` ou reescreve `r._header` depois de `writeHead(200)`, e chama `r.end(corpo)`.
+
+**Reprodução antes do conserto** (`saidas/30-ANTES-4b-sonda-http.txt`). O `GET /orgaos` real foi plantado (`scripts/plantar-4b.py`) e pedido por HTTP de verdade (`scripts/zz-sonda-e05c4b.test.ts`), com um socket novo por pedido.
+- Saem `403` ou `401` com `inventado_c6`, nos dois modos e com 0 desvios: chave calculada, desestruturação, `_header` trocado para 403 e para 401, e `_storeHeader` direto.
+- `_writeRaw` com a cabeça pronta (texto, base64, Buffer, depois de um `100 Continue` no mesmo pedaço, linha partida em dois pedaços) e a fila `outputData` saíram com o protocolo quebrado no cliente, sem desvio.
+- `saidas/32-ANTES-4b-varredura-com-o-plantio.txt`: a varredura de `05ab42d` reprova as formas com `hijack` e `writeHead`, mas não as linhas 88 a 91 (chave calculada, desestruturação e `_storeHeader` sem `hijack`).
+
+**O que mudou.**
+- **Guarda da API e do console, a porta dos bytes.**
+  - Além de `writeHead`, `write` e `end`, a guarda envolve `_writeRaw` e `_flushOutput` da mesma instância, também como propriedades não configuráveis e não graváveis. Todo byte da resposta sai por um dos dois.
+  - Antes de sair, a guarda lê a linha de status nos bytes, na ordem em que eles saem: primeiro a fila do Node, depois o pedaço. A cabeça provisória 1xx passa, e a seguinte é lida.
+  - A resposta inteira é trocada pela do desvio, com `connection: close` e a conexão encerrada no fim, em dois casos: a cabeça final com 401 ou 403 que a própria guarda não conferiu (fora HEAD), e bytes que não começam com uma linha de status.
+  - Em teste, a troca é 500 `desvio_do_catalogo_de_erro` com o desvio registrado. Fora de teste, é o genérico do status, com o desvio no log.
+  - O que a rota ainda escrever sai vazio. Os retornos, os callbacks e a conta de bytes do Node seguem certos.
+  - Byte escrito por `_writeRaw` depois do fim da resposta também sai vazio, com desvio: seria lido como a resposta seguinte da conexão.
+  - A guarda marca a cabeça que ela mesma conferiu (`liberado`) antes de mandá-la ao Node.
+- **Varredura (`apps/api/test/varredura-de-erros.ts`).** Reprova:
+  - chave calculada em qualquer nome que guarde a resposta: os convencionais (`resposta`, `reply`, `rep`, `res`, `resp`, `raw`, `response`), o parâmetro anotado `FastifyReply` ou `ServerResponse`, e os apelidos deles atravessando `as`, parênteses e `!`;
+  - desestruturação de `raw`, `socket`, `connection`, de nome interno, ou por chave calculada;
+  - o estado interno da resposta do Node: qualquer `._` seguido de letra como propriedade, e a lista `NOMES_INTERNOS_DO_NODE` (`_header`, `_storeHeader`, `_writeRaw`, `_send`, `_flushOutput`, `outputData`, `chunkedEncoding`, ...) em propriedade, texto ou campo de objeto.
+
+  No fonte real da API e do console, nada disso aparece fora dos módulos da guarda, que já são liberados inteiros.
+- **O que a guarda não vê**, dito com exatidão no cabeçalho dela, no do catálogo e no parágrafo da guarda no README (as outras mudanças do README neste ramo são de outra etapa):
+  - escrita no socket;
+  - o método do protótipo chamado por fora da instância;
+  - o corpo depois de uma cabeça final que passou. A moldura dele (`content-length`, `chunked`) não é conferida, e bytes escritos por baixo, ANTES do fim, além do tamanho declarado, seriam lidos como a resposta seguinte da conexão.
+
+  A varredura proíbe os três caminhos, mas é heurística.
+
+**Depois do conserto** (`saidas/31-DEPOIS-4b-sonda-http.txt`).
+- Nenhuma das onze formas sai com `inventado_c6`.
+  - Em teste: 500 com 1 desvio cada.
+  - Em produção: 403 `sem_permissao`, ou 401 `nao_autenticado` no `_header` trocado para 401.
+- `depois-do-fim` sai `200 {}`, com 1 desvio em teste.
+- Na mesma conexão (agente com keep-alive), o pedido seguinte a uma resposta trocada e o seguinte ao `depois-do-fim` saem certos.
+- Os controles passam intactos: `ok-403`, `ok-continue` (100 Continue de verdade seguido do 403 do catálogo) e o 401 comum.
+- `saidas/33-DEPOIS-4b-varredura-com-o-plantio.txt`: as linhas 88 a 91 reprovam (chave calculada na resposta, desestruturação de `raw`, `._storeHeader`).
+
+**Casos acrescentados na parte 4b:**
+- `apps/api/test/guarda-de-codigos-de-erro.test.ts`: de 95 para 108 (+13), todos por HTTP de verdade, nos dois modos:
+  - dez formas (`calc-store`, `destruct-store`, `header-trocado`, `header-401`, `writeraw`, `writeraw-base64`, `writeraw-buffer`, `continue-junto`, `linha-partida`, `fila`);
+  - os bytes depois do fim, com o pedido seguinte no mesmo socket;
+  - a conexão depois da resposta trocada;
+  - os controles.
+
+  O servidor de cada modo escuta UMA vez numa porta efêmera, e o teste de HTTP da parte anterior passou a usar a mesma porta.
+- `apps/api/test/codigos-de-erro.test.ts`: de 193 para 213 (+20).
+  - 17 formas: as três fontes exatas da revisão e catorze variações.
+  - 1 controle: chave calculada fora da resposta, laço por índice, desestruturação comum, `__dirname`.
+  - 2 mutações no `rotas/orgaos.ts` real, em memória.
+- `apps/console/test/guarda-de-codigos-de-erro.test.ts`: de 24 para 27 (+3): `_storeHeader`, `_header` trocado para 401 e `_writeRaw`, por HTTP, nos dois modos.
+
+**A mordida** (o código de `05ab42d` contra os testes novos):
+- `saidas/40`: guarda da API, 12 dos 108 falham, ou seja, todos os novos menos os controles.
+- `saidas/41`: guarda do console, os 3 novos falham.
+- `saidas/42`: varredura, 16 dos 213 falham. Passam com as regras antigas três formas já cobertas (`.raw` com chave calculada, desestruturação por chave calculada, `Object.assign`) e o controle.
+
+**Regressão da parte 4b:**
+- `npm run test:api -- --maxWorkers=4`: `saidas/70`;
+- console: `saidas/71`;
+- shared: `saidas/72`;
+- `npm run typecheck`: `saidas/73`;
+- `tsconfig` temporários com os testes tocados: código 0 nos dois (`saidas/74`);
+- portão de conteúdo: 10 de 10 (`saidas/75`);
+- `test:isolamento`: `saidas/76`.
+
+Totais: `test:api` com 106 arquivos, 1669 passados e 34 pulados, código 0 (eram 1636; os 33 novos são 13 da guarda e 20 da varredura). Console 286 de 286 (eram 283). Shared 223 de 223. Typecheck código 0. Isolamento 345 passados e 3 pulados, código 0. `node scripts/conferir-indices-de-evidencia.mjs` foi rodado depois de refazer os índices, com o mesmo motivo de não ser arquivado.
+
+**Limitações da parte 4b.**
+- A porta lê no máximo 16 KiB do começo dos bytes para achar as cabeças. Cabeça provisória mais longa que isso é tratada como ilegível e troca a resposta (falha fechada).
+- HEAD continua fora da conferência, como antes.
+- `inject` (light-my-request) não manda bytes a um socket de verdade. Por isso a porta é provada por HTTP de verdade, e não por `inject`.
+- As formas `bigint`, `NaN`, `Infinity` e `-403` da revisão terminam sem resposta (tempo esgotado), como antes: a conversão do status lança erro, igual à do Node, numa rota com `hijack` que ninguém encerra. Não sai 401 nem 403.
 
 ## Justificativa
 

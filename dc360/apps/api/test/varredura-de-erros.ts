@@ -54,6 +54,16 @@ import ts from "typescript";
  *     expressão que não é nome) reprova.
  */
 
+/*
+  Correção 4b (revisão de `05ab42d`): a rota chegava à resposta do Node por
+  `resposta["ra" + "w"]` ou `const { raw: r } = resposta` e gravava a linha de
+  status por `_storeHeader` ou `_header`, com 0 problemas aqui. Reprovam agora:
+  chave calculada em qualquer nome que guarde a resposta (os convencionais, o
+  parâmetro anotado `FastifyReply`/`ServerResponse` e os apelidos deles);
+  desestruturação de `raw`, `socket`, `connection`, de nome interno ou por
+  chave calculada; e o estado interno da resposta do Node (`._x`, a lista
+  `NOMES_INTERNOS_DO_NODE`, em propriedade, texto ou campo de objeto).
+*/
 export type FormaDeEmissao = "send" | "RegraDeNegocio" | "FalhaAutenticacao" | "classe" | "recusa";
 
 export type Emissao = {
@@ -192,6 +202,22 @@ const LIDOS_COM_PONTO = new Set([
 
 /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
 const TROCAM_O_CORPO = new Set(["toJSON", "setReplySerializer", "setSerializerCompiler", "eval"]);
+
+/**
+ * Correção 4b (revisão de `05ab42d`): o estado interno da resposta do Node por
+ * onde a linha de status sai sem passar por `writeHead` (`_storeHeader`,
+ * `_header`, `_writeRaw`, a fila `outputData`). Qualquer nome com `_` e letra
+ * lido como propriedade também reprova, mesmo fora desta lista.
+ */
+const NOMES_INTERNOS_DO_NODE = new Set([
+  "_header", "_headers", "_headerSent", "_storeHeader", "_writeRaw", "_send", "_flush", "_flushOutput",
+  "_implicitHeader", "_last", "_hasBody", "_contentLength", "_trailer", "_finish", "_httpMessage", "_handle",
+  "_onPendingData", "_removedHeader", "_removedContLen", "_removedTE", "_writev", "_write", "_final",
+  "outputData", "outputSize", "chunkedEncoding", "shouldKeepAlive", "useChunkedEncodingByDefault",
+]);
+const PRIVADO = /^_[A-Za-z]/;
+/** Nomes que, por convenção do produto e do Fastify, são a resposta (ou a resposta do Node). */
+const NOMES_DE_RESPOSTA = new Set(["resposta", "reply", "rep", "res", "resp", "raw", "response"]);
 
 /** O spread que não pode sobrescrever `erro`: objeto literal sem `erro`, ou condicional de dois assim. */
 function espalhoSeguro(e: ts.Expression): boolean {
@@ -453,6 +479,49 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
       }
     }
     return { objeto: init };
+  }
+
+  /**
+   * Correção 4b: os nomes que guardam a resposta neste arquivo. Os convencionais,
+   * o parâmetro anotado com `FastifyReply` ou `ServerResponse`, e todo nome
+   * inicializado com um deles ou com `X.raw` (por `as`, parênteses ou `!`), até
+   * não achar mais nenhum.
+   */
+  const respostas = new Set<string>(NOMES_DE_RESPOSTA);
+  {
+    const declaracoes: Array<{ nome: string; valor: ts.Expression }> = [];
+    const juntarResp = (no: ts.Node): void => {
+      if (ts.isParameter(no) && ts.isIdentifier(no.name) && no.type
+        && /FastifyReply|ServerResponse/.test(no.type.getText(sf))) respostas.add(no.name.text);
+      if (ts.isVariableDeclaration(no) && ts.isIdentifier(no.name) && no.initializer) {
+        declaracoes.push({ nome: no.name.text, valor: no.initializer });
+      }
+      ts.forEachChild(no, juntarResp);
+    };
+    juntarResp(sf);
+    let mudou = true;
+    while (mudou) {
+      mudou = false;
+      for (const d of declaracoes) {
+        if (respostas.has(d.nome)) continue;
+        let v: ts.Expression = d.valor;
+        while (ts.isAsExpression(v) || ts.isParenthesizedExpression(v) || ts.isNonNullExpression(v)
+          || ts.isTypeAssertionExpression(v) || ts.isSatisfiesExpression(v)) v = v.expression;
+        const ehResposta = (ts.isIdentifier(v) && respostas.has(v.text))
+          || (ts.isPropertyAccessExpression(v) && v.name.text === "raw")
+          || (ts.isElementAccessExpression(v) && ehDaResposta(v.expression));
+        if (ehResposta) { respostas.add(d.nome); mudou = true; }
+      }
+    }
+  }
+  /** A expressão é uma das respostas (ou `X.raw`), atravessando `as`, parênteses e `!`. */
+  function ehDaResposta(e: ts.Expression): boolean {
+    let v = e;
+    while (ts.isAsExpression(v) || ts.isParenthesizedExpression(v) || ts.isNonNullExpression(v)
+      || ts.isTypeAssertionExpression(v) || ts.isSatisfiesExpression(v)) v = v.expression;
+    if (ts.isIdentifier(v)) return respostas.has(v.text);
+    if (ts.isPropertyAccessExpression(v)) return v.name.text === "raw" || ehDaResposta(v.expression);
+    return false;
   }
 
   /** Os `.code(N)` e `.status(N)` que pertencem a uma cadeia terminada em `send`. */
@@ -923,6 +992,41 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
         let e: ts.Expression = t.expression;
         while (ts.isPropertyAccessExpression(e)) e = e.expression;
         if (!ts.isIdentifier(e)) problema(t, `\`extends\` de uma expressão (\`${t.getText(sf)}\`): a varredura não sabe de que classe é`);
+      }
+    }
+
+    // 8. Correção 4b (revisão de `05ab42d`): a resposta do Node alcançada por chave calculada ou por
+    // desestruturação, e o estado interno dela por onde a linha de status sai sem `writeHead`.
+    if (ts.isElementAccessExpression(no) && ehDaResposta(no.expression)) {
+      const chave = textoDoLiteral(no.argumentExpression);
+      if (chave === null && !ts.isNumericLiteral(no.argumentExpression)) {
+        problema(no, `chave calculada na resposta (\`${no.getText(sf).slice(0, 60)}\`): a varredura não sabe que propriedade é`,
+          `resposta-calculada:${no.getText(sf)}`);
+      }
+    }
+    if (ts.isBindingElement(no) && ts.isObjectBindingPattern(no.parent)) {
+      const nomeDoCampo = no.propertyName ?? no.name;
+      if (ts.isComputedPropertyName(nomeDoCampo)) {
+        problema(no, `desestruturação por chave calculada (\`${no.getText(sf)}\`): a varredura não sabe que campo é`);
+      } else if (ts.isIdentifier(nomeDoCampo) || ts.isStringLiteral(nomeDoCampo)) {
+        const campo = nomeDoCampo.text;
+        if (campo === "raw" || campo === "socket" || campo === "connection" || PRIVADO.test(campo) || NOMES_INTERNOS_DO_NODE.has(campo)) {
+          problema(no, `desestruturação de \`${campo}\`: a resposta do Node (ou o estado dela) por um caminho que a varredura não segue`);
+        }
+      }
+    }
+    if (ts.isPropertyAccessExpression(no) && (PRIVADO.test(no.name.text) || NOMES_INTERNOS_DO_NODE.has(no.name.text))) {
+      problema(no, `\`.${no.name.text}\`: estado interno da resposta do Node, por onde a linha de status sai sem \`writeHead\``,
+        `interno:${no.name.text}`);
+    }
+    if ((ts.isStringLiteral(no) || ts.isNoSubstitutionTemplateLiteral(no))
+      && (NOMES_INTERNOS_DO_NODE.has(no.text) || (PRIVADO.test(no.text) && /^_[A-Za-z]\w*$/.test(no.text)))) {
+      problema(no, `texto \`${no.text}\`: nome interno da resposta do Node`, `interno:${no.text}`);
+    }
+    if ((ts.isPropertyAssignment(no) || ts.isShorthandPropertyAssignment(no)) && ts.isObjectLiteralExpression(no.parent)) {
+      const campo = nomeDaPropriedade(no.name);
+      if (campo !== null && NOMES_INTERNOS_DO_NODE.has(campo)) {
+        problema(no, `campo \`${campo}\` num objeto: o estado interno da resposta do Node`, `interno:${campo}`);
       }
     }
 

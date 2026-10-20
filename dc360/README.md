@@ -240,10 +240,20 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
   padrão).
 
+A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
+`"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
+(`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
+`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
+
 O que a guarda NÃO vê, e a varredura proíbe (mas é heurística): escrita no socket
 da requisição (`req.socket.end("HTTP/1.1 403 ...")`, que não passa pela resposta
-do Node; a varredura reprova `.socket` e `.connection`) e o método do protótipo da
-resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). E nenhuma
+do Node; a varredura reprova `.socket`, `.connection` e desestruturar `socket`), o
+método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
+`Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
+(`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
+tamanho declarado seriam lidos como a resposta seguinte da conexão (a varredura
+reprova o nome interno da resposta do Node, como `_writeRaw`, `_header` e
+`outputData`, a chave calculada na resposta e desestruturar `raw`). E nenhuma
 linha prende código no mesmo processo que troque, antes de a guarda carregar, as
 primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
 usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a

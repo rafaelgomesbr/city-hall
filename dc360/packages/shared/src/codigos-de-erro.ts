@@ -145,12 +145,23 @@
  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
  *
+ * A guarda também lê a linha de status nos BYTES que a resposta manda ao socket
+ * (`_writeRaw` e `_flushOutput` da instância): a cabeça gravada por baixo de
+ * `writeHead` (`_storeHeader`, `_header` reescrito, `_writeRaw` com a cabeça
+ * pronta) com 401 ou 403 que ela não conferiu troca a resposta inteira pela do
+ * desvio (correção 4b).
+ *
  * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
  * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
- * revisão), que não passa pela resposta do Node, e o método do protótipo da
- * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). A
- * varredura proíbe os dois (`.socket`, `.connection`, `.call`, `.apply`,
- * `.bind`, `Reflect`), mas é heurística. Nenhuma das três linhas prende código
+ * revisão), que não passa pela resposta do Node; o método do protótipo da
+ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
+ * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
+ * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
+ * declarado seriam lidos como a resposta seguinte da conexão. A varredura
+ * proíbe os três caminhos (`.socket`, `.connection`, `.call`, `.apply`,
+ * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
+ * `_header` e `outputData`, chave calculada na resposta, desestruturação de
+ * `raw` e `socket`), mas é heurística. Nenhuma das três linhas prende código
  * no mesmo processo que troque, ANTES de a guarda carregar, as primitivas que
  * ela usa para decidir (ela as guarda na carga e, ao decidir, só usa essas
  * cópias, então `JSON`, `includes` ou `hasOwnProperty` trocados depois não a

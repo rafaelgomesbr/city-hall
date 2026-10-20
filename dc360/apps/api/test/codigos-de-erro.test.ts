@@ -924,6 +924,46 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
     });
 
+    /*
+      Correção 4b (revisão de `05ab42d`): a resposta do Node alcançada por chave calculada ou por
+      desestruturação, e a linha de status gravada no estado interno dela. As três primeiras são as
+      fontes exatas da revisão (`zz-varre-c6.test.ts`), que saíam com 0 problemas.
+    */
+    it.each([
+      ["revisão: desestruturação de raw e _storeHeader",
+        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const { raw: r } = resposta; r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
+      ["revisão: chave calculada e _storeHeader",
+        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const k = "ra" + "w"; const r = resposta[k]; r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
+      ["revisão: chave calculada e _header reescrito",
+        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const k = "ra" + "w"; const r = resposta[k]; r.setHeader("x", "1"); r.end = r.end; r._header = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n"; r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
+      ["chave calculada na resposta com conversão de tipo", "const k = escolher();\nconst r = (resposta as unknown as Record<string, unknown>)[k];\nvoid r;"],
+      ["chave calculada num apelido da resposta", "const x = resposta;\nconst r = x[k];\nvoid r;"],
+      ["chave calculada em parâmetro anotado FastifyReply", "function f(qualquer: FastifyReply, k: string) { return (qualquer as never)[k]; }"],
+      ["chave calculada na resposta do Node", "const r = reply.raw;\nconst w = r[k];\nvoid w;"],
+      ["desestruturação de raw sem renomear", "const { raw } = resposta;\nvoid raw;"],
+      ["desestruturação por chave calculada", "const { [k]: r } = resposta;\nvoid r;"],
+      ["desestruturação de socket", "const { socket } = req;\nvoid socket;"],
+      ["_writeRaw com a cabeça pronta", 'algo._writeRaw("HTTP/1.1 403 Forbidden\\r\\n\\r\\n");'],
+      ["_header por colchete com texto", 'algo["_header"] = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n";'],
+      ["outputData empurrada à mão", 'algo.outputData.push({ data: "HTTP/1.1 403", encoding: "latin1", callback: null });'],
+      ["_header num Object.assign", 'Object.assign(algo, { _header: "HTTP/1.1 403 Forbidden\\r\\n\\r\\n" });'],
+      ["nome interno guardado num texto", 'const metodo = "_storeHeader";\nvoid metodo;'],
+      ["desestruturação de nome interno", "const { _storeHeader: gravar } = algo;\nvoid gravar;"],
+      ["qualquer propriedade com _ e letra", "algo._qualquerCoisaNova();"],
+    ])("correção 4b, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    it("correção 4b, controles: chave calculada fora da resposta, desestruturação comum e `__dirname` passam", () => {
+      for (const limpo of [
+        "const ROTULO = { a: 1 } as Record<string, number>;\nconst v = ROTULO[k];\nvoid v;",
+        "const lista = [1, 2];\nfor (let i = 0; i < lista.length; i += 1) void lista[i];",
+        "const { id, nome } = dados;\nvoid id; void nome;",
+        "const aqui = __dirname;\nvoid aqui;",
+        'resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" });',
+      ]) expect(FORA(limpo), limpo).toEqual([]);
+    });
+
     it("correção 4, controles: número decimal que não vira 401 nem 403 e status inteiro passam", () => {
       for (const limpo of [
         "const latitude = -23.5505;\nconst longitude = -46.6333;\nvoid latitude; void longitude;",
@@ -1162,6 +1202,15 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       ["correção 4: code(\"403.2\") com código do catálogo",
         '    if (dados.nome === "Mutacao texto") return resposta.code("403.2" as never).send({ erro: "sem_permissao", mensagem: "x" });',
         "status em texto"],
+      ["correção 4b: a resposta do Node por chave calculada e a linha de status por _storeHeader (revisão de 05ab42d)",
+        '    const k = "ra" + "w";\n'
+          + '    const r = (resposta as unknown as Record<string, { _storeHeader(l: string, h: object): void; end(c: string): void }>)[k]!;\n'
+          + '    if (dados.nome === "Mutacao c6") { r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado_c6"}\'); return resposta; }',
+        "chave calculada na resposta"],
+      ["correção 4b: desestruturação de raw e _header reescrito",
+        '    const { raw: d } = resposta as unknown as { raw: { _header: string; end(c: string): void } };\n'
+          + '    if (dados.nome === "Mutacao c6b") { d._header = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n"; d.end(\'{"erro":"inventado_c6"}\'); return resposta; }',
+        "desestruturação de `raw`"],
       ["D: parâmetro homônimo de uma constante de corpo do módulo",
         '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
           + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'

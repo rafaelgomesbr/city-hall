@@ -56,14 +56,30 @@ import {
  * Corpo de 401 ou 403 maior que 64 KiB é desvio: a guarda não guarda mais que
  * isso na memória.
  *
+ * A PORTA DOS BYTES (correção 4b): além dos três métodos públicos, a guarda
+ * envolve `_writeRaw` e `_flushOutput` da mesma resposta, por onde sai todo byte
+ * dela, e lê a linha de status nos bytes antes de saírem. A cabeça gravada por
+ * baixo de `writeHead` (`_storeHeader`, `_header` reescrito, `_writeRaw` ou a
+ * fila `outputData` com a cabeça pronta) que diga 401 ou 403 sem a guarda ter
+ * conferido o corpo, ou bytes que não começam com uma linha de status, trocam a
+ * resposta inteira pela do desvio, com `connection: close`; o resto do que a
+ * rota escrever sai vazio, e byte escrito depois do fim da resposta também.
+ *
  * O QUE ELA NÃO VÊ, dito sem folga:
  *
  *   - escrita no SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`),
  *     que não passa pela resposta do Node; a varredura do fonte proíbe
- *     `.socket` e `.connection`;
+ *     `.socket` e `.connection`, e desestruturar `socket`;
  *   - chamar o método do protótipo por fora da instância
- *     (`ServerResponse.prototype.end` com `.call`, `.apply` ou `Reflect`); a
- *     varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
+ *     (`ServerResponse.prototype.end` ou `_writeRaw` com `.call`, `.apply` ou
+ *     `Reflect`); a varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
+ *   - o CORPO depois de uma cabeça final que passou: a moldura dele (o
+ *     `content-length` ou o `chunked` da cabeça) não é conferida, então bytes
+ *     escritos por baixo ANTES do fim, além do tamanho que a cabeça declarou,
+ *     seriam lidos pelo cliente como a resposta seguinte da mesma conexão. Só
+ *     se chega aí pelo estado interno da resposta do Node (`_writeRaw`,
+ *     `_header`, `outputData`), que a varredura proíbe por nome, por chave
+ *     calculada na resposta e por desestruturação;
  *   - código no mesmo processo que troque, ANTES de este módulo carregar, as
  *     primitivas que ele usa para DECIDIR. Ele as guarda na carga
  *     (`JSON.parse`, `Reflect.apply`, `Object.defineProperty`, `Object.keys`,
@@ -122,6 +138,8 @@ const ehArray = Array.isArray;
 const chavesDe = Object.keys;
 const paraMinusculas = String.prototype.toLowerCase;
 const proximoTique = process.nextTick;
+const indiceDe = String.prototype.indexOf;
+const fatiar = String.prototype.slice;
 const HEX = "0123456789abcdef";
 const TETO_DO_CORPO = 64 * 1024;
 /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
@@ -217,6 +235,15 @@ function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: bool
   return { efetivo, torto };
 }
 
+/**
+ * A LINHA DE STATUS DE VERDADE (correção 4b, revisão de `05ab42d`): o começo dos
+ * bytes de uma resposta, `HTTP/1.1 403 ...`. Status de três dígitos seguido de
+ * espaço ou do fim da linha.
+ */
+const LINHA_DE_STATUS = /^HTTP\/\d\.\d (\d{3})(?: |\r\n)/;
+/** Quanto do começo dos bytes a porta lê para achar as cabeças: a de Node cabe com folga. */
+const TETO_DA_CABECA = 16 * 1024;
+
 /** A frase da linha de status da resposta trocada pela guarda (a da rota pode ser qualquer texto). */
 const FRASE_DO_STATUS: Readonly<Record<number, string>> = Object.freeze({
   401: "Unauthorized", 403: "Forbidden", 500: "Internal Server Error",
@@ -260,6 +287,17 @@ function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
 /** Troca, nesta resposta do Node, `writeHead`, `write` e `end` pelos que conferem 401 e 403. */
 function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: FastifyBaseLogger, opcoes: OpcoesDaGuarda): void {
   const writeHeadOriginal = raw.writeHead;
+  type Interna = { _writeRaw: (...a: unknown[]) => unknown; _flushOutput: (...a: unknown[]) => unknown;
+    outputData: Array<{ data: unknown; encoding?: unknown }>; finished: boolean; _last: boolean };
+  const interna = raw as unknown as Interna;
+  const writeRawOriginal = interna._writeRaw;
+  const flushOutputOriginal = interna._flushOutput;
+  /** O status que a própria guarda conferiu e mandou escrever (401 ou 403), ou nenhum. */
+  let liberado = 0;
+  /** Ainda não saiu a cabeça final (só as provisórias 1xx, se alguma). */
+  let cabecaPendente = true;
+  /** A porta trocou a resposta: daqui em diante, nenhum byte da rota sai. */
+  let bloqueado = false;
   const writeOriginal = raw.write;
   const endOriginal = raw.end;
   const ehHead = req.method === "HEAD";
@@ -287,6 +325,157 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     if (bytes > TETO_DO_CORPO) excedeu = true;
     else pedacos[pedacos.length] = b;
   };
+
+  /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
+  function registrarDesvio(status: 401 | 403, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
+    const desvio: Desvio = {
+      metodo: req.method,
+      rota: req.routeOptions?.url ?? "(sem rota)",
+      status,
+      erroVisto: codigoParaRegistro(erroVisto),
+      motivo,
+    };
+    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
+    if (opcoes.modo === "falhar") {
+      desviosPendentes[desviosPendentes.length] = desvio;
+      return {
+        statusFinal: 500,
+        novo: textoJson([
+          ["erro", "desvio_do_catalogo_de_erro"],
+          ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
+            + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
+        ]),
+      };
+    }
+    const g = opcoes.generico[status];
+    return { statusFinal: status, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
+  }
+
+  /*
+    A PORTA DOS BYTES (correção 4b). `writeHead`, `write` e `end` são o caminho
+    público; por baixo deles, o Node monta a cabeça em `_storeHeader` (que grava
+    `_header`) e TODO byte da resposta sai por `_writeRaw` ou `_flushOutput` desta
+    instância. A revisão de `05ab42d` escreveu a linha de status por fora dos
+    três (`_storeHeader("HTTP/1.1 403 ...")`, `_header` reescrito depois de
+    `writeHead(200)`, `_writeRaw` com a cabeça pronta) e saiu 403 com código
+    inventado. Aqui se lê a linha de status nos BYTES que vão para o socket,
+    antes de saírem: cabeça provisória 1xx passa e a seguinte é lida; a cabeça
+    final com 401 ou 403 que a guarda não conferiu, ou bytes que não começam
+    com uma linha de status, trocam a resposta inteira pela do desvio, e o resto
+    do que a rota escrever é descartado (sai vazio, para os retornos e a conta
+    de bytes do Node seguirem certos). Byte escrito por `_writeRaw` depois do
+    fim da resposta também é descartado: seria lido como a resposta seguinte da
+    conexão.
+  */
+  const paraBuffer = (dado: unknown, codificacao: unknown): Buffer =>
+    typeof dado === "string"
+      ? bufferDe(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
+      : bufferDe(dado as Uint8Array);
+
+  /** Lê as cabeças no começo de um pedaço: `null` = continua pendente; número = status final; "ilegivel". */
+  function lerCabecas(dado: unknown, codificacao: unknown): number | "ilegivel" | null {
+    let texto: string;
+    try {
+      const b = paraBuffer(dado, codificacao);
+      texto = aplicar(bufferParaTexto, b, ["latin1", 0, b.length < TETO_DA_CABECA ? b.length : TETO_DA_CABECA]) as string;
+    } catch {
+      return "ilegivel";
+    }
+    for (;;) {
+      if (texto.length === 0) return null;
+      const m = casa(LINHA_DE_STATUS, texto);
+      if (m === null) return "ilegivel";
+      const s = +m[1]!;
+      if (s >= 100 && s <= 199 && s !== 101) {
+        const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
+        if (fim < 0) return "ilegivel";
+        texto = aplicar(fatiar, texto, [fim + 4]) as string;
+        continue;
+      }
+      return s;
+    }
+  }
+
+  /**
+   * Lê, na ordem em que vão sair, os pedaços ainda pendentes de cabeça. Devolve o
+   * que faz trocar a resposta (o status final que a guarda não conferiu, ou
+   * "ilegivel"), ou `null` para deixar sair.
+   */
+  function examinar(pedacos: ReadonlyArray<{ data: unknown; encoding?: unknown }>): number | "ilegivel" | null {
+    for (let i = 0; i < pedacos.length && cabecaPendente; i += 1) {
+      const visto = lerCabecas(pedacos[i]!.data, pedacos[i]!.encoding);
+      if (visto === null) continue;
+      cabecaPendente = false;
+      if (visto === "ilegivel") return visto;
+      if (!ehHead && ehAcesso(visto) && visto !== liberado) return visto;
+    }
+    return null;
+  }
+
+  /** A resposta inteira do desvio, já em bytes: cabeça e corpo. */
+  function substituta(visto: number | "ilegivel"): Buffer {
+    const status: 401 | 403 = visto === 401 ? 401 : 403;
+    const { statusFinal, novo } = registrarDesvio(status, null, visto === "ilegivel"
+      ? "bytes da resposta que não começam com uma linha de status"
+      : `linha de status ${visto} escrita por fora da guarda`);
+    return bufferDe(`HTTP/1.1 ${statusFinal} ${FRASE_DO_STATUS[statusFinal]!}\r\n`
+      + "content-type: application/json; charset=utf-8\r\n"
+      + `content-length: ${tamanhoEmBytes(novo)}\r\nconnection: close\r\n\r\n${novo}`, "utf8");
+  }
+
+  /** A substituta que ficou na fila do Node (socket ainda sem ligação): só ela sai dali. */
+  let substitutaNaFila: Buffer | null = null;
+  /** Esvazia a fila do Node, menos a substituta. Os itens ficam (vazios) para a conta de bytes e os retornos. */
+  const esvaziarFila = () => {
+    const fila = interna.outputData;
+    for (let i = 0; i < fila.length; i += 1) if (fila[i]!.data !== substitutaNaFila) fila[i]!.data = "";
+  };
+  /** Troca a resposta: a substituta entra no primeiro pedaço que vai sair, e o resto sai vazio. */
+  function trocar(visto: number | "ilegivel"): unknown {
+    bloqueado = true;
+    // A conexão fecha depois da substituta: o que a rota montou por baixo (moldura de corpo,
+    // cabeçalho de conexão) não fica valendo para o pedido seguinte do mesmo socket.
+    interna._last = true;
+    const nova = substituta(visto);
+    const fila = interna.outputData;
+    if (fila.length > 0) {
+      substitutaNaFila = nova;
+      fila[0]!.data = nova;
+      esvaziarFila();
+      return "";
+    }
+    return nova;
+  }
+
+  function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
+    if (!bloqueado && interna.finished) {
+      // Depois do fim, o Node não escreve mais nada desta resposta: isto seria lido como a próxima.
+      if (!ehHead) registrarDesvio(403, null, "bytes escritos na resposta depois do fim dela");
+      bloqueado = true;
+    }
+    if (bloqueado) {
+      esvaziarFila();
+      return aplicar(writeRawOriginal, raw, ["", ...resto]);
+    }
+    if (cabecaPendente) {
+      const fila = interna.outputData;
+      const pedacos: Array<{ data: unknown; encoding?: unknown }> = [];
+      for (let i = 0; i < fila.length; i += 1) pedacos[pedacos.length] = fila[i]!;
+      pedacos[pedacos.length] = { data: dado, encoding: typeof resto[0] === "string" ? resto[0] : undefined };
+      const visto = examinar(pedacos);
+      if (visto !== null) return aplicar(writeRawOriginal, raw, [trocar(visto), ...resto]);
+    }
+    return aplicar(writeRawOriginal, raw, [dado, ...resto]);
+  }
+
+  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
+    if (bloqueado) esvaziarFila();
+    else if (cabecaPendente && interna.outputData.length > 0) {
+      const visto = examinar(interna.outputData);
+      if (visto !== null) trocar(visto);
+    }
+    return aplicar(flushOutputOriginal, raw, args);
+  }
 
   function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
     const { efetivo, torto } = statusComoONodeEscreve(status);
@@ -351,34 +540,15 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     }
     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
     if (achado === null) {
+      liberado = statusSegurado;
       const cabeca: unknown[] = [statusSegurado];
       if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
       if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
       aplicar(writeHeadOriginal, raw, cabeca);
       return fimComCb(corpoOriginal);
     }
-    const desvio: Desvio = {
-      metodo: req.method,
-      rota: req.routeOptions?.url ?? "(sem rota)",
-      status: statusSegurado,
-      erroVisto: codigoParaRegistro(achado.erroVisto),
-      motivo: achado.motivo,
-    };
-    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
-    let statusFinal = statusSegurado;
-    let novo: string;
-    if (opcoes.modo === "falhar") {
-      desviosPendentes[desviosPendentes.length] = desvio;
-      statusFinal = 500;
-      novo = textoJson([
-        ["erro", "desvio_do_catalogo_de_erro"],
-        ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
-          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
-      ]);
-    } else {
-      const g = opcoes.generico[statusSegurado as 401 | 403];
-      novo = textoJson([["erro", g.erro], ["mensagem", g.mensagem]]);
-    }
+    const { statusFinal, novo } = registrarDesvio(statusSegurado as 401 | 403, achado.erroVisto, achado.motivo);
+    liberado = statusFinal;
     const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
     for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
     const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
@@ -391,6 +561,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+  definirPropriedade(raw, "_writeRaw", { value: _writeRaw, writable: false, configurable: false, enumerable: false });
+  definirPropriedade(raw, "_flushOutput", { value: _flushOutput, writable: false, configurable: false, enumerable: false });
 }
 
 /**

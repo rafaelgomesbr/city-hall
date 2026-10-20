@@ -59,6 +59,25 @@ beforeAll(async () => {
       (rep.raw as unknown as { writeHead: (...a: unknown[]) => unknown }).writeHead(403 + 2 ** 32, { "content-type": "application/json" });
       rep.raw.end('{"erro":"vazou_grande"}');
     });
+    // Correção 4b (revisão de `05ab42d`): a linha de status gravada por baixo de writeHead.
+    const corpo = '{"erro":"inventado_c6","mensagem":"x"}';
+    const crua = (rep: FastifyReply) => { const k = "ra" + "w"; return (rep as unknown as Record<string, Record<string, any>>)[k]!; };
+    c.app.get(r("por-baixo-store"), async (_q, rep) => {
+      const x = crua(rep);
+      x._storeHeader("HTTP/1.1 403 Forbidden\r\n", { "content-type": "application/json", "content-length": String(corpo.length) });
+      x.end(corpo);
+      return rep;
+    });
+    c.app.get(r("por-baixo-header"), async (_q, rep) => {
+      rep.hijack(); const x = crua(rep);
+      x.writeHead(200, { "content-type": "application/json" });
+      x._header = x._header.replace("200 OK", "401 Unauthorized");
+      x.end(corpo);
+    });
+    c.app.get(r("por-baixo-writeraw"), async (_q, rep) => {
+      rep.hijack(); const x = crua(rep);
+      x._writeRaw(`HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpo.length}\r\n\r\n${corpo}`); x._header = "x"; x.end();
+    });
     await c.app.ready();
     consoles.set(modo, c);
   }
@@ -105,26 +124,47 @@ describe("a guarda do console", () => {
   });
 });
 
+/** O console do modo escutando numa porta efêmera, uma vez só (o `afterAll` o encerra). */
+const enderecos = new Map<"falhar" | "corrigir", Promise<string>>();
+const enderecoDe = (modo: "falhar" | "corrigir"): Promise<string> => {
+  if (!enderecos.has(modo)) enderecos.set(modo, consoles.get(modo)!.app.listen({ port: 0, host: "127.0.0.1" }));
+  return enderecos.get(modo)!;
+};
+
 describe("correção 4: o status torto, por HTTP de verdade (porta efêmera)", () => {
   it("403.5 não sai 403 com o código fora do contrato, nos dois modos", async () => {
     for (const modo of ["falhar", "corrigir"] as const) {
-      const app = consoles.get(modo)!.app;
-      const endereco = await app.listen({ port: 0, host: "127.0.0.1" });
-      try {
-        const r = await fetch(`${endereco}/teste-da-guarda/frac`);
-        const corpo = await r.json() as { erro: string };
-        if (modo === "falhar") {
-          expect(r.status).toBe(500);
-          expect(lerDesviosDaGuarda()).toHaveLength(1);
-        } else {
-          expect(r.status).toBe(403);
-          expect(corpo.erro).toBe("so_o_dono");
-          expect(r.statusText).toBe("Forbidden");
-        }
-      } finally {
-        await app.server.close();
+      const endereco = await enderecoDe(modo);
+      const r = await fetch(`${endereco}/teste-da-guarda/frac`);
+      const corpo = await r.json() as { erro: string };
+      if (modo === "falhar") {
+        expect(r.status).toBe(500);
+        expect(lerDesviosDaGuarda()).toHaveLength(1);
+      } else {
+        expect(r.status).toBe(403);
+        expect(corpo.erro).toBe("so_o_dono");
+        expect(r.statusText).toBe("Forbidden");
       }
     }
     expect(lerDesviosDaGuarda()).toEqual([]);
   });
+});
+
+describe("correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade", () => {
+  it.each([["por-baixo-store", 403], ["por-baixo-header", 401], ["por-baixo-writeraw", 403]] as const)(
+    "%s não sai %s com o código inventado, nos dois modos", async (n, status) => {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const r = await fetch(`${await enderecoDe(modo)}/teste-da-guarda/${n}`, { headers: { connection: "close" } });
+        const corpo = await r.text();
+        expect(corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+        if (modo === "falhar") {
+          expect(r.status).toBe(500);
+          expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ rota: `/teste-da-guarda/${n}` })]);
+        } else {
+          expect(r.status).toBe(status);
+          expect(JSON.parse(corpo).erro).toBe(status === 401 ? "sem_sessao" : "so_o_dono");
+        }
+      }
+      expect(lerDesviosDaGuarda()).toEqual([]);
+    });
 });
