@@ -27,7 +27,7 @@ import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
-  aceitasAusentes, advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+  aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
@@ -47,7 +47,8 @@ const args = process.argv.slice(2);
 const controle = /\\/auditar-controle-[^/]*$/.test(cwd);
 if (process.env.AUDITAR_LOG) {
   const npmrc = existsSync(".npmrc") ? readFileSync(".npmrc", "utf8").trim() : null;
-  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), args, npmrc }) + "\\n");
+  const workspaceNoAmbiente = Object.keys(process.env).filter((n) => /^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(n));
+  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente }) + "\\n");
 }
 const fixado = args.includes("--registry=${REGISTRO_OFICIAL}") && args.includes("--offline=false");
 const rel = f.ignorarBandeiras || (f.offline && !fixado) ? f.vazioBemFormado
@@ -133,18 +134,18 @@ function fixtura({
   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
 }
 
-function rodar(opcoes, { env = {} } = {}) {
+function rodar(opcoes, { env = {}, cwd } = {}) {
   const r = spawnSync(process.execPath, [SCRIPT], {
-    encoding: "utf8",
+    encoding: "utf8", ...(cwd ? { cwd } : {}),
     env: { ...process.env, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
   });
   return { codigo: r.status, saida: r.stdout + r.stderr };
 }
 
 /** Roda e devolve também cada chamada que o npm falso recebeu. */
-function rodarComRegistro(opcoes) {
+function rodarComRegistro(opcoes, { env = {}, cwd } = {}) {
   const log = join(mkdtempSync(join(tmpdir(), "auditar-log-")), "chamadas.jsonl");
-  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log } });
+  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log, ...env }, cwd });
   const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
   rmSync(dirname(log), { recursive: true, force: true });
   return { ...resultado, chamadas };
@@ -302,7 +303,7 @@ describe("auditar.mjs", () => {
     assert.equal(codigo, 0, saida);
     assert.equal(chamadas.length, 5, JSON.stringify(chamadas)); // runtime, tudo, aplicativo e dois controles
     for (const { args } of chamadas) {
-      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false"]) {
+      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false", "--workspaces=false"]) {
         assert.ok(args.includes(bandeira), `falta ${bandeira} em ${args.join(" ")}`);
       }
     }
@@ -310,6 +311,53 @@ describe("auditar.mjs", () => {
     assert.equal(controles.length, 2);
     for (const { args } of controles) assert.ok(args.includes("--package-lock-only"));
     assert.match(saida, /Consulta de controle: lodash 4\.17\.20 voltou com GHSA-35jh-r3h4-6jhm/);
+  });
+
+  /*
+    Pré-validação da rodada 7, V2-F00-E19: `auditar()` recebia `cwd` undefined nas
+    duas consultas da raiz, então o `npm audit` rodava no diretório do PROCESSO.
+    Dentro de um workspace (`cd packages/shared && node ../../scripts/auditar.mjs`)
+    o npm audita só aquele workspace: com `fastify@4.10.0` no lockfile a raiz saía 1
+    e o mesmo comando de dentro do workspace saía 0 com "Runtime limpo". O mesmo
+    vale para `npm_config_workspace` no ambiente.
+  */
+  it("audita a RAIZ, e não o diretório de onde o comando foi dado (de dentro de um workspace)", () => {
+    const raiz = join(AQUI, "..");
+    const workspace = join(raiz, "packages", "shared");
+    assert.ok(existsSync(join(workspace, "package.json")), "o teste precisa de um workspace real");
+    const { codigo, saida, chamadas } = rodarComRegistro({}, { cwd: workspace });
+    assert.equal(codigo, 0, saida);
+    const daRaiz = chamadas.filter((c) => !c.controle && !c.app);
+    assert.equal(daRaiz.length, 2, JSON.stringify(chamadas));
+    for (const { cwd } of daRaiz) assert.equal(cwd, raiz.replaceAll("\\", "/"), "a consulta da raiz rodou fora da raiz");
+    assert.ok(chamadas.some((c) => c.app && c.cwd.endsWith("apps/campo")), "o aplicativo audita com o cwd dele");
+    assert.ok(chamadas.filter((c) => c.controle).every((c) => !c.cwd.startsWith(raiz.replaceAll("\\", "/"))), "o controle roda na pasta temporária");
+  });
+
+  it("nenhuma configuração de workspace do ambiente chega ao npm (npm_config_workspace, workspaces e include_workspace_root)", () => {
+    const { codigo, saida, chamadas } = rodarComRegistro({}, {
+      env: {
+        npm_config_workspace: "packages/shared", NPM_CONFIG_WORKSPACES: "true",
+        "npm_config_include-workspace-root": "false", npm_config_include_workspace_root: "false",
+      },
+    });
+    assert.equal(codigo, 0, saida);
+    assert.equal(chamadas.length, 5);
+    for (const { workspaceNoAmbiente, args } of chamadas) {
+      assert.deepEqual(workspaceNoAmbiente, []);
+      assert.ok(args.includes("--workspaces=false"));
+      assert.ok(!args.some((a) => /^--workspace(=|$)/.test(a)));
+    }
+  });
+
+  it("vulnerabilidade de runtime reprova (1) também quando o comando é dado de dentro de um workspace e com npm_config_workspace", () => {
+    const workspace = join(AQUI, "..", "packages", "shared");
+    const { codigo, saida } = rodar(
+      { runtime: relatorio({ fastify: true }) },
+      { cwd: workspace, env: { npm_config_workspace: "packages/shared" } },
+    );
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /dependência de runtime/);
   });
 
   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
@@ -410,6 +458,14 @@ describe("auditar.mjs", () => {
 });
 
 describe("regras puras do portão: advisory por id e prova de consulta", () => {
+  it("ambienteDaConsulta tira só as variáveis de workspace do npm, em qualquer caixa, e mantém o resto", () => {
+    const env = {
+      PATH: "/bin", npm_config_registry: "x", npm_config_workspace: "a", NPM_CONFIG_WORKSPACES: "true",
+      npm_config_include_workspace_root: "1", "npm_config_include-workspace-root": "1", npm_config_workspace_x: "mantém",
+    };
+    assert.deepEqual(ambienteDaConsulta(env), { PATH: "/bin", npm_config_registry: "x", npm_config_workspace_x: "mantém" });
+  });
+
   it("idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA", () => {
     assert.equal(idDaAdvisory({ url: "https://github.com/advisories/GHSA-86W9-CPQP-85RV" }), "GHSA-86w9-cpqp-85rv");
     assert.equal(idDaAdvisory("ghsa-86w9-cpqp-85rv"), "GHSA-86w9-cpqp-85rv");

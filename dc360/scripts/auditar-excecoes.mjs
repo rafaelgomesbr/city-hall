@@ -330,7 +330,25 @@ export const BANDEIRAS_DA_CONSULTA_REAL = Object.freeze([
   "--prefer-offline=false",
   "--prefer-online",
   "--dry-run=false",
+  "--workspaces=false",
 ]);
+
+/**
+ * O ambiente com que toda chamada ao `npm audit` roda: o do processo, SEM as
+ * variáveis que restringem o npm a um workspace (`npm_config_workspace`,
+ * `npm_config_workspaces`, `npm_config_include_workspace_root`, em qualquer caixa
+ * e com `-` ou `_`). Dentro de um workspace, ou com uma delas definida, o npm
+ * audita só aquele workspace e devolve um relatório bem formado e limpo para a
+ * raiz inteira (validação pré-rodada 7: a raiz com `fastify@4.10.0` saía 1, e o
+ * mesmo comando rodado de dentro de `packages/shared` saía 0 com "Runtime
+ * limpo"). Junto com `cwd` fixo na raiz e com `--workspaces=false` na chamada,
+ * é o que impede que o escopo da auditoria dependa de onde o comando foi dado.
+ */
+export function ambienteDaConsulta(env) {
+  return Object.fromEntries(Object.entries(env).filter(
+    ([nome]) => !/^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(nome),
+  ));
+}
 
 /**
  * A consulta de controle: um projeto mínimo com uma versão de pacote que TEM

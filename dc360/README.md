@@ -1557,7 +1557,14 @@ O que o portão anula: toda chamada fixa o registro oficial
 (`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
 `dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
 `offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
-ou em `npm_config_*`, não mudam para onde ele pergunta. O que ele exige antes de
+ou em `npm_config_*`, não mudam para onde ele pergunta. O escopo também não
+depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
+do aplicativo no aplicativo), com `--workspaces=false` e sem as variáveis
+`npm_config_workspace`, `npm_config_workspaces` e `npm_config_include_workspace_root`
+no ambiente, porque o npm audita só o workspace em que está e devolve "limpo" para
+o resto (dado de dentro de `packages/shared`, o comando ficava em "Runtime limpo"
+com uma dependência de runtime vulnerável na raiz). Um `workspace=` fixado num
+`.npmrc` faz o npm recusar a chamada, e aí o portão sai 2. O que ele exige antes de
 aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
 aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
 próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista

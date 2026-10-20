@@ -41,7 +41,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
-  aceitasAusentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+  aceitasAusentes, ambienteDaConsulta, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
   idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
@@ -110,12 +110,19 @@ function relatorioValido(relatorio) {
   return null;
 }
 
+/**
+ * `cwd` é obrigatório e nunca o do processo: o npm restringe a auditoria ao
+ * workspace em que o comando é dado, então auditar "a raiz" no diretório atual
+ * dava "Runtime limpo" quando o portão era chamado de dentro de `packages/shared`
+ * (validação pré-rodada 7, V2-F00-E19 correção 7). A raiz é `RAIZ`, sempre.
+ */
 function auditar(argumentos, cwd, rotulo) {
+  if (typeof cwd !== "string" || cwd === "") throw new Error(`auditar(${rotulo}): cwd é obrigatório`);
   let saida;
   try {
     saida = execFileSync("npm", ["audit", "--json", ...BANDEIRAS_DA_CONSULTA_REAL, ...argumentos], {
       encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
-      ...(cwd ? { cwd } : {}),
+      cwd, env: ambienteDaConsulta(process.env),
     });
   } catch (erro) {
     // `npm audit` sai com código diferente de zero quando acha algo, e o JSON
@@ -165,10 +172,10 @@ if (defeitosDaLista.length > 0) {
   process.exit(1);
 }
 
-const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], undefined, "o conjunto de runtime da raiz");
+const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], RAIZ, "o conjunto de runtime da raiz");
 // `--include` explícito: `omit=dev` na configuração do npm não esconde o desenvolvimento.
 const relatorioDeTudo = auditar(
-  ["--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], undefined, "o conjunto completo da raiz",
+  ["--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], RAIZ, "o conjunto completo da raiz",
 );
 const runtime = contar(relatorioDoRuntime);
 const tudo = contar(relatorioDeTudo);
