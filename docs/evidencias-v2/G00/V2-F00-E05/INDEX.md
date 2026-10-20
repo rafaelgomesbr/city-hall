@@ -289,7 +289,7 @@
 | correcao-6/saidas/01-ANTES-sonda-pipeline.txt | 8af6810c5e069438d84e25dcbfff8031fbdf68c883657f47e8e74e7c1c14c340 |
 | correcao-6/saidas/10-DEPOIS-sonda-pipeline.txt | 986ffbd190d6c15d9e291a3d1efa5a8c1e19291554f012c2e4e43c245fe432e2 |
 | correcao-6/saidas/20-MORDIDA-guarda-de-24da65e-api.txt | e98cebcbd0f41f54230f42ece37de5d6e7d25b7900a6dcf8f9ef1d698588049c |
-| correcao-6/saidas/21-MORDIDA-guarda-de-24da65e-console.txt | 64c74528bd0b06350a4a51f4549ac26dbd0bb98886eb29b7a17338ddaa783694 |
+| correcao-6/saidas/21-MORDIDA-guarda-de-24da65e-console.txt | becdc3eb0970902b71e53076124f3687a66982fb2d7888c842a476bd6fd30479 |
 | correcao-6/saidas/60-test-api.txt | aad6f74e68c08be2d6865d219fee37f58c0ee1a4cc9f8721eedc556d85711367 |
 | correcao-6/saidas/61-test-console.txt | 15cd436e71f7921342af9ff2172bf29ff3949a48a72d062406b9837ff01b3918 |
 | correcao-6/saidas/62-test-shared.txt | 53521f4b0c31c1d7d5ec26c2560e4c39ca31544f9a95d50c17f9b8990ccad70c |
