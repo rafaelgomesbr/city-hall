@@ -193,8 +193,19 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
 
-      - name: Política de dependências (npm run auditar)
-        run: npm run auditar 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar.txt"
+      # Nenhum `.npmrc` versionado: uma linha `script-shell=/usr/bin/true` faria
+      # todo `npm run` sair 0 sem executar nada. E o portão é chamado pelo
+      # `node`, não pelo `npm run`, para que nenhuma configuração do npm decida
+      # se ele roda.
+      - name: Nenhum .npmrc versionado no repositório
+        working-directory: .
+        run: |
+          versionados="$(git ls-files -- '.npmrc' '**/.npmrc')"
+          if [ -n "$versionados" ]; then echo "::error::.npmrc versionado: $versionados"; exit 1; fi
+          echo "nenhum .npmrc versionado"
+
+      - name: Política de dependências (node scripts/auditar.mjs)
+        run: node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar.txt"
 
       # Evidência, e não portão: os relatórios brutos que o `auditar` lê, para o
       # validador conferir a política contra os dados. O `|| true` é daqui, e
@@ -581,6 +592,40 @@ jobs:
           path: ${{ runner.temp }}/artefatos
           retention-days: 30
           overwrite: true
+          if-no-files-found: error
+
+  auditar-windows:
+    # O mesmo portão do job `auditar`, no Windows, onde o `npm` é `npm.cmd` e
+    # os caminhos têm letra de unidade. Job próprio para que uma falha aqui não
+    # se confunda com a prova do ambiente hostil.
+    name: Dependências com vulnerabilidade conhecida (auditar) em Windows
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Política de dependências (node scripts/auditar.mjs) em Windows
+        run: |
+          mkdir -p "$RUNNER_TEMP/artefatos"
+          node --version | tee "$RUNNER_TEMP/artefatos/00-versoes.txt"
+          npm --version | tee -a "$RUNNER_TEMP/artefatos/00-versoes.txt"
+          node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar-windows.txt"
+
+      - name: Publicar os artefatos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditar-windows-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
           if-no-files-found: error
 
   plataformas:
