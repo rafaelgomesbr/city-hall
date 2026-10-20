@@ -1,0 +1,17 @@
+# Saída da revisão independente (Opus) contra o teste de b17949a: PASSA = o defeito escapava. Copiada de /tmp/revisao-e24-c3/05-mutacoes.txt
+PASSA    base
+PASSA    M1 PAPEIS:209 ressalva só na última célula
+PASSA    M2 PAPEIS:209 'sim (não está mais em construção)'
+REPROVA  M3 PAPEIS:209 'sim (em breve)'  -> dc360/docs/PAPEIS_E_RESPONSABILIDADES.md: conferidas 4/4, sem 1
+REPROVA  M4 PAPEIS:209 linha reescrita 'Ver quem está em campo agora | sim'  -> dc360/docs/PAPEIS_E_RESPONSABILIDADES.md: conferidas 3/4, sem 0
+PASSA    M5 PAPEIS:132 sem ressalva + outro item da lista '(em construção)'
+PASSA    M6 PAPEIS:52 tira o bloco 'Estado do recurso' e diz 'planejado' em outra frase com 'construção' negada
+PASSA    M7 PAPEIS: novo parágrafo 'O operador vê, em tempo real, quem está em campo.'
+REPROVA  M8 README:1165 'Esse acompanhamento está em construção' -> 'futuramente'  -> dc360/README.md: conferidas 1/1, sem 1
+REPROVA  M9 README: quebra o negrito em duas linhas e tira ressalva  -> dc360/README.md: conferidas 0/1, sem 0
+PASSA    M10 README: tira o quadro de estado da seção do morro
+PASSA    M11 2026-09-15:394 volta a 'Pronto' sem ressalva
+PASSA    M12 2026-09-15:391 tira '(o indicador depende... não acende)'
+REPROVA  M13 alyson:381 '(em construção)' -> '(planejado)'  -> docs/apresentacao-produto-alyson.html: conferidas 3/3, sem 1
+REPROVA  M14 PRIVACIDADE: 'declarada pelo agente' -> 'declarada no aplicativo' sem ressalva  -> dc360/docs/PRIVACIDADE.md: conferidas 0/1, sem 0
+REPROVA  M15 PAPEIS:209 ressalva removida + nova linha com ressalva (contagem igual)  -> dc360/docs/PAPEIS_E_RESPONSABILIDADES.md: conferidas 5/4, sem 1

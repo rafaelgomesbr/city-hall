@@ -1,0 +1,48 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > docs/apresentacao-produto-alyson.html: toda ocorrência e todo quadro de estado estão em ordem 2ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/apresentacao/2026-09-15-para-o-alyson.html: toda ocorrência e todo quadro de estado estão em ordem 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/PRIVACIDADE.md: toda ocorrência e todo quadro de estado estão em ordem 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/PAPEIS_E_RESPONSABILIDADES.md: toda ocorrência e todo quadro de estado estão em ordem 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/README.md: toda ocorrência e todo quadro de estado estão em ordem 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/LEIA-ME.md: toda ocorrência e todo quadro de estado estão em ordem 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/SEGURANCA-DO-AGENTE.md: toda ocorrência e todo quadro de estado estão em ordem 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/GUIA-DO-COORDENADOR.md: toda ocorrência e todo quadro de estado estão em ordem 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/CARTAO-DO-AGENTE.md: toda ocorrência e todo quadro de estado estão em ordem 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M0 a regressão real da E22: linha 209 sem a ressalva 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M1 linha 209 com a ressalva só na última célula 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M2 ressalva negada: 'sim (não está mais em construção)' 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M3 linha 209 com 'em breve' no lugar de 'em construção' 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M4 linha reescrita 'Ver quem está em campo agora | sim' 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M5 item da lista sem ressalva, com outro item da lista que tem 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M6 o bloco 'Estado do recurso' vira 'não está em construção' 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M7 parágrafo novo 'O operador vê, em tempo real, quem está em campo' 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M7b a frase quebrada em duas linhas, sem ressalva 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M8 README: 'está em construção' vira 'chega futuramente' 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M9 README: negrito quebrado em duas linhas e sem a ressalva 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M10 README: o quadro de estado do agente sozinho some 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M10b README: o quadro diz que a tela funciona 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M11 15/09: 'Segurança do agente sozinho' volta a 'Pronto' (só o selo) 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M11b 15/09: volta a 'Pronto' e some a frase 'ainda não declara' 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M12 15/09: some '(o indicador depende... não acende)' do Perfil 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M12b 15/09: o Perfil com a frase quebrada e sem ressalva 1ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M13 Alyson: '(em construção)' vira '(planejado)' na matriz 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M14 PRIVACIDADE: 'declarada no aplicativo' sem ressalva 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M15 linha 209 sem ressalva e linha NOVA com ressalva (contagem igual) 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M16 SEGURANCA-DO-AGENTE: o quadro de estado some 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M16b SEGURANCA-DO-AGENTE: o quadro diz que a tela mostra os agentes 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M17 GUIA seção 9: o quadro de estado some 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M18 LEIA-ME: a linha da segurança do agente perde o 'Em construção' 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: cada defeito plausível reprova > M19 CARTAO-DO-AGENTE: o quadro de estado some 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > as regras em si > ressalva negada ou ausente não vale; a afirmativa vale 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > as regras em si > em tabela, a ressalva de uma linha não absolve a outra 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > as regras em si > em lista, a ressalva de um item não absolve o outro 0ms
+ ✓ test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > as regras em si > a frase quebrada em duas linhas é achada 0ms
+
+ Test Files  1 passed (1)
+      Tests  38 passed (38)
+   Start at  00:23:40
+   Duration  206ms (transform 28ms, setup 0ms, collect 28ms, tests 19ms, environment 0ms, prepare 30ms)
+
+codigo de saida: 0

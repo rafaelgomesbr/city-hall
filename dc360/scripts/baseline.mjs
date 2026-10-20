@@ -525,8 +525,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E05-correcao-2": { total: 5, falhas: 0 },
   // V2-F00-E22, correção 4: `packages/shared/test/permissoes-no-readme.test.ts` (10 casos) prende a tabela de permissões do README e a de `docs/PAPEIS_E_RESPONSABILIDADES.md` ao catálogo `acoesDoPapel` (falta, sobra, papel sem linha, ordem, marcador, sim ou não trocado). A base do shared não conta puladas, por isso a entrada também não traz o campo.
   "V2-F00-E22-correcao-4": { total: 10, falhas: 0 },
-  // V2-F00-E24, correção 3: `packages/shared/test/ressalva-saida-a-campo.test.ts` (8 casos) leva para o `npm test` o guarda que vivia só na pasta da evidência: nenhum documento promete "acompanhar quem está em campo" ou a saída declarada pelo agente sem a ressalva "em construção" (um caso por documento, a mordida em todas as ocorrências, a regressão real da E22 e a tabela em que a ressalva de uma linha não absolve as outras). Sem campo de puladas, pelo mesmo motivo da entrada anterior.
-  "V2-F00-E24-correcao-3": { total: 8, falhas: 0 },
+  // V2-F00-E24, correção 3: `packages/shared/test/ressalva-saida-a-campo.test.ts` (38 casos: 8 eram da correção 3 e a revisão independente a ampliou; os 30 casos a mais entram nesta entrada) leva para o `npm test` o guarda que vivia só na pasta da evidência: nenhum documento promete "acompanhar quem está em campo" ou a saída declarada pelo agente sem a ressalva "em construção". 9 casos de documento (seis com ocorrência a conferir e quatro com quadro de estado exigido; o README tem os dois), 25 mutações que têm de reprovar (M0 a M19, cada defeito da revisão) e 4 casos das regras (ressalva negada, tabela por linha, lista por item, frase quebrada em duas linhas). Sem campo de puladas, pelo mesmo motivo da entrada anterior.
+  "V2-F00-E24-correcao-3": { total: 38, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

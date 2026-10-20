@@ -2,28 +2,27 @@
  RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
 
  ✓ src/localizacao.test.ts (16 tests) 5ms
- ✓ test/orgaos-do-checklist.test.ts (9 tests) 5ms
- ✓ test/evidencia.test.ts (10 tests) 4ms
- ✓ test/glifos-de-severidade.test.ts (15 tests) 6ms
- ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 9ms
- ✓ test/dominio.test.ts (14 tests) 75ms
- ✓ test/ressalva-saida-a-campo.test.ts (8 tests) 9ms
+ ✓ test/ressalva-saida-a-campo.test.ts (38 tests) 28ms
+ ✓ test/codigos-de-erro.test.ts (15 tests) 5ms
+ ✓ test/permissoes.test.ts (16 tests) 5ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 7ms
+ ✓ test/dominio.test.ts (14 tests) 60ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 8ms
  ✓ test/precisao-do-gps.test.ts (3 tests) 4ms
  ✓ test/mensagens-em-portugues.test.ts (8 tests) 6ms
- ✓ test/tipo-a-classificar.test.ts (12 tests) 4ms
- ✓ test/permissoes-no-readme.test.ts (10 tests) 5ms
- ✓ test/campos.test.ts (7 tests) 5ms
- ✓ test/telefone.test.ts (10 tests) 7ms
- ✓ test/permissoes.test.ts (16 tests) 4ms
- ✓ test/codigos-de-erro.test.ts (15 tests) 5ms
+ ✓ test/csv.test.ts (8 tests) 2ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 11ms
  ✓ src/pessoas.test.ts (11 tests) 5ms
- ✓ test/csv.test.ts (8 tests) 4ms
- ✓ test/regras-de-conteudo.test.ts (10 tests) 594ms
-   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  319ms
+ ✓ test/campos.test.ts (7 tests) 2ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 5ms
+ ✓ test/evidencia.test.ts (10 tests) 5ms
+ ✓ test/telefone.test.ts (10 tests) 2ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 8ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 621ms
 
  Test Files  18 passed (18)
-      Tests  193 passed (193)
-   Start at  21:23:49
-   Duration  829ms (transform 340ms, setup 0ms, collect 1.14s, tests 755ms, environment 2ms, prepare 790ms)
+      Tests  223 passed (223)
+   Start at  00:23:41
+   Duration  859ms (transform 347ms, setup 0ms, collect 1.22s, tests 787ms, environment 2ms, prepare 736ms)
 
 codigo de saida: 0
