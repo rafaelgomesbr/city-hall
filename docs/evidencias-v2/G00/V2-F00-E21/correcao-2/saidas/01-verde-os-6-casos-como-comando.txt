@@ -1,0 +1,17 @@
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (30.9895ms)
+  ✔ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (30.691875ms)
+  ✔ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (29.397458ms)
+  ✔ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (58.871708ms)
+  ✔ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (29.743959ms)
+  ✔ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (111.350208ms)
+✔ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (291.577334ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 338.608
+saida=0

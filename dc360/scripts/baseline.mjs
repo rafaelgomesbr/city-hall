@@ -169,8 +169,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     pasta CP-xx sem INDEX.md e cinco sobre CRLF no git: no índice (`-text`), no
     disco com `eol=lf` (o falso verde local), com `.ps1` e binário, sem git e o
     repositório real). O arquivo inteiro entra na conta.
+
+    V2-F00-E21, correção 2: o mesmo arquivo ganha 6 casos que rodam o script
+    como COMANDO, em processo filho, e conferem o código de saída que o CI lê
+    (tudo certo dá 0; índice adulterado, CRLF, etapa sem INDEX.md, arquivo fora do
+    índice e CRLF no disco segundo o git dão 1; e o script chamado por link
+    simbólico confere do mesmo jeito). De 26 para 32; o arquivo inteiro segue
+    na conta, por isso é o mesmo número da correção 1.
   */
-  "V2-F00-E21-correcao-1": 26,
+  "V2-F00-E21-correcao-1": 32,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */

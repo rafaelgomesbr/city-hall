@@ -48,7 +48,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -226,7 +226,24 @@ export function relatorio(r, fimDeLinha = []) {
   return saida.join("\n");
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/*
+  "Fui chamado como comando?" compara o caminho REAL. `import.meta.url` já vem
+  resolvido pelo Node (sem link simbólico) e `process.argv[1]` não: com o
+  repositório num caminho que passa por link (o `/var` do macOS, que é
+  `/private/var`, ou um checkout ligado por symlink) as duas pontas diferiam, o
+  bloco abaixo NÃO rodava, e o script saía com código 0 sem conferir nada. Era um
+  falso verde do código de saída que o CI lê (V2-F00-E21, correção 2).
+*/
+const chamadoComoComando = () => {
+  if (!process.argv[1]) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+  } catch {
+    return false;
+  }
+};
+
+if (chamadoComoComando()) {
   const raiz = process.argv[2] ? resolve(process.argv[2]) : PASTA_DE_EVIDENCIAS;
   const r = conferirTudo(raiz);
   // O fim de linha do git vale para o repositório inteiro, mas só se confere o repositório que contém a pasta padrão.
