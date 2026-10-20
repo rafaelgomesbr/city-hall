@@ -7,7 +7,7 @@ cenario() { # rótulo, depois o comando
   local rot="$1"; shift
   echo "=== $rot"
   "$@" > /tmp/e19c6/cenario.out 2>&1; local c=$?
-  grep -E "Consulta de controle|Desenvolvimento \(fica|Runtime limpo|NÃO foi auditad|Motivo:|REPROVADO|NOVA|Runtime \(vai|Aplicativo de campo \(vai|aceita: node-forge" /tmp/e19c6/cenario.out | sed 's/^/    /'
+  grep -E "não é confiável|que deveriam voltar|MUDOU|Consulta de controle|Desenvolvimento \(fica|Runtime limpo|NÃO foi auditad|Motivo:|REPROVADO|NOVA|Runtime \(vai|Aplicativo de campo \(vai|aceita: node-forge" /tmp/e19c6/cenario.out | sed 's/^/    /'
   echo "    codigo=$c"
 }
 cenario "N1 npm real com npm_config_offline=true" env npm_config_offline=true node scripts/auditar.mjs

@@ -21,12 +21,17 @@
 /*
   Cada exceção tem `advisories`, `motivo`, `dono` e `ate` (AAAA-MM-DD).
 
-  `advisories` é a lista dos ids GHSA aceitos NAQUELE pacote (vale também a URL
-  da advisory, que o portão reduz ao id). Até 2026-10-20 a exceção casava pelo
-  nome do pacote, e uma advisory nova e crítica em `node-forge` passava como
-  "aceita" porque o pacote já estava na lista (validação da rodada 6). Aceitar
-  um risco é aceitar AQUELE risco: advisory nova no mesmo pacote reprova até
-  alguém ler, escrever o motivo e acrescentar o id. Vencido o prazo, o
+  `advisories` mapeia cada id GHSA aceito NAQUELE pacote (vale também a URL da
+  advisory, que o portão reduz ao id) para a gravidade com que foi aceito. Até
+  2026-10-20 a exceção casava pelo nome do pacote, e uma advisory nova e crítica
+  em `node-forge` passava como "aceita" porque o pacote já estava na lista
+  (validação da rodada 6). Aceitar um risco é aceitar AQUELE risco, com AQUELA
+  gravidade: advisory nova no mesmo pacote reprova, e advisory aceita que muda de
+  gravidade também, até alguém ler, decidir e atualizar a linha.
+
+  A lista também é prova: cada advisory aceita TEM de voltar na própria auditoria
+  do aplicativo. Se uma some, ou a auditoria não é confiável (proxy ou espelho
+  que forja a resposta) ou a lista está velha; nos dois casos o portão sai 2. Vencido o prazo, o
   portão reprova até alguém reavaliar. `comCorrecao: true` só vale para o caso em
   que o `npm audit` diz `fixAvailable: true` mas a correção é inaplicável (ver
   CP-03, decidido por Rafael em 2026-10-07): o `npm audit fix` em apps/campo
@@ -43,7 +48,7 @@ const SEM_FIX_SEGURO = "O `npm audit fix` em apps/campo não é aplicável: "
 
 export const ACEITAS_NO_APLICATIVO = {
   "decode-uri-component": {
-    advisories: ["GHSA-vcc3-ghjq-m6fr"],
+    advisories: { "GHSA-vcc3-ghjq-m6fr": "moderate" },
     motivo: "Chega por expo-router > query-string, e esta vai "
       + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
       + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
@@ -51,34 +56,34 @@ export const ACEITAS_NO_APLICATIVO = {
     dono: DONO, ate: PRAZO,
   },
   "brace-expansion": {
-    advisories: ["GHSA-q2hr-2g5m-vwhr", "GHSA-qhr7-859c-m2p7", "GHSA-6j4f-fj2g-mc7p"],
+    advisories: { "GHSA-q2hr-2g5m-vwhr": "moderate", "GHSA-qhr7-859c-m2p7": "high", "GHSA-6j4f-fj2g-mc7p": "high" },
     motivo: FERRAMENTA_DO_EXPO + "Três avisos de negação de serviço na expansão de "
       + "glob (padrão `{a},b}` e recursão em chaves aninhadas), e o aplicativo não "
       + "expande glob em execução. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO, comCorrecao: true,
   },
   braces: {
-    advisories: ["GHSA-vfj7-8cjw-p6xm"],
+    advisories: { "GHSA-vfj7-8cjw-p6xm": "high" },
     motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
       + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO,
   },
   "node-forge": {
-    advisories: ["GHSA-86w9-cpqp-85rv"],
+    advisories: { "GHSA-86w9-cpqp-85rv": "high" },
     motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
       + "para assinar atualização do EAS na máquina de build, não no telefone. "
       + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO,
   },
   "shell-quote": {
-    advisories: ["GHSA-pqg4-j6r4-53mv"],
+    advisories: { "GHSA-pqg4-j6r4-53mv": "critical" },
     motivo: FERRAMENTA_DO_EXPO + "Vem de react-devtools-core, só no modo de "
       + "desenvolvimento. Injeção de comando exige que o desenvolvedor passe "
       + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO, comCorrecao: true,
   },
   "sprintf-js": {
-    advisories: ["GHSA-hp3w-g68c-fv3c"],
+    advisories: { "GHSA-hp3w-g68c-fv3c": "moderate" },
     motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
       + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO,
@@ -127,8 +132,8 @@ export const ACEITAS_EM_DESENVOLVIMENTO = {
  * Vale até o fim do dia escrito: vence quando `ate < hoje`.
  *
  * Com `exigirAdvisories` (a lista do aplicativo), cada exceção precisa nomear as
- * advisories que aceita, por id GHSA ou URL: sem isso o portão voltaria a aceitar
- * pelo nome do pacote.
+ * advisories que aceita, por id GHSA ou URL, cada uma com a gravidade aceita: sem
+ * isso o portão voltaria a aceitar pelo nome do pacote.
  *
  * @param {Record<string, {advisories?: unknown, motivo?: unknown, dono?: unknown, ate?: unknown}>} aceitas
  * @param {string} hoje AAAA-MM-DD
@@ -140,12 +145,16 @@ export function problemasDasExcecoes(aceitas, hoje, { exigirAdvisories = false }
   const preenchido = (v) => typeof v === "string" && v.trim() !== "";
   for (const [nome, e] of Object.entries(aceitas)) {
     if (exigirAdvisories) {
-      if (!Array.isArray(e?.advisories) || e.advisories.length === 0) {
-        problemas.push(`${nome}: exceção sem a lista \`advisories\` (o id GHSA ou a URL de cada advisory aceita)`);
+      const lista = e?.advisories;
+      if (lista === null || typeof lista !== "object" || Array.isArray(lista) || Object.keys(lista).length === 0) {
+        problemas.push(`${nome}: exceção sem a lista \`advisories\` (o id GHSA ou a URL de cada advisory aceita, com a gravidade)`);
       } else {
-        for (const a of e.advisories) {
-          if (typeof a !== "string" || !idDaAdvisory(a)?.startsWith("GHSA-")) {
+        for (const [a, gravidade] of Object.entries(lista)) {
+          if (!idDaAdvisory(a)?.startsWith("GHSA-")) {
             problemas.push(`${nome}: advisory inválida ${JSON.stringify(a)} (esperado o id GHSA-xxxx-xxxx-xxxx ou a URL dela)`);
+          }
+          if (!GRAVIDADES.includes(gravidade)) {
+            problemas.push(`${nome}: gravidade aceita inválida ${JSON.stringify(gravidade)} para ${a} (esperado ${GRAVIDADES.join(", ")})`);
           }
         }
       }
@@ -202,15 +211,13 @@ export function advisoriesProprias(entrada) {
  * não está em `advisories` também.
  *
  * @param {Record<string, {via?: unknown[]}>} vulnerabilidades o `vulnerabilities` do relatório
- * @param {Record<string, {advisories?: string[]}>} aceitas
+ * @param {Record<string, {advisories?: Record<string, string>}>} aceitas
  * @returns {{pacote: string, id: string, gravidade: string, titulo: string}[]}
  */
 export function advisoriesNaoAceitas(vulnerabilidades, aceitas) {
   const novas = new Map();
   for (const [pacote, entrada] of Object.entries(vulnerabilidades ?? {})) {
-    const aceitasDoPacote = new Set(
-      Object.hasOwn(aceitas, pacote) ? (aceitas[pacote].advisories ?? []).map(idDaAdvisory).filter(Boolean) : [],
-    );
+    const aceitasDoPacote = new Set(aceitasDe(aceitas, pacote).keys());
     for (const origem of advisoriesProprias(entrada)) {
       const id = idDaAdvisory(origem) ?? "(sem id)";
       if (aceitasDoPacote.has(id) || novas.has(`${pacote} ${id}`)) continue;
@@ -220,6 +227,84 @@ export function advisoriesNaoAceitas(vulnerabilidades, aceitas) {
     }
   }
   return [...novas.values()];
+}
+
+/** As gravidades do `npm audit`, da menor para a maior. */
+export const GRAVIDADES = Object.freeze(["info", "low", "moderate", "high", "critical"]);
+
+/** Mapa id GHSA normalizado para a gravidade aceita, das exceções de um pacote. */
+function aceitasDe(aceitas, pacote) {
+  const lista = Object.hasOwn(aceitas, pacote) ? aceitas[pacote].advisories ?? {} : {};
+  return new Map(Object.entries(lista).map(([a, g]) => [idDaAdvisory(a), g]).filter(([id]) => id));
+}
+
+/**
+ * A gravidade de cada par (pacote, id) no relatório. O mesmo GHSA aparece uma vez
+ * por faixa de versão; vale a maior gravidade entre elas.
+ *
+ * @returns {Map<string, string>} chave `pacote id`
+ */
+function gravidadesNoRelatorio(vulnerabilidades) {
+  const mapa = new Map();
+  for (const [pacote, entrada] of Object.entries(vulnerabilidades ?? {})) {
+    for (const origem of advisoriesProprias(entrada)) {
+      const chave = `${pacote} ${idDaAdvisory(origem) ?? "(sem id)"}`;
+      const g = String(origem.severity ?? "");
+      if (!mapa.has(chave) || GRAVIDADES.indexOf(g) > GRAVIDADES.indexOf(mapa.get(chave))) mapa.set(chave, g);
+    }
+  }
+  return mapa;
+}
+
+/**
+ * Advisory aceita que voltou com outra gravidade. A aceitação foi daquela
+ * gravidade: subiu (ou desceu), alguém decide de novo.
+ *
+ * @returns {{pacote: string, id: string, aceita: string, agora: string}[]}
+ */
+export function mudancasDeGravidade(vulnerabilidades, aceitas) {
+  const mudancas = [];
+  for (const [chave, agora] of gravidadesNoRelatorio(vulnerabilidades)) {
+    const [pacote, id] = chave.split(" ");
+    const aceita = aceitasDe(aceitas, pacote).get(id);
+    if (aceita !== undefined && aceita !== agora) mudancas.push({ pacote, id, aceita, agora });
+  }
+  return mudancas;
+}
+
+/**
+ * Advisories aceitas que NÃO voltaram no relatório (`pacote id`). É a prova
+ * dentro da própria consulta: um proxy ou espelho que responde `{}`, ou que
+ * repassa só a consulta de controle, apaga também as aceitas, e isso aparece aqui.
+ */
+export function aceitasAusentes(vulnerabilidades, aceitas) {
+  const vistas = gravidadesNoRelatorio(vulnerabilidades);
+  return Object.keys(aceitas).flatMap((pacote) => [...aceitasDe(aceitas, pacote).keys()]
+    .filter((id) => !vistas.has(`${pacote} ${id}`))
+    .map((id) => `${pacote} ${id}`));
+}
+
+/** Pacotes aceitos em desenvolvimento que não voltaram com advisory própria no relatório completo. */
+export function pacotesAceitosAusentes(vulnerabilidades, aceitas) {
+  return Object.keys(aceitas).filter((nome) => advisoriesProprias(vulnerabilidades?.[nome]).length === 0);
+}
+
+/**
+ * Os pacotes vulneráveis do relatório COMPLETO que não são só de desenvolvimento,
+ * pelo `package-lock.json`: nó que não tem `dev: true` (ou que o lockfile não
+ * conhece) é runtime. Serve para não depender só da consulta `--omit=dev`, que
+ * não tem nenhuma advisory conhecida dentro e por isso, sozinha, poderia ser
+ * forjada vazia sem ninguém notar; a completa traz as aceitas de desenvolvimento.
+ */
+export function pacotesDeRuntimeNoCompleto(vulnerabilidades, lockfile) {
+  const pacotes = lockfile?.packages ?? {};
+  return Object.entries(vulnerabilidades ?? {})
+    .filter(([nome, v]) => {
+      const nos = Array.isArray(v.nodes) && v.nodes.length > 0 ? v.nodes : [`node_modules/${nome}`];
+      return nos.some((no) => pacotes[no]?.dev !== true);
+    })
+    .map(([nome]) => nome)
+    .sort();
 }
 
 /* ---------- Provar que houve consulta de verdade ---------- */

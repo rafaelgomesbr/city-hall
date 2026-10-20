@@ -1,0 +1,23 @@
+$ repro-proxy-seletivo.sh dc360 scripts/auditar.mjs   (o mesmo proxy, forjando {} em UMA consulta de cada vez e repassando as outras ao registro real; DEPOIS da 6b)
+=== proxy que forja {} só na consulta com 80 pacotes
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 55 vulnerabilidade(s)
+    Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 8 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consul
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+    proxy: bulk pacotes=80 FORJADO {};bulk pacotes=231 CONTROLE->real;bulk pacotes=669 CONTROLE->real;bulk pacotes=1 CONTROLE->real;bulk pacotes=1 CONTROLE->real;
+=== proxy que forja {} só na consulta com 231 pacotes
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 57 vulnerabilidade(s)
+    ERRO: a auditoria completa da raiz não é confiável, então este portão NÃO aprova.
+    codigo=2
+    proxy: bulk pacotes=80 CONTROLE->real;bulk pacotes=231 FORJADO {};bulk pacotes=669 CONTROLE->real;
+=== proxy que forja {} só na consulta com 669 pacotes
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+    ERRO: a auditoria do aplicativo de campo não é confiável, então este portão NÃO aprova.
+    codigo=2
+    proxy: bulk pacotes=80 CONTROLE->real;bulk pacotes=231 CONTROLE->real;bulk pacotes=669 FORJADO {};

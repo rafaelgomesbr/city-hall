@@ -1535,15 +1535,26 @@ que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
 quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem
 ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
 devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
-código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei"). Toda
-chamada fixa o registro oficial (`https://registry.npmjs.org/`) e anula o modo
-offline, então `offline=true` ou outro registro na configuração do npm não mudam
-para onde ele pergunta; e, antes de aprovar, ele exige que o relatório diga
-quantas dependências olhou e faz uma consulta de controle (`lodash` 4.17.20, que
-tem advisory publicada) com a mesma configuração da raiz e do aplicativo: se ela
-voltar vazia, o zero não prova nada e o portão sai 2. As exceções do aplicativo
-casam pelo id da advisory (GHSA), não pelo nome do pacote: advisory nova num
-pacote já aceito reprova.
+código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
+
+O que o portão anula: toda chamada fixa o registro oficial
+(`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
+`dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
+`offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
+ou em `npm_config_*`, não mudam para onde ele pergunta. O que ele exige antes de
+aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
+aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
+próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
+está velha, e o portão sai 2); o que a auditoria completa acusa em pacote que o
+`package-lock.json` não marca como só de desenvolvimento conta como runtime; e
+uma consulta de controle à parte (`lodash` 4.17.20, com o `.npmrc` de cada
+projeto) volta com a advisory conhecida. As exceções do aplicativo casam pelo id
+da advisory e pela gravidade aceita: advisory nova num pacote já aceito reprova,
+e advisory aceita que muda de gravidade também. O que continua FORA do alcance:
+um `npm` falso no `PATH` (o portão confia no programa que executa), um proxy de
+inspeção TLS que reescreve a resposta tirando só a advisory nova e deixando as
+conhecidas, e o dia em que as duas listas de aceitas ficarem vazias (aí a única
+prova é a consulta de controle à parte).
 
 ### O aplicativo de campo precisa de um comando próprio
 

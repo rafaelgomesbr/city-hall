@@ -27,7 +27,8 @@ import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
-  advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, problemasDasExcecoes,
+  aceitasAusentes, advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+  pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -78,30 +79,57 @@ const VAZIO_BEM_FORMADO = {
 };
 const urlDe = (id) => `https://github.com/advisories/${id}`;
 /** O primeiro GHSA aceito do pacote, ou um GHSA que nenhuma lista aceita. */
-const ghsaDe = (nome) => ACEITAS_NO_APLICATIVO[nome]?.advisories?.[0] ?? "GHSA-n0va-0000-0000";
+const ghsaDe = (nome) => Object.keys(ACEITAS_NO_APLICATIVO[nome]?.advisories ?? {})[0] ?? "GHSA-n0va-0000-0000";
+/** A gravidade com que o GHSA foi aceito no pacote, ou "high". */
+const gravidadeAceita = (nome, id) => ACEITAS_NO_APLICATIVO[nome]?.advisories?.[id] ?? "high";
 
 /**
  * Relatório com advisory PRÓPRIA (via com objeto) por pacote informado. O valor é
- * o `fixAvailable`, ou `{ fixAvailable, ids }` para escolher os GHSA.
+ * o `fixAvailable`, ou `{ fixAvailable, ids, gravidade, nodes }` para escolher os
+ * GHSA, forçar a gravidade e os caminhos no `node_modules` (o portão os confere
+ * no `package-lock.json` real para separar runtime de desenvolvimento).
  */
 function relatorio(pacotes) {
   const vulnerabilities = {};
   let total = 0;
   for (const [nome, valor] of Object.entries(pacotes)) {
-    const { fixAvailable, ids = [ghsaDe(nome)] } = valor !== null && typeof valor === "object" ? valor : { fixAvailable: valor };
+    const opcoes = valor !== null && typeof valor === "object" ? valor : { fixAvailable: valor };
+    const { fixAvailable, ids = [ghsaDe(nome)], gravidade, nodes = [`node_modules/${nome}`] } = opcoes;
     vulnerabilities[nome] = {
-      name: nome, severity: "high", fixAvailable,
-      via: ids.map((id, i) => ({ source: 1000 + i, url: urlDe(id), title: `advisory ${id} de ${nome}`, severity: "high" })),
+      name: nome, severity: "high", fixAvailable, nodes,
+      via: ids.map((id, i) => ({
+        source: 1000 + i, url: urlDe(id), title: `advisory ${id} de ${nome}`, severity: gravidade ?? gravidadeAceita(nome, id),
+      })),
     };
     total += ids.length;
   }
   return { vulnerabilities, metadata: { vulnerabilities: { total, high: total }, dependencies: ARVORE } };
 }
 
+/** Junta relatórios; pacote repetido fica com a versão do último. */
+function juntar(...relatorios) {
+  const vulnerabilities = Object.assign({}, ...relatorios.map((r) => r.vulnerabilities));
+  const total = Object.values(vulnerabilities).reduce((n, v) => n + v.via.filter((o) => typeof o === "object").length, 0);
+  return { vulnerabilities, metadata: { vulnerabilities: { total, high: total }, dependencies: ARVORE } };
+}
+
+/** O aplicativo como o registro responde hoje: todas as advisories aceitas, com a gravidade aceita. */
+const APP_ACEITO = relatorio(Object.fromEntries(Object.entries(ACEITAS_NO_APLICATIVO).map(
+  ([nome, e]) => [nome, { fixAvailable: Boolean(e.comCorrecao), ids: Object.keys(e.advisories) }],
+)));
+/** O conjunto completo da raiz como o registro responde hoje: os três pacotes aceitos do vitest. */
+const DEV_ACEITO = relatorio({ vitest: false, "@vitest/mocker": false, tinypool: false });
+/** Nó que o `package-lock.json` real marca como só de desenvolvimento. */
+const NO_DE_DEV = ["node_modules/vitest"];
+
 /** A consulta de controle como o registro oficial responde: lodash 4.17.20 com a advisory conhecida. */
 const CONTROLE_BOM = relatorio({ [CONTROLE.pacote]: { fixAvailable: true, ids: [CONTROLE.advisory, "GHSA-29mw-wpgm-hmr9"] } });
 
-function fixtura({ runtime = limpo, tudo = runtime, app = limpo, controle = CONTROLE_BOM, ...resto }) {
+function fixtura({
+  runtime = limpo,
+  tudo = runtime?.vulnerabilities ? juntar(runtime, DEV_ACEITO) : DEV_ACEITO,
+  app = APP_ACEITO, controle = CONTROLE_BOM, ...resto
+}) {
   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
 }
 
@@ -135,13 +163,13 @@ describe("auditar.mjs", () => {
   });
 
   it("só avisa de vulnerabilidade apenas de desenvolvimento", () => {
-    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false }) });
+    const { codigo, saida } = rodar({ tudo: DEV_ACEITO });
     assert.equal(codigo, 0, saida);
     assert.match(saida, /apenas em ferramenta de/);
   });
 
   it("dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono'", () => {
-    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false, tinypool: false }) });
+    const { codigo, saida } = rodar({ tudo: DEV_ACEITO });
     assert.equal(codigo, 0, saida);
     assert.match(saida, /aceita \(desenvolvimento\): vitest \(dono Rafael, até 2027-01-05\)/);
     assert.match(saida, /aceita \(desenvolvimento\): tinypool/);
@@ -150,22 +178,24 @@ describe("auditar.mjs", () => {
   });
 
   it("dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo", () => {
-    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false, "pacote-novo-de-teste": false }) });
+    const { codigo, saida } = rodar({
+      tudo: juntar(DEV_ACEITO, relatorio({ "pacote-novo-de-teste": { fixAvailable: false, nodes: NO_DE_DEV } })),
+    });
     assert.equal(codigo, 0, saida);
     assert.match(saida, /sem dono e prazo: pacote-novo-de-teste/);
     assert.match(saida, /aceita \(desenvolvimento\): vitest/);
   });
 
   it("reprova advisory nova no aplicativo de campo", () => {
-    const { codigo, saida } = rodar({ app: relatorio({ "pacote-novo": false }) });
+    const { codigo, saida } = rodar({ app: juntar(APP_ACEITO, relatorio({ "pacote-novo": false })) });
     assert.equal(codigo, 1);
     assert.match(saida, /NOVA:\s+pacote-novo/);
   });
 
   it("aceita o nomeado, com o id da advisory, dono e prazo na saída", () => {
-    const { codigo, saida } = rodar({ app: relatorio({ "node-forge": false }) });
+    const { codigo, saida } = rodar({});
     assert.equal(codigo, 0, saida);
-    assert.match(saida, /aceita: node-forge GHSA-86w9-cpqp-85rv \(dono .+, até \d{4}-\d{2}-\d{2}\)/);
+    assert.match(saida, /aceita: node-forge GHSA-86w9-cpqp-85rv \(high, dono .+, até \d{4}-\d{2}-\d{2}\)/);
   });
 
   /*
@@ -174,7 +204,7 @@ describe("auditar.mjs", () => {
   */
   it("reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA)", () => {
     const { codigo, saida } = rodar({
-      app: relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv", "GHSA-n0va-cr1t-1ca0"] } }),
+      app: juntar(APP_ACEITO, relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv", "GHSA-n0va-cr1t-1ca0"] } })),
     });
     assert.equal(codigo, 1, saida);
     assert.match(saida, /NOVA:\s+node-forge GHSA-n0va-cr1t-1ca0/);
@@ -196,21 +226,23 @@ describe("auditar.mjs", () => {
   });
 
   it("aceita as três advisories nomeadas de brace-expansion e reprova a quarta", () => {
-    const ids = ACEITAS_NO_APLICATIVO["brace-expansion"].advisories;
-    assert.equal(rodar({ app: relatorio({ "brace-expansion": { fixAvailable: true, ids } }) }).codigo, 0);
-    const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": { fixAvailable: true, ids: [...ids, "GHSA-qu4r-t4aa-0000"] } }) });
+    const ids = Object.keys(ACEITAS_NO_APLICATIVO["brace-expansion"].advisories);
+    assert.equal(rodar({ app: juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids } })) }).codigo, 0);
+    const { codigo, saida } = rodar({
+      app: juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids: [...ids, "GHSA-qu4r-t4aa-0000"] } })),
+    });
     assert.equal(codigo, 1, saida);
     assert.match(saida, /NOVA:\s+brace-expansion GHSA-qu4r-t4aa-0000/);
   });
 
   it("reprova aceita que tem correção disponível e não está marcada como inaplicável", () => {
-    const { codigo, saida } = rodar({ app: relatorio({ "decode-uri-component": true }) });
+    const { codigo, saida } = rodar({ app: juntar(APP_ACEITO, relatorio({ "decode-uri-component": true })) });
     assert.equal(codigo, 1);
     assert.match(saida, /correção já existe/);
   });
 
   it("tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)", () => {
-    const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": true }) });
+    const { codigo, saida } = rodar({ app: juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids: Object.keys(ACEITAS_NO_APLICATIVO["brace-expansion"].advisories) } })) });
     assert.equal(codigo, 0, saida);
   });
 
@@ -281,23 +313,23 @@ describe("auditar.mjs", () => {
   });
 
   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
-    const { codigo, saida } = rodar({ offline: true, app: relatorio({ "pacote-novo": false }) });
+    const { codigo, saida } = rodar({ offline: true, app: juntar(APP_ACEITO, relatorio({ "pacote-novo": false })) });
     assert.equal(codigo, 1, saida);
     assert.match(saida, /NOVA:\s+pacote-novo/);
     assert.doesNotMatch(saida, /Runtime limpo/);
   });
 
   it("com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou)", () => {
-    const { codigo, saida } = rodar({ offline: true, tudo: relatorio({ vitest: false }) });
+    const { codigo, saida } = rodar({ offline: true });
     assert.equal(codigo, 0, saida);
-    assert.match(saida, /Desenvolvimento \(fica na máquina\): 1 vulnerabilidade/);
+    assert.match(saida, /Desenvolvimento \(fica na máquina\): 3 vulnerabilidade/);
+    assert.match(saida, /Aplicativo de campo \(vai para o telefone\): 8 vulnerabilidade/);
   });
 
   it("sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {})", () => {
     const { codigo, saida } = rodar({ ignorarBandeiras: true });
     assert.equal(codigo, 2, saida);
-    assert.match(saida, /NÃO foi auditad/);
-    assert.match(saida, /consulta de controle \(lodash 4\.17\.20.*voltou sem advisory nenhuma/);
+    assert.match(saida, /não é confiável/);
     assert.doesNotMatch(saida, /Runtime limpo/);
   });
 
@@ -327,6 +359,54 @@ describe("auditar.mjs", () => {
     assert.equal(codigo, 1, saida);
     assert.equal(chamadas.filter((c) => c.controle).length, 0);
   });
+
+  /*
+    Revisão de 915bb6a: um proxy de inspeção TLS que repassa ao registro só a
+    consulta de controle e responde `{}` às outras fazia o portão dizer "consulta
+    real" com o aplicativo em 0. A prova agora vai DENTRO das consultas reais: as
+    advisories aceitas são conhecidas e têm de voltar.
+  */
+  it("sai 2 quando as consultas reais voltam vazias e só a de controle volta de verdade (o proxy da revisão)", () => {
+    const { codigo, saida } = rodar({ runtime: VAZIO_BEM_FORMADO, tudo: VAZIO_BEM_FORMADO, app: VAZIO_BEM_FORMADO });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /a auditoria do aplicativo de campo não é confiável/);
+    assert.match(saida, /node-forge GHSA-86w9-cpqp-85rv/);
+    assert.doesNotMatch(saida, /Runtime limpo|consulta real|voltaram nas próprias consultas/);
+  });
+
+  it("sai 2 quando só a auditoria completa da raiz volta vazia (os pacotes aceitos do vitest sumiram)", () => {
+    const { codigo, saida } = rodar({ tudo: VAZIO_BEM_FORMADO });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /a auditoria completa da raiz não é confiável/);
+    assert.match(saida, /vitest, @vitest\/mocker, tinypool/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("sai 2 quando UMA advisory aceita some (lista velha ou resposta mexida), e diz qual", () => {
+    const semUma = juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids: ["GHSA-q2hr-2g5m-vwhr", "GHSA-qhr7-859c-m2p7"] } }));
+    const { codigo, saida } = rodar({ app: semUma });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /não voltaram: brace-expansion GHSA-6j4f-fj2g-mc7p\./);
+    assert.match(saida, /lista de aceitas está velha/);
+  });
+
+  it("runtime forjado vazio não esconde o que a auditoria completa acusa em pacote que o lockfile não marca como dev", () => {
+    const { codigo, saida } = rodar({ runtime: limpo, tudo: juntar(DEV_ACEITO, relatorio({ fastify: true })) });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /auditoria completa da raiz acusa fastify/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("advisory aceita que muda de gravidade (para cima ou para baixo) deixa de valer sem decisão: sai 1 e diz a mudança", () => {
+    for (const agora of ["critical", "moderate"]) {
+      const app = juntar(APP_ACEITO, relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv"], gravidade: agora } }));
+      const { codigo, saida } = rodar({ app });
+      assert.equal(codigo, 1, `${agora}: ${saida}`);
+      assert.match(saida, new RegExp(`MUDOU:\\s+node-forge GHSA-86w9-cpqp-85rv \\(aceita como high, agora ${agora}\\)`));
+      assert.match(saida, /REPROVADO: 1 advisory aceita mudou de gravidade/);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+  });
 });
 
 describe("regras puras do portão: advisory por id e prova de consulta", () => {
@@ -338,7 +418,7 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
   });
 
   it("advisoriesNaoAceitas casa por GHSA, aceita a URL na lista, ignora arrasto e não repete o mesmo GHSA de faixas diferentes", () => {
-    const aceitas = { a: { advisories: ["https://github.com/advisories/GHSA-aaaa-aaaa-aaaa"] } };
+    const aceitas = { a: { advisories: { "https://github.com/advisories/GHSA-aaaa-aaaa-aaaa": "high" } } };
     const vulns = {
       a: { via: [{ source: 1, url: urlDe("GHSA-aaaa-aaaa-aaaa") }, { source: 2, url: urlDe("GHSA-bbbb-bbbb-bbbb") }, { source: 3, url: urlDe("GHSA-bbbb-bbbb-bbbb") }] },
       b: { via: ["a"] },
@@ -353,6 +433,31 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
     assert.match(defeitoDoControle(relatorio({ lodash: { fixAvailable: true, ids: ["GHSA-29mw-wpgm-hmr9"] } })), new RegExp(`sem ${CONTROLE.advisory}`));
   });
 
+  it("mudancasDeGravidade compara com a maior gravidade do mesmo GHSA entre as faixas, e ignora o que não é aceito", () => {
+    const aceitas = { a: { advisories: { "GHSA-aaaa-aaaa-aaaa": "moderate" } } };
+    const igual = { a: { via: [{ url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "moderate" }] }, b: { via: [{ url: urlDe("GHSA-bbbb-bbbb-bbbb"), severity: "critical" }] } };
+    assert.deepEqual(mudancasDeGravidade(igual, aceitas), []);
+    const subiu = { a: { via: [{ url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "moderate" }, { url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "high" }] } };
+    assert.deepEqual(mudancasDeGravidade(subiu, aceitas), [{ pacote: "a", id: "GHSA-aaaa-aaaa-aaaa", aceita: "moderate", agora: "high" }]);
+  });
+
+  it("aceitasAusentes e pacotesAceitosAusentes listam o que sabíamos existir e não voltou", () => {
+    const aceitas = { a: { advisories: { "GHSA-aaaa-aaaa-aaaa": "high", "GHSA-cccc-cccc-cccc": "low" } }, b: { advisories: { "GHSA-bbbb-bbbb-bbbb": "high" } } };
+    const vulns = { a: { via: [{ url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "high" }] }, b: { via: ["a"] } };
+    assert.deepEqual(aceitasAusentes(vulns, aceitas), ["a GHSA-cccc-cccc-cccc", "b GHSA-bbbb-bbbb-bbbb"]);
+    assert.deepEqual(aceitasAusentes({}, {}), []);
+    assert.deepEqual(pacotesAceitosAusentes({ x: { via: [{ title: "t" }] }, y: { via: ["x"] } }, { x: {}, y: {}, z: {} }), ["y", "z"]);
+  });
+
+  it("pacotesDeRuntimeNoCompleto: só fica de fora o nó que o lockfile marca dev; nó desconhecido conta como runtime", () => {
+    const lock = { packages: { "node_modules/d": { dev: true }, "node_modules/p": {}, "node_modules/o": { devOptional: true } } };
+    const vulns = {
+      d: { nodes: ["node_modules/d"] }, p: { nodes: ["node_modules/p"] }, o: { nodes: ["node_modules/o"] },
+      misto: { nodes: ["node_modules/d", "node_modules/p"] }, desconhecido: { nodes: ["node_modules/zz"] }, semNos: {},
+    };
+    assert.deepEqual(pacotesDeRuntimeNoCompleto(vulns, lock), ["desconhecido", "misto", "o", "p", "semNos"]);
+  });
+
   it("defeitoDaArvore exige dependencies.total maior que zero", () => {
     assert.equal(defeitoDaArvore(limpo), null);
     for (const rel of [{}, { metadata: {} }, { metadata: { dependencies: { total: 0 } } }, { metadata: { dependencies: { total: "249" } } }]) {
@@ -361,14 +466,18 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
   });
 
   it("a lista do aplicativo exige advisories: sem a lista, lista vazia ou id inválido reprova", () => {
-    const boa = { advisories: ["GHSA-aaaa-aaaa-aaaa"], motivo: "m", dono: "Rafael", ate: "2027-01-05" };
+    const boa = { advisories: { "GHSA-aaaa-aaaa-aaaa": "high" }, motivo: "m", dono: "Rafael", ate: "2027-01-05" };
     const HOJE = "2026-10-20";
     assert.deepEqual(problemasDasExcecoes({ p: boa }, HOJE, { exigirAdvisories: true }), []);
     const { advisories, ...semLista } = boa;
-    for (const e of [semLista, { ...boa, advisories: [] }, { ...boa, advisories: ["node-forge"] }, { ...boa, advisories: [42] }]) {
+    for (const e of [
+      semLista, { ...boa, advisories: {} }, { ...boa, advisories: ["GHSA-aaaa-aaaa-aaaa"] },
+      { ...boa, advisories: { "node-forge": "high" } }, { ...boa, advisories: { "GHSA-aaaa-aaaa-aaaa": "grave" } },
+      { ...boa, advisories: { "GHSA-aaaa-aaaa-aaaa": undefined } },
+    ]) {
       const p = problemasDasExcecoes({ p: e }, HOJE, { exigirAdvisories: true });
       assert.equal(p.length, 1, JSON.stringify(e));
-      assert.match(p[0], /^p: (exceção sem a lista `advisories`|advisory inválida)/);
+      assert.match(p[0], /^p: (exceção sem a lista `advisories`|advisory inválida|gravidade aceita inválida)/);
     }
     // A lista de desenvolvimento não reprova, então não exige advisories.
     assert.deepEqual(problemasDasExcecoes({ p: semLista }, HOJE), []);
@@ -444,12 +553,13 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
 
 describe("auditar.mjs com a lista de exceções adulterada", () => {
   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
-  function rodarCopia(alterar, { npmrc } = {}) {
+  function rodarCopia(alterar, { npmrc, semLockfile = false } = {}) {
     const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
     try {
       mkdirSync(join(raiz, "scripts"));
       mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
       copyFileSync(SCRIPT, join(raiz, "scripts", "auditar.mjs"));
+      if (!semLockfile) copyFileSync(join(AQUI, "..", "package-lock.json"), join(raiz, "package-lock.json"));
       const lista = readFileSync(join(AQUI, "auditar-excecoes.mjs"), "utf8").replaceAll("\r\n", "\n");
       const nova = alterar(lista);
       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
@@ -465,7 +575,7 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
           ...process.env,
           PATH: pasta + delimiter + process.env.PATH,
           AUDITAR_LOG: log,
-          AUDITAR_FIXTURE: fixtura({ app: relatorio({ "node-forge": false }) }),
+          AUDITAR_FIXTURE: fixtura({}),
         },
       });
       const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
@@ -501,9 +611,16 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
   });
 
   it("reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote)", () => {
-    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{\n)    advisories: \[[^\]]*\],\n/, "$1"));
+    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{\n)    advisories: \{[^}]*\},\n/, "$1"));
     assert.equal(codigo, 1, saida);
     assert.match(saida, /node-forge: exceção sem a lista `advisories`/);
+  });
+
+  it("sai 2 quando não consegue ler o package-lock.json da raiz (não dá para separar runtime de desenvolvimento)", () => {
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { semLockfile: true });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /package-lock\.json/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
   });
 
   it("reprova a exceção vencida", () => {

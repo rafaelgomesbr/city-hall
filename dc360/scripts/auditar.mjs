@@ -35,15 +35,19 @@
  * linha.
  */
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
-  advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle, idDaAdvisory,
-  problemasDasExcecoes,
+  aceitasAusentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+  idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
+
+const AQUI = dirname(fileURLToPath(import.meta.url));
+const RAIZ = join(AQUI, "..");
+const APLICATIVO = join(RAIZ, "apps", "campo");
 
 /**
  * Sai com código 2 dizendo, em português, que a auditoria NÃO aconteceu.
@@ -61,8 +65,8 @@ import {
  * `{}` ao endpoint de advisories, o npm devolve `total: 0` sem ter perguntado a
  * ninguém (validação da rodada 6). Por isso toda chamada fixa o registro oficial
  * e anula o modo offline (`BANDEIRAS_DA_CONSULTA_REAL`), e o portão só aprova
- * depois de uma consulta de controle que TEM de voltar com advisory (ver
- * `provarConsultaReal`, no fim).
+ * depois de provar, dentro das próprias consultas, que a resposta é real: as
+ * advisories aceitas (conhecidas) têm de voltar (ver o fim do arquivo).
  */
 function naoAuditou(rotulo, motivo) {
   console.error(`\nERRO: ${rotulo} NÃO foi auditado, então este portão NÃO aprova.`);
@@ -70,6 +74,23 @@ function naoAuditou(rotulo, motivo) {
   console.error(
     "Isto não é 'zero vulnerabilidades': é 'não consegui olhar'. Confira a rede e o registro "
     + "(npm config get registry), rode de novo, e só então confie no resultado.",
+  );
+  process.exit(2);
+}
+
+/**
+ * Sai com código 2 quando advisories que SABEMOS existir não voltaram. Não dá
+ * para saber, daqui, qual das duas coisas aconteceu: a resposta foi forjada no
+ * caminho (proxy de inspeção TLS ou espelho que responde `{}`) ou a lista de
+ * aceitas envelheceu (o pacote foi corrigido). Nas duas, alguém tem de olhar.
+ */
+function semProvaNaConsulta(rotulo, oQue, ausentes, onde) {
+  console.error(`\nERRO: ${rotulo} não é confiável, então este portão NÃO aprova.`);
+  console.error(`${oQue} que deveriam voltar e não voltaram: ${ausentes.join(", ")}.`);
+  console.error(
+    "Ou a resposta do registro foi forjada no caminho (proxy, espelho ou inspeção TLS que responde vazio), "
+    + `ou a lista de aceitas está velha. Confira com \`npm audit\` direto no registro oficial; se a advisory `
+    + `sumiu de verdade, apague a linha em ${onde} (scripts/auditar-excecoes.mjs).`,
   );
   process.exit(2);
 }
@@ -153,11 +174,33 @@ const runtime = contar(relatorioDoRuntime);
 const tudo = contar(relatorioDeTudo);
 const soDesenvolvimento = Math.max(0, tudo.total - runtime.total);
 
+/*
+  A consulta `--omit=dev` não tem advisory conhecida dentro, então, sozinha, uma
+  resposta forjada vazia passaria. A completa tem (as aceitas de desenvolvimento,
+  conferidas no fim), e o `package-lock.json` diz quais pacotes são só de
+  desenvolvimento: o que estiver vulnerável na completa e não for `dev` é runtime.
+*/
+let lockfile;
+try {
+  lockfile = JSON.parse(readFileSync(join(RAIZ, "package-lock.json"), "utf8"));
+} catch (erro) {
+  naoAuditou("o conjunto de runtime da raiz", `não consegui ler o package-lock.json da raiz (${erro.message})`);
+}
+const runtimeNoCompleto = pacotesDeRuntimeNoCompleto(relatorioDeTudo.vulnerabilities, lockfile);
+
 console.log(`Runtime (vai para a imagem): ${runtime.total} vulnerabilidade(s)`);
 console.log(`Desenvolvimento (fica na máquina): ${soDesenvolvimento} vulnerabilidade(s)`);
 
 if (runtime.total > 0) {
   console.error(`\nREPROVADO: ${runtime.detalhe} em dependência de runtime.`);
+  console.error("Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.");
+  process.exit(1);
+}
+if (runtimeNoCompleto.length > 0) {
+  console.error(
+    `\nREPROVADO: a auditoria completa da raiz acusa ${runtimeNoCompleto.join(", ")}, que o package-lock.json `
+    + "NÃO marca como só de desenvolvimento (e a consulta de runtime voltou limpa: as duas não batem).",
+  );
   console.error("Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.");
   process.exit(1);
 }
@@ -190,10 +233,6 @@ if (soDesenvolvimento > 0) {
 }
 
 /* ---------- O aplicativo de campo, que fica fora do `workspaces` ---------- */
-
-const AQUI = dirname(fileURLToPath(import.meta.url));
-const RAIZ = join(AQUI, "..");
-const APLICATIVO = join(RAIZ, "apps", "campo");
 
 const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo");
 const doApp = contar(relatorioDoApp);
@@ -241,14 +280,23 @@ const aceitasComCorrecao = pacotesDoApp.filter(
     && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
 );
 
+/*
+  A aceitação foi de uma advisory COM uma gravidade. Se o registro reclassifica
+  (por exemplo, de alta para crítica), a decisão antiga não cobre o risco novo.
+*/
+const mudancas = mudancasDeGravidade(relatorioDoApp.vulnerabilities, ACEITAS_NO_APLICATIVO);
+
 console.log(`\nAplicativo de campo (vai para o telefone): ${doApp.total} vulnerabilidade(s)`);
 for (const nome of pacotesDoApp) {
   for (const id of idsNoRelatorio(nome)) {
     const nova = naoAceitas.find((n) => n.pacote === nome && n.id === id);
+    const mudou = mudancas.find((m) => m.pacote === nome && m.id === id);
     const aceita = ACEITAS_NO_APLICATIVO[nome];
     console.log(nova
       ? `  NOVA:   ${nome} ${id} (${nova.gravidade}: ${nova.titulo})`
-      : `  aceita: ${nome} ${id} (dono ${aceita.dono}, até ${aceita.ate})`);
+      : mudou
+        ? `  MUDOU:  ${nome} ${id} (aceita como ${mudou.aceita}, agora ${mudou.agora})`
+        : `  aceita: ${nome} ${id} (${aceita.advisories[id] ?? "?"}, dono ${aceita.dono}, até ${aceita.ate})`);
   }
 }
 
@@ -260,6 +308,18 @@ if (naoAceitas.length > 0) {
   console.error(
     "Isto vai instalado no telefone do agente. Corrija, ou acrescente o id da advisory "
     + "a ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs COM O MOTIVO escrito.",
+  );
+  process.exit(1);
+}
+
+if (mudancas.length > 0) {
+  console.error(
+    `\nREPROVADO: ${mudancas.length} advisory aceita mudou de gravidade no aplicativo de campo `
+    + `(${mudancas.map((m) => `${m.pacote} ${m.id}: aceita como ${m.aceita}, agora ${m.agora}`).join("; ")}).`,
+  );
+  console.error(
+    "A exceção foi decidida para a gravidade antiga e não vale para a nova sem decisão. Reavalie e, "
+    + "se continuar aceita, atualize a gravidade e o motivo em ACEITAS_NO_APLICATIVO (scripts/auditar-excecoes.mjs).",
   );
   process.exit(1);
 }
@@ -276,31 +336,21 @@ if (aceitasComCorrecao.length > 0) {
   process.exit(1);
 }
 
-/*
-  Aceita que sobra na lista e sumiu do relatório é uma linha que virou mentira.
-  Ela não reprova, porque não há risco nenhum nisso, mas precisa ser dita: uma
-  lista de exceções que ninguém poda vira o lugar onde advisory de verdade se
-  esconde.
-*/
-const obsoletas = Object.entries(ACEITAS_NO_APLICATIVO).flatMap(([nome, e]) => {
-  const vistas = pacotesDoApp.includes(nome) ? idsNoRelatorio(nome) : [];
-  return (e.advisories ?? []).map(idDaAdvisory).filter((id) => !vistas.includes(id)).map((id) => `${nome} ${id}`);
-});
-if (obsoletas.length > 0) {
-  console.warn(
-    `\nAviso: ${obsoletas.join(", ")} não aparece(m) mais no relatório do `
-    + "aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs.",
-  );
-}
 
 /* ---------- Antes de aprovar: provar que houve consulta de verdade ---------- */
 
 /*
   Reprovar não precisa de prova: achado é achado. Aprovar precisa. Um zero só
-  vale se (1) o relatório diz que olhou uma árvore com dependências e (2) a mesma
-  configuração de npm, com as mesmas bandeiras, devolve a advisory conhecida de
-  um pacote de controle. Sem as duas coisas o zero pode ser o do npm offline ou o
-  de um espelho que responde `{}`, e o portão sai 2.
+  vale se (1) o relatório diz que olhou uma árvore com dependências, (2) as
+  advisories que SABEMOS existir (as aceitas) voltaram DENTRO das próprias
+  consultas, e (3) a consulta de controle à parte devolve a advisory conhecida.
+
+  O (2) é o que importa. Até a revisão de 2026-10-20 só havia o (3), e um proxy
+  de inspeção TLS (`https-proxy` e `cafile` na configuração, como em rede
+  corporativa) que repassava ao registro só a consulta de controle e respondia
+  `{}` às outras fazia o portão dizer "consulta real" com o aplicativo em 0. Uma
+  consulta que carrega advisory conhecida não pode ser forjada vazia sem perder
+  essa advisory; a de controle, separada, pode ser tratada à parte.
 */
 for (const [relatorio, rotulo] of [
   [relatorioDoRuntime, "o conjunto de runtime da raiz"],
@@ -309,6 +359,18 @@ for (const [relatorio, rotulo] of [
 ]) {
   const defeito = defeitoDaArvore(relatorio);
   if (defeito) naoAuditou(rotulo, defeito);
+}
+
+const ausentesNoApp = aceitasAusentes(relatorioDoApp.vulnerabilities, ACEITAS_NO_APLICATIVO);
+if (ausentesNoApp.length > 0) semProvaNaConsulta(
+  "a auditoria do aplicativo de campo", "Advisories aceitas (conhecidas)", ausentesNoApp, "ACEITAS_NO_APLICATIVO",
+);
+const ausentesNoCompleto = pacotesAceitosAusentes(relatorioDeTudo.vulnerabilities, ACEITAS_EM_DESENVOLVIMENTO);
+if (ausentesNoCompleto.length > 0) {
+  semProvaNaConsulta(
+    "a auditoria completa da raiz", "Pacotes aceitos de desenvolvimento (com advisory conhecida)", ausentesNoCompleto,
+    "ACEITAS_EM_DESENVOLVIMENTO",
+  );
 }
 
 /**
@@ -335,7 +397,9 @@ provarConsultaReal(RAIZ, "com a configuração da raiz");
 provarConsultaReal(APLICATIVO, "com a configuração do aplicativo de campo");
 console.log(
   `\nConsulta de controle: ${CONTROLE.pacote} ${CONTROLE.versao} voltou com ${CONTROLE.advisory} `
-  + `de ${REGISTRO_OFICIAL}, com a configuração da raiz e com a do aplicativo. O zero acima é de consulta real.`,
+  + `de ${REGISTRO_OFICIAL}, com a configuração da raiz e com a do aplicativo; e as `
+  + `${Object.values(ACEITAS_NO_APLICATIVO).reduce((n, e) => n + Object.keys(e.advisories).length, 0)} advisories aceitas do aplicativo e os `
+  + `${Object.keys(ACEITAS_EM_DESENVOLVIMENTO).length} pacotes aceitos de desenvolvimento voltaram nas próprias consultas.`,
 );
 
 console.log("\nRuntime limpo, e o aplicativo sem advisory nova.");
