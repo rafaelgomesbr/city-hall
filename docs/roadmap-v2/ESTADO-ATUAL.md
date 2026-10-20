@@ -12,7 +12,7 @@
 - GATE.md do G00 em docs/evidencias-v2/G00/: ausente
 
 ## Etapas da F00 (25)
-- IMPLEMENTADA 8, VALIDADA 5, VALIDADA COM PENDÊNCIA HUMANA 7, BLOQUEADA 5
+- IMPLEMENTADA 10, VALIDADA 5, VALIDADA COM PENDÊNCIA HUMANA 5, BLOQUEADA 5
 - Próxima etapa acionável na ordem da tabela: nenhuma
 
 ## Checkpoints ABERTOS ou PARCIAIS citados (fase atual e próxima)
