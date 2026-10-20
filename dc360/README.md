@@ -1535,7 +1535,15 @@ que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
 quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem
 ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
 devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
-código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
+código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei"). Toda
+chamada fixa o registro oficial (`https://registry.npmjs.org/`) e anula o modo
+offline, então `offline=true` ou outro registro na configuração do npm não mudam
+para onde ele pergunta; e, antes de aprovar, ele exige que o relatório diga
+quantas dependências olhou e faz uma consulta de controle (`lodash` 4.17.20, que
+tem advisory publicada) com a mesma configuração da raiz e do aplicativo: se ela
+voltar vazia, o zero não prova nada e o portão sai 2. As exceções do aplicativo
+casam pelo id da advisory (GHSA), não pelo nome do pacote: advisory nova num
+pacote já aceito reprova.
 
 ### O aplicativo de campo precisa de um comando próprio
 

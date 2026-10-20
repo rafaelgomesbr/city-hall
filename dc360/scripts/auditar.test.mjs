@@ -5,6 +5,13 @@
  * devolve o relatório combinado, sem rede e sem depender do estado real das
  * dependências.
  *
+ * O npm falso também imita o que enganava o portão até a rodada 6: com
+ * `offline` na fixture ele devolve o relatório vazio e bem formado do npm em
+ * modo offline, a menos que a chamada traga `--offline=false` e o registro
+ * oficial; com `ignorarBandeiras` ele devolve esse relatório vazio sempre, em
+ * toda pasta, inclusive na consulta de controle (o espelho que responde `{}`).
+ * Cada chamada fica registrada em AUDITAR_LOG, para o teste conferir as bandeiras.
+ *
  * O prazo (`ate`) depende do relógio, então o vencimento é provado de dois
  * jeitos sem mexer no relógio da máquina: a função pura recebe `hoje` por
  * argumento, e o teste de ponta a ponta roda uma CÓPIA do portão cuja lista de
@@ -13,12 +20,15 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import { ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
+import {
+  ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
+  advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, problemasDasExcecoes,
+} from "./auditar-excecoes.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(AQUI, "auditar.mjs");
@@ -29,10 +39,20 @@ before(() => {
   pasta = mkdtempSync(join(tmpdir(), "auditar-teste-"));
   writeFileSync(
     join(pasta, "npm.mjs"),
-    `const cwd = process.cwd().replaceAll("\\\\", "/");
+    `import { appendFileSync, existsSync, readFileSync } from "node:fs";
+const cwd = process.cwd().replaceAll("\\\\", "/");
 const f = JSON.parse(process.env.AUDITAR_FIXTURE);
-const rel = cwd.endsWith("apps/campo") ? f.app
-  : process.argv.includes("--omit=dev") ? f.runtime : f.tudo;
+const args = process.argv.slice(2);
+const controle = /\\/auditar-controle-[^/]*$/.test(cwd);
+if (process.env.AUDITAR_LOG) {
+  const npmrc = existsSync(".npmrc") ? readFileSync(".npmrc", "utf8").trim() : null;
+  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), args, npmrc }) + "\\n");
+}
+const fixado = args.includes("--registry=${REGISTRO_OFICIAL}") && args.includes("--offline=false");
+const rel = f.ignorarBandeiras || (f.offline && !fixado) ? f.vazioBemFormado
+  : controle ? f.controle
+  : cwd.endsWith("apps/campo") ? f.app
+  : args.includes("--omit=dev") ? f.runtime : f.tudo;
 // Texto cru simula o npm que não devolve JSON nenhum.
 if (typeof rel === "string") { process.stdout.write(rel); process.exit(1); }
 process.stdout.write(JSON.stringify(rel));
@@ -48,30 +68,58 @@ process.exit(Object.keys(rel.vulnerabilities ?? {}).length || rel.error || !rel.
 
 after(() => rmSync(pasta, { recursive: true, force: true }));
 
-const limpo = { vulnerabilities: {}, metadata: { vulnerabilities: { total: 0 } } };
+const ARVORE = { prod: 90, dev: 150, optional: 50, peer: 0, peerOptional: 0, total: 249 };
+const limpo = { vulnerabilities: {}, metadata: { vulnerabilities: { total: 0 }, dependencies: ARVORE } };
+/** O que o npm real devolve em modo offline, ou atrás de um registro que responde `{}`. */
+const VAZIO_BEM_FORMADO = {
+  auditReportVersion: 2,
+  vulnerabilities: {},
+  metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 }, dependencies: ARVORE },
+};
+const urlDe = (id) => `https://github.com/advisories/${id}`;
+/** O primeiro GHSA aceito do pacote, ou um GHSA que nenhuma lista aceita. */
+const ghsaDe = (nome) => ACEITAS_NO_APLICATIVO[nome]?.advisories?.[0] ?? "GHSA-n0va-0000-0000";
 
-/** Relatório com um advisory PRÓPRIO (via com objeto) por pacote informado. */
+/**
+ * Relatório com advisory PRÓPRIA (via com objeto) por pacote informado. O valor é
+ * o `fixAvailable`, ou `{ fixAvailable, ids }` para escolher os GHSA.
+ */
 function relatorio(pacotes) {
   const vulnerabilities = {};
-  for (const [nome, fixAvailable] of Object.entries(pacotes)) {
+  let total = 0;
+  for (const [nome, valor] of Object.entries(pacotes)) {
+    const { fixAvailable, ids = [ghsaDe(nome)] } = valor !== null && typeof valor === "object" ? valor : { fixAvailable: valor };
     vulnerabilities[nome] = {
-      name: nome, severity: "high", via: [{ title: `advisory de ${nome}`, severity: "high" }], fixAvailable,
+      name: nome, severity: "high", fixAvailable,
+      via: ids.map((id, i) => ({ source: 1000 + i, url: urlDe(id), title: `advisory ${id} de ${nome}`, severity: "high" })),
     };
+    total += ids.length;
   }
-  const total = Object.keys(vulnerabilities).length;
-  return { vulnerabilities, metadata: { vulnerabilities: { total, high: total } } };
+  return { vulnerabilities, metadata: { vulnerabilities: { total, high: total }, dependencies: ARVORE } };
 }
 
-function rodar({ runtime = limpo, tudo = runtime, app = limpo }) {
+/** A consulta de controle como o registro oficial responde: lodash 4.17.20 com a advisory conhecida. */
+const CONTROLE_BOM = relatorio({ [CONTROLE.pacote]: { fixAvailable: true, ids: [CONTROLE.advisory, "GHSA-29mw-wpgm-hmr9"] } });
+
+function fixtura({ runtime = limpo, tudo = runtime, app = limpo, controle = CONTROLE_BOM, ...resto }) {
+  return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
+}
+
+function rodar(opcoes, { env = {} } = {}) {
   const r = spawnSync(process.execPath, [SCRIPT], {
     encoding: "utf8",
-    env: {
-      ...process.env,
-      PATH: pasta + delimiter + process.env.PATH,
-      AUDITAR_FIXTURE: JSON.stringify({ runtime, tudo, app }),
-    },
+    env: { ...process.env, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
   });
   return { codigo: r.status, saida: r.stdout + r.stderr };
+}
+
+/** Roda e devolve também cada chamada que o npm falso recebeu. */
+function rodarComRegistro(opcoes) {
+  const log = join(mkdtempSync(join(tmpdir(), "auditar-log-")), "chamadas.jsonl");
+  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log } });
+  const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
+  rmSync(dirname(log), { recursive: true, force: true });
+  return { ...resultado, chamadas };
 }
 
 describe("auditar.mjs", () => {
@@ -114,10 +162,45 @@ describe("auditar.mjs", () => {
     assert.match(saida, /NOVA:\s+pacote-novo/);
   });
 
-  it("aceita o nomeado, com dono e prazo na saída", () => {
+  it("aceita o nomeado, com o id da advisory, dono e prazo na saída", () => {
     const { codigo, saida } = rodar({ app: relatorio({ "node-forge": false }) });
     assert.equal(codigo, 0, saida);
-    assert.match(saida, /aceita: node-forge \(dono .+, até \d{4}-\d{2}-\d{2}\)/);
+    assert.match(saida, /aceita: node-forge GHSA-86w9-cpqp-85rv \(dono .+, até \d{4}-\d{2}-\d{2}\)/);
+  });
+
+  /*
+    Rodada 6, achado 2: a exceção casava pelo NOME do pacote, e uma advisory nova
+    e crítica em `node-forge` passava como "aceita". Agora casa pelo GHSA.
+  */
+  it("reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA)", () => {
+    const { codigo, saida } = rodar({
+      app: relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv", "GHSA-n0va-cr1t-1ca0"] } }),
+    });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /NOVA:\s+node-forge GHSA-n0va-cr1t-1ca0/);
+    assert.match(saida, /aceita: node-forge GHSA-86w9-cpqp-85rv/);
+    assert.match(saida, /REPROVADO: 1 advisory nova no aplicativo de campo \(node-forge GHSA-n0va-cr1t-1ca0/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador", () => {
+    const app = {
+      vulnerabilities: {
+        "node-forge": { via: [{ source: 999999, title: "advisory NOVA e critica", severity: "critical" }], fixAvailable: false },
+      },
+      metadata: { vulnerabilities: { critical: 1, total: 1 }, dependencies: ARVORE },
+    };
+    const { codigo, saida } = rodar({ app });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /NOVA:\s+node-forge npm:999999 \(critical/);
+  });
+
+  it("aceita as três advisories nomeadas de brace-expansion e reprova a quarta", () => {
+    const ids = ACEITAS_NO_APLICATIVO["brace-expansion"].advisories;
+    assert.equal(rodar({ app: relatorio({ "brace-expansion": { fixAvailable: true, ids } }) }).codigo, 0);
+    const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": { fixAvailable: true, ids: [...ids, "GHSA-qu4r-t4aa-0000"] } }) });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /NOVA:\s+brace-expansion GHSA-qu4r-t4aa-0000/);
   });
 
   it("reprova aceita que tem correção disponível e não está marcada como inaplicável", () => {
@@ -176,6 +259,120 @@ describe("auditar.mjs", () => {
     assert.equal(codigo, 2, saida);
     assert.match(saida, /NÃO foi auditad/);
   });
+
+  /*
+    Rodada 6, achado 1: com `offline=true` na configuração do npm, ou atrás de um
+    registro que responde `{}` ao endpoint de advisories, o npm devolve um
+    relatório vazio e BEM FORMADO, e o portão dizia "Runtime limpo" e saía 0.
+  */
+  it("fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações", () => {
+    const { codigo, saida, chamadas } = rodarComRegistro({});
+    assert.equal(codigo, 0, saida);
+    assert.equal(chamadas.length, 5, JSON.stringify(chamadas)); // runtime, tudo, aplicativo e dois controles
+    for (const { args } of chamadas) {
+      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false"]) {
+        assert.ok(args.includes(bandeira), `falta ${bandeira} em ${args.join(" ")}`);
+      }
+    }
+    const controles = chamadas.filter((c) => c.controle);
+    assert.equal(controles.length, 2);
+    for (const { args } of controles) assert.ok(args.includes("--package-lock-only"));
+    assert.match(saida, /Consulta de controle: lodash 4\.17\.20 voltou com GHSA-35jh-r3h4-6jhm/);
+  });
+
+  it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
+    const { codigo, saida } = rodar({ offline: true, app: relatorio({ "pacote-novo": false }) });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /NOVA:\s+pacote-novo/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou)", () => {
+    const { codigo, saida } = rodar({ offline: true, tudo: relatorio({ vitest: false }) });
+    assert.equal(codigo, 0, saida);
+    assert.match(saida, /Desenvolvimento \(fica na máquina\): 1 vulnerabilidade/);
+  });
+
+  it("sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {})", () => {
+    const { codigo, saida } = rodar({ ignorarBandeiras: true });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /NÃO foi auditad/);
+    assert.match(saida, /consulta de controle \(lodash 4\.17\.20.*voltou sem advisory nenhuma/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida", () => {
+    const outra = relatorio({ [CONTROLE.pacote]: { fixAvailable: true, ids: ["GHSA-29mw-wpgm-hmr9"] } });
+    for (const controle of [VAZIO_BEM_FORMADO, SEM_AUDITORIA, {}, "não é JSON", outra]) {
+      const { codigo, saida } = rodar({ controle });
+      assert.equal(codigo, 2, `${JSON.stringify(controle).slice(0, 60)}: ${saida}`);
+      assert.match(saida, /NÃO foi auditad/);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+  });
+
+  it("sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente)", () => {
+    const semArvore = { vulnerabilities: {}, metadata: { vulnerabilities: { total: 0 } } };
+    const arvoreVazia = { vulnerabilities: {}, metadata: { vulnerabilities: { total: 0 }, dependencies: { total: 0 } } };
+    for (const [onde, rel] of [["runtime", semArvore], ["tudo", arvoreVazia], ["app", semArvore]]) {
+      const { codigo, saida } = rodar({ [onde]: rel });
+      assert.equal(codigo, 2, `${onde}: ${saida}`);
+      assert.match(saida, /dependencies\.total/);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+  });
+
+  it("achado não precisa de prova para reprovar: runtime vulnerável sai 1 mesmo com o controle vazio", () => {
+    const { codigo, saida, chamadas } = rodarComRegistro({ runtime: relatorio({ fastify: true }), controle: VAZIO_BEM_FORMADO });
+    assert.equal(codigo, 1, saida);
+    assert.equal(chamadas.filter((c) => c.controle).length, 0);
+  });
+});
+
+describe("regras puras do portão: advisory por id e prova de consulta", () => {
+  it("idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA", () => {
+    assert.equal(idDaAdvisory({ url: "https://github.com/advisories/GHSA-86W9-CPQP-85RV" }), "GHSA-86w9-cpqp-85rv");
+    assert.equal(idDaAdvisory("ghsa-86w9-cpqp-85rv"), "GHSA-86w9-cpqp-85rv");
+    assert.equal(idDaAdvisory({ source: 999999 }), "npm:999999");
+    assert.equal(idDaAdvisory("node-forge"), null);
+  });
+
+  it("advisoriesNaoAceitas casa por GHSA, aceita a URL na lista, ignora arrasto e não repete o mesmo GHSA de faixas diferentes", () => {
+    const aceitas = { a: { advisories: ["https://github.com/advisories/GHSA-aaaa-aaaa-aaaa"] } };
+    const vulns = {
+      a: { via: [{ source: 1, url: urlDe("GHSA-aaaa-aaaa-aaaa") }, { source: 2, url: urlDe("GHSA-bbbb-bbbb-bbbb") }, { source: 3, url: urlDe("GHSA-bbbb-bbbb-bbbb") }] },
+      b: { via: ["a"] },
+      c: { via: [{ source: 4, url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "low", title: "t" }] },
+    };
+    assert.deepEqual(advisoriesNaoAceitas(vulns, aceitas).map((n) => `${n.pacote} ${n.id}`), ["a GHSA-bbbb-bbbb-bbbb", "c GHSA-aaaa-aaaa-aaaa"]);
+  });
+
+  it("defeitoDoControle só aceita o relatório com a advisory conhecida do pacote de controle", () => {
+    assert.equal(defeitoDoControle(CONTROLE_BOM), null);
+    assert.match(defeitoDoControle(VAZIO_BEM_FORMADO), /sem advisory nenhuma/);
+    assert.match(defeitoDoControle(relatorio({ lodash: { fixAvailable: true, ids: ["GHSA-29mw-wpgm-hmr9"] } })), new RegExp(`sem ${CONTROLE.advisory}`));
+  });
+
+  it("defeitoDaArvore exige dependencies.total maior que zero", () => {
+    assert.equal(defeitoDaArvore(limpo), null);
+    for (const rel of [{}, { metadata: {} }, { metadata: { dependencies: { total: 0 } } }, { metadata: { dependencies: { total: "249" } } }]) {
+      assert.ok(defeitoDaArvore(rel), JSON.stringify(rel));
+    }
+  });
+
+  it("a lista do aplicativo exige advisories: sem a lista, lista vazia ou id inválido reprova", () => {
+    const boa = { advisories: ["GHSA-aaaa-aaaa-aaaa"], motivo: "m", dono: "Rafael", ate: "2027-01-05" };
+    const HOJE = "2026-10-20";
+    assert.deepEqual(problemasDasExcecoes({ p: boa }, HOJE, { exigirAdvisories: true }), []);
+    const { advisories, ...semLista } = boa;
+    for (const e of [semLista, { ...boa, advisories: [] }, { ...boa, advisories: ["node-forge"] }, { ...boa, advisories: [42] }]) {
+      const p = problemasDasExcecoes({ p: e }, HOJE, { exigirAdvisories: true });
+      assert.equal(p.length, 1, JSON.stringify(e));
+      assert.match(p[0], /^p: (exceção sem a lista `advisories`|advisory inválida)/);
+    }
+    // A lista de desenvolvimento não reprova, então não exige advisories.
+    assert.deepEqual(problemasDasExcecoes({ p: semLista }, HOJE), []);
+  });
 });
 
 describe("exceções do CP-03: nome, dono e prazo", () => {
@@ -232,10 +429,10 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
     assert.equal(p.length, 3); // a: sem dono e sem prazo; b: vencida
   });
 
-  it("a lista REAL tem motivo, dono e prazo válidos e no futuro", () => {
+  it("a lista REAL tem advisories, motivo, dono e prazo válidos e no futuro", () => {
     assert.ok(Object.keys(ACEITAS_NO_APLICATIVO).length > 0);
     const hoje = new Date().toISOString().slice(0, 10);
-    assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje), []);
+    assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje, { exigirAdvisories: true }), []);
   });
 
   it("a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos", () => {
@@ -247,7 +444,7 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
 
 describe("auditar.mjs com a lista de exceções adulterada", () => {
   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
-  function rodarCopia(alterar) {
+  function rodarCopia(alterar, { npmrc } = {}) {
     const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
     try {
       mkdirSync(join(raiz, "scripts"));
@@ -257,15 +454,22 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
       const nova = alterar(lista);
       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
       writeFileSync(join(raiz, "scripts", "auditar-excecoes.mjs"), nova);
+      if (npmrc) {
+        writeFileSync(join(raiz, ".npmrc"), npmrc.raiz);
+        writeFileSync(join(raiz, "apps", "campo", ".npmrc"), npmrc.app);
+      }
+      const log = join(raiz, "chamadas.jsonl");
       const r = spawnSync(process.execPath, [join(raiz, "scripts", "auditar.mjs")], {
         encoding: "utf8",
         env: {
           ...process.env,
           PATH: pasta + delimiter + process.env.PATH,
-          AUDITAR_FIXTURE: JSON.stringify({ runtime: limpo, tudo: limpo, app: relatorio({ "node-forge": false }) }),
+          AUDITAR_LOG: log,
+          AUDITAR_FIXTURE: fixtura({ app: relatorio({ "node-forge": false }) }),
         },
       });
-      return { codigo: r.status, saida: r.stdout + r.stderr };
+      const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
+      return { codigo: r.status, saida: r.stdout + r.stderr, chamadas };
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }
@@ -286,6 +490,20 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
     const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{[\s\S]*?)dono: DONO, /, "$1"));
     assert.equal(codigo, 1, saida);
     assert.match(saida, /node-forge.*sem dono/);
+  });
+
+  it("a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta)", () => {
+    const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, {
+      npmrc: { raiz: "; npmrc da raiz", app: "; npmrc do aplicativo" },
+    });
+    assert.equal(codigo, 0, saida);
+    assert.deepEqual(chamadas.filter((c) => c.controle).map((c) => c.npmrc), ["; npmrc da raiz", "; npmrc do aplicativo"]);
+  });
+
+  it("reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote)", () => {
+    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{\n)    advisories: \[[^\]]*\],\n/, "$1"));
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /node-forge: exceção sem a lista `advisories`/);
   });
 
   it("reprova a exceção vencida", () => {

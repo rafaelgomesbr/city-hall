@@ -1,0 +1,13 @@
+#!/bin/sh
+case "$MODO_FALSO" in
+  lixo) echo "isto nao e json"; exit 0;;
+  vazio) exit 0;;
+  objeto) echo "{}"; exit 0;;
+  lista) echo "[]"; exit 0;;
+  falha) echo "boom" >&2; exit 1;;
+  texto-total) echo '{"metadata":{"vulnerabilities":{"total":"0"}}}'; exit 0;;
+  cortado) printf '{"auditReportVersion":2,"vulnerabilities":{},"metadata":{"vulnerabilities":{"total":0'; exit 0;;
+  runtime-alta) echo '{"vulnerabilities":{"fastify":{"via":[{"title":"x","severity":"high"}],"fixAvailable":true}},"metadata":{"vulnerabilities":{"high":1,"total":1}}}'; exit 1;;
+  forge-nova) if [ "$(basename "$PWD")" = campo ]; then echo '{"vulnerabilities":{"node-forge":{"via":[{"source":999999,"title":"advisory NOVA e critica","severity":"critical"}],"fixAvailable":false}},"metadata":{"vulnerabilities":{"critical":1,"total":1}}}'; exit 1; else echo '{"vulnerabilities":{},"metadata":{"vulnerabilities":{"total":0}}}'; exit 0; fi;;
+  app-nova) if [ "$(basename "$PWD")" = campo ]; then echo '{"vulnerabilities":{"lodash":{"via":[{"title":"y","severity":"low"}],"fixAvailable":false}},"metadata":{"vulnerabilities":{"low":1,"total":1}}}'; exit 1; else echo '{"vulnerabilities":{},"metadata":{"vulnerabilities":{"total":0}}}'; exit 0; fi;;
+esac

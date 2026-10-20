@@ -1,0 +1,14 @@
+$ node --test scripts/auditar.test.mjs   (em dc360, sobre 1ed0b71, ANTES da correção)
+  ✔ reprova a exceção sem prazo, mesmo que o pacote esteja no relatório (28.440708ms)
+  ✔ reprova a exceção sem dono (29.039125ms)
+  ✔ reprova a exceção vencida (28.285875ms)
+✔ auditar.mjs com a lista de exceções adulterada (206.594625ms)
+ℹ tests 28
+ℹ suites 3
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2345.954667
+codigo=0

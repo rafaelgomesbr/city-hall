@@ -1,0 +1,430 @@
+$ npm run test:scripts   (em dc360, DEPOIS da correção 6)
+
+> dc360@0.1.0 test:scripts
+> node --test "scripts/*.test.mjs"
+
+✔ a abertura declara uma cor por tema, e são as cores do tema (19.888083ms)
+✔ o plugin da abertura recebe o bloco do tema escuro (7.776167ms)
+✔ nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares (2.242625ms)
+✔ a leitura dos dois blocos pega o valor escrito à mão (0.228708ms)
+✔ as duas artes de abertura existem no disco (0.491959ms)
+✔ a leitura da constante enxerga mesmo o arquivo (0.388792ms)
+✔ o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha (358.743ms)
+✔ a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado (0.32675ms)
+✔ caso-irmao: simbolo que nao existe no arquivo e mordido (250.122208ms)
+✔ caso-irmao: arquivo que nao existe e mordido, com e sem ancora (512.17625ms)
+✔ caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias (1052.818334ms)
+✔ caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE (243.576166ms)
+✔ caso-irmao: ausencia em pasta varre a pasta inteira (406.193791ms)
+✔ presenca em pasta nao vale como ancora: ela nao diz onde olhar (374.446333ms)
+✔ o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal (0.333542ms)
+✔ o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem (0.206542ms)
+✔ as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem (0.26575ms)
+▶ auditar.mjs
+  ✔ passa quando runtime e aplicativo estão limpos (676.8235ms)
+  ✔ reprova vulnerabilidade de runtime (186.063333ms)
+  ✔ só avisa de vulnerabilidade apenas de desenvolvimento (388.611791ms)
+  ✔ dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono' (369.90575ms)
+  ✔ dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo (400.876292ms)
+  ✔ reprova advisory nova no aplicativo de campo (418.091084ms)
+  ✔ aceita o nomeado, com o id da advisory, dono e prazo na saída (498.757292ms)
+  ✔ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (647.421208ms)
+  ✔ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (672.300125ms)
+  ✔ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (665.395125ms)
+  ✔ reprova aceita que tem correção disponível e não está marcada como inaplicável (184.88775ms)
+  ✔ tolera correção disponível quando a exceção é marcada como inaplicável (CP-03) (329.429541ms)
+  ✔ sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro (96.047292ms)
+  ✔ sai 2 quando a auditoria completa da raiz volta com erro do registro (146.400292ms)
+  ✔ sai 2 quando o aplicativo de campo volta com erro do registro (217.20625ms)
+  ✔ sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo (635.267667ms)
+  ✔ sai 2 quando o npm não devolve nem JSON (275.543417ms)
+  ✔ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (364.877083ms)
+  ✔ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (296.703709ms)
+  ✔ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (430.606333ms)
+  ✔ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (597.671084ms)
+  ✔ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (1656.082ms)
+  ✔ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (917.815208ms)
+  ✔ achado não precisa de prova para reprovar: runtime vulnerável sai 1 mesmo com o controle vazio (187.348792ms)
+✔ auditar.mjs (11263.441792ms)
+▶ regras puras do portão: advisory por id e prova de consulta
+  ✔ idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA (0.756666ms)
+  ✔ advisoriesNaoAceitas casa por GHSA, aceita a URL na lista, ignora arrasto e não repete o mesmo GHSA de faixas diferentes (1.396208ms)
+  ✔ defeitoDoControle só aceita o relatório com a advisory conhecida do pacote de controle (0.225292ms)
+  ✔ defeitoDaArvore exige dependencies.total maior que zero (0.167709ms)
+  ✔ a lista do aplicativo exige advisories: sem a lista, lista vazia ou id inválido reprova (2.257333ms)
+✔ regras puras do portão: advisory por id e prova de consulta (5.108708ms)
+▶ exceções do CP-03: nome, dono e prazo
+  ✔ aceita exceção com motivo, dono e prazo no futuro (0.245125ms)
+  ✔ aceita exceção que vence hoje (o prazo vale até o fim do dia) (0.103583ms)
+  ✔ reprova exceção sem prazo (0.149708ms)
+  ✔ reprova prazo em branco, fora do formato ou que não existe no calendário (0.251834ms)
+  ✔ reprova exceção sem dono ou com dono em branco (0.192417ms)
+  ✔ reprova exceção sem motivo ou com motivo em branco (0.193375ms)
+  ✔ reprova exceção vencida e diz a data (0.12275ms)
+  ✔ aponta todos os defeitos de uma vez, de todas as exceções (0.115791ms)
+  ✔ a lista REAL tem advisories, motivo, dono e prazo válidos e no futuro (0.266875ms)
+  ✔ a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos (0.113333ms)
+✔ exceções do CP-03: nome, dono e prazo (2.586625ms)
+▶ auditar.mjs com a lista de exceções adulterada
+  ✔ a cópia sem adulteração passa (controle do próprio teste) (398.931625ms)
+  ✔ reprova a exceção sem prazo, mesmo que o pacote esteja no relatório (53.2925ms)
+  ✔ reprova a exceção sem dono (67.601709ms)
+  ✔ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (419.005834ms)
+  ✔ reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote) (67.132917ms)
+  ✔ reprova a exceção vencida (55.707417ms)
+✔ auditar.mjs com a lista de exceções adulterada (1062.1855ms)
+✔ redige um JWT colado num texto (10.327375ms)
+✔ redige o valor de Authorization Bearer e Basic (0.129417ms)
+✔ redige usuário e senha de uma URL de banco (0.074333ms)
+✔ troca o nome do usuário nas pastas pessoais (0.063375ms)
+✔ troca o travessão, que a regra de conteúdo proíbe em docs (7.956875ms)
+✔ não mexe em texto comum (0.1935ms)
+✔ lê as contagens do vitest (1.77625ms)
+✔ lê as contagens do node --test e do jest (0.36225ms)
+✔ sem contagem na saída o resultado é vazio, não zero (0.120583ms)
+✔ avaliar confere quando o resultado é o esperado, vermelho inclusive (0.206375ms)
+✔ avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda (0.10575ms)
+✔ avaliar não aceita a ausência de contagem como confere (0.063584ms)
+✖ a lista de passos tem ids únicos e o total de scripts soma a própria etapa (3.296042ms)
+✔ o E2E do painel local declara o servidor que o teste exige (9.803625ms)
+✔ o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02) (5.696792ms)
+✔ o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende (0.22675ms)
+✔ as opções recusam o que não conhecem e os filtros recusam passo inexistente (0.805083ms)
+✔ --so-listar imprime os comandos, não executa nada e não cria a pasta de saída (77.33075ms)
+✔ o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada (0.119834ms)
+✔ os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13) (0.109709ms)
+✔ a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente (0.152541ms)
+✔ passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos (0.062ms)
+✔ o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3) (0.058ms)
+✔ o resumo conta as divergências explicadas e diz por quê (0.26325ms)
+✔ o conferidor de contagens reprova o número velho plantado e passa com o certo (0.137583ms)
+✔ o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera (0.048792ms)
+✔ suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também (0.101583ms)
+✔ todo passo do roteiro com total esperado aparece na medição do conferir:numeros (0.493917ms)
+✔ o registro da deriva V-DEP-4 existe e diz que foi fechada (2.750791ms)
+✔ o script da raiz repassa as opções para o migrador (9.156416ms)
+✔ rodando da raiz, --conferir confere e NÃO aplica (4774.265167ms)
+warning: in the working copy of 'docs/evidencias-v2/G00/V2-F00-E99/MISTO.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/evidencias-v2/G00/V2-F00-E99/NOTA.md', CRLF will be replaced by LF the next time Git touches it
+fatal: not a git repository (or any of the parent directories): .git
+▶ conferir-indices-de-evidencia: o que passa
+  ✔ índice correto sobre os bytes do disco passa (6.335916ms)
+  ✔ lê a tabela mesmo com nota em citação acima dela e ignora cabeçalho e separador (0.153375ms)
+  ✔ VEREDITO.md, RISCO-ACEITO.md e validacao/ são do gatekeeper: não entram na conferência (4.611584ms)
+✔ conferir-indices-de-evidencia: o que passa (12.526959ms)
+▶ conferir-indices-de-evidencia: o que morde
+  ✔ INDEX adulterado: hash trocado por outro reprova e nomeia o arquivo e a linha (13.663583ms)
+  ✔ arquivo editado depois de indexado reprova (2.186916ms)
+  ✔ arquivo listado e faltando reprova (1.953084ms)
+  ✔ fim de linha trocado (índice de LF, arquivo em CRLF) reprova e diz a causa (0.884875ms)
+  ✔ fim de linha trocado no outro sentido (índice de CRLF, arquivo em LF) reprova e diz a causa (0.734458ms)
+  ✔ fim de linha misto no disco, índice de outro conteúdo: reprova e avisa que mistura (0.900542ms)
+  ✔ o índice não normaliza: um CRLF a mais num arquivo que o índice guardou com LF reprova mesmo que o texto seja o mesmo (0.59775ms)
+  ✔ hash que não é 64 hexadecimais, linha repetida e caminho que sai da pasta reprovam (0.614083ms)
+  ✔ índice sem nenhuma linha de tabela reprova (não passa por vazio) (0.508667ms)
+✔ conferir-indices-de-evidencia: o que morde (27.358542ms)
+▶ conferir-indices-de-evidencia: falsos verdes que a revisão achou
+  ✔ arquivo dentro da pasta que o índice não lista reprova (0.654459ms)
+  ✔ o INDEX.md aninhado, o VEREDITO.md, o RISCO-ACEITO.md e validacao/ não precisam estar no índice (1.442ms)
+  ✔ só validacao/ é do gatekeeper: um nome que apenas contém 'validacao' precisa estar no índice e bater (1.03425ms)
+  ✔ pasta de etapa sem INDEX.md reprova (a pasta da fase, sem V2-, não conta) (72.726833ms)
+  ✔ pasta de topo (CP-xx) sem INDEX.md reprova; arquivo solto em G00/ não conta (3.034667ms)
+  ✔ índice que só lista VEREDITO.md (ou nada) reprova, em vez de passar por vazio (1.780791ms)
+✔ conferir-indices-de-evidencia: falsos verdes que a revisão achou (81.083625ms)
+▶ conferir-indices-de-evidencia: CRLF no índice do git
+  ✔ arquivo de evidência com CRLF que entra no índice do git (-text) reprova (206.523708ms)
+  ✔ com o .gitattributes do produto o git guarda LF no índice (inclusive .ps1): o que sobra é só o aviso do disco (118.109ms)
+  ✔ falso verde local: arquivo com CRLF no disco que o git devolve em LF (eol=lf) reprova, mesmo com o índice do git em LF (181.839958ms)
+  ✔ fora de um repositório git é falha (fail-closed), não passa em silêncio (63.126958ms)
+  ✔ o repositório real não tem nenhum arquivo com CRLF ou fim de linha misto no índice do git (5010.719084ms)
+✔ conferir-indices-de-evidencia: CRLF no índice do git (5580.723417ms)
+▶ conferir-indices-de-evidencia: varredura
+  ✔ acha INDEX.md em qualquer profundidade e reprova o aninhado (4.623666ms)
+✔ conferir-indices-de-evidencia: varredura (4.808ms)
+▶ conferir-indices-de-evidencia: a evidência real
+  ✖ todo INDEX.md real bate, em todas as pastas, sem lista de tolerância (453.5235ms)
+  ✔ o script não tem lista de pendentes nem de exceções (uma lista dessas seria brecha) (0.377292ms)
+✖ conferir-indices-de-evidencia: a evidência real (454.071417ms)
+✔ o nome da copia traz a data, ordena por nome e nao tem dois-pontos (1.379792ms)
+✔ a copia mora fora do repositorio, e a pasta e a da casa de quem roda (0.130792ms)
+✔ a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho (0.1655ms)
+✔ a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia (0.182166ms)
+✔ a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova (0.196958ms)
+✔ localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha (0.624209ms)
+✔ a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta (1.230709ms)
+✔ conferir nao pergunta por copia (0.125042ms)
+✔ aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape (0.110292ms)
+✔ aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela (0.146417ms)
+✔ aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA (0.071459ms)
+✔ com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale (0.061292ms)
+✔ a decisao usa a pasta e a janela de verdade quando ninguem as passa (0.825417ms)
+✔ recusa subir com a porta da API ocupada, em vez de falar com a instância velha (111.235667ms)
+✔ a porta conferida é a mesma que o roteiro usa (0.596542ms)
+﹣ o entitlements do iOS declara aps-environment (0.41825ms) # sem pasta ios/ nesta máquina
+﹣ o valor do aps-environment é um dos dois que a Apple aceita (0.065667ms) # sem projeto iOS gerado
+✔ a escolha do ambiente continua morando no app.config.ts, e não escrita à mão (2.478459ms)
+✔ a conferência do ambiente reprova o mode escrito à mão num rascunho (0.755333ms)
+﹣ o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo (0.082417ms) # sem projeto iOS gerado
+﹣ o som de despacho foi copiado para o projeto iOS (0.133792ms) # sem pasta ios/ nesta máquina
+✔ o app.config.ts pede o direito atrás da variável, e declara o som (0.296292ms)
+✔ cada .woff do repositorio e exatamente o que o roteiro gera dos .ttf do aplicativo (19.975625ms)
+✔ a licenca OFL acompanha as fontes, igual a de origem (1.899791ms)
+✔ o WOFF e o TTF tabela a tabela, e o cabecalho diz a verdade sobre os tamanhos (119.05075ms)
+✔ o tokens.css do painel declara exatamente as faces geradas, e nenhuma outra (4.018791ms)
+✔ o codificador e determinista: duas passadas, os mesmos bytes (47.952458ms)
+✔ senha com caractere que parte a URL continua chegando inteira (0.490875ms)
+✔ senha comum passa sem enfeite (13.516667ms)
+✔ migra com o papel de setup, nunca com o da aplicação (0.375125ms)
+✔ a URL exige verificação do certificado, e diz isso por escrito (0.21375ms)
+✔ vai pelo pooler, porque a conexão direta não tem IPv4 (0.135375ms)
+✔ em modo SESSÃO (5432), e nunca em modo transação (6543) (0.165208ms)
+✔ o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina (0.399458ms)
+✔ a varredura enxerga os dois canais de verdade (8.303208ms)
+✔ o painel não desenha severidade com forma própria (79.059125ms)
+✔ o aplicativo não desenha severidade com forma própria (162.496958ms)
+✔ cada sítio canônico existe e lê o glifo do pacote compartilhado (1.800959ms)
+✔ o compartilhado declara os cinco glifos com contorno, marca e preenchimento (0.654584ms)
+✔ a varredura acusa um caminho local reintroduzido no selo do painel (0.762542ms)
+✔ a varredura acusa um mapa de severidade para caminho reintroduzido no marcador do Google (0.441833ms)
+✔ a varredura acusa o medidor antigo do aplicativo, e um objeto com forma por nível (1.052709ms)
+✔ a varredura não reclama do que está certo (0.133917ms)
+✔ o leitor de sítio pula o parâmetro desestruturado e pega o corpo de verdade (0.205041ms)
+✔ o leitor de valor para na vírgula do mesmo nível, e não dentro de um objeto (0.075958ms)
+✔ primitiva: as duas paletas são a mesma paleta (1.770208ms)
+✔ primitiva: nenhum dos dois lados tem cor que o outro não tem (0.654291ms)
+✔ semântico: temaClaro concorda com o painel, par a par (0.15725ms)
+✔ semântico: temaEscuro concorda com o painel, par a par (0.64125ms)
+✔ escala: espaçamento e raio são idênticos aos do painel (0.483375ms)
+✔ escala: do corpo do texto para baixo, as duas tipografias são a mesma (0.260958ms)
+✔ escala: o alvo de toque do aplicativo é maior que o do painel, e não menor (0.229667ms)
+✔ nenhuma divergência declarada sobreviveu ao próprio conserto (1.369375ms)
+✔ a paridade pega o que deveria pegar (0.254667ms)
+✔ os tokens de papel são os mesmos da folha impressa (1.952542ms)
+✔ contraste calculado: temaClaro passa no mínimo exigido em todo par (1.927667ms)
+✔ contraste calculado: temaEscuro passa no mínimo exigido em todo par (0.307625ms)
+✔ o cálculo confere com valores conhecidos (0.54375ms)
+✔ os dois temas são de fato dois, e a leitura resolve as primitivas (0.292ms)
+✔ nenhuma pendência de contraste sobreviveu ao próprio conserto (0.728917ms)
+✔ a varredura enxerga os elementos tocáveis de verdade (470.962917ms)
+✔ nenhum alvo de toque abaixo de 52 (337.073792ms)
+✔ todo elemento tocável se apresenta ao leitor de tela (175.650208ms)
+✔ as três varreduras pegam o que deveriam pegar (1.349875ms)
+✔ o escape nomeado dispensa quem foi declarado, e ninguém mais (245.115541ms)
+Portão de skip: 681 arquivos varridos; 11 skips por ambiente em 4 arquivos; 0 incondicionais com marca T42.
+  por ambiente: 1 em apps/api/test/renovacao-contra-encerramento.test.ts
+  por ambiente: 3 em db/test/busca.test.ts
+  por ambiente: 4 em scripts/entitlements-do-ios.test.mjs
+  por ambiente: 3 em scripts/som-de-despacho.test.mjs
+✔ a árvore atual passa no portão: nenhum skip sem marca, vencido ou .only (1.168084ms)
+✔ a vigência da escrita voltou a rodar: o skip da E04 saiu e nenhum skip incondicional resta (0.089583ms)
+✔ a contagem por ambiente lista os runIf de busca e os skip de entitlements e de som (0.073417ms)
+✔ it.skip sem marca reprova (0.281ms)
+✔ skip, todo, xit, xdescribe e t.skip incondicionais sem marca reprovam (0.19625ms)
+✔ marca sem dono, sem issue ou sem ate reprova (0.150291ms)
+✔ marca com ate no passado reprova, e ate igual a hoje ainda vale (0.154084ms)
+✔ marca com prazo além do máximo, ou com data que não existe, reprova (0.0915ms)
+✔ it.only reprova mesmo com marca válida, em it, test, describe e fit (0.076084ms)
+✔ a marca precisa estar na linha imediatamente acima (0.094291ms)
+✔ skip por opção sem condição e sem motivo textual reprova (0.059916ms)
+✔ describe.skip com marca dentro do prazo passa e aparece como marcado (0.067084ms)
+✔ skip por ambiente (runIf, skipIf e skip com condição e motivo) passa e é contado (0.050375ms)
+✔ comentário, bloco de comentário e texto entre aspas não disparam falso positivo (0.041459ms)
+✔ o fim de linha CRLF não atrapalha a leitura da marca (0.052834ms)
+✔ conferirMarca aceita o limite exato do prazo e rejeita um dia a mais que a folga de fuso (0.051042ms)
+✔ a varredura em disco acha o skip sem marca de um arquivo sintético e ignora node_modules (1.723208ms)
+✔ R1: nenhuma peça empilha mais de um bloco preenchido (0.866542ms)
+✔ a varredura enxerga o aplicativo de verdade (0.157542ms)
+✔ a varredura pega o cartão da reclamação, bloco a bloco (0.477417ms)
+✔ a varredura não confunde o que está calmo com o que grita (0.26075ms)
+✔ R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo (1.537917ms)
+✔ R5 é aritmética, e o portão refaz a conta (0.570084ms)
+✔ nenhuma pendência de densidade sobreviveu ao próprio conserto (0.182417ms)
+✔ a varredura enxerga os arquivos do aplicativo de verdade (5.123291ms)
+✔ nenhum valor de design escrito à mão no aplicativo (240.411958ms)
+✔ a varredura pega o que deveria pegar (0.277791ms)
+✔ a varredura não reclama do que está certo (0.242959ms)
+✔ o marcador de exceção dispensa o que declarou, e só isso (0.091916ms)
+✔ os comentários são apagados antes da varredura, e o código da mesma linha não (0.089541ms)
+✔ a dívida de peso de fonte morre no dia em que o token nascer (0.193083ms)
+✔ nenhuma espera de tela cheia fica sem saída (117.308542ms)
+✔ a varredura de espera sem saída enxerga alguma coisa (72.506375ms)
+✔ nenhum token declarado fica sem alguém apontando para ele (211.93ms)
+✔ a dívida de token sem dono não sobrevive ao próprio conserto (168.634375ms)
+✔ a varredura de token sem dono enxerga o que deveria (1.256833ms)
+✔ H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui (1.794666ms)
+✔ H1: nenhuma peça desenha mais de um protagonista (282.71875ms)
+✔ a varredura de protagonista enxerga o que deveria (0.323709ms)
+✔ o gradiente é pontual: ele não escapa de `src/ui/` (42.595333ms)
+✔ a varredura enxerga os arquivos de verdade (9.987083ms)
+✔ nenhum arquivo do aplicativo chama geocodificação, Places ou Directions (311.682542ms)
+✔ na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama (167.13425ms)
+✔ o portão do caminho MORDE fora do arquivo permitido, e só fora dele (0.23075ms)
+✔ as próprias regras pegam o que deveriam pegar (0.099834ms)
+✔ a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro (0.07ms)
+✔ as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru (0.3155ms)
+✔ todo MapView do aplicativo pede o provedor Google, explicitamente (55.208916ms)
+✔ a regra do provedor pega um MapView sem ele (0.1605ms)
+✔ a chave do mapa vem do ambiente, e não escrita no app.config.ts (0.812208ms)
+✔ cada plataforma tem a SUA chave, e nenhuma delas fica sem (0.560291ms)
+✔ o plugin de configuração do react-native-maps carrega (98.918542ms)
+✔ react-native-maps está fixado numa versão e é transformado pelo jest (0.194125ms)
+✔ o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho (0.178833ms)
+✔ nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado (1669.599667ms)
+✔ o portão morde: as frases que a arbitragem achou na fila são reprovadas (1.058042ms)
+✔ o portão não pune quem explica: comentário pode citar a frase proibida (0.262666ms)
+✔ as frases verdadeiras passam (0.32075ms)
+✔ o portão morde: as quatro frases plantadas pela validação da rodada 2 são reprovadas (0.504958ms)
+✔ o portão morde frases que ninguém listou, porque a regra é por classe e não por lista (0.3165ms)
+✔ o portão morde: largar o aplicativo junto de uma promessa de envio, em qualquer flexão (3.168167ms)
+✔ o portão morde a promessa dita em duas frases seguidas e o convite a sair (0.596875ms)
+✔ a promessa de retomada sem a condição também reprova (a forma antiga da fila) (0.732958ms)
+✔ a mesma frase com a condição 'aberto' passa (0.822417ms)
+✔ 'aberto' negado não é condição: 'sem o aplicativo aberto' é a promessa que se quer impedir (0.386125ms)
+✔ os avisos verdadeiros sobre largar o aplicativo passam (0.286833ms)
+✔ frases do aplicativo de hoje que falam de continuar, de sair e de 'sozinho' sem prometer envio passam (0.661458ms)
+✔ a fila REAL reprova quando se planta cada frase (em memória, o arquivo não é tocado) (2044.044583ms)
+✔ a fila REAL reprova a forma antiga de 'vai tentar de novo em instantes', sem a condição (24.635334ms)
+✔ o segredo gerado passa no mínimo que a API exige e não parte a lista (1.2435ms)
+✔ rotação: o novo entra na frente e o antigo continua aceito (0.907292ms)
+✔ rotação: o passo 2 aposenta o antigo, senão a troca ficou pela metade (0.151917ms)
+✔ rotação: recusa quando a lista passaria do teto (0.520791ms)
+✔ revogação: o segredo vazado SAI DA LISTA, e é aqui que os dois planos divergem (0.258458ms)
+✔ revogação: recusa quando o valor apontado não está na lista (0.171833ms)
+✔ o som de despacho existe no repositório (11.37ms)
+✔ o cabeçalho do som está dentro da régua das duas lojas (3.154542ms)
+✔ o arquivo versionado é exatamente o que o roteiro gera hoje (115.558042ms)
+✔ o som não estala nem estoura: começa e termina em silêncio, e o pico fica abaixo do teto (8.758333ms)
+✔ a régua aceita um WAV forjado dentro dela (senão os casos abaixo não provam nada) (8.660125ms)
+✔ a régua reprova estéreo (8.924ms)
+✔ a régua reprova 22 kHz (2.632167ms)
+✔ a régua reprova 8 bits (0.091416ms)
+✔ a régua reprova formato comprimido (0.08175ms)
+✔ a régua reprova o toque curto demais (1.202375ms)
+✔ a régua reprova o toque longo demais (0.143291ms)
+✔ a régua reprova cabeçalho que mente sobre o tamanho (0.139041ms)
+✔ o leitor recusa o que não é WAV (0.321958ms)
+✔ sem as dependências do aplicativo, falha e diz o comando exato (0.7715ms)
+✔ a falha por dependência ausente aponta o escape, em vez de deixar a pessoa presa (0.077917ms)
+✔ o escape só vale ligado em 1: variável presente com outro valor não pula (0.083417ms)
+✔ DC360_SEM_APP=1 pula mesmo com as dependências instaladas (0.061125ms)
+✔ com tudo no lugar, roda sem mandar compilar nada (0.921459ms)
+✔ dist ausente entra na lista de compilação, e shared vem antes de campo (0.279292ms)
+✔ dist que já existe não é recompilado (0.1595ms)
+✔ conta it e test abrindo a linha, com ou sem sufixo (0.370625ms)
+✔ não conta describe, comentário, nem palavra terminada em it ou test (0.22475ms)
+✔ it.each com tabela literal vale uma vez por linha, e não uma vez só (2.373ms)
+✔ it.each resolve tabela declarada como constante no mesmo arquivo (0.34825ms)
+✔ vírgula sobrando no fim da tabela não inventa um caso (0.223292ms)
+✔ it.each com tabela em template conta as linhas, menos o cabeçalho (0.30875ms)
+✔ each que a leitura não sabe resolver estoura, e diz onde (2.4605ms)
+✔ describe.each estoura, porque multiplica tudo que está dentro do bloco (0.102208ms)
+✔ a varredura ignora node_modules e dist, que só guardam cópia (3.264708ms)
+✔ o aplicativo de campo tem casos de teste, e cada arquivo achado tem pelo menos um (25.607291ms)
+✔ a varredura do aplicativo não sai de apps/campo (48.397917ms)
+✔ o arquivo de src/app vira a rota que o expo-router publica (0.618792ms)
+✔ cache velho que não conhece as rotas novas é apagado, e diz quais faltam (0.262208ms)
+✔ cache em dia fica, para não perder a checagem de rota tipada (0.09775ms)
+✔ sem cache não há nada a apagar (0.527667ms)
+✔ rota que é prefixo de outra não conta como presente (0.168625ms)
+✔ as rotas reais do aplicativo saem do disco, e o cache de 2026-08-27 seria apagado por elas (0.862667ms)
+✔ o test:campo limpa o cache ANTES do typecheck, não depois (0.108167ms)
+✔ existe o comando test:campo, e ele chama este script (0.038083ms)
+✔ npm run verificar alcança o aplicativo de campo (0.052792ms)
+✔ o conferidor de números pergunta pelo aplicativo (0.392625ms)
+✔ apps/api: toda variável lida está no .env.example, e vice-versa (5.482292ms)
+✔ apps/console: toda variável lida está no .env.example, e vice-versa (0.595042ms)
+✔ apps/campo: toda variável lida está no .env.example, e vice-versa (0.50375ms)
+✔ a leitura pega o que deveria pegar, e o portão morde na variável que falta (0.211875ms)
+✔ a leitura enxerga os arquivos de verdade (1.283125ms)
+ℹ tests 305
+ℹ suites 10
+ℹ pass 299
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 4
+ℹ todo 0
+ℹ duration_ms 12524.832792
+
+✖ failing tests:
+
+test at scripts/baseline.test.mjs:142:1
+✖ a lista de passos tem ids únicos e o total de scripts soma a própria etapa (3.296042ms)
+  AssertionError [ERR_ASSERTION]: V2-F00-E19: auditar.test.mjs tem 45 testes
+  
+  45 !== 28
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/baseline.test.mjs:184:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 45,
+    expected: 28,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/conferir-indices-de-evidencia.test.mjs:286:3
+✖ todo INDEX.md real bate, em todas as pastas, sem lista de tolerância (453.5235ms)
+  AssertionError [ERR_ASSERTION]: Índices de evidência: 73 INDEX.md, 3291 arquivo(s) conferido(s) byte a byte.
+  FALHA G00/V2-F00-E19/INDEX.md
+    - correcao-6/RESUMO.md existe na pasta e não está no índice
+    - correcao-6/diff-da-correcao.patch existe na pasta e não está no índice
+    - correcao-6/ferramentas/npm-falso/npm existe na pasta e não está no índice
+    - correcao-6/ferramentas/npm-vazio/npm existe na pasta e não está no índice
+    - correcao-6/ferramentas/registro-vazio.mjs existe na pasta e não está no índice
+    - correcao-6/ferramentas/repro.sh existe na pasta e não está no índice
+    - correcao-6/saidas/01-testes-auditar-ANTES.txt existe na pasta e não está no índice
+    - correcao-6/saidas/02-repro-ANTES.txt existe na pasta e não está no índice
+    - correcao-6/saidas/03-testes-mordem.txt existe na pasta e não está no índice
+    - correcao-6/saidas/04-testes-auditar-DEPOIS.txt existe na pasta e não está no índice
+    - correcao-6/saidas/05-repro-DEPOIS.txt existe na pasta e não está no índice
+    - correcao-6/saidas/06-auditar-com-rede.txt existe na pasta e não está no índice
+    - correcao-6/saidas/07-test-scripts.txt existe na pasta e não está no índice
+  RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+  + actual - expected
+  
+  + [
+  +   {
+  +     indice: 'G00/V2-F00-E19/INDEX.md',
+  +     problemas: [
+  +       'correcao-6/RESUMO.md existe na pasta e não está no índice',
+  +       'correcao-6/diff-da-correcao.patch existe na pasta e não está no índice',
+  +       'correcao-6/ferramentas/npm-falso/npm existe na pasta e não está no índice',
+  +       'correcao-6/ferramentas/npm-vazio/npm existe na pasta e não está no índice',
+  +       'correcao-6/ferramentas/registro-vazio.mjs existe na pasta e não está no índice',
+  +       'correcao-6/ferramentas/repro.sh existe na pasta e não está no índice',
+  +       'correcao-6/saidas/01-testes-auditar-ANTES.txt existe na pasta e não está no índice',
+  +       'correcao-6/saidas/02-repro-ANTES.txt existe na pasta e não está no índice',
+  +       'correcao-6/saidas/03-testes-mordem.txt existe na pasta e não está no índice',
+  +       'correcao-6/saidas/04-testes-auditar-DEPOIS.txt existe na pasta e não está no índice',
+  +       'correcao-6/saidas/05-repro-DEPOIS.txt existe na pasta e não está no índice',
+  +       'correcao-6/saidas/06-auditar-com-rede.txt existe na pasta e não está no índice',
+  +       'correcao-6/saidas/07-test-scripts.txt existe na pasta e não está no índice'
+  +     ]
+  +   }
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:288:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ { indice: 'G00/V2-F00-E19/INDEX.md', problemas: [Array] } ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+codigo=1

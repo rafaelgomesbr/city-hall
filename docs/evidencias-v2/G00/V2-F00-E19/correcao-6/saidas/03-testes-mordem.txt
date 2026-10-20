@@ -1,0 +1,82 @@
+$ node --test scripts/auditar.test.mjs contra cópias do portão com a correção desfeita em partes (cada teste novo tem de ficar vermelho em pelo menos uma)
+=== mutação: auditar.mjs de 1ed0b71 (antes da correção 6), com a lista e os testes novos
+  ✖ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (121.163584ms)
+  ✖ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (243.342208ms)
+  ✖ aceita o nomeado, com o id da advisory, dono e prazo na saída (119.567709ms)
+  ✖ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (121.917584ms)
+  ✖ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (119.533458ms)
+  ✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (120.229041ms)
+  ✖ reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote) (119.834416ms)
+  ✖ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (134.729667ms)
+  ✖ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (124.090916ms)
+  ✖ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (119.913208ms)
+  ✖ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (121.431167ms)
+  ✖ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (123.453209ms)
+ℹ fail 12
+ℹ pass 33
+ℹ tests 45
+✖ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (121.163584ms)
+✖ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (243.342208ms)
+✖ aceita o nomeado, com o id da advisory, dono e prazo na saída (119.567709ms)
+✖ auditar.mjs (3255.928458ms)
+✖ auditar.mjs com a lista de exceções adulterada (450.176708ms)
+✖ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (121.917584ms)
+✖ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (119.533458ms)
+✖ failing tests:
+✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (120.229041ms)
+✖ reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote) (119.834416ms)
+✖ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (134.729667ms)
+✖ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (124.090916ms)
+✖ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (119.913208ms)
+✖ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (121.431167ms)
+✖ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (123.453209ms)
+=== mutação: sem as bandeiras que fixam o registro e anulam o offline
+  ✖ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (153.106916ms)
+  ✖ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (153.07475ms)
+  ✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (187.62975ms)
+ℹ fail 3
+ℹ pass 42
+ℹ tests 45
+✖ auditar.mjs (4788.771334ms)
+✖ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (153.106916ms)
+✖ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (153.07475ms)
+✖ failing tests:
+✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (187.62975ms)
+=== mutação: sem a consulta de controle
+  ✖ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (189.086584ms)
+  ✖ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (186.869292ms)
+ℹ fail 2
+ℹ pass 43
+ℹ tests 45
+✖ auditar.mjs (4229.126709ms)
+✖ failing tests:
+✖ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (189.086584ms)
+✖ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (186.869292ms)
+=== mutação: sem a prova de árvore (dependencies.total)
+  ✖ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (187.136958ms)
+ℹ fail 1
+ℹ pass 44
+ℹ tests 45
+✖ auditar.mjs (4578.553792ms)
+✖ failing tests:
+✖ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (187.136958ms)
+=== mutação: exceção do aplicativo casando pelo nome do pacote de novo
+  ✖ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (369.781167ms)
+  ✖ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (190.218416ms)
+  ✖ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (186.747416ms)
+ℹ fail 3
+ℹ pass 42
+ℹ tests 45
+✖ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (369.781167ms)
+✖ auditar.mjs (4982.882333ms)
+✖ failing tests:
+✖ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (190.218416ms)
+✖ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (186.747416ms)
+=== mutação: controle sem copiar o .npmrc do projeto
+  ✖ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (186.869958ms)
+ℹ fail 1
+ℹ pass 44
+ℹ tests 45
+✖ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (186.869958ms)
+✖ auditar.mjs com a lista de exceções adulterada (496.062917ms)
+✖ failing tests:
