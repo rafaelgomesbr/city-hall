@@ -1,0 +1,1117 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 299f1a2..2623d4f 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,10 +11,10 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 699 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1696 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1715 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 288 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
++| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 304 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+ 
+@@ -257,6 +257,28 @@ sem moldura, fecha a conexão no fim; `content-length` junto de
+ cabia e a conexão fecha. O caminho do desvio não lança (o trailer, que o Node
+ recusa junto de `content-length`, sai da resposta trocada).
+ 
++O status 1xx como resposta FINAL (`reply.code(102).send(...)`, `code(101)`,
++`writeHead(103)` ou `statusCode = 102` antes do `end`) fazia o Node escrever só a
++linha provisória e dar a resposta por terminada, e o cliente lia a resposta do
++pedido SEGUINTE da conexão como a deste. Desde a correção 7 isso é desvio, HEAD
++inclusive, e sai 500 nos dois modos (`desvio_do_catalogo_de_erro` em teste;
++fora de teste, `erro_interno` na API e `falha_interna` no console). O 101
++escrito por baixo, que a porta dos bytes lê como cabeça final, também vira 500,
++e a resposta que termina só com cabeça provisória, sem a final, fecha a conexão.
++Os 1xx legítimos (`writeContinue`, `writeProcessing`, `writeEarlyHints`) não
++passam por `writeHead` e seguem intactos. Também na correção 7: quando o `end`
++do Node lança no meio (o `content-length` estrito que não bate com o corpo de um
++401 ou 403 do catálogo), o socket ficava arrolhado e o cliente ficava sem
++resposta até o tempo esgotar; a guarda o desarrolha e manda a resposta do
++desvio. O que os testes da guarda provam (API e console, por socket cru com dois
++pedidos em pipeline, nos dois modos, em Node 24): cada forma dos relatórios da
++rodada 7 (fluxo do Node, `Response` e `ReadableStream` da web com
++`content-length` menor que o corpo ou `0`, 403 do catálogo com `content-length`
++errado, `transfer-encoding: identity`, `reply.trailer`, `addTrailers`,
++`writeHead(403)` mais `flushHeaders` e 1xx final) não leva código fora do
++catálogo ao fio e não dessincroniza a conexão, e os casos de trailer vigiam
++exceção não tratada. O proxy da borda diante dessas formas não foi medido.
++
+ O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
+ Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
+ `.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
+@@ -267,7 +289,9 @@ servidor HTTP que entregam o socket ou o pedido antes do Fastify
+ varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
+ desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
+ método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
+-`Reflect`), que a varredura reprova. E nenhuma
++`Reflect`), que a varredura reprova. Corpo MENOR que o `content-length`
++declarado, em resposta que não é 401 nem 403, derruba a conexão sem resposta: o
++cliente vê a conexão cair, não uma resposta trocada. E nenhuma
+ linha prende código no mesmo processo que troque, antes de a guarda carregar, as
+ primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
+ usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
+@@ -1557,9 +1581,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3489 testes em seis pacotes
++npm test                    # 3524 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1696 testes da API
++npm run test:api            # 1715 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+ npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index dbdd8f3..95f0a4f 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -77,6 +77,18 @@ import {
+  * caminho do desvio nunca lança: o trailer sai da resposta trocada, e se o Node
+  * recusar até a cabeça da troca, ela vai em bytes prontos e a conexão fecha.
+  *
++ * O STATUS 1xx COMO RESPOSTA FINAL (correção 7, rodada 7): `reply.code(102)`
++ * (ou 100, 101, 103, 199) faz o Node escrever só a linha provisória e dar a
++ * resposta por terminada, e o cliente lê a resposta do pedido SEGUINTE da
++ * conexão como a deste. `writeHead` ou o cabeçalho implícito com 1xx é desvio,
++ * HEAD inclusive, e sai 500 nos dois modos (o do desvio em teste, o interno do
++ * serviço fora de teste); o 101 escrito por baixo, que a porta lê como cabeça
++ * final, também; e a resposta que termina só com cabeças provisórias (sem a
++ * final) fecha a conexão. Os 1xx legítimos (`writeContinue`,
++ * `writeProcessing`, `writeEarlyHints`) não passam por `writeHead` e seguem.
++ * Quando o `end` do Node lança no meio (o `content-length` estrito), o socket
++ * fica arrolhado; a guarda o desarrolha antes de mandar a resposta do desvio.
++ *
+  * O QUE ELA NÃO VÊ, dito sem folga:
+  *
+  *   - escrita direta no SOCKET, que não passa pela resposta do Node:
+@@ -127,9 +139,11 @@ export const CONTRATO_DE_ACESSO_DA_API: ContratoDeAcesso = Object.freeze({
+ });
+ 
+ /** O que sai no lugar do desvio, fora de teste: o código genérico do catálogo para o status. */
+-export const GENERICO_DA_API: Readonly<Record<401 | 403, { erro: string; mensagem: string }>> = Object.freeze({
++export const GENERICO_DA_API: Readonly<Record<401 | 403 | 500, { erro: string; mensagem: string }>> = Object.freeze({
+   401: Object.freeze({ erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem }),
+   403: Object.freeze({ erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem }),
++  // A resposta final 1xx (correção 7): sai o 500 interno da API, sem o código do pedido.
++  500: Object.freeze({ erro: "erro_interno", mensagem: "Erro inesperado. Tente de novo." }),
+ });
+ 
+ // ---- Primitivas guardadas na carga: trocar o global depois não engana a guarda. ----
+@@ -275,7 +289,11 @@ export function lerDesviosDaGuarda(): Desvio[] {
+ export type OpcoesDaGuarda = {
+   modo: ModoDaGuarda;
+   contrato: ContratoDeAcesso;
+-  generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
++  /**
++   * O que sai no lugar do desvio, fora de teste: o genérico do status (401 ou
++   * 403) e, para a resposta final 1xx (correção 7), o 500 interno do serviço.
++   */
++  generico: Readonly<Record<401 | 403 | 500, { erro: string; mensagem: string }>>;
+ };
+ 
+ type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
+@@ -320,6 +338,10 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   let segurando = false;
+   let statusSegurado = 0;
+   let statusTorto = false;
++  /** O status segurado é 1xx: a resposta final seria só uma cabeça provisória (correção 7). */
++  let provisorioComoFinal = false;
++  /** A porta já deixou passar cabeça provisória 1xx e ainda não viu a final. */
++  let provisoriasVistas = false;
+   let cabecalhosSegurados: Cabecalhos;
+   let mensagemDeStatus: string | undefined;
+   const pedacos: Buffer[] = [];
+@@ -330,8 +352,23 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     segurando = true;
+     statusSegurado = status;
+     statusTorto = torto;
++    provisorioComoFinal = ehProvisorio(status);
+   };
+   const ehAcesso = (s: number) => s === 401 || s === 403;
++  /*
++    O STATUS 1xx COMO RESPOSTA FINAL (correção 7, rodada 7, Segurança achado 3).
++    `reply.code(102).send(...)` faz o Node escrever SÓ a linha `102` e dar a
++    resposta por terminada (1xx não tem corpo). Para o cliente, 1xx é cabeça
++    provisória: ele continua esperando a final e lê a resposta do pedido
++    SEGUINTE da conexão como a deste (e 101 o faz largar o HTTP). Nenhum 1xx
++    legítimo passa por `writeHead`: o Node manda 100, 102 e 103 por
++    `writeContinue`, `writeProcessing` e `writeEarlyHints`, direto em
++    `_writeRaw`, e o 101 de verdade sai pelo evento `upgrade`, no socket. Então
++    `writeHead` com 1xx, ou o cabeçalho implícito com `statusCode` 1xx, é
++    desvio: a guarda segura, e no `end` sai 500 no lugar (o do desvio em
++    teste, o interno do serviço fora de teste), com HEAD inclusive.
++  */
++  const ehProvisorio = (s: number) => s >= 100 && s <= 199;
+   const guardar = (pedaco: unknown, codificacao?: unknown) => {
+     if (pedaco === undefined || pedaco === null) return;
+     const b = typeof pedaco === "string"
+@@ -343,7 +380,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   };
+ 
+   /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
+-  function registrarDesvio(status: number, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
++  function registrarDesvio(
++    status: number, erroVisto: string | null, motivo: string, interno = false,
++  ): { statusFinal: number; novo: string } {
+     const desvio: Desvio = {
+       metodo: req.method,
+       rota: req.routeOptions?.url ?? "(sem rota)",
+@@ -363,6 +402,10 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         ]),
+       };
+     }
++    if (interno) {
++      const g = opcoes.generico[500];
++      return { statusFinal: 500, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
++    }
+     const g = opcoes.generico[status === 401 ? 401 : 403];
+     return { statusFinal: status === 401 ? 401 : 403, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
+   }
+@@ -400,7 +443,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+    * termina dentro do que se leu).
+    */
+   function lerCabecas(dado: unknown, codificacao: unknown):
+-    | null | { visto: "ilegivel" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
++    | null | { visto: "ilegivel" } | { visto: "provisoria" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
+     let texto: string;
+     try {
+       const b = paraBuffer(dado, codificacao);
+@@ -411,7 +454,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     let deslocamento = 0;
+     for (;;) {
+       // Só cabeças provisórias (ou nada): a final vem no pedaço seguinte.
+-      if (texto.length === 0) return null;
++      if (texto.length === 0) return deslocamento > 0 ? { visto: "provisoria" } : null;
+       const m = casa(LINHA_DE_STATUS, texto);
+       if (m === null) return { visto: "ilegivel" };
+       const s = +m[1]!;
+@@ -590,6 +633,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     if (!cabecaPendente) return contar(dado, codificacao, 0);
+     const lido = lerCabecas(dado, codificacao);
+     if (lido === null) return dado;
++    if (lido.visto === "provisoria") { provisoriasVistas = true; return dado; }
+     cabecaPendente = false;
+     let visto: number | "ilegivel" = lido.visto;
+     let m: Moldura | null = null;
+@@ -602,6 +646,14 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       interna._last = true;
+       return substituta(visto);
+     }
++    if (ehProvisorio(visto)) {
++      // Só o 101 chega aqui como final (os outros 1xx a porta lê como provisórios): é desvio (correção 7).
++      bloqueado = true;
++      interna._last = true;
++      const { statusFinal, novo } = registrarDesvio(visto, null,
++        `status ${visto} (provisório) escrito por fora da guarda como resposta final`, true);
++      return bytesDaResposta(statusFinal, novo);
++    }
+     moldura = m!;
+     statusDaCabeca = visto;
+     if (moldura.tipo === "ate-fechar") interna._last = true;
+@@ -615,6 +667,19 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     return contar(dado, codificacao, inicio);
+   }
+ 
++  /**
++   * A resposta terminou e pela porta só passaram cabeças provisórias 1xx, sem a
++   * final (correção 7): o cliente leria a resposta seguinte da conexão como a
++   * deste pedido. O que já saiu não volta; a conexão fecha no fim desta
++   * resposta e a seguinte não é escrita nela.
++   */
++  function fecharSeSoProvisorias(): void {
++    if (!provisoriasVistas || !cabecaPendente || bloqueado || !interna.finished || interna.outputData.length > 0) return;
++    bloqueado = true;
++    interna._last = true;
++    registrarDesvio(102, null, "resposta terminada só com cabeças provisórias 1xx, sem a cabeça final", true);
++  }
++
+   /** O socket ligado a esta resposta, quando o Node escreve direto nele (e não na fila). */
+   const ligado = (): boolean => {
+     const s = raw.socket as unknown as { destroyed?: boolean; writable?: boolean; _httpMessage?: unknown } | null;
+@@ -627,7 +692,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       const item = fila[i]!;
+       if (item.data !== null) item.data = processar(item.data, item.encoding);
+     }
+-    return aplicar(flushOutputOriginal, raw, args);
++    const r = aplicar(flushOutputOriginal, raw, args);
++    fecharSeSoProvisorias();
++    return r;
+   }
+ 
+   function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
+@@ -649,7 +716,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     // Já segurando, o `_implicitHeader` do Node (pelo `flushHeaders`, que relê `statusCode`) chama de
+     // novo sem cabeçalhos: a cabeça segurada continua valendo.
+     if (segurando && resto.length === 0 && efetivo === statusSegurado) return raw;
+-    if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
++    if (((!ehHead && ehAcesso(efetivo)) || ehProvisorio(efetivo)) && !raw.headersSent) {
+       comecarASegurar(efetivo, torto);
+       // O `statusCode` que a guarda decidiu: quem o reler (o `flushHeaders`) lê este (correção 6).
+       raw.statusCode = efetivo;
+@@ -671,9 +738,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+    * torto que não é de acesso vira o inteiro antes de o Node lê-lo de novo.
+    */
+   const conferirCabecalhoImplicito = () => {
+-    if (segurando || ehHead || raw.headersSent) return;
++    if (segurando || raw.headersSent) return;
+     const { efetivo, torto } = statusComoONodeEscreve(raw.statusCode);
+-    if (ehAcesso(efetivo)) comecarASegurar(efetivo, torto);
++    if (ehProvisorio(efetivo) || (!ehHead && ehAcesso(efetivo))) comecarASegurar(efetivo, torto);
+     else if (torto) raw.statusCode = efetivo;
+   };
+ 
+@@ -729,6 +796,19 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   function derrubar(): void {
+     try { raw.destroy(); } catch { /* a conexão já caiu */ }
+   }
++  /**
++   * O `end` do Node arrolha o socket (`cork`) antes de escrever o pedaço e só o
++   * desarrolha no fim; quando ele LANÇA no meio (o `content-length` estrito que
++   * não bate), o socket fica arrolhado e nada mais sai dele (correção 7: o 403
++   * do catálogo com `content-length` errado deixava o cliente sem resposta até
++   * o tempo esgotar). Antes de a guarda escrever a resposta do desvio, desarrolha.
++   */
++  function desarrolhar(): void {
++    try {
++      const s = raw.socket as unknown as { writableCorked?: number; uncork?: () => void } | null;
++      for (let i = 0; s && i < 16 && (s.writableCorked ?? 0) > 0; i += 1) s.uncork!();
++    } catch { /* sem socket, nada a desarrolhar */ }
++  }
+ 
+   function write(this: ServerResponse, ...args: unknown[]) {
+     conferirCabecalhoImplicito();
+@@ -775,7 +855,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
+       }
+       try {
+-        return aplicar(endOriginal, raw, args);
++        const r = aplicar(endOriginal, raw, args);
++        fecharSeSoProvisorias();
++        return r;
+       } catch (e) {
+         if (!ehDescompasso(e)) throw e;
+         if (temDado && escritosNoCorpo + tamanhoDe(args[0], codificacao) > declarado()) {
+@@ -797,17 +879,24 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     }
+     const corpoOriginal = juntarBuffers(pedacos);
+     let achado: { motivo: string; erroVisto: string | null } | null;
+-    try {
+-      const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
+-      const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
+-      achado = statusTorto
+-        ? {
+-          motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
+-          erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
+-        }
+-        : doCorpo;
+-    } catch {
+-      achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
++    if (provisorioComoFinal) {
++      achado = {
++        motivo: `status ${statusSegurado} (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido`,
++        erroVisto: null,
++      };
++    } else {
++      try {
++        const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
++        const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++        achado = statusTorto
++          ? {
++            motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
++            erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
++          }
++          : doCorpo;
++      } catch {
++        achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
++      }
+     }
+     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
+     if (achado === null) {
+@@ -824,7 +913,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         achado = { motivo: `o Node recusou a resposta conferida (${(e as { code?: string }).code ?? "erro"})`, erroVisto: null };
+       }
+     }
+-    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo);
++    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo, provisorioComoFinal);
+     liberado = statusFinal;
+     try {
+       const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding", "trailer"];
+@@ -844,6 +933,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         bloqueado = true;
+         interna._last = true;
+         passaLivre = bytesDaResposta(statusFinal, novo);
++        desarrolhar();
+         aplicar(writeRawOriginal, raw, [passaLivre, "latin1", () => derrubar()]);
+       } catch {
+         derrubar();
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+index 56a4d34..9a27f55 100644
+--- a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -397,6 +397,66 @@ function plantarMoldura(app: FastifyInstance): void {
+   app.get(r("estrito"), async (_q, rep) => ({ estrito: rep.raw.strictContentLength }));
+ }
+ 
++/*
++  Correção 7 (rodada 7 sobre `fd17ff4`: Segurança, red-team e QA). As formas dos
++  três relatórios que ainda não tinham caso: o corpo além do content-length por
++  `ReadableStream` da web e com `content-length: 0`; o 403 do catálogo com
++  content-length que não bate (o `end` do Node lançava com o socket arrolhado, e
++  o cliente ficava sem resposta); `transfer-encoding: identity` forjado; o
++  trailer por `addTrailers` (red-team); e o status 1xx como resposta FINAL
++  (Segurança, achado 3), pela API pública, pela resposta crua e por baixo.
++*/
++const CORPO_C7 = JSON.stringify({ erro: "inventado_c7", mensagem: "x" });
++const CABECA_C7 = `HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: ${CORPO_C7.length}\r\n\r\n`;
++const PROVISORIOS_COMO_FINAL = ["g-100", "g-101", "g-102", "g-103", "g-199", "g-102-objeto", "g-102-raw-writehead", "g-102-raw-implicito"];
++function plantarCorrecao7(app: FastifyInstance): void {
++  const r = (n: string) => `/c7/${n}`;
++  const crua7 = (rep: FastifyReply): Interna => { const k = "ra" + "w"; return (rep as unknown as Record<string, Interna>)[k]!; };
++  const web = (texto: string) => new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(texto)); c.close(); } });
++  const ok = JSON.stringify({ erro: "sem_permissao", mensagem: "x" });
++  app.get(r("c-webstream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
++    .send(web("{}" + CABECA_C7 + CORPO_C7)));
++  app.get(r("i-cl0-stream"), async (_q, rep) => rep.code(200).header("content-length", "0")
++    .send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
++  app.get(r("i-cl0-response"), async (_q, rep) => rep.send(new Response(CABECA_C7 + CORPO_C7,
++    { status: 200, headers: { "content-length": "0" } })));
++  app.get(r("i-cl0-webstream"), async (_q, rep) => rep.code(200).header("content-length", "0").send(web(CABECA_C7 + CORPO_C7)));
++  app.get(r("e-403-cl-menor"), async (_q, rep) => rep.code(403).header("content-length", "2").type("application/json")
++    .send(Readable.from([Buffer.from(ok)])));
++  app.get(r("e-403-cl-maior"), async (_q, rep) => rep.code(403).header("content-length", "500").type("application/json")
++    .send(Readable.from([Buffer.from(ok)])));
++  app.get(r("h-te-identity"), async (_q, rep) => rep.code(200).header("transfer-encoding", "identity")
++    .send(Readable.from([Buffer.from("{}" + CABECA_C7 + CORPO_C7)])));
++  app.get(r("tr-addtrailers-fora"), async (_q, rep) => {
++    rep.code(403).header("transfer-encoding", "chunked").header("trailer", "x-t").type("application/json");
++    crua7(rep).addTrailers({ "x-t": "v" });
++    return rep.send(CORPO_C7);
++  });
++  for (const st of [100, 101, 102, 103, 199]) app.get(r(`g-${st}`), async (_q, rep) => rep.code(st).send(CABECA_C7 + CORPO_C7));
++  app.get(r("g-102-objeto"), async (_q, rep) => rep.code(102).send({ erro: "inventado_c7", mensagem: "x" }));
++  app.get(r("g-102-raw-writehead"), async (_q, rep) => { rep.hijack(); const x = crua7(rep); x.writeHead(102); x.end(CORPO_C7); });
++  app.get(r("g-102-raw-implicito"), async (_q, rep) => { rep.hijack(); const x = crua7(rep); x.statusCode = 102; x.end(CORPO_C7); });
++  app.get(r("g-101-writeraw"), async (_q, rep) => {
++    rep.hijack(); const x = crua7(rep);
++    x._writeRaw("HTTP/1.1 101 Switching Protocols\r\n\r\n"); x._header = "x"; x._headerSent = true; x.end();
++  });
++  app.get(r("g-102-so-provisoria"), async (_q, rep) => {
++    rep.hijack(); const x = crua7(rep);
++    x.writeProcessing(); x._header = "x"; x._headerSent = true; x.end();
++  });
++  // Controles: o 102 de verdade antes da resposta final, e formas que já saíam certas.
++  app.get(r("g-102-e-final"), async (_q, rep) => { crua7(rep).writeProcessing(); return rep.code(403).type("application/json").send(ok); });
++  app.get(r("d-buffer"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
++    .send(Buffer.from("{}" + CABECA_C7 + CORPO_C7)));
++  app.get(r("j-204"), async (_q, rep) => rep.code(204).send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
++  app.get(r("k-304"), async (_q, rep) => rep.code(304).send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
++  app.get(r("f-early"), async (_q, rep) => {
++    await rep.writeEarlyHints({ link: "</a.css>; rel=preload", "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 });
++    return { ok: true };
++  });
++  app.get(r("flush-401-publico"), async (_q, rep) => { rep.code(401); crua7(rep).flushHeaders(); return rep.send({ erro: "inventado_c7", mensagem: "x" }); });
++}
++
+ type RespostaLida = { linha: string; status: number; corpo: string };
+ /** Lê, em ordem, as respostas que um cliente em pipeline leria dos bytes (content-length ou chunked). */
+ function lerRespostas(bytes: Buffer): { respostas: RespostaLida[]; resto: string } {
+@@ -410,9 +470,12 @@ function lerRespostas(bytes: Buffer): { respostas: RespostaLida[]; resto: string
+     const linha = cab.split("\r\n")[0]!;
+     const cl = /\r\ncontent-length: *(\d+)/i.exec(cab);
+     const te = /\r\ntransfer-encoding: *([^\r]+)/i.exec(cab);
++    const st = Number(linha.split(" ")[1]);
+     let j = fim + 4;
+     let corpo = "";
+-    if (cl) { corpo = t.slice(j, j + Number(cl[1])); j += Number(cl[1]); }
++    // 1xx, 204 e 304 não têm corpo (correção 7: a cabeça provisória antes da final).
++    if ((st >= 100 && st <= 199) || st === 204 || st === 304) { /* sem corpo */ }
++    else if (cl) { corpo = t.slice(j, j + Number(cl[1])); j += Number(cl[1]); }
+     else if (te && /chunked/i.test(te[1]!)) {
+       for (;;) {
+         const f = t.indexOf("\r\n", j); if (f < 0) { j = t.length; break; }
+@@ -427,10 +490,10 @@ function lerRespostas(bytes: Buffer): { respostas: RespostaLida[]; resto: string
+   return { respostas, resto: t.slice(i) };
+ }
+ /** Dois pedidos em pipeline no mesmo socket: a forma e um `GET` comum sem credencial (que é 401). */
+-function pipeline(porta: number, caminho: string): Promise<Buffer> {
++function pipeline(porta: number, caminho: string, metodo = "GET"): Promise<Buffer> {
+   return new Promise((ok) => {
+     const s = connect(porta, "127.0.0.1", () => s.write(
+-      `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /moldura/sem-rota-alguma HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
++      `${metodo} ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /moldura/sem-rota-alguma HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
+     const partes: Buffer[] = [];
+     s.on("data", (d: Buffer) => partes.push(d));
+     s.on("error", () => {});
+@@ -497,6 +560,7 @@ beforeAll(async () => {
+     plantarStatusTorto(app);
+     plantarPorBaixo(app);
+     plantarMoldura(app);
++    plantarCorrecao7(app);
+     await app.ready();
+     servidores.set(modo, app);
+   }
+@@ -951,3 +1015,126 @@ describe("correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de
+     expect(r.json()).toEqual({ estrito: true });
+   });
+ });
++
++describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade)", () => {
++  const porta = async (modo: ModoDaGuarda) => Number(new URL(await enderecoDe(modo)).port);
++  const forjadas = (rs: RespostaLida[]) => rs.filter((x) => (x.status === 401 || x.status === 403) && x.corpo.includes("inventado_c7"));
++  const doDesvio = (modo: ModoDaGuarda) => (modo === "falhar" ? "desvio_do_catalogo_de_erro" : "erro_interno");
++
++  it.each(["c-webstream", "i-cl0-stream", "i-cl0-response", "i-cl0-webstream"])(
++    "%s: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste", async (n) => {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas, resto } = lerRespostas(await pipeline(await porta(modo), `/c7/${n}`));
++        expect(forjadas(respostas), `${modo} ${n}`).toEqual([]);
++        expect(respostas, `${modo} ${n}`).toHaveLength(1);
++        expect(respostas[0], `${modo} ${n}`).toMatchObject({ status: 200, corpo: n === "c-webstream" ? "{}" : "" });
++        expect(resto, `${modo} ${n}`).not.toContain("inventado_c7");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    });
++
++  it("403 do catálogo com content-length menor ou maior que o corpo: sai a resposta do desvio (o socket é desarrolhado)", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      for (const n of ["e-403-cl-menor", "e-403-cl-maior"]) {
++        const { respostas } = lerRespostas(await pipeline(await porta(modo), `/c7/${n}`));
++        expect(respostas, `${modo} ${n}`).toHaveLength(1);
++        expect(respostas[0]!.status, `${modo} ${n}`).toBe(modo === "falhar" ? 500 : 403);
++        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "sem_permissao");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    }
++  });
++
++  it("transfer-encoding identity forjado: o corpo vai até o fechamento e a conexão fecha (o pedido seguinte não sai nela)", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const bruto = (await pipeline(await porta(modo), "/c7/h-te-identity")).toString("latin1");
++      const { respostas } = lerRespostas(Buffer.from(bruto, "latin1"));
++      expect(respostas, modo).toHaveLength(1);
++      expect(respostas[0]!.status).toBe(200);
++      expect(bruto, modo).not.toContain("HTTP/1.1 404");
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("addTrailers com chunked (red-team) fora do catálogo: sai a resposta do desvio, sem exceção não tratada", async () => {
++    const naoTratadas: unknown[] = [];
++    const pegar = (e: unknown) => { naoTratadas.push(e); };
++    process.on("uncaughtException", pegar);
++    try {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas } = lerRespostas(await pipeline(await porta(modo), "/c7/tr-addtrailers-fora"));
++        expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
++        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "sem_permissao");
++        expect(respostas[1]!.status, "o pedido seguinte no socket").toBe(404);
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    } finally {
++      process.off("uncaughtException", pegar);
++    }
++    expect(naoTratadas).toEqual([]);
++  });
++
++  it.each(PROVISORIOS_COMO_FINAL)(
++    "%s: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele", async (n) => {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas, resto } = lerRespostas(await pipeline(await porta(modo), `/c7/${n}`));
++        expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual([500, 404]);
++        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(modo));
++        expect(resto).toBe("");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    });
++
++  it("HEAD com code(102): sai a cabeça 500, sem nenhuma linha 1xx", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const bruto = (await pipeline(await porta(modo), "/c7/g-102", "HEAD")).toString("latin1");
++      expect(bruto.startsWith("HTTP/1.1 500 "), modo).toBe(true);
++      expect(bruto).not.toMatch(/HTTP\/1\.1 1\d\d /);
++      expect(bruto).not.toContain("inventado_c7");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("101 escrito por baixo de writeHead (_writeRaw): a porta troca a resposta por 500 e fecha a conexão", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const bruto = (await pipeline(await porta(modo), "/c7/g-101-writeraw")).toString("latin1");
++      const { respostas } = lerRespostas(Buffer.from(bruto, "latin1"));
++      expect(respostas.map((x) => x.status), modo).toEqual([500]);
++      expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(modo));
++      expect(bruto).not.toContain("101 Switching");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("a resposta que termina só com a cabeça provisória (sem a final) fecha a conexão: o pedido seguinte não é lido como o dela", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const bruto = (await pipeline(await porta(modo), "/c7/g-102-so-provisoria")).toString("latin1");
++      expect(lerRespostas(Buffer.from(bruto, "latin1")).respostas.map((x) => x.status), modo).toEqual([102]);
++      expect(bruto, modo).not.toContain("HTTP/1.1 404");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("controles: 102 de verdade antes do 403 do catálogo, Buffer com content-length errado (o Fastify corrige), 204, 304, Early Hints com CRLF e flushHeaders com 401", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const p = await porta(modo);
++      const final = lerRespostas(await pipeline(p, "/c7/g-102-e-final")).respostas;
++      expect(final.map((x) => x.status), modo).toEqual([102, 403, 404]);
++      expect(JSON.parse(final[1]!.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
++      const buf = lerRespostas(await pipeline(p, "/c7/d-buffer")).respostas;
++      expect(buf.map((x) => x.status)).toEqual([200, 404]);
++      expect(forjadas(buf)).toEqual([]);
++      for (const n of ["j-204", "k-304"]) {
++        expect(lerRespostas(await pipeline(p, `/c7/${n}`)).respostas.map((x) => x.status), n).toEqual([n === "j-204" ? 204 : 304, 404]);
++      }
++      const cedo = lerRespostas(await pipeline(p, "/c7/f-early")).respostas;
++      expect(cedo.map((x) => x.status)).toEqual([500, 404]);
++      expect(forjadas(cedo)).toEqual([]);
++      expect(lerDesviosDaGuarda()).toEqual([]);
++      const flush = lerRespostas(await pipeline(p, "/c7/flush-401-publico")).respostas;
++      expect(flush[0]!.status).toBe(modo === "falhar" ? 500 : 401);
++      expect(forjadas(flush)).toEqual([]);
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++});
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index 6487edf..a0580ec 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -22,7 +22,8 @@ import type { ServerResponse } from "node:http";
+  * que só a varredura proíbe, o método do protótipo chamado por
+  * fora da instância, e código que troque as primitivas dela antes da carga ou
+  * o próprio Node. A moldura do corpo (`content-length`, `chunked`) ela confere,
+- * como a da API (correção 6).
++ * como a da API (correção 6), e o status 1xx como resposta final é desvio e
++ * sai 500, como na API (correção 7).
+  */
+ 
+ export type ModoDaGuarda = "falhar" | "corrigir";
+@@ -50,9 +51,11 @@ export const CONTRATO_DE_ACESSO_DO_CONSOLE: ContratoDeAcesso = Object.freeze({
+ });
+ 
+ /** O que sai no lugar do desvio, fora de teste, com as frases que o próprio console usa. */
+-export const GENERICO_DO_CONSOLE: Readonly<Record<401 | 403, { erro: string; mensagem: string }>> = Object.freeze({
++export const GENERICO_DO_CONSOLE: Readonly<Record<401 | 403 | 500, { erro: string; mensagem: string }>> = Object.freeze({
+   401: { erro: "sem_sessao", mensagem: "Entre de novo." },
+   403: { erro: "so_o_dono", mensagem: "Só o dono do console faz isto." },
++  // A resposta final 1xx (correção 7): sai o 500 que o próprio console usa.
++  500: { erro: "falha_interna", mensagem: "Falha interna do console." },
+ });
+ 
+ // ---- Primitivas guardadas na carga: trocar o global depois não engana a guarda. ----
+@@ -198,7 +201,11 @@ export function lerDesviosDaGuarda(): Desvio[] {
+ export type OpcoesDaGuarda = {
+   modo: ModoDaGuarda;
+   contrato: ContratoDeAcesso;
+-  generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
++  /**
++   * O que sai no lugar do desvio, fora de teste: o genérico do status (401 ou
++   * 403) e, para a resposta final 1xx (correção 7), o 500 interno do serviço.
++   */
++  generico: Readonly<Record<401 | 403 | 500, { erro: string; mensagem: string }>>;
+ };
+ 
+ type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
+@@ -243,6 +250,10 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   let segurando = false;
+   let statusSegurado = 0;
+   let statusTorto = false;
++  /** O status segurado é 1xx: a resposta final seria só uma cabeça provisória (correção 7). */
++  let provisorioComoFinal = false;
++  /** A porta já deixou passar cabeça provisória 1xx e ainda não viu a final. */
++  let provisoriasVistas = false;
+   let cabecalhosSegurados: Cabecalhos;
+   let mensagemDeStatus: string | undefined;
+   const pedacos: Buffer[] = [];
+@@ -253,8 +264,23 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     segurando = true;
+     statusSegurado = status;
+     statusTorto = torto;
++    provisorioComoFinal = ehProvisorio(status);
+   };
+   const ehAcesso = (s: number) => s === 401 || s === 403;
++  /*
++    O STATUS 1xx COMO RESPOSTA FINAL (correção 7, rodada 7, Segurança achado 3).
++    `reply.code(102).send(...)` faz o Node escrever SÓ a linha `102` e dar a
++    resposta por terminada (1xx não tem corpo). Para o cliente, 1xx é cabeça
++    provisória: ele continua esperando a final e lê a resposta do pedido
++    SEGUINTE da conexão como a deste (e 101 o faz largar o HTTP). Nenhum 1xx
++    legítimo passa por `writeHead`: o Node manda 100, 102 e 103 por
++    `writeContinue`, `writeProcessing` e `writeEarlyHints`, direto em
++    `_writeRaw`, e o 101 de verdade sai pelo evento `upgrade`, no socket. Então
++    `writeHead` com 1xx, ou o cabeçalho implícito com `statusCode` 1xx, é
++    desvio: a guarda segura, e no `end` sai 500 no lugar (o do desvio em
++    teste, o interno do serviço fora de teste), com HEAD inclusive.
++  */
++  const ehProvisorio = (s: number) => s >= 100 && s <= 199;
+   const guardar = (pedaco: unknown, codificacao?: unknown) => {
+     if (pedaco === undefined || pedaco === null) return;
+     const b = typeof pedaco === "string"
+@@ -266,7 +292,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   };
+ 
+   /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
+-  function registrarDesvio(status: number, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
++  function registrarDesvio(
++    status: number, erroVisto: string | null, motivo: string, interno = false,
++  ): { statusFinal: number; novo: string } {
+     const desvio: Desvio = {
+       metodo: req.method,
+       rota: req.routeOptions?.url ?? "(sem rota)",
+@@ -286,6 +314,10 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         ]),
+       };
+     }
++    if (interno) {
++      const g = opcoes.generico[500];
++      return { statusFinal: 500, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
++    }
+     const g = opcoes.generico[status === 401 ? 401 : 403];
+     return { statusFinal: status === 401 ? 401 : 403, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
+   }
+@@ -323,7 +355,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+    * termina dentro do que se leu).
+    */
+   function lerCabecas(dado: unknown, codificacao: unknown):
+-    | null | { visto: "ilegivel" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
++    | null | { visto: "ilegivel" } | { visto: "provisoria" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
+     let texto: string;
+     try {
+       const b = paraBuffer(dado, codificacao);
+@@ -334,7 +366,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     let deslocamento = 0;
+     for (;;) {
+       // Só cabeças provisórias (ou nada): a final vem no pedaço seguinte.
+-      if (texto.length === 0) return null;
++      if (texto.length === 0) return deslocamento > 0 ? { visto: "provisoria" } : null;
+       const m = casa(LINHA_DE_STATUS, texto);
+       if (m === null) return { visto: "ilegivel" };
+       const s = +m[1]!;
+@@ -513,6 +545,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     if (!cabecaPendente) return contar(dado, codificacao, 0);
+     const lido = lerCabecas(dado, codificacao);
+     if (lido === null) return dado;
++    if (lido.visto === "provisoria") { provisoriasVistas = true; return dado; }
+     cabecaPendente = false;
+     let visto: number | "ilegivel" = lido.visto;
+     let m: Moldura | null = null;
+@@ -525,6 +558,14 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       interna._last = true;
+       return substituta(visto);
+     }
++    if (ehProvisorio(visto)) {
++      // Só o 101 chega aqui como final (os outros 1xx a porta lê como provisórios): é desvio (correção 7).
++      bloqueado = true;
++      interna._last = true;
++      const { statusFinal, novo } = registrarDesvio(visto, null,
++        `status ${visto} (provisório) escrito por fora da guarda como resposta final`, true);
++      return bytesDaResposta(statusFinal, novo);
++    }
+     moldura = m!;
+     statusDaCabeca = visto;
+     if (moldura.tipo === "ate-fechar") interna._last = true;
+@@ -538,6 +579,19 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     return contar(dado, codificacao, inicio);
+   }
+ 
++  /**
++   * A resposta terminou e pela porta só passaram cabeças provisórias 1xx, sem a
++   * final (correção 7): o cliente leria a resposta seguinte da conexão como a
++   * deste pedido. O que já saiu não volta; a conexão fecha no fim desta
++   * resposta e a seguinte não é escrita nela.
++   */
++  function fecharSeSoProvisorias(): void {
++    if (!provisoriasVistas || !cabecaPendente || bloqueado || !interna.finished || interna.outputData.length > 0) return;
++    bloqueado = true;
++    interna._last = true;
++    registrarDesvio(102, null, "resposta terminada só com cabeças provisórias 1xx, sem a cabeça final", true);
++  }
++
+   /** O socket ligado a esta resposta, quando o Node escreve direto nele (e não na fila). */
+   const ligado = (): boolean => {
+     const s = raw.socket as unknown as { destroyed?: boolean; writable?: boolean; _httpMessage?: unknown } | null;
+@@ -550,7 +604,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       const item = fila[i]!;
+       if (item.data !== null) item.data = processar(item.data, item.encoding);
+     }
+-    return aplicar(flushOutputOriginal, raw, args);
++    const r = aplicar(flushOutputOriginal, raw, args);
++    fecharSeSoProvisorias();
++    return r;
+   }
+ 
+   function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
+@@ -572,7 +628,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     // Já segurando, o `_implicitHeader` do Node (pelo `flushHeaders`, que relê `statusCode`) chama de
+     // novo sem cabeçalhos: a cabeça segurada continua valendo.
+     if (segurando && resto.length === 0 && efetivo === statusSegurado) return raw;
+-    if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
++    if (((!ehHead && ehAcesso(efetivo)) || ehProvisorio(efetivo)) && !raw.headersSent) {
+       comecarASegurar(efetivo, torto);
+       // O `statusCode` que a guarda decidiu: quem o reler (o `flushHeaders`) lê este (correção 6).
+       raw.statusCode = efetivo;
+@@ -594,9 +650,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+    * torto que não é de acesso vira o inteiro antes de o Node lê-lo de novo.
+    */
+   const conferirCabecalhoImplicito = () => {
+-    if (segurando || ehHead || raw.headersSent) return;
++    if (segurando || raw.headersSent) return;
+     const { efetivo, torto } = statusComoONodeEscreve(raw.statusCode);
+-    if (ehAcesso(efetivo)) comecarASegurar(efetivo, torto);
++    if (ehProvisorio(efetivo) || (!ehHead && ehAcesso(efetivo))) comecarASegurar(efetivo, torto);
+     else if (torto) raw.statusCode = efetivo;
+   };
+ 
+@@ -652,6 +708,19 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   function derrubar(): void {
+     try { raw.destroy(); } catch { /* a conexão já caiu */ }
+   }
++  /**
++   * O `end` do Node arrolha o socket (`cork`) antes de escrever o pedaço e só o
++   * desarrolha no fim; quando ele LANÇA no meio (o `content-length` estrito que
++   * não bate), o socket fica arrolhado e nada mais sai dele (correção 7: o 403
++   * do catálogo com `content-length` errado deixava o cliente sem resposta até
++   * o tempo esgotar). Antes de a guarda escrever a resposta do desvio, desarrolha.
++   */
++  function desarrolhar(): void {
++    try {
++      const s = raw.socket as unknown as { writableCorked?: number; uncork?: () => void } | null;
++      for (let i = 0; s && i < 16 && (s.writableCorked ?? 0) > 0; i += 1) s.uncork!();
++    } catch { /* sem socket, nada a desarrolhar */ }
++  }
+ 
+   function write(this: ServerResponse, ...args: unknown[]) {
+     conferirCabecalhoImplicito();
+@@ -698,7 +767,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
+       }
+       try {
+-        return aplicar(endOriginal, raw, args);
++        const r = aplicar(endOriginal, raw, args);
++        fecharSeSoProvisorias();
++        return r;
+       } catch (e) {
+         if (!ehDescompasso(e)) throw e;
+         if (temDado && escritosNoCorpo + tamanhoDe(args[0], codificacao) > declarado()) {
+@@ -720,17 +791,24 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     }
+     const corpoOriginal = juntarBuffers(pedacos);
+     let achado: { motivo: string; erroVisto: string | null } | null;
+-    try {
+-      const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
+-      const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
+-      achado = statusTorto
+-        ? {
+-          motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
+-          erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
+-        }
+-        : doCorpo;
+-    } catch {
+-      achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
++    if (provisorioComoFinal) {
++      achado = {
++        motivo: `status ${statusSegurado} (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido`,
++        erroVisto: null,
++      };
++    } else {
++      try {
++        const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
++        const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++        achado = statusTorto
++          ? {
++            motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
++            erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
++          }
++          : doCorpo;
++      } catch {
++        achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
++      }
+     }
+     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
+     if (achado === null) {
+@@ -747,7 +825,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         achado = { motivo: `o Node recusou a resposta conferida (${(e as { code?: string }).code ?? "erro"})`, erroVisto: null };
+       }
+     }
+-    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo);
++    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo, provisorioComoFinal);
+     liberado = statusFinal;
+     try {
+       const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding", "trailer"];
+@@ -767,6 +845,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         bloqueado = true;
+         interna._last = true;
+         passaLivre = bytesDaResposta(statusFinal, novo);
++        desarrolhar();
+         aplicar(writeRawOriginal, raw, [passaLivre, "latin1", () => derrubar()]);
+       } catch {
+         derrubar();
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+index 76c9a8e..2cce16d 100644
+--- a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -1,4 +1,4 @@
+-import type { FastifyReply } from "fastify";
++import type { FastifyInstance, FastifyReply } from "fastify";
+ import { connect } from "node:net";
+ import { Readable } from "node:stream";
+ import { afterAll, beforeAll, describe, expect, it } from "vitest";
+@@ -16,6 +16,77 @@ function recusarDeFora(resposta: FastifyReply) {
+   return resposta.code(403).send({ erro: "vazou_mbg", mensagem: "x" });
+ }
+ 
++/*
++  Correção 7 (rodada 7 sobre `fd17ff4`): as formas dos relatórios de Segurança,
++  red-team e QA que ainda não tinham caso no console. Mesmas rotas da API.
++*/
++const CORPO_C7 = '{"erro":"inventado_c7","mensagem":"x"}';
++const CABECA_C7 = `HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: ${CORPO_C7.length}\r\n\r\n`;
++const PROVISORIOS_COMO_FINAL = ["g-100", "g-101", "g-102", "g-103", "g-199", "g-102-objeto", "g-102-raw-writehead", "g-102-raw-implicito"];
++function plantarCorrecao7(app: FastifyInstance): void {
++  const r = (n: string) => `/c7/${n}`;
++  const crua7 = (rep: FastifyReply) => { const k = "ra" + "w"; return (rep as unknown as Record<string, Record<string, any>>)[k]!; };
++  const web = (texto: string) => new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(texto)); c.close(); } });
++  const ok = '{"erro":"so_o_dono","mensagem":"x"}';
++  app.get(r("c-webstream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
++    .send(web("{}" + CABECA_C7 + CORPO_C7)));
++  app.get(r("i-cl0-stream"), async (_q, rep) => rep.code(200).header("content-length", "0")
++    .send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
++  app.get(r("i-cl0-response"), async (_q, rep) => rep.send(new Response(CABECA_C7 + CORPO_C7,
++    { status: 200, headers: { "content-length": "0" } })));
++  app.get(r("i-cl0-webstream"), async (_q, rep) => rep.code(200).header("content-length", "0").send(web(CABECA_C7 + CORPO_C7)));
++  app.get(r("e-403-cl-menor"), async (_q, rep) => rep.code(403).header("content-length", "2").type("application/json")
++    .send(Readable.from([Buffer.from(ok)])));
++  app.get(r("tr-addtrailers-fora"), async (_q, rep) => {
++    rep.code(403).header("transfer-encoding", "chunked").header("trailer", "x-t").type("application/json");
++    crua7(rep).addTrailers({ "x-t": "v" });
++    return rep.send(CORPO_C7);
++  });
++  for (const st of [100, 101, 102, 103, 199]) app.get(r(`g-${st}`), async (_q, rep) => rep.code(st).send(CABECA_C7 + CORPO_C7));
++  app.get(r("g-102-objeto"), async (_q, rep) => rep.code(102).send({ erro: "inventado_c7", mensagem: "x" }));
++  app.get(r("g-102-raw-writehead"), async (_q, rep) => { rep.hijack(); const x = crua7(rep); x.writeHead(102); x.end(CORPO_C7); });
++  app.get(r("g-102-raw-implicito"), async (_q, rep) => { rep.hijack(); const x = crua7(rep); x.statusCode = 102; x.end(CORPO_C7); });
++  app.get(r("g-101-writeraw"), async (_q, rep) => {
++    rep.hijack(); const x = crua7(rep);
++    x._writeRaw("HTTP/1.1 101 Switching Protocols\r\n\r\n"); x._header = "x"; x._headerSent = true; x.end();
++  });
++  app.get(r("g-102-so-provisoria"), async (_q, rep) => {
++    rep.hijack(); const x = crua7(rep);
++    x.writeProcessing(); x._header = "x"; x._headerSent = true; x.end();
++  });
++  app.get(r("g-102-e-final"), async (_q, rep) => { crua7(rep).writeProcessing(); return rep.code(403).type("application/json").send(ok); });
++}
++
++type RespostaLida = { status: number; corpo: string };
++/** As respostas, em ordem, como um cliente em pipeline as leria (1xx, 204 e 304 sem corpo). */
++function lerRespostas(t: string): { respostas: RespostaLida[]; resto: string } {
++  const respostas: RespostaLida[] = [];
++  let i = 0;
++  while (i < t.length && t.startsWith("HTTP/", i)) {
++    const fim = t.indexOf("\r\n\r\n", i);
++    if (fim < 0) break;
++    const cab = t.slice(i, fim);
++    const status = Number(cab.split("\r\n")[0]!.split(" ")[1]);
++    const cl = /\r\ncontent-length: *(\d+)/i.exec(cab);
++    const te = /\r\ntransfer-encoding: *([^\r]+)/i.exec(cab);
++    let j = fim + 4;
++    let corpo = "";
++    if ((status >= 100 && status <= 199) || status === 204 || status === 304) { /* sem corpo */ }
++    else if (te && /chunked\s*$/i.test(te[1]!)) {
++      for (;;) {
++        const f = t.indexOf("\r\n", j); if (f < 0) { j = t.length; break; }
++        const n = parseInt(t.slice(j, f), 16); j = f + 2;
++        if (!n) { for (;;) { const ft = t.indexOf("\r\n", j); if (ft < 0) { j = t.length; break; } const vazia = ft === j; j = ft + 2; if (vazia) break; } break; }
++        corpo += t.slice(j, j + n); j += n + 2;
++      }
++    } else if (cl) { corpo = t.slice(j, j + Number(cl[1])); j += Number(cl[1]); }
++    else { corpo = t.slice(j); j = t.length; }
++    respostas.push({ status, corpo });
++    i = j;
++  }
++  return { respostas, resto: t.slice(i) };
++}
++
+ const consoles = new Map<"falhar" | "corrigir", ConsoleDeTeste>();
+ 
+ beforeAll(async () => {
+@@ -86,6 +157,7 @@ beforeAll(async () => {
+     c.app.get(r("cl-stream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
+       .send(Readable.from([Buffer.from("{}" + cabecaQa7 + corpoQa7)])));
+     c.app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
++    plantarCorrecao7(c.app);
+     await c.app.ready();
+     consoles.set(modo, c);
+   }
+@@ -218,3 +290,91 @@ describe("correção 6: a moldura do corpo e o trailer, por socket cru em pipeli
+     expect(naoTratadas).toEqual([]);
+   });
+ });
++
++describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline", () => {
++  const pipeline = async (modo: "falhar" | "corrigir", caminho: string): Promise<string> => {
++    const porta = Number(new URL(await enderecoDe(modo)).port);
++    return new Promise((ok) => {
++      const s = connect(porta, "127.0.0.1", () => s.write(
++        `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /nada HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
++      let b = "";
++      s.on("data", (d: Buffer) => { b += d.toString("latin1"); });
++      s.on("error", () => {});
++      const fim = setTimeout(() => s.destroy(), 4000);
++      s.on("close", () => { clearTimeout(fim); ok(b); });
++    });
++  };
++  const forjadas = (rs: RespostaLida[]) => rs.filter((x) => (x.status === 401 || x.status === 403) && x.corpo.includes("inventado_c7"));
++  const doDesvio = (modo: "falhar" | "corrigir") => (modo === "falhar" ? "desvio_do_catalogo_de_erro" : "falha_interna");
++
++  it.each(["c-webstream", "i-cl0-stream", "i-cl0-response", "i-cl0-webstream"])(
++    "%s: sai só o corpo declarado e nenhum 403 inventado chega ao cliente", async (n) => {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas, resto } = lerRespostas(await pipeline(modo, `/c7/${n}`));
++        expect(forjadas(respostas), `${modo} ${n}`).toEqual([]);
++        expect(respostas, `${modo} ${n}`).toHaveLength(1);
++        expect(respostas[0], `${modo} ${n}`).toMatchObject({ status: 200, corpo: n === "c-webstream" ? "{}" : "" });
++        expect(resto).not.toContain("inventado_c7");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    });
++
++  it("403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado)", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { respostas } = lerRespostas(await pipeline(modo, "/c7/e-403-cl-menor"));
++      expect(respostas.map((x) => x.status), modo).toEqual([modo === "falhar" ? 500 : 403]);
++      expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "so_o_dono");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("addTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada", async () => {
++    const naoTratadas: unknown[] = [];
++    const pegar = (e: unknown) => { naoTratadas.push(e); };
++    process.on("uncaughtException", pegar);
++    try {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas } = lerRespostas(await pipeline(modo, "/c7/tr-addtrailers-fora"));
++        expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
++        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "so_o_dono");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    } finally {
++      process.off("uncaughtException", pegar);
++    }
++    expect(naoTratadas).toEqual([]);
++  });
++
++  it.each(PROVISORIOS_COMO_FINAL)(
++    "%s: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele", async (n) => {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas, resto } = lerRespostas(await pipeline(modo, `/c7/${n}`));
++        expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual([500, 404]);
++        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(modo));
++        expect(resto).toBe("");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    });
++
++  it("1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const b101 = await pipeline(modo, "/c7/g-101-writeraw");
++      expect(lerRespostas(b101).respostas.map((x) => x.status), modo).toEqual([500]);
++      expect(b101).not.toContain("101 Switching");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      const b102 = await pipeline(modo, "/c7/g-102-so-provisoria");
++      expect(lerRespostas(b102).respostas.map((x) => x.status), modo).toEqual([102]);
++      expect(b102).not.toContain("HTTP/1.1 404");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { respostas } = lerRespostas(await pipeline(modo, "/c7/g-102-e-final"));
++      expect(respostas.map((x) => x.status), modo).toEqual([102, 403, 404]);
++      expect(JSON.parse(respostas[1]!.corpo)).toEqual({ erro: "so_o_dono", mensagem: "x" });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 3148421..3a93b4b 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5486 testes somando o aplicativo** (contagem estática de `npm run
++- **5521 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5486 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5521 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index 5bd2709..69041eb 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -161,7 +161,14 @@
+  * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). O
+  * corpo além da moldura que a cabeça declarou (`content-length`, `chunked`)
+  * saiu desta lista na correção 6: a guarda liga `strictContentLength`, conta o
+- * corpo e não deixa sair byte além do declarado. A varredura proíbe os dois
++ * corpo e não deixa sair byte além do declarado. O status 1xx como resposta
++ * final (`reply.code(102)`), que fazia o cliente ler a resposta do pedido
++ * seguinte da conexão como a deste, é desvio desde a correção 7 e sai 500; a
++ * resposta que termina só com cabeça provisória fecha a conexão; e o 401 ou 403
++ * do catálogo com `content-length` que não bate sai como a resposta do desvio
++ * (o socket arrolhado pelo `end` do Node é desarrolhado). Os testes da guarda
++ * provam cada forma da rodada 7 por socket cru em pipeline, nos dois modos; o
++ * proxy da borda não foi medido. A varredura proíbe os dois
+  * caminhos que restam (`.socket`, `.connection`, `.client`, ouvinte de
+  * `connection`, `request` e afins no servidor, `.call`, `.apply`,
+  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index da8d463..9db76da 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -522,6 +522,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     A guarda do console (+2) está no número do próprio passo.
+   */
+   "V2-F00-E05-correcao-6": { total: 11, falhas: 0, puladas: 0 },
++  /*
++    V2-F00-E05, correção 7 (2026-10-20): as formas da rodada 7 sobre `fd17ff4`
++    (ReadableStream e content-length 0, 403 do catálogo com content-length
++    errado, transfer-encoding identity, addTrailers, status 1xx como resposta
++    final): guarda da API de 119 para 138 (+19). A guarda do console (+16) está
++    no número do próprio passo.
++  */
++  "V2-F00-E05-correcao-7": { total: 19, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -760,7 +768,7 @@ export const PASSOS = [
+   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
+   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
+   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
+-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 288, falhas: 0 } },
++  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 304, falhas: 0 } },
+   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
+   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
+   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

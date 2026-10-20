@@ -161,7 +161,14 @@
  * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). O
  * corpo além da moldura que a cabeça declarou (`content-length`, `chunked`)
  * saiu desta lista na correção 6: a guarda liga `strictContentLength`, conta o
- * corpo e não deixa sair byte além do declarado. A varredura proíbe os dois
+ * corpo e não deixa sair byte além do declarado. O status 1xx como resposta
+ * final (`reply.code(102)`), que fazia o cliente ler a resposta do pedido
+ * seguinte da conexão como a deste, é desvio desde a correção 7 e sai 500; a
+ * resposta que termina só com cabeça provisória fecha a conexão; e o 401 ou 403
+ * do catálogo com `content-length` que não bate sai como a resposta do desvio
+ * (o socket arrolhado pelo `end` do Node é desarrolhado). Os testes da guarda
+ * provam cada forma da rodada 7 por socket cru em pipeline, nos dois modos; o
+ * proxy da borda não foi medido. A varredura proíbe os dois
  * caminhos que restam (`.socket`, `.connection`, `.client`, ouvinte de
  * `connection`, `request` e afins no servidor, `.call`, `.apply`,
  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,

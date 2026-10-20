@@ -1,0 +1,448 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (138 tests | 12 failed) 5050ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 12ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada 1ms
+   ✓ HEAD não leva corpo > o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo 3ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > controles: o que está no catálogo sai como a rota mandou, com a frase da rota 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 401 {"erro":"credenciais"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"acesso_suspenso"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"nao_autenticado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"inventado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 403 ["sem_permissao"] 0ms
+   ✓ a conferência do corpo, isolada > 403 proibido 0ms
+   ✓ a conferência do corpo, isolada > 403  0ms
+   ✓ a conferência do corpo, isolada > 403 null 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","campos":[{"erro":"x"}]} 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 4ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme) 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em teste sai 500 com o desvio registrado (status 401) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em teste sai 500 com o desvio registrado (status 401) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > a frase da linha de status da rota não sai na resposta trocada 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno 2ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora 20ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > calc-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 3ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > destruct-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-trocado: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-401: nunca sai 401 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-base64: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-buffer: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > continue-junto: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > linha-partida: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > fila: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > bytes depois do fim da resposta não saem (seriam lidos como a resposta seguinte da conexão) 2ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > a resposta trocada fecha a conexão, e o pedido seguinte do mesmo agente sai certo 5ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > controles: 100 Continue de verdade seguido do 403 do catálogo, e o 403 comum, passam intactos 2ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-stream: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 2ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-response: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 2ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-stream-pedacos: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-raw-end: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-writeraw: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > chunked-depois-do-terminador: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > content-length junto de transfer-encoding é cabeça ilegível: a resposta inteira é trocada 1ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > trailer com código fora do catálogo: o desvio não lança (nada de exceção não tratada) e a resposta sai 3ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > writeHead(403) mais flushHeaders: sai o 403 decidido pela guarda (não 200 sem corpo) 2ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > controles: ZIP em fluxo, PDF em Buffer, fluxo com content-length certo e chunked forjado saem inteiros 6ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > toda resposta sai com strictContentLength ligado 0ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > c-webstream: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > i-cl0-stream: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > i-cl0-response: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > i-cl0-webstream: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 1ms
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 403 do catálogo com content-length menor ou maior que o corpo: sai a resposta do desvio (o socket é desarrolhado) 4016ms
+     → falhar e-403-cl-menor: expected [] to have a length of 1 but got +0
+     → resposta 401 ou 403 fora do catálogo de códigos de erro (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > transfer-encoding identity forjado: o corpo vai até o fechamento e a conexão fecha (o pedido seguinte não sai nela) 3ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > addTrailers com chunked (red-team) fora do catálogo: sai a resposta do desvio, sem exceção não tratada 2ms
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 2ms
+     → falhar g-100: expected [ 100, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-101: expected [ 101 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-102: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-103: expected [ 103, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-199: expected [ 199, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-102-objeto: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-102-raw-writehead: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 1ms
+     → falhar g-102-raw-implicito: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > HEAD com code(102): sai a cabeça 500, sem nenhuma linha 1xx 1ms
+     → falhar: expected false to be true // Object.is equality
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 101 escrito por baixo de writeHead (_writeRaw): a porta troca a resposta por 500 e fecha a conexão 1ms
+     → falhar: expected [ 101 ] to deeply equal [ 500 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > a resposta que termina só com a cabeça provisória (sem a final) fecha a conexão: o pedido seguinte não é lido como o dela 1ms
+     → falhar: expected [ 102, 404 ] to deeply equal [ 102 ]
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > controles: 102 de verdade antes do 403 do catálogo, Buffer com content-length errado (o Fastify corrige), 204, 304, Early Hints com CRLF e flushHeaders com 401 8ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 403 do catálogo com content-length menor ou maior que o corpo: sai a resposta do desvio (o socket é desarrolhado)
+AssertionError: falhar e-403-cl-menor: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1040:43
+    1038|       for (const n of ["e-403-cl-menor", "e-403-cl-maior"]) {
+    1039|         const { respostas } = lerRespostas(await pipeline(await porta(…
+    1040|         expect(respostas, `${modo} ${n}`).toHaveLength(1);
+       |                                           ^
+    1041|         expect(respostas[0]!.status, `${modo} ${n}`).toBe(modo === "fa…
+    1042|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "fa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 403 do catálogo com content-length menor ou maior que o corpo: sai a resposta do desvio (o socket é desarrolhado)
+AssertionError: resposta 401 ou 403 fora do catálogo de códigos de erro (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "erroVisto": null,
++     "metodo": "GET",
++     "motivo": "o Node recusou a resposta conferida (ERR_HTTP_CONTENT_LENGTH_MISMATCH)",
++     "rota": "/c7/e-403-cl-menor",
++     "status": 403,
++   },
++ ]
+
+ ❯ test/guarda-falha-alto.ts:15:108
+     13| afterEach(() => {
+     14|   const desvios = lerDesviosDaGuarda();
+     15|   expect(desvios, "resposta 401 ou 403 fora do catálogo de códigos de …
+       |                                                                                                            ^
+     16| });
+     17| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-100: expected [ 100, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   100,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-101: expected [ 101 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
+-   404,
++   101,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-102: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-103: expected [ 103, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   103,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-199: expected [ 199, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   199,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-102-objeto: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-102-raw-writehead: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele
+AssertionError: falhar g-102-raw-implicito: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1081:64
+    1079|       for (const modo of ["falhar", "corrigir"] as const) {
+    1080|         const { respostas, resto } = lerRespostas(await pipeline(await…
+    1081|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    1082|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    1083|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > HEAD com code(102): sai a cabeça 500, sem nenhuma linha 1xx
+AssertionError: falhar: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1091:55
+    1089|     for (const modo of ["falhar", "corrigir"] as const) {
+    1090|       const bruto = (await pipeline(await porta(modo), "/c7/g-102", "H…
+    1091|       expect(bruto.startsWith("HTTP/1.1 500 "), modo).toBe(true);
+       |                                                       ^
+    1092|       expect(bruto).not.toMatch(/HTTP\/1\.1 1\d\d /);
+    1093|       expect(bruto).not.toContain("inventado_c7");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 101 escrito por baixo de writeHead (_writeRaw): a porta troca a resposta por 500 e fecha a conexão
+AssertionError: falhar: expected [ 101 ] to deeply equal [ 500 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   101,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1102:52
+    1100|       const bruto = (await pipeline(await porta(modo), "/c7/g-101-writ…
+    1101|       const { respostas } = lerRespostas(Buffer.from(bruto, "latin1"));
+    1102|       expect(respostas.map((x) => x.status), modo).toEqual([500]);
+       |                                                    ^
+    1103|       expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(modo)…
+    1104|       expect(bruto).not.toContain("101 Switching");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > a resposta que termina só com a cabeça provisória (sem a final) fecha a conexão: o pedido seguinte não é lido como o dela
+AssertionError: falhar: expected [ 102, 404 ] to deeply equal [ 102 ]
+
+- Expected
++ Received
+
+  [
+    102,
++   404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:1112:95
+    1110|     for (const modo of ["falhar", "corrigir"] as const) {
+    1111|       const bruto = (await pipeline(await porta(modo), "/c7/g-102-so-p…
+    1112|       expect(lerRespostas(Buffer.from(bruto, "latin1")).respostas.map(…
+       |                                                                                               ^
+    1113|       expect(bruto, modo).not.toContain("HTTP/1.1 404");
+    1114|       expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 126 passed (138)
+   Start at  13:01:09
+   Duration  5.59s (transform 227ms, setup 81ms, collect 292ms, tests 5.05s, environment 0ms, prepare 33ms)
+
+exit=1

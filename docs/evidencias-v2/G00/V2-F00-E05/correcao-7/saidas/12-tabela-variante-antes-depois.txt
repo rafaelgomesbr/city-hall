@@ -1,0 +1,74 @@
+
+api: variante | guarda de fd17ff4 (= 24da65e) | guarda de d00a549 (HEAD, correção 6) | depois (correção 7)
+| `a-stream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `b-response` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `c-webstream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `d-buffer` | ok | ok | ok |
+| `i-cl0-stream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `i-cl0-response` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `i-cl0-webstream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `e-403-cl-menor` | DESSINCRONIZOU | sem resposta | ok |
+| `e-403-cl-maior` | ok | sem resposta | ok |
+| `e-200-cl-maior` | ok | sem resposta | sem resposta |
+| `f-early` | ok | ok | ok |
+| `g-100` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-101` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-103` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-199` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-objeto` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-raw-writehead` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-raw-implicito` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-101-writeraw` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-so-provisoria` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-e-final` | ok | ok | ok |
+| `h-te-identity` | DESSINCRONIZOU | ok | ok |
+| `j-204` | ok | ok | ok |
+| `k-304` | ok | ok | ok |
+| `tr-reply-fora` | PROCESSO CAIU | ok | ok |
+| `tr-reply-catalogo` | ok | ok | ok |
+| `tr-addtrailers-fora` | ok | ok | ok |
+| `tr-addtrailers-catalogo` | ok | ok | ok |
+| `tr-addtrailers-cl` | ok | ok | ok |
+| `flush-403-fora` | 200 sem corpo | ok | ok |
+| `flush-403-catalogo` | 200 sem corpo | ok | ok |
+| `flush-401-publico` | ok | ok | ok |
+| `z-ok` | ok | ok | ok |
+| `z-ruim` | ok | ok | ok |
+
+console: variante | guarda de fd17ff4 (= 24da65e) | guarda de d00a549 (HEAD, correção 6) | depois (correção 7)
+| `a-stream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `b-response` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `c-webstream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `d-buffer` | ok | ok | ok |
+| `i-cl0-stream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `i-cl0-response` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `i-cl0-webstream` | ESCAPOU + DESSINCRONIZOU | ok | ok |
+| `e-403-cl-menor` | DESSINCRONIZOU | sem resposta | ok |
+| `e-403-cl-maior` | ok | sem resposta | ok |
+| `e-200-cl-maior` | ok | sem resposta | sem resposta |
+| `f-early` | ok | ok | ok |
+| `g-100` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-101` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-103` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-199` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-objeto` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-raw-writehead` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-raw-implicito` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-101-writeraw` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-so-provisoria` | DESSINCRONIZOU | DESSINCRONIZOU | ok |
+| `g-102-e-final` | ok | ok | ok |
+| `h-te-identity` | DESSINCRONIZOU | ok | ok |
+| `j-204` | ok | ok | ok |
+| `k-304` | ok | ok | ok |
+| `tr-reply-fora` | PROCESSO CAIU | ok | ok |
+| `tr-reply-catalogo` | ok | ok | ok |
+| `tr-addtrailers-fora` | ok | ok | ok |
+| `tr-addtrailers-catalogo` | ok | ok | ok |
+| `tr-addtrailers-cl` | ok | ok | ok |
+| `flush-403-fora` | 200 sem corpo | ok | ok |
+| `flush-403-catalogo` | 200 sem corpo | ok | ok |
+| `flush-401-publico` | ok | ok | ok |
+| `z-ok` | ok | ok | ok |
+| `z-ruim` | ok | ok | ok |

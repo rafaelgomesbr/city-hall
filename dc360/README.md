@@ -11,10 +11,10 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 699 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1696 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1715 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 288 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 304 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -257,6 +257,28 @@ sem moldura, fecha a conexão no fim; `content-length` junto de
 cabia e a conexão fecha. O caminho do desvio não lança (o trailer, que o Node
 recusa junto de `content-length`, sai da resposta trocada).
 
+O status 1xx como resposta FINAL (`reply.code(102).send(...)`, `code(101)`,
+`writeHead(103)` ou `statusCode = 102` antes do `end`) fazia o Node escrever só a
+linha provisória e dar a resposta por terminada, e o cliente lia a resposta do
+pedido SEGUINTE da conexão como a deste. Desde a correção 7 isso é desvio, HEAD
+inclusive, e sai 500 nos dois modos (`desvio_do_catalogo_de_erro` em teste;
+fora de teste, `erro_interno` na API e `falha_interna` no console). O 101
+escrito por baixo, que a porta dos bytes lê como cabeça final, também vira 500,
+e a resposta que termina só com cabeça provisória, sem a final, fecha a conexão.
+Os 1xx legítimos (`writeContinue`, `writeProcessing`, `writeEarlyHints`) não
+passam por `writeHead` e seguem intactos. Também na correção 7: quando o `end`
+do Node lança no meio (o `content-length` estrito que não bate com o corpo de um
+401 ou 403 do catálogo), o socket ficava arrolhado e o cliente ficava sem
+resposta até o tempo esgotar; a guarda o desarrolha e manda a resposta do
+desvio. O que os testes da guarda provam (API e console, por socket cru com dois
+pedidos em pipeline, nos dois modos, em Node 24): cada forma dos relatórios da
+rodada 7 (fluxo do Node, `Response` e `ReadableStream` da web com
+`content-length` menor que o corpo ou `0`, 403 do catálogo com `content-length`
+errado, `transfer-encoding: identity`, `reply.trailer`, `addTrailers`,
+`writeHead(403)` mais `flushHeaders` e 1xx final) não leva código fora do
+catálogo ao fio e não dessincroniza a conexão, e os casos de trailer vigiam
+exceção não tratada. O proxy da borda diante dessas formas não foi medido.
+
 O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
 Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
 `.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
@@ -267,7 +289,9 @@ servidor HTTP que entregam o socket ou o pedido antes do Fastify
 varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
 desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
 método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
-`Reflect`), que a varredura reprova. E nenhuma
+`Reflect`), que a varredura reprova. Corpo MENOR que o `content-length`
+declarado, em resposta que não é 401 nem 403, derruba a conexão sem resposta: o
+cliente vê a conexão cair, não uma resposta trocada. E nenhuma
 linha prende código no mesmo processo que troque, antes de a guarda carregar, as
 primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
 usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
@@ -1557,9 +1581,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3489 testes em seis pacotes
+npm test                    # 3524 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1696 testes da API
+npm run test:api            # 1715 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

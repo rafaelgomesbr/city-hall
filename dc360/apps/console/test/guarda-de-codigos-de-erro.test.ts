@@ -1,4 +1,4 @@
-import type { FastifyReply } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import { connect } from "node:net";
 import { Readable } from "node:stream";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -14,6 +14,77 @@ import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-tes
 
 function recusarDeFora(resposta: FastifyReply) {
   return resposta.code(403).send({ erro: "vazou_mbg", mensagem: "x" });
+}
+
+/*
+  Correção 7 (rodada 7 sobre `fd17ff4`): as formas dos relatórios de Segurança,
+  red-team e QA que ainda não tinham caso no console. Mesmas rotas da API.
+*/
+const CORPO_C7 = '{"erro":"inventado_c7","mensagem":"x"}';
+const CABECA_C7 = `HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: ${CORPO_C7.length}\r\n\r\n`;
+const PROVISORIOS_COMO_FINAL = ["g-100", "g-101", "g-102", "g-103", "g-199", "g-102-objeto", "g-102-raw-writehead", "g-102-raw-implicito"];
+function plantarCorrecao7(app: FastifyInstance): void {
+  const r = (n: string) => `/c7/${n}`;
+  const crua7 = (rep: FastifyReply) => { const k = "ra" + "w"; return (rep as unknown as Record<string, Record<string, any>>)[k]!; };
+  const web = (texto: string) => new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(texto)); c.close(); } });
+  const ok = '{"erro":"so_o_dono","mensagem":"x"}';
+  app.get(r("c-webstream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
+    .send(web("{}" + CABECA_C7 + CORPO_C7)));
+  app.get(r("i-cl0-stream"), async (_q, rep) => rep.code(200).header("content-length", "0")
+    .send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
+  app.get(r("i-cl0-response"), async (_q, rep) => rep.send(new Response(CABECA_C7 + CORPO_C7,
+    { status: 200, headers: { "content-length": "0" } })));
+  app.get(r("i-cl0-webstream"), async (_q, rep) => rep.code(200).header("content-length", "0").send(web(CABECA_C7 + CORPO_C7)));
+  app.get(r("e-403-cl-menor"), async (_q, rep) => rep.code(403).header("content-length", "2").type("application/json")
+    .send(Readable.from([Buffer.from(ok)])));
+  app.get(r("tr-addtrailers-fora"), async (_q, rep) => {
+    rep.code(403).header("transfer-encoding", "chunked").header("trailer", "x-t").type("application/json");
+    crua7(rep).addTrailers({ "x-t": "v" });
+    return rep.send(CORPO_C7);
+  });
+  for (const st of [100, 101, 102, 103, 199]) app.get(r(`g-${st}`), async (_q, rep) => rep.code(st).send(CABECA_C7 + CORPO_C7));
+  app.get(r("g-102-objeto"), async (_q, rep) => rep.code(102).send({ erro: "inventado_c7", mensagem: "x" }));
+  app.get(r("g-102-raw-writehead"), async (_q, rep) => { rep.hijack(); const x = crua7(rep); x.writeHead(102); x.end(CORPO_C7); });
+  app.get(r("g-102-raw-implicito"), async (_q, rep) => { rep.hijack(); const x = crua7(rep); x.statusCode = 102; x.end(CORPO_C7); });
+  app.get(r("g-101-writeraw"), async (_q, rep) => {
+    rep.hijack(); const x = crua7(rep);
+    x._writeRaw("HTTP/1.1 101 Switching Protocols\r\n\r\n"); x._header = "x"; x._headerSent = true; x.end();
+  });
+  app.get(r("g-102-so-provisoria"), async (_q, rep) => {
+    rep.hijack(); const x = crua7(rep);
+    x.writeProcessing(); x._header = "x"; x._headerSent = true; x.end();
+  });
+  app.get(r("g-102-e-final"), async (_q, rep) => { crua7(rep).writeProcessing(); return rep.code(403).type("application/json").send(ok); });
+}
+
+type RespostaLida = { status: number; corpo: string };
+/** As respostas, em ordem, como um cliente em pipeline as leria (1xx, 204 e 304 sem corpo). */
+function lerRespostas(t: string): { respostas: RespostaLida[]; resto: string } {
+  const respostas: RespostaLida[] = [];
+  let i = 0;
+  while (i < t.length && t.startsWith("HTTP/", i)) {
+    const fim = t.indexOf("\r\n\r\n", i);
+    if (fim < 0) break;
+    const cab = t.slice(i, fim);
+    const status = Number(cab.split("\r\n")[0]!.split(" ")[1]);
+    const cl = /\r\ncontent-length: *(\d+)/i.exec(cab);
+    const te = /\r\ntransfer-encoding: *([^\r]+)/i.exec(cab);
+    let j = fim + 4;
+    let corpo = "";
+    if ((status >= 100 && status <= 199) || status === 204 || status === 304) { /* sem corpo */ }
+    else if (te && /chunked\s*$/i.test(te[1]!)) {
+      for (;;) {
+        const f = t.indexOf("\r\n", j); if (f < 0) { j = t.length; break; }
+        const n = parseInt(t.slice(j, f), 16); j = f + 2;
+        if (!n) { for (;;) { const ft = t.indexOf("\r\n", j); if (ft < 0) { j = t.length; break; } const vazia = ft === j; j = ft + 2; if (vazia) break; } break; }
+        corpo += t.slice(j, j + n); j += n + 2;
+      }
+    } else if (cl) { corpo = t.slice(j, j + Number(cl[1])); j += Number(cl[1]); }
+    else { corpo = t.slice(j); j = t.length; }
+    respostas.push({ status, corpo });
+    i = j;
+  }
+  return { respostas, resto: t.slice(i) };
 }
 
 const consoles = new Map<"falhar" | "corrigir", ConsoleDeTeste>();
@@ -86,6 +157,7 @@ beforeAll(async () => {
     c.app.get(r("cl-stream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
       .send(Readable.from([Buffer.from("{}" + cabecaQa7 + corpoQa7)])));
     c.app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
+    plantarCorrecao7(c.app);
     await c.app.ready();
     consoles.set(modo, c);
   }
@@ -216,5 +288,93 @@ describe("correção 6: a moldura do corpo e o trailer, por socket cru em pipeli
       process.off("uncaughtException", pegar);
     }
     expect(naoTratadas).toEqual([]);
+  });
+});
+
+describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline", () => {
+  const pipeline = async (modo: "falhar" | "corrigir", caminho: string): Promise<string> => {
+    const porta = Number(new URL(await enderecoDe(modo)).port);
+    return new Promise((ok) => {
+      const s = connect(porta, "127.0.0.1", () => s.write(
+        `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /nada HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
+      let b = "";
+      s.on("data", (d: Buffer) => { b += d.toString("latin1"); });
+      s.on("error", () => {});
+      const fim = setTimeout(() => s.destroy(), 4000);
+      s.on("close", () => { clearTimeout(fim); ok(b); });
+    });
+  };
+  const forjadas = (rs: RespostaLida[]) => rs.filter((x) => (x.status === 401 || x.status === 403) && x.corpo.includes("inventado_c7"));
+  const doDesvio = (modo: "falhar" | "corrigir") => (modo === "falhar" ? "desvio_do_catalogo_de_erro" : "falha_interna");
+
+  it.each(["c-webstream", "i-cl0-stream", "i-cl0-response", "i-cl0-webstream"])(
+    "%s: sai só o corpo declarado e nenhum 403 inventado chega ao cliente", async (n) => {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const { respostas, resto } = lerRespostas(await pipeline(modo, `/c7/${n}`));
+        expect(forjadas(respostas), `${modo} ${n}`).toEqual([]);
+        expect(respostas, `${modo} ${n}`).toHaveLength(1);
+        expect(respostas[0], `${modo} ${n}`).toMatchObject({ status: 200, corpo: n === "c-webstream" ? "{}" : "" });
+        expect(resto).not.toContain("inventado_c7");
+        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      }
+    });
+
+  it("403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado)", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const { respostas } = lerRespostas(await pipeline(modo, "/c7/e-403-cl-menor"));
+      expect(respostas.map((x) => x.status), modo).toEqual([modo === "falhar" ? 500 : 403]);
+      expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "so_o_dono");
+      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("addTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada", async () => {
+    const naoTratadas: unknown[] = [];
+    const pegar = (e: unknown) => { naoTratadas.push(e); };
+    process.on("uncaughtException", pegar);
+    try {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const { respostas } = lerRespostas(await pipeline(modo, "/c7/tr-addtrailers-fora"));
+        expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
+        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "so_o_dono");
+        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      }
+    } finally {
+      process.off("uncaughtException", pegar);
+    }
+    expect(naoTratadas).toEqual([]);
+  });
+
+  it.each(PROVISORIOS_COMO_FINAL)(
+    "%s: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele", async (n) => {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const { respostas, resto } = lerRespostas(await pipeline(modo, `/c7/${n}`));
+        expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual([500, 404]);
+        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(modo));
+        expect(resto).toBe("");
+        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      }
+    });
+
+  it("1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const b101 = await pipeline(modo, "/c7/g-101-writeraw");
+      expect(lerRespostas(b101).respostas.map((x) => x.status), modo).toEqual([500]);
+      expect(b101).not.toContain("101 Switching");
+      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      const b102 = await pipeline(modo, "/c7/g-102-so-provisoria");
+      expect(lerRespostas(b102).respostas.map((x) => x.status), modo).toEqual([102]);
+      expect(b102).not.toContain("HTTP/1.1 404");
+      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const { respostas } = lerRespostas(await pipeline(modo, "/c7/g-102-e-final"));
+      expect(respostas.map((x) => x.status), modo).toEqual([102, 403, 404]);
+      expect(JSON.parse(respostas[1]!.corpo)).toEqual({ erro: "so_o_dono", mensagem: "x" });
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
   });
 });

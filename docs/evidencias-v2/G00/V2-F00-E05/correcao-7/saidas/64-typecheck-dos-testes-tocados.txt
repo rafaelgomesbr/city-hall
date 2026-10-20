@@ -1,0 +1,2 @@
+api (src mais o teste da guarda, tsconfig do pacote com rootDir ..): codigo de saida 0
+console (src mais o teste da guarda, tsconfig do pacote com rootDir ..): codigo de saida 0

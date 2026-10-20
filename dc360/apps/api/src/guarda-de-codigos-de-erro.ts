@@ -77,6 +77,18 @@ import {
  * caminho do desvio nunca lança: o trailer sai da resposta trocada, e se o Node
  * recusar até a cabeça da troca, ela vai em bytes prontos e a conexão fecha.
  *
+ * O STATUS 1xx COMO RESPOSTA FINAL (correção 7, rodada 7): `reply.code(102)`
+ * (ou 100, 101, 103, 199) faz o Node escrever só a linha provisória e dar a
+ * resposta por terminada, e o cliente lê a resposta do pedido SEGUINTE da
+ * conexão como a deste. `writeHead` ou o cabeçalho implícito com 1xx é desvio,
+ * HEAD inclusive, e sai 500 nos dois modos (o do desvio em teste, o interno do
+ * serviço fora de teste); o 101 escrito por baixo, que a porta lê como cabeça
+ * final, também; e a resposta que termina só com cabeças provisórias (sem a
+ * final) fecha a conexão. Os 1xx legítimos (`writeContinue`,
+ * `writeProcessing`, `writeEarlyHints`) não passam por `writeHead` e seguem.
+ * Quando o `end` do Node lança no meio (o `content-length` estrito), o socket
+ * fica arrolhado; a guarda o desarrolha antes de mandar a resposta do desvio.
+ *
  * O QUE ELA NÃO VÊ, dito sem folga:
  *
  *   - escrita direta no SOCKET, que não passa pela resposta do Node:
@@ -127,9 +139,11 @@ export const CONTRATO_DE_ACESSO_DA_API: ContratoDeAcesso = Object.freeze({
 });
 
 /** O que sai no lugar do desvio, fora de teste: o código genérico do catálogo para o status. */
-export const GENERICO_DA_API: Readonly<Record<401 | 403, { erro: string; mensagem: string }>> = Object.freeze({
+export const GENERICO_DA_API: Readonly<Record<401 | 403 | 500, { erro: string; mensagem: string }>> = Object.freeze({
   401: Object.freeze({ erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem }),
   403: Object.freeze({ erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem }),
+  // A resposta final 1xx (correção 7): sai o 500 interno da API, sem o código do pedido.
+  500: Object.freeze({ erro: "erro_interno", mensagem: "Erro inesperado. Tente de novo." }),
 });
 
 // ---- Primitivas guardadas na carga: trocar o global depois não engana a guarda. ----
@@ -275,7 +289,11 @@ export function lerDesviosDaGuarda(): Desvio[] {
 export type OpcoesDaGuarda = {
   modo: ModoDaGuarda;
   contrato: ContratoDeAcesso;
-  generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
+  /**
+   * O que sai no lugar do desvio, fora de teste: o genérico do status (401 ou
+   * 403) e, para a resposta final 1xx (correção 7), o 500 interno do serviço.
+   */
+  generico: Readonly<Record<401 | 403 | 500, { erro: string; mensagem: string }>>;
 };
 
 type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
@@ -320,6 +338,10 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   let segurando = false;
   let statusSegurado = 0;
   let statusTorto = false;
+  /** O status segurado é 1xx: a resposta final seria só uma cabeça provisória (correção 7). */
+  let provisorioComoFinal = false;
+  /** A porta já deixou passar cabeça provisória 1xx e ainda não viu a final. */
+  let provisoriasVistas = false;
   let cabecalhosSegurados: Cabecalhos;
   let mensagemDeStatus: string | undefined;
   const pedacos: Buffer[] = [];
@@ -330,8 +352,23 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     segurando = true;
     statusSegurado = status;
     statusTorto = torto;
+    provisorioComoFinal = ehProvisorio(status);
   };
   const ehAcesso = (s: number) => s === 401 || s === 403;
+  /*
+    O STATUS 1xx COMO RESPOSTA FINAL (correção 7, rodada 7, Segurança achado 3).
+    `reply.code(102).send(...)` faz o Node escrever SÓ a linha `102` e dar a
+    resposta por terminada (1xx não tem corpo). Para o cliente, 1xx é cabeça
+    provisória: ele continua esperando a final e lê a resposta do pedido
+    SEGUINTE da conexão como a deste (e 101 o faz largar o HTTP). Nenhum 1xx
+    legítimo passa por `writeHead`: o Node manda 100, 102 e 103 por
+    `writeContinue`, `writeProcessing` e `writeEarlyHints`, direto em
+    `_writeRaw`, e o 101 de verdade sai pelo evento `upgrade`, no socket. Então
+    `writeHead` com 1xx, ou o cabeçalho implícito com `statusCode` 1xx, é
+    desvio: a guarda segura, e no `end` sai 500 no lugar (o do desvio em
+    teste, o interno do serviço fora de teste), com HEAD inclusive.
+  */
+  const ehProvisorio = (s: number) => s >= 100 && s <= 199;
   const guardar = (pedaco: unknown, codificacao?: unknown) => {
     if (pedaco === undefined || pedaco === null) return;
     const b = typeof pedaco === "string"
@@ -343,7 +380,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   };
 
   /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
-  function registrarDesvio(status: number, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
+  function registrarDesvio(
+    status: number, erroVisto: string | null, motivo: string, interno = false,
+  ): { statusFinal: number; novo: string } {
     const desvio: Desvio = {
       metodo: req.method,
       rota: req.routeOptions?.url ?? "(sem rota)",
@@ -362,6 +401,10 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
             + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
         ]),
       };
+    }
+    if (interno) {
+      const g = opcoes.generico[500];
+      return { statusFinal: 500, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
     }
     const g = opcoes.generico[status === 401 ? 401 : 403];
     return { statusFinal: status === 401 ? 401 : 403, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
@@ -400,7 +443,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
    * termina dentro do que se leu).
    */
   function lerCabecas(dado: unknown, codificacao: unknown):
-    | null | { visto: "ilegivel" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
+    | null | { visto: "ilegivel" } | { visto: "provisoria" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
     let texto: string;
     try {
       const b = paraBuffer(dado, codificacao);
@@ -411,7 +454,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     let deslocamento = 0;
     for (;;) {
       // Só cabeças provisórias (ou nada): a final vem no pedaço seguinte.
-      if (texto.length === 0) return null;
+      if (texto.length === 0) return deslocamento > 0 ? { visto: "provisoria" } : null;
       const m = casa(LINHA_DE_STATUS, texto);
       if (m === null) return { visto: "ilegivel" };
       const s = +m[1]!;
@@ -590,6 +633,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     if (!cabecaPendente) return contar(dado, codificacao, 0);
     const lido = lerCabecas(dado, codificacao);
     if (lido === null) return dado;
+    if (lido.visto === "provisoria") { provisoriasVistas = true; return dado; }
     cabecaPendente = false;
     let visto: number | "ilegivel" = lido.visto;
     let m: Moldura | null = null;
@@ -601,6 +645,14 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
       bloqueado = true;
       interna._last = true;
       return substituta(visto);
+    }
+    if (ehProvisorio(visto)) {
+      // Só o 101 chega aqui como final (os outros 1xx a porta lê como provisórios): é desvio (correção 7).
+      bloqueado = true;
+      interna._last = true;
+      const { statusFinal, novo } = registrarDesvio(visto, null,
+        `status ${visto} (provisório) escrito por fora da guarda como resposta final`, true);
+      return bytesDaResposta(statusFinal, novo);
     }
     moldura = m!;
     statusDaCabeca = visto;
@@ -615,6 +667,19 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     return contar(dado, codificacao, inicio);
   }
 
+  /**
+   * A resposta terminou e pela porta só passaram cabeças provisórias 1xx, sem a
+   * final (correção 7): o cliente leria a resposta seguinte da conexão como a
+   * deste pedido. O que já saiu não volta; a conexão fecha no fim desta
+   * resposta e a seguinte não é escrita nela.
+   */
+  function fecharSeSoProvisorias(): void {
+    if (!provisoriasVistas || !cabecaPendente || bloqueado || !interna.finished || interna.outputData.length > 0) return;
+    bloqueado = true;
+    interna._last = true;
+    registrarDesvio(102, null, "resposta terminada só com cabeças provisórias 1xx, sem a cabeça final", true);
+  }
+
   /** O socket ligado a esta resposta, quando o Node escreve direto nele (e não na fila). */
   const ligado = (): boolean => {
     const s = raw.socket as unknown as { destroyed?: boolean; writable?: boolean; _httpMessage?: unknown } | null;
@@ -627,7 +692,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
       const item = fila[i]!;
       if (item.data !== null) item.data = processar(item.data, item.encoding);
     }
-    return aplicar(flushOutputOriginal, raw, args);
+    const r = aplicar(flushOutputOriginal, raw, args);
+    fecharSeSoProvisorias();
+    return r;
   }
 
   function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
@@ -649,7 +716,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     // Já segurando, o `_implicitHeader` do Node (pelo `flushHeaders`, que relê `statusCode`) chama de
     // novo sem cabeçalhos: a cabeça segurada continua valendo.
     if (segurando && resto.length === 0 && efetivo === statusSegurado) return raw;
-    if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
+    if (((!ehHead && ehAcesso(efetivo)) || ehProvisorio(efetivo)) && !raw.headersSent) {
       comecarASegurar(efetivo, torto);
       // O `statusCode` que a guarda decidiu: quem o reler (o `flushHeaders`) lê este (correção 6).
       raw.statusCode = efetivo;
@@ -671,9 +738,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
    * torto que não é de acesso vira o inteiro antes de o Node lê-lo de novo.
    */
   const conferirCabecalhoImplicito = () => {
-    if (segurando || ehHead || raw.headersSent) return;
+    if (segurando || raw.headersSent) return;
     const { efetivo, torto } = statusComoONodeEscreve(raw.statusCode);
-    if (ehAcesso(efetivo)) comecarASegurar(efetivo, torto);
+    if (ehProvisorio(efetivo) || (!ehHead && ehAcesso(efetivo))) comecarASegurar(efetivo, torto);
     else if (torto) raw.statusCode = efetivo;
   };
 
@@ -729,6 +796,19 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   function derrubar(): void {
     try { raw.destroy(); } catch { /* a conexão já caiu */ }
   }
+  /**
+   * O `end` do Node arrolha o socket (`cork`) antes de escrever o pedaço e só o
+   * desarrolha no fim; quando ele LANÇA no meio (o `content-length` estrito que
+   * não bate), o socket fica arrolhado e nada mais sai dele (correção 7: o 403
+   * do catálogo com `content-length` errado deixava o cliente sem resposta até
+   * o tempo esgotar). Antes de a guarda escrever a resposta do desvio, desarrolha.
+   */
+  function desarrolhar(): void {
+    try {
+      const s = raw.socket as unknown as { writableCorked?: number; uncork?: () => void } | null;
+      for (let i = 0; s && i < 16 && (s.writableCorked ?? 0) > 0; i += 1) s.uncork!();
+    } catch { /* sem socket, nada a desarrolhar */ }
+  }
 
   function write(this: ServerResponse, ...args: unknown[]) {
     conferirCabecalhoImplicito();
@@ -775,7 +855,9 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
         try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
       }
       try {
-        return aplicar(endOriginal, raw, args);
+        const r = aplicar(endOriginal, raw, args);
+        fecharSeSoProvisorias();
+        return r;
       } catch (e) {
         if (!ehDescompasso(e)) throw e;
         if (temDado && escritosNoCorpo + tamanhoDe(args[0], codificacao) > declarado()) {
@@ -797,17 +879,24 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     }
     const corpoOriginal = juntarBuffers(pedacos);
     let achado: { motivo: string; erroVisto: string | null } | null;
-    try {
-      const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
-      const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
-      achado = statusTorto
-        ? {
-          motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
-          erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
-        }
-        : doCorpo;
-    } catch {
-      achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
+    if (provisorioComoFinal) {
+      achado = {
+        motivo: `status ${statusSegurado} (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido`,
+        erroVisto: null,
+      };
+    } else {
+      try {
+        const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
+        const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
+        achado = statusTorto
+          ? {
+            motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
+            erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
+          }
+          : doCorpo;
+      } catch {
+        achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
+      }
     }
     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
     if (achado === null) {
@@ -824,7 +913,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
         achado = { motivo: `o Node recusou a resposta conferida (${(e as { code?: string }).code ?? "erro"})`, erroVisto: null };
       }
     }
-    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo);
+    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo, provisorioComoFinal);
     liberado = statusFinal;
     try {
       const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding", "trailer"];
@@ -844,6 +933,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
         bloqueado = true;
         interna._last = true;
         passaLivre = bytesDaResposta(statusFinal, novo);
+        desarrolhar();
         aplicar(writeRawOriginal, raw, [passaLivre, "latin1", () => derrubar()]);
       } catch {
         derrubar();
