@@ -1,10 +1,9 @@
 == M07_onSend_nas_opcoes_da_rota
 inject (falhar, coordenador): 422 {"erro":"dados_invalidos","mensagem":"Alguns campos precisam ser corrigidos.","campos":[{"campo":"nome","mensagem":"Campo obrigatório"}]}
-inject (falhar, agente): 500 {"erro":"desvio_do_catalogo_de_erro","mensagem":"POST /orgaos respondeu 403 fora do catálogo: código fora do catálogo (vazou_m07)"}
-desvios registrados (falhar): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"vazou_m07","motivo":"código fora do catálogo"}]
-log do desvio (falhar): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"vazou_m07","motivo":"código fora do catálogo"}]
+inject (falhar, agente): 500 {"erro":"desvio_do_catalogo_de_erro","mensagem":"POST /orgaos respondeu 403 fora do catálogo: código fora do catálogo ([fora da forma de um código, não registrado])"}
+desvios registrados (falhar): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"}]
+log do desvio (falhar): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"}]
 inject (corrigir, coordenador): 422 {"erro":"dados_invalidos","mensagem":"Alguns campos precisam ser corrigidos.","campos":[{"campo":"nome","mensagem":"Campo obrigatório"}]}
 inject (corrigir, agente): 403 {"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
 desvios registrados (corrigir): []
-log do desvio (corrigir): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"vazou_m07","motivo":"código fora do catálogo"}]
-varredura: VERDE
+log do desvio (corrigir): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"}]

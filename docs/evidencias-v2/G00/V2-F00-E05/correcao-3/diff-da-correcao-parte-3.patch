@@ -1,0 +1,1542 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index d59d90c..941e8a6 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,10 +11,10 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1568 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1590 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1942 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 268 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
++| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 274 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+ 
+@@ -152,17 +152,23 @@ código nele. Quem GARANTE isto é uma guarda em tempo de execução; dois teste
+ apontam o defeito antes, e nenhum deles é garantia sozinho:
+ 
+ - **Guarda em tempo de execução** (`apps/api/src/guarda-de-codigos-de-erro.ts`, e
+-  a cópia em `apps/console/src/` com o contrato do console): um `onSend` global e
+-  o último `onSend` de cada rota, instalado antes da primeira rota. Toda resposta
+-  401 ou 403 que passa pelo Fastify, por qualquer caminho, tem de ter corpo JSON
+-  com `erro` do catálogo (ou da entrada) e o status do catálogo. Fora disso, em
+-  teste ela vira 500 `desvio_do_catalogo_de_erro` e o caso que passou por ali
+-  reprova (`test/guarda-falha-alto.ts`, carregado em toda a suíte); fora de teste
+-  ela sai com o código genérico do catálogo para o status (401 `nao_autenticado`,
+-  403 `sem_permissao`) e o desvio vai para o log com o método, a rota e o código
+-  que tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como
+-  rotas as dezesseis formas que a revisão independente achou e que a varredura
+-  não lia, e prova os dois modos.
++  a cópia em `apps/console/src/` com o contrato do console): um `onRequest`
++  instalado antes de qualquer plugin e rota troca, na resposta do Node de cada
++  pedido, `writeHead`, `write` e `end` por versões que seguram o cabeçalho e o
++  corpo de toda resposta 401 ou 403 (fora HEAD) até o fim e só então escrevem. Os
++  ganchos do Fastify, o tratador de erro, o 404, o tratador de reserva que escreve
++  sozinho, `hijack` e `raw` terminam todos nesses três métodos. O corpo tem de ser
++  JSON com UMA chave `erro` (repetida é recusada) do catálogo (ou da entrada) e o
++  status do catálogo; corpo acima de 64 KiB é desvio. Fora disso, em teste ela
++  vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o `afterAll`) que passou por
++  ali reprova (`test/guarda-falha-alto.ts`, carregado em toda a suíte); fora de
++  teste ela sai com o código genérico do catálogo para o status (401
++  `nao_autenticado`, 403 `sem_permissao`) e o desvio vai para o log com o método,
++  a rota e o código que tentou sair, este só se tiver a forma de um código
++  (`^[a-z_]{1,64}$`; o resto vira um marcador, para não gravar e-mail ou CPF).
++  `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas as
++  dezesseis formas que a varredura não lia e os dezesseis escapes que a revisão
++  achou na primeira versão da guarda (um `onSend`), e prova os dois modos.
+ - **Varredura do código-fonte** (`apps/api/test/codigos-de-erro.test.ts`, árvore
+   sintática do TypeScript, na API, no pacote compartilhado e no console do
+   fornecedor). É HEURÍSTICA, a primeira linha: a lista do que ela não lê não é
+@@ -234,13 +240,14 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
+   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
+   padrão).
+ 
+-O que NENHUMA das três linhas prende: resposta que não passa pelo Fastify, escrita
+-direto no Node (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no socket da
+-requisição (`req.socket.end("HTTP/1.1 403 ...")`): a guarda não a vê, e a
+-varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`, `.connection`),
+-mas é heurística. E código no mesmo processo que reescreve o próprio Fastify, o
+-protótipo da resposta ou os globais antes de a guarda carregar (ela guarda
+-`JSON.parse` na carga e não usa `JSON.stringify` para montar o corpo genérico).
++O que a guarda NÃO vê, e a varredura proíbe (mas é heurística): escrita no socket
++da requisição (`req.socket.end("HTTP/1.1 403 ...")`, que não passa pela resposta
++do Node; a varredura reprova `.socket` e `.connection`) e o método do protótipo da
++resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). E nenhuma
++linha prende código no mesmo processo que troque, antes de a guarda carregar, as
++primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
++usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
++engana, e o teste prova), nem o que troque o próprio Node ou o registrador de log.
+ Fora do escopo: erros de outros status (404, 409, 422, 429,
+ 5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
+ cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
+@@ -1498,9 +1505,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3285 testes em seis pacotes
++npm test                    # 3313 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1568 testes da API
++npm run test:api            # 1590 testes da API
+ npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+ npm run test:campo          # tipos e os 1942 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index 39bdb04..e6c23a9 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -1,4 +1,5 @@
+-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
++import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from "fastify";
++import type { ServerResponse } from "node:http";
+ import {
+   CODIGOS_DA_ENTRADA, CODIGOS_DE_ERRO_DE_ACESSO, LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO,
+ } from "@dc360/shared";
+@@ -10,41 +11,63 @@ import {
+  * (`packages/shared/src/codigos-de-erro.ts`) era garantido por uma varredura do
+  * código-fonte, e uma varredura estática nunca fecha a classe: a revisão
+  * independente plantou dezesseis formas de responder 403 com código fora do
+- * catálogo (`code(200).code(403)`, `e[campo] = "x"`, `Object` apelidado,
+- * `onSend` nas opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo
+- * `.mts`...) que o texto não mostrava. Cada regra nova abre a próxima forma.
++ * catálogo que o texto não mostrava. A primeira versão desta guarda era um
++ * `onSend`, e a revisão seguinte passou por ele de três jeitos: um `onRoute` do
++ * próprio plugin acrescentando um `onSend` DEPOIS dela, um `onSend` de contexto
++ * trocando o 404 do `setNotFoundHandler` do plugin por 403, e um `onSend` que
++ * lança duas vezes, o que faz o Fastify escrever a resposta de erro direto na
++ * resposta do Node, sem passar por gancho nenhum.
+  *
+- * O QUE ISTO FAZ: confere a RESPOSTA, e não o texto que a produz. Toda resposta
+- * 401 ou 403 que sai do servidor, por qualquer caminho que passe pelo Fastify,
+- * tem de ter um corpo JSON com `erro` do catálogo (ou da lista da entrada) E o
+- * status que o catálogo dá a esse código. Fora disso:
++ * O QUE ISTO FAZ AGORA: confere a resposta no ÚLTIMO ponto em que ela ainda é
++ * do processo, a resposta do Node (`ServerResponse`). Um `onRequest` instalado
++ * logo depois de `Fastify()`, antes de qualquer plugin e rota, troca, NESTA
++ * resposta, `writeHead`, `write` e `end` por versões que, quando o status é 401
++ * ou 403, seguram o cabeçalho e o corpo até o `end`, conferem o corpo inteiro e
++ * só então escrevem. Os três substitutos são propriedades não configuráveis e
++ * não graváveis da própria resposta: nem `delete` nem atribuição os desfazem. Todo
++ * caminho do Fastify termina nesses três métodos (o `send`, os ganchos, o
++ * tratador de erro, o 404, o tratador de reserva que escreve sozinho, `hijack` e
++ * `raw`), e por isso a guarda vê todos.
++ *
++ * A REGRA: toda resposta 401 ou 403 (fora HEAD, que o HTTP manda sem corpo) tem
++ * de ter corpo JSON com UMA chave `erro` (chave repetida é recusada: o leitor do
++ * cliente pode ficar com a primeira) cujo valor é um código do catálogo ou da
++ * lista da entrada, com o status que o catálogo dá a ele. Fora disso:
+  *
+  *   - em TESTE (`modo: "falhar"`), a resposta vira 500
+  *     `desvio_do_catalogo_de_erro` e o desvio fica registrado; o arquivo de
+- *     apoio `test/guarda-falha-alto.ts` reprova o teste que passou por ali,
+- *     qualquer que seja o teste e o que ele confira;
++ *     apoio `test/guarda-falha-alto.ts` reprova o caso que passou por ali (e o
++ *     arquivo, se o desvio saiu num `afterAll`);
+  *   - fora de teste (`modo: "corrigir"`), a resposta sai com o código genérico
+- *     do catálogo para aquele status (401 `nao_autenticado`, 403
+- *     `sem_permissao`), com a mensagem do catálogo, e o desvio vai para o log
+- *     com o método, a rota (o molde, sem a barra de endereço, que pode levar dado
+- *     pessoal), o status e o código que tentou sair.
++ *     do catálogo para o status (401 `nao_autenticado`, 403 `sem_permissao`), e
++ *     o desvio vai para o log com o método, a rota (o molde, sem a barra de
++ *     endereço), o status e o código visto SÓ se ele tiver a forma de um código
++ *     (`^[a-z_]{1,64}$`); qualquer outra coisa (que pode ser e-mail, CPF ou um
++ *     texto enorme) vira um marcador.
++ *
++ * Corpo de 401 ou 403 maior que 64 KiB é desvio: a guarda não guarda mais que
++ * isso na memória.
+  *
+- * ONDE ELA RODA, e por que em dois lugares: como `onSend` GLOBAL (pega o 404 do
+- * roteador e tudo o que não tem rota) e como o ÚLTIMO `onSend` de cada rota,
+- * acrescentado pelo `onRoute`. O Fastify roda os ganchos do contexto antes dos
+- * das opções da rota, então só no fim da lista da rota ela vê o corpo depois de
+- * um `onSend` posto nas opções (`app.post("/", { onSend }, ...)`), que foi uma
+- * das formas da revisão. Precisa ser instalada ANTES da primeira rota: o
+- * `onRoute` só vale para rota registrada depois dele.
++ * O QUE ELA NÃO VÊ, dito sem folga:
+  *
+- * O QUE ELA NÃO VÊ, e a varredura proíbe: resposta que não passa pelo Fastify,
+- * escrita direto no Node (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou
+- * no socket (`req.socket.end("HTTP/1.1 403 ...")`). E código no mesmo processo
+- * que reescreve o próprio Fastify, o protótipo da resposta ou os globais antes
+- * desta guarda carregar (ela guarda `JSON.parse` na carga do módulo, para um
+- * `JSON.parse` trocado depois não a enganar, e não usa `JSON.stringify` para
+- * montar o corpo genérico, para um `JSON.stringify` trocado não reescrever o
+- * corpo que ela mesma corrigiu).
++ *   - escrita no SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`),
++ *     que não passa pela resposta do Node; a varredura do fonte proíbe
++ *     `.socket` e `.connection`;
++ *   - chamar o método do protótipo por fora da instância
++ *     (`ServerResponse.prototype.end` com `.call`, `.apply` ou `Reflect`); a
++ *     varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
++ *   - código no mesmo processo que troque, ANTES de este módulo carregar, as
++ *     primitivas que ele usa para DECIDIR. Ele as guarda na carga
++ *     (`JSON.parse`, `Reflect.apply`, `Object.defineProperty`, `Object.keys`,
++ *     `hasOwnProperty`, `RegExp.exec`, `Array.isArray`, `Buffer.from`,
++ *     `Buffer.concat`, `Buffer.byteLength`, `Buffer.toString`,
++ *     `String.charCodeAt`, `String.fromCharCode`, `String.toLowerCase`,
++ *     `process.nextTick`) e, no caminho da decisão, só chama essas cópias (sem
++ *     `includes`, sem `JSON.stringify`, sem iterador de array), então trocar os
++ *     globais DEPOIS não o engana; o teste troca `JSON.stringify`, `JSON.parse`,
++ *     `Array.prototype.includes` e `hasOwnProperty` com o servidor de pé e
++ *     confere. O que roda antes da carga, ou troca o próprio Node (o protótipo
++ *     do `ServerResponse`, `removeHeader`) ou o registrador de log, sim.
+  */
+ 
+ export type ModoDaGuarda = "falhar" | "corrigir";
+@@ -56,7 +79,7 @@ export type Desvio = {
+   metodo: string;
+   rota: string;
+   status: number;
+-  /** O `erro` que tentou sair, quando o corpo era JSON com `erro` em texto. */
++  /** O `erro` que tentou sair, só quando tem a forma de um código; senão, um marcador. */
+   erroVisto: string | null;
+   motivo: string;
+ };
+@@ -64,61 +87,111 @@ export type Desvio = {
+ /** O contrato da API: os dez códigos do catálogo com o status de cada um, mais os da entrada. */
+ export const CONTRATO_DE_ACESSO_DA_API: ContratoDeAcesso = Object.freeze({
+   ...Object.fromEntries(LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO.map((c) => [
+-    c, c === "acesso_suspenso" ? [403, 503] : [CODIGOS_DE_ERRO_DE_ACESSO[c].status],
++    c, Object.freeze(c === "acesso_suspenso" ? [403, 503] : [CODIGOS_DE_ERRO_DE_ACESSO[c].status]),
+   ])),
+-  ...Object.fromEntries(Object.entries(CODIGOS_DA_ENTRADA).map(([c, v]) => [c, [v.status]])),
++  ...Object.fromEntries(Object.entries(CODIGOS_DA_ENTRADA).map(([c, v]) => [c, Object.freeze([v.status])])),
+ });
+ 
+ /** O que sai no lugar do desvio, fora de teste: o código genérico do catálogo para o status. */
+ export const GENERICO_DA_API: Readonly<Record<401 | 403, { erro: string; mensagem: string }>> = Object.freeze({
+-  401: { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem },
+-  403: { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem },
++  401: Object.freeze({ erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem }),
++  403: Object.freeze({ erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem }),
+ });
+ 
+-// Guardado na carga do módulo: um `JSON.parse` trocado depois não engana a guarda.
++// ---- Primitivas guardadas na carga: trocar o global depois não engana a guarda. ----
++const aplicar = Reflect.apply;
+ const analisarJson: (texto: string) => unknown = JSON.parse;
++const definirPropriedade = Object.defineProperty;
++const temPropria = Object.prototype.hasOwnProperty;
++const executarRegex = RegExp.prototype.exec;
++const bufferDe = Buffer.from;
++const juntarBuffers = Buffer.concat;
++const tamanhoEmBytes = Buffer.byteLength;
++const bufferParaTexto = Buffer.prototype.toString;
++const codigoDoCaractere = String.prototype.charCodeAt;
++const caractereDoCodigo = String.fromCharCode;
++const ehArray = Array.isArray;
++const chavesDe = Object.keys;
++const paraMinusculas = String.prototype.toLowerCase;
++const proximoTique = process.nextTick;
++const HEX = "0123456789abcdef";
++const TETO_DO_CORPO = 64 * 1024;
++/** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
++const CHAVE_JSON = /"((?:[^"\\]|\\.)*)"\s*:/g;
++const FORMA_DE_CODIGO = /^[a-z_]{1,64}$/;
++
++const tem = (o: object, k: string): boolean => aplicar(temPropria, o, [k]) as boolean;
++const casa = (re: RegExp, s: string): RegExpExecArray | null => aplicar(executarRegex, re, [s]) as RegExpExecArray | null;
++
++/** Quantas chaves do texto JSON, em qualquer profundidade, valem `erro` (com escape ou sem). */
++function chavesErro(texto: string): number {
++  const re = CHAVE_JSON;
++  re.lastIndex = 0;
++  let n = 0;
++  for (let m = casa(re, texto); m !== null; m = casa(re, texto)) {
++    let chave: unknown;
++    try { chave = analisarJson(`"${m[1]}"`); } catch { chave = null; }
++    if (chave === "erro") n += 1;
++  }
++  return n;
++}
+ 
+ /**
+- * Confere UM corpo de resposta de acesso. `null` quando está no contrato; o motivo
+- * e o código visto quando não está. `payload` é o que o `onSend` recebe: texto,
+- * `Buffer`, nada, ou um fluxo (que não dá para ler sem consumir, e por isso é desvio).
++ * Confere UM corpo de resposta de acesso, já em texto. `null` quando está no
++ * contrato; o motivo e o código visto quando não está.
+  */
+ export function conferirCorpoDeAcesso(
+-  status: number, payload: unknown, contrato: ContratoDeAcesso,
++  status: number, texto: string | null, contrato: ContratoDeAcesso,
+ ): { motivo: string; erroVisto: string | null } | null {
+-  let texto: string;
+-  if (typeof payload === "string") texto = payload;
+-  else if (payload instanceof Uint8Array) texto = Buffer.from(payload).toString("utf8");
+-  else if (payload === null || payload === undefined) return { motivo: "resposta sem corpo", erroVisto: null };
+-  else return { motivo: "corpo em fluxo ou objeto que não é texto", erroVisto: null };
++  if (texto === null) return { motivo: "corpo maior que o teto da guarda", erroVisto: null };
++  if (texto.length === 0) return { motivo: "resposta sem corpo", erroVisto: null };
+   let corpo: unknown;
+   try {
+     corpo = analisarJson(texto);
+   } catch {
+     return { motivo: "corpo que não é JSON", erroVisto: null };
+   }
+-  if (typeof corpo !== "object" || corpo === null || Array.isArray(corpo)) {
++  if (typeof corpo !== "object" || corpo === null || ehArray(corpo)) {
+     return { motivo: "corpo JSON que não é objeto", erroVisto: null };
+   }
+-  const erro = (corpo as { erro?: unknown }).erro;
++  const erro = tem(corpo, "erro") ? (corpo as { erro?: unknown }).erro : undefined;
+   if (typeof erro !== "string") return { motivo: "corpo sem `erro` em texto", erroVisto: null };
+-  if (!Object.prototype.hasOwnProperty.call(contrato, erro)) {
+-    return { motivo: "código fora do catálogo", erroVisto: erro };
+-  }
+-  if (!contrato[erro]!.includes(status)) {
+-    return { motivo: `código do catálogo com status ${status}, e o catálogo diz ${contrato[erro]!.join(" ou ")}`, erroVisto: erro };
+-  }
++  if (chavesErro(texto) !== 1) return { motivo: "chave `erro` repetida no corpo", erroVisto: erro };
++  if (!tem(contrato, erro)) return { motivo: "código fora do catálogo", erroVisto: erro };
++  const permitidos = contrato[erro]!;
++  let ok = false;
++  for (let i = 0; i < permitidos.length; i += 1) if (permitidos[i] === status) ok = true;
++  if (!ok) return { motivo: `código do catálogo com status ${status}, fora do que o catálogo diz`, erroVisto: erro };
+   return null;
+ }
+ 
+-/** Texto JSON de um objeto de dois campos de texto, sem passar por `JSON.stringify`. */
+-function textoJson(campos: Readonly<Record<string, string>>): string {
+-  const aspas = (s: string) => `"${s.replace(/[\\"\u0000-\u001f\u2028\u2029]/g, (c) =>
+-    (c === "\\" || c === "\"" ? `\\${c}` : `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`))}"`;
+-  return `{${Object.entries(campos).map(([k, v]) => `${aspas(k)}:${aspas(v)}`).join(",")}}`;
++/** O código visto, como vai para o log e para a mensagem: só se tiver a forma de um código. */
++function codigoParaRegistro(visto: string | null): string | null {
++  if (visto === null) return null;
++  return casa(FORMA_DE_CODIGO, visto) !== null ? visto : "[fora da forma de um código, não registrado]";
+ }
+ 
+-/** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia depois de cada caso. */
++/** Texto JSON de um objeto de campos de texto, sem `JSON.stringify` nem `replace`. */
++function textoJson(campos: ReadonlyArray<readonly [string, string]>): string {
++  const aspas = (s: string) => {
++    let saida = "\"";
++    for (let i = 0; i < s.length; i += 1) {
++      const c = aplicar(codigoDoCaractere, s, [i]) as number;
++      if (c === 0x22) saida += "\\\"";
++      else if (c === 0x5c) saida += "\\\\";
++      else if (c < 0x20 || c === 0x2028 || c === 0x2029) {
++        saida += `\\u${HEX[(c >> 12) & 15]}${HEX[(c >> 8) & 15]}${HEX[(c >> 4) & 15]}${HEX[c & 15]}`;
++      }
++      else saida += caractereDoCodigo(c);
++    }
++    return `${saida}"`;
++  };
++  let saida = "{";
++  for (let i = 0; i < campos.length; i += 1) saida += `${i ? "," : ""}${aspas(campos[i]![0])}:${aspas(campos[i]![1])}`;
++  return `${saida}}`;
++}
++
++/** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia. */
+ const desviosPendentes: Desvio[] = [];
+ 
+ /** Devolve e esvazia os desvios registrados no modo "falhar". */
+@@ -132,48 +205,147 @@ export type OpcoesDaGuarda = {
+   generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
+ };
+ 
+-/** O gancho `onSend` que confere (e, conforme o modo, falha ou corrige) a resposta de acesso. */
+-export function criarGuardaDeAcesso(opcoes: OpcoesDaGuarda) {
+-  return async function guardaDeAcesso(req: FastifyRequest, resposta: FastifyReply, payload: unknown): Promise<unknown> {
+-    const status = resposta.statusCode;
+-    if (status !== 401 && status !== 403) return payload;
+-    // HEAD não leva corpo, por definição do HTTP: o Fastify tira o do GET gêmeo antes de chegar aqui.
+-    // Quem confere o código é o GET da mesma rota, que passa por esta mesma guarda.
+-    if (req.method === "HEAD") return payload;
+-    const achado = conferirCorpoDeAcesso(status, payload, opcoes.contrato);
+-    if (achado === null) return payload;
++type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
++
++/** Os cabeçalhos do `writeHead` sem `content-length`, `content-type` e `transfer-encoding`. */
++function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
++  const saida: Record<string, unknown> = {};
++  const fora = (k: string) => {
++    const b = aplicar(paraMinusculas, k, []) as string;
++    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding";
++  };
++  if (ehArray(cabecalhos)) {
++    for (let i = 0; i + 1 < cabecalhos.length; i += 2) {
++      const k = `${cabecalhos[i] as string}`;
++      if (!fora(k)) saida[k] = cabecalhos[i + 1];
++    }
++  } else if (cabecalhos) {
++    const ks = chavesDe(cabecalhos);
++    for (let i = 0; i < ks.length; i += 1) if (!fora(ks[i]!)) saida[ks[i]!] = cabecalhos[ks[i]!];
++  }
++  return saida;
++}
++
++/** Troca, nesta resposta do Node, `writeHead`, `write` e `end` pelos que conferem 401 e 403. */
++function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: FastifyBaseLogger, opcoes: OpcoesDaGuarda): void {
++  const writeHeadOriginal = raw.writeHead;
++  const writeOriginal = raw.write;
++  const endOriginal = raw.end;
++  const ehHead = req.method === "HEAD";
++  let segurando = false;
++  let statusSegurado = 0;
++  let cabecalhosSegurados: Cabecalhos;
++  let mensagemDeStatus: string | undefined;
++  const pedacos: Buffer[] = [];
++  let bytes = 0;
++  let excedeu = false;
++
++  const comecarASegurar = (status: number) => {
++    segurando = true;
++    statusSegurado = status;
++  };
++  const ehAcesso = (s: number) => s === 401 || s === 403;
++  const guardar = (pedaco: unknown, codificacao?: unknown) => {
++    if (pedaco === undefined || pedaco === null) return;
++    const b = typeof pedaco === "string"
++      ? bufferDe(pedaco, (typeof codificacao === "string" ? codificacao : "utf8") as BufferEncoding)
++      : bufferDe(pedaco as Uint8Array);
++    bytes += b.length;
++    if (bytes > TETO_DO_CORPO) excedeu = true;
++    else pedacos[pedacos.length] = b;
++  };
++
++  function writeHead(this: ServerResponse, status: number, ...resto: unknown[]) {
++    if (!ehHead && ehAcesso(status) && !raw.headersSent) {
++      comecarASegurar(status);
++      if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
++      else cabecalhosSegurados = resto[0] as Cabecalhos;
++      return raw;
++    }
++    const todos: unknown[] = [status];
++    for (let i = 0; i < resto.length; i += 1) todos[todos.length] = resto[i];
++    return aplicar(writeHeadOriginal, raw, todos);
++  }
++
++  function write(this: ServerResponse, ...args: unknown[]) {
++    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    if (!segurando) return aplicar(writeOriginal, raw, args);
++    const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
++    guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
++    if (cb) aplicar(proximoTique, process, [cb]);
++    return true;
++  }
++
++  function end(this: ServerResponse, ...args: unknown[]) {
++    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    if (!segurando) return aplicar(endOriginal, raw, args);
++    segurando = false;
++    let cb: unknown;
++    if (typeof args[0] === "function") cb = args[0];
++    else {
++      guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
++      cb = typeof args[1] === "function" ? args[1] : args[2];
++    }
++    const corpoOriginal = juntarBuffers(pedacos);
++    let achado: { motivo: string; erroVisto: string | null } | null;
++    try {
++      const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
++      achado = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++    } catch {
++      achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
++    }
++    const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
++    if (achado === null) {
++      const cabeca: unknown[] = [statusSegurado];
++      if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
++      if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
++      aplicar(writeHeadOriginal, raw, cabeca);
++      return fimComCb(corpoOriginal);
++    }
+     const desvio: Desvio = {
+       metodo: req.method,
+       rota: req.routeOptions?.url ?? "(sem rota)",
+-      status,
+-      erroVisto: achado.erroVisto,
++      status: statusSegurado,
++      erroVisto: codigoParaRegistro(achado.erroVisto),
+       motivo: achado.motivo,
+     };
+-    req.log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
+-    resposta.removeHeader("content-length");
+-    resposta.header("content-type", "application/json; charset=utf-8");
++    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
++    let statusFinal = statusSegurado;
++    let novo: string;
+     if (opcoes.modo === "falhar") {
+-      desviosPendentes.push(desvio);
+-      resposta.code(500);
+-      return textoJson({
+-        erro: "desvio_do_catalogo_de_erro",
+-        mensagem: `${desvio.metodo} ${desvio.rota} respondeu ${status} fora do catálogo: ${desvio.motivo}`
+-          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : ""),
+-      });
++      desviosPendentes[desviosPendentes.length] = desvio;
++      statusFinal = 500;
++      novo = textoJson([
++        ["erro", "desvio_do_catalogo_de_erro"],
++        ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
++          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
++      ]);
++    } else {
++      const g = opcoes.generico[statusSegurado as 401 | 403];
++      novo = textoJson([["erro", g.erro], ["mensagem", g.mensagem]]);
+     }
+-    return textoJson(opcoes.generico[status]);
+-  };
++    const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
++    for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
++    const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
++    cabecalhos["content-type"] = "application/json; charset=utf-8";
++    cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
++    aplicar(writeHeadOriginal, raw, [statusFinal, cabecalhos]);
++    return fimComCb(novo);
++  }
++
++  definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+ }
+ 
+ /**
+- * Instala a guarda: `onSend` global e, por `onRoute`, o último `onSend` de cada
+- * rota registrada DEPOIS desta chamada. Chamar logo depois de `Fastify()`.
++ * Instala a guarda: um `onRequest` que envolve a resposta do Node de cada
++ * pedido. Chamar logo depois de `Fastify()`, antes de qualquer plugin ou rota,
++ * para ser o primeiro `onRequest` de todos.
+  */
+ export function instalarGuardaDeAcesso(app: FastifyInstance, opcoes: OpcoesDaGuarda): void {
+-  const guarda = criarGuardaDeAcesso(opcoes);
+-  app.addHook("onRoute", (rota) => {
+-    const atuais = rota.onSend === undefined ? [] : Array.isArray(rota.onSend) ? rota.onSend : [rota.onSend];
+-    (rota as { onSend: unknown }).onSend = [...atuais, guarda];
++  app.addHook("onRequest", (req, resposta, feito) => {
++    envolverResposta(resposta.raw, req, req.log, opcoes);
++    feito();
+   });
+-  app.addHook("onSend", guarda);
+ }
+diff --git a/dc360/apps/api/src/servidor.ts b/dc360/apps/api/src/servidor.ts
+index 1358c70..4b3d161 100644
+--- a/dc360/apps/api/src/servidor.ts
++++ b/dc360/apps/api/src/servidor.ts
+@@ -3,7 +3,7 @@ import cors from "@fastify/cors";
+ import helmet from "@fastify/helmet";
+ import rateLimit from "@fastify/rate-limit";
+ import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
+-// Antes das rotas, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
++// Antes das rotas, de propósito: a guarda copia as primitivas que usa na carga do módulo.
+ import {
+   CONTRATO_DE_ACESSO_DA_API, GENERICO_DA_API, instalarGuardaDeAcesso, type ModoDaGuarda,
+ } from "./guarda-de-codigos-de-erro.js";
+diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
+index d4485ba..310536a 100644
+--- a/dc360/apps/api/test/codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/codigos-de-erro.test.ts
+@@ -629,10 +629,11 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+         porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
+       },
+       {
+-        arquivo: /[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
+-        porque: "é a GUARDA em tempo de execução: o `onSend` que confere toda resposta 401 ou 403 contra o "
+-          + "catálogo e troca o desvio pelo código genérico (ou por 500, em teste). É ela que reescreve, e "
+-          + "só com códigos do catálogo (`test/guarda-de-codigos-de-erro.test.ts`)",
++        arquivo: /apps[\\/]api[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "*",
++        porque: "é a GUARDA em tempo de execução: envolve `writeHead`, `write` e `end` da resposta do Node "
++          + "(`.raw`) para conferir toda resposta 401 ou 403 contra o catálogo e trocar o desvio pelo código "
++          + "genérico (ou por 500, em teste). Mexer na resposta crua é o trabalho dela; quem a prova é "
++          + "`test/guarda-de-codigos-de-erro.test.ts`, não esta varredura",
+       },
+       {
+         arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
+@@ -652,9 +653,9 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+     catalogo: {},
+     aceitosAlemDoCatalogo: CONTRATO_DO_CONSOLE,
+     repasses: [{
+-      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
+-      porque: "é a guarda em tempo de execução do console: o `onSend` que confere toda resposta 401 ou 403 "
+-        + "contra o contrato e troca o desvio pelo código genérico (ou por 500, em teste)",
++      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "*",
++      porque: "é a guarda em tempo de execução do console, que envolve a resposta do Node de propósito; "
++        + "quem a prova é `apps/console/test/guarda-de-codigos-de-erro.test.ts`",
+     }, {
+       arquivo: /console[\\/]src[\\/]servidor\.ts$/, chave: "recusa.corpo",
+       porque: "o corpo vem de `traduzirRecusaDoBanco`, cujos literais (`so_o_dono` 403, `acao_recusada` 409) "
+@@ -977,6 +978,11 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       expect(reprovacoes(varrerFonte(apns, "src/push/apns.ts"), REGRAS_DA_API)).toEqual([]);
+       expect(reprovacoes(varrerFonte('const r = { status, corpo };', "src/push/apns.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
+       expect(reprovacoes(varrerFonte(apns, "src/rotas/outra.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
++      // O repasse do arquivo inteiro vale só para o módulo da guarda, e não para outro arquivo de `src`.
++      const cru = 'resposta.raw.writeHead(403); resposta.raw.end(\'{"erro":"novo"}\');';
++      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/guarda-de-codigos-de-erro.ts"), REGRAS_DA_API)).toEqual([]);
++      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/rotas/guarda-de-codigos-de-erro-falsa.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
++      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/outra/guarda-de-codigos-de-erro.ts.bak"), REGRAS_DA_API).length).toBeGreaterThan(0);
+       const ruim = 'resposta.code(Number("403")).send({ erro: "corpo_invalido", mensagem: "x" });';
+       expect(reprovacoes(varrerFonte(ruim, "src/servidor.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
+     });
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+index c683b78..3b209b9 100644
+--- a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -1,4 +1,5 @@
+ import type { FastifyInstance, FastifyReply } from "fastify";
++import { Readable } from "node:stream";
+ import { afterAll, beforeAll, describe, expect, it } from "vitest";
+ import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
+ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+@@ -24,9 +25,14 @@ import {
+  * As rotas ficam neste arquivo, fora das pastas que a varredura lê, de
+  * propósito: o que a guarda prova é que a FORMA não importa.
+  *
+- * A única forma que a guarda não vê é a escrita direta no socket (M08 da
+- * revisão), porque ela não passa pelo Fastify; essa a varredura proíbe
+- * (`.socket` e `.connection`, como `.raw`, `.hijack()` e `.writeHead()`).
++ * A guarda confere na resposta do Node (`writeHead`, `write` e `end`), então
++ * também pega o que a PRIMEIRA versão dela, um `onSend`, deixava passar: os
++ * escapes da revisão estão no fim deste arquivo, copiados do arquivo dela.
++ *
++ * O que ela não vê é a escrita no socket (M08 da revisão), que não passa pela
++ * resposta do Node, e o método do protótipo chamado por fora da instância; os
++ * dois a varredura proíbe (`.socket`, `.connection`, `.call`, `.apply`,
++ * `Reflect`).
+  */
+ 
+ const SEGREDO = "segredo-da-guarda-de-codigos-com-mais-de-32-bytes";
+@@ -35,7 +41,7 @@ type Recusa = { erro: string; mensagem: string };
+ 
+ /** O que vem "de outro arquivo" (o M16 da revisão era um `.mts` que a varredura não lia). */
+ function recusarDeFora(resposta: FastifyReply) {
+-  return resposta.code(403).send({ erro: "vazou_m16", mensagem: "x" });
++  return resposta.code(403).send({ erro: "vazou_mbg", mensagem: "x" });
+ }
+ 
+ /** As formas da revisão, cada uma numa rota que responderia 403 (ou 401) com código fora do catálogo. */
+@@ -44,41 +50,41 @@ function plantarFormas(app: FastifyInstance): void {
+   app.get(r("m01"), async () => {
+     const modulo = { RegraDeNegocio } as Record<string, typeof RegraDeNegocio>;
+     const k = "Regra" + "DeNegocio";
+-    throw new modulo[k]!("vazou_m01", "x", 403);
++    throw new modulo[k]!("vazou_mab", "x", 403);
+   });
+   app.get(r("m02"), async () => {
+     const base = new RegraDeNegocio("sem_permissao", "x", 403);
+     const Construtor = base.constructor as typeof RegraDeNegocio;
+-    throw new Construtor("vazou_m02", "x", 403);
++    throw new Construtor("vazou_mac", "x", 403);
+   });
+   app.get(r("m03"), async () => {
+     const campo = "codigo";
+     const e = new RegraDeNegocio("sem_permissao", "x", 403);
+-    (e as unknown as Record<string, unknown>)[campo] = "vazou_m03";
++    (e as unknown as Record<string, unknown>)[campo] = "vazou_mad";
+     throw e;
+   });
+   app.get(r("m04"), async () => {
+     const O = Object;
+     const e = new RegraDeNegocio("sem_permissao", "x", 403);
+-    O.assign(e, { codigo: "vazou_m04" });
++    O.assign(e, { codigo: "vazou_mae" });
+     throw e;
+   });
+   app.get(r("m05"), async () => {
+     const e = new RegraDeNegocio("sem_permissao", "x", 403);
+-    globalThis.Object.defineProperty(e, "codigo", { value: "vazou_m05" });
++    globalThis.Object.defineProperty(e, "codigo", { value: "vazou_maf" });
+     throw e;
+   });
+   app.get(r("m06"), async () => {
+     class Recusa06 extends RegraDeNegocio {
+       constructor() {
+         super("sem_permissao", "x", 403);
+-        (this as unknown as Record<string, unknown>)["codigo"] = "vazou_m06";
++        (this as unknown as Record<string, unknown>)["codigo"] = "vazou_mag";
+       }
+     }
+     throw new Recusa06();
+   });
+   app.get(r("m07"), {
+-    onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("sem_permissao", "vazou_m07") : payload),
++    onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("sem_permissao", "vazou_mah") : payload),
+   }, async (_req, resposta) => resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" }));
+   // M09: a rota é comum; o `JSON.stringify` é trocado no próprio caso, em volta do pedido.
+   app.get(r("m09"), async (_req, resposta) => resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" }));
+@@ -86,29 +92,29 @@ function plantarFormas(app: FastifyInstance): void {
+     const campo = "statusCode";
+     const s = 403;
+     (resposta as unknown as Record<string, unknown>)[campo] = s;
+-    return { erro: "vazou_m10", mensagem: "x" };
++    return { erro: "vazou_mba", mensagem: "x" };
+   });
+-  app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_m11", mensagem: "x" }));
++  app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_mbb", mensagem: "x" }));
+   app.get(r("m12"), async () => {
+     throw new Proxy(new RegraDeNegocio("sem_permissao", "x", 403), {
+-      get: (alvo, p) => (p === "codigo" ? "vazou_m12" : (alvo as unknown as Record<string | symbol, unknown>)[p]),
++      get: (alvo, p) => (p === "codigo" ? "vazou_mbc" : (alvo as unknown as Record<string | symbol, unknown>)[p]),
+     });
+   });
+   app.get(r("m13"), async (_req, resposta) => {
+     const corpo: Recusa = { erro: "sem_permissao", mensagem: "x" };
+     void corpo;
+     const recusar = ({ corpo }: { corpo: Recusa }) => resposta.code(403).send(corpo);
+-    return recusar({ corpo: { erro: "vazou_m13", mensagem: "x" } });
++    return recusar({ corpo: { erro: "vazou_mbd", mensagem: "x" } });
+   });
+   app.get(r("m14"), async (_req, resposta) => {
+     const corpo: Recusa = { erro: "sem_permissao", mensagem: "x" };
+     void corpo;
+-    for (const corpo of [{ erro: "vazou_m14", mensagem: "x" }]) return resposta.code(403).send(corpo);
++    for (const corpo of [{ erro: "vazou_mbe", mensagem: "x" }]) return resposta.code(403).send(corpo);
+     return null;
+   });
+   app.get(r("m15"), async () => {
+     const campo = "status";
+-    const e = new RegraDeNegocio("vazou_m15", "x", 409);
++    const e = new RegraDeNegocio("vazou_mbf", "x", 409);
+     (e as unknown as Record<string, unknown>)[campo] = 403;
+     throw e;
+   });
+@@ -126,12 +132,92 @@ function plantarFormas(app: FastifyInstance): void {
+   app.get(r("ok-200"), async () => ({ erro: "vazou_mas_e_200" }));
+ }
+ 
++/*
++  Os escapes da revisão independente da PRIMEIRA guarda (um `onSend`), copiados do
++  arquivo dela (`zz-revisao-escape.test.ts`) sem mudar uma linha: `onRoute` de plugin
++  acrescentando `onSend` depois (e01), `onSend` de contexto (e02), 404 de plugin trocado
++  por 403 (e04), `setNotFoundHandler` (e05), `onSend` que lança duas vezes e faz o
++  Fastify escrever o erro direto na resposta do Node (e06), `setErrorHandler` (e07),
++  erro com `statusCode` (e08, que sai 500), serializador (e09), `Buffer` (e10), fluxo
++  (e11), texto (e12), `erro` aninhado (e13), `preSerialization` (e14), chave repetida
++  (e15), `onRequest` de rota (e16), dado pessoal no código (e17) e `callNotFound` com
++  `onSend` de plugin (e18).
++*/
++const arr = (x: unknown) => (x === undefined ? [] : Array.isArray(x) ? x : [x]);
++function plantarEscapesDaRevisao(app: FastifyInstance) {
++  // E01: onRoute de plugin filho acrescenta onSend DEPOIS da guarda
++  app.register(async (f) => {
++    f.addHook("onRoute", (r) => {
++      (r as { onSend: unknown }).onSend = [...arr(r.onSend), async (_q: unknown, rep: { statusCode: number }, p: unknown) =>
++        (rep.statusCode === 403 ? String(p).replace("sem_permissao", "vazou_e01") : p)];
++    });
++    f.get("/x", async (_q, rep) => rep.code(403).send({ erro: "sem_permissao", mensagem: "x" }));
++  }, { prefix: "/esc/e01" });
++  // E02: onSend no contexto de plugin filho (controle: a guarda da rota roda depois)
++  app.register(async (f) => {
++    f.addHook("onSend", async (_q, rep, p) => (rep.statusCode === 403 ? String(p).replace("sem_permissao", "vazou_e02") : p));
++    f.get("/x", async (_q, rep) => rep.code(403).send({ erro: "sem_permissao", mensagem: "x" }));
++  }, { prefix: "/esc/e02" });
++  // E03/E04: setNotFoundHandler em plugin filho + onSend do contexto que troca o 404 por 403 fora do catálogo
++  app.register(async (f) => {
++    f.addHook("onSend", async (req, rep, p) => {
++      if (req.url.startsWith("/esc/e04") && rep.statusCode === 404) { rep.code(403); return '{"erro":"vazou_e04","mensagem":"x"}'; }
++      return p;
++    });
++    f.setNotFoundHandler((_q, rep) => { void rep.code(404).send({ erro: "nao_encontrado", mensagem: "x" }); });
++  }, { prefix: "/esc/e04" });
++  // E05: setNotFoundHandler encapsulado que responde 403 direto (controle)
++  app.register(async (f) => {
++    f.setNotFoundHandler((_q, rep) => { void rep.code(403).send({ erro: "vazou_e05", mensagem: "x" }); });
++  }, { prefix: "/esc/e05" });
++  // E06: onSend que lança: 1a passada 500, 2a passada põe 403 e lança de novo (fallback do Fastify escreve no raw)
++  app.register(async (f) => {
++    f.addHook("onSend", async (req, rep) => {
++      const q = req as unknown as { passadas?: number };
++      q.passadas = (q.passadas ?? 0) + 1;
++      if (q.passadas === 1) { rep.code(500); throw new Error("vazou_e06a"); }
++      rep.code(403); throw Object.assign(new Error("vazou_e06b"), { code: "vazou_e06" });
++    });
++    f.get("/x", async () => ({ ok: true }));
++  }, { prefix: "/esc/e06" });
++  // E07: setErrorHandler encapsulado (controle)
++  app.register(async (f) => {
++    f.setErrorHandler((_e, _q, rep) => rep.code(403).send({ erro: "vazou_e07", mensagem: "x" }));
++    f.get("/x", async () => { throw new Error("y"); });
++  }, { prefix: "/esc/e07" });
++  // E08: erro com statusCode 403 lançado num preHandler (controle)
++  app.get("/esc/e08", { preHandler: async () => { throw Object.assign(new Error("vazou_e08"), { statusCode: 403, code: "vazou_e08" }); } }, async () => ({}));
++  // E09: reply.serializer
++  app.get("/esc/e09", async (_q, rep) => rep.code(403).serializer(() => '{"erro":"vazou_e09"}').send({ erro: "sem_permissao" }));
++  // E10: Buffer, E11: stream, E12: string já serializada com content-type texto
++  app.get("/esc/e10", async (_q, rep) => rep.code(403).type("application/json").send(Buffer.from('{"erro":"vazou_e10"}')));
++  app.get("/esc/e11", async (_q, rep) => rep.code(403).type("application/json").send(Readable.from(['{"erro":"vazou_e11"}'])));
++  app.get("/esc/e12", async (_q, rep) => rep.code(403).type("text/plain").send('{"erro":"vazou_e12"}'));
++  // E13: erro aninhado
++  app.get("/esc/e13", async (_q, rep) => rep.code(403).send({ erro: { codigo: "sem_permissao" }, mensagem: "x" }));
++  // E14: preSerialization
++  app.get("/esc/e14", { preSerialization: async (_q, _r, p) => ({ ...(p as object), erro: "vazou_e14" }) }, async (_q, rep) => rep.code(403).send({ erro: "sem_permissao" }));
++  // E15: chave duplicada, a primeira fora e a última dentro
++  app.get("/esc/e15", async (_q, rep) => rep.code(403).type("application/json").send('{"erro":"vazou_e15","erro":"sem_permissao"}'));
++  // E16: onRequest de rota respondendo 403
++  app.get("/esc/e16", { onRequest: async (_q, rep) => { await rep.code(403).send({ erro: "vazou_e16" }); } }, async () => ({}));
++  // E17: dado pessoal e texto enorme no erro, para o log
++  app.get("/esc/e17", async (_q, rep) => rep.code(403).send({ erro: "maria.silva@exemplo.com.br cpf 123.456.789-00 " + "A".repeat(5000), mensagem: "segredo da mensagem" }));
++  // E18: callNotFound dentro de plugin filho cujo onSend troca o 404 por 401
++  app.register(async (f) => {
++    f.addHook("onSend", async (_q, rep, p) => { if (rep.statusCode === 404) { rep.code(401); return '{"erro":"vazou_e18"}'; } return p; });
++    f.get("/x", async (_q, rep) => rep.callNotFound());
++  }, { prefix: "/esc/e18" });
++}
++
++const ESCAPES_DA_REVISAO = ["e01/x", "e02/x", "e04/nada", "e05/nada", "e06/x", "e07/x", "e09", "e10", "e11", "e12", "e13", "e14", "e15", "e16", "e17", "e18/x"];
++
+ /** As formas que respondem 403, com o código que tentaria sair. */
+ const FORMAS_403: ReadonlyArray<[string, string | null]> = [
+-  ["m01", "vazou_m01"], ["m02", "vazou_m02"], ["m03", "vazou_m03"], ["m04", "vazou_m04"],
+-  ["m05", "vazou_m05"], ["m06", "vazou_m06"], ["m07", "vazou_m07"], ["m10", "vazou_m10"],
+-  ["m11", "vazou_m11"], ["m12", "vazou_m12"], ["m13", "vazou_m13"], ["m14", "vazou_m14"],
+-  ["m15", "vazou_m15"], ["m16", "vazou_m16"], ["sem-corpo", null], ["texto", null],
++  ["m01", "vazou_mab"], ["m02", "vazou_mac"], ["m03", "vazou_mad"], ["m04", "vazou_mae"],
++  ["m05", "vazou_maf"], ["m06", "vazou_mag"], ["m07", "vazou_mah"], ["m10", "vazou_mba"],
++  ["m11", "vazou_mbb"], ["m12", "vazou_mbc"], ["m13", "vazou_mbd"], ["m14", "vazou_mbe"],
++  ["m15", "vazou_mbf"], ["m16", "vazou_mbg"], ["sem-corpo", null], ["texto", null],
+ ];
+ 
+ let mem: BancoEmMemoria;
+@@ -149,6 +235,7 @@ beforeAll(async () => {
+       ...(modo === "corrigir" ? { destinoDeLog: { write: (linha: string) => { log.push(linha); } } } : {}),
+     });
+     plantarFormas(app);
++    plantarEscapesDaRevisao(app);
+     await app.ready();
+     servidores.set(modo, app);
+   }
+@@ -159,7 +246,8 @@ afterAll(async () => {
+   await mem?.banco.encerrar();
+ });
+ 
+-const pedir = (modo: ModoDaGuarda, n: string) => servidores.get(modo)!.inject({ method: "GET", url: `/teste-da-guarda/${n}` });
++const pedirEm = (modo: ModoDaGuarda, url: string) => servidores.get(modo)!.inject({ method: "GET", url });
++const pedir = (modo: ModoDaGuarda, n: string) => pedirEm(modo, `/teste-da-guarda/${n}`);
+ 
+ describe("modo de teste: a resposta fora do catálogo falha alto", () => {
+   it.each(FORMAS_403)("%s: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota", async (n, visto) => {
+@@ -174,7 +262,7 @@ describe("modo de teste: a resposta fora do catálogo falha alto", () => {
+   it("M09: `JSON.stringify` trocado depois de o servidor subir também é pego", async () => {
+     const original = JSON.stringify;
+     JSON.stringify = ((v: unknown, ...resto: unknown[]) =>
+-      String((original as (...a: unknown[]) => string)(v, ...resto)).replace("sem_permissao", "vazou_m09")) as typeof JSON.stringify;
++      String((original as (...a: unknown[]) => string)(v, ...resto)).replace("sem_permissao", "vazou_maj")) as typeof JSON.stringify;
+     let r;
+     try {
+       r = await pedir("falhar", "m09");
+@@ -183,7 +271,7 @@ describe("modo de teste: a resposta fora do catálogo falha alto", () => {
+     }
+     const desvios = lerDesviosDaGuarda();
+     expect(r.statusCode).toBe(500);
+-    expect(desvios).toEqual([expect.objectContaining({ erroVisto: "vazou_m09", rota: "/teste-da-guarda/m09" })]);
++    expect(desvios).toEqual([expect.objectContaining({ erroVisto: "vazou_maj", rota: "/teste-da-guarda/m09" })]);
+   });
+ 
+   it("código do catálogo com o status trocado, e 401 com código fora, também", async () => {
+@@ -232,7 +320,7 @@ describe("modo de produção: a resposta fora do catálogo sai com o código gen
+   it("M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele", async () => {
+     const original = JSON.stringify;
+     JSON.stringify = ((v: unknown, ...resto: unknown[]) =>
+-      String((original as (...a: unknown[]) => string)(v, ...resto)).replace("sem_permissao", "vazou_m09")) as typeof JSON.stringify;
++      String((original as (...a: unknown[]) => string)(v, ...resto)).replace("sem_permissao", "vazou_maj")) as typeof JSON.stringify;
+     let r;
+     try {
+       r = await pedir("corrigir", "m09");
+@@ -258,18 +346,92 @@ describe("modo de produção: a resposta fora do catálogo sai com o código gen
+ describe("a conferência do corpo, isolada", () => {
+   it.each([
+     [403, '{"erro":"sem_permissao","mensagem":"x"}', null],
+-    [401, Buffer.from('{"erro":"credenciais"}'), null],
++    [401, '{"erro":"credenciais"}', null],
+     [403, '{"erro":"acesso_suspenso"}', null],
+     [403, '{"erro":"nao_autenticado"}', "status 403"],
+     [403, '{"erro":"inventado"}', "fora do catálogo"],
+     [403, '{"mensagem":"x"}', "sem `erro`"],
+     [403, '["sem_permissao"]', "não é objeto"],
+     [403, "proibido", "não é JSON"],
+-    [403, undefined, "sem corpo"],
+-    [403, { pipe: () => undefined }, "fluxo"],
++    [403, "", "sem corpo"],
++    [403, null, "teto"],
++    [403, '{"erro":"vazou","erro":"sem_permissao"}', "repetida"],
++    [403, '{"\u0065rro":"vazou","erro":"sem_permissao"}', "repetida"],
++    [403, '{"erro":"sem_permissao","campos":[{"erro":"x"}]}', "repetida"],
+   ] as const)("%s %s", (status, payload, motivo) => {
+     const r = conferirCorpoDeAcesso(status, payload, CONTRATO_DE_ACESSO_DA_API);
+     if (motivo === null) expect(r).toBeNull();
+     else expect(r?.motivo).toContain(motivo);
+   });
+ });
++
++describe("os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node", () => {
++  it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio registrado; em produção, o código genérico", async (caso) => {
++    const emTeste = await pedirEm("falhar", `/esc/${caso}`);
++    expect(emTeste.statusCode, emTeste.body).toBe(500);
++    expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
++    expect(lerDesviosDaGuarda()).toHaveLength(1);
++    const emProducao = await pedirEm("corrigir", `/esc/${caso}`);
++    expect([401, 403]).toContain(emProducao.statusCode);
++    expect(emProducao.json().erro).toBe(emProducao.statusCode === 401 ? "nao_autenticado" : "sem_permissao");
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const r = await pedirEm(modo, "/esc/e08");
++      expect(r.statusCode).toBe(500);
++      expect(r.json().erro).toBe("erro_interno");
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme)", async () => {
++    log.length = 0;
++    await pedirEm("corrigir", "/esc/e17");
++    const linha = log.find((l) => l.includes("desvioDoCatalogo"))!;
++    expect(linha).toBeDefined();
++    expect(linha).not.toContain("maria.silva");
++    expect(linha).not.toContain("123.456.789");
++    expect(linha.length).toBeLessThan(800);
++    expect(JSON.parse(linha).desvioDoCatalogo.erroVisto).toBe("[fora da forma de um código, não registrado]");
++  });
++
++  it("globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda", async () => {
++    const includes = Array.prototype.includes;
++    const proprio = Object.prototype.hasOwnProperty;
++    const parse = JSON.parse;
++    const stringify = JSON.stringify;
++    // Trocas mirando o que a guarda decidiria: "403 está na lista" e "o código existe no catálogo".
++    Array.prototype.includes = function (this: unknown[], x: unknown, ...resto: [number?]) {
++      return x === 403 || includes.apply(this, [x, ...resto]);
++    } as typeof Array.prototype.includes;
++    Object.prototype.hasOwnProperty = function (this: object, k: PropertyKey) {
++      return k === "vazou_mbb" || proprio.call(this, k);
++    };
++    let r;
++    try {
++      r = await pedirEm("falhar", "/teste-da-guarda/m11");
++    } finally {
++      Array.prototype.includes = includes;
++      Object.prototype.hasOwnProperty = proprio;
++    }
++    expect(r.statusCode).toBe(500);
++    expect(lerDesviosDaGuarda()).toHaveLength(1);
++    JSON.parse = (() => ({ erro: "sem_permissao" })) as typeof JSON.parse;
++    try {
++      r = await pedirEm("corrigir", "/teste-da-guarda/m11");
++    } finally {
++      JSON.parse = parse;
++    }
++    expect(r.statusCode).toBe(403);
++    expect(r.body).toContain('"erro":"sem_permissao"');
++    JSON.stringify = (() => '{"erro":"vazou"}') as typeof JSON.stringify;
++    try {
++      r = await pedirEm("corrigir", "/teste-da-guarda/m11");
++    } finally {
++      JSON.stringify = stringify;
++    }
++    expect(r.json().erro).toBe("sem_permissao");
++  });
++});
+diff --git a/dc360/apps/api/test/guarda-falha-alto.ts b/dc360/apps/api/test/guarda-falha-alto.ts
+index e473f5c..ef75d03 100644
+--- a/dc360/apps/api/test/guarda-falha-alto.ts
++++ b/dc360/apps/api/test/guarda-falha-alto.ts
+@@ -1,4 +1,4 @@
+-import { afterEach, expect } from "vitest";
++import { afterAll, afterEach, expect } from "vitest";
+ import { lerDesviosDaGuarda } from "../src/guarda-de-codigos-de-erro.js";
+ 
+ /**
+@@ -14,3 +14,13 @@ afterEach(() => {
+   const desvios = lerDesviosDaGuarda();
+   expect(desvios, "resposta 401 ou 403 fora do catálogo de códigos de erro (guarda em tempo de execução)").toEqual([]);
+ });
++
++/*
++  E o que sair num `afterAll` do arquivo (um servidor encerrando, uma sonda final):
++  este `afterAll` é registrado antes dos do arquivo e, na ordem de pilha do vitest,
++  roda depois deles.
++*/
++afterAll(() => {
++  const desvios = lerDesviosDaGuarda();
++  expect(desvios, "resposta 401 ou 403 fora do catálogo num afterAll (guarda em tempo de execução)").toEqual([]);
++});
+diff --git a/dc360/apps/api/test/varredura-de-erros.ts b/dc360/apps/api/test/varredura-de-erros.ts
+index 1b424f3..ea28cd0 100644
+--- a/dc360/apps/api/test/varredura-de-erros.ts
++++ b/dc360/apps/api/test/varredura-de-erros.ts
+@@ -941,6 +941,11 @@ export function varrerPasta(...pastas: string[]): Varredura {
+  * decide. `chave` é o código literal ou a expressão, como a varredura a vê.
+  */
+ export type Repasse = {
++  /**
++   * `chave: "*"` libera o ARQUIVO INTEIRO. Só serve para o módulo da própria guarda
++   * em tempo de execução, que mexe na resposta do Node de propósito e é provado pelos
++   * testes dela, não por esta varredura.
++   */
+   arquivo: RegExp; chave: string; porque: string;
+   /** Exige que o objeto de `X.codigo` venha de onde foi conferido (`parametro-do-tratador`, `new:Classe`). */
+   origem?: string;
+@@ -968,7 +973,8 @@ export function reprovacoes(v: Varredura, regras: RegrasDeConferencia): string[]
+   const aceitos = { ...regras.aceitosAlemDoCatalogo, ...regras.catalogo };
+ 
+   const repassado = (e: { arquivo: string; chave: string | null; origem?: string | null; statusOrigem?: string | null }) =>
+-    e.chave !== null && regras.repasses.some((r) =>
++    regras.repasses.some((r) => r.arquivo.test(e.arquivo) && r.chave === "*")
++    || e.chave !== null && regras.repasses.some((r) =>
+       r.arquivo.test(e.arquivo) && r.chave === e.chave
+       && (r.origem === undefined || r.origem === e.origem)
+       && (r.statusOrigem === undefined || r.statusOrigem === e.statusOrigem));
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index 5d88000..fc3c3c3 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -1,4 +1,5 @@
+-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
++import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from "fastify";
++import type { ServerResponse } from "node:http";
+ 
+ /**
+  * A GUARDA EM TEMPO DE EXECUÇÃO das respostas de acesso do console
+@@ -13,9 +14,11 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+  * depende de nenhum pacote do produto em tempo de execução. As duas cópias são
+  * presas pelo mesmo tipo de teste, cada uma no seu pacote.
+  *
+- * O que ela não vê, e a varredura proíbe: escrita direta no Node (`raw`,
+- * `hijack`, `writeHead`) ou no socket, e código no mesmo processo que reescreve
+- * o Fastify ou os globais antes de esta guarda carregar.
++ * Ela confere no nível da resposta do Node (`writeHead`, `write` e `end`
++ * envolvidos num `onRequest` instalado antes de tudo), e o que ela não vê está
++ * escrito no módulo da API: escrita no socket, o método do protótipo chamado por
++ * fora da instância, e código que troque as primitivas dela antes da carga ou o
++ * próprio Node.
+  */
+ 
+ export type ModoDaGuarda = "falhar" | "corrigir";
+@@ -27,7 +30,7 @@ export type Desvio = {
+   metodo: string;
+   rota: string;
+   status: number;
+-  /** O `erro` que tentou sair, quando o corpo era JSON com `erro` em texto. */
++  /** O `erro` que tentou sair, só quando tem a forma de um código; senão, um marcador. */
+   erroVisto: string | null;
+   motivo: string;
+ };
+@@ -48,50 +51,100 @@ export const GENERICO_DO_CONSOLE: Readonly<Record<401 | 403, { erro: string; men
+   403: { erro: "so_o_dono", mensagem: "Só o dono do console faz isto." },
+ });
+ 
+-// Guardado na carga do módulo: um `JSON.parse` trocado depois não engana a guarda.
++// ---- Primitivas guardadas na carga: trocar o global depois não engana a guarda. ----
++const aplicar = Reflect.apply;
+ const analisarJson: (texto: string) => unknown = JSON.parse;
++const definirPropriedade = Object.defineProperty;
++const temPropria = Object.prototype.hasOwnProperty;
++const executarRegex = RegExp.prototype.exec;
++const bufferDe = Buffer.from;
++const juntarBuffers = Buffer.concat;
++const tamanhoEmBytes = Buffer.byteLength;
++const bufferParaTexto = Buffer.prototype.toString;
++const codigoDoCaractere = String.prototype.charCodeAt;
++const caractereDoCodigo = String.fromCharCode;
++const ehArray = Array.isArray;
++const chavesDe = Object.keys;
++const paraMinusculas = String.prototype.toLowerCase;
++const proximoTique = process.nextTick;
++const HEX = "0123456789abcdef";
++const TETO_DO_CORPO = 64 * 1024;
++/** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
++const CHAVE_JSON = /"((?:[^"\\]|\\.)*)"\s*:/g;
++const FORMA_DE_CODIGO = /^[a-z_]{1,64}$/;
++
++const tem = (o: object, k: string): boolean => aplicar(temPropria, o, [k]) as boolean;
++const casa = (re: RegExp, s: string): RegExpExecArray | null => aplicar(executarRegex, re, [s]) as RegExpExecArray | null;
++
++/** Quantas chaves do texto JSON, em qualquer profundidade, valem `erro` (com escape ou sem). */
++function chavesErro(texto: string): number {
++  const re = CHAVE_JSON;
++  re.lastIndex = 0;
++  let n = 0;
++  for (let m = casa(re, texto); m !== null; m = casa(re, texto)) {
++    let chave: unknown;
++    try { chave = analisarJson(`"${m[1]}"`); } catch { chave = null; }
++    if (chave === "erro") n += 1;
++  }
++  return n;
++}
+ 
+ /**
+- * Confere UM corpo de resposta de acesso. `null` quando está no contrato; o motivo
+- * e o código visto quando não está. `payload` é o que o `onSend` recebe: texto,
+- * `Buffer`, nada, ou um fluxo (que não dá para ler sem consumir, e por isso é desvio).
++ * Confere UM corpo de resposta de acesso, já em texto. `null` quando está no
++ * contrato; o motivo e o código visto quando não está.
+  */
+ export function conferirCorpoDeAcesso(
+-  status: number, payload: unknown, contrato: ContratoDeAcesso,
++  status: number, texto: string | null, contrato: ContratoDeAcesso,
+ ): { motivo: string; erroVisto: string | null } | null {
+-  let texto: string;
+-  if (typeof payload === "string") texto = payload;
+-  else if (payload instanceof Uint8Array) texto = Buffer.from(payload).toString("utf8");
+-  else if (payload === null || payload === undefined) return { motivo: "resposta sem corpo", erroVisto: null };
+-  else return { motivo: "corpo em fluxo ou objeto que não é texto", erroVisto: null };
++  if (texto === null) return { motivo: "corpo maior que o teto da guarda", erroVisto: null };
++  if (texto.length === 0) return { motivo: "resposta sem corpo", erroVisto: null };
+   let corpo: unknown;
+   try {
+     corpo = analisarJson(texto);
+   } catch {
+     return { motivo: "corpo que não é JSON", erroVisto: null };
+   }
+-  if (typeof corpo !== "object" || corpo === null || Array.isArray(corpo)) {
++  if (typeof corpo !== "object" || corpo === null || ehArray(corpo)) {
+     return { motivo: "corpo JSON que não é objeto", erroVisto: null };
+   }
+-  const erro = (corpo as { erro?: unknown }).erro;
++  const erro = tem(corpo, "erro") ? (corpo as { erro?: unknown }).erro : undefined;
+   if (typeof erro !== "string") return { motivo: "corpo sem `erro` em texto", erroVisto: null };
+-  if (!Object.prototype.hasOwnProperty.call(contrato, erro)) {
+-    return { motivo: "código fora do catálogo", erroVisto: erro };
+-  }
+-  if (!contrato[erro]!.includes(status)) {
+-    return { motivo: `código do catálogo com status ${status}, e o catálogo diz ${contrato[erro]!.join(" ou ")}`, erroVisto: erro };
+-  }
++  if (chavesErro(texto) !== 1) return { motivo: "chave `erro` repetida no corpo", erroVisto: erro };
++  if (!tem(contrato, erro)) return { motivo: "código fora do catálogo", erroVisto: erro };
++  const permitidos = contrato[erro]!;
++  let ok = false;
++  for (let i = 0; i < permitidos.length; i += 1) if (permitidos[i] === status) ok = true;
++  if (!ok) return { motivo: `código do catálogo com status ${status}, fora do que o catálogo diz`, erroVisto: erro };
+   return null;
+ }
+ 
+-/** Texto JSON de um objeto de dois campos de texto, sem passar por `JSON.stringify`. */
+-function textoJson(campos: Readonly<Record<string, string>>): string {
+-  const aspas = (s: string) => `"${s.replace(/[\\"\u0000-\u001f\u2028\u2029]/g, (c) =>
+-    (c === "\\" || c === "\"" ? `\\${c}` : `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`))}"`;
+-  return `{${Object.entries(campos).map(([k, v]) => `${aspas(k)}:${aspas(v)}`).join(",")}}`;
++/** O código visto, como vai para o log e para a mensagem: só se tiver a forma de um código. */
++function codigoParaRegistro(visto: string | null): string | null {
++  if (visto === null) return null;
++  return casa(FORMA_DE_CODIGO, visto) !== null ? visto : "[fora da forma de um código, não registrado]";
++}
++
++/** Texto JSON de um objeto de campos de texto, sem `JSON.stringify` nem `replace`. */
++function textoJson(campos: ReadonlyArray<readonly [string, string]>): string {
++  const aspas = (s: string) => {
++    let saida = "\"";
++    for (let i = 0; i < s.length; i += 1) {
++      const c = aplicar(codigoDoCaractere, s, [i]) as number;
++      if (c === 0x22) saida += "\\\"";
++      else if (c === 0x5c) saida += "\\\\";
++      else if (c < 0x20 || c === 0x2028 || c === 0x2029) {
++        saida += `\\u${HEX[(c >> 12) & 15]}${HEX[(c >> 8) & 15]}${HEX[(c >> 4) & 15]}${HEX[c & 15]}`;
++      }
++      else saida += caractereDoCodigo(c);
++    }
++    return `${saida}"`;
++  };
++  let saida = "{";
++  for (let i = 0; i < campos.length; i += 1) saida += `${i ? "," : ""}${aspas(campos[i]![0])}:${aspas(campos[i]![1])}`;
++  return `${saida}}`;
+ }
+ 
+-/** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia depois de cada caso. */
++/** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia. */
+ const desviosPendentes: Desvio[] = [];
+ 
+ /** Devolve e esvazia os desvios registrados no modo "falhar". */
+@@ -105,48 +158,147 @@ export type OpcoesDaGuarda = {
+   generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
+ };
+ 
+-/** O gancho `onSend` que confere (e, conforme o modo, falha ou corrige) a resposta de acesso. */
+-export function criarGuardaDeAcesso(opcoes: OpcoesDaGuarda) {
+-  return async function guardaDeAcesso(req: FastifyRequest, resposta: FastifyReply, payload: unknown): Promise<unknown> {
+-    const status = resposta.statusCode;
+-    if (status !== 401 && status !== 403) return payload;
+-    // HEAD não leva corpo, por definição do HTTP: o Fastify tira o do GET gêmeo antes de chegar aqui.
+-    // Quem confere o código é o GET da mesma rota, que passa por esta mesma guarda.
+-    if (req.method === "HEAD") return payload;
+-    const achado = conferirCorpoDeAcesso(status, payload, opcoes.contrato);
+-    if (achado === null) return payload;
++type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
++
++/** Os cabeçalhos do `writeHead` sem `content-length`, `content-type` e `transfer-encoding`. */
++function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
++  const saida: Record<string, unknown> = {};
++  const fora = (k: string) => {
++    const b = aplicar(paraMinusculas, k, []) as string;
++    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding";
++  };
++  if (ehArray(cabecalhos)) {
++    for (let i = 0; i + 1 < cabecalhos.length; i += 2) {
++      const k = `${cabecalhos[i] as string}`;
++      if (!fora(k)) saida[k] = cabecalhos[i + 1];
++    }
++  } else if (cabecalhos) {
++    const ks = chavesDe(cabecalhos);
++    for (let i = 0; i < ks.length; i += 1) if (!fora(ks[i]!)) saida[ks[i]!] = cabecalhos[ks[i]!];
++  }
++  return saida;
++}
++
++/** Troca, nesta resposta do Node, `writeHead`, `write` e `end` pelos que conferem 401 e 403. */
++function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: FastifyBaseLogger, opcoes: OpcoesDaGuarda): void {
++  const writeHeadOriginal = raw.writeHead;
++  const writeOriginal = raw.write;
++  const endOriginal = raw.end;
++  const ehHead = req.method === "HEAD";
++  let segurando = false;
++  let statusSegurado = 0;
++  let cabecalhosSegurados: Cabecalhos;
++  let mensagemDeStatus: string | undefined;
++  const pedacos: Buffer[] = [];
++  let bytes = 0;
++  let excedeu = false;
++
++  const comecarASegurar = (status: number) => {
++    segurando = true;
++    statusSegurado = status;
++  };
++  const ehAcesso = (s: number) => s === 401 || s === 403;
++  const guardar = (pedaco: unknown, codificacao?: unknown) => {
++    if (pedaco === undefined || pedaco === null) return;
++    const b = typeof pedaco === "string"
++      ? bufferDe(pedaco, (typeof codificacao === "string" ? codificacao : "utf8") as BufferEncoding)
++      : bufferDe(pedaco as Uint8Array);
++    bytes += b.length;
++    if (bytes > TETO_DO_CORPO) excedeu = true;
++    else pedacos[pedacos.length] = b;
++  };
++
++  function writeHead(this: ServerResponse, status: number, ...resto: unknown[]) {
++    if (!ehHead && ehAcesso(status) && !raw.headersSent) {
++      comecarASegurar(status);
++      if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
++      else cabecalhosSegurados = resto[0] as Cabecalhos;
++      return raw;
++    }
++    const todos: unknown[] = [status];
++    for (let i = 0; i < resto.length; i += 1) todos[todos.length] = resto[i];
++    return aplicar(writeHeadOriginal, raw, todos);
++  }
++
++  function write(this: ServerResponse, ...args: unknown[]) {
++    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    if (!segurando) return aplicar(writeOriginal, raw, args);
++    const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
++    guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
++    if (cb) aplicar(proximoTique, process, [cb]);
++    return true;
++  }
++
++  function end(this: ServerResponse, ...args: unknown[]) {
++    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    if (!segurando) return aplicar(endOriginal, raw, args);
++    segurando = false;
++    let cb: unknown;
++    if (typeof args[0] === "function") cb = args[0];
++    else {
++      guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
++      cb = typeof args[1] === "function" ? args[1] : args[2];
++    }
++    const corpoOriginal = juntarBuffers(pedacos);
++    let achado: { motivo: string; erroVisto: string | null } | null;
++    try {
++      const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
++      achado = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++    } catch {
++      achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
++    }
++    const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
++    if (achado === null) {
++      const cabeca: unknown[] = [statusSegurado];
++      if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
++      if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
++      aplicar(writeHeadOriginal, raw, cabeca);
++      return fimComCb(corpoOriginal);
++    }
+     const desvio: Desvio = {
+       metodo: req.method,
+       rota: req.routeOptions?.url ?? "(sem rota)",
+-      status,
+-      erroVisto: achado.erroVisto,
++      status: statusSegurado,
++      erroVisto: codigoParaRegistro(achado.erroVisto),
+       motivo: achado.motivo,
+     };
+-    req.log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
+-    resposta.removeHeader("content-length");
+-    resposta.header("content-type", "application/json; charset=utf-8");
++    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
++    let statusFinal = statusSegurado;
++    let novo: string;
+     if (opcoes.modo === "falhar") {
+-      desviosPendentes.push(desvio);
+-      resposta.code(500);
+-      return textoJson({
+-        erro: "desvio_do_catalogo_de_erro",
+-        mensagem: `${desvio.metodo} ${desvio.rota} respondeu ${status} fora do catálogo: ${desvio.motivo}`
+-          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : ""),
+-      });
++      desviosPendentes[desviosPendentes.length] = desvio;
++      statusFinal = 500;
++      novo = textoJson([
++        ["erro", "desvio_do_catalogo_de_erro"],
++        ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
++          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
++      ]);
++    } else {
++      const g = opcoes.generico[statusSegurado as 401 | 403];
++      novo = textoJson([["erro", g.erro], ["mensagem", g.mensagem]]);
+     }
+-    return textoJson(opcoes.generico[status]);
+-  };
++    const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
++    for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
++    const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
++    cabecalhos["content-type"] = "application/json; charset=utf-8";
++    cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
++    aplicar(writeHeadOriginal, raw, [statusFinal, cabecalhos]);
++    return fimComCb(novo);
++  }
++
++  definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+ }
+ 
+ /**
+- * Instala a guarda: `onSend` global e, por `onRoute`, o último `onSend` de cada
+- * rota registrada DEPOIS desta chamada. Chamar logo depois de `Fastify()`.
++ * Instala a guarda: um `onRequest` que envolve a resposta do Node de cada
++ * pedido. Chamar logo depois de `Fastify()`, antes de qualquer plugin ou rota,
++ * para ser o primeiro `onRequest` de todos.
+  */
+ export function instalarGuardaDeAcesso(app: FastifyInstance, opcoes: OpcoesDaGuarda): void {
+-  const guarda = criarGuardaDeAcesso(opcoes);
+-  app.addHook("onRoute", (rota) => {
+-    const atuais = rota.onSend === undefined ? [] : Array.isArray(rota.onSend) ? rota.onSend : [rota.onSend];
+-    (rota as { onSend: unknown }).onSend = [...atuais, guarda];
++  app.addHook("onRequest", (req, resposta, feito) => {
++    envolverResposta(resposta.raw, req, req.log, opcoes);
++    feito();
+   });
+-  app.addHook("onSend", guarda);
+ }
+diff --git a/dc360/apps/console/src/servidor.ts b/dc360/apps/console/src/servidor.ts
+index d57a618..e73da05 100644
+--- a/dc360/apps/console/src/servidor.ts
++++ b/dc360/apps/console/src/servidor.ts
+@@ -1,5 +1,5 @@
+ import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+-// Antes do resto, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
++// Antes do resto, de propósito: a guarda copia as primitivas que usa na carga do módulo.
+ import {
+   CONTRATO_DE_ACESSO_DO_CONSOLE, GENERICO_DO_CONSOLE, instalarGuardaDeAcesso, type ModoDaGuarda,
+ } from "./guarda-de-codigos-de-erro.js";
+diff --git a/dc360/apps/console/test/apoio/guarda-falha-alto.ts b/dc360/apps/console/test/apoio/guarda-falha-alto.ts
+index 4348921..ccea6a1 100644
+--- a/dc360/apps/console/test/apoio/guarda-falha-alto.ts
++++ b/dc360/apps/console/test/apoio/guarda-falha-alto.ts
+@@ -1,4 +1,4 @@
+-import { afterEach, expect } from "vitest";
++import { afterAll, afterEach, expect } from "vitest";
+ import { lerDesviosDaGuarda } from "../../src/guarda-de-codigos-de-erro.js";
+ 
+ /**
+@@ -10,3 +10,13 @@ afterEach(() => {
+   const desvios = lerDesviosDaGuarda();
+   expect(desvios, "resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução)").toEqual([]);
+ });
++
++/*
++  E o que sair num `afterAll` do arquivo (um servidor encerrando, uma sonda final):
++  este `afterAll` é registrado antes dos do arquivo e, na ordem de pilha do vitest,
++  roda depois deles.
++*/
++afterAll(() => {
++  const desvios = lerDesviosDaGuarda();
++  expect(desvios, "resposta 401 ou 403 fora do catálogo num afterAll (guarda em tempo de execução)").toEqual([]);
++});
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+index cd606a0..aca7283 100644
+--- a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -11,7 +11,7 @@ import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-tes
+  */
+ 
+ function recusarDeFora(resposta: FastifyReply) {
+-  return resposta.code(403).send({ erro: "vazou_m16", mensagem: "x" });
++  return resposta.code(403).send({ erro: "vazou_mbg", mensagem: "x" });
+ }
+ 
+ const consoles = new Map<"falhar" | "corrigir", ConsoleDeTeste>();
+@@ -21,16 +21,35 @@ beforeAll(async () => {
+     const c = await subirConsoleDeTeste({ modoDaGuarda: modo });
+     const r = (n: string) => `/teste-da-guarda/${n}`;
+     c.app.get(r("m07"), {
+-      onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("so_o_dono", "vazou_m07") : payload),
++      onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("so_o_dono", "vazou_mah") : payload),
+     }, async (_req, resposta) => resposta.code(403).send({ erro: "so_o_dono", mensagem: "x" }));
+     c.app.get(r("m10"), async (_req, resposta) => {
+       const campo = "statusCode";
+       (resposta as unknown as Record<string, unknown>)[campo] = 401;
+-      return { erro: "vazou_m10", mensagem: "x" };
++      return { erro: "vazou_mba", mensagem: "x" };
+     });
+-    c.app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_m11", mensagem: "x" }));
++    c.app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_mbb", mensagem: "x" }));
+     c.app.get(r("m16"), async (_req, resposta) => recusarDeFora(resposta));
+     c.app.get(r("ok"), async (_req, resposta) => resposta.code(403).send({ erro: "so_o_dono", mensagem: "Frase da rota." }));
++    // Escapes da primeira guarda (um `onSend`), achados pela revisão independente na API.
++    c.app.register(async (f) => {
++      f.addHook("onRoute", (rota) => {
++        const atuais = rota.onSend === undefined ? [] : Array.isArray(rota.onSend) ? rota.onSend : [rota.onSend];
++        (rota as { onSend: unknown }).onSend = [...atuais, async (_q: unknown, rep: { statusCode: number }, p: unknown) =>
++          (rep.statusCode === 403 ? String(p).replace("so_o_dono", "vazou_eab") : p)];
++      });
++      f.get("/x", async (_q, rep) => rep.code(403).send({ erro: "so_o_dono", mensagem: "x" }));
++    }, { prefix: "/teste-da-guarda/eab" });
++    c.app.register(async (f) => {
++      f.addHook("onSend", async (req, rep) => {
++        const q = req as unknown as { passadas?: number };
++        q.passadas = (q.passadas ?? 0) + 1;
++        if (q.passadas === 1) { rep.code(500); throw new Error("vazou_eaga"); }
++        rep.code(403); throw Object.assign(new Error("vazou_eagb"), { code: "vazou_eag" });
++      });
++      f.get("/x", async () => ({ ok: true }));
++    }, { prefix: "/teste-da-guarda/eag" });
++    c.app.get(r("eaf"), async (_q, rep) => rep.code(403).type("application/json").send('{"erro":"vazou_eaf","erro":"so_o_dono"}'));
+     await c.app.ready();
+     consoles.set(modo, c);
+   }
+@@ -40,8 +59,9 @@ afterAll(async () => {
+   for (const c of consoles.values()) await c.encerrar();
+ });
+ 
+-const FORMAS: ReadonlyArray<[string, number, string]> = [
+-  ["m07", 403, "vazou_m07"], ["m10", 401, "vazou_m10"], ["m11", 403, "vazou_m11"], ["m16", 403, "vazou_m16"],
++const FORMAS: ReadonlyArray<[string, number, string | null]> = [
++  ["m07", 403, "vazou_mah"], ["m10", 401, "vazou_mba"], ["m11", 403, "vazou_mbb"], ["m16", 403, "vazou_mbg"],
++  ["eab/x", 403, "vazou_eab"], ["eag/x", 403, null], ["eaf", 403, "so_o_dono"],
+ ];
+ 
+ describe("a guarda do console", () => {
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index ce771bc..241b521 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5227 testes somando o aplicativo** (contagem estática de `npm run
++- **5255 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5227 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5255 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index 3a5fa0b..60531d4 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -31,17 +31,26 @@
+  * opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo `.mts`...).
+  *
+  * 0. `apps/api/src/guarda-de-codigos-de-erro.ts` (e a cópia do console, com o
+- *    contrato dele) é um `onSend` global e o ÚLTIMO `onSend` de cada rota,
+- *    instalado antes da primeira rota. Toda resposta 401 ou 403 que passa pelo
+- *    Fastify, venha de onde vier, tem de ter corpo JSON com `erro` deste
+- *    catálogo (ou da lista da entrada) e o status que o catálogo dá a ele. Fora
+- *    disso, em TESTE a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso
+- *    que passou por ali reprova (`test/guarda-falha-alto.ts`, em todo arquivo da
+- *    suíte); FORA de teste ela sai com o código genérico do catálogo para o
+- *    status (401 `nao_autenticado`, 403 `sem_permissao`, com a frase deste
+- *    catálogo) e o desvio vai para o log com o método, a rota e o código que
+- *    tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta as
+- *    dezesseis formas da revisão como rotas e prova os dois modos.
++ *    contrato dele) confere a resposta na resposta do Node: um `onRequest`
++ *    instalado antes de qualquer plugin e rota troca `writeHead`, `write` e
++ *    `end` daquela resposta por versões que seguram toda resposta 401 ou 403
++ *    (fora HEAD) até o fim e conferem o corpo inteiro antes de escrever. Os
++ *    ganchos, o tratador de erro, o 404, o tratador de reserva do Fastify,
++ *    `hijack` e `raw` terminam nesses três métodos. A primeira versão era um
++ *    `onSend`, e a revisão passou por ela de três jeitos (`onSend` acrescentado
++ *    depois por um `onRoute` de plugin, 404 de plugin trocado por 403, e o
++ *    tratador de reserva escrevendo direto na resposta do Node). O corpo tem de
++ *    ser JSON com UMA chave `erro` (repetida é recusada) deste catálogo (ou da
++ *    lista da entrada) e o status que o catálogo dá a ele. Fora disso, em TESTE
++ *    a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o
++ *    `afterAll`) que passou por ali reprova (`test/guarda-falha-alto.ts`, em
++ *    todo arquivo da suíte); FORA de teste ela sai com o código genérico do
++ *    catálogo para o status (401 `nao_autenticado`, 403 `sem_permissao`, com a
++ *    frase deste catálogo) e o desvio vai para o log com o método, a rota e o
++ *    código visto só se ele tiver a forma de um código (`^[a-z_]{1,64}$`).
++ *    `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas as
++ *    dezesseis formas que a varredura não lia e os escapes da primeira guarda,
++ *    e prova os dois modos.
+  *
+  * Os testes abaixo são as linhas ANTERIORES, que apontam o defeito antes de ele
+  * chegar à guarda, e nenhum dos dois é garantia sozinho.
+@@ -132,15 +141,17 @@
+  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
+  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
+  *
+- * O que NENHUMA das três linhas prende, para ninguém ler mais do que está
+- * escrito: resposta que não passa pelo Fastify, escrita direto no Node
+- * (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no SOCKET da requisição
+- * (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da revisão). A guarda não a vê;
+- * a varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`,
+- * `.connection`), mas é heurística. E código no mesmo processo que reescreve o
+- * próprio Fastify, o protótipo da resposta ou os globais ANTES de a guarda
+- * carregar (ela guarda `JSON.parse` na carga e não usa `JSON.stringify` para
+- * montar o corpo genérico, o que fecha o `JSON` trocado depois). Fora do
++ * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
++ * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
++ * revisão), que não passa pela resposta do Node, e o método do protótipo da
++ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). A
++ * varredura proíbe os dois (`.socket`, `.connection`, `.call`, `.apply`,
++ * `.bind`, `Reflect`), mas é heurística. Nenhuma das três linhas prende código
++ * no mesmo processo que troque, ANTES de a guarda carregar, as primitivas que
++ * ela usa para decidir (ela as guarda na carga e, ao decidir, só usa essas
++ * cópias, então `JSON`, `includes` ou `hasOwnProperty` trocados depois não a
++ * enganam, e o teste dela prova), nem o que troque o próprio Node ou o
++ * registrador de log. Fora do
+  * escopo: os erros de outros status (404, 409, 422, 429, 5xx) e os
+  * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
+  * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index a8cb657..4880436 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -480,8 +480,13 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     é novo, com 49 (as dezesseis formas da revisão como rotas, nos dois modos,
+     o `JSON.stringify` trocado nos dois, status trocado e 401 fora, HEAD,
+     controles e 10 casos da conferência isolada). 53 + 2 + 49 = 104.
++    Terceira parte (a guarda passou do `onSend` para a resposta do Node):
++    `guarda-de-codigos-de-erro.test.ts` vai de 49 para 71 (+16 escapes da
++    revisão da primeira guarda, +1 e08, +1 log sem dado pessoal, +1 globais
++    trocados depois da carga, e a conferência isolada troca 2 casos e ganha 3:
++    teto, chave repetida com escape e chave `erro` aninhada). 104 + 22 = 126.
+   */
+-  "V2-F00-E05-correcao-3": { total: 104, falhas: 0, puladas: 0 },
++  "V2-F00-E05-correcao-3": { total: 126, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -698,7 +703,7 @@ export const PASSOS = [
+   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
+   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
+   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
+-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 268, falhas: 0 } },
++  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 274, falhas: 0 } },
+   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
+   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
+   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

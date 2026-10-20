@@ -31,17 +31,26 @@
  * opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo `.mts`...).
  *
  * 0. `apps/api/src/guarda-de-codigos-de-erro.ts` (e a cópia do console, com o
- *    contrato dele) é um `onSend` global e o ÚLTIMO `onSend` de cada rota,
- *    instalado antes da primeira rota. Toda resposta 401 ou 403 que passa pelo
- *    Fastify, venha de onde vier, tem de ter corpo JSON com `erro` deste
- *    catálogo (ou da lista da entrada) e o status que o catálogo dá a ele. Fora
- *    disso, em TESTE a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso
- *    que passou por ali reprova (`test/guarda-falha-alto.ts`, em todo arquivo da
- *    suíte); FORA de teste ela sai com o código genérico do catálogo para o
- *    status (401 `nao_autenticado`, 403 `sem_permissao`, com a frase deste
- *    catálogo) e o desvio vai para o log com o método, a rota e o código que
- *    tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta as
- *    dezesseis formas da revisão como rotas e prova os dois modos.
+ *    contrato dele) confere a resposta na resposta do Node: um `onRequest`
+ *    instalado antes de qualquer plugin e rota troca `writeHead`, `write` e
+ *    `end` daquela resposta por versões que seguram toda resposta 401 ou 403
+ *    (fora HEAD) até o fim e conferem o corpo inteiro antes de escrever. Os
+ *    ganchos, o tratador de erro, o 404, o tratador de reserva do Fastify,
+ *    `hijack` e `raw` terminam nesses três métodos. A primeira versão era um
+ *    `onSend`, e a revisão passou por ela de três jeitos (`onSend` acrescentado
+ *    depois por um `onRoute` de plugin, 404 de plugin trocado por 403, e o
+ *    tratador de reserva escrevendo direto na resposta do Node). O corpo tem de
+ *    ser JSON com UMA chave `erro` (repetida é recusada) deste catálogo (ou da
+ *    lista da entrada) e o status que o catálogo dá a ele. Fora disso, em TESTE
+ *    a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o
+ *    `afterAll`) que passou por ali reprova (`test/guarda-falha-alto.ts`, em
+ *    todo arquivo da suíte); FORA de teste ela sai com o código genérico do
+ *    catálogo para o status (401 `nao_autenticado`, 403 `sem_permissao`, com a
+ *    frase deste catálogo) e o desvio vai para o log com o método, a rota e o
+ *    código visto só se ele tiver a forma de um código (`^[a-z_]{1,64}$`).
+ *    `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas as
+ *    dezesseis formas que a varredura não lia e os escapes da primeira guarda,
+ *    e prova os dois modos.
  *
  * Os testes abaixo são as linhas ANTERIORES, que apontam o defeito antes de ele
  * chegar à guarda, e nenhum dos dois é garantia sozinho.
@@ -132,15 +141,17 @@
  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
  *
- * O que NENHUMA das três linhas prende, para ninguém ler mais do que está
- * escrito: resposta que não passa pelo Fastify, escrita direto no Node
- * (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no SOCKET da requisição
- * (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da revisão). A guarda não a vê;
- * a varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`,
- * `.connection`), mas é heurística. E código no mesmo processo que reescreve o
- * próprio Fastify, o protótipo da resposta ou os globais ANTES de a guarda
- * carregar (ela guarda `JSON.parse` na carga e não usa `JSON.stringify` para
- * montar o corpo genérico, o que fecha o `JSON` trocado depois). Fora do
+ * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
+ * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
+ * revisão), que não passa pela resposta do Node, e o método do protótipo da
+ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). A
+ * varredura proíbe os dois (`.socket`, `.connection`, `.call`, `.apply`,
+ * `.bind`, `Reflect`), mas é heurística. Nenhuma das três linhas prende código
+ * no mesmo processo que troque, ANTES de a guarda carregar, as primitivas que
+ * ela usa para decidir (ela as guarda na carga e, ao decidir, só usa essas
+ * cópias, então `JSON`, `includes` ou `hasOwnProperty` trocados depois não a
+ * enganam, e o teste dela prova), nem o que troque o próprio Node ou o
+ * registrador de log. Fora do
  * escopo: os erros de outros status (404, 409, 422, 429, 5xx) e os
  * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
  * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o

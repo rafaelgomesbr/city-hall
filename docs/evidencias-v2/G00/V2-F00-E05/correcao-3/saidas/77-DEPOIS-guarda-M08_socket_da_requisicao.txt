@@ -1,12 +1,10 @@
 == M08_socket_da_requisicao
-inject (falhar, coordenador): 500 {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"3dd04f95-cc22-4e6c-b350-909694946235"}
+inject (falhar, coordenador): 500 {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"c0999970-0a1c-4127-9849-77af876475ea"}
 inject (falhar, agente): 403 {"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para gerenciar equipes."}
 desvios registrados (falhar): []
 log do desvio (falhar): []
-inject (corrigir, coordenador): 500 {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"a048b3a6-7176-4269-9d0c-fe812f550cfa"}
+inject (corrigir, coordenador): 500 {"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"67709c91-2783-4626-b804-1c032b393175"}
 inject (corrigir, agente): 403 {"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para gerenciar equipes."}
 desvios registrados (corrigir): []
 log do desvio (corrigir): []
 http real (corrigir, porta 5310): 403 {"erro":"vazou_m08"}
-varredura: VERMELHA
-      Tests  1 failed | 170 skipped (171)

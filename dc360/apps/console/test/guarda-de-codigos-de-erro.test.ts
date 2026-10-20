@@ -11,7 +11,7 @@ import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-tes
  */
 
 function recusarDeFora(resposta: FastifyReply) {
-  return resposta.code(403).send({ erro: "vazou_m16", mensagem: "x" });
+  return resposta.code(403).send({ erro: "vazou_mbg", mensagem: "x" });
 }
 
 const consoles = new Map<"falhar" | "corrigir", ConsoleDeTeste>();
@@ -21,16 +21,35 @@ beforeAll(async () => {
     const c = await subirConsoleDeTeste({ modoDaGuarda: modo });
     const r = (n: string) => `/teste-da-guarda/${n}`;
     c.app.get(r("m07"), {
-      onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("so_o_dono", "vazou_m07") : payload),
+      onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("so_o_dono", "vazou_mah") : payload),
     }, async (_req, resposta) => resposta.code(403).send({ erro: "so_o_dono", mensagem: "x" }));
     c.app.get(r("m10"), async (_req, resposta) => {
       const campo = "statusCode";
       (resposta as unknown as Record<string, unknown>)[campo] = 401;
-      return { erro: "vazou_m10", mensagem: "x" };
+      return { erro: "vazou_mba", mensagem: "x" };
     });
-    c.app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_m11", mensagem: "x" }));
+    c.app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_mbb", mensagem: "x" }));
     c.app.get(r("m16"), async (_req, resposta) => recusarDeFora(resposta));
     c.app.get(r("ok"), async (_req, resposta) => resposta.code(403).send({ erro: "so_o_dono", mensagem: "Frase da rota." }));
+    // Escapes da primeira guarda (um `onSend`), achados pela revisão independente na API.
+    c.app.register(async (f) => {
+      f.addHook("onRoute", (rota) => {
+        const atuais = rota.onSend === undefined ? [] : Array.isArray(rota.onSend) ? rota.onSend : [rota.onSend];
+        (rota as { onSend: unknown }).onSend = [...atuais, async (_q: unknown, rep: { statusCode: number }, p: unknown) =>
+          (rep.statusCode === 403 ? String(p).replace("so_o_dono", "vazou_eab") : p)];
+      });
+      f.get("/x", async (_q, rep) => rep.code(403).send({ erro: "so_o_dono", mensagem: "x" }));
+    }, { prefix: "/teste-da-guarda/eab" });
+    c.app.register(async (f) => {
+      f.addHook("onSend", async (req, rep) => {
+        const q = req as unknown as { passadas?: number };
+        q.passadas = (q.passadas ?? 0) + 1;
+        if (q.passadas === 1) { rep.code(500); throw new Error("vazou_eaga"); }
+        rep.code(403); throw Object.assign(new Error("vazou_eagb"), { code: "vazou_eag" });
+      });
+      f.get("/x", async () => ({ ok: true }));
+    }, { prefix: "/teste-da-guarda/eag" });
+    c.app.get(r("eaf"), async (_q, rep) => rep.code(403).type("application/json").send('{"erro":"vazou_eaf","erro":"so_o_dono"}'));
     await c.app.ready();
     consoles.set(modo, c);
   }
@@ -40,8 +59,9 @@ afterAll(async () => {
   for (const c of consoles.values()) await c.encerrar();
 });
 
-const FORMAS: ReadonlyArray<[string, number, string]> = [
-  ["m07", 403, "vazou_m07"], ["m10", 401, "vazou_m10"], ["m11", 403, "vazou_m11"], ["m16", 403, "vazou_m16"],
+const FORMAS: ReadonlyArray<[string, number, string | null]> = [
+  ["m07", 403, "vazou_mah"], ["m10", 401, "vazou_mba"], ["m11", 403, "vazou_mbb"], ["m16", 403, "vazou_mbg"],
+  ["eab/x", 403, "vazou_eab"], ["eag/x", 403, null], ["eaf", 403, "so_o_dono"],
 ];
 
 describe("a guarda do console", () => {

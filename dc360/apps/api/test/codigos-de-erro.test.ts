@@ -629,10 +629,11 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
         porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
       },
       {
-        arquivo: /[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
-        porque: "é a GUARDA em tempo de execução: o `onSend` que confere toda resposta 401 ou 403 contra o "
-          + "catálogo e troca o desvio pelo código genérico (ou por 500, em teste). É ela que reescreve, e "
-          + "só com códigos do catálogo (`test/guarda-de-codigos-de-erro.test.ts`)",
+        arquivo: /apps[\\/]api[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "*",
+        porque: "é a GUARDA em tempo de execução: envolve `writeHead`, `write` e `end` da resposta do Node "
+          + "(`.raw`) para conferir toda resposta 401 ou 403 contra o catálogo e trocar o desvio pelo código "
+          + "genérico (ou por 500, em teste). Mexer na resposta crua é o trabalho dela; quem a prova é "
+          + "`test/guarda-de-codigos-de-erro.test.ts`, não esta varredura",
       },
       {
         arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
@@ -652,9 +653,9 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
     catalogo: {},
     aceitosAlemDoCatalogo: CONTRATO_DO_CONSOLE,
     repasses: [{
-      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
-      porque: "é a guarda em tempo de execução do console: o `onSend` que confere toda resposta 401 ou 403 "
-        + "contra o contrato e troca o desvio pelo código genérico (ou por 500, em teste)",
+      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "*",
+      porque: "é a guarda em tempo de execução do console, que envolve a resposta do Node de propósito; "
+        + "quem a prova é `apps/console/test/guarda-de-codigos-de-erro.test.ts`",
     }, {
       arquivo: /console[\\/]src[\\/]servidor\.ts$/, chave: "recusa.corpo",
       porque: "o corpo vem de `traduzirRecusaDoBanco`, cujos literais (`so_o_dono` 403, `acao_recusada` 409) "
@@ -977,6 +978,11 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(reprovacoes(varrerFonte(apns, "src/push/apns.ts"), REGRAS_DA_API)).toEqual([]);
       expect(reprovacoes(varrerFonte('const r = { status, corpo };', "src/push/apns.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
       expect(reprovacoes(varrerFonte(apns, "src/rotas/outra.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
+      // O repasse do arquivo inteiro vale só para o módulo da guarda, e não para outro arquivo de `src`.
+      const cru = 'resposta.raw.writeHead(403); resposta.raw.end(\'{"erro":"novo"}\');';
+      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/guarda-de-codigos-de-erro.ts"), REGRAS_DA_API)).toEqual([]);
+      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/rotas/guarda-de-codigos-de-erro-falsa.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
+      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/outra/guarda-de-codigos-de-erro.ts.bak"), REGRAS_DA_API).length).toBeGreaterThan(0);
       const ruim = 'resposta.code(Number("403")).send({ erro: "corpo_invalido", mensagem: "x" });';
       expect(reprovacoes(varrerFonte(ruim, "src/servidor.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
     });

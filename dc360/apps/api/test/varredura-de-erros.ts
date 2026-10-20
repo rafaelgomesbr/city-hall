@@ -941,6 +941,11 @@ export function varrerPasta(...pastas: string[]): Varredura {
  * decide. `chave` é o código literal ou a expressão, como a varredura a vê.
  */
 export type Repasse = {
+  /**
+   * `chave: "*"` libera o ARQUIVO INTEIRO. Só serve para o módulo da própria guarda
+   * em tempo de execução, que mexe na resposta do Node de propósito e é provado pelos
+   * testes dela, não por esta varredura.
+   */
   arquivo: RegExp; chave: string; porque: string;
   /** Exige que o objeto de `X.codigo` venha de onde foi conferido (`parametro-do-tratador`, `new:Classe`). */
   origem?: string;
@@ -968,7 +973,8 @@ export function reprovacoes(v: Varredura, regras: RegrasDeConferencia): string[]
   const aceitos = { ...regras.aceitosAlemDoCatalogo, ...regras.catalogo };
 
   const repassado = (e: { arquivo: string; chave: string | null; origem?: string | null; statusOrigem?: string | null }) =>
-    e.chave !== null && regras.repasses.some((r) =>
+    regras.repasses.some((r) => r.arquivo.test(e.arquivo) && r.chave === "*")
+    || e.chave !== null && regras.repasses.some((r) =>
       r.arquivo.test(e.arquivo) && r.chave === e.chave
       && (r.origem === undefined || r.origem === e.origem)
       && (r.statusOrigem === undefined || r.statusOrigem === e.statusOrigem));

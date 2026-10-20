@@ -3,7 +3,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
-// Antes das rotas, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
+// Antes das rotas, de propósito: a guarda copia as primitivas que usa na carga do módulo.
 import {
   CONTRATO_DE_ACESSO_DA_API, GENERICO_DA_API, instalarGuardaDeAcesso, type ModoDaGuarda,
 } from "./guarda-de-codigos-de-erro.js";

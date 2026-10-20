@@ -1,5 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
-// Antes do resto, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
+// Antes do resto, de propósito: a guarda copia as primitivas que usa na carga do módulo.
 import {
   CONTRATO_DE_ACESSO_DO_CONSOLE, GENERICO_DO_CONSOLE, instalarGuardaDeAcesso, type ModoDaGuarda,
 } from "./guarda-de-codigos-de-erro.js";

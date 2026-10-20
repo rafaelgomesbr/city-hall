@@ -1,81 +1,120 @@
-# V2-F00-E05, correção 3: a garantia do catálogo passa a ser uma guarda em tempo de execução
+# V2-F00-E05, correção 3: a garantia do catálogo passa a ser uma guarda na resposta do Node
 
 Base: `ca5a38f`, ramo `trab/correcao-5` (correção 4 da E09 sobre `4ce0433`). Motivo: red-team da rodada 5 (SHA `4ce0433`), achado 1, bloqueante: quatro formas de responder 403 com código fora do catálogo passavam caladas pela varredura `apps/api/test/varredura-de-erros.ts` e pela prova dinâmica, desmentindo o cabeçalho de `packages/shared/src/codigos-de-erro.ts` e o README.
 
-A correção tem duas partes, em dois commits do mesmo ramo. A primeira (`c55bb43`) endureceu a varredura contra as quatro formas e a família delas. Uma revisão independente (Opus) plantou depois dezesseis formas NOVAS que a varredura endurecida ainda não lia, e mostrou que o texto ("o que sobra se resume a duas formas") era falso. A segunda parte (este commit) muda a garantia: ela passa a ser uma guarda que confere a RESPOSTA em tempo de execução, e a varredura vira a primeira linha, declarada heurística.
+A correção tem três partes, em três commits do mesmo ramo:
+
+1. `c55bb43` endureceu a varredura.
+2. `7618b89` trocou a garantia por uma guarda `onSend`, depois que uma revisão independente plantou dezesseis formas que a varredura endurecida não lia.
+3. Este commit move a guarda para a resposta do Node, depois que uma segunda revisão independente passou pelo `onSend` de três jeitos. Ele também tira dado pessoal do log e corrige o texto que prometia demais.
 
 ## Fatos
 
-### Parte 2: a guarda em tempo de execução
+Patches: `diff-da-correcao-parte-1.patch` (`ca5a38f` a `c55bb43`), `diff-da-correcao-parte-2.patch` (`c55bb43` a `7618b89`) e `diff-da-correcao-parte-3.patch` (este commit). Os três ficam separados porque, entre a parte 2 e a parte 3, a E15 commitou no mesmo ramo, e o diff único levaria as mudanças dela.
 
-**O defeito que a revisão provou** (`saidas/07`, cópia do relatório dela): com `c55bb43`, dezesseis formas plantadas em `POST /orgaos`, todas com `tsc` limpo, deixavam a varredura da API verde e faziam o servidor responder 403 com código fora do catálogo: M01 `new mod[k](...)`, M02 `new (e.constructor)(...)`, M03 `e[campo] = "x"`, M04 `Object` apelidado, M05 `globalThis.Object.defineProperty`, M06 membro `"codigo"` entre aspas, M07 `onSend` nas opções da rota, M08 escrita no socket, M09 `JSON.stringify` trocado, M10 `resposta[campo] = 403` com o corpo no `return`, M11 `code(200).code(403)`, M12 `Proxy` no erro, M13 parâmetro desestruturado homônimo, M14 variável de laço homônima, M15 `status` escrito por chave, M16 arquivo `.mts`.
+### Parte 3 (este commit): a guarda na resposta do Node
+
+**O que a segunda revisão provou** contra `7618b89`. Os arquivos exatos dela estão em `scripts/zz-revisao-escape.test.ts` e `scripts/orgaos.ts.plantado-p1-p3b`; as saídas dela em `saidas/08` e `saidas/09`.
+
+- **Bloqueante:**
+  - P1/e01: um `onRoute` do próprio plugin de rotas acrescenta um `onSend` DEPOIS da guarda; `GET /orgaos` saía 401 `vazou_p1` nos dois modos, com 0 desvios.
+  - P3/e04: `setNotFoundHandler` do plugin mais um `onSend` do contexto trocando o 404 por 403 `vazou_p3b`.
+  - e06: um `onSend` que lança duas vezes faz o tratador de reserva do Fastify escrever direto na resposta do Node um 403 com `code: "vazou_e06"`.
+- **Para corrigir agora:**
+  - o log de produção gravava o `erroVisto` inteiro (e-mail e CPF plantados, 5342 bytes);
+  - o texto dizia "por qualquer caminho" e "último `onSend`", e falava de "globais trocados ANTES"; mas `includes` e `hasOwnProperty` trocados DEPOIS também enganavam a guarda.
+- **Anotado:**
+  - chave `erro` repetida (`{"erro":"vazou","erro":"sem_permissao"}`) passava;
+  - desvio dentro de `afterAll` nunca era lido.
 
 **O que mudou.**
 
-- `apps/api/src/guarda-de-codigos-de-erro.ts` (novo): um gancho `onSend` instalado logo depois de `Fastify()`, antes da primeira rota, em dois lugares: global (pega o 404 do roteador e o que não tem rota) e como ÚLTIMO `onSend` de cada rota, acrescentado por um `onRoute`. O Fastify roda os ganchos do contexto antes dos das opções da rota, e por isso só no fim da lista da rota ela vê o corpo depois de um `onSend` posto nas opções (M07). Para toda resposta 401 ou 403, o corpo tem de ser JSON com `erro` do catálogo ou da lista da entrada E o status que o catálogo dá ao código (`acesso_suspenso` 403 ou 503). Fora disso:
-  - modo `"falhar"` (padrão quando `NODE_ENV=test`): a resposta vira 500 `desvio_do_catalogo_de_erro`, com método, rota e motivo na mensagem, e o desvio fica registrado;
-  - modo `"corrigir"` (padrão fora de teste): a resposta sai com o código genérico do catálogo para o status, 401 `nao_autenticado` ou 403 `sem_permissao`, com a frase do catálogo. O desvio vai para o log (`desvioDoCatalogo`: método, rota no molde e não a barra de endereço, status, código visto e motivo).
-  - A guarda guarda `JSON.parse` na carga do módulo e monta o corpo genérico sem `JSON.stringify`, para um `JSON` trocado depois não a enganar (M09).
-  - HEAD é deixado passar: o HTTP não leva corpo nele, e o GET gêmeo da mesma rota é conferido. Achado ao rodar `test:api`: as sondas HEAD de `acesso-suspenso.test.ts` e `get-com-efeito.test.ts` caíam como "resposta sem corpo".
-- `apps/api/src/servidor.ts`: instala a guarda com o contrato da API. `Dependencias.modoDaGuarda` é opcional, e só o teste da guarda o passa, para provar o modo de produção.
-- `apps/api/test/guarda-falha-alto.ts` (novo, em `setupFiles` de `apps/api/vitest.config.ts`): depois de CADA caso da suíte da API, lê os desvios registrados e reprova se houver algum. Assim, todo teste que passar por uma resposta 401 ou 403 fora do catálogo reprova, confira ele o que conferir.
-- Console do fornecedor: a mesma guarda em `apps/console/src/guarda-de-codigos-de-erro.ts`. É uma cópia, porque o console é outro processo com outro deploy e não depende de pacote do produto em tempo de execução. Usa o contrato do console (`CONTRATO_DE_ACESSO_DO_CONSOLE`, que saiu do teste da varredura e agora é importado por ele) e o genérico 401 `sem_sessao` / 403 `so_o_dono`. Também ganhou `setupFiles` com `test/apoio/guarda-falha-alto.ts` e o parâmetro `modoDaGuarda` em `subirConsoleDeTeste`.
-- Varredura (`apps/api/test/varredura-de-erros.ts`), três ajustes:
-  - `.socket` e `.connection` reprovam, porque a escrita no socket (M08) é a forma que a guarda não vê;
-  - no `code(...)` repetido numa cadeia vale o mais perto do `send` (M11);
-  - o problema do `addHook` passou a ter chave (`gancho:<tipo>:<callback>`), para a própria guarda entrar como repasse conferido, na API e no console.
-  - O cabeçalho dela diz que ela é heurística.
-- Documentação: o cabeçalho do catálogo e o README ("Códigos de erro de acesso") dizem que a garantia é a guarda, que a varredura e a prova dinâmica são linhas anteriores e nenhuma é garantia sozinha. O "se resume a duas formas" saiu. O que nenhuma das três cobre ficou nomeado:
-  - resposta que não passa pelo Fastify: `raw`, `hijack`, `writeHead` e o socket. A guarda não a vê; a varredura a proíbe, mas é heurística;
-  - código no mesmo processo que reescreve o Fastify, o protótipo da resposta ou os globais ANTES de a guarda carregar.
+- `apps/api/src/guarda-de-codigos-de-erro.ts` reescrita. Um `onRequest`, instalado logo depois de `Fastify()` e antes de qualquer plugin e rota, troca `writeHead`, `write` e `end` NA resposta do Node de cada pedido. Os três substitutos são propriedades não configuráveis e não graváveis (nem `delete` nem atribuição os desfazem).
+  - Com status 401 ou 403 (fora HEAD), eles seguram o cabeçalho e o corpo até o `end`, conferem o corpo inteiro e só então escrevem. O status vem de `writeHead` ou, no cabeçalho implícito, de `statusCode`.
+  - Todo caminho do Fastify termina nesses três métodos: ganchos, tratador de erro, 404, tratador de reserva, `hijack` e `raw`. Os ganchos `onSend` da versão anterior saíram.
+  - Regras da conferência:
+    - corpo JSON com UMA chave `erro`, contada em qualquer profundidade e com escape decodificado, porque o leitor do cliente pode ficar com a primeira;
+    - o código tem de estar no catálogo ou na entrada, com o status do catálogo;
+    - corpo acima de 64 KiB é desvio.
+  - Modo `"falhar"` (teste): 500 `desvio_do_catalogo_de_erro` e o desvio registrado. Modo `"corrigir"`: o código genérico do status. Os cabeçalhos do corpo (`content-length`, `content-type`, `transfer-encoding`, `content-encoding`) são refeitos.
+  - O log grava o código visto só se casar com `^[a-z_]{1,64}$`; senão grava o marcador `[fora da forma de um código, não registrado]`. O e17 da revisão (e-mail, CPF e 5000 caracteres) passou de 5342 para 340 bytes no log, sem o dado.
+- Primitivas copiadas na carga do módulo: `JSON.parse`, `Reflect.apply`, `Object.defineProperty`, `Object.keys`, `hasOwnProperty`, `RegExp.exec`, `Array.isArray`, `Buffer.from`/`concat`/`byteLength`/`toString`, `String.charCodeAt`/`fromCharCode`/`toLowerCase` e `process.nextTick`.
+  - No caminho da decisão, só essas cópias são chamadas: sem `includes`, sem `JSON.stringify`, sem iterador nem espalhamento de array.
+  - O corpo genérico é montado à mão, sem `JSON.stringify` nem `replace`.
+- A mesma guarda na cópia do console, com o contrato dele.
+- `test/guarda-falha-alto.ts` (API) e `test/apoio/guarda-falha-alto.ts` (console) ganharam um `afterAll`, que pega desvio saído num `afterAll` do arquivo. Pela ordem de pilha do vitest, ele roda depois dos do arquivo.
+- Varredura: o repasse aceita `chave: "*"` para liberar um ARQUIVO INTEIRO. Isso vale só para os dois módulos da guarda (ela mexe em `.raw` de propósito), e o teste prova que não vale para outro arquivo.
+- Cabeçalho do catálogo, README, cabeçalhos dos módulos e dos testes: descrevem a conferência na resposta do Node. O "por qualquer caminho", o "último `onSend`" e o "ANTES de a guarda carregar" saíram. O que a guarda não vê ficou escrito:
+  - escrita no socket, que não passa pela resposta do Node;
+  - método do protótipo chamado por fora da instância (`.call`, `.apply`, `Reflect`).
+
+  A varredura proíbe os dois, mas é heurística. Nenhuma linha prende código que troque as primitivas antes da carga, o próprio Node ou o registrador de log.
 
 **A guarda morde.**
 
-- `apps/api/test/guarda-de-codigos-de-erro.test.ts` (novo, 49 casos):
-  - as dezesseis formas como rotas de verdade no servidor real (M08 fica de fora: é a que a guarda não vê; M16 é uma função de fora do arquivo da rota), mais "sem corpo" e "texto";
-  - em modo `"falhar"`, cada uma sai 500 `desvio_do_catalogo_de_erro` com o desvio registrado (rota e código visto); em modo `"corrigir"`, cada uma sai 403 `sem_permissao` com a frase do catálogo, `content-type` JSON, e o desvio no log com a rota;
-  - também: M09 com `JSON.stringify` trocado nos dois modos, código do catálogo com status trocado, 401 fora (vira `nao_autenticado`), HEAD, controles (catálogo, entrada, 503 `acesso_suspenso` e 200 passam intactos) e 10 casos da conferência do corpo isolada.
-  - Com a guarda DESLIGADA (uma linha temporária de prova, já removida): 36 falham e 13 passam (`saidas/06`). Os 13 que passam são os 10 da conferência isolada, os controles e o HEAD.
-- `apps/console/test/guarda-de-codigos-de-erro.test.ts` (novo, 9 casos): M07, M10 (401), M11 e M16 nos dois modos, e o controle.
-- As dezesseis formas da revisão, plantadas uma a uma no `rotas/orgaos.ts` REAL com o script dela (`scripts/mutacoes-da-revisao.mjs`; `scripts/plantar-e-pedir.mjs` planta, sobe a API nos dois modos com `scripts/servidor-com-guarda.mts`, pede `POST /orgaos` como coordenador e como agente de campo, roda a varredura e restaura; saídas `70` a `85`):
-  - 15 de 16 são pegas pela guarda nos dois modos. Em teste, 500 `desvio_do_catalogo_de_erro` com o desvio registrado; em produção, 403 `sem_permissao` com o desvio no log. M07 e M09 aparecem pelo agente, que é quem recebe o 403 que elas reescrevem. M11 também por HTTP de verdade (porta 5311): 403 `sem_permissao`.
-  - M08 (socket) NÃO é pego pela guarda: por HTTP de verdade (porta 5310) sai `403 {"erro":"vazou_m08"}`. Pelo `inject` sai 500. Ele é pego pela varredura, que agora reprova `.socket` (VERMELHA na saída `77`).
-  - A varredura fica VERDE em 14 das 16 e VERMELHA em M08 e M11. É exatamente o que a torna heurística, e não garantia.
+- `apps/api/test/guarda-de-codigos-de-erro.test.ts`: de 49 para 71 casos.
+  - Entram os dezesseis escapes da revisão, com a função de plantio dela copiada sem mudar uma linha. Em teste, cada um sai 500 com 1 desvio; em produção sai 401 `nao_autenticado` ou 403 `sem_permissao`.
+  - Também entram: o e08 (500 `erro_interno`, que não é de acesso), o e17 (log sem o dado), e `includes`, `hasOwnProperty`, `JSON.parse` e `JSON.stringify` trocados com o servidor de pé (a guarda não é enganada).
+  - Na conferência isolada entram a chave repetida (com e sem escape), a chave `erro` aninhada e o teto.
+  - Com a guarda DESLIGADA: 54 falham e 17 passam (`saidas/06`).
+- `apps/console/test/guarda-de-codigos-de-erro.test.ts`: de 9 para 15. Entram e01 (`onRoute` de plugin), e06 (`onSend` que lança duas vezes) e e15 (chave repetida), nos dois modos.
+- Os arquivos EXATOS da revisão, rodados contra este commit:
+  - `zz-revisao-escape.test.ts`, posto em `apps/api/test/` só durante a execução e apagado depois: todos os 17 casos saem "pego", em teste e em produção, e o e08 continua 500 (`saidas/90`; antes, `saidas/08`).
+  - `orgaos.ts.plantado-p1-p3b`, copiado sobre `rotas/orgaos.ts` e restaurado, com `scripts/sonda-p1-p3b.mts`: P1 e P3b saem 500 com 1 desvio em teste, e 401 `nao_autenticado` / 403 `sem_permissao` em produção, com o desvio no log (`saidas/91`; antes, `saidas/09`).
+- As dezesseis formas da primeira revisão, de novo no `rotas/orgaos.ts` real (`saidas/70` a `85`):
+  - 15 são pegas nos dois modos;
+  - M08 (socket) continua saindo `403 {"erro":"vazou_m08"}` por HTTP de verdade (porta 5310), e é a varredura que o reprova (`.socket`).
+
+### Parte 2 (`7618b89`): a guarda como `onSend`
+
+- A primeira revisão independente (`saidas/07`, relatório dela) plantou contra `c55bb43` dezesseis formas que deixavam a varredura verde e respondiam 403 fora do catálogo:
+  - M01 `new mod[k](...)`, M02 `new (e.constructor)(...)`, M03 `e[campo] = "x"`, M04 `Object` apelidado;
+  - M05 `globalThis.Object.defineProperty`, M06 membro `"codigo"` entre aspas, M07 `onSend` nas opções da rota, M08 socket;
+  - M09 `JSON.stringify` trocado, M10 `resposta[campo] = 403`, M11 `code(200).code(403)`, M12 `Proxy`;
+  - M13 parâmetro desestruturado homônimo, M14 variável de laço homônima, M15 `status` por chave, M16 arquivo `.mts`.
+- A parte 2 criou a guarda (então um `onSend` global e o último `onSend` de cada rota), os dois modos, o "falha alto" em `setupFiles` da API e do console, e o contrato do console no próprio console. Também trouxe três ajustes na varredura: `.socket`/`.connection` reprovam, vale o `code` mais perto do `send`, e o `addHook` ganhou chave.
+- A parte 3 trocou o mecanismo, não o contrato nem os modos.
 
 ### Parte 1 (`c55bb43`): a varredura contra as quatro formas do red-team
 
-- As quatro formas, reproduzidas em `ca5a38f` com o script do red-team (`scripts/mutar-e05.mjs`, sem alteração): A (`recusa.erro = "x"` depois de declarar), B (`let` reatribuída), C (`resposta["code"](403)["send"](...)`) e N (`statusCode` abreviado com `code: "FST_ERR_CTP_*"`) deixavam `tsc` 0 e `codigos-de-erro.test.ts` 116 de 116 (`saidas/01` a `04`).
-- Regras novas da varredura, todas falhando para o lado seguro:
-  - corpo por nome só lido quando resolve, pelo escopo, a um `const` não exportado, com objeto literal e só lido no arquivo;
-  - escrita em `erro`/`corpo` por qualquer forma;
-  - colchete nos nomes lidos com ponto, chamada por chave calculada, `.send` sem ser chamado, `.call`/`.apply`/`.bind`;
-  - `statusCode` abreviado, por método ou por acessor; chave calculada que não resolve; texto com `FST_`; classe forjada (`setPrototypeOf`, `Object.create`, `__proto__`, `extends` de expressão);
-  - `toJSON`, serializador, `eval`, `Function`, `redirect` fora de 3xx.
-  - Seis repasses conferidos no fonte real, cada um com o porquê.
-- As nove mutações do script do red-team reprovam (`saidas/30` a `38`), e a prova dinâmica continua verde sob as quatro (`saidas/40` a `43`). Estas saídas são do estado `c55bb43`: "7 failed | 162 passed (169)" é a varredura da API mais os seis casos em memória cuja âncora some com o disco mutado.
+- As formas A (campo trocado), B (`let` reatribuída), C (colchete) e N (`statusCode` abreviado com `FST_ERR_CTP_*`) passavam em `ca5a38f` (`saidas/01` a `04`).
+- A varredura ganhou regras que falham para o lado seguro (corpo por constante só lido pelo escopo, escrita em `erro`/`corpo`, colchete, `.call`/`.apply`/`.bind`, chave calculada, `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`), mais seis repasses conferidos.
+- As nove mutações do script do red-team reprovam (`saidas/30` a `43`, estado `c55bb43`).
 
-### Números e regressão (estado final, neste worktree, máquina sob carga de outra sessão)
+### Números e regressão (estado final, neste worktree, máquina sob carga de outras sessões)
 
-- `codigos-de-erro.test.ts`: 116 em `ca5a38f`, 171 agora. A parte 1 deu +53 e a parte 2 deu +2 (S7 socket, S8 `code(200).code(403)`).
-  - Contra a varredura de `ca5a38f` (`saidas/05`): 50 falham e 121 passam. Falham as 6 mutações reais, 42 formas da família e os 2 casos do fonte real (API e console). Os dois últimos falham porque a varredura antiga não tem chave no problema do `addHook`, e a guarda é um `onSend`.
-- Testes novos: `guarda-de-codigos-de-erro.test.ts` 49 (API) e 9 (console). `scripts/baseline.mjs`: a entrada `V2-F00-E05-correcao-3` da API vai a `total: 104` (53 + 2 + 49), e o passo `teste-console` vai de 259 para 268.
-- `npm run test:api`: 106 arquivos, 1568 passados e 34 pulados, código 0 (`saidas/60`). A primeira rodada com a guarda reprovou 5 casos de dois arquivos, todos sonda HEAD; foi o que levou à regra do HEAD acima.
-- `npm run test --workspace @dc360/shared`: 185 de 185 (`saidas/61`). `npm run test --workspace @dc360/console`: 268 de 268 (`saidas/62`).
-- `npm run typecheck`: código 0 (`saidas/63`). Os arquivos de teste novos e alterados (API e console) não entram nos `tsconfig` dos pacotes. Foram conferidos à parte, com `tsconfig` temporários que os incluem: código 0 nos dois, e os temporários foram apagados.
-- `npm run conferir:numeros`: código 0 (`saidas/64`), depois de README (1568 testes da API, 268 do console, 3285 em seis pacotes) e `docs/COLOCAR-DE-PE.md` (5217).
+- `codigos-de-erro.test.ts`: 171 casos. Contra a varredura de `ca5a38f` (`saidas/05`), 51 falham e 120 passam. Falham:
+  - as 6 mutações reais e as 42 formas da família que ela não lia;
+  - os 2 casos do fonte real (sem a chave do `addHook` e sem o repasse de arquivo inteiro, os módulos da guarda reprovam);
+  - o caso do repasse por arquivo.
+- `guarda-de-codigos-de-erro.test.ts`: 71 na API e 15 no console.
+- `scripts/baseline.mjs`: `V2-F00-E05-correcao-3` vai a `total: 126` na API (53 + 2 + 49 + 22), e o passo `teste-console` vai a 274.
+- `npm run test:api`: 106 arquivos, 1590 passados e 34 pulados, código 0. Inclui a prova dinâmica, cujos pedidos passam todos pela guarda em modo "falhar" sem nenhum desvio (o apoio de "falha alto" reprovaria; `saidas/60`).
+- `npm run test --workspace @dc360/shared`: 185 de 185 (`saidas/61`). Console: 274 de 274 (`saidas/62`).
+- `npm run typecheck`: código 0 (`saidas/63`). Os testes novos e alterados da API e do console, que não entram nos `tsconfig` dos pacotes, foram conferidos com `tsconfig` temporários: código 0 nos dois, e os temporários foram apagados.
+- `npm run conferir:numeros`: código 0 (`saidas/64`), depois de README (1590 da API, 274 do console, 3313 em seis pacotes) e `docs/COLOCAR-DE-PE.md` (5255).
 - Portão de conteúdo: 10 de 10 (`saidas/65`).
-- `node scripts/conferir-indices-de-evidencia.mjs` (a partir de `dc360/`): rodado depois de refazer os índices, "RESULTADO: OK". A saída não é arquivada, porque um arquivo não consegue conter a conferência do índice que o lista.
+- `node scripts/conferir-indices-de-evidencia.mjs`: "RESULTADO: OK" depois de refazer os índices. Não é arquivado, porque um arquivo não consegue conter a conferência do índice que o lista.
 
 **Limitações.**
 
 - A guarda vale só para 401 e 403. Os outros status são da V2-F02-E03.
-- A guarda não vê resposta escrita fora do Fastify (socket, `raw`, `hijack`, `writeHead`), nem código do mesmo processo que reescreva o Fastify ou os globais antes de ela carregar. A varredura proíbe as quatro primeiras, mas é heurística.
-- A guarda do console é uma cópia da da API. As duas são presas por testes próprios, mas uma mudança numa não muda a outra.
-- `test:isolamento`, painel e campo não foram rodados. A guarda só reescreve respostas 401 e 403 fora do catálogo, e a suíte da API inteira, que passa por todas as rotas, ficou verde com ela em modo `"falhar"`.
-- Nenhuma tela mudou; não há captura de tela.
+- Ela não vê:
+  - escrita no socket;
+  - o método do protótipo do `ServerResponse` chamado por fora da instância;
+  - código que troque, antes da carga dela, as primitivas que ela copia;
+  - quem troque o próprio Node (o protótipo, `removeHeader`) ou o registrador de log.
+
+  A varredura proíbe as duas primeiras, mas é heurística.
+- O módulo da guarda é liberado inteiro na varredura. Quem o prova é o teste dele.
+- A guarda do console é cópia da da API, presa por testes próprios.
+- Uma resposta 401 ou 403 é segurada inteira na memória até o `end`, com teto de 64 KiB; acima disso vira desvio.
+- `test:isolamento`, painel e campo não foram rodados (`apps/campo` não foi tocado).
 
 ## Justificativa
 
-Um teste do texto não fecha uma classe de comportamento: a cada regra nova da varredura, a revisão seguinte achou a forma que ela não lia (quatro na rodada 5, dezesseis depois da primeira parte desta correção). O que o critério da etapa protege é a RESPOSTA que o cliente recebe, e a resposta só existe em tempo de execução. Por isso a garantia passou para o único ponto por onde toda resposta do Fastify passa, o `onSend`, posto por último em cada rota. Em teste ela falha alto e prende o defeito no caso que o produziu. Em produção ela não derruba o pedido: entrega ao cliente um código que ele sabe tratar (o genérico do status) e deixa o desvio no log, porque um erro de acesso com código desconhecido vira "erro comum" no painel e no aplicativo, sem a ação certa.
+Um teste do texto não fecha uma classe de comportamento. E um gancho do Fastify também não fecha, porque o próprio Fastify oferece caminhos que não passam por ele: gancho acrescentado depois, 404 de plugin, tratador de reserva escrevendo direto na resposta do Node. O único ponto por onde toda resposta HTTP do processo passa antes de virar bytes é a resposta do Node, e é ali que a guarda está agora, presa à instância de cada pedido de um jeito que o código da rota não desfaz.
 
-A varredura continua, como primeira linha. Ela aponta o defeito no texto, antes de rodar, e é a única coisa que alcança o que a guarda não vê: a escrita fora do Fastify. O texto agora diz isso sem prometer mais.
+Em teste, ela falha alto e prende o defeito no caso que o produziu, inclusive num `afterAll`. Em produção, ela não derruba o pedido: entrega ao cliente um código que ele sabe tratar e deixa o desvio no log, sem gravar o que não tem forma de código, porque o campo `erro` é escrito pela rota e pode carregar dado pessoal.
+
+Copiar as primitivas na carga e só chamar as cópias ao decidir é o que torna verdadeira a frase "trocar o global depois não a engana", e o teste a prova. O que continua fora (socket, protótipo chamado por fora, troca antes da carga) está escrito com nome, porque prometer mais do que se prende foi o que reprovou as rodadas anteriores.

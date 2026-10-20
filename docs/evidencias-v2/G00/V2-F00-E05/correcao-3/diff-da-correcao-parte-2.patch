@@ -1,12 +1,12 @@
 diff --git a/dc360/README.md b/dc360/README.md
-index b33ab64..e5f5ba1 100644
+index 80773a0..e5f5ba1 100644
 --- a/dc360/README.md
 +++ b/dc360/README.md
 @@ -11,10 +11,10 @@ build) valem lá, não aqui.
  | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
  | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
  | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
--| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1464 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1517 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 +| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1568 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
  | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
  | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
@@ -15,7 +15,7 @@ index b33ab64..e5f5ba1 100644
  
  ## Os dois modos do painel
  
-@@ -148,21 +148,49 @@ O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
+@@ -148,11 +148,26 @@ O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
  código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
  servidor, o painel e o aplicativo importam. O catálogo cobre os erros de ACESSO
  (autenticação, vigência e permissão): toda resposta 401 ou 403 do servidor tem
@@ -43,11 +43,9 @@ index b33ab64..e5f5ba1 100644
 +  fechada, e a cada regra nova a revisão achou a forma seguinte. Reprova resposta
 +  401 ou 403, ou de status que o texto não resolve,
    com código fora do catálogo e da lista da entrada. Lê `send({ erro })` literal
--  ou por constante, `new RegraDeNegocio(...)` e `new FalhaAutenticacao(...)`
-+  ou por constante (só um `const` não exportado com objeto literal, resolvido pelo
-+  escopo, e que no arquivo só é lido: `let`, `var`, parâmetro homônimo,
-+  exportação, escrita em campo, passar a uma função ou apelidar deixam o corpo sem
-+  leitura, e isso reprova), `new RegraDeNegocio(...)` e `new FalhaAutenticacao(...)`
+   ou por constante (só um `const` não exportado com objeto literal, resolvido pelo
+   escopo, e que no arquivo só é lido: `let`, `var`, parâmetro homônimo,
+@@ -161,8 +176,8 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
    (inclusive com outro nome de importação ou por `import * as`), o `super(...)` de
    qualquer subclasse delas, classe de erro com `codigo` literal, atribuído no
    construtor, por getter ou por propriedade de parâmetro, o tratador global e a
@@ -56,31 +54,22 @@ index b33ab64..e5f5ba1 100644
 +  recusa `{ status, corpo: { erro } }` do console. Formas que ela reconhece como
 +  ilegíveis, e reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
    corpo que não resolve (inclusive texto, com status calculado), `{ erro: "x",
--  ...extra }` com spread depois de `erro`, `statusCode`/`status` escritos à mão
--  (propriedade, chave computada, colchete, `Object.defineProperty`),
-+  ...extra }` com spread depois de `erro`, `erro` por getter, setter ou método,
-+  escrita em `erro` ou `corpo` de qualquer objeto (ponto, colchete, operador
-+  composto, `delete`, `++`, desestruturação), colchete com chave literal nos nomes
-+  que ela lê com ponto (`resposta["code"](403)`, `["send"]`), chamada por chave
-+  calculada (`resposta[m](403)`), `.send` sem ser chamado, `.call`, `.apply` e
-+  `.bind` (salvo `Object.prototype.hasOwnProperty.call`), chave calculada que não
-+  resolve a um `const` de texto, texto com `FST_` (forja o código do Fastify cujo
-+  status o tratador repassa), `Object.setPrototypeOf`, `Object.create`,
-+  `__proto__` e `extends` de expressão (forjam a classe de um erro), `toJSON`, o
-+  serializador da resposta, `eval`, `Function`, `.redirect(url, status)` fora de
-+  3xx, `statusCode`/`status` escritos à mão (propriedade, abreviação, método,
-+  acessor, chave computada, colchete, operador composto, `Object.defineProperty`),
-   `Object.assign`, `.raw`, `.hijack()`, `.writeHead()`, ganchos `onSend` que
-   recebem o corpo ou que enviam resposta ou lançam erro de negócio, argumentos
-   espalhados em `new RegraDeNegocio(...)`, `status` declarado em classe de erro,
-@@ -206,10 +234,14 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
+   ...extra }` com spread depois de `erro`, `erro` por getter, setter ou método,
+   escrita em `erro` ou `corpo` de qualquer objeto (ponto, colchete, operador
+@@ -219,16 +234,13 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
    requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
    padrão).
  
 -O que NENHUM deles prende: uma recusa que só sai com um corpo ou um estado que os
--perfis da prova dinâmica não criam E que o texto esconde (código montado por dado
--externo, classe definida fora das pastas varridas, `Object.assign` num erro,
--resposta de um plugin de terceiros); erros de outros status (404, 409, 422, 429,
+-perfis da prova dinâmica não criam E que o texto não mostra, o que se resume a duas
+-formas: código ou `statusCode` vindos de DADO em tempo de execução (objeto do
+-banco, da rede ou de `JSON.parse` lançado ou espalhado num erro) e classe de erro
+-ou resposta definida fora das pastas varridas (dependência, plugin de terceiros,
+-inclusive método que ele acrescente à resposta: a varredura reconhece a resposta
+-pelo nome dos métodos do Fastify, `code`, `status`, `send`, `redirect`,
+-`statusCode`, `raw`, `hijack`, `writeHead`). A prova dinâmica não alcança ramo que
+-dependa de um valor que o corpo mínimo dela não manda (o handler das 66 rotas
+-acima e qualquer `if` sobre o dado pedido): ali, a garantia é só a varredura.
 +O que NENHUMA das três linhas prende: resposta que não passa pelo Fastify, escrita
 +direto no Node (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no socket da
 +requisição (`req.socket.end("HTTP/1.1 403 ...")`): a guarda não a vê, e a
@@ -88,18 +77,17 @@ index b33ab64..e5f5ba1 100644
 +mas é heurística. E código no mesmo processo que reescreve o próprio Fastify, o
 +protótipo da resposta ou os globais antes de a guarda carregar (ela guarda
 +`JSON.parse` na carga e não usa `JSON.stringify` para montar o corpo genérico).
-+Fora do escopo: erros de outros status (404, 409, 422, 429,
+ Fora do escopo: erros de outros status (404, 409, 422, 429,
  5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
  cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
- código (isso é dos testes do painel e do aplicativo). Até a V2-F00-E05 os três
-@@ -1466,9 +1498,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+@@ -1486,9 +1498,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
  ## Como testar
  
  ```bash
--npm test                    # 3172 testes em seis pacotes
+-npm test                    # 3225 testes em seis pacotes
 +npm test                    # 3285 testes em seis pacotes
  npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
--npm run test:api            # 1464 testes da API
+-npm run test:api            # 1517 testes da API
 +npm run test:api            # 1568 testes da API
  npm run test --workspace @dc360/campo   # 231 testes do motor de campo
  npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
@@ -346,7 +334,7 @@ index 829efca..1358c70 100644
      De quem este processo aceita cabeçalho de endereço de origem, declarado
      ANTES de qualquer rota subir: é este valor que decide se `Fly-Client-IP`
 diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
-index b7a9d72..d4485ba 100644
+index f711417..d4485ba 100644
 --- a/dc360/apps/api/test/codigos-de-erro.test.ts
 +++ b/dc360/apps/api/test/codigos-de-erro.test.ts
 @@ -17,6 +17,7 @@ import {
@@ -357,22 +345,12 @@ index b7a9d72..d4485ba 100644
  
  /**
   * Os códigos de erro de acesso (V2-F00-E05): o cliente distingue "renove o
-@@ -35,12 +36,16 @@ import {
-  *     do servidor real, por requisição, com o status e a mensagem que o
-  *     catálogo diz.
-  *   - Nada de acesso sai fora do catálogo. Uma varredura do código-fonte pela
-- *     árvore sintática do TypeScript (`varredura-de-erros.ts`) lê TODAS as
-- *     formas de emitir erro, na API inteira e no console do fornecedor, e
-- *     reprova resposta 401 ou 403 (ou de status que o texto não resolve) com
-- *     código fora do catálogo e da lista da entrada. `sessao` (o nome antigo)
-- *     não volta por nenhuma delas. Cada forma tem o seu caso de mordida, com
-- *     fonte de exemplo e com o fonte real mutado em memória.
-+ *     árvore sintática do TypeScript (`varredura-de-erros.ts`), na API inteira e
-+ *     no console do fornecedor, lê as formas de emitir erro que conhece e
-+ *     REPROVA as que não sabe ler, e reprova resposta 401 ou 403 (ou de status
-+ *     que o texto não resolve) com código fora do catálogo e da lista da
-+ *     entrada. `sessao` (o nome antigo) não volta por nenhuma delas. Cada forma
-+ *     tem o seu caso de mordida, com fonte de exemplo e com o fonte real mutado
+@@ -41,8 +42,10 @@ import {
+  *     que o texto não resolve) com código fora do catálogo e da lista da
+  *     entrada. `sessao` (o nome antigo) não volta por nenhuma delas. Cada forma
+  *     tem o seu caso de mordida, com fonte de exemplo e com o fonte real mutado
+- *     em memória. O que fica fora (dado externo, código fora das pastas
+- *     varridas) está escrito no cabeçalho do catálogo e no README.
 + *     em memória. A varredura é heurística, a primeira linha: a GARANTIA é a
 + *     guarda em tempo de execução (`src/guarda-de-codigos-de-erro.ts`, provada
 + *     em `guarda-de-codigos-de-erro.test.ts`), e o que nenhuma das duas cobre
@@ -380,44 +358,20 @@ index b7a9d72..d4485ba 100644
   *   - O catálogo não carrega código morto: todo código dele é emitido por
   *     algum ponto do servidor.
   *   - O que NÃO é prendido aqui (404, 409, 422, 429, 5xx, regra de negócio) é da
-@@ -600,18 +605,57 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
-         porque: "o status é o do Fastify para `FST_ERR_CTP_*` (400, 413 ou 415), erro de leitura do corpo, "
-           + "nunca de acesso",
+@@ -625,6 +628,12 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+         arquivo: /[\\/]src[\\/]index\.ts$/, chave: "colchete:app.log[nivel]",
+         porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
        },
-+      // ---- correção 3 (rodada 5): o que as regras novas acham no fonte real e não é resposta ----
-+      {
-+        arquivo: /servidor\.ts$/, chave: "literal:FST_ERR_CTP_", origem: "chamada:startsWith",
-+        porque: "é o tratador global LENDO o prefixo (`doLeitorDeCorpo.code.startsWith(...)`), não um erro "
-+          + "forjado com ele",
-+      },
-+      {
-+        arquivo: /servidor\.ts$/, chave: "chave:chave", origem: "funcao:manter",
-+        porque: "é o serializador do registro de erro (`err` do logger), que copia campo de texto ou número "
-+          + "para o log; não monta resposta nem erro",
-+      },
-+      {
-+        arquivo: /push[\\/]apns\.ts$/, chave: "chave:constants.HTTP2_HEADER_METHOD",
-+        porque: "cabeçalho `:method` do pedido HTTP/2 que o servidor ENVIA ao provedor de notificação",
-+      },
-+      {
-+        arquivo: /push[\\/]apns\.ts$/, chave: "chave:constants.HTTP2_HEADER_PATH",
-+        porque: "cabeçalho `:path` do pedido HTTP/2 que o servidor ENVIA ao provedor de notificação",
-+      },
-+      {
-+        arquivo: /[\\/]src[\\/]index\.ts$/, chave: "colchete:app.log[nivel]",
-+        porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
-+      },
 +      {
 +        arquivo: /[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
 +        porque: "é a GUARDA em tempo de execução: o `onSend` que confere toda resposta 401 ou 403 contra o "
 +          + "catálogo e troca o desvio pelo código genérico (ou por 500, em teste). É ela que reescreve, e "
 +          + "só com códigos do catálogo (`test/guarda-de-codigos-de-erro.test.ts`)",
 +      },
-+      {
-+        arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
-+        porque: "é a tabela dos geradores de documento (laudo, termos), funções que devolvem o HTML do "
-+          + "documento; nenhuma recebe a resposta",
-+      },
+       {
+         arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
+         porque: "é a tabela dos geradores de documento (laudo, termos), funções que devolvem o HTML do "
+@@ -633,15 +642,20 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
      ],
    };
  
@@ -443,144 +397,17 @@ index b7a9d72..d4485ba 100644
        arquivo: /console[\\/]src[\\/]servidor\.ts$/, chave: "recusa.corpo",
        porque: "o corpo vem de `traduzirRecusaDoBanco`, cujos literais (`so_o_dono` 403, `acao_recusada` 409) "
          + "a varredura lê na forma `{ status, corpo: { erro } }`",
-@@ -786,6 +830,88 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
-       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
-     });
- 
-+    /*
-+      Correção 3 (rodada 5): a FAMÍLIA de cada forma do red-team. O que a varredura não sabe ler,
-+      reprova; o texto do cabeçalho do catálogo e do README lista o que sobra.
-+    */
-+    const R_OK = 'const R = { erro: "sem_permissao", mensagem: "x" };\n';
-+    it.each([
-+      // A: o corpo por constante mudado depois de declarado
-+      ["A1 campo erro por ponto", R_OK + 'R.erro = "novo";\nresposta.code(403).send(R);'],
-+      ["A2 campo erro por colchete", R_OK + 'R["erro"] = "novo";\nresposta.code(403).send(R);'],
-+      ["A3 operador composto", R_OK + 'R.erro += "_novo";\nresposta.code(403).send(R);'],
-+      ["A4 delete do erro", R_OK + "delete R.erro;\nresposta.code(403).send(R);"],
-+      ["A5 desestruturação em cima do campo", R_OK + '[R.erro] = ["novo"];\nresposta.code(403).send(R);'],
-+      ["A6 escrita por conversão de tipo", R_OK + '(R as { erro: string }).erro = "novo";\nresposta.code(403).send(R);'],
-+      ["A7 constante passada a uma função que pode mudá-la", R_OK + "mudar(R);\nresposta.code(403).send(R);"],
-+      ["A8 constante apelidada", R_OK + "const S = R;\nmudar(S);\nresposta.code(403).send(R);"],
-+      ["A9 constante exportada (outro arquivo pode escrever)", 'export const R = { erro: "sem_permissao", mensagem: "x" };\nresposta.code(403).send(R);'],
-+      ["A10 constante reexportada por nome", R_OK + "export { R };\nresposta.code(403).send(R);"],
-+      ["A11 escrita no erro de um parâmetro, em outra função", 'function trocar(r: { erro: string }) { r.erro = "novo"; }'],
-+      ["A12 escrita no corpo de uma recusa", 'function trocar(r: { corpo: unknown }) { r.corpo = { erro: "novo" }; }'],
-+      ["A13 status por operador composto", "function f(e: { statusCode?: number }) { e.statusCode ??= 403; }"],
-+      ["A14 codigo apagado de um erro", 'const e = new RegraDeNegocio("sem_permissao", "m", 403);\ndelete (e as { codigo?: string }).codigo;\nthrow e;'],
-+      // B: o nome do corpo que não é constante
-+      ["B1 let reatribuída", 'let R = { erro: "sem_permissao", mensagem: "x" };\nR = { erro: "novo", mensagem: "x" };\nresposta.code(403).send(R);'],
-+      ["B2 var", 'var R = { erro: "sem_permissao", mensagem: "x" };\nresposta.code(403).send(R);'],
-+      ["B3 parâmetro homônimo de uma constante do módulo", R_OK.replace("const R", "const corpo") + "const f = (corpo: { erro: string }) => resposta.code(403).send(corpo);"],
-+      ["B4 constante que não é objeto literal", "const R = montar();\nresposta.code(403).send(R);"],
-+      // C: a chamada que a varredura não lê pelo ponto
-+      ["C1 code por colchete, send com ponto", 'resposta["code"](403).send({ erro: "novo", mensagem: "x" });'],
-+      ["C2 send por colchete", 'resposta.code(403)["send"]({ erro: "novo", mensagem: "x" });'],
-+      ["C3 status por modelo de texto", "resposta[`status`](401);\nreturn { erro: \"novo\" };"],
-+      ["C4 método por chave calculada, corpo no return", 'const m = "code";\nresposta[m](403);\nreturn { erro: "novo" };'],
-+      ["C5 code por call", 'resposta.code.call(resposta, 403);\nreturn { erro: "novo" };'],
-+      ["C6 send guardado e ligado com bind", 'const enviar = resposta.code(403).send.bind(resposta);\nenviar({ erro: "novo" });'],
-+      ["C7 send guardado numa variável", "const enviar = resposta.send;\nvoid enviar;"],
-+      ["C8 code desestruturado e chamado por apply", "const { code } = resposta;\ncode.apply(resposta, [403]);"],
-+      ["C9 classe de erro por colchete", 'import * as S from "./servidor.js";\nthrow new S["RegraDeNegocio"]("novo", "x", 403);'],
-+      ["C10 Reflect por colchete", 'globalThis["Reflect"].set(e, "codigo", "novo");'],
-+      // N: o status e a classe do erro que o texto não mostra
-+      ["N1 statusCode abreviado", 'const statusCode = 403;\nthrow { code: "FST_ERR_CTP_NOVO", statusCode };'],
-+      ["N2 statusCode por getter", 'throw { code: "x", get statusCode() { return 403; } };'],
-+      ["N3 statusCode por método", 'throw { code: "x", statusCode() { return 403; } };'],
-+      ["N4 chave calculada com 403", 'const k = escolher();\nthrow { code: "x", [k]: 403 };'],
-+      ["N5 código do Fastify num modelo de texto", "throw Object.freeze({ code: `FST_ERR_CTP_${sufixo}`, statusCode: 400 });"],
-+      ["N6 objeto que vira RegraDeNegocio sem new", 'throw Object.setPrototypeOf({ codigo: "novo", status: 403 }, Object.getPrototypeOf(base));'],
-+      ["N7 Object.create com o protótipo de um erro", 'throw Object.assign2(Object.create(proto), { codigo: "novo" });'],
-+      ["N8 __proto__ num literal", 'throw { __proto__: proto, codigo: "novo", status: 403 };'],
-+      ["N9 classe que estende uma expressão", 'class X extends (classeDe(base)) { constructor() { super("novo", "x", 403); } }'],
-+      ["N10 corpo com erro por getter", 'resposta.code(403).send({ get erro() { return "novo"; }, mensagem: "x" });'],
-+      ["N11 corpo com chave calculada e status calculado", 'resposta.code(s).send({ [k]: "novo", mensagem: "x" });'],
-+      ["N12 classe com membro de chave calculada", "class E extends Error { [k] = 403; }"],
-+      // O corpo trocado depois do send, sem gancho
-+      ["S1 toJSON no corpo", 'resposta.code(403).send({ erro: "sem_permissao", toJSON() { return { erro: "novo" }; } });'],
-+      ["S2 serializador da resposta trocado", 'app.setReplySerializer((p) => JSON.stringify({ ...(p as object), erro: "novo" }));'],
-+      ["S3 serializador por resposta", 'resposta.code(403).serializer(() => "{\\"erro\\":\\"novo\\"}").send({ erro: "sem_permissao" });'],
-+      ["S4 eval", "eval(texto);"],
-+      ["S5 new Function", 'const f = new Function("r", texto);'],
-+      ["S6 redirect com 403", 'return resposta.redirect("/x", 403);'],
+@@ -873,6 +887,10 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       ["S4 eval", "eval(texto);"],
+       ["S5 new Function", 'const f = new Function("r", texto);'],
+       ["S6 redirect com 403", 'return resposta.redirect("/x", 403);'],
 +      ["S7 escrita no socket (M08 da revisão; a guarda em execução não a vê)",
 +        'req.socket.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n{\\"erro\\":\\"novo\\"}");'],
 +      ["S8 code duas vezes na cadeia, o último é 403 (M11 da revisão)",
 +        'resposta.code(200).code(403).send({ erro: "novo", mensagem: "x" });'],
-+    ])("correção 3, reprova: %s", (_forma, fonte) => {
-+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
-+    });
-+
-+    it("correção 3, controles: a constante só lida, a chave por constante de texto e o hasOwnProperty passam", () => {
-+      const limpo = [
-+        R_OK + "resposta.code(403).send(R);",
-+        "const texto = R.mensagem;",
-+        'const lido = R["mensagem"];',
-+        "const copia = { ...R, extra: 1 };",
-+        'if (typeof R === "object") resposta.code(403).send(R);',
-+        "type TipoDoCorpo = typeof R;",
-+        'const CHAVE = "rotulo";\nconst o = { [CHAVE]: 1 };',
-+        'const tem = Object.prototype.hasOwnProperty.call(o, "x");',
-+        "class A extends Error {}\nclass B extends S.Base {}",
-+        'const RESPOSTA_DESLIGADA = { erro: "envio_desligado", mensagem: "x" };\nresposta.code(503).send(RESPOSTA_DESLIGADA);',
-+        "const f = (corpo: { erro: string }) => resposta.code(200).send(corpo);",
-+      ].join("\n");
-+      expect(FORA(limpo)).toEqual([]);
-+    });
-+
-     it("subclasse e apelido com código do catálogo passam; o mesmo código num status de acesso diferente do catálogo não", () => {
-       const bom = [
-         'class Posto extends RegraDeNegocio { constructor() { super("posto_insuficiente", "x", 403); } }',
-@@ -956,6 +1082,48 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
-       expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
+     ])("correção 3, reprova: %s", (_forma, fonte) => {
+       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
      });
- 
-+    /*
-+      Correção 3 (rodada 5): as quatro formas que o red-team plantou em `POST /orgaos`, DEPOIS da
-+      validação do corpo (onde a prova dinâmica não chega), e que passavam com a varredura verde. São as
-+      mesmas mutações do script dele (`mutar-e05.mjs`), aplicadas aqui ao texto real em memória.
-+    */
-+    const ANCORA_ORGAOS = "    const dados = orgaoSchema.parse(req.body);\n\n    try {\n      const criado";
-+    const depoisDaValidacao = (trecho: string) =>
-+      `    const dados = orgaoSchema.parse(req.body);\n${trecho}\n\n    try {\n      const criado`;
-+    it.each([
-+      ["A: campo `erro` trocado depois de declarar a constante",
-+        '    const recusaA: { erro: string; mensagem: string } = { erro: "sem_permissao", mensagem: "Sem permissão." };\n'
-+          + '    recusaA.erro = "vazou_por_ponto";\n'
-+          + '    if (dados.nome === "Mutacao A") return resposta.code(403).send(recusaA);',
-+        "escrita em `erro`"],
-+      ["B: `let` reatribuída antes do send",
-+        '    let recusaB = { erro: "sem_permissao", mensagem: "Sem permissão." };\n'
-+          + '    if (dados.nome === "Mutacao B") recusaB = { erro: "vazou_por_reatribuicao", mensagem: "x" };\n'
-+          + '    if (dados.sigla === "MB") return resposta.code(403).send(recusaB);',
-+        "`let` ou `var`"],
-+      ["C: code e send chamados por colchete",
-+        '    if (dados.nome === "Mutacao C") return resposta["code"](403)["send"]({ erro: "vazou_por_colchete", mensagem: "x" });',
-+        "acesso por colchete a `code`"],
-+      ["N: `statusCode` abreviado num objeto com código do Fastify",
-+        "    const statusCode = 403;\n"
-+          + '    if (dados.nome === "Mutacao N") throw Object.freeze({ code: "FST_ERR_CTP_MUTACAO", statusCode });',
-+        "`statusCode` abreviado"],
-+      ["N2: o mesmo, espalhado num erro",
-+        "    const statusCode = 403;\n"
-+          + '    if (dados.nome === "Mutacao N") { const e = new Error("x") as Error & { code?: string; statusCode?: number }; '
-+          + 'const extra = { code: "FST_ERR_CTP_MUTACAO", statusCode }; throw { ...e, ...extra }; }',
-+        "`statusCode` abreviado"],
-+      ["D: parâmetro homônimo de uma constante de corpo do módulo",
-+        '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
-+          + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'
-+          + '    if (dados.nome === "Mutacao D") return recusarD({ erro: "vazou_por_homonimo", mensagem: "x" });',
-+        "parâmetro"],
-+    ])("%s", (_forma, trecho, motivo) => {
-+      const falhas = mutar(join("rotas", "orgaos.ts"), ANCORA_ORGAOS, depoisDaValidacao(trecho));
-+      expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
-+      expect(falhas.join("\n")).toContain(motivo);
-+    });
-+
-     it("catálogo sem `posto_insuficiente`: o servidor emite um código que a lista não tem", () => {
-       const semEle = { ...CATALOGO };
-       delete semEle["posto_insuficiente"];
 diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
 new file mode 100644
 index 0000000..c683b78
@@ -885,14 +712,13 @@ index 0000000..e473f5c
 +  expect(desvios, "resposta 401 ou 403 fora do catálogo de códigos de erro (guarda em tempo de execução)").toEqual([]);
 +});
 diff --git a/dc360/apps/api/test/varredura-de-erros.ts b/dc360/apps/api/test/varredura-de-erros.ts
-index 8c57fda..1b424f3 100644
+index d507e96..1b424f3 100644
 --- a/dc360/apps/api/test/varredura-de-erros.ts
 +++ b/dc360/apps/api/test/varredura-de-erros.ts
-@@ -24,6 +24,34 @@ import ts from "typescript";
-  * teste reprova. Isso vale para `.code(401 | 403)` fora de uma cadeia com `send`,
+@@ -25,6 +25,13 @@ import ts from "typescript";
   * para `statusCode: 403` escrito à mão, para corpo 401 ou 403 sem `erro` e para
   * código calculado em ponto que não está na lista de repasses conhecidos.
-+ *
+  *
 + * ISTO É HEURÍSTICA, a primeira linha. A garantia de que nenhuma resposta 401 ou
 + * 403 sai fora do catálogo é a guarda em tempo de execução
 + * (`src/guarda-de-codigos-de-erro.ts`): depois das regras abaixo, a revisão
@@ -900,237 +726,18 @@ index 8c57fda..1b424f3 100644
 + * guarda pega todas as que passam pelo Fastify. O que a guarda não vê (escrita no
 + * socket, `raw`, `hijack`, `writeHead`), esta varredura proíbe.
 + *
-+ * Correção 3 (rodada 5, red-team): quatro formas passavam caladas, e cada uma
-+ * abriu uma família que agora reprova.
-+ *
-+ *   - A (`recusa.erro = "x"` depois de declarar) e B (`let recusa = {...}`
-+ *     reatribuída): o corpo por constante só é lido quando o nome resolve, PELO
-+ *     ESCOPO, a um `const` não exportado com objeto literal, e todo outro uso
-+ *     desse nome no arquivo é leitura (`X.campo`, `...X`, outro `send(X)`).
-+ *     Escrita, `let`/`var`, exportação, passar adiante ou apelidar deixam o corpo
-+ *     sem leitura. E escrever em `.erro` ou `.corpo` (ponto, colchete, operador
-+ *     composto, `delete`, `++`, desestruturação) reprova em qualquer lugar.
-+ *   - C (`resposta["code"](403)["send"]({...})`): colchete com chave literal nos
-+ *     nomes que a varredura lê com ponto reprova; colchete com chave calculada
-+ *     chamado como função reprova; `.send` usado sem ser chamado e qualquer
-+ *     `.call`, `.apply` e `.bind` reprovam (método da resposta tirado do objeto).
-+ *   - N (`{ code: "FST_ERR_CTP_X", statusCode }` abreviado): `statusCode` em
-+ *     objeto por abreviação, método ou acessor reprova; chave calculada que não
-+ *     resolve a um `const` de texto reprova; texto com `FST_` reprova (só o
-+ *     tratador global LÊ o prefixo do Fastify); e forjar a classe de um erro
-+ *     (`Object.setPrototypeOf`, `Object.create`, `__proto__`, `extends` de
-+ *     expressão que não é nome) reprova.
-  */
- 
- export type FormaDeEmissao = "send" | "RegraDeNegocio" | "FalhaAutenticacao" | "classe" | "recusa";
-@@ -82,10 +110,89 @@ function nomeDaPropriedade(nome: ts.PropertyName): string | null {
-   if (ts.isComputedPropertyName(nome)) {
-     const lit = textoDoLiteral(nome.expression);
-     if (lit !== null) return lit;
-+    // `[CHAVE]: ...` com `const CHAVE = "x"` no escopo: é o texto dele.
-+    if (ts.isIdentifier(nome.expression)) return textoDeConstante(nome.expression);
-+  }
-+  return null;
-+}
-+
-+/** O texto de um identificador que resolve, pelo escopo, a `const X = "texto"`. */
-+function textoDeConstante(id: ts.Identifier): string | null {
-+  const d = resolverDeclaracao(id.text, id);
-+  if (!d || !ts.isVariableDeclaration(d) || !ehConst(d)) return null;
-+  return textoDoLiteral(d.initializer);
-+}
-+
-+function ehConst(d: ts.VariableDeclaration): boolean {
-+  return ts.isVariableDeclarationList(d.parent) && (d.parent.flags & ts.NodeFlags.Const) !== 0;
-+}
-+
-+/** Tira `as`, parênteses, `!`, `satisfies` e `<T>` de volta de uma expressão. */
-+function desembrulhar(e: ts.Expression): ts.Expression {
-+  let x = e;
-+  while (
-+    ts.isAsExpression(x) || ts.isParenthesizedExpression(x) || ts.isNonNullExpression(x)
-+    || ts.isSatisfiesExpression(x) || ts.isTypeAssertionExpression(x)
-+  ) x = x.expression;
-+  return x;
-+}
-+
-+/**
-+ * O nó é ALVO de escrita: lado esquerdo de qualquer atribuição (`=`, `+=`, `??=`...),
-+ * operando de `delete`, `++` ou `--`, ou alvo dentro de uma desestruturação
-+ * (`[x.erro] = ...`, `({ a: x.erro } = ...)`, `for (x.erro of ...)`).
-+ */
-+function ehAlvoDeEscrita(n: ts.Node): boolean {
-+  let filho: ts.Node = n;
-+  let pai: ts.Node | undefined = n.parent;
-+  // Sobe pelos invólucros e pelos literais de desestruturação.
-+  while (pai && (
-+    ts.isParenthesizedExpression(pai) || ts.isAsExpression(pai) || ts.isNonNullExpression(pai)
-+    || ts.isSatisfiesExpression(pai) || ts.isTypeAssertionExpression(pai)
-+    || ts.isArrayLiteralExpression(pai) || ts.isObjectLiteralExpression(pai)
-+    || ts.isPropertyAssignment(pai) || ts.isShorthandPropertyAssignment(pai)
-+    || ts.isSpreadElement(pai) || ts.isSpreadAssignment(pai)
-+  )) {
-+    if (ts.isPropertyAssignment(pai) && pai.initializer !== filho) return false;
-+    filho = pai;
-+    pai = pai.parent;
-   }
-+  if (!pai) return false;
-+  const direto = filho === n || ts.isParenthesizedExpression(filho) || ts.isAsExpression(filho)
-+    || ts.isNonNullExpression(filho) || ts.isSatisfiesExpression(filho) || ts.isTypeAssertionExpression(filho);
-+  if (ts.isBinaryExpression(pai) && pai.left === filho
-+    && pai.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && pai.operatorToken.kind <= ts.SyntaxKind.LastAssignment) {
-+    return true;
-+  }
-+  if ((ts.isForOfStatement(pai) || ts.isForInStatement(pai)) && pai.initializer === filho) return true;
-+  if (!direto) return false;
-+  if (ts.isDeleteExpression(pai)) return true;
-+  if ((ts.isPrefixUnaryExpression(pai) || ts.isPostfixUnaryExpression(pai))
-+    && (pai.operator === ts.SyntaxKind.PlusPlusToken || pai.operator === ts.SyntaxKind.MinusMinusToken)) return true;
-+  return false;
-+}
-+
-+/** O nome que um acesso `x.nome` ou `x["nome"]` (chave literal) lê; `null` para chave calculada. */
-+function nomeDoAcesso(n: ts.Node): string | null {
-+  if (ts.isPropertyAccessExpression(n)) return n.name.text;
-+  if (ts.isElementAccessExpression(n)) return textoDoLiteral(n.argumentExpression);
-   return null;
- }
- 
-+/**
-+ * Os nomes que a varredura lê pela forma com ponto. Pelo colchete com chave literal
-+ * (`resposta["code"](403)`) ela não os segue, então o colchete com eles reprova.
-+ */
-+const LIDOS_COM_PONTO = new Set([
-+  "send", "code", "status", "statusCode", "erro", "codigo", "corpo", "raw", "hijack", "writeHead",
-+  "addHook", "setErrorHandler", "httpErrors", "assign", "defineProperty", "defineProperties",
-+  "setPrototypeOf", "create", "call", "apply", "bind", "__proto__", "prototype", "constructor", "serializer",
+  * Correção 3 (rodada 5, red-team): quatro formas passavam caladas, e cada uma
+  * abriu uma família que agora reprova.
+  *
+@@ -180,6 +187,7 @@ const LIDOS_COM_PONTO = new Set([
+   "send", "code", "status", "statusCode", "erro", "codigo", "corpo", "raw", "hijack", "writeHead",
+   "addHook", "setErrorHandler", "httpErrors", "assign", "defineProperty", "defineProperties",
+   "setPrototypeOf", "create", "call", "apply", "bind", "__proto__", "prototype", "constructor", "serializer",
 +  "socket", "connection",
-+]);
-+
-+/** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
-+const TROCAM_O_CORPO = new Set(["toJSON", "setReplySerializer", "setSerializerCompiler", "eval"]);
-+
- /** O spread que não pode sobrescrever `erro`: objeto literal sem `erro`, ou condicional de dois assim. */
- function espalhoSeguro(e: ts.Expression): boolean {
-   let x = e;
-@@ -159,13 +266,25 @@ function inicializadorDe(nome: string, no: ts.Node): string | null {
-   return d && ts.isVariableDeclaration(d) && d.initializer ? d.initializer.getText() : null;
- }
+ ]);
  
--/** Acha a propriedade `erro` de um objeto literal. `undefined` quando não há. */
--function propriedadeErro(objeto: ts.ObjectLiteralExpression): ts.Expression | undefined | "espalhado" {
-+/**
-+ * Acha a propriedade `erro` de um objeto literal. `undefined` quando não há;
-+ * `"ilegivel"` quando há `erro` por getter, setter ou método, ou chave calculada
-+ * que não resolve (`{ [k]: "x" }`), porque aí o texto não diz qual é o código.
-+ * Vale a ÚLTIMA ocorrência, como no JavaScript.
-+ */
-+function propriedadeErro(objeto: ts.ObjectLiteralExpression): ts.Expression | undefined | "espalhado" | "ilegivel" {
-+  let achado: ts.Expression | undefined;
-   for (const p of objeto.properties) {
--    if (ts.isPropertyAssignment(p) && nomeDaPropriedade(p.name) === "erro") return p.initializer;
-+    if (ts.isSpreadAssignment(p)) continue;
-+    const n = ts.isShorthandPropertyAssignment(p) ? p.name.text : p.name ? nomeDaPropriedade(p.name) : null;
-+    if (n === null) return "ilegivel";
-+    if (n !== "erro") continue;
-+    if (ts.isPropertyAssignment(p)) achado = p.initializer;
-     // `{ erro }` abreviado: o código é uma variável.
--    if (ts.isShorthandPropertyAssignment(p) && p.name.text === "erro") return p.name;
-+    else if (ts.isShorthandPropertyAssignment(p)) achado = p.name;
-+    else return "ilegivel";
-   }
-+  if (achado) return achado;
-   return objeto.properties.some(ts.isSpreadAssignment) ? "espalhado" : undefined;
- }
- 
-@@ -235,17 +354,77 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
-   const problema = (no: ts.Node, texto: string, chave: string | null = null, origem: string | null = null) =>
-     problemas.push({ arquivo: nome, linha: linhaDe(no), problema: texto, chave, origem });
- 
--  // Constantes de corpo de erro: `const RESPOSTA_X = { erro: "x", mensagem: "..." }`.
--  const constantes = new Map<string, ts.ObjectLiteralExpression>();
--  const coletar = (no: ts.Node): void => {
--    if (ts.isVariableDeclaration(no) && ts.isIdentifier(no.name) && no.initializer) {
--      let init: ts.Expression = no.initializer;
--      while (ts.isAsExpression(init) || ts.isParenthesizedExpression(init)) init = init.expression;
--      if (ts.isObjectLiteralExpression(init)) constantes.set(no.name.text, init);
-+  /**
-+   * O corpo passado por nome (`send(RESPOSTA_X)`), resolvido PELO ESCOPO (um
-+   * parâmetro homônimo não vira a constante do módulo). Só é lido quando é um
-+   * `const` não exportado com objeto literal e todo outro uso do nome no arquivo é
-+   * leitura: `X.campo` ou `X["campo"]` sem escrita, `...X`, outro `send(X)` ou
-+   * `typeof X`. Qualquer outra coisa (escrita em campo, `let`/`var`, exportação,
-+   * passar a uma função, apelidar, `as` com escrita) pode trocar o `erro` sem o
-+   * texto mostrar, e o corpo fica sem leitura (formas A e B do red-team).
-+   */
-+  const identificadores: ts.Identifier[] = [];
-+  const juntar = (no: ts.Node): void => {
-+    if (ts.isIdentifier(no)) identificadores.push(no);
-+    ts.forEachChild(no, juntar);
-+  };
-+  juntar(sf);
-+  const ehSendDe = (id: ts.Node): boolean => {
-+    const pai = id.parent;
-+    return ts.isCallExpression(pai) && pai.arguments[0] === id
-+      && ts.isPropertyAccessExpression(pai.expression) && pai.expression.name.text === "send";
-+  };
-+  /** O identificador é uma REFERÊNCIA a variável (não nome de propriedade, de chave ou de declaração). */
-+  const ehReferencia = (id: ts.Identifier): boolean => {
-+    const p = id.parent;
-+    if (ts.isPropertyAccessExpression(p) && p.name === id) return false;
-+    if ((ts.isPropertyAssignment(p) || ts.isPropertyDeclaration(p) || ts.isMethodDeclaration(p)
-+      || ts.isGetAccessorDeclaration(p) || ts.isSetAccessorDeclaration(p) || ts.isPropertySignature(p)
-+      || ts.isMethodSignature(p) || ts.isEnumMember(p)) && p.name === id) return false;
-+    if (ts.isQualifiedName(p) && p.right === id) return false;
-+    if (ts.isVariableDeclaration(p) && p.name === id) return false;
-+    if ((ts.isFunctionDeclaration(p) || ts.isClassDeclaration(p) || ts.isParameter(p)
-+      || ts.isInterfaceDeclaration(p) || ts.isTypeAliasDeclaration(p) || ts.isBindingElement(p)) && p.name === id) return false;
-+    if (ts.isImportSpecifier(p) || ts.isImportClause(p) || ts.isNamespaceImport(p)) return false;
-+    if (ts.isLabeledStatement(p) || ts.isBreakOrContinueStatement(p)) return false;
-+    // Posição de tipo (`typeof X` num tipo) não existe em tempo de execução.
-+    if (ts.isTypeReferenceNode(p) || ts.isTypeQueryNode(p)) return false;
-+    return true;
-+  };
-+  const usoDeLeitura = (id: ts.Identifier): boolean => {
-+    const p = id.parent;
-+    if (ehSendDe(id)) return true;
-+    // `{ ...X }` copia: o objeto novo é lido à parte, com a regra do spread.
-+    if (ts.isSpreadAssignment(p)) return true;
-+    if (ts.isTypeOfExpression(p)) return true;
-+    if ((ts.isPropertyAccessExpression(p) || ts.isElementAccessExpression(p)) && p.expression === id) {
-+      // `X.campo` lido; `X.campo = ...`, `delete X.campo`, `X[k] = ...` não.
-+      if (ehAlvoDeEscrita(p)) return false;
-+      // `X.campo.metodo(...)` pode mexer no campo (um array em `campos`), mas não no `erro`, que é texto.
-+      return true;
-     }
--    ts.forEachChild(no, coletar);
-+    return false;
-   };
--  coletar(sf);
-+  function corpoPorNome(id: ts.Identifier): { objeto: ts.ObjectLiteralExpression } | { motivo: string } {
-+    const d = resolverDeclaracao(id.text, id);
-+    if (!d) return { motivo: "o nome não resolve a uma declaração deste arquivo" };
-+    if (!ts.isVariableDeclaration(d)) return { motivo: "o nome é um parâmetro ou variável de captura, não uma constante" };
-+    if (!ehConst(d)) return { motivo: "o nome é `let` ou `var` e pode ser reatribuído" };
-+    const init = d.initializer ? desembrulhar(d.initializer) : undefined;
-+    if (!init || !ts.isObjectLiteralExpression(init)) return { motivo: "a constante não é um objeto literal" };
-+    const declaracao = d.parent.parent;
-+    if (ts.isVariableStatement(declaracao) && declaracao.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
-+      return { motivo: "a constante é exportada e pode ser escrita em outro arquivo" };
-+    }
-+    for (const outro of identificadores) {
-+      if (outro === id || outro.text !== id.text || !ehReferencia(outro)) continue;
-+      if (resolverDeclaracao(outro.text, outro) !== d) continue;
-+      if (!usoDeLeitura(outro)) {
-+        return { motivo: `a constante é usada na linha ${linhaDe(outro)} de um jeito que não é só leitura (\`${outro.parent.getText(sf).slice(0, 60)}\`)` };
-+      }
-+    }
-+    return { objeto: init };
-+  }
- 
-   /** Os `.code(N)` e `.status(N)` que pertencem a uma cadeia terminada em `send`. */
-   const codesDeCadeiaComSend = new Set<ts.Node>();
-@@ -261,8 +440,12 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+ /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
+@@ -432,8 +440,12 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
          const metodo = atual.expression.name.text;
          if ((metodo === "code" || metodo === "status") && atual.arguments.length === 1) {
            codesDeCadeiaComSend.add(atual);
@@ -1145,53 +752,7 @@ index 8c57fda..1b424f3 100644
            achou = true;
          }
          atual = atual.expression.expression;
-@@ -284,8 +467,13 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
-       let corpo: ts.Expression | undefined = no.arguments[0];
-       while (corpo && (ts.isAsExpression(corpo) || ts.isParenthesizedExpression(corpo))) corpo = corpo.expression;
-       let objeto: ts.ObjectLiteralExpression | null = null;
-+      let semLeitura = "";
-       if (corpo && ts.isObjectLiteralExpression(corpo)) objeto = corpo;
--      else if (corpo && ts.isIdentifier(corpo)) objeto = constantes.get(corpo.text) ?? null;
-+      else if (corpo && ts.isIdentifier(corpo)) {
-+        const r = corpoPorNome(corpo);
-+        if ("objeto" in r) objeto = r.objeto;
-+        else semLeitura = `: ${r.motivo}`;
-+      }
- 
-       const dentroDoFamiliaDeAcesso = !achou || status === null || status === 401 || status === 403;
-       if (objeto) {
-@@ -294,6 +482,8 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
-           if (status === 401 || status === 403) problema(no, `resposta ${status} sem a propriedade \`erro\``);
-         } else if (erro === "espalhado") {
-           if (dentroDoFamiliaDeAcesso && achou) problema(no, "corpo com spread e sem `erro` literal em resposta de acesso");
-+        } else if (erro === "ilegivel") {
-+          if (dentroDoFamiliaDeAcesso) problema(no, "corpo com `erro` por getter, setter ou método, ou com chave calculada: a varredura não lê o código");
-         } else {
-           const codigo = textoDoLiteral(erro);
-           let origem: string | null = null;
-@@ -311,10 +501,10 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
-           }
-         }
-       } else if (achou && (status === 401 || status === 403)) {
--        problema(no, `resposta ${status} com corpo que a varredura não resolve (\`${corpo?.getText(sf) ?? ""}\`)`, corpo?.getText(sf) ?? "");
-+        problema(no, `resposta ${status} com corpo que a varredura não resolve (\`${corpo?.getText(sf) ?? ""}\`)${semLeitura}`, corpo?.getText(sf) ?? "");
-       } else if (achou && status === null && corpo) {
-         // Status calculado e corpo opaco: pode ser um erro de acesso.
--        problema(no, `resposta com status calculado e corpo que a varredura não resolve (\`${corpo.getText(sf)}\`)`, corpo.getText(sf));
-+        problema(no, `resposta com status calculado e corpo que a varredura não resolve (\`${corpo.getText(sf)}\`)${semLeitura}`, corpo.getText(sf));
-       }
-     }
- 
-@@ -467,7 +657,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
-           problema(no, `par { status, corpo } com corpo que a varredura não resolve (\`${corpo.getText(sf)}\`)`, `par:${corpo.getText(sf)}`, origemDoPar);
-         } else {
-           const erro = propriedadeErro(corpo);
--          if (erro === undefined || erro === "espalhado") {
-+          if (erro === undefined || erro === "espalhado" || erro === "ilegivel") {
-             if (statusDoPar === null || statusDoPar === 401 || statusDoPar === 403) problema(no, "par { status, corpo } sem `erro` literal em resposta de acesso", `par:${corpo.getText(sf)}`);
-           } else {
-             const codigo = textoDoLiteral(erro);
-@@ -498,6 +688,11 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+@@ -676,6 +688,11 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
      if (ts.isPropertyAccessExpression(no) && no.name.text === "raw") {
        problema(no, "`.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta");
      }
@@ -1203,7 +764,7 @@ index 8c57fda..1b424f3 100644
      if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
        && (no.expression.name.text === "hijack" || no.expression.name.text === "writeHead")) {
        problema(no, `\`.${no.expression.name.text}()\`: escrita direta na resposta, a varredura não vê o código dessa resposta`);
-@@ -521,7 +716,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+@@ -699,7 +716,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
              };
              procurar(funcao);
            }
@@ -1212,133 +773,6 @@ index 8c57fda..1b424f3 100644
          }
        }
        if ((m === "assign" || m === "defineProperty" || m === "defineProperties") && ts.isIdentifier(no.expression.expression) && no.expression.expression.text === "Object") {
-@@ -576,6 +771,126 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
-       if (campoDaClasse ? (n === 401 || n === 403) : (n === null || n === 401 || n === 403)) problema(no, `atribuição de status ${n ?? "calculado"} fora de \`code(...)\`: a varredura não vê o código dessa resposta`);
-     }
- 
-+    // 6. Correção 3 (rodada 5): as famílias das formas A, B, C e N do red-team.
-+
-+    // 6a. Escrita no `erro` ou no `corpo` de um objeto, por qualquer forma (A): ponto, colchete literal,
-+    // operador composto, `delete`, `++`, desestruturação. E, para `status`, `statusCode` e `codigo`, a
-+    // escrita que não é o `=` simples que as regras acima já leem.
-+    {
-+      const alvo = nomeDoAcesso(no);
-+      if (alvo !== null && (ts.isPropertyAccessExpression(no) || ts.isElementAccessExpression(no)) && ehAlvoDeEscrita(no)) {
-+        const pai = no.parent;
-+        const simples = ts.isBinaryExpression(pai) && pai.left === no && pai.operatorToken.kind === ts.SyntaxKind.EqualsToken;
-+        if (alvo === "erro" || alvo === "corpo") {
-+          problema(no, `escrita em \`${alvo}\` de um objeto (\`${no.getText(sf)}\`): o código da resposta pode mudar sem o texto mostrar`);
-+        } else if ((alvo === "status" || alvo === "statusCode" || alvo === "codigo") && !simples) {
-+          problema(no, `escrita em \`${alvo}\` por operador composto, \`delete\`, \`++\` ou desestruturação: a varredura não vê o valor`);
-+        }
-+      }
-+    }
-+
-+    // 6b. Colchete (C). Chave literal com um nome que a varredura só lê com ponto, ou com o nome de uma
-+    // classe de erro rastreada (`S["RegraDeNegocio"]`), reprova. Chave calculada chamada como função
-+    // (`resposta[metodo](403)`) reprova: pode ser `code`, `status` ou `send`.
-+    if (ts.isElementAccessExpression(no)) {
-+      const chave = textoDoLiteral(no.argumentExpression);
-+      if (chave !== null && (LIDOS_COM_PONTO.has(chave) || rastr.has(chave) || chave === "Reflect")) {
-+        problema(no, `acesso por colchete a \`${chave}\` (\`${no.getText(sf)}\`): a varredura só lê esse nome com ponto`);
-+      }
-+      const pai = no.parent;
-+      if (chave === null && !ts.isNumericLiteral(no.argumentExpression) && ts.isCallExpression(pai) && pai.expression === no) {
-+        problema(no, `chamada por chave calculada (\`${no.getText(sf)}(...)\`): a varredura não sabe qual método é`, `colchete:${no.getText(sf)}`);
-+      }
-+    }
-+
-+    // 6c. O método tirado da resposta (C): `.send` usado sem ser chamado, e qualquer `.call`, `.apply` ou
-+    // `.bind`, que chamam um método fora da forma `x.metodo(...)` que a varredura lê. A única exceção é
-+    // `Object.prototype.hasOwnProperty.call`, que só pergunta se a chave existe.
-+    if (ts.isPropertyAccessExpression(no)) {
-+      const m = no.name.text;
-+      const pai = no.parent;
-+      if (m === "send" && !(ts.isCallExpression(pai) && pai.expression === no)) {
-+        problema(no, `\`.send\` usado sem ser chamado (\`${pai.getText(sf).slice(0, 60)}\`): a varredura não segue o método guardado`);
-+      }
-+      if ((m === "call" || m === "apply" || m === "bind") && no.expression.getText(sf) !== "Object.prototype.hasOwnProperty") {
-+        problema(no, `\`.${m}\` (\`${no.getText(sf)}\`): chama um método fora da forma \`x.metodo(...)\` que a varredura lê`);
-+      }
-+    }
-+
-+    // 6d. `statusCode` em objeto literal por abreviação (N), método, getter ou setter: o valor não é um
-+    // literal que a varredura leia. (Por propriedade, a regra 4 já lê o literal.)
-+    if (ts.isObjectLiteralExpression(no)) {
-+      for (const p of no.properties) {
-+        if (ts.isSpreadAssignment(p) || ts.isPropertyAssignment(p)) continue;
-+        const n = ts.isShorthandPropertyAssignment(p) ? p.name.text : p.name ? nomeDaPropriedade(p.name) : null;
-+        if (n === "statusCode") {
-+          problema(p, "`statusCode` abreviado, por método ou por acessor: a varredura não vê o status desse erro");
-+        }
-+      }
-+    }
-+
-+    // 6e. Chave calculada que não resolve a um `const` de texto, em objeto ou classe: pode ser `statusCode`,
-+    // `erro` ou `codigo` sem o texto mostrar.
-+    if (ts.isComputedPropertyName(no) && !ts.isNumericLiteral(no.expression) && nomeDaPropriedade(no) === null) {
-+      let fn: ts.Node | undefined = no.parent;
-+      while (fn && !ts.isFunctionLike(fn)) fn = fn.parent;
-+      const nomeDaFuncao = fn && ts.isFunctionLike(fn) && fn.parent && ts.isVariableDeclaration(fn.parent) && ts.isIdentifier(fn.parent.name)
-+        ? fn.parent.name.text
-+        : fn && (ts.isFunctionDeclaration(fn) || ts.isMethodDeclaration(fn)) && fn.name && ts.isIdentifier(fn.name) ? fn.name.text : null;
-+      problema(no, `chave calculada (\`${no.getText(sf)}\`): a varredura não sabe que nome é`, `chave:${no.expression.getText(sf)}`, nomeDaFuncao ? `funcao:${nomeDaFuncao}` : null);
-+    }
-+
-+    // 6f. O prefixo dos erros do Fastify (N). O tratador global repassa o status de um erro cujo `code`
-+    // começa com `FST_ERR_CTP_`; escrever esse texto à mão forja um. Só LER o prefixo é conferido
-+    // (`x.startsWith("FST_ERR_CTP_")`, repasse no teste).
-+    if (
-+      (ts.isStringLiteral(no) || ts.isNoSubstitutionTemplateLiteral(no) || ts.isTemplateHead(no)
-+        || ts.isTemplateMiddle(no) || ts.isTemplateTail(no))
-+      && no.text.includes("FST_")
-+    ) {
-+      const pai = no.parent;
-+      const origem = ts.isCallExpression(pai) && ts.isPropertyAccessExpression(pai.expression) && pai.arguments[0] === no
-+        ? `chamada:${pai.expression.name.text}` : null;
-+      problema(no, `texto com \`FST_\` (\`${no.getText(sf)}\`): forja o código de um erro do Fastify, cujo status o tratador repassa`, `literal:${no.text}`, origem);
-+    }
-+
-+    // 6g. Forjar a classe de um erro: um objeto qualquer que passa no `instanceof` do tratador sai com o
-+    // `codigo` e o `status` dele, sem `new` que a varredura leia.
-+    if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
-+      && ts.isIdentifier(no.expression.expression) && no.expression.expression.text === "Object"
-+      && (no.expression.name.text === "setPrototypeOf" || no.expression.name.text === "create")) {
-+      problema(no, `\`Object.${no.expression.name.text}\`: forja a classe de um objeto sem \`new\` que a varredura leia`);
-+    }
-+    if ((ts.isIdentifier(no) || ts.isStringLiteral(no)) && no.text === "__proto__") {
-+      problema(no, "`__proto__`: forja a classe de um objeto sem `new` que a varredura leia");
-+    }
-+    // 6h. O que troca o corpo DEPOIS do `send`, sem gancho: `toJSON` (o `JSON.stringify` do Fastify usa
-+    // o que ele devolve no lugar do objeto), o serializador da resposta (`setReplySerializer`,
-+    // `setSerializerCompiler`, `resposta.serializer(...)`), e código montado em texto (`eval`, `Function`).
-+    if ((ts.isIdentifier(no) || ts.isStringLiteral(no) || ts.isNoSubstitutionTemplateLiteral(no)) && TROCAM_O_CORPO.has(no.text)) {
-+      problema(no, `\`${no.text}\`: troca o corpo ou o código sem passar pelo que a varredura lê`);
-+    }
-+    if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression) && no.expression.name.text === "serializer") {
-+      problema(no, "`.serializer(...)`: serializa a resposta por uma função que a varredura não lê");
-+    }
-+    // `resposta.redirect(url, status)` (Fastify 5) também escolhe o status, com corpo vazio: só o 3xx
-+    // literal passa.
-+    if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression) && no.expression.name.text === "redirect"
-+      && no.arguments.length !== 1) {
-+      const n = numeroDoLiteral(no.arguments[1]);
-+      if (n === null || n < 300 || n > 399) problema(no, `\`.redirect(...)\` com status ${n ?? "calculado"}: resposta sem \`erro\``);
-+    }
-+    if ((ts.isNewExpression(no) || ts.isCallExpression(no)) && ts.isIdentifier(no.expression) && no.expression.text === "Function") {
-+      problema(no, "`Function(...)`: código montado em texto, que a varredura não lê");
-+    }
-+    if (ts.isHeritageClause(no) && no.token === ts.SyntaxKind.ExtendsKeyword && (ts.isClassDeclaration(no.parent) || ts.isClassExpression(no.parent))) {
-+      for (const t of no.types) {
-+        let e: ts.Expression = t.expression;
-+        while (ts.isPropertyAccessExpression(e)) e = e.expression;
-+        if (!ts.isIdentifier(e)) problema(t, `\`extends\` de uma expressão (\`${t.getText(sf)}\`): a varredura não sabe de que classe é`);
-+      }
-+    }
-+
-     ts.forEachChild(no, visitar);
-   };
-   visitar(sf);
 diff --git a/dc360/apps/api/vitest.config.ts b/dc360/apps/api/vitest.config.ts
 index b403ed7..3912a77 100644
 --- a/dc360/apps/api/vitest.config.ts
@@ -1696,14 +1130,14 @@ index 76eb6a9..485ec27 100644
    },
  });
 diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
-index e1affbd..d6b312d 100644
+index a7a6d9c..d6b312d 100644
 --- a/dc360/docs/COLOCAR-DE-PE.md
 +++ b/dc360/docs/COLOCAR-DE-PE.md
 @@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
    e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
    stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
    espacial), esquemas Zod compartilhados.
--- **5104 testes somando o aplicativo** (contagem estática de `npm run
+-- **5157 testes somando o aplicativo** (contagem estática de `npm run
 +- **5217 testes somando o aplicativo** (contagem estática de `npm run
    conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
    parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
@@ -1712,13 +1146,13 @@ index e1affbd..d6b312d 100644
  # 1. Clonar e conferir que tudo passa no Mac
  git clone <repo> && cd dc360
  npm ci
--npm run verificar          # typecheck, 5104 testes com o aplicativo, auditar, números
+-npm run verificar          # typecheck, 5157 testes com o aplicativo, auditar, números
 +npm run verificar          # typecheck, 5217 testes com o aplicativo, auditar, números
  
  # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
  cd apps/campo
 diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
-index 0ae4dcc..3a5fa0b 100644
+index 2dd6d2e..3a5fa0b 100644
 --- a/dc360/packages/shared/src/codigos-de-erro.ts
 +++ b/dc360/packages/shared/src/codigos-de-erro.ts
 @@ -22,13 +22,35 @@
@@ -1760,52 +1194,32 @@ index 0ae4dcc..3a5fa0b 100644
   *
   *    - TODA resposta de erro de acesso, isto é, de status 401 ou 403, ou de
   *      status que o texto não resolve, carrega um código deste catálogo ou da
-@@ -41,13 +63,32 @@
-  *      `codigo` literal na declaração, atribuído no construtor, por getter ou
-  *      por propriedade de parâmetro; o tratador global; e a recusa
-  *      `{ status, corpo: { erro } }` do console.
+@@ -47,7 +69,7 @@
+  *      `send(X)`, `typeof X`). `let`, `var`, parâmetro homônimo, exportação,
+  *      escrita em campo, passar a uma função ou apelidar deixam o corpo sem
+  *      leitura, e corpo sem leitura numa resposta de acesso reprova.
 - *    - O que a varredura NÃO consegue ler, ela REPROVA em vez de deixar passar:
-+ *    - O corpo por constante (`send(RESPOSTA_X)`) só é lido quando o nome
-+ *      resolve, pelo escopo, a um `const` não exportado com objeto literal, e
-+ *      todo outro uso dele no arquivo é leitura (`X.campo`, `...X`, outro
-+ *      `send(X)`, `typeof X`). `let`, `var`, parâmetro homônimo, exportação,
-+ *      escrita em campo, passar a uma função ou apelidar deixam o corpo sem
-+ *      leitura, e corpo sem leitura numa resposta de acesso reprova.
 + *    - Formas que ela reconhece como ilegíveis, e reprova:
   *      `.code(...)` ou `.status(...)` fora de uma cadeia com `send` (o corpo
   *      iria num `return`), 401 ou 403 sem `erro`, corpo que não resolve (inclusive
   *      texto, com status calculado), `{ erro: "x", ...extra }` com o spread
-- *      depois de `erro` (só passa o spread de objeto literal sem `erro`),
-- *      `statusCode` ou `status` escritos à mão por qualquer forma (propriedade,
-- *      chave computada, colchete, `Object.defineProperty`), `Object.assign`,
-+ *      depois de `erro` (só passa o spread de objeto literal sem `erro`), `erro`
-+ *      do corpo por getter, setter ou método, escrita em `erro` ou `corpo` de
-+ *      qualquer objeto (ponto, colchete, operador composto, `delete`, `++`,
-+ *      desestruturação), colchete com chave literal nos nomes que ela lê com
-+ *      ponto (`resposta["code"](403)`, `["send"]`, `["erro"]`...), chamada por
-+ *      chave calculada (`resposta[m](403)`), `.send` usado sem ser chamado,
-+ *      `.call`, `.apply` e `.bind` (salvo `Object.prototype.hasOwnProperty.call`),
-+ *      chave calculada que não resolve a um `const` de texto, em objeto ou
-+ *      classe, texto com `FST_` (forja o código do Fastify cujo status o
-+ *      tratador repassa), `Object.setPrototypeOf`, `Object.create`, `__proto__`
-+ *      e `extends` de expressão que não é nome (forjam a classe de um erro),
-+ *      `toJSON`, `setReplySerializer`, `setSerializerCompiler`,
-+ *      `.serializer(...)`, `eval` e `Function`, `.redirect(url, status)` fora de
-+ *      3xx, `statusCode` ou `status` escritos à mão por qualquer forma
-+ *      (propriedade, abreviação, método, acessor, chave computada, colchete,
-+ *      operador composto, `Object.defineProperty`), `Object.assign`,
-  *      `httpErrors`, `createError`, `.raw`, `.hijack()` e `.writeHead()`
-  *      (escrita direta na resposta do Node), ganchos `onSend` que recebem o
-  *      corpo ou qualquer gancho que envia resposta ou lança erro de negócio,
-@@ -91,11 +132,16 @@
+@@ -110,19 +132,16 @@
   *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
   *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
   *
 - * O que NENHUM dos dois prende, para ninguém ler mais do que está escrito: uma
 - * recusa que só sai com um corpo ou um estado que os perfis do teste dinâmico
-- * não criam E que o texto esconde (código montado por dado externo, classe
-- * definida fora das pastas varridas, `Object.assign` num erro, resposta de um
-- * plugin de terceiros); os erros de outros status (404, 409, 422, 429, 5xx) e os
+- * não criam E que o texto não mostra, e isso se resume a duas formas: código
+- * ou `statusCode` que vêm de DADO em tempo de execução (um objeto do banco, da
+- * rede ou de `JSON.parse` lançado ou espalhado num erro); e classe de erro ou
+- * resposta definida FORA das pastas varridas (dependência, plugin de
+- * terceiros, inclusive método que ele acrescente à resposta, porque a varredura
+- * reconhece a resposta pelo NOME dos métodos do Fastify: `code`, `status`,
+- * `send`, `redirect`, `statusCode`, `raw`, `hijack`, `writeHead`). A prova
+- * dinâmica, por sua vez, não alcança ramo que dependa de um valor que o corpo
+- * mínimo dela não manda (o handler das 66 rotas que nunca recebem 2xx, acima,
+- * e qualquer `if` sobre o dado pedido). Fora do escopo: os erros de outros
+- * status (404, 409, 422, 429, 5xx) e os
 + * O que NENHUMA das três linhas prende, para ninguém ler mais do que está
 + * escrito: resposta que não passa pelo Fastify, escrita direto no Node
 + * (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no SOCKET da requisição
@@ -1819,7 +1233,7 @@ index 0ae4dcc..3a5fa0b 100644
   * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
   * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o
   * código (isso é dos testes do painel e do aplicativo, que também leem este
-@@ -114,9 +160,10 @@
+@@ -141,9 +160,10 @@
   *
   * `apps/console` é outro processo, com a própria sessão e o próprio contrato de
   * erro (`sem_sessao`, `so_o_dono`, ...), e as páginas dele leem esses códigos.
@@ -1834,34 +1248,26 @@ index 0ae4dcc..3a5fa0b 100644
   * ## Recurso de outro município
   *
 diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
-index 17a1c72..f372899 100644
+index 615ca80..f372899 100644
 --- a/dc360/scripts/baseline.mjs
 +++ b/dc360/scripts/baseline.mjs
-@@ -465,6 +465,23 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
-     lista e 13 no `vitest run`, sem pulo novo.
-   */
-   "V2-F00-E09-correcao-4": { total: 13, falhas: 0, puladas: 0 },
-+  /*
-+    V2-F00-E05, correção 3 (2026-10-19), contada contra o `ca5a38f`:
-+    `codigos-de-erro.test.ts` vai de 116 para 169 casos. Entram 6 mutações do
-+    red-team da rodada 5 no texto real de `rotas/orgaos.ts`, em memória (A, B,
-+    C, N, N2 e o homônimo D), 46 formas da família delas em fonte de exemplo
-+    (corpo por constante escrito, `let`, exportado ou apelidado, colchete,
-+    chave calculada, `.call`/`.apply`/`.bind`, `statusCode` abreviado, texto
-+    com `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`) e
-+    1 caso de controle (o que é só lido passa). Sem pulo nem falha novos.
+@@ -474,8 +474,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     chave calculada, `.call`/`.apply`/`.bind`, `statusCode` abreviado, texto
+     com `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`) e
+     1 caso de controle (o que é só lido passa). Sem pulo nem falha novos.
 +    Segunda parte da correção 3 (depois da revisão independente): a GUARDA em
 +    tempo de execução. `codigos-de-erro.test.ts` ganha mais 2 (escrita no
 +    socket e `code(200).code(403)`), indo a 171; `guarda-de-codigos-de-erro.test.ts`
 +    é novo, com 49 (as dezesseis formas da revisão como rotas, nos dois modos,
 +    o `JSON.stringify` trocado nos dois, status trocado e 401 fora, HEAD,
 +    controles e 10 casos da conferência isolada). 53 + 2 + 49 = 104.
-+  */
+   */
+-  "V2-F00-E05-correcao-3": { total: 53, falhas: 0, puladas: 0 },
 +  "V2-F00-E05-correcao-3": { total: 104, falhas: 0, puladas: 0 },
  };
  
  /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
-@@ -679,7 +696,7 @@ export const PASSOS = [
+@@ -690,7 +696,7 @@ export const PASSOS = [
    { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
    { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
    { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
