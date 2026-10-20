@@ -137,7 +137,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
     dava 0 para este arquivo e por isso ele ficou de fora).
   */
-  "V2-F00-E19": 45, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory)
+  "V2-F00-E19": 54, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita)
   /*
     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
@@ -497,10 +497,13 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   /*
     V2-F00-E05, correção 4 (2026-10-20): status não inteiro na guarda e na
     varredura: guarda da API de 71 para 95 casos (+24) e
-    `codigos-de-erro.test.ts` de 171 para 193 (+22). Soma 46, sem falha nem
-    pulo novos. A guarda do console (+9) está no número do próprio passo.
+    `codigos-de-erro.test.ts` de 171 para 193 (+22); na segunda parte
+    (resposta crua, `_storeHeader`, chave calculada) guarda de 95 para 108
+    (+13) e `codigos-de-erro.test.ts` de 193 para 213 (+20). Soma 79, sem
+    falha nem pulo novos. A guarda do console (+12) está no número do
+    próprio passo.
   */
-  "V2-F00-E05-correcao-4": { total: 46, falhas: 0, puladas: 0 },
+  "V2-F00-E05-correcao-4": { total: 79, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -739,7 +742,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 283, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 286, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)
