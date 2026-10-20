@@ -1,0 +1,13 @@
+$ PATH=<npm 10.9.2 instalado em pasta temporária>:$PATH node scripts/auditar.mjs   (o npm do Node 22 do CI; portão da correção 8 nas cópias plock e proibida, e na árvore do worktree)
+npm 10.9.2
+=== variante plock (package-lock=false)
+    codigo=1
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+=== variante proibida (before=2020-01-01)
+    codigo=2
+    ERRO: a configuração do npm para a raiz (/private/tmp/e19c6/c8/copias10/proibida/dc360) tem chave fora da lista permitida, então este portão NÃO aprova.
+      - before   (de project (/private/tmp/e19c6/c8/copias10/proibida/dc360/.npmrc))
+=== árvore do worktree (sem plantio)
+    codigo=0
+    Runtime limpo, e o aplicativo sem advisory nova.

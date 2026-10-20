@@ -27,7 +27,8 @@ import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
-  aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+  CHAVES_PERMITIDAS, aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
+  hojeEmSaoPaulo, lerNpmConfigList, normalizarChave, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
@@ -45,10 +46,35 @@ const cwd = process.cwd().replaceAll("\\\\", "/");
 const f = JSON.parse(process.env.AUDITAR_FIXTURE);
 const args = process.argv.slice(2);
 const controle = /\\/auditar-controle-[^/]*$/.test(cwd);
+// \`npm config list\`: o formato do npm real (projeto e ambiente), ou o texto da fixture.
+if (args[0] === "config") {
+  const nome = cwd.endsWith("apps/campo") ? "configApp" : "configRaiz";
+  if (typeof f[nome] === "string") { process.stdout.write(f[nome]); process.exit(f[nome + "Codigo"] ?? 0); }
+  const linhas = [];
+  if (existsSync(".npmrc")) {
+    linhas.push(\`; "project" config from \${process.cwd()}/.npmrc\`, "");
+    for (const l of readFileSync(".npmrc", "utf8").split(/\\r?\\n/)) {
+      const t = l.trim(); if (!t || t.startsWith(";") || t.startsWith("#")) continue;
+      const i = t.indexOf("="); linhas.push(i < 0 ? \`\${t} = true\` : \`\${t.slice(0, i).trim()} = \${t.slice(i + 1).trim()}\`);
+    }
+    linhas.push("");
+  }
+  const doAmbiente = Object.keys(process.env).filter((n) => /^npm_config_/i.test(n));
+  if (doAmbiente.length) {
+    linhas.push('; "env" config from environment', "");
+    for (const n of doAmbiente) linhas.push(\`\${n.slice(11).toLowerCase().replaceAll("_", "-")} = "\${process.env[n]}"\`);
+    linhas.push("");
+  }
+  if (f[nome + "Extra"]) linhas.push(f[nome + "Extra"], "");
+  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? process.cwd()}\`, \`; cwd = \${process.cwd()}\`);
+  process.stdout.write(linhas.join("\\n") + "\\n");
+  process.exit(0);
+}
 if (process.env.AUDITAR_LOG) {
   const npmrc = existsSync(".npmrc") ? readFileSync(".npmrc", "utf8").trim() : null;
   const workspaceNoAmbiente = Object.keys(process.env).filter((n) => /^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(n));
-  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente }) + "\\n");
+  const npmConfig = Object.keys(process.env).filter((n) => /^npm_config_/i.test(n)).sort();
+  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente, npmConfig }) + "\\n");
 }
 const fixado = args.includes("--registry=${REGISTRO_OFICIAL}") && args.includes("--offline=false");
 const rel = f.ignorarBandeiras || (f.offline && !fixado) ? f.vazioBemFormado
@@ -134,10 +160,16 @@ function fixtura({
   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
 }
 
+/**
+ * O ambiente do teste SEM nenhuma \`npm_config_*\`: rodando por \`npm run\`, o npm
+ * exporta várias, e o portão confere as que sobram. Cada teste põe as suas.
+ */
+const AMBIENTE_LIMPO = Object.fromEntries(Object.entries(process.env).filter(([n]) => !/^npm_config_/i.test(n)));
+
 function rodar(opcoes, { env = {}, cwd } = {}) {
   const r = spawnSync(process.execPath, [SCRIPT], {
     encoding: "utf8", ...(cwd ? { cwd } : {}),
-    env: { ...process.env, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
+    env: { ...AMBIENTE_LIMPO, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
   });
   return { codigo: r.status, saida: r.stdout + r.stderr };
 }
@@ -303,13 +335,19 @@ describe("auditar.mjs", () => {
     assert.equal(codigo, 0, saida);
     assert.equal(chamadas.length, 5, JSON.stringify(chamadas)); // runtime, tudo, aplicativo e dois controles
     for (const { args } of chamadas) {
-      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false", "--workspaces=false"]) {
+      for (const bandeira of [
+        `--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false",
+        "--package-lock=true",
+      ]) {
         assert.ok(args.includes(bandeira), `falta ${bandeira} em ${args.join(" ")}`);
       }
+      // Correção 8: \`--workspaces=false\` saiu (com dependência direta na raiz, ele descarta o runtime dos workspaces).
+      assert.ok(!args.some((a) => /^--(no-)?workspaces?(=|$)/.test(a)), args.join(" "));
     }
     const controles = chamadas.filter((c) => c.controle);
     assert.equal(controles.length, 2);
     for (const { args } of controles) assert.ok(args.includes("--package-lock-only"));
+    for (const { args } of chamadas.filter((c) => !c.controle)) assert.ok(args.includes("--package-lock-only=false"), args.join(" "));
     assert.match(saida, /Consulta de controle: lodash 4\.17\.20 voltou com GHSA-35jh-r3h4-6jhm/);
   });
 
@@ -345,8 +383,7 @@ describe("auditar.mjs", () => {
     assert.equal(chamadas.length, 5);
     for (const { workspaceNoAmbiente, args } of chamadas) {
       assert.deepEqual(workspaceNoAmbiente, []);
-      assert.ok(args.includes("--workspaces=false"));
-      assert.ok(!args.some((a) => /^--workspace(=|$)/.test(a)));
+      assert.ok(!args.some((a) => /^--(no-)?workspaces?(=|$)/.test(a)));
     }
   });
 
@@ -358,6 +395,52 @@ describe("auditar.mjs", () => {
     );
     assert.equal(codigo, 1, saida);
     assert.match(saida, /dependência de runtime/);
+  });
+
+  it("npm_config_* fora da lista no ambiente sai 2 com o nome (em qualquer caixa), antes de auditar", () => {
+    for (const [nome, chave] of [["npm_config_before", "before"], ["NPM_CONFIG_OMIT", "omit"], ["npm_config_https_proxy", "https-proxy"]]) {
+      const { codigo, saida, chamadas } = rodarComRegistro({}, { env: { [nome]: "x" } });
+      assert.equal(codigo, 2, `${nome}: ${saida}`);
+      assert.ok(saida.includes(`  - ${chave}   (de env (${nome}))`), `${nome}: ${saida}`);
+      assert.equal(chamadas.length, 0);
+    }
+  });
+
+  it("as npm_config_* que o npm run exporta são anuladas (não chegam ao npm), e as permitidas chegam e passam", () => {
+    const { codigo, saida, chamadas } = rodarComRegistro({}, {
+      env: {
+        npm_config_userconfig: "/tmp/nao-existe/.npmrc", npm_config_globalconfig: "/tmp/nao-existe/npmrc",
+        npm_config_local_prefix: "/tmp", npm_config_prefix: "/tmp", npm_config_cache: "/tmp/cache",
+        npm_config_user_agent: "npm/0", npm_config_node_gyp: "x", npm_config_npm_version: "0", npm_config_init_module: "x",
+        npm_config_global_prefix: "/tmp", npm_config_noproxy: "",
+        npm_config_package_lock: "false", NPM_CONFIG_LOGLEVEL: "silent",
+      },
+    });
+    assert.equal(codigo, 0, saida);
+    assert.equal(chamadas.length, 5);
+    for (const { npmConfig } of chamadas) assert.deepEqual(npmConfig, ["NPM_CONFIG_LOGLEVEL", "npm_config_package_lock"]);
+  });
+
+  it("chave fora da lista que só o npm conhece (npmrc do usuário, global ou embutido) sai 2 com o arquivo de origem", () => {
+    const extra = '; "user" config from /casa/.npmrc\n\nfund = false\nomit = ["dev"]\n\n; "global" config from /usr/etc/npmrc\n\nbefore = "2020-01-01"';
+    const { codigo, saida } = rodar({ configRaizExtra: extra });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /  - omit   \(de user \(\/casa\/\.npmrc\)\)/);
+    assert.match(saida, /  - before   \(de global \(\/usr\/etc\/npmrc\)\)/);
+    assert.doesNotMatch(saida, /  - fund /);
+  });
+
+  it("sai 2 quando o npm config list falha, não diz o projeto, ou toma outra pasta como projeto", () => {
+    for (const [opcoes, motivo] of [
+      [{ configRaiz: "", configRaizCodigo: 1 }, /npm config list. falhou/],
+      [{ configRaiz: "; nada aqui\n" }, /npm local prefix = ausente/],
+      [{ configAppPrefixo: tmpdir() }, /não tomou .* como projeto/],
+    ]) {
+      const { codigo, saida } = rodar(opcoes);
+      assert.equal(codigo, 2, `${JSON.stringify(opcoes)}: ${saida}`);
+      assert.match(saida, motivo);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
   });
 
   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
@@ -514,6 +597,51 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
     assert.deepEqual(pacotesDeRuntimeNoCompleto(vulns, lock), ["desconhecido", "misto", "o", "p", "semNos"]);
   });
 
+  it("chavesDoNpmrc lê o ini do .npmrc: comentário, lista com [], seção e linha sem valor", () => {
+    assert.deepEqual(
+      chavesDoNpmrc("; c\n# d\n\npackage-lock = false\nfoo[]=1\r\n[secao]\n  //registry.npmjs.org/:_authToken=${T}\nsozinha\n"),
+      ["package-lock", "foo", "[secao]", "//registry.npmjs.org/:_authToken", "sozinha"],
+    );
+  });
+
+  it("lerNpmConfigList separa as chaves por fonte e acha o npm local prefix (formato do npm 10 e 11)", () => {
+    const texto = '; "user" config from /casa/.npmrc\n\n//registry.npmjs.org/:_authToken = (protected)\nfund = false\n\n'
+      + '; "project" config from /p/.npmrc\n\npackage-lock = false\n\n; "env" config from environment\n\nloglevel = "silent"\n\n'
+      + "; node bin location = /usr/local/bin/node\n; node version = v22.0.0\n; npm local prefix = /p\n; npm version = 10.9.2\n; cwd = /p\n";
+    const { chaves, prefixoLocal } = lerNpmConfigList(texto);
+    assert.equal(prefixoLocal, "/p");
+    assert.deepEqual(chaves, [
+      { chave: "//registry.npmjs.org/:_authToken", origem: "user (/casa/.npmrc)" },
+      { chave: "fund", origem: "user (/casa/.npmrc)" },
+      { chave: "package-lock", origem: "project (/p/.npmrc)" },
+      { chave: "loglevel", origem: "env (environment)" },
+    ]);
+    assert.deepEqual(chavesProibidas(chaves), []);
+  });
+
+  it("normalizarChave e chavesProibidas: variável em qualquer caixa vira a chave do npm; a lista não permite workspace, omit, include nem proxy", () => {
+    assert.equal(normalizarChave("NPM_CONFIG_PREFER_OFFLINE", { doAmbiente: true }), "prefer-offline");
+    assert.equal(normalizarChave("npm_config_package_lock", { doAmbiente: true }), "package-lock");
+    for (const chave of ["workspace", "workspaces", "include-workspace-root", "omit", "include", "before", "proxy", "https-proxy", "cafile", "global", "audit"]) {
+      assert.ok(!Object.hasOwn(CHAVES_PERMITIDAS, chave), chave);
+    }
+    assert.deepEqual(chavesProibidas([{ chave: "omit", origem: "a" }, { chave: "omit", origem: "a" }, { chave: "fund", origem: "a" }]), [{ chave: "omit", origem: "a" }]);
+  });
+
+  it("hojeEmSaoPaulo: o prazo vence no fim do dia do Brasil, e não às 21h (UTC)", () => {
+    assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T01:00:00Z")), "2027-01-05"); // 22h do dia 5 em São Paulo
+    assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T03:00:00Z")), "2027-01-06"); // meia-noite do dia 6
+    assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hojeEmSaoPaulo(new Date("2027-01-06T02:59:00Z")), { exigirAdvisories: true }), []);
+  });
+
+  it("ambienteDaConsulta tira as npm_config_* do npm run e de workspace, e deixa as outras", () => {
+    const env = ambienteDaConsulta({
+      PATH: "/bin", npm_config_userconfig: "x", NPM_CONFIG_CACHE: "x", npm_config_local_prefix: "x", npm_config_workspace: "x",
+      npm_config_before: "x", npm_config_loglevel: "x",
+    });
+    assert.deepEqual(Object.keys(env).sort(), ["PATH", "npm_config_before", "npm_config_loglevel"]);
+  });
+
   it("defeitoDaArvore exige dependencies.total maior que zero", () => {
     assert.equal(defeitoDaArvore(limpo), null);
     for (const rel of [{}, { metadata: {} }, { metadata: { dependencies: { total: 0 } } }, { metadata: { dependencies: { total: "249" } } }]) {
@@ -609,7 +737,7 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
 
 describe("auditar.mjs com a lista de exceções adulterada", () => {
   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
-  function rodarCopia(alterar, { npmrc, semLockfile = false } = {}) {
+  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {} } = {}) {
     const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
     try {
       mkdirSync(join(raiz, "scripts"));
@@ -628,10 +756,10 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
       const r = spawnSync(process.execPath, [join(raiz, "scripts", "auditar.mjs")], {
         encoding: "utf8",
         env: {
-          ...process.env,
+          ...AMBIENTE_LIMPO,
           PATH: pasta + delimiter + process.env.PATH,
           AUDITAR_LOG: log,
-          AUDITAR_FIXTURE: fixtura({}),
+          AUDITAR_FIXTURE: fixtura(fixturaDaCopia),
         },
       });
       const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
@@ -677,6 +805,42 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
     assert.equal(codigo, 2, saida);
     assert.match(saida, /package-lock\.json/);
     assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  /*
+    Rodada 7, achado 1: \`package-lock=false\` no \`.npmrc\` da raiz fazia o npm
+    auditar a árvore ideal das faixas do \`package.json\`, e não o lockfile, e o
+    portão aprovava um lockfile com runtime vulnerável. A chave é permitida porque
+    toda chamada passa \`--package-lock=true\`, que vence a configuração.
+  */
+  it("package-lock=false (e offline) no .npmrc da raiz: a chave é anulada pela bandeira e o runtime vulnerável reprova", () => {
+    const npmrc = { raiz: "package-lock=false\noffline=true\n", app: "package-lock=false\n" };
+    const limpa = rodarCopia((t) => `${t}\n// controle\n`, { npmrc });
+    assert.equal(limpa.codigo, 0, limpa.saida);
+    for (const { args } of limpa.chamadas) assert.ok(args.includes("--package-lock=true"), args.join(" "));
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc, fixturaDaCopia: { runtime: relatorio({ fastify: true }) } });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /dependência de runtime/);
+  });
+
+  it("chave fora da lista no .npmrc da raiz sai 2 com o nome dela e a origem, ANTES de auditar", () => {
+    for (const linha of ["before=2020-01-01", "omit=dev", "workspace=packages/shared", "workspaces=false",
+      "include-workspace-root=false", "https-proxy=http://127.0.0.1:9", "ignore-scripts=true", "[secao]"]) {
+      const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: `${linha}\n`, app: "" } });
+      const chave = linha.startsWith("[") ? linha : linha.split("=")[0];
+      assert.equal(codigo, 2, `${linha}: ${saida}`);
+      assert.match(saida, /tem chave fora da lista permitida/);
+      assert.ok(saida.includes(`  - ${chave}   (de project (`), `${linha}: ${saida}`);
+      assert.equal(chamadas.length, 0, `${linha}: auditou antes de conferir a configuração`);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+  });
+
+  it("chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo", () => {
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: "fund=false\n", app: "omit=\n" } });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /para o aplicativo de campo .*tem chave fora da lista permitida/);
+    assert.match(saida, /  - omit   \(de project/);
   });
 
   it("reprova a exceção vencida", () => {

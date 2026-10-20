@@ -1,0 +1,10 @@
+$ node --test scripts/auditar.test.mjs   (cópia de f37bdac, ANTES da correção 8)
+✔ auditar.mjs com a lista de exceções adulterada (2378.20925ms)
+ℹ tests 58
+ℹ suites 4
+ℹ pass 58
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16333.015584

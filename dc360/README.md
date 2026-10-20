@@ -1582,31 +1582,48 @@ ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
 devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
 código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
 
-O que o portão anula: toda chamada fixa o registro oficial
-(`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
-`dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
-`offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
-ou em `npm_config_*`, não mudam para onde ele pergunta. O escopo também não
+Antes de auditar, o portão confere a configuração do npm: lê o que o próprio npm
+diz que carregou (`npm config list`: o npmrc embutido, o global, o do usuário, o
+do projeto e as `npm_config_*` do ambiente), o `.npmrc` da raiz e o do aplicativo
+direto do disco, e as `npm_config_*` do ambiente, e só aceita as chaves de
+`CHAVES_PERMITIDAS` (`scripts/auditar-excecoes.mjs`): as que só mexem no terminal
+(`loglevel`, `color`, `progress`, `fund`, `update-notifier`), as pastas `cache`
+e `prefix`, a credencial do registro oficial, e as que toda chamada anula na
+linha de comando, que vence configuração (`registry`, `offline`,
+`prefer-offline`, `prefer-online`, `dry-run`, `package-lock`,
+`package-lock-only`, `audit-level`, `json`). Qualquer outra chave, venha de onde
+vier, faz o portão sair 2 com o nome dela e o arquivo de origem: a rodada 7 achou
+`package-lock=false` num `.npmrc`, que faz o npm auditar a árvore ideal das
+faixas do `package.json` em vez do lockfile, e o portão aprovava um lockfile com
+runtime vulnerável. Por isso toda chamada passa `--package-lock=true`, e as
+consultas reais `--package-lock-only=false`. As variáveis que o `npm run` exporta
+para o script (`cache`, `prefix`, `userconfig`, `globalconfig`, `local-prefix` e
+afins) e as de workspace saem do ambiente das chamadas. O escopo também não
 depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
-do aplicativo no aplicativo), com `--workspaces=false` e sem as variáveis
-`npm_config_workspace`, `npm_config_workspaces` e `npm_config_include_workspace_root`
-no ambiente, porque o npm audita só o workspace em que está e devolve "limpo" para
-o resto (dado de dentro de `packages/shared`, o comando ficava em "Runtime limpo"
-com uma dependência de runtime vulnerável na raiz). Um `workspace=` fixado num
-`.npmrc` faz o npm recusar a chamada, e aí o portão sai 2. O que ele exige antes de
-aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
-aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
-próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
-está velha, e o portão sai 2); o que a auditoria completa acusa em pacote que o
-`package-lock.json` não marca como só de desenvolvimento conta como runtime; e
-uma consulta de controle à parte (`lodash` 4.17.20, com o `.npmrc` de cada
-projeto) volta com a advisory conhecida. As exceções do aplicativo casam pelo id
-da advisory e pela gravidade aceita: advisory nova num pacote já aceito reprova,
-e advisory aceita que muda de gravidade também. O que continua FORA do alcance:
-um `npm` falso no `PATH` (o portão confia no programa que executa), um proxy de
-inspeção TLS que reescreve a resposta tirando só a advisory nova e deixando as
-conhecidas, e o dia em que as duas listas de aceitas ficarem vazias (aí a única
-prova é a consulta de controle à parte).
+do aplicativo no aplicativo), e o npm tem de confirmar a pasta (`npm local
+prefix`). `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
+e a bandeira `--workspaces=false` saiu na correção 8: com uma dependência direta
+na raiz ela descarta do relatório tudo o que só os workspaces usam. O que ele
+exige antes de aprovar: cada relatório diz quantas dependências olhou; as
+advisories aceitas do aplicativo (por GHSA) e os pacotes aceitos de
+desenvolvimento voltam DENTRO das próprias consultas (se uma some, a resposta foi
+forjada no caminho ou a lista está velha, e o portão sai 2); o que a auditoria
+completa acusa em pacote que o `package-lock.json` não marca como só de
+desenvolvimento conta como runtime; e uma consulta de controle à parte (`lodash`
+4.17.20, com o `.npmrc` de cada projeto) volta com a advisory conhecida. As
+exceções do aplicativo casam pelo id da advisory e pela gravidade aceita:
+advisory nova num pacote já aceito reprova, e advisory aceita que muda de
+gravidade também. O prazo das exceções vale até o fim do dia escrito no fuso de
+São Paulo. O que continua FORA do alcance: um `npm` falso no `PATH` (o portão
+confia no programa que executa); um proxy de inspeção TLS que reescreve a
+resposta tirando só a advisory nova e deixando as conhecidas (as variáveis de
+proxy do sistema, como `HTTPS_PROXY`, não são configuração do npm e não passam
+pela lista); o dia em que as duas listas de aceitas ficarem vazias (aí a única
+prova é a consulta de controle à parte); e um `package-lock.json` adulterado que
+marca um pacote de runtime como `dev: true`, porque o portão confia nessa marca
+para separar runtime de desenvolvimento (o `npm ci --omit=dev` do Dockerfile usa
+a mesma marca e não instala o pacote, então a imagem não leva a versão
+vulnerável; anotado na rodada 7).
 
 ### O aplicativo de campo precisa de um comando próprio
 
