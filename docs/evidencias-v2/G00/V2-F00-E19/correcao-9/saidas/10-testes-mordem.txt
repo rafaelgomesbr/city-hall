@@ -1,0 +1,26 @@
+$ mutar.sh dc360   (auditar.test.mjs contra cópias do portão com uma parte da correção 9 desfeita)
+=== mutação: sem procurar npm-shrinkwrap.json
+  ✖ sai 2 com padrão de workspace que o portão não sabe expandir (não dá para procurar shrinkwrap) (304.957167ms)
+  ✖ sai 2, antes de auditar, se existe npm-shrinkwrap.json na raiz, no aplicativo ou num workspace (283.174458ms)
+ℹ fail 2
+ℹ pass 73
+ℹ tests 75
+=== mutação: shrinkwrap só na raiz (sem aplicativo nem workspaces)
+  ✖ sai 2 com padrão de workspace que o portão não sabe expandir (não dá para procurar shrinkwrap) (266.536458ms)
+  ✖ sai 2, antes de auditar, se existe npm-shrinkwrap.json na raiz, no aplicativo ou num workspace (373.771375ms)
+  ✖ shrinkwrapsPresentes procura na raiz, nas pastas dadas e nos workspaces (pasta/* e literal) (2.172458ms)
+ℹ fail 3
+ℹ pass 72
+ℹ tests 75
+=== mutação: prefixo comparado sem a máscara do npm (como na correção 8)
+  ✖ mesmoProjeto aceita o prefixo igual ou mascarado como o npm faz, e só isso (2.330541ms)
+  ✖ projeto numa pasta com cara de UUID: o npm 11 mascara o caminho com *** e o portão reconhece o projeto mesmo assim (74.087917ms)
+ℹ fail 2
+ℹ pass 73
+ℹ tests 75
+=== mutação: prefixo aceito sempre (sem conferir o projeto)
+  ✖ mesmoProjeto aceita o prefixo igual ou mascarado como o npm faz, e só isso (2.196209ms)
+  ✖ sai 2 quando o npm config list falha, não diz o projeto, ou toma outra pasta como projeto (326.202417ms)
+ℹ fail 2
+ℹ pass 73
+ℹ tests 75

@@ -471,6 +471,67 @@ export function chavesProibidas(achadas) {
 }
 
 /**
+ * O texto como o npm 11 o mostra em `npm config list` e `npm prefix`: ele mascara
+ * com `***` todo trecho com cara de UUID (e `npm_***` para segredo do npm), pelo
+ * `@npmcli/redact`. Um caminho de projeto com um segmento assim (pasta temporária,
+ * worktree, runner de CI) volta mascarado, e a comparação direta com o caminho
+ * real falhava (revisão da correção 8). Comparar o mascarado com o mascarado só
+ * aceita a diferença que a própria máscara do npm produz.
+ */
+export function mascararComoONpm(texto) {
+  return String(texto)
+    .replace(/\b(npms?_)[a-zA-Z0-9]{36,48}\b/gi, "npm_***")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "***");
+}
+
+/**
+ * O npm tomou `projeto` como projeto? `prefixoDoNpm` é o `npm local prefix`
+ * (talvez mascarado); `caminhos` são o caminho dado e o real (sem link). Vale o
+ * igual, ou o igual depois de aplicar a mesma máscara do npm aos caminhos.
+ */
+export function mesmoProjeto(prefixoDoNpm, caminhos) {
+  if (typeof prefixoDoNpm !== "string" || prefixoDoNpm === "") return false;
+  return caminhos.some((c) => c === prefixoDoNpm || mascararComoONpm(c) === prefixoDoNpm);
+}
+
+/**
+ * Os `npm-shrinkwrap.json` que existem na raiz, no aplicativo ou em qualquer
+ * workspace. O npm dá precedência ao shrinkwrap sobre o `package-lock.json`
+ * (`sw || lock` no arborist): com um shrinkwrap limpo ao lado, o `npm audit`
+ * olhava o shrinkwrap e aprovava um `package-lock.json` com runtime vulnerável,
+ * que é o que o Dockerfile copia e o `npm ci` instala (revisão da correção 8).
+ * Não há motivo para shrinkwrap neste repositório: existir já é defeito.
+ *
+ * Os workspaces vêm do `package.json` da raiz; só `pasta/*` e caminho literal são
+ * expandidos, e um padrão diferente volta como defeito (`naoExpandidos`).
+ *
+ * @returns {{ achados: string[], naoExpandidos: string[] }}
+ */
+export function shrinkwrapsPresentes(raiz, outrasPastas = [], fs) {
+  const { existsSync, readFileSync, readdirSync } = fs;
+  const pastas = [raiz, ...outrasPastas];
+  const naoExpandidos = [];
+  let workspaces = [];
+  try {
+    const pacote = JSON.parse(readFileSync(`${raiz}/package.json`, "utf8"));
+    workspaces = Array.isArray(pacote.workspaces) ? pacote.workspaces : pacote.workspaces?.packages ?? [];
+  } catch { /* sem package.json legível o npm audit falha sozinho, e o portão sai 2 */ }
+  for (const padrao of workspaces) {
+    if (/^[^*?[\]{}!]+\/\*$/.test(padrao)) {
+      const base = `${raiz}/${padrao.slice(0, -2)}`;
+      if (!existsSync(base)) continue;
+      for (const e of readdirSync(base, { withFileTypes: true })) if (e.isDirectory()) pastas.push(`${base}/${e.name}`);
+    } else if (/^[^*?[\]{}!]+$/.test(padrao)) {
+      pastas.push(`${raiz}/${padrao}`);
+    } else {
+      naoExpandidos.push(padrao);
+    }
+  }
+  const achados = pastas.map((p) => `${p}/npm-shrinkwrap.json`).filter((f) => existsSync(f));
+  return { achados, naoExpandidos };
+}
+
+/**
  * A data de hoje no fuso de São Paulo (AAAA-MM-DD). O prazo das exceções "vale
  * até o fim do dia escrito", e o dia é o do Brasil: em UTC a exceção vencia às
  * 21h do último dia (anotado na rodada 7).

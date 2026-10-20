@@ -1,0 +1,294 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 1114e29..299f1a2 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1601,7 +1601,10 @@ para o script (`cache`, `prefix`, `userconfig`, `globalconfig`, `local-prefix` e
+ afins) e as de workspace saem do ambiente das chamadas. O escopo também não
+ depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
+ do aplicativo no aplicativo), e o npm tem de confirmar a pasta (`npm local
+-prefix`). `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
++prefix`, comparado também com a máscara `***` que o npm 11 põe em trecho de
++caminho com cara de UUID). Um `npm-shrinkwrap.json` na raiz, no aplicativo ou
++num workspace faz o portão sair 2 antes de auditar: o npm o lê no lugar do
++`package-lock.json`, e é o `package-lock.json` que o Dockerfile instala. `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
+ e a bandeira `--workspaces=false` saiu na correção 8: com uma dependência direta
+ na raiz ela descarta do relatório tudo o que só os workspaces usam. O que ele
+ exige antes de aprovar: cada relatório diz quantas dependências olhou; as
+diff --git a/dc360/scripts/auditar-excecoes.mjs b/dc360/scripts/auditar-excecoes.mjs
+index cd2e0ce..dab3452 100644
+--- a/dc360/scripts/auditar-excecoes.mjs
++++ b/dc360/scripts/auditar-excecoes.mjs
+@@ -470,6 +470,67 @@ export function chavesProibidas(achadas) {
+   });
+ }
+ 
++/**
++ * O texto como o npm 11 o mostra em `npm config list` e `npm prefix`: ele mascara
++ * com `***` todo trecho com cara de UUID (e `npm_***` para segredo do npm), pelo
++ * `@npmcli/redact`. Um caminho de projeto com um segmento assim (pasta temporária,
++ * worktree, runner de CI) volta mascarado, e a comparação direta com o caminho
++ * real falhava (revisão da correção 8). Comparar o mascarado com o mascarado só
++ * aceita a diferença que a própria máscara do npm produz.
++ */
++export function mascararComoONpm(texto) {
++  return String(texto)
++    .replace(/\b(npms?_)[a-zA-Z0-9]{36,48}\b/gi, "npm_***")
++    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "***");
++}
++
++/**
++ * O npm tomou `projeto` como projeto? `prefixoDoNpm` é o `npm local prefix`
++ * (talvez mascarado); `caminhos` são o caminho dado e o real (sem link). Vale o
++ * igual, ou o igual depois de aplicar a mesma máscara do npm aos caminhos.
++ */
++export function mesmoProjeto(prefixoDoNpm, caminhos) {
++  if (typeof prefixoDoNpm !== "string" || prefixoDoNpm === "") return false;
++  return caminhos.some((c) => c === prefixoDoNpm || mascararComoONpm(c) === prefixoDoNpm);
++}
++
++/**
++ * Os `npm-shrinkwrap.json` que existem na raiz, no aplicativo ou em qualquer
++ * workspace. O npm dá precedência ao shrinkwrap sobre o `package-lock.json`
++ * (`sw || lock` no arborist): com um shrinkwrap limpo ao lado, o `npm audit`
++ * olhava o shrinkwrap e aprovava um `package-lock.json` com runtime vulnerável,
++ * que é o que o Dockerfile copia e o `npm ci` instala (revisão da correção 8).
++ * Não há motivo para shrinkwrap neste repositório: existir já é defeito.
++ *
++ * Os workspaces vêm do `package.json` da raiz; só `pasta/*` e caminho literal são
++ * expandidos, e um padrão diferente volta como defeito (`naoExpandidos`).
++ *
++ * @returns {{ achados: string[], naoExpandidos: string[] }}
++ */
++export function shrinkwrapsPresentes(raiz, outrasPastas = [], fs) {
++  const { existsSync, readFileSync, readdirSync } = fs;
++  const pastas = [raiz, ...outrasPastas];
++  const naoExpandidos = [];
++  let workspaces = [];
++  try {
++    const pacote = JSON.parse(readFileSync(`${raiz}/package.json`, "utf8"));
++    workspaces = Array.isArray(pacote.workspaces) ? pacote.workspaces : pacote.workspaces?.packages ?? [];
++  } catch { /* sem package.json legível o npm audit falha sozinho, e o portão sai 2 */ }
++  for (const padrao of workspaces) {
++    if (/^[^*?[\]{}!]+\/\*$/.test(padrao)) {
++      const base = `${raiz}/${padrao.slice(0, -2)}`;
++      if (!existsSync(base)) continue;
++      for (const e of readdirSync(base, { withFileTypes: true })) if (e.isDirectory()) pastas.push(`${base}/${e.name}`);
++    } else if (/^[^*?[\]{}!]+$/.test(padrao)) {
++      pastas.push(`${raiz}/${padrao}`);
++    } else {
++      naoExpandidos.push(padrao);
++    }
++  }
++  const achados = pastas.map((p) => `${p}/npm-shrinkwrap.json`).filter((f) => existsSync(f));
++  return { achados, naoExpandidos };
++}
++
+ /**
+  * A data de hoje no fuso de São Paulo (AAAA-MM-DD). O prazo das exceções "vale
+  * até o fim do dia escrito", e o dia é o do Brasil: em UTC a exceção vencia às
+diff --git a/dc360/scripts/auditar.mjs b/dc360/scripts/auditar.mjs
+index 0e0e3ad..c117354 100755
+--- a/dc360/scripts/auditar.mjs
++++ b/dc360/scripts/auditar.mjs
+@@ -35,14 +35,14 @@
+  * linha.
+  */
+ import { execFileSync } from "node:child_process";
+-import { copyFileSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
++import { copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
+   CHAVES_PERMITIDAS, aceitasAusentes, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas, hojeEmSaoPaulo,
+-  lerNpmConfigList, normalizarChave, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
++  lerNpmConfigList, mesmoProjeto, normalizarChave, shrinkwrapsPresentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+   idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
+@@ -196,7 +196,7 @@ function conferirConfiguracaoDoNpm(projeto, rotulo) {
+   }
+   const { chaves, prefixoLocal } = lerNpmConfigList(texto);
+   const real = (caminho) => { try { return realpathSync(caminho); } catch { return caminho; } };
+-  if (prefixoLocal === null || real(prefixoLocal) !== real(projeto)) {
++  if (!mesmoProjeto(prefixoLocal, [projeto, real(projeto)])) {
+     naoAuditou(rotulo, `o npm não tomou ${projeto} como projeto (npm local prefix = ${prefixoLocal ?? "ausente"})`);
+   }
+   const npmrc = join(projeto, ".npmrc");
+@@ -219,8 +219,26 @@ function conferirConfiguracaoDoNpm(projeto, rotulo) {
+   }
+ }
+ 
+-conferirConfiguracaoDoNpm(RAIZ, "a raiz");
+-conferirConfiguracaoDoNpm(APLICATIVO, "o aplicativo de campo");
++conferirConfiguracaoDoNpm(RAIZ, "o projeto da raiz");
++conferirConfiguracaoDoNpm(APLICATIVO, "o projeto do aplicativo de campo");
++
++/*
++  O `npm-shrinkwrap.json` vence o `package-lock.json` no npm: com um ao lado, o
++  portão auditava o shrinkwrap e aprovava o lockfile que o Dockerfile instala.
++*/
++{
++  const { achados, naoExpandidos } = shrinkwrapsPresentes(RAIZ, [APLICATIVO], { existsSync, readFileSync, readdirSync });
++  if (achados.length > 0 || naoExpandidos.length > 0) {
++    console.error("\nERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.");
++    for (const f of achados) console.error(`  - ${f} existe, e o npm o lê NO LUGAR do package-lock.json`);
++    for (const p of naoExpandidos) console.error(`  - padrão de workspace que o portão não sabe expandir para procurar shrinkwrap: ${p}`);
++    console.error(
++      "O Dockerfile instala o package-lock.json, e o npm audit olharia o npm-shrinkwrap.json. Apague o shrinkwrap "
++      + "(este repositório não usa), ou ensine o portão a expandir o padrão em shrinkwrapsPresentes (scripts/auditar-excecoes.mjs).",
++    );
++    process.exit(2);
++  }
++}
+ 
+ /*
+   `--package-lock-only=false` nas consultas reais (e `--package-lock=true` em
+diff --git a/dc360/scripts/auditar.test.mjs b/dc360/scripts/auditar.test.mjs
+index 0864091..a0a19b2 100644
+--- a/dc360/scripts/auditar.test.mjs
++++ b/dc360/scripts/auditar.test.mjs
+@@ -20,14 +20,14 @@
+  */
+ import assert from "node:assert/strict";
+ import { spawnSync } from "node:child_process";
+-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { delimiter, dirname, join } from "node:path";
+ import { after, before, describe, it } from "node:test";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
+-  CHAVES_PERMITIDAS, aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
++  CHAVES_PERMITIDAS, aceitasAusentes, mascararComoONpm, mesmoProjeto, shrinkwrapsPresentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
+   hojeEmSaoPaulo, lerNpmConfigList, normalizarChave, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+@@ -66,7 +66,9 @@ if (args[0] === "config") {
+     linhas.push("");
+   }
+   if (f[nome + "Extra"]) linhas.push(f[nome + "Extra"], "");
+-  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? process.cwd()}\`, \`; cwd = \${process.cwd()}\`);
++  // O npm 11 mascara com *** todo trecho com cara de UUID (@npmcli/redact), inclusive no caminho.
++  const mascarar = (t) => t.replace(/\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b/gi, "***");
++  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? mascarar(process.cwd())}\`, \`; cwd = \${mascarar(process.cwd())}\`);
+   process.stdout.write(linhas.join("\\n") + "\\n");
+   process.exit(0);
+ }
+@@ -628,6 +630,35 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
+     assert.deepEqual(chavesProibidas([{ chave: "omit", origem: "a" }, { chave: "omit", origem: "a" }, { chave: "fund", origem: "a" }]), [{ chave: "omit", origem: "a" }]);
+   });
+ 
++  it("mesmoProjeto aceita o prefixo igual ou mascarado como o npm faz, e só isso", () => {
++    const uuid = "/tmp/123e4567-e89b-12d3-a456-426614174000/dc360";
++    assert.equal(mascararComoONpm(uuid), "/tmp/***/dc360");
++    assert.ok(mesmoProjeto("/tmp/***/dc360", [uuid]));
++    assert.ok(mesmoProjeto("/p/dc360", ["/x", "/p/dc360"]));
++    assert.ok(!mesmoProjeto("/tmp/***/outro", [uuid]));
++    assert.ok(!mesmoProjeto("/tmp/***/dc360", ["/tmp/nao-e-uuid/dc360"]));
++    assert.ok(!mesmoProjeto(null, [uuid]));
++    assert.ok(!mesmoProjeto("", [""]));
++  });
++
++  it("shrinkwrapsPresentes procura na raiz, nas pastas dadas e nos workspaces (pasta/* e literal)", () => {
++    const raiz = mkdtempSync(join(tmpdir(), "auditar-sw-"));
++    try {
++      const escrever = (c, t = "{}") => { mkdirSync(dirname(join(raiz, c)), { recursive: true }); writeFileSync(join(raiz, c), t); };
++      escrever("package.json", JSON.stringify({ workspaces: ["packages/*", "db", "nao-existe/*", "x/{a,b}"] }));
++      escrever("packages/a/npm-shrinkwrap.json"); escrever("packages/b/package.json"); escrever("db/npm-shrinkwrap.json");
++      escrever("app/npm-shrinkwrap.json");
++      const fs = { existsSync, readFileSync, readdirSync };
++      const r = shrinkwrapsPresentes(raiz, [join(raiz, "app")], fs);
++      assert.deepEqual(r.achados.map((f) => f.slice(raiz.length + 1)).sort(), ["app/npm-shrinkwrap.json", "db/npm-shrinkwrap.json", "packages/a/npm-shrinkwrap.json"]);
++      assert.deepEqual(r.naoExpandidos, ["x/{a,b}"]);
++      escrever("npm-shrinkwrap.json");
++      assert.ok(shrinkwrapsPresentes(raiz, [], fs).achados.some((f) => f === `${raiz}/npm-shrinkwrap.json`));
++    } finally {
++      rmSync(raiz, { recursive: true, force: true });
++    }
++  });
++
+   it("hojeEmSaoPaulo: o prazo vence no fim do dia do Brasil, e não às 21h (UTC)", () => {
+     assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T01:00:00Z")), "2027-01-05"); // 22h do dia 5 em São Paulo
+     assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T03:00:00Z")), "2027-01-06"); // meia-noite do dia 6
+@@ -737,8 +768,8 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
+ 
+ describe("auditar.mjs com a lista de exceções adulterada", () => {
+   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
+-  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {} } = {}) {
+-    const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
++  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {}, arquivos = {}, prefixo = "auditar-copia-" } = {}) {
++    const raiz = mkdtempSync(join(tmpdir(), prefixo));
+     try {
+       mkdirSync(join(raiz, "scripts"));
+       mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
+@@ -748,6 +779,10 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
+       const nova = alterar(lista);
+       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
+       writeFileSync(join(raiz, "scripts", "auditar-excecoes.mjs"), nova);
++      for (const [caminho, conteudo] of Object.entries(arquivos)) {
++        mkdirSync(dirname(join(raiz, caminho)), { recursive: true });
++        writeFileSync(join(raiz, caminho), conteudo);
++      }
+       if (npmrc) {
+         writeFileSync(join(raiz, ".npmrc"), npmrc.raiz);
+         writeFileSync(join(raiz, "apps", "campo", ".npmrc"), npmrc.app);
+@@ -839,10 +874,42 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
+   it("chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo", () => {
+     const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: "fund=false\n", app: "omit=\n" } });
+     assert.equal(codigo, 2, saida);
+-    assert.match(saida, /para o aplicativo de campo .*tem chave fora da lista permitida/);
++    assert.match(saida, /para o projeto do aplicativo de campo .*tem chave fora da lista permitida/);
+     assert.match(saida, /  - omit   \(de project/);
+   });
+ 
++  /*
++    Revisão da correção 8: o \`npm-shrinkwrap.json\` vence o \`package-lock.json\` no
++    npm (\`sw || lock\`). Com um shrinkwrap limpo ao lado, o portão auditava o
++    shrinkwrap e aprovava o lockfile com runtime vulnerável que o Dockerfile instala.
++  */
++  it("sai 2, antes de auditar, se existe npm-shrinkwrap.json na raiz, no aplicativo ou num workspace", () => {
++    const pacote = JSON.stringify({ name: "copia", private: true, workspaces: ["packages/*", "db"] });
++    for (const onde of ["npm-shrinkwrap.json", "apps/campo/npm-shrinkwrap.json", "packages/um/npm-shrinkwrap.json", "db/npm-shrinkwrap.json"]) {
++      const arquivos = { "package.json": pacote, "packages/um/package.json": "{}", "db/package.json": "{}", [onde]: "{}" };
++      const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos });
++      assert.equal(codigo, 2, `${onde}: ${saida}`);
++      assert.ok(saida.includes(`${onde} existe, e o npm o lê NO LUGAR do package-lock.json`), `${onde}: ${saida}`);
++      assert.equal(chamadas.length, 0, `${onde}: auditou com o shrinkwrap ao lado`);
++      assert.doesNotMatch(saida, /Runtime limpo/);
++    }
++    const sem = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "package.json": pacote, "packages/um/package.json": "{}" } });
++    assert.equal(sem.codigo, 0, sem.saida);
++  });
++
++  it("sai 2 com padrão de workspace que o portão não sabe expandir (não dá para procurar shrinkwrap)", () => {
++    const arquivos = { "package.json": JSON.stringify({ name: "copia", workspaces: ["pacotes/**"] }) };
++    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /padrão de workspace que o portão não sabe expandir .*pacotes\/\*\*/);
++  });
++
++  it("projeto numa pasta com cara de UUID: o npm 11 mascara o caminho com *** e o portão reconhece o projeto mesmo assim", () => {
++    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { prefixo: "123e4567-e89b-12d3-a456-426614174000-" });
++    assert.equal(codigo, 0, saida);
++    assert.doesNotMatch(saida, /não tomou/);
++  });
++
+   it("reprova a exceção vencida", () => {
+     const { codigo, saida } = rodarCopia((t) => t.replace('const PRAZO = "2027-01-05"', 'const PRAZO = "2020-01-01"'));
+     assert.equal(codigo, 1, saida);
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 1bb51ee..da8d463 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -137,7 +137,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
+     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
+     dava 0 para este arquivo e por isso ele ficou de fora).
+   */
+-  "V2-F00-E19": 70, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita); a correção 7 (2026-10-20) mais 4 (a raiz é auditada na raiz e sem variável de workspace: de dentro de um workspace, com npm_config_workspace, o ambiente puro e a reprovação de runtime; a correção 8 (2026-10-20) mais 12 (lista permitida de chaves da configuração do npm, lockfile sempre auditado, workspaces auditados de novo pela raiz)
++  "V2-F00-E19": 75, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita); a correção 7 (2026-10-20) mais 4 (a raiz é auditada na raiz e sem variável de workspace: de dentro de um workspace, com npm_config_workspace, o ambiente puro e a reprovação de runtime; a correção 8 (2026-10-20) mais 12 (lista permitida de chaves da configuração do npm, lockfile sempre auditado, workspaces auditados de novo pela raiz); a correção 9 (2026-10-20) mais 5 (npm-shrinkwrap.json na raiz, no aplicativo ou num workspace sai 2, padrão de workspace que não se expande sai 2, caminho com UUID que o npm mascara com ***, e as regras puras mesmoProjeto e shrinkwrapsPresentes)
+   /*
+     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
+     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em

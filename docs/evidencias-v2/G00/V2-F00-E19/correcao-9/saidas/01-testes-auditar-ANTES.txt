@@ -1,0 +1,10 @@
+$ node --test scripts/auditar.test.mjs   (cópia de ed2cccf, ANTES da correção 9)
+✔ auditar.mjs com a lista de exceções adulterada (2005.039791ms)
+ℹ tests 70
+ℹ suites 4
+ℹ pass 70
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11988.532041

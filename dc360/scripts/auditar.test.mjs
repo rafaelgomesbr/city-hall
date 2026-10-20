@@ -20,14 +20,14 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
-  CHAVES_PERMITIDAS, aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
+  CHAVES_PERMITIDAS, aceitasAusentes, mascararComoONpm, mesmoProjeto, shrinkwrapsPresentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
   hojeEmSaoPaulo, lerNpmConfigList, normalizarChave, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
@@ -66,7 +66,9 @@ if (args[0] === "config") {
     linhas.push("");
   }
   if (f[nome + "Extra"]) linhas.push(f[nome + "Extra"], "");
-  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? process.cwd()}\`, \`; cwd = \${process.cwd()}\`);
+  // O npm 11 mascara com *** todo trecho com cara de UUID (@npmcli/redact), inclusive no caminho.
+  const mascarar = (t) => t.replace(/\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b/gi, "***");
+  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? mascarar(process.cwd())}\`, \`; cwd = \${mascarar(process.cwd())}\`);
   process.stdout.write(linhas.join("\\n") + "\\n");
   process.exit(0);
 }
@@ -628,6 +630,35 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
     assert.deepEqual(chavesProibidas([{ chave: "omit", origem: "a" }, { chave: "omit", origem: "a" }, { chave: "fund", origem: "a" }]), [{ chave: "omit", origem: "a" }]);
   });
 
+  it("mesmoProjeto aceita o prefixo igual ou mascarado como o npm faz, e só isso", () => {
+    const uuid = "/tmp/123e4567-e89b-12d3-a456-426614174000/dc360";
+    assert.equal(mascararComoONpm(uuid), "/tmp/***/dc360");
+    assert.ok(mesmoProjeto("/tmp/***/dc360", [uuid]));
+    assert.ok(mesmoProjeto("/p/dc360", ["/x", "/p/dc360"]));
+    assert.ok(!mesmoProjeto("/tmp/***/outro", [uuid]));
+    assert.ok(!mesmoProjeto("/tmp/***/dc360", ["/tmp/nao-e-uuid/dc360"]));
+    assert.ok(!mesmoProjeto(null, [uuid]));
+    assert.ok(!mesmoProjeto("", [""]));
+  });
+
+  it("shrinkwrapsPresentes procura na raiz, nas pastas dadas e nos workspaces (pasta/* e literal)", () => {
+    const raiz = mkdtempSync(join(tmpdir(), "auditar-sw-"));
+    try {
+      const escrever = (c, t = "{}") => { mkdirSync(dirname(join(raiz, c)), { recursive: true }); writeFileSync(join(raiz, c), t); };
+      escrever("package.json", JSON.stringify({ workspaces: ["packages/*", "db", "nao-existe/*", "x/{a,b}"] }));
+      escrever("packages/a/npm-shrinkwrap.json"); escrever("packages/b/package.json"); escrever("db/npm-shrinkwrap.json");
+      escrever("app/npm-shrinkwrap.json");
+      const fs = { existsSync, readFileSync, readdirSync };
+      const r = shrinkwrapsPresentes(raiz, [join(raiz, "app")], fs);
+      assert.deepEqual(r.achados.map((f) => f.slice(raiz.length + 1)).sort(), ["app/npm-shrinkwrap.json", "db/npm-shrinkwrap.json", "packages/a/npm-shrinkwrap.json"]);
+      assert.deepEqual(r.naoExpandidos, ["x/{a,b}"]);
+      escrever("npm-shrinkwrap.json");
+      assert.ok(shrinkwrapsPresentes(raiz, [], fs).achados.some((f) => f === `${raiz}/npm-shrinkwrap.json`));
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
   it("hojeEmSaoPaulo: o prazo vence no fim do dia do Brasil, e não às 21h (UTC)", () => {
     assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T01:00:00Z")), "2027-01-05"); // 22h do dia 5 em São Paulo
     assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T03:00:00Z")), "2027-01-06"); // meia-noite do dia 6
@@ -737,8 +768,8 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
 
 describe("auditar.mjs com a lista de exceções adulterada", () => {
   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
-  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {} } = {}) {
-    const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
+  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {}, arquivos = {}, prefixo = "auditar-copia-" } = {}) {
+    const raiz = mkdtempSync(join(tmpdir(), prefixo));
     try {
       mkdirSync(join(raiz, "scripts"));
       mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
@@ -748,6 +779,10 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
       const nova = alterar(lista);
       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
       writeFileSync(join(raiz, "scripts", "auditar-excecoes.mjs"), nova);
+      for (const [caminho, conteudo] of Object.entries(arquivos)) {
+        mkdirSync(dirname(join(raiz, caminho)), { recursive: true });
+        writeFileSync(join(raiz, caminho), conteudo);
+      }
       if (npmrc) {
         writeFileSync(join(raiz, ".npmrc"), npmrc.raiz);
         writeFileSync(join(raiz, "apps", "campo", ".npmrc"), npmrc.app);
@@ -839,8 +874,40 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
   it("chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo", () => {
     const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: "fund=false\n", app: "omit=\n" } });
     assert.equal(codigo, 2, saida);
-    assert.match(saida, /para o aplicativo de campo .*tem chave fora da lista permitida/);
+    assert.match(saida, /para o projeto do aplicativo de campo .*tem chave fora da lista permitida/);
     assert.match(saida, /  - omit   \(de project/);
+  });
+
+  /*
+    Revisão da correção 8: o \`npm-shrinkwrap.json\` vence o \`package-lock.json\` no
+    npm (\`sw || lock\`). Com um shrinkwrap limpo ao lado, o portão auditava o
+    shrinkwrap e aprovava o lockfile com runtime vulnerável que o Dockerfile instala.
+  */
+  it("sai 2, antes de auditar, se existe npm-shrinkwrap.json na raiz, no aplicativo ou num workspace", () => {
+    const pacote = JSON.stringify({ name: "copia", private: true, workspaces: ["packages/*", "db"] });
+    for (const onde of ["npm-shrinkwrap.json", "apps/campo/npm-shrinkwrap.json", "packages/um/npm-shrinkwrap.json", "db/npm-shrinkwrap.json"]) {
+      const arquivos = { "package.json": pacote, "packages/um/package.json": "{}", "db/package.json": "{}", [onde]: "{}" };
+      const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos });
+      assert.equal(codigo, 2, `${onde}: ${saida}`);
+      assert.ok(saida.includes(`${onde} existe, e o npm o lê NO LUGAR do package-lock.json`), `${onde}: ${saida}`);
+      assert.equal(chamadas.length, 0, `${onde}: auditou com o shrinkwrap ao lado`);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+    const sem = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "package.json": pacote, "packages/um/package.json": "{}" } });
+    assert.equal(sem.codigo, 0, sem.saida);
+  });
+
+  it("sai 2 com padrão de workspace que o portão não sabe expandir (não dá para procurar shrinkwrap)", () => {
+    const arquivos = { "package.json": JSON.stringify({ name: "copia", workspaces: ["pacotes/**"] }) };
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /padrão de workspace que o portão não sabe expandir .*pacotes\/\*\*/);
+  });
+
+  it("projeto numa pasta com cara de UUID: o npm 11 mascara o caminho com *** e o portão reconhece o projeto mesmo assim", () => {
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { prefixo: "123e4567-e89b-12d3-a456-426614174000-" });
+    assert.equal(codigo, 0, saida);
+    assert.doesNotMatch(saida, /não tomou/);
   });
 
   it("reprova a exceção vencida", () => {

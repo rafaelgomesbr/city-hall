@@ -35,14 +35,14 @@
  * linha.
  */
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
   CHAVES_PERMITIDAS, aceitasAusentes, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas, hojeEmSaoPaulo,
-  lerNpmConfigList, normalizarChave, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+  lerNpmConfigList, mesmoProjeto, normalizarChave, shrinkwrapsPresentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
   idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
@@ -196,7 +196,7 @@ function conferirConfiguracaoDoNpm(projeto, rotulo) {
   }
   const { chaves, prefixoLocal } = lerNpmConfigList(texto);
   const real = (caminho) => { try { return realpathSync(caminho); } catch { return caminho; } };
-  if (prefixoLocal === null || real(prefixoLocal) !== real(projeto)) {
+  if (!mesmoProjeto(prefixoLocal, [projeto, real(projeto)])) {
     naoAuditou(rotulo, `o npm não tomou ${projeto} como projeto (npm local prefix = ${prefixoLocal ?? "ausente"})`);
   }
   const npmrc = join(projeto, ".npmrc");
@@ -219,8 +219,26 @@ function conferirConfiguracaoDoNpm(projeto, rotulo) {
   }
 }
 
-conferirConfiguracaoDoNpm(RAIZ, "a raiz");
-conferirConfiguracaoDoNpm(APLICATIVO, "o aplicativo de campo");
+conferirConfiguracaoDoNpm(RAIZ, "o projeto da raiz");
+conferirConfiguracaoDoNpm(APLICATIVO, "o projeto do aplicativo de campo");
+
+/*
+  O `npm-shrinkwrap.json` vence o `package-lock.json` no npm: com um ao lado, o
+  portão auditava o shrinkwrap e aprovava o lockfile que o Dockerfile instala.
+*/
+{
+  const { achados, naoExpandidos } = shrinkwrapsPresentes(RAIZ, [APLICATIVO], { existsSync, readFileSync, readdirSync });
+  if (achados.length > 0 || naoExpandidos.length > 0) {
+    console.error("\nERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.");
+    for (const f of achados) console.error(`  - ${f} existe, e o npm o lê NO LUGAR do package-lock.json`);
+    for (const p of naoExpandidos) console.error(`  - padrão de workspace que o portão não sabe expandir para procurar shrinkwrap: ${p}`);
+    console.error(
+      "O Dockerfile instala o package-lock.json, e o npm audit olharia o npm-shrinkwrap.json. Apague o shrinkwrap "
+      + "(este repositório não usa), ou ensine o portão a expandir o padrão em shrinkwrapsPresentes (scripts/auditar-excecoes.mjs).",
+    );
+    process.exit(2);
+  }
+}
 
 /*
   `--package-lock-only=false` nas consultas reais (e `--package-lock=true` em

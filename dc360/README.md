@@ -1601,7 +1601,10 @@ para o script (`cache`, `prefix`, `userconfig`, `globalconfig`, `local-prefix` e
 afins) e as de workspace saem do ambiente das chamadas. O escopo também não
 depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
 do aplicativo no aplicativo), e o npm tem de confirmar a pasta (`npm local
-prefix`). `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
+prefix`, comparado também com a máscara `***` que o npm 11 põe em trecho de
+caminho com cara de UUID). Um `npm-shrinkwrap.json` na raiz, no aplicativo ou
+num workspace faz o portão sair 2 antes de auditar: o npm o lê no lugar do
+`package-lock.json`, e é o `package-lock.json` que o Dockerfile instala. `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
 e a bandeira `--workspaces=false` saiu na correção 8: com uma dependência direta
 na raiz ela descarta do relatório tudo o que só os workspaces usam. O que ele
 exige antes de aprovar: cada relatório diz quantas dependências olhou; as
