@@ -1,0 +1,890 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/codigos-de-erro.test.ts (171 tests | 51 failed) 13252ms
+   ✓ Cada código do catálogo sai do servidor real > token vencido, adulterado ou ausente responde 401 nao_autenticado: o cliente renova e repete 19ms
+   ✓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde 259ms
+   ✓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada 248ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve 253ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada 246ms
+   ✓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou 247ms
+   ✓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto  493ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município 248ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo 247ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo 248ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > URL assinada sem assinatura responde 403 assinatura, sem token: a assinatura é a credencial 2ms
+   ✓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum 248ms
+   ✓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo 256ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete  508ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada  515ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada  768ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada  758ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar  980ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token  1441ms
+   ✓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente  1095ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe  340ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também  325ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir 9ms
+     → expected [ …(2) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console do fornecedor só responde 401 e 403 com os códigos do contrato dele 2ms
+     → expected [ …(2) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo e a lista da entrada não carregam código morto: o servidor emite cada um 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > ninguém escreve `erro: "sessao"` à mão em lugar nenhum da API 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo tem os dez códigos e cada um tem ação e mensagem 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > o original passa 31ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > M9 { status: 403, corpo: variavel } reprova 51ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > M9b { status: calculado, corpo: { erro } } reprova 59ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > { status: 403, corpo: { erro: novo } } reprova 57ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > N13 { status: 403, corpo } abreviado reprova 38ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > { status: 403, corpo: { mensagem } } sem erro reprova 46ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .code(403) e código novo 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .status(401) e o nome antigo 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send no meio de uma cadeia com header 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send pelo corpo numa constante 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: tratador global 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 403 em várias linhas 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 401 e o nome antigo 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: FalhaAutenticacao com código novo 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com codigo literal 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: recusa montada em função (status e corpo) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo com o status trocado 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo na regra de negócio sem status (vira 409) 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 401 sem o campo erro 6ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 sem send na mesma cadeia 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 com corpo que não é objeto nem constante 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: código calculado em resposta 403 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status calculado com código fora do catálogo 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode escrito à mão 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status atribuído fora de code() 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por httpErrors 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por createError 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode declarado na classe 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: Error enviado direto num 403 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse de RegraDeNegocio com super(codigo, mensagem, 403) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse da subclasse 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse de FalhaAutenticacao com código novo 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse que repassa o código do chamador (calculado, com status de acesso) 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: importação com outro nome 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: importação como espaço de nomes 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: reexportação com outro nome, usada depois 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe guardada em variável 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.construct com a classe 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo atribuído no construtor (literal) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo atribuído no construtor (calculado) 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por getter 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por getter calculado 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por propriedade de parâmetro com valor 6ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por propriedade de parâmetro sem valor 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: escrita direta na resposta do Node (raw.writeHead) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: resposta tomada pelo hijack 5ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: status numa constante, corpo no return 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: status 403 sozinho, corpo no return 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por chave computada (N02/N03) 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por colchete (N14) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por defineProperty (N20) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: remendo de erro de negócio por Object.assign (N17) 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: auxiliar com code(s) calculado e corpo em string (N06) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: spread depois de erro sobrescreve o código (N10) 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: gancho onSend que reescreve o corpo (N12) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: gancho que lança erro de negócio 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com argumentos espalhados (N15) 6ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse que sobrescreve o status (N16) 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com status 403 literal 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: S1 reatribui o parâmetro do tratador global 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: S3 atribui o codigo depois de construir 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: atribuição ao codigo num método da classe, fora do construtor 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.set do codigo (B1) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.defineProperty 5ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: par { status, corpo } abreviado fora da chamada conferida do APNs 4ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A1 campo erro por ponto 7ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+R.erro = "novo";
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A2 campo erro por colchete 3ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A3 operador composto 3ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+R.erro += "_novo";
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A4 delete do erro 2ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+delete R.erro;
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A5 desestruturação em cima do campo 3ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+[R.erro] = ["novo"];
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A6 escrita por conversão de tipo 3ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+(R as { erro: string }).erro = "novo";
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A7 constante passada a uma função que pode mudá-la 4ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+mudar(R);
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A8 constante apelidada 3ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+const S = R;
+mudar(S);
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A9 constante exportada (outro arquivo pode escrever) 4ms
+     → export const R = { erro: "sem_permissao", mensagem: "x" };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A10 constante reexportada por nome 3ms
+     → const R = { erro: "sem_permissao", mensagem: "x" };
+export { R };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A11 escrita no erro de um parâmetro, em outra função 3ms
+     → function trocar(r: { erro: string }) { r.erro = "novo"; }: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A12 escrita no corpo de uma recusa 3ms
+     → function trocar(r: { corpo: unknown }) { r.corpo = { erro: "novo" }; }: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A13 status por operador composto 6ms
+     → function f(e: { statusCode?: number }) { e.statusCode ??= 403; }: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A14 codigo apagado de um erro 3ms
+     → const e = new RegraDeNegocio("sem_permissao", "m", 403);
+delete (e as { codigo?: string }).codigo;
+throw e;: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B1 let reatribuída 5ms
+     → let R = { erro: "sem_permissao", mensagem: "x" };
+R = { erro: "novo", mensagem: "x" };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B2 var 3ms
+     → var R = { erro: "sem_permissao", mensagem: "x" };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B3 parâmetro homônimo de uma constante do módulo 5ms
+     → const corpo = { erro: "sem_permissao", mensagem: "x" };
+const f = (corpo: { erro: string }) => resposta.code(403).send(corpo);: expected 0 to be greater than 0
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B4 constante que não é objeto literal 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C1 code por colchete, send com ponto 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C2 send por colchete 3ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C3 status por modelo de texto 3ms
+     → resposta[`status`](401);
+return { erro: "novo" };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C4 método por chave calculada, corpo no return 3ms
+     → const m = "code";
+resposta[m](403);
+return { erro: "novo" };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C5 code por call 2ms
+     → resposta.code.call(resposta, 403);
+return { erro: "novo" };: expected 0 to be greater than 0
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C6 send guardado e ligado com bind 3ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C7 send guardado numa variável 3ms
+     → const enviar = resposta.send;
+void enviar;: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C8 code desestruturado e chamado por apply 3ms
+     → const { code } = resposta;
+code.apply(resposta, [403]);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C9 classe de erro por colchete 4ms
+     → import * as S from "./servidor.js";
+throw new S["RegraDeNegocio"]("novo", "x", 403);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C10 Reflect por colchete 4ms
+     → globalThis["Reflect"].set(e, "codigo", "novo");: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N1 statusCode abreviado 3ms
+     → const statusCode = 403;
+throw { code: "FST_ERR_CTP_NOVO", statusCode };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N2 statusCode por getter 3ms
+     → throw { code: "x", get statusCode() { return 403; } };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N3 statusCode por método 3ms
+     → throw { code: "x", statusCode() { return 403; } };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N4 chave calculada com 403 3ms
+     → const k = escolher();
+throw { code: "x", [k]: 403 };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N5 código do Fastify num modelo de texto 3ms
+     → throw Object.freeze({ code: `FST_ERR_CTP_${sufixo}`, statusCode: 400 });: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N6 objeto que vira RegraDeNegocio sem new 2ms
+     → throw Object.setPrototypeOf({ codigo: "novo", status: 403 }, Object.getPrototypeOf(base));: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N7 Object.create com o protótipo de um erro 1ms
+     → throw Object.assign2(Object.create(proto), { codigo: "novo" });: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N8 __proto__ num literal 1ms
+     → throw { __proto__: proto, codigo: "novo", status: 403 };: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N9 classe que estende uma expressão 1ms
+     → class X extends (classeDe(base)) { constructor() { super("novo", "x", 403); } }: expected 0 to be greater than 0
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N10 corpo com erro por getter 3ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N11 corpo com chave calculada e status calculado 3ms
+     → resposta.code(s).send({ [k]: "novo", mensagem: "x" });: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N12 classe com membro de chave calculada 2ms
+     → class E extends Error { [k] = 403; }: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S1 toJSON no corpo 1ms
+     → resposta.code(403).send({ erro: "sem_permissao", toJSON() { return { erro: "novo" }; } });: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S2 serializador da resposta trocado 2ms
+     → app.setReplySerializer((p) => JSON.stringify({ ...(p as object), erro: "novo" }));: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S3 serializador por resposta 3ms
+     → resposta.code(403).serializer(() => "{\"erro\":\"novo\"}").send({ erro: "sem_permissao" });: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S4 eval 3ms
+     → eval(texto);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S5 new Function 3ms
+     → const f = new Function("r", texto);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S6 redirect com 403 4ms
+     → return resposta.redirect("/x", 403);: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S7 escrita no socket (M08 da revisão; a guarda em execução não a vê) 3ms
+     → req.socket.end("HTTP/1.1 403 Forbidden\r\n\r\n{\"erro\":\"novo\"}");: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S8 code duas vezes na cadeia, o último é 403 (M11 da revisão) 3ms
+     → resposta.code(200).code(403).send({ erro: "novo", mensagem: "x" });: expected 0 to be greater than 0
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, controles: a constante só lida, a chave por constante de texto e o hasOwnProperty passam 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > subclasse e apelido com código do catálogo passam; o mesmo código num status de acesso diferente do catálogo não 5ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > a classe rastreada em OUTRO arquivo também vale: a pasta inteira é varrida de uma vez 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > não reprova o que é do catálogo, da entrada ou de outro status (controles negativos da mordida) 4ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > um repasse só vale para o arquivo, a expressão E a origem que foram conferidos 14ms
+     → expected [ …(3) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) do tratador global: `posto_insuficiente` vira `inativo` 57ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403: `email_so_por_administrador` vira o nome antigo `sessao` 46ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403 em outra rota: `posto_insuficiente_para_dado_pessoal` vira `inativo` 70ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) de rota: `assinatura` vira `url_vencida` 12ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > FalhaAutenticacao: `nao_autenticado` vira `token_vencido` 17ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > classe de erro: `acesso_suspenso` vira `contrato_suspenso` 8ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > o tratador global: `sem_permissao` com o status trocado para 401 49ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M1b subclasse de RegraDeNegocio com super("x", .., 403) 57ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M3 importação com outro nome 71ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M6 importação como espaço de nomes 49ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c classe com codigo atribuído no construtor, enviada pelo tratador como erro.codigo 79ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c' o mesmo, com o código vindo do chamador 70ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M7 classe com getter codigo 47ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M8 classe com codigo como propriedade de parâmetro 52ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N18 corpo_invalido com status que não é o do Fastify 50ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N19 erro.codigo com `erro` sombreado no tratador 49ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M4 escrita direta com raw.writeHead(403) 53ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M11 resposta.code(CONSTANTE_403) e o corpo no return 41ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > A: campo `erro` trocado depois de declarar a constante 21ms
+     → a varredura deixou passar: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > B: `let` reatribuída antes do send 25ms
+     → a varredura deixou passar: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > C: code e send chamados por colchete 32ms
+     → a varredura deixou passar: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N: `statusCode` abreviado num objeto com código do Fastify 20ms
+     → a varredura deixou passar: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N2: o mesmo, espalhado num erro 25ms
+     → a varredura deixou passar: expected 0 to be greater than 0
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > D: parâmetro homônimo de uma constante de corpo do módulo 33ms
+     → a varredura deixou passar: expected 0 to be greater than 0
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo sem `posto_insuficiente`: o servidor emite um código que a lista não tem 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo com código que ninguém emite: aponta como morto 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 51 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/guarda-de-codigos-de-erro.ts:102: `Reflect`: muda ou constrói erro sem passar pelo que a varredura lê",
++   "src/guarda-de-codigos-de-erro.ts:348: `.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:675:45
+    673|   it("toda resposta 401 ou 403 da API carrega um código do catálogo ou…
+    674|     expect(api.emissoes.length, "a varredura leu alguma coisa").toBeGr…
+    675|     expect(reprovacoes(api, REGRAS_DA_API)).toEqual([]);
+       |                                             ^
+    676|   });
+    677| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console do fornecedor só responde 401 e 403 com os códigos do contrato dele
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/guarda-de-codigos-de-erro.ts:55: `Reflect`: muda ou constrói erro sem passar pelo que a varredura lê",
++   "src/guarda-de-codigos-de-erro.ts:301: `.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:680:54
+    678|   it("o console do fornecedor só responde 401 e 403 com os códigos do …
+    679|     expect(console_.emissoes.length, "a varredura leu alguma coisa").t…
+    680|     expect(reprovacoes(console_, REGRAS_DO_CONSOLE)).toEqual([]);
+       |                                                      ^
+    681|     expect(codigosMortos(console_, Object.keys(CONTRATO_DO_CONSOLE))).…
+    682|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A1 campo erro por ponto
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+R.erro = "novo";
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A3 operador composto
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+R.erro += "_novo";
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A4 delete do erro
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+delete R.erro;
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A5 desestruturação em cima do campo
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+[R.erro] = ["novo"];
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A6 escrita por conversão de tipo
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+(R as { erro: string }).erro = "novo";
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A7 constante passada a uma função que pode mudá-la
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+mudar(R);
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A8 constante apelidada
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+const S = R;
+mudar(S);
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A9 constante exportada (outro arquivo pode escrever)
+AssertionError: export const R = { erro: "sem_permissao", mensagem: "x" };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A10 constante reexportada por nome
+AssertionError: const R = { erro: "sem_permissao", mensagem: "x" };
+export { R };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A11 escrita no erro de um parâmetro, em outra função
+AssertionError: function trocar(r: { erro: string }) { r.erro = "novo"; }: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A12 escrita no corpo de uma recusa
+AssertionError: function trocar(r: { corpo: unknown }) { r.corpo = { erro: "novo" }; }: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A13 status por operador composto
+AssertionError: function f(e: { statusCode?: number }) { e.statusCode ??= 403; }: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: A14 codigo apagado de um erro
+AssertionError: const e = new RegraDeNegocio("sem_permissao", "m", 403);
+delete (e as { codigo?: string }).codigo;
+throw e;: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B1 let reatribuída
+AssertionError: let R = { erro: "sem_permissao", mensagem: "x" };
+R = { erro: "novo", mensagem: "x" };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B2 var
+AssertionError: var R = { erro: "sem_permissao", mensagem: "x" };
+resposta.code(403).send(R);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: B3 parâmetro homônimo de uma constante do módulo
+AssertionError: const corpo = { erro: "sem_permissao", mensagem: "x" };
+const f = (corpo: { erro: string }) => resposta.code(403).send(corpo);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C3 status por modelo de texto
+AssertionError: resposta[`status`](401);
+return { erro: "novo" };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C4 método por chave calculada, corpo no return
+AssertionError: const m = "code";
+resposta[m](403);
+return { erro: "novo" };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C5 code por call
+AssertionError: resposta.code.call(resposta, 403);
+return { erro: "novo" };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C7 send guardado numa variável
+AssertionError: const enviar = resposta.send;
+void enviar;: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C8 code desestruturado e chamado por apply
+AssertionError: const { code } = resposta;
+code.apply(resposta, [403]);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C9 classe de erro por colchete
+AssertionError: import * as S from "./servidor.js";
+throw new S["RegraDeNegocio"]("novo", "x", 403);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: C10 Reflect por colchete
+AssertionError: globalThis["Reflect"].set(e, "codigo", "novo");: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N1 statusCode abreviado
+AssertionError: const statusCode = 403;
+throw { code: "FST_ERR_CTP_NOVO", statusCode };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N2 statusCode por getter
+AssertionError: throw { code: "x", get statusCode() { return 403; } };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N3 statusCode por método
+AssertionError: throw { code: "x", statusCode() { return 403; } };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N4 chave calculada com 403
+AssertionError: const k = escolher();
+throw { code: "x", [k]: 403 };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N5 código do Fastify num modelo de texto
+AssertionError: throw Object.freeze({ code: `FST_ERR_CTP_${sufixo}`, statusCode: 400 });: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N6 objeto que vira RegraDeNegocio sem new
+AssertionError: throw Object.setPrototypeOf({ codigo: "novo", status: 403 }, Object.getPrototypeOf(base));: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N7 Object.create com o protótipo de um erro
+AssertionError: throw Object.assign2(Object.create(proto), { codigo: "novo" });: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N8 __proto__ num literal
+AssertionError: throw { __proto__: proto, codigo: "novo", status: 403 };: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N9 classe que estende uma expressão
+AssertionError: class X extends (classeDe(base)) { constructor() { super("novo", "x", 403); } }: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N11 corpo com chave calculada e status calculado
+AssertionError: resposta.code(s).send({ [k]: "novo", mensagem: "x" });: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: N12 classe com membro de chave calculada
+AssertionError: class E extends Error { [k] = 403; }: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S1 toJSON no corpo
+AssertionError: resposta.code(403).send({ erro: "sem_permissao", toJSON() { return { erro: "novo" }; } });: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S2 serializador da resposta trocado
+AssertionError: app.setReplySerializer((p) => JSON.stringify({ ...(p as object), erro: "novo" }));: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S3 serializador por resposta
+AssertionError: resposta.code(403).serializer(() => "{\"erro\":\"novo\"}").send({ erro: "sem_permissao" });: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S4 eval
+AssertionError: eval(texto);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S5 new Function
+AssertionError: const f = new Function("r", texto);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S6 redirect com 403
+AssertionError: return resposta.redirect("/x", 403);: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S7 escrita no socket (M08 da revisão; a guarda em execução não a vê)
+AssertionError: req.socket.end("HTTP/1.1 403 Forbidden\r\n\r\n{\"erro\":\"novo\"}");: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > correção 3, reprova: S8 code duas vezes na cadeia, o último é 403 (M11 da revisão)
+AssertionError: resposta.code(200).code(403).send({ erro: "novo", mensagem: "x" });: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:896:41
+    894|         'resposta.code(200).code(403).send({ erro: "novo", mensagem: "…
+    895|     ])("correção 3, reprova: %s", (_forma, fonte) => {
+    896|       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+       |                                         ^
+    897|     });
+    898| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > um repasse só vale para o arquivo, a expressão E a origem que foram conferidos
+AssertionError: expected [ …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/guarda-de-codigos-de-erro.ts:1: `.writeHead()`: escrita direta na resposta, a varredura não vê o código dessa resposta",
++   "src/guarda-de-codigos-de-erro.ts:1: `.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta",
++   "src/guarda-de-codigos-de-erro.ts:1: `.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:983:108
+    981|       // O repasse do arquivo inteiro vale só para o módulo da guarda,…
+    982|       const cru = 'resposta.raw.writeHead(403); resposta.raw.end(\'{"e…
+    983|       expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/guarda-de-c…
+       |                                                                                                            ^
+    984|       expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/rotas/guard…
+    985|       expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/outra/guard…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/51]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > A: campo `erro` trocado depois de declarar a constante
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > B: `let` reatribuída antes do send
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > C: code e send chamados por colchete
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N: `statusCode` abreviado num objeto com código do Fastify
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N2: o mesmo, espalhado num erro
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > D: parâmetro homônimo de uma constante de corpo do módulo
+AssertionError: a varredura deixou passar: expected 0 to be greater than 0
+ ❯ test/codigos-de-erro.test.ts:1129:58
+    1127|     ])("%s", (_forma, trecho, motivo) => {
+    1128|       const falhas = mutar(join("rotas", "orgaos.ts"), ANCORA_ORGAOS, …
+    1129|       expect(falhas.length, "a varredura deixou passar").toBeGreaterTh…
+       |                                                          ^
+    1130|       expect(falhas.join("\n")).toContain(motivo);
+    1131|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/51]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  51 failed | 120 passed (171)
+   Start at  21:18:14
+   Duration  14.20s (transform 245ms, setup 79ms, collect 504ms, tests 13.25s, environment 0ms, prepare 37ms)
+
+codigo=1

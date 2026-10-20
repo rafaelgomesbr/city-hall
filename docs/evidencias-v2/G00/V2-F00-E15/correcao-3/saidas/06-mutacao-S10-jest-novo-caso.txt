@@ -1,0 +1,38 @@
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+  outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
+    ✓ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (56 ms)
+    ✓ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (7 ms)
+    ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (7 ms)
+  a credencial e a identidade saem do cofre do aparelho
+    ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (7 ms)
+    ✕ 'Sair da conta' tira a credencial e a identidade do cofre (85 ms)
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (8 ms)
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (37 ms)
+
+  ● a credencial e a identidade saem do cofre do aparelho › 'Sair da conta' tira a credencial e a identidade do cofre
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    Received string:        "dc360.identidade={\"usuarioId\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\",\"nome\":\"Ana de exemplo\",\"papel\":\"agente_campo\",\"matricula\":\"0001\",\"organizacaoNome\":\"Defesa Civil de Teste\",\"municipio\":\"Teste\",\"uf\":\"SC\"}"
+
+      249 |     expect(tudo).not.toContain("renovacao-ana");
+      250 |     expect(tudo).not.toContain("acesso-ana");
+    > 251 |     expect(tudo).not.toContain(ANA);
+          |                      ^
+      252 |   }
+      253 |   /** Ninguém logado: as duas chaves da sessão não existem no cofre. */
+      254 |   function cofreVazioDeSessao(): void {
+
+      at toContain (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:251:22)
+      at semRastroDaAna (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:255:5)
+      at Object.cofreVazioDeSessao (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:276:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        2.21 s
+Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
+jest-saida=1

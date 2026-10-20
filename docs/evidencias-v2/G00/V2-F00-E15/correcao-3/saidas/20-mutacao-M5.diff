@@ -1,0 +1,8 @@
+diff --git a/dc360/apps/campo/src/dados/sessao.tsx b/dc360/apps/campo/src/dados/sessao.tsx
+index ed55474..f59c7ba 100644
+--- a/dc360/apps/campo/src/dados/sessao.tsx
++++ b/dc360/apps/campo/src/dados/sessao.tsx
+@@ -251,3 +251,2 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
+     const eu = identidadeViva.current;
+-    if (eu) await marcarDonoDosDadosLocais(eu.usuarioId);
+     const atual = credenciais.current;

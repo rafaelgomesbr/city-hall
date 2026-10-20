@@ -1,0 +1,41 @@
+# Mordida: documento SEM o conserto (linha 209 como estava em 4ce0433)
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+ ❯ test/ressalva-saida-a-campo.test.ts (8 tests | 2 failed) 18ms
+   ✓ Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > docs/apresentacao-produto-alyson.html: toda ocorrência traz a ressalva 1ms
+   ✓ Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/apresentacao/2026-09-15-para-o-alyson.html: toda ocorrência traz a ressalva 0ms
+   ✓ Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/PRIVACIDADE.md: toda ocorrência traz a ressalva 0ms
+   × Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/PAPEIS_E_RESPONSABILIDADES.md: toda ocorrência traz a ressalva 4ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/README.md: toda ocorrência traz a ressalva 1ms
+   ✓ Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde: tirar a ressalva de qualquer ocorrência de qualquer documento reprova 3ms
+   × Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde na regressão real da E22: a linha da tabela de papéis sem a ressalva é acusada, com ela passa 8ms
+     → expected '# Quem faz o quê no Defesa Civil 360\…' to contain '| Acompanhar quem está em campo agora…'
+   ✓ Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > a ressalva de uma linha da tabela não absolve as outras (unidade é a linha da tabela) 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > dc360/docs/PAPEIS_E_RESPONSABILIDADES.md: toda ocorrência traz a ressalva
+AssertionError: expected [ Array(1) ] to deeply equal []
+[32m- Expected[39m
+[31m+ Received[39m
+[32m- [][39m
+[31m+ [[39m
+[31m+   "| Acompanhar quem está em campo agora | sim | não | sim | sim |",[39m
+[31m+ ][39m
+ ❯ test/ressalva-saida-a-campo.test.ts:83:29
+     81|     it(`${regra.arquivo}: toda ocorrência traz a ressalva`, () => {
+     82|       const r = conferir(lerDoRepo(regra.arquivo), regra);
+     83|       expect(r.semRessalva).toEqual([]);
+       |                             ^
+     84|       expect(r.conferidas).toBe(OCORRENCIAS_ESPERADAS[regra.arquivo]);
+     85|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+ FAIL  test/ressalva-saida-a-campo.test.ts > Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção' > morde na regressão real da E22: a linha da tabela de papéis sem a ressalva é acusada, com ela passa
+AssertionError: expected '# Quem faz o quê no Defesa Civil 360\…' to contain '| Acompanhar quem está em campo agora…'
+[32m- Expected[39m
+[31m+ Received[39m
+[32m- | Acompanhar quem está em campo agora | sim (em construção) | não | sim (em construção) | sim (em construção) |[39m
+[31m+ # Quem faz o quê no Defesa Civil 360[39m
+[31m+[39m
+[31m+ Documento para conversa entre sócios. Descreve **o que existe hoje no código**,[39m
+[31m+ não o que se pretende construir. Onde o produto diverge da especificação[39m
+[31m+ preliminar, o texto diz isso na cara, porque decidir a divergência é o motivo[39m
+[31m+ deste documento existir.[39m

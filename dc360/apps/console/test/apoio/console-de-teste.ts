@@ -101,6 +101,8 @@ export type OpcoesDoConsoleDeTeste = {
   limiteDeAcoes?: number;
   /** Linhas a mais na variável de semente, para o caso que recusa mais de um. */
   sementeCrua?: string;
+  /** O modo da guarda das respostas de acesso; sem isto, o de teste ("falhar"). */
+  modoDaGuarda?: "falhar" | "corrigir";
 };
 
 export async function subirConsoleDeTeste(
@@ -138,6 +140,7 @@ export async function subirConsoleDeTeste(
     limiteDeAcoes: opcoes.limiteDeAcoes ?? 500,
     destinoDeLog: { write: (linha: string) => { log.push(linha); } },
     agora: () => relogio.agora,
+    ...(opcoes.modoDaGuarda ? { modoDaGuarda: opcoes.modoDaGuarda } : {}),
   };
   const app = await construirConsole(dependencias);
 

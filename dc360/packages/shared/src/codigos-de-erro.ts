@@ -22,13 +22,44 @@
  * lista mora aqui, no pacote que o servidor, o painel e o aplicativo importam,
  * e não escrita três vezes.
  *
- * ## O que os testes prendem, exatamente
+ * ## O que garante, e o que só ajuda
  *
- * São dois, e um não substitui o outro.
+ * A GARANTIA é uma guarda em tempo de execução, não um teste do texto
+ * (V2-F00-E05, correção 3). Uma varredura estática do fonte nunca fecha a
+ * classe: a cada regra nova, a revisão achou a forma seguinte (dezesseis de uma
+ * vez: `code(200).code(403)`, `e[campo] = "x"`, `Object` apelidado, `onSend` nas
+ * opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo `.mts`...).
+ *
+ * 0. `apps/api/src/guarda-de-codigos-de-erro.ts` (e a cópia do console, com o
+ *    contrato dele) confere a resposta na resposta do Node: um `onRequest`
+ *    instalado antes de qualquer plugin e rota troca `writeHead`, `write` e
+ *    `end` daquela resposta por versões que seguram toda resposta 401 ou 403
+ *    (fora HEAD) até o fim e conferem o corpo inteiro antes de escrever. Os
+ *    ganchos, o tratador de erro, o 404, o tratador de reserva do Fastify,
+ *    `hijack` e `raw` terminam nesses três métodos. A primeira versão era um
+ *    `onSend`, e a revisão passou por ela de três jeitos (`onSend` acrescentado
+ *    depois por um `onRoute` de plugin, 404 de plugin trocado por 403, e o
+ *    tratador de reserva escrevendo direto na resposta do Node). O corpo tem de
+ *    ser JSON com UMA chave `erro` (repetida é recusada) deste catálogo (ou da
+ *    lista da entrada) e o status que o catálogo dá a ele. Fora disso, em TESTE
+ *    a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o
+ *    `afterAll`) que passou por ali reprova (`test/guarda-falha-alto.ts`, em
+ *    todo arquivo da suíte); FORA de teste ela sai com o código genérico do
+ *    catálogo para o status (401 `nao_autenticado`, 403 `sem_permissao`, com a
+ *    frase deste catálogo) e o desvio vai para o log com o método, a rota e o
+ *    código visto só se ele tiver a forma de um código (`^[a-z_]{1,64}$`).
+ *    `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas as
+ *    dezesseis formas que a varredura não lia e os escapes da primeira guarda,
+ *    e prova os dois modos.
+ *
+ * Os testes abaixo são as linhas ANTERIORES, que apontam o defeito antes de ele
+ * chegar à guarda, e nenhum dos dois é garantia sozinho.
  *
  * 1. `apps/api/test/codigos-de-erro.test.ts` lê o código-fonte (a API, o pacote
  *    compartilhado e o console do fornecedor) pela árvore sintática do
- *    TypeScript e reprova nestes casos:
+ *    TypeScript. É HEURÍSTICA: lê as formas que conhece e tenta reprovar o que
+ *    não sabe ler, mas a lista do que ela não lê não é fechada. Reprova nestes
+ *    casos:
  *
  *    - TODA resposta de erro de acesso, isto é, de status 401 ou 403, ou de
  *      status que o texto não resolve, carrega um código deste catálogo ou da
@@ -41,13 +72,32 @@
  *      `codigo` literal na declaração, atribuído no construtor, por getter ou
  *      por propriedade de parâmetro; o tratador global; e a recusa
  *      `{ status, corpo: { erro } }` do console.
- *    - O que a varredura NÃO consegue ler, ela REPROVA em vez de deixar passar:
+ *    - O corpo por constante (`send(RESPOSTA_X)`) só é lido quando o nome
+ *      resolve, pelo escopo, a um `const` não exportado com objeto literal, e
+ *      todo outro uso dele no arquivo é leitura (`X.campo`, `...X`, outro
+ *      `send(X)`, `typeof X`). `let`, `var`, parâmetro homônimo, exportação,
+ *      escrita em campo, passar a uma função ou apelidar deixam o corpo sem
+ *      leitura, e corpo sem leitura numa resposta de acesso reprova.
+ *    - Formas que ela reconhece como ilegíveis, e reprova:
  *      `.code(...)` ou `.status(...)` fora de uma cadeia com `send` (o corpo
  *      iria num `return`), 401 ou 403 sem `erro`, corpo que não resolve (inclusive
  *      texto, com status calculado), `{ erro: "x", ...extra }` com o spread
- *      depois de `erro` (só passa o spread de objeto literal sem `erro`),
- *      `statusCode` ou `status` escritos à mão por qualquer forma (propriedade,
- *      chave computada, colchete, `Object.defineProperty`), `Object.assign`,
+ *      depois de `erro` (só passa o spread de objeto literal sem `erro`), `erro`
+ *      do corpo por getter, setter ou método, escrita em `erro` ou `corpo` de
+ *      qualquer objeto (ponto, colchete, operador composto, `delete`, `++`,
+ *      desestruturação), colchete com chave literal nos nomes que ela lê com
+ *      ponto (`resposta["code"](403)`, `["send"]`, `["erro"]`...), chamada por
+ *      chave calculada (`resposta[m](403)`), `.send` usado sem ser chamado,
+ *      `.call`, `.apply` e `.bind` (salvo `Object.prototype.hasOwnProperty.call`),
+ *      chave calculada que não resolve a um `const` de texto, em objeto ou
+ *      classe, texto com `FST_` (forja o código do Fastify cujo status o
+ *      tratador repassa), `Object.setPrototypeOf`, `Object.create`, `__proto__`
+ *      e `extends` de expressão que não é nome (forjam a classe de um erro),
+ *      `toJSON`, `setReplySerializer`, `setSerializerCompiler`,
+ *      `.serializer(...)`, `eval` e `Function`, `.redirect(url, status)` fora de
+ *      3xx, `statusCode` ou `status` escritos à mão por qualquer forma
+ *      (propriedade, abreviação, método, acessor, chave computada, colchete,
+ *      operador composto, `Object.defineProperty`), `Object.assign`,
  *      `httpErrors`, `createError`, `.raw`, `.hijack()` e `.writeHead()`
  *      (escrita direta na resposta do Node), ganchos `onSend` que recebem o
  *      corpo ou qualquer gancho que envia resposta ou lança erro de negócio,
@@ -91,11 +141,18 @@
  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
  *
- * O que NENHUM dos dois prende, para ninguém ler mais do que está escrito: uma
- * recusa que só sai com um corpo ou um estado que os perfis do teste dinâmico
- * não criam E que o texto esconde (código montado por dado externo, classe
- * definida fora das pastas varridas, `Object.assign` num erro, resposta de um
- * plugin de terceiros); os erros de outros status (404, 409, 422, 429, 5xx) e os
+ * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
+ * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
+ * revisão), que não passa pela resposta do Node, e o método do protótipo da
+ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). A
+ * varredura proíbe os dois (`.socket`, `.connection`, `.call`, `.apply`,
+ * `.bind`, `Reflect`), mas é heurística. Nenhuma das três linhas prende código
+ * no mesmo processo que troque, ANTES de a guarda carregar, as primitivas que
+ * ela usa para decidir (ela as guarda na carga e, ao decidir, só usa essas
+ * cópias, então `JSON`, `includes` ou `hasOwnProperty` trocados depois não a
+ * enganam, e o teste dela prova), nem o que troque o próprio Node ou o
+ * registrador de log. Fora do
+ * escopo: os erros de outros status (404, 409, 422, 429, 5xx) e os
  * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
  * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o
  * código (isso é dos testes do painel e do aplicativo, que também leem este
@@ -114,9 +171,10 @@
  *
  * `apps/console` é outro processo, com a própria sessão e o próprio contrato de
  * erro (`sem_sessao`, `so_o_dono`, ...), e as páginas dele leem esses códigos.
- * Não usa este catálogo e o painel e o aplicativo nunca falam com ele. O teste
- * o varre mesmo assim, contra uma lista própria, para que um 401 ou 403 novo
- * dele também não nasça sem revisão.
+ * Não usa este catálogo e o painel e o aplicativo nunca falam com ele. A lista
+ * própria dele mora em `apps/console/src/guarda-de-codigos-de-erro.ts`: a guarda
+ * do console confere cada resposta 401 ou 403 contra ela (com os mesmos dois
+ * modos), e a varredura o lê contra a mesma lista.
  *
  * ## Recurso de outro município
  *

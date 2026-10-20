@@ -1,3 +1,5 @@
+import type { MotivoDeSessao } from "@dc360/campo";
+import { frasesDaPausa } from "./pausa-da-fila";
 import type { Rascunho } from "./rascunho";
 
 /**
@@ -85,9 +87,25 @@ function fraseDosRascunhos(rascunhos: RascunhosNaSaida): string | null {
   aparelho, e só voltam a subir com a SUA conta, porque o laudo e a trilha
   registram como autor quem apresenta o token.
 */
-function fraseDaFila(naFila: number): string | null {
+function fraseDaFila(naFila: number, pausadaPor: MotivoDeSessao | null): string | null {
   if (naFila <= 0) return null;
   const uma = naFila === 1;
+  /*
+    COM A FILA PAUSADA PELA SESSÃO, "volta a subir quando você entrar de novo,
+    com sinal" é a promessa errada: sinal não destrava nenhum dos três casos, e
+    na conta desativada nem entrar de novo destrava. A parte do laudo (ninguém
+    mais envia por este aparelho) continua verdadeira; o resto é a frase da
+    pausa, a mesma da faixa do topo e do aviso da fila (V2-F00-E06, correção 3).
+  */
+  if (pausadaPor) {
+    return uma
+      ? "Você tem 1 coleta ainda não enviada, e ninguém mais consegue enviá-la: o "
+        + "laudo sai com o nome de quem fez a vistoria, que é você. "
+        + frasesDaPausa(pausadaPor).detalhe
+      : `Você tem ${naFila} coletas ainda não enviadas, e ninguém mais consegue `
+        + "enviá-las: o laudo sai com o nome de quem fez a vistoria, que é você. "
+        + frasesDaPausa(pausadaPor).detalhe;
+  }
   return uma
     ? "Você tem 1 coleta ainda não enviada. Ao sair, ela continua guardada no " +
       "aparelho e ninguém mais consegue enviá-la: o laudo sai com o nome de quem " +
@@ -104,8 +122,12 @@ function fraseDaFila(naFila: number): string | null {
  * volta; o que fica guardado vem depois. Sem rascunho e sem fila, volta à
  * frase curta, que não fala em apagar.
  */
-export function avisoDaSaida(naFila: number | null, rascunhos: RascunhosNaSaida): string {
-  const partes = [fraseDosRascunhos(rascunhos), fraseDaFila(naFila ?? 0)]
+export function avisoDaSaida(
+  naFila: number | null,
+  rascunhos: RascunhosNaSaida,
+  pausadaPor: MotivoDeSessao | null = null,
+): string {
+  const partes = [fraseDosRascunhos(rascunhos), fraseDaFila(naFila ?? 0, pausadaPor)]
     .filter((p): p is string => p !== null);
   return partes.length === 0 ? SAIDA_SEM_NADA_A_PERDER : partes.join("\n\n");
 }

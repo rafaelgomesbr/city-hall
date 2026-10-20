@@ -1,0 +1,40 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/web
+
+ ❯ test/correcao-4-da-e09.test.ts (19 tests | 9 failed) 23ms
+   ✓ Defeito 1: a frase da senha atual errada nomeia o campo da tela > em Minha conta fala da senha que a pessoa usa hoje, e na tela da provisória fala da provisória 1ms
+   ✓ Defeito 1: a frase da senha atual errada nomeia o campo da tela > os nomes dos campos nas frases são os nomes que a tela dá a eles 0ms
+   ✓ Defeito 1: a frase da senha atual errada nomeia o campo da tela > toda frase tem acento onde o português pede e diz o que fazer 0ms
+   ✓ Defeito 1: a frase da senha atual errada nomeia o campo da tela > só o código `credenciais` é reconhecido: outro erro segue com a frase do servidor 0ms
+   × Defeito 1: a frase da senha atual errada nomeia o campo da tela > as duas telas usam a função, e põem a frase no campo da senha atual (não no aviso de cima) 3ms
+     → expected 'import { useCallback, useEffect, useR…' to match /if \(daSenha\) \{\s+setErrosDeCampo\(…/
+   ✓ Defeito 2: com janela aberta o aviso passageiro espera > o contador sobe e desce, e o desfazer só vale uma vez 0ms
+   ✓ Defeito 2: com janela aberta o aviso passageiro espera > a janela se registra ao abrir e se solta ao fechar 0ms
+   ✓ Defeito 2: com janela aberta o aviso passageiro espera > o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada 0ms
+   ✓ Defeito 3: o email quebra só depois do @ e dos pontos > os pedaços, juntos, dão o email de volta, sem perder nem acrescentar caractere 0ms
+   ✓ Defeito 3: o email quebra só depois do @ e dos pontos > todo pedaço, menos o último, termina em @ ou em ponto, e o fim do endereço anda junto 0ms
+   ✓ Defeito 3: o email quebra só depois do @ e dos pontos > o componente põe <wbr> entre os pedaços e nenhum caractere a mais 2ms
+   × Defeito 3: o email quebra só depois do @ e dos pontos > a coluna Pessoa usa o componente e a regra de CSS que desliga a quebra em qualquer lugar 1ms
+     → expected '/* ==================================…' to match /\.tabela__secundario--email \{ overfl…/
+   × Revisão 1: o ícone do erro de campo não encolhe > o svg do `.campo__erro` não é espremido pelo texto (flex-shrink: 0) 0ms
+     → expected '/* ==================================…' to match /\.campo__erro svg \{ flex-shrink: 0; …/
+   × Revisão 2: confirmação e erro não ficam juntos na troca de senha > o envio limpa a confirmação anterior antes de gravar 1ms
+     → expected 'setErrosDeCampo({});\n    setErro(nul…' to contain 'setSucesso(null);'
+   × Revisão 3: depois de enviar o foco não cai em BODY > Minha conta leva o foco ao campo inválido, ao erro e à confirmação 1ms
+     → expected 'import { useCallback, useEffect, useR…' to contain 'depoisDePintar(() => focarPrimeiroInv…'
+   × Revisão 3: depois de enviar o foco não cai em BODY > a tela da senha provisória leva o foco ao campo inválido ou à mensagem focável 1ms
+     → expected 'import { useEffect, useState } from "…' to contain 'document.getElementById("senha-nova-e…'
+   × Revisão 4: um email de parte comprida não empurra a coluna Ação > a linha do email tem teto até 1399 px e quebra a palavra só se ela não couber 1ms
+     → expected '/* ==================================…' to match /@media \(max-width: 1399px\) \{\s+\.t…/
+   × Revisão 5: a janela abre no topo > o foco inicial não rola o painel, e o painel começa em zero 7ms
+     → expected 'import { useEffect, useId, useRef, us…' to contain 'alvo?.focus(focoInicial?.current ? un…'
+   × Revisão 6: a lista de órgãos usa a mesma regra de email e de telefone > o email do órgão quebra pelo EmailQuebravel e o telefone nunca é partido 3ms
+     → expected 'import { useCallback, useEffect, useS…' to contain '<EmailQuebravel email={o.email} />'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/correcao-4-da-e09.test.ts > Defeito 1: a frase da senha atual errada nomeia o campo da tela > as duas telas usam a função, e põem a frase no campo da senha atual (não no aviso de cima)
+AssertionError: expected 'import { useCallback, useEffect, useR…' to match /if \(daSenha\) \{\s+setErrosDeCampo\(…/
+
+- Expected: 
+/if \(daSenha\) \{\s+setErrosDeCampo\(\{ atual: daSenha \}\);/

@@ -2,6 +2,8 @@
 
 > Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
 
+> Nota de 2026-10-19 (V2-F00-E24, correção 3): entra `correcao-3/` (RESUMO, `saidas/` e o diff). `correcao-3/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 875d89f395aa2826a656b6a9df4c3809d14de99724b8198a332629fa875a4d0d |
@@ -43,6 +45,18 @@
 | correcao-2/saidas/05-saida-a-campo-api.txt | ca4745679c2c4dc6e0c1f0b66e77a1eb0b6282f1789dcd20f088642462a982a6 |
 | correcao-2/saidas/06-conferir-numeros-falha-do-ambiente.txt | 20f7ab960cd707d7168a1e4622a67a0d028f2964cd875a253d0826cde1db1a25 |
 | correcao-2/verificar-ressalvas.mjs | 9dc5fa537c37a908e93a69499cf2720b94528f86bc18c6c0e309cb275dd51df6 |
+| correcao-3/RESUMO.md | 0774669b2deff8786b6a945d9b3eebfcad06e8cb79172200e745138d6876b59a |
+| correcao-3/diff-da-correcao.patch | 3fbfe63b1bf6efd4d7b8b8d5f83070811b6ee9ad791db69243f7f029033b2d84 |
+| correcao-3/saidas/01-guarda-antes-do-conserto.txt | 96a7259595575d89b605ce242304844728eb2b4b6abbd936dc8ed69efbfc4862 |
+| correcao-3/saidas/02-teste-novo-sem-o-conserto.txt | 2876ce28c2664afff089a64d77306bb80bd1a820437184c5519ebb2ce6e40de6 |
+| correcao-3/saidas/03-teste-novo-com-o-conserto.txt | e2104fe785bbcf62e955991aa3f6ce61e9e5648daf7ec20d325ac9cc99b75a68 |
+| correcao-3/saidas/04-guarda-depois-do-conserto.txt | 3533e75fd725767a6986574335521fc12e5f429affc15ae65538461c4f9b5723 |
+| correcao-3/saidas/05-shared-completo.txt | 6143e6ab6ab9d359ccecfbd5e6e865b105e8ccf4f181278474ca1a2dbe7bdb6f |
+| correcao-3/saidas/06-portao-de-conteudo-e-permissoes.txt | 69fa77a5721f701b75374f9ea58dfd9218f2633d4433a7375292790521b8c15e |
+| correcao-3/saidas/07-conferir-numeros.txt | 0b1aa085132735a1c01227e086d3e646297664708e10b41b4085a7f8b949c5dc |
+| correcao-3/saidas/08-conferir-indices.txt | 033da061196d9ba30cacf3d0c8f3e1d4c39c5199262a6b7cacb364fc7a078860 |
+| correcao-3/saidas/09-mutacoes-da-revisao-contra-o-teste-ANTIGO.txt | 9836ca7eb0f363ac83dfbc050d5994b4b70dec6337c232510d4b3f5efa4a51b9 |
+| correcao-3/saidas/10-teste-novo-verbose-38-de-38.txt | 288c74a8abed545e496516f5b1bcbb04edf11ef4f4f2fd19dbd8c13643fde177 |
 | depois/conferir-numeros.txt | a9bf679689854e1b00adcc8b23f008c48dfa32fea25df9d8d7404d27a1834630 |
 | depois/npm-test.txt | 3c4f2c0ee0a3c26851092ac5652122ac2324a5438fd5096f06abb5fa5724fee2 |
 | depois/regras-de-conteudo.txt | 46ddb8ec2efcba6fe7e421c71cb83f580e9fa48a11fec7678d55b42ac28e1fe3 |

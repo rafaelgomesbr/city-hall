@@ -1,0 +1,35 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/web
+
+ ❯ test/correcao-4-da-e09.test.ts (12 tests | 8 failed) 17ms
+   × Defeito 1: a frase da senha atual errada nomeia o campo da tela > em Minha conta fala da senha que a pessoa usa hoje, e na tela da provisória fala da provisória 2ms
+     → (0 , erroDaSenhaAtual) is not a function
+   × Defeito 1: a frase da senha atual errada nomeia o campo da tela > os nomes dos campos nas frases são os nomes que a tela dá a eles 0ms
+     → Cannot read properties of undefined (reading 'minha-conta')
+   × Defeito 1: a frase da senha atual errada nomeia o campo da tela > toda frase tem acento onde o português pede e diz o que fazer 0ms
+     → Cannot convert undefined or null to object
+   × Defeito 1: a frase da senha atual errada nomeia o campo da tela > só o código `credenciais` é reconhecido: outro erro segue com a frase do servidor 0ms
+     → (0 , erroDaSenhaAtual) is not a function
+   × Defeito 1: a frase da senha atual errada nomeia o campo da tela > as duas telas usam a função, e põem a frase no campo da senha atual (não no aviso de cima) 2ms
+     → expected 'import { useCallback, useEffect, useR…' to contain 'erroDaSenhaAtual(e, "minha-conta")'
+   ✓ Defeito 2: com janela aberta o aviso passageiro espera > o contador sobe e desce, e o desfazer só vale uma vez 0ms
+   × Defeito 2: com janela aberta o aviso passageiro espera > a janela se registra ao abrir e se solta ao fechar 5ms
+     → expected 'import { useEffect, useId, useRef, us…' to contain 'const liberarAvisos = registrarModalA…'
+   × Defeito 2: com janela aberta o aviso passageiro espera > o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada 3ms
+     → expected 'import { useEffect, useRef, useState …' to contain 'const esperandoJanela = useHaModalAbe…'
+   ✓ Defeito 3: o email quebra só depois do @ e dos pontos > os pedaços, juntos, dão o email de volta, sem perder nem acrescentar caractere 0ms
+   ✓ Defeito 3: o email quebra só depois do @ e dos pontos > todo pedaço, menos o último, termina em @ ou em ponto 1ms
+   ✓ Defeito 3: o email quebra só depois do @ e dos pontos > o componente põe <wbr> entre os pedaços e nenhum caractere a mais 2ms
+   × Defeito 3: o email quebra só depois do @ e dos pontos > a coluna Pessoa usa o componente e a regra de CSS que desliga a quebra em qualquer lugar 1ms
+     → expected 'import { useCallback, useEffect, useS…' to contain '<div className="tabela__secundario ta…'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+[...]
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 4 passed (12)
+   Start at  18:35:19
+   Duration  286ms (transform 74ms, setup 0ms, collect 107ms, tests 17ms, environment 0ms, prepare 35ms)
+

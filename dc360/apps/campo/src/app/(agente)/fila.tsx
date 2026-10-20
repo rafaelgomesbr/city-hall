@@ -181,10 +181,29 @@ type EstadoDoItem = {
  * transformar aquele `switch` num labirinto de ternários, que foi exatamente
  * como o estado "arquivado" nasceu sem desenho próprio.
  */
-function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
+function descreverDevolucao(
+  item: ItemDeDevolucao,
+  pausadaPor: MotivoDeSessao | null = null,
+): EstadoDoItem {
   const motivo = ROTULO_MOTIVO_DE_DEVOLUCAO[item.devolucao.motivo];
   switch (item.estado) {
     case "pendente":
+      /*
+        A DEVOLUÇÃO TAMBÉM PARA NA PAUSA DA SESSÃO, e "vai sair quando houver
+        sinal" é a promessa que a pausa quebra: o servidor já respondeu que a
+        sessão acabou, que a conta foi desativada ou que a senha é provisória, e
+        repetir não muda isso. A frase é a do cartão da coleta
+        (`frasesDaPausa`), a mesma da faixa do topo (V2-F00-E06, correção 3).
+      */
+      if (pausadaPor) {
+        return {
+          rotulo: "Devolução guardada",
+          simbolo: "⏸",
+          tom: "alerta",
+          Icone: IconeAguardando,
+          porque: `Motivo: ${motivo}. ${frasesDaPausa(pausadaPor).doCartao}`,
+        };
+      }
       return {
         rotulo: "Devolução aguardando",
         simbolo: "…",
@@ -401,7 +420,9 @@ function descreverEstado(
     rótulo que descreve outro ato é uma frase falsa numa tela que existe para
     dissolver a dúvida "cadê o que eu fiz?".
   */
-  if (item.tipo === "devolucao") return descreverDevolucao(item);
+  if (item.tipo === "devolucao") {
+    return descreverDevolucao(item, autoria === "propria" ? pausadaPor : null);
+  }
   /*
     A COLETA GUARDADA PELA PAUSA DA SESSAO: "Aguardando" prometeria que ela sai
     assim que houver sinal, e nao sai: o servidor ja respondeu que a sessao
@@ -1593,9 +1614,13 @@ export default function TelaDaFila() {
                           quem completa o envio é o sinal. Prometer aqui seria
                           criar a mesma dúvida que esta tela dissolve.
                         */
-                        texto: "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
-                          + "se não, ela volta para a espera e continua tentando "
-                          + "enquanto o aplicativo estiver aberto.",
+                        texto: pausadaPor
+                          /* Com a fila pausada, sinal não faz diferença: diz o
+                             que destrava, com a frase do cartão. */
+                          ? `O envio foi pedido de novo. ${frasesDaPausa(pausadaPor).doCartao}`
+                          : "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
+                            + "se não, ela volta para a espera e continua tentando "
+                            + "enquanto o aplicativo estiver aberto.",
                       };
                     })}
                   />
@@ -1651,8 +1676,12 @@ export default function TelaDaFila() {
     <ScrollView ref={rolagem} contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
       {!sinal.temSinal && (
         <Aviso tom="alerta" titulo="Sem sinal agora">
-          Nada se perde: o que está aqui sai quando a conexão voltar, com o
-          aplicativo aberto, sem você precisar tocar em nada.
+          {pausadaPor
+            /* Pausada pela sessão, a conexão voltar não faz nada sair: a
+               promessa fica só na frase da pausa, no alto da lista. */
+            ? "Nada se perde: o que está aqui continua guardado neste aparelho."
+            : "Nada se perde: o que está aqui sai quando a conexão voltar, com o "
+              + "aplicativo aberto, sem você precisar tocar em nada."}
         </Aviso>
       )}
 
@@ -1855,7 +1884,10 @@ export default function TelaDaFila() {
                 <Txt variante="corpoP" discreto>{porQueApagado}</Txt>
               </View>
             </View>
-          ) : (
+          ) : pausadaPor ? null : (
+            /* Pausada pela sessão, a legenda calaria o que o aviso do alto da
+               lista já diz: "com sinal, o envio acontece sozinho" é justamente
+               o que a pausa desfaz (V2-F00-E06, correção 3). */
             <Txt variante="legenda" discreto alinhamento="center">
               Com o aplicativo aberto e com sinal, o envio acontece sem você tocar
               em nada. Este botão é para quando você quer ver acontecer.

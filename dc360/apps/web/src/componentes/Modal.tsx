@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as EventoDeTecla, ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { registrarModalAberto } from "./modais-abertos";
 
 /**
  * A janela modal que o painel não tinha.
@@ -379,6 +380,12 @@ export function Modal({
 
     const quemAbriu = document.activeElement;
     document.body.appendChild(hospedeiro);
+    /*
+      Avisa quem não pode aparecer por cima da janela (o aviso passageiro, ver
+      `modais-abertos.ts`). Vem antes da interdição porque o aviso que estava
+      na tela sai dela agora, e não depois de a página virar `inert`.
+    */
+    const liberarAvisos = registrarModalAberto();
     const restaurar = interditarFundo(
       [...document.body.children].filter((filho) => filho !== hospedeiro),
     );
@@ -389,12 +396,32 @@ export function Modal({
       lá atrás, e a pessoa continuaria digitando numa página que ela não vê
       mais.
     */
-    const alvo = focoInicial?.current ?? focaveisDentro(painel.current)[0] ?? painel.current;
-    alvo?.focus();
+    /*
+      A janela abre NO TOPO (V2-F00-E09, correção 4, revisão). O painel rola
+      (`overflow-y: auto`, 84vh) e `focus()` rola até o elemento focado: a 320x568
+      a janela da senha temporária abria rolada 229 px, porque o primeiro botão
+      fica no pé dela, e o título, que é o que se lê primeiro, ficava fora da
+      vista. Quando ninguém pediu um foco inicial e o primeiro controle está fora da
+      parte visível do painel, o foco vai para o próprio painel (que se anuncia
+      pelo título e pela descrição, e o Tab segue para o primeiro botão), sem
+      rolar. Se o primeiro controle está à vista (a janela cabe, ou o botão
+      Fechar do cabeçalho de uma janela alta), nada muda: o foco vai a ele.
+    */
+    const primeiro = focaveisDentro(painel.current)[0];
+    const aVista = (el: HTMLElement | undefined): boolean => {
+      if (!el || !painel.current) return false;
+      const p = painel.current.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return r.top >= p.top - 0.5 && r.bottom <= p.bottom + 0.5;
+    };
+    const alvo = focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current);
+    alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });
+    if (painel.current) painel.current.scrollTop = 0;
 
     return () => {
       restaurar();
       hospedeiro.remove();
+      liberarAvisos();
       /*
         Quem abriu pode ter sumido: encerrar a ocorrência tira da tela o
         próprio botão de encerrar. `focus()` em nó desconectado não falha e não

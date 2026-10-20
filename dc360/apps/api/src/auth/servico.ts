@@ -1091,7 +1091,7 @@ export function servicoDeAutenticacao(
     }
 
     if (!(await conferirSenha(senhaAtual, atual?.senha_hash ?? null))) {
-      throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
+      throw new FalhaAutenticacao("credenciais", "A senha atual não confere. Confira e digite de novo.");
     }
 
     const hash = await derivarSenha(senhaNova);
@@ -1175,7 +1175,7 @@ export function servicoDeAutenticacao(
         throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
       }
       if (agora.senha_hash !== hashConferido) {
-        throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
+        throw new FalhaAutenticacao("credenciais", "A senha atual não confere. Confira e digite de novo.");
       }
 
       /*

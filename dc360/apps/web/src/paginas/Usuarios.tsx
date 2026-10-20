@@ -23,6 +23,7 @@ import { Modal } from "../componentes/Modal";
 import { Toast } from "../componentes/Toast";
 import { useTitulo } from "../seo/titulo";
 import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
+import { EmailQuebravel } from "../componentes/EmailQuebravel";
 
 /**
  * Usuários do município.
@@ -370,7 +371,7 @@ export function Usuarios() {
                             </span>
                             <span>
                               <div className="tabela__principal">{u.nome}</div>
-                              <div className="tabela__secundario">{u.email}</div>
+                              <div className="tabela__secundario tabela__secundario--email"><EmailQuebravel email={u.email} /></div>
                             </span>
                           </div>
                         </td>

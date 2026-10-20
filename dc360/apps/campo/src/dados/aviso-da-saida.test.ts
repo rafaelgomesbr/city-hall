@@ -8,6 +8,7 @@
  */
 
 import { avisoDaSaida, contarRascunhos, SAIDA_SEM_NADA_A_PERDER } from "./aviso-da-saida";
+import { frasesDaPausa } from "./pausa-da-fila";
 
 const SEM_ANEXO = { fotos: [], assinaturaUri: null };
 const COM_FOTO = { fotos: [{}], assinaturaUri: null } as never;
@@ -81,5 +82,45 @@ describe("sem nada a perder", () => {
   it("fila ainda não lida conta como zero, mas nunca esconde rascunho", () => {
     expect(avisoDaSaida(null, contarRascunhos([]))).toBe(SAIDA_SEM_NADA_A_PERDER);
     expect(avisoDaSaida(null, contarRascunhos([SEM_ANEXO]))).toMatch(/1 vistoria começada/);
+  });
+});
+
+/*
+  Com a fila pausada pela sessão a pergunta não promete "entrar de novo, com
+  sinal" (V2-F00-E06, correção 3): sinal não destrava nenhum dos três casos. A
+  parte do laudo continua (ninguém mais envia por este aparelho), e o resto é a
+  frase da pausa, a mesma da faixa do topo.
+*/
+describe("com a fila pausada pela sessão", () => {
+  const MOTIVOS = ["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const;
+
+  it.each(MOTIVOS)("%s: uma coleta, a frase da pausa no lugar da promessa de sinal", (motivo) => {
+    const texto = avisoDaSaida(1, contarRascunhos([]), motivo);
+    expect(texto).toContain(frasesDaPausa(motivo).detalhe);
+    expect(texto).toMatch(/^Você tem 1 coleta ainda não enviada, e ninguém mais consegue enviá-la/);
+    expect(texto).toMatch(/o laudo sai com o nome de quem fez a vistoria, que é você/);
+    expect(texto).not.toMatch(/com sinal|Ela volta a subir/);
+  });
+
+  it.each(MOTIVOS)("%s: três coletas, no plural", (motivo) => {
+    const texto = avisoDaSaida(3, contarRascunhos([]), motivo);
+    expect(texto).toContain(frasesDaPausa(motivo).detalhe);
+    expect(texto).toMatch(/^Você tem 3 coletas ainda não enviadas, e ninguém mais consegue enviá-las/);
+    expect(texto).not.toMatch(/com sinal|Elas voltam a subir/);
+  });
+
+  it("o que se apaga continua vindo primeiro, antes da frase da pausa", () => {
+    const texto = avisoDaSaida(2, contarRascunhos([COM_FOTO]), "sessao_encerrada");
+    expect(texto.indexOf("Sair apaga")).toBeGreaterThanOrEqual(0);
+    expect(texto.indexOf(frasesDaPausa("sessao_encerrada").detalhe)).toBeGreaterThan(texto.indexOf("Sair apaga"));
+  });
+
+  it("sem fila, a pausa não muda nada: a frase curta de sempre", () => {
+    expect(avisoDaSaida(0, contarRascunhos([]), "conta_desativada")).toBe(SAIDA_SEM_NADA_A_PERDER);
+  });
+
+  it("sem pausa, o texto é exatamente o de antes", () => {
+    expect(avisoDaSaida(3, contarRascunhos([]), null)).toBe(avisoDaSaida(3, contarRascunhos([])));
+    expect(avisoDaSaida(3, contarRascunhos([]), null)).toMatch(/voltam a subir quando você entrar de novo, com sinal/);
   });
 });

@@ -338,7 +338,7 @@ export function servicoDeSegundoFator(banco: Banco, config: Config) {
         [quem.usuarioId],
       );
       if (!(await conferirSenha(senhaAtual, atual.rows[0]?.senha_hash ?? null))) {
-        throw new RegraDeNegocio("senha_nao_confere", "A senha atual nao confere.", 422);
+        throw new RegraDeNegocio("senha_nao_confere", "A senha atual não confere. Confira e digite de novo.", 422);
       }
 
       const linha = await lerLinha(c, quem.usuarioId);

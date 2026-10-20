@@ -15,6 +15,7 @@ import {
 import { listarColetas } from "../../dados/coletas";
 import { coletadasNoAparelho } from "../../dados/ordem-do-dia";
 import { useResumoDaFila } from "../../dados/resumo-da-fila";
+import { frasesDaPausa } from "../../dados/pausa-da-fila";
 import { listarRascunhos } from "../../dados/rascunho";
 import { avisoDaSaida, contarRascunhos, type RascunhosNaSaida } from "../../dados/aviso-da-saida";
 import { useSessao } from "../../dados/sessao";
@@ -350,6 +351,8 @@ export default function Perfil() {
   const pendentes = resumoDaFila === null
     ? null
     : resumoDaFila.pendentes + resumoDaFila.enviando + resumoDaFila.bloqueados;
+  /** A fila parada pela sessão, quando está (ver `pausa-da-fila.ts`). */
+  const pausadaPor = resumoDaFila?.pausadaPor ?? null;
   /** O que a saída apagaria, conferido no toque em "Sair da conta". */
   const [rascunhosNaSaida, setRascunhosNaSaida] = useState<RascunhosNaSaida>(null);
   /** Quantas tarefas o aparelho tem para hoje e ainda não vistoriou. Nulo: não deu para ler. */
@@ -545,7 +548,7 @@ export default function Perfil() {
     : null;
 
   /* O que a saída apaga e o que ela guarda, dito antes do toque que confirma. */
-  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida);
+  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida, pausadaPor);
 
   /* As contas dos números, memoizadas: mudam com os dados e com o relógio. */
   const concluidas = dados?.concluidas ?? [];
@@ -1268,10 +1271,15 @@ export default function Perfil() {
               ) : (
                 <Chip
                   testID="coletas-esperando"
-                  texto={`${pendentes} esperando`}
+                  texto={pausadaPor ? `${pendentes} guardada${pendentes === 1 ? "" : "s"}` : `${pendentes} esperando`}
                   simbolo="↑"
                   tom="alerta"
-                  descricao={`${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
+                  descricao={pausadaPor
+                    /* Com a fila pausada pela sessão, "esperam sinal" é a
+                       promessa errada (V2-F00-E06, correção 3): o rótulo falado
+                       diz o fato da pausa, com a frase da fonte única. */
+                    ? `${pendentes} ${pendentes === 1 ? "coleta guardada" : "coletas guardadas"} neste aparelho. ${frasesDaPausa(pausadaPor).titulo}`
+                    : `${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
                 />
               )}
             </LinhaDeEstado>
@@ -1446,13 +1454,23 @@ export default function Perfil() {
 
             <Separador />
 
-            {pendentes !== null && pendentes > 0 && (
+            {pendentes !== null && pendentes > 0 && (pausadaPor ? (
+              /* Com a fila pausada pela sessão, esperar a fila esvaziar não
+                 acontece: sinal não destrava nenhum dos três casos. O aviso diz
+                 o que destrava (a frase da pausa) e mantém a parte que continua
+                 verdadeira (V2-F00-E06, correção 3). */
+              <Aviso tom="alerta" peso="leve" titulo={frasesDaPausa(pausadaPor).titulo}>
+                {frasesDaPausa(pausadaPor).detalhe} Enquanto você estiver fora da
+                conta, estas coletas não são enviadas, nem por quem entrar depois
+                neste aparelho.
+              </Aviso>
+            ) : (
               <Aviso tom="alerta" titulo="Espere a fila esvaziar antes de sair">
                 Procure sinal e espere a fila esvaziar. Enquanto você estiver fora da
                 conta, estas coletas não são enviadas, nem por quem entrar depois
                 neste aparelho.
               </Aviso>
-            )}
+            ))}
 
             <Botao
               titulo="Sair da conta"

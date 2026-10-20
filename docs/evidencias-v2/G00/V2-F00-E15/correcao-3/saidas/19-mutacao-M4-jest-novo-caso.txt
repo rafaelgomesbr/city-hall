@@ -1,0 +1,115 @@
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+  outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
+    ✕ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (28 ms)
+    ✕ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (13 ms)
+    ✕ a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo (36 ms)
+    ✕ sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono (4 ms)
+    ✕ a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa (6 ms)
+    ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (5 ms)
+  a credencial e a identidade saem do cofre do aparelho
+    ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (2 ms)
+    ✓ 'Sair da conta' tira a credencial e a identidade do cofre (3 ms)
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (4 ms)
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (2 ms)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    Received: null
+
+      208 |   expect(mockNoDisco.has(ASSINATURA_NA_FILA)).toBe(true);
+      209 |   /* E o aparelho agora é do Bruno: o próximo a entrar é conferido contra ele. */
+    > 210 |   expect(await donoDosDadosLocais()).toBe(BRUNO);
+          |                                      ^
+      211 | }
+      212 |
+      213 | beforeEach(() => {
+
+      at toBe (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:210:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    Received: null
+
+      208 |   expect(mockNoDisco.has(ASSINATURA_NA_FILA)).toBe(true);
+      209 |   /* E o aparelho agora é do Bruno: o próximo a entrar é conferido contra ele. */
+    > 210 |   expect(await donoDosDadosLocais()).toBe(BRUNO);
+          |                                      ^
+      211 | }
+      212 |
+      213 | beforeEach(() => {
+
+      at toBe (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:210:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    Received: null
+
+      208 |   expect(mockNoDisco.has(ASSINATURA_NA_FILA)).toBe(true);
+      209 |   /* E o aparelho agora é do Bruno: o próximo a entrar é conferido contra ele. */
+    > 210 |   expect(await donoDosDadosLocais()).toBe(BRUNO);
+          |                                      ^
+      211 | }
+      212 |
+      213 | beforeEach(() => {
+
+      at toBe (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:210:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    Received: null
+
+      288 |     expect(await listarRascunhos()).toHaveLength(1);
+      289 |     expect([...mockNoDisco].sort()).toEqual([ASSINATURA, FOTO].sort());
+    > 290 |     expect(await donoDosDadosLocais()).toBe(ANA);
+          |                                        ^
+      291 |   });
+      292 |
+      293 |   it("a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa", async () => {
+
+      at Object.toBe (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:290:40)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    Received: null
+
+      208 |   expect(mockNoDisco.has(ASSINATURA_NA_FILA)).toBe(true);
+      209 |   /* E o aparelho agora é do Bruno: o próximo a entrar é conferido contra ele. */
+    > 210 |   expect(await donoDosDadosLocais()).toBe(BRUNO);
+          |                                      ^
+      211 | }
+      212 |
+      213 | beforeEach(() => {
+
+      at toBe (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:210:38)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 5 passed, 10 total
+Snapshots:   0 total
+Time:        0.588 s, estimated 1 s
+Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
+jest-saida=1

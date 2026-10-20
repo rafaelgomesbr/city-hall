@@ -1,0 +1,9 @@
+== M01_new_por_colchete_calculado
+inject (falhar, coordenador): 500 {"erro":"desvio_do_catalogo_de_erro","mensagem":"POST /orgaos respondeu 403 fora do catálogo: código fora do catálogo ([fora da forma de um código, não registrado])"}
+inject (falhar, agente): 403 {"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para gerenciar equipes."}
+desvios registrados (falhar): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"}]
+log do desvio (falhar): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"}]
+inject (corrigir, coordenador): 403 {"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+inject (corrigir, agente): 403 {"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para gerenciar equipes."}
+desvios registrados (corrigir): []
+log do desvio (corrigir): [{"metodo":"POST","rota":"/orgaos","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"}]

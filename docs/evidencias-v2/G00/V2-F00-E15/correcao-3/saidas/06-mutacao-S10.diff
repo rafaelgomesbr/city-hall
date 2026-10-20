@@ -1,0 +1,8 @@
+diff --git a/dc360/apps/campo/src/dados/sessao.tsx b/dc360/apps/campo/src/dados/sessao.tsx
+index ed55474..cfa0a6c 100644
+--- a/dc360/apps/campo/src/dados/sessao.tsx
++++ b/dc360/apps/campo/src/dados/sessao.tsx
+@@ -221,3 +221,2 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
+       guardar(CHAVE_CREDENCIAIS, null),
+-      guardar(CHAVE_IDENTIDADE, null),
+       /*

@@ -217,13 +217,13 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
     metodo = "POST",
   ): Promise<T> {
     const { resposta, corpo: lido } = await pedir(
-      caminho, corpo, metodo, "Sem conexao com o servidor.",
+      caminho, corpo, metodo, "Sem conexão com o servidor.",
     );
 
     if (resposta.ok) return (await lerCorpo(resposta)) as T;
 
     if (resposta.status >= 500 || resposta.status === 429) {
-      throw new FalhaTemporaria(`Servidor indisponivel (${resposta.status}).`);
+      throw new FalhaTemporaria(`Servidor indisponível (${resposta.status}).`);
     }
 
     throw falhaDaResposta(resposta.status, lido ?? await lerCorpo(resposta));
@@ -265,7 +265,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
           signal: cancelador.signal,
         });
       } catch (erro) {
-        throw new FalhaTemporaria("Sem conexao com o armazenamento.", erro);
+        throw new FalhaTemporaria("Sem conexão com o armazenamento.", erro);
       } finally {
         clearTimeout(relogio);
       }
@@ -273,11 +273,11 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
       if (resposta.ok) return;
 
       if (resposta.status >= 500 || resposta.status === 429) {
-        throw new FalhaTemporaria(`Armazenamento indisponivel (${resposta.status}).`);
+        throw new FalhaTemporaria(`Armazenamento indisponível (${resposta.status}).`);
       }
       // 403 aqui costuma ser URL vencida, e a proxima tentativa pede outra.
       if (resposta.status === 403) {
-        throw new FalhaTemporaria("A autorizacao de envio venceu.");
+        throw new FalhaTemporaria("A autorização de envio venceu.");
       }
       throw new FalhaPermanente(
         `O armazenamento recusou o arquivo (${resposta.status}).`,

@@ -1,0 +1,23 @@
+
+> @dc360/campo@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/campo
+
+ ✓ test/devolucao.test.ts (24 tests) 8ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 11ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 12ms
+ ✓ test/prova-perdida.test.ts (10 tests) 11ms
+ ✓ test/pausa-por-senha-provisoria.test.ts (43 tests) 33ms
+ ✓ test/pausa-de-sessao.test.ts (29 tests) 32ms
+ ✓ test/fila.test.ts (58 tests) 56ms
+ ✓ test/conclusao.test.ts (11 tests) 2ms
+ ✓ test/prazo.test.ts (12 tests) 15ms
+ ✓ test/coleta.test.ts (14 tests) 3ms
+
+ Test Files  10 passed (10)
+      Tests  231 passed (231)
+   Start at  18:45:46
+   Duration  549ms (transform 386ms, setup 0ms, collect 1.17s, tests 182ms, environment 1ms, prepare 422ms)
+

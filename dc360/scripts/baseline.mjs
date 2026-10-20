@@ -455,6 +455,38 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     não muda (1356) e o `vitest run` soma 2 (1390, com 34 pulados).
   */
   "V2-F00-E07-correcao-4-complemento": { total: 2, falhas: 0, puladas: 2 },
+  /*
+    V2-F00-E09, correção 4 (2026-10-19), arbitragem da rodada 5:
+    `mensagens-visiveis-com-acento.test.ts` é novo, com 12 casos (a varredura
+    morde numa fonte sintética, e a árvore real da API, do painel, do
+    compartilhado e do motor de campo não tem frase de tela sem acento), e
+    `senha-provisoria.test.ts` ganha 1 caso de PGlite (a senha atual errada na
+    troca responde 401 com a frase acentuada que diz o que fazer). Soma 13 na
+    lista e 13 no `vitest run`, sem pulo novo.
+  */
+  "V2-F00-E09-correcao-4": { total: 13, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correção 3 (2026-10-19), contada contra o `ca5a38f`:
+    `codigos-de-erro.test.ts` vai de 116 para 169 casos. Entram 6 mutações do
+    red-team da rodada 5 no texto real de `rotas/orgaos.ts`, em memória (A, B,
+    C, N, N2 e o homônimo D), 46 formas da família delas em fonte de exemplo
+    (corpo por constante escrito, `let`, exportado ou apelidado, colchete,
+    chave calculada, `.call`/`.apply`/`.bind`, `statusCode` abreviado, texto
+    com `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`) e
+    1 caso de controle (o que é só lido passa). Sem pulo nem falha novos.
+    Segunda parte da correção 3 (depois da revisão independente): a GUARDA em
+    tempo de execução. `codigos-de-erro.test.ts` ganha mais 2 (escrita no
+    socket e `code(200).code(403)`), indo a 171; `guarda-de-codigos-de-erro.test.ts`
+    é novo, com 49 (as dezesseis formas da revisão como rotas, nos dois modos,
+    o `JSON.stringify` trocado nos dois, status trocado e 401 fora, HEAD,
+    controles e 10 casos da conferência isolada). 53 + 2 + 49 = 104.
+    Terceira parte (a guarda passou do `onSend` para a resposta do Node):
+    `guarda-de-codigos-de-erro.test.ts` vai de 49 para 71 (+16 escapes da
+    revisão da primeira guarda, +1 e08, +1 log sem dado pessoal, +1 globais
+    trocados depois da carga, e a conferência isolada troca 2 casos e ganha 3:
+    teto, chave repetida com escape e chave `erro` aninhada). 104 + 22 = 126.
+  */
+  "V2-F00-E05-correcao-3": { total: 126, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -493,6 +525,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E05-correcao-2": { total: 5, falhas: 0 },
   // V2-F00-E22, correção 4: `packages/shared/test/permissoes-no-readme.test.ts` (10 casos) prende a tabela de permissões do README e a de `docs/PAPEIS_E_RESPONSABILIDADES.md` ao catálogo `acoesDoPapel` (falta, sobra, papel sem linha, ordem, marcador, sim ou não trocado). A base do shared não conta puladas, por isso a entrada também não traz o campo.
   "V2-F00-E22-correcao-4": { total: 10, falhas: 0 },
+  // V2-F00-E24, correção 3: `packages/shared/test/ressalva-saida-a-campo.test.ts` (38 casos: 8 eram da correção 3 e a revisão independente a ampliou; os 30 casos a mais entram nesta entrada) leva para o `npm test` o guarda que vivia só na pasta da evidência: nenhum documento promete "acompanhar quem está em campo" ou a saída declarada pelo agente sem a ressalva "em construção". 9 casos de documento (seis com ocorrência a conferir e quatro com quadro de estado exigido; o README tem os dois), 25 mutações que têm de reprovar (M0 a M19, cada defeito da revisão) e 4 casos das regras (ressalva negada, tabela por linha, lista por item, frase quebrada em duas linhas). Sem campo de puladas, pelo mesmo motivo da entrada anterior.
+  "V2-F00-E24-correcao-3": { total: 38, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -526,6 +560,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
   // V2-F00-E05, correção 2: `sessao-e-entrada.test.ts` ganha 4 casos (403 de cada código novo do catálogo, sem ação, não renova nem derruba a tela).
   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
+  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
+  "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -604,6 +640,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E06-correcao-1": { total: 35, falhas: 0 },
   // V2-F00-E05, correção 2: a matriz de `pausa-por-senha-provisoria.test.ts` ganha 4 linhas (403 de cada código novo do catálogo é recusa permanente), com 2 casos por linha.
   "V2-F00-E05-correcao-2": { total: 8, falhas: 0 },
+  // V2-F00-E06, correção 3b: `pausa-velha.test.ts` (7 casos: a pausa cai quando a pessoa entra de novo).
+  "V2-F00-E06-correcao-3b": { total: 7, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -637,6 +675,24 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E16-correcao-2": { total: 7, falhas: 0 },
   // V2-F00-E15, correção 2: `dialogo-na-conta-com-vistoria-comecada.test.tsx` ganha 5 casos (disco ilegível, item recusado da fila, item em envio, título e ordem dos botões, disco que falha na segunda pergunta). O caso do botão de perigo foi reescrito, sem mudar a contagem.
   "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },
+  // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 10 casos (6 do login real, provedor, banco e rascunho de verdade: troca de pessoa, a ordem de limpar antes de abrir a sessão e o dono do disco; 4 da credencial e da identidade que saem do cofre).
+  "V2-F00-E15-correcao-3": { total: 10, falhas: 0 },
+  /*
+    V2-F00-E06, correção 3 (41 casos, contados contra o `b17949a`): "Enviar
+    agora" e os outros pontos que prometiam sinal com a fila pausada.
+    `enviar-agora-com-a-fila-pausada.test.tsx` (7), `fila-pausada-nao-promete-sinal.test.tsx` (14),
+    `vistoria-guardada-com-a-fila-pausada.test.tsx` (8), 9 em `aviso-da-saida.test.ts`
+    e 3 em `dialogo-na-conta.test.tsx`; os `it.each` entram com uma linha por motivo.
+  */
+  "V2-F00-E06-correcao-3": { total: 41, falhas: 0 },
+  /*
+    V2-F00-E06, correção 3b (14 casos): `pausa-cai-ao-entrar-de-novo.test.tsx` (2),
+    1 em `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` (a geração sobe no
+    login), 1 em `enviar-agora-com-a-fila-pausada.test.tsx` (acesso suspenso),
+    7 em `dialogo-na-conta.test.tsx` (o Perfil pausado: controle, aviso e chip por
+    motivo) e 3 em `fila-pausada-nao-promete-sinal.test.tsx` (devolução sem autor).
+  */
+  "V2-F00-E06-correcao-3b": { total: 14, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
@@ -667,7 +723,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 259, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 274, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)
@@ -795,13 +851,18 @@ export const PASSOS = [
     temas, geometria a 320 px): 288 verificacoes executadas no fluxo contra a
     API (as `ok(` no inicio de linha, que o `conferir` conta, sao 258) e 64 na
     largura estreita. Medido no Mac, Node 24, Chromium.
+
+    Correcao 4 da E09 (2026-10-19): `layout-estreito.e2e.mjs` ganha tres secoes
+    (o aviso passageiro por cima da janela da senha temporaria, o email que nao
+    quebra no meio da palavra e a frase da senha atual errada nas duas telas):
+    de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 64   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
   },
 ];
 

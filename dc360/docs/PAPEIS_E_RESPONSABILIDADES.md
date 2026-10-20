@@ -206,7 +206,7 @@ fornecedor, que é outro processo, com segundo fator.
 | Emitir laudo ou termo | não | não | sim | sim |
 | Consultar os ofícios de encaminhamento | sim | não | sim | sim |
 | Levantar a interdição de um imóvel | não | não | sim | sim |
-| Acompanhar quem está em campo agora | sim | não | sim | sim |
+| Acompanhar quem está em campo agora | sim (em construção) | não | sim (em construção) | sim (em construção) |
 | Gerenciar equipes | não | não | sim | sim |
 | Gerenciar usuários | não | não | sim | sim |
 | Consultar a trilha | não | não | sim | sim |

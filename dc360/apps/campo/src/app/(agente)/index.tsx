@@ -13,6 +13,7 @@ import {
 } from "../../dados/pendencias";
 import { listarColetas, marcarEnviada } from "../../dados/coletas";
 import { obterFila } from "../../dados/fila";
+import { frasesDaPausa } from "../../dados/pausa-da-fila";
 import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
@@ -586,6 +587,10 @@ export default function Tarefas() {
   lerDoDiscoAgora.current = lerDoDisco;
 
   const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
+  /* A mesma pausa, lida por quem acorda DEPOIS de um `await` (o "Enviar agora"
+     espera o dreno, e o dreno avisa a fila no meio): a variável de estado de
+     uma função já começada fica com o valor de quando ela começou. */
+  const pausaAtual = useRef<MotivoDeSessao | null>(null);
   useEffect(() => {
     let vivo = true;
     let desassinar: (() => void) | undefined;
@@ -600,6 +605,7 @@ export default function Tarefas() {
             (e uma vez na assinatura). O cartão da sugerida a usa para não
             mandar esperar sinal quando o que falta é entrar de novo.
           */
+          pausaAtual.current = resumo?.pausadaPor ?? null;
           setPausadaPor(resumo?.pausadaPor ?? null);
           void lerDoDiscoAgora.current();
         });
@@ -838,7 +844,7 @@ export default function Tarefas() {
     setEnviando(alvo.id);
     setEnvio(null);
     try {
-      await aberta.drenar();
+      const dreno = await aberta.drenar();
       const depois = await aberta.itens();
       const meu = depois.find((i) => i.tipo === "vistoria" && i.ocorrenciaId === alvo.id);
       await lerDoDisco();
@@ -884,12 +890,49 @@ export default function Tarefas() {
           texto: "A coleta continua guardada. Abra a aba Envio para ver o que ele respondeu.",
         });
       } else {
-        setEnvio({
-          ocorrenciaId: alvo.id,
-          tom: "alerta",
-          titulo: "Ainda não deu para enviar",
-          texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
-        });
+        /*
+          COM A FILA PAUSADA PELA SESSÃO, SINAL NÃO RESOLVE, e a tarja que
+          mandava esperá-lo contradizia a faixa do topo e o cartão da tarefa
+          (V2-F00-E06, correção 3). O item continua `pendente` de propósito,
+          então o estado dele não distingue "sem sinal" de "pausada": quem
+          distingue é o motivo, que vem do dreno (`paradaPor`) ou, quando outro
+          dreno já estava rodando e este voltou sem dizer, da pausa que a fila
+          já tinha avisado. As frases são as de `frasesDaPausa`, as mesmas da
+          faixa e do cartão: uma frase nova aqui divergiria das duas.
+        */
+        const motivo = dreno.paradaPor ?? pausaAtual.current;
+        if (motivo) {
+          const frases = frasesDaPausa(motivo);
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: frases.faixaTitulo,
+            texto: frases.doCartao,
+          });
+        } else if (falhaDeRede === "acesso-suspenso") {
+          /*
+            ACESSO SUSPENSO PELO FORNECEDOR: o motor trata o 403 como falha
+            temporária (o item espera, sem pausa), então nem `paradaPor` nem a
+            pausa da fila sabem dele. Quem sabe é a lista desta mesma tela, que
+            já diz "Acesso suspenso pelo fornecedor"; a tarja diz a mesma
+            coisa, com a mesma frase, em vez de mandar esperar sinal que não
+            resolve (V2-F00-E06, correção 3).
+          */
+          const frase = comoContarAFalha("acesso-suspenso", "");
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: frase.resumo,
+            texto: frase.detalhe,
+          });
+        } else {
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: "Ainda não deu para enviar",
+            texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
+          });
+        }
       }
     } finally {
       setEnviando(null);

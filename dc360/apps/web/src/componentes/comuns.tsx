@@ -391,9 +391,13 @@ export function iniciais(nome: string): string {
  * que o campo referencia em `aria-describedby`, para que a pessoa navegando
  * por teclado ouça o motivo ao chegar no campo, e não só ao submeter.
  */
-export function ErroCampo({ id, children }: { id: string; children: ReactNode }) {
+export function ErroCampo({ id, children, focavel = false }: {
+  id: string; children: ReactNode;
+  /** Para a mensagem que a tela leva o foco a ela (erro que não é de um campo só). */
+  focavel?: boolean;
+}) {
   return (
-    <p className="campo__erro" id={id} role="alert">
+    <p className="campo__erro" id={id} role="alert" tabIndex={focavel ? -1 : undefined}>
       <IconeAlerta tamanho={14} />
       <span>{children}</span>
     </p>

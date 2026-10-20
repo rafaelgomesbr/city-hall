@@ -7,7 +7,7 @@ import "./estilos/tokens.css";
 import "./estilos/app.css";
 
 const raiz = document.getElementById("root");
-if (!raiz) throw new Error("Elemento #root nao encontrado");
+if (!raiz) throw new Error("Elemento #root não encontrado");
 
 createRoot(raiz).render(
   <StrictMode>

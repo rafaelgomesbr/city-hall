@@ -1,0 +1,1203 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (71 tests | 54 failed) 1192ms
+   × modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 14ms
+     → {"erro":"vazou_mab","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+     → {"erro":"vazou_mac","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+     → {"erro":"vazou_mad","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+     → {"erro":"vazou_mae","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+     → {"erro":"vazou_maf","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mag","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mah","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mba","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mbb","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+     → {"erro":"vazou_mbc","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mbd","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mbe","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mbf","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → {"erro":"vazou_mbg","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+     → proibido: expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego 0ms
+     → expected 403 to be 500 // Object.is equality
+   × modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também 0ms
+     → status-trocado: expected 401 to be 500 // Object.is equality
+   ✓ modo de teste: a resposta fora do catálogo falha alto > controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada 1ms
+   ✓ HEAD não leva corpo > o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo 0ms
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo 1ms
+     → expected { erro: 'vazou_mab', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mac', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mad', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mae', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_maf', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mag', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mah', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mba', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mbb', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mbc', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mbd', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mbe', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mbf', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → expected { erro: 'vazou_mbg', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → Unexpected end of JSON input
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo 0ms
+     → Unexpected token 'p', "proibido" is not valid JSON
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele 1ms
+     → expected 'vazou_maj' to be 'sem_permissao' // Object.is equality
+   × modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado 0ms
+     → expected { Object (erro, mensagem) } to deeply equal { erro: 'nao_autenticado', …(1) }
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > controles: o que está no catálogo sai como a rota mandou, com a frase da rota 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 401 {"erro":"credenciais"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"acesso_suspenso"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"nao_autenticado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"inventado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 403 ["sem_permissao"] 0ms
+   ✓ a conferência do corpo, isolada > 403 proibido 0ms
+   ✓ a conferência do corpo, isolada > 403  0ms
+   ✓ a conferência do corpo, isolada > 403 null 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","campos":[{"erro":"x"}]} 0ms
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e01","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e02","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e04","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e05","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+     → {"statusCode":403,"code":"vazou_e06","error":"Forbidden","message":"vazou_e06b"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e07","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e09"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e10"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+     → {"erro":"vazou_e11"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e12"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":{"codigo":"sem_permissao"},"mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e14"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e15","erro":"sem_permissao"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e16"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"maria.silva@exemplo.com.br cpf 123.456.789-00 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","mensagem":"segredo da mensagem"}: expected 403 to be 500 // Object.is equality
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+     → {"erro":"vazou_e18"}: expected 401 to be 500 // Object.is equality
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso 1ms
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme) 0ms
+     → expected undefined to be defined
+   × os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda 1ms
+     → expected 403 to be 500 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 54 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mab","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mac","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mad","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mae","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_maf","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mag","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mah","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mba","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mbb","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mbc","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mbd","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mbe","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mbf","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: {"erro":"vazou_mbg","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota
+AssertionError: proibido: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:256:34
+    254|     const r = await pedir("falhar", n);
+    255|     const desvios = lerDesviosDaGuarda();
+    256|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    257|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    258|     expect(desvios).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego
+AssertionError: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:273:26
+    271|     }
+    272|     const desvios = lerDesviosDaGuarda();
+    273|     expect(r.statusCode).toBe(500);
+       |                          ^
+    274|     expect(desvios).toEqual([expect.objectContaining({ erroVisto: "vaz…
+    275|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também
+AssertionError: status-trocado: expected 401 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 401
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:280:31
+    278|     for (const [n, status, visto] of [["status-trocado", 401, "sem_per…
+    279|       const r = await pedir("falhar", n);
+    280|       expect(r.statusCode, n).toBe(500);
+       |                               ^
+    281|       expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ …
+    282|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mab', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mab",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mac', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mac",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mad', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mad",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mae', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mae",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_maf', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_maf",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mag', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mag",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mah', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mah",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mba', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mba",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mbb', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mbb",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mbc', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mbc",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mbd', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mbd",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mbe', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mbe",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mbf', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mbf",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo
+AssertionError: expected { erro: 'vazou_mbg', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_mbg",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:22
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |                      ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo
+SyntaxError: Unexpected end of JSON input
+ ❯ Object.parseJsonPayload [as json] ../../node_modules/light-my-request/lib/response.js:186:19
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:14
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |              ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo
+SyntaxError: Unexpected token 'p', "proibido" is not valid JSON
+ ❯ Object.parseJsonPayload [as json] ../../node_modules/light-my-request/lib/response.js:186:19
+ ❯ test/guarda-de-codigos-de-erro.test.ts:313:14
+    311|     const r = await pedir("corrigir", n);
+    312|     expect(r.statusCode, r.body).toBe(403);
+    313|     expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGO…
+       |              ^
+    314|     expect(r.headers["content-type"]).toMatch(/^application\/json/);
+    315|     const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalog…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele
+AssertionError: expected 'vazou_maj' to be 'sem_permissao' // Object.is equality
+
+Expected: "sem_permissao"
+Received: "vazou_maj"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:331:27
+    329|     }
+    330|     expect(r.statusCode).toBe(403);
+    331|     expect(r.json().erro).toBe("sem_permissao");
+       |                           ^
+    332|   });
+    333| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado
+AssertionError: expected { Object (erro, mensagem) } to deeply equal { erro: 'nao_autenticado', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "nao_autenticado",
+-   "mensagem": "Token inválido ou expirado.",
++   "erro": "token_ausente",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:337:22
+    335|     const r = await pedir("corrigir", "401-fora");
+    336|     expect(r.statusCode).toBe(401);
+    337|     expect(r.json()).toEqual({ erro: "nao_autenticado", mensagem: CODI…
+       |                      ^
+    338|   });
+    339| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e01","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e02","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e04","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e05","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"statusCode":403,"code":"vazou_e06","error":"Forbidden","message":"vazou_e06b"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e07","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e09"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e10"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e11"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e12"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":{"codigo":"sem_permissao"},"mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e14"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e15","erro":"sem_permissao"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e16"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"maria.silva@exemplo.com.br cpf 123.456.789-00 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","mensagem":"segredo da mensagem"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico
+AssertionError: {"erro":"vazou_e18"}: expected 401 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 401
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:371:46
+    369|   it.each(ESCAPES_DA_REVISAO)("%s: em teste sai 500 com o desvio regis…
+    370|     const emTeste = await pedirEm("falhar", `/esc/${caso}`);
+    371|     expect(emTeste.statusCode, emTeste.body).toBe(500);
+       |                                              ^
+    372|     expect(emTeste.json().erro).toBe("desvio_do_catalogo_de_erro");
+    373|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme)
+AssertionError: expected undefined to be defined
+ ❯ test/guarda-de-codigos-de-erro.test.ts:393:19
+    391|     await pedirEm("corrigir", "/esc/e17");
+    392|     const linha = log.find((l) => l.includes("desvioDoCatalogo"))!;
+    393|     expect(linha).toBeDefined();
+       |                   ^
+    394|     expect(linha).not.toContain("maria.silva");
+    395|     expect(linha).not.toContain("123.456.789");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/54]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda
+AssertionError: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:419:26
+    417|       Object.prototype.hasOwnProperty = proprio;
+    418|     }
+    419|     expect(r.statusCode).toBe(500);
+       |                          ^
+    420|     expect(lerDesviosDaGuarda()).toHaveLength(1);
+    421|     JSON.parse = (() => ({ erro: "sem_permissao" })) as typeof JSON.pa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/54]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  54 failed | 17 passed (71)
+   Start at  21:17:51
+   Duration  1.94s (transform 299ms, setup 142ms, collect 399ms, tests 1.19s, environment 0ms, prepare 56ms)
+
+codigo=1

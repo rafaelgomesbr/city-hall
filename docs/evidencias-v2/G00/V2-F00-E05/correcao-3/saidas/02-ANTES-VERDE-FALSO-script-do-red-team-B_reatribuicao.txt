@@ -1,0 +1,16 @@
+== mutação B_reatribuicao em src/rotas/orgaos.ts ==
+    const dados = orgaoSchema.parse(req.body);
+    let recusaB = { erro: "sem_permissao", mensagem: "Sem permissão." };
+    if (dados.nome === "Mutacao B") recusaB = { erro: "vazou_por_reatribuicao", mensagem: "x" };
+    if (dados.sigla === "MB") return resposta.code(403).send(recusaB);
+
+    try {
+      const criado
+
+$ npx tsc -p tsconfig.json --noEmit
+
+codigo=0
+
+ Test Files  1 passed (1)
+      Tests  116 passed (116)
+codigo=0

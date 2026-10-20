@@ -17,6 +17,7 @@ import {
   codigosMortos, rastrearClasses, reprovacoes, varrerFonte, varrerPasta,
   type RegrasDeConferencia, type Varredura,
 } from "./varredura-de-erros.js";
+import { CONTRATO_DE_ACESSO_DO_CONSOLE } from "../../console/src/guarda-de-codigos-de-erro.js";
 
 /**
  * Os códigos de erro de acesso (V2-F00-E05): o cliente distingue "renove o
@@ -35,12 +36,16 @@ import {
  *     do servidor real, por requisição, com o status e a mensagem que o
  *     catálogo diz.
  *   - Nada de acesso sai fora do catálogo. Uma varredura do código-fonte pela
- *     árvore sintática do TypeScript (`varredura-de-erros.ts`) lê TODAS as
- *     formas de emitir erro, na API inteira e no console do fornecedor, e
- *     reprova resposta 401 ou 403 (ou de status que o texto não resolve) com
- *     código fora do catálogo e da lista da entrada. `sessao` (o nome antigo)
- *     não volta por nenhuma delas. Cada forma tem o seu caso de mordida, com
- *     fonte de exemplo e com o fonte real mutado em memória.
+ *     árvore sintática do TypeScript (`varredura-de-erros.ts`), na API inteira e
+ *     no console do fornecedor, lê as formas de emitir erro que conhece e
+ *     REPROVA as que não sabe ler, e reprova resposta 401 ou 403 (ou de status
+ *     que o texto não resolve) com código fora do catálogo e da lista da
+ *     entrada. `sessao` (o nome antigo) não volta por nenhuma delas. Cada forma
+ *     tem o seu caso de mordida, com fonte de exemplo e com o fonte real mutado
+ *     em memória. A varredura é heurística, a primeira linha: a GARANTIA é a
+ *     guarda em tempo de execução (`src/guarda-de-codigos-de-erro.ts`, provada
+ *     em `guarda-de-codigos-de-erro.test.ts`), e o que nenhuma das duas cobre
+ *     está escrito no cabeçalho do catálogo e no README.
  *   - O catálogo não carrega código morto: todo código dele é emitido por
  *     algum ponto do servidor.
  *   - O que NÃO é prendido aqui (404, 409, 422, 429, 5xx, regra de negócio) é da
@@ -600,18 +605,58 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
         porque: "o status é o do Fastify para `FST_ERR_CTP_*` (400, 413 ou 415), erro de leitura do corpo, "
           + "nunca de acesso",
       },
+      // ---- correção 3 (rodada 5): o que as regras novas acham no fonte real e não é resposta ----
+      {
+        arquivo: /servidor\.ts$/, chave: "literal:FST_ERR_CTP_", origem: "chamada:startsWith",
+        porque: "é o tratador global LENDO o prefixo (`doLeitorDeCorpo.code.startsWith(...)`), não um erro "
+          + "forjado com ele",
+      },
+      {
+        arquivo: /servidor\.ts$/, chave: "chave:chave", origem: "funcao:manter",
+        porque: "é o serializador do registro de erro (`err` do logger), que copia campo de texto ou número "
+          + "para o log; não monta resposta nem erro",
+      },
+      {
+        arquivo: /push[\\/]apns\.ts$/, chave: "chave:constants.HTTP2_HEADER_METHOD",
+        porque: "cabeçalho `:method` do pedido HTTP/2 que o servidor ENVIA ao provedor de notificação",
+      },
+      {
+        arquivo: /push[\\/]apns\.ts$/, chave: "chave:constants.HTTP2_HEADER_PATH",
+        porque: "cabeçalho `:path` do pedido HTTP/2 que o servidor ENVIA ao provedor de notificação",
+      },
+      {
+        arquivo: /[\\/]src[\\/]index\.ts$/, chave: "colchete:app.log[nivel]",
+        porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
+      },
+      {
+        arquivo: /apps[\\/]api[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "*",
+        porque: "é a GUARDA em tempo de execução: envolve `writeHead`, `write` e `end` da resposta do Node "
+          + "(`.raw`) para conferir toda resposta 401 ou 403 contra o catálogo e trocar o desvio pelo código "
+          + "genérico (ou por 500, em teste). Mexer na resposta crua é o trabalho dela; quem a prova é "
+          + "`test/guarda-de-codigos-de-erro.test.ts`, não esta varredura",
+      },
+      {
+        arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
+        porque: "é a tabela dos geradores de documento (laudo, termos), funções que devolvem o HTML do "
+          + "documento; nenhuma recebe a resposta",
+      },
     ],
   };
 
-  /** O console tem contrato próprio: estes são os 401 e 403 dele, e só eles. */
-  const CONTRATO_DO_CONSOLE: Record<string, number> = {
-    sem_sessao: 401, so_o_dono: 403, credenciais_invalidas: 401, desafio_invalido: 401,
-    codigo_invalido: 401, senha_incorreta: 401, recuperacao_invalida: 401,
-  };
+  /**
+   * O console tem contrato próprio: estes são os 401 e 403 dele, e só eles. A
+   * lista mora no console (`apps/console/src/guarda-de-codigos-de-erro.ts`),
+   * porque a guarda em tempo de execução dele usa a mesma.
+   */
+  const CONTRATO_DO_CONSOLE = CONTRATO_DE_ACESSO_DO_CONSOLE;
   const REGRAS_DO_CONSOLE: RegrasDeConferencia = {
     catalogo: {},
     aceitosAlemDoCatalogo: CONTRATO_DO_CONSOLE,
     repasses: [{
+      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "*",
+      porque: "é a guarda em tempo de execução do console, que envolve a resposta do Node de propósito; "
+        + "quem a prova é `apps/console/test/guarda-de-codigos-de-erro.test.ts`",
+    }, {
       arquivo: /console[\\/]src[\\/]servidor\.ts$/, chave: "recusa.corpo",
       porque: "o corpo vem de `traduzirRecusaDoBanco`, cujos literais (`so_o_dono` 403, `acao_recusada` 409) "
         + "a varredura lê na forma `{ status, corpo: { erro } }`",
@@ -786,6 +831,88 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
     });
 
+    /*
+      Correção 3 (rodada 5): a FAMÍLIA de cada forma do red-team. O que a varredura não sabe ler,
+      reprova; o texto do cabeçalho do catálogo e do README lista o que sobra.
+    */
+    const R_OK = 'const R = { erro: "sem_permissao", mensagem: "x" };\n';
+    it.each([
+      // A: o corpo por constante mudado depois de declarado
+      ["A1 campo erro por ponto", R_OK + 'R.erro = "novo";\nresposta.code(403).send(R);'],
+      ["A2 campo erro por colchete", R_OK + 'R["erro"] = "novo";\nresposta.code(403).send(R);'],
+      ["A3 operador composto", R_OK + 'R.erro += "_novo";\nresposta.code(403).send(R);'],
+      ["A4 delete do erro", R_OK + "delete R.erro;\nresposta.code(403).send(R);"],
+      ["A5 desestruturação em cima do campo", R_OK + '[R.erro] = ["novo"];\nresposta.code(403).send(R);'],
+      ["A6 escrita por conversão de tipo", R_OK + '(R as { erro: string }).erro = "novo";\nresposta.code(403).send(R);'],
+      ["A7 constante passada a uma função que pode mudá-la", R_OK + "mudar(R);\nresposta.code(403).send(R);"],
+      ["A8 constante apelidada", R_OK + "const S = R;\nmudar(S);\nresposta.code(403).send(R);"],
+      ["A9 constante exportada (outro arquivo pode escrever)", 'export const R = { erro: "sem_permissao", mensagem: "x" };\nresposta.code(403).send(R);'],
+      ["A10 constante reexportada por nome", R_OK + "export { R };\nresposta.code(403).send(R);"],
+      ["A11 escrita no erro de um parâmetro, em outra função", 'function trocar(r: { erro: string }) { r.erro = "novo"; }'],
+      ["A12 escrita no corpo de uma recusa", 'function trocar(r: { corpo: unknown }) { r.corpo = { erro: "novo" }; }'],
+      ["A13 status por operador composto", "function f(e: { statusCode?: number }) { e.statusCode ??= 403; }"],
+      ["A14 codigo apagado de um erro", 'const e = new RegraDeNegocio("sem_permissao", "m", 403);\ndelete (e as { codigo?: string }).codigo;\nthrow e;'],
+      // B: o nome do corpo que não é constante
+      ["B1 let reatribuída", 'let R = { erro: "sem_permissao", mensagem: "x" };\nR = { erro: "novo", mensagem: "x" };\nresposta.code(403).send(R);'],
+      ["B2 var", 'var R = { erro: "sem_permissao", mensagem: "x" };\nresposta.code(403).send(R);'],
+      ["B3 parâmetro homônimo de uma constante do módulo", R_OK.replace("const R", "const corpo") + "const f = (corpo: { erro: string }) => resposta.code(403).send(corpo);"],
+      ["B4 constante que não é objeto literal", "const R = montar();\nresposta.code(403).send(R);"],
+      // C: a chamada que a varredura não lê pelo ponto
+      ["C1 code por colchete, send com ponto", 'resposta["code"](403).send({ erro: "novo", mensagem: "x" });'],
+      ["C2 send por colchete", 'resposta.code(403)["send"]({ erro: "novo", mensagem: "x" });'],
+      ["C3 status por modelo de texto", "resposta[`status`](401);\nreturn { erro: \"novo\" };"],
+      ["C4 método por chave calculada, corpo no return", 'const m = "code";\nresposta[m](403);\nreturn { erro: "novo" };'],
+      ["C5 code por call", 'resposta.code.call(resposta, 403);\nreturn { erro: "novo" };'],
+      ["C6 send guardado e ligado com bind", 'const enviar = resposta.code(403).send.bind(resposta);\nenviar({ erro: "novo" });'],
+      ["C7 send guardado numa variável", "const enviar = resposta.send;\nvoid enviar;"],
+      ["C8 code desestruturado e chamado por apply", "const { code } = resposta;\ncode.apply(resposta, [403]);"],
+      ["C9 classe de erro por colchete", 'import * as S from "./servidor.js";\nthrow new S["RegraDeNegocio"]("novo", "x", 403);'],
+      ["C10 Reflect por colchete", 'globalThis["Reflect"].set(e, "codigo", "novo");'],
+      // N: o status e a classe do erro que o texto não mostra
+      ["N1 statusCode abreviado", 'const statusCode = 403;\nthrow { code: "FST_ERR_CTP_NOVO", statusCode };'],
+      ["N2 statusCode por getter", 'throw { code: "x", get statusCode() { return 403; } };'],
+      ["N3 statusCode por método", 'throw { code: "x", statusCode() { return 403; } };'],
+      ["N4 chave calculada com 403", 'const k = escolher();\nthrow { code: "x", [k]: 403 };'],
+      ["N5 código do Fastify num modelo de texto", "throw Object.freeze({ code: `FST_ERR_CTP_${sufixo}`, statusCode: 400 });"],
+      ["N6 objeto que vira RegraDeNegocio sem new", 'throw Object.setPrototypeOf({ codigo: "novo", status: 403 }, Object.getPrototypeOf(base));'],
+      ["N7 Object.create com o protótipo de um erro", 'throw Object.assign2(Object.create(proto), { codigo: "novo" });'],
+      ["N8 __proto__ num literal", 'throw { __proto__: proto, codigo: "novo", status: 403 };'],
+      ["N9 classe que estende uma expressão", 'class X extends (classeDe(base)) { constructor() { super("novo", "x", 403); } }'],
+      ["N10 corpo com erro por getter", 'resposta.code(403).send({ get erro() { return "novo"; }, mensagem: "x" });'],
+      ["N11 corpo com chave calculada e status calculado", 'resposta.code(s).send({ [k]: "novo", mensagem: "x" });'],
+      ["N12 classe com membro de chave calculada", "class E extends Error { [k] = 403; }"],
+      // O corpo trocado depois do send, sem gancho
+      ["S1 toJSON no corpo", 'resposta.code(403).send({ erro: "sem_permissao", toJSON() { return { erro: "novo" }; } });'],
+      ["S2 serializador da resposta trocado", 'app.setReplySerializer((p) => JSON.stringify({ ...(p as object), erro: "novo" }));'],
+      ["S3 serializador por resposta", 'resposta.code(403).serializer(() => "{\\"erro\\":\\"novo\\"}").send({ erro: "sem_permissao" });'],
+      ["S4 eval", "eval(texto);"],
+      ["S5 new Function", 'const f = new Function("r", texto);'],
+      ["S6 redirect com 403", 'return resposta.redirect("/x", 403);'],
+      ["S7 escrita no socket (M08 da revisão; a guarda em execução não a vê)",
+        'req.socket.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n{\\"erro\\":\\"novo\\"}");'],
+      ["S8 code duas vezes na cadeia, o último é 403 (M11 da revisão)",
+        'resposta.code(200).code(403).send({ erro: "novo", mensagem: "x" });'],
+    ])("correção 3, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    it("correção 3, controles: a constante só lida, a chave por constante de texto e o hasOwnProperty passam", () => {
+      const limpo = [
+        R_OK + "resposta.code(403).send(R);",
+        "const texto = R.mensagem;",
+        'const lido = R["mensagem"];',
+        "const copia = { ...R, extra: 1 };",
+        'if (typeof R === "object") resposta.code(403).send(R);',
+        "type TipoDoCorpo = typeof R;",
+        'const CHAVE = "rotulo";\nconst o = { [CHAVE]: 1 };',
+        'const tem = Object.prototype.hasOwnProperty.call(o, "x");',
+        "class A extends Error {}\nclass B extends S.Base {}",
+        'const RESPOSTA_DESLIGADA = { erro: "envio_desligado", mensagem: "x" };\nresposta.code(503).send(RESPOSTA_DESLIGADA);',
+        "const f = (corpo: { erro: string }) => resposta.code(200).send(corpo);",
+      ].join("\n");
+      expect(FORA(limpo)).toEqual([]);
+    });
+
     it("subclasse e apelido com código do catálogo passam; o mesmo código num status de acesso diferente do catálogo não", () => {
       const bom = [
         'class Posto extends RegraDeNegocio { constructor() { super("posto_insuficiente", "x", 403); } }',
@@ -851,6 +978,11 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(reprovacoes(varrerFonte(apns, "src/push/apns.ts"), REGRAS_DA_API)).toEqual([]);
       expect(reprovacoes(varrerFonte('const r = { status, corpo };', "src/push/apns.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
       expect(reprovacoes(varrerFonte(apns, "src/rotas/outra.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
+      // O repasse do arquivo inteiro vale só para o módulo da guarda, e não para outro arquivo de `src`.
+      const cru = 'resposta.raw.writeHead(403); resposta.raw.end(\'{"erro":"novo"}\');';
+      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/guarda-de-codigos-de-erro.ts"), REGRAS_DA_API)).toEqual([]);
+      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/rotas/guarda-de-codigos-de-erro-falsa.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
+      expect(reprovacoes(varrerFonte(cru, "/x/apps/api/src/outra/guarda-de-codigos-de-erro.ts.bak"), REGRAS_DA_API).length).toBeGreaterThan(0);
       const ruim = 'resposta.code(Number("403")).send({ erro: "corpo_invalido", mensagem: "x" });';
       expect(reprovacoes(varrerFonte(ruim, "src/servidor.ts"), REGRAS_DA_API).length).toBeGreaterThan(0);
     });
@@ -954,6 +1086,48 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
     ])("%s", (_nome, aplicar) => {
       const falhas = mutarTrecho("servidor.ts", aplicar);
       expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
+    });
+
+    /*
+      Correção 3 (rodada 5): as quatro formas que o red-team plantou em `POST /orgaos`, DEPOIS da
+      validação do corpo (onde a prova dinâmica não chega), e que passavam com a varredura verde. São as
+      mesmas mutações do script dele (`mutar-e05.mjs`), aplicadas aqui ao texto real em memória.
+    */
+    const ANCORA_ORGAOS = "    const dados = orgaoSchema.parse(req.body);\n\n    try {\n      const criado";
+    const depoisDaValidacao = (trecho: string) =>
+      `    const dados = orgaoSchema.parse(req.body);\n${trecho}\n\n    try {\n      const criado`;
+    it.each([
+      ["A: campo `erro` trocado depois de declarar a constante",
+        '    const recusaA: { erro: string; mensagem: string } = { erro: "sem_permissao", mensagem: "Sem permissão." };\n'
+          + '    recusaA.erro = "vazou_por_ponto";\n'
+          + '    if (dados.nome === "Mutacao A") return resposta.code(403).send(recusaA);',
+        "escrita em `erro`"],
+      ["B: `let` reatribuída antes do send",
+        '    let recusaB = { erro: "sem_permissao", mensagem: "Sem permissão." };\n'
+          + '    if (dados.nome === "Mutacao B") recusaB = { erro: "vazou_por_reatribuicao", mensagem: "x" };\n'
+          + '    if (dados.sigla === "MB") return resposta.code(403).send(recusaB);',
+        "`let` ou `var`"],
+      ["C: code e send chamados por colchete",
+        '    if (dados.nome === "Mutacao C") return resposta["code"](403)["send"]({ erro: "vazou_por_colchete", mensagem: "x" });',
+        "acesso por colchete a `code`"],
+      ["N: `statusCode` abreviado num objeto com código do Fastify",
+        "    const statusCode = 403;\n"
+          + '    if (dados.nome === "Mutacao N") throw Object.freeze({ code: "FST_ERR_CTP_MUTACAO", statusCode });',
+        "`statusCode` abreviado"],
+      ["N2: o mesmo, espalhado num erro",
+        "    const statusCode = 403;\n"
+          + '    if (dados.nome === "Mutacao N") { const e = new Error("x") as Error & { code?: string; statusCode?: number }; '
+          + 'const extra = { code: "FST_ERR_CTP_MUTACAO", statusCode }; throw { ...e, ...extra }; }',
+        "`statusCode` abreviado"],
+      ["D: parâmetro homônimo de uma constante de corpo do módulo",
+        '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
+          + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'
+          + '    if (dados.nome === "Mutacao D") return recusarD({ erro: "vazou_por_homonimo", mensagem: "x" });',
+        "parâmetro"],
+    ])("%s", (_forma, trecho, motivo) => {
+      const falhas = mutar(join("rotas", "orgaos.ts"), ANCORA_ORGAOS, depoisDaValidacao(trecho));
+      expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
+      expect(falhas.join("\n")).toContain(motivo);
     });
 
     it("catálogo sem `posto_insuficiente`: o servidor emite um código que a lista não tem", () => {

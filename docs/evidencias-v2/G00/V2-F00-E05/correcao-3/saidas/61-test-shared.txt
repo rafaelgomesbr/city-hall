@@ -1,0 +1,33 @@
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 15ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 5ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 12ms
+ ✓ test/evidencia.test.ts (10 tests) 7ms
+ ✓ test/codigos-de-erro.test.ts (15 tests) 6ms
+ ✓ test/dominio.test.ts (14 tests) 216ms
+ ✓ src/pessoas.test.ts (11 tests) 24ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 12ms
+ ✓ test/permissoes.test.ts (16 tests) 8ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 49ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 9ms
+ ✓ test/csv.test.ts (8 tests) 4ms
+ ✓ test/campos.test.ts (7 tests) 3ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 9ms
+ ✓ test/telefone.test.ts (10 tests) 7ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 4ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 1636ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  614ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  718ms
+
+ Test Files  17 passed (17)
+      Tests  185 passed (185)
+   Start at  21:13:12
+   Duration  2.13s (transform 785ms, setup 0ms, collect 2.62s, tests 2.03s, environment 3ms, prepare 2.15s)
+
+codigo=0

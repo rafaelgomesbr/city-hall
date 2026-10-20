@@ -117,11 +117,11 @@ describe("O componente usa o próprio relógio", () => {
       chegaria ao fim, num painel que se atualiza sozinho.
     */
     expect(FONTE).toMatch(/useRef\(aoFechar\)/);
-    // E a lista de dependências do efeito é a duração e a pausa, nada mais: o
+    // E a lista de dependências do efeito é a duração e as duas pausas (ponteiro e janela aberta), nada mais: o
     // `aoFechar` entrando ali é o defeito que o ref existe para impedir.
-    expect(FONTE).toMatch(/agendarFechamento\([\s\S]*?\), \[duracao, interagindo\]\);/);
+    expect(FONTE).toMatch(/agendarFechamento\([\s\S]*?\), \[duracao, interagindo, esperandoJanela\]\);/);
     expect(FONTE).not.toMatch(/\[duracao, aoFechar\]/);
-    expect(FONTE).not.toMatch(/\[duracao, interagindo, aoFechar\]/);
+    expect(FONTE).not.toMatch(/\[duracao, interagindo, esperandoJanela, aoFechar\]/);
   });
 });
 
