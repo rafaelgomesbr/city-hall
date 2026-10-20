@@ -4,7 +4,7 @@
 **Por que existe:** regra do Rafael de 2026-10-13: "se depender de mim pra ir pra próxima etapa vamos ter uma limitação de tempo e o sistema fica ocioso muito tempo [...] se precisar estritamente de algo humano, salva em um roadmap pendencias-humanas, mas continue desenvolvendo". Tudo o que manda parar e esperar uma pessoa vem para cá e o trabalho segue; o que era "aparelho físico" passa a ser tentado no emulador Android e só fica aqui o que o emulador não prova. A prova automatizada (testes, e2e, capturas, conferência de que o teste morde) não sai daqui nem vira pendência: continua obrigatória.
 **Como usar:** cada item diz o que fazer, onde ler, o que deve acontecer e quem decide. Quando resolver, diga no chat o código do item e o resultado ("H03 feito", "H07 reprovo, porque ..."); quem registra sou eu. Item resolvido muda de seção, nunca some.
 **Fonte do estado:** `docs/roadmap-v2/STATUS.md` e os `VEREDITO.md` de cada etapa. Se este arquivo e o STATUS divergirem, vale o STATUS.
-**Atualizado em:** 2026-10-20, depois de o repositório virar público (o CI voltou a rodar).
+**Atualizado em:** 2026-10-20, depois da rodada 6 (`2855e5d`) e da correção 6 da F00.
 
 ## Situação da F00 em uma linha
 
@@ -18,7 +18,6 @@ Antes: Correção 2 concluída em 2026-10-14: as 12 etapas reprovadas na rodada 
 | --- | --- | --- | --- | --- |
 | H01 | E24 (CP-02) | Confirmar ou reverter a premissa D-25 (implementar a saída a campo no aplicativo). Até lá, nenhuma demonstração a município mostra a saída a campo como pronta. | `docs/evidencias-v2/CP-02/decisao.md` | Rafael e Alyson |
 | H02 | E10 (CP-19) | Provedor de e-mail, domínio, residência do dado e contrato, para ligar a recuperação de senha em produção. Adiado por você para a fase 2 (D6); até lá a produção fica com `RECUPERACAO_ATIVA=nao`. | `STATUS.md`, seção 7, linha CP-19 | Rafael (e jurídico no contrato) |
-| H03 | E03 | **Pode deixar de existir:** a correção 4 da E03 (2026-10-15 a 18) fechou de fato as seis linhas abertas (V-INS-02 a V-INS-06 e V-ROT-02), e o registro ficou com 0 abertas e 1 tolerada por decisão (V-DEP-3, CP-03). Se a rodada 4 confirmar, esta pergunta sai da lista sem decisão sua. Pergunta original: O item "zero itens abertos" do G00 aceita linha de vermelho aberta, nomeada, com dono e prazo, ou o item fica como está? (Hoje são 6 linhas abertas; a correção 2 da E03 vai fechá-las ou trazê-las para dentro do teto de 5 dias da sua D2, então esta decisão só importa se sobrar alguma.) | `docs/evidencias-v2/G00/V2-F00-E03/VEREDITO.md`, rodada 2 | Rafael |
 | H04 | E06 | Um agente de uma equipe pode anexar foto avulsa ao dossiê de uma ocorrência de outra equipe? E o teto de reservas de envio por pessoa: hoje um token de agente reserva o teto inteiro do município em segundos e trava o envio de foto dos colegas por até 30 dias (sem perda de dado, mas para a operação). A correção entra antes do piloto; a regra é sua. | `docs/evidencias-v2/G00/V2-F00-E06/VEREDITO.md`, achados | Rafael |
 | H05 | E09 | A tecla Esc deve fechar a janela da senha temporária? (Hoje clicar fora não fecha, mas Esc fecha; quem fecha sem copiar perde a senha.) | `docs/evidencias-v2/G00/V2-F00-E09/VEREDITO.md` | Rafael |
 | H06 | E10 | O administrador único do município não tem como recuperar a senha enquanto a recuperação está desligada em produção. Aceita assim até o CP-19 ou quer um caminho de suporte? | `docs/evidencias-v2/G00/V2-F00-E10/validacao/4b96ea7/qa.md` | Rafael |
@@ -71,6 +70,7 @@ O QA rodou o aplicativo no emulador Android (AVD `Medium_Phone_API_36.1`, APK do
 
 Não são pendências humanas; estão aqui porque não admitem risco aceito e você precisa saber que existem. Entram por etapa, sem decisão sua.
 
+- `trocar_senha` e `revogar_sessoes_do_usuario` rodam como `SECURITY DEFINER` e não conferem o município do contexto (achado da rodada 6, `2855e5d`, anterior à F00). Não é explorável pela API hoje, porque toda chamada já vem sob o tenant do token, mas mexe na regra número um (isolamento entre municípios): corrigir antes de crescer, com uma migração nova que confira `organizacao_id = app_organizacao_atual()`. Entra por etapa, sem decisão sua.
 - `acolherNoAparelho` falha aberto entre pessoas se o SQLite falhar (vazamento entre agentes no mesmo aparelho, item 3). Anterior à F00; dono F14-E02; tem de estar corrigido antes de qualquer piloto. A rodada 3 achou uma forma nova: quando a limpeza falha no meio, a função devolve `apagou: true` com o rascunho ainda no disco, e a pessoa seguinte vê e envia o rascunho como seu (texto do morador exposto, fotos e assinatura apagadas). O bloco da F14-E02 ainda não pede falha fechada nem injeção de falha de disco: precisa ganhar esse critério antes de ser executado.
 - `dc360/scripts/copiar-producao.mjs` faz `pg_dump` sem `--extension=pg_trgm`, que o roteiro de restore exige desde a migração 041: uma cópia de produção feita por ele não restaura além da 041. Achado pela varredura da E22 em 2026-10-15 e documentado em `dc360/docs/IMPLANTACAO.md`; nenhuma etapa do roadmap contém o conserto hoje (a F01-E15 não o cita). Entra por etapa, sem decisão sua, mas precisa de dono no roadmap.
 
@@ -78,6 +78,7 @@ Não são pendências humanas; estão aqui porque não admitem risco aceito e vo
 
 | Código | Data | O que foi | Resultado |
 | --- | --- | --- | --- |
+| H03 | 2026-10-20 | Linha aberta de vermelho conta como fechada no G00? | Dispensada: a E03 fechou de fato todas as linhas (0 abertas, 1 tolerada por decisão, V-DEP-3) e foi VALIDADA na rodada 6 (`2855e5d`) |
 | H32 | 2026-10-20 | CI recusado pelo GitHub por faturamento da conta (franquia de minutos de repositório privado) | Rafael decidiu tornar o repositório público em 2026-10-20; o GitHub não cobra Actions de repositório público e o CI completo voltou a rodar (run 39366804765 reexecutado) |
 | D1 a D8 | 2026-10-13 | Parte 1 do `ROTEIRO-G00.md` (Expo, prazo de teste pulado, perguntas da E03, isenções, D-25, CP-19, frases, tabela de documentação) | decididos por você; registro na seção 10 do STATUS |
 | T1 a T6 | 2026-10-13 | Telas no navegador do `ROTEIRO-G00.md` | executados por agente nos três motores (Chromium, Firefox, WebKit) sobre o SHA `4b96ea7`; os defeitos achados viraram correção (E09, E10); prova em `docs/evidencias-v2/G00/validacao/4b96ea7/navegador/` |
