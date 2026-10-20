@@ -230,7 +230,9 @@ conferirConfiguracaoDoNpm(APLICATIVO, "o projeto do aplicativo de campo");
   const { achados, naoExpandidos } = shrinkwrapsPresentes(RAIZ, [APLICATIVO], { existsSync, readFileSync, readdirSync });
   if (achados.length > 0 || naoExpandidos.length > 0) {
     console.error("\nERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.");
-    for (const f of achados) console.error(`  - ${f} existe, e o npm o lê NO LUGAR do package-lock.json`);
+    // Barra normal no caminho também no Windows (`join` dá `apps\campo`), para a
+    // mensagem ser a mesma nas duas plataformas.
+    for (const f of achados) console.error(`  - ${f.replaceAll("\\", "/")} existe, e o npm o lê NO LUGAR do package-lock.json`);
     for (const p of naoExpandidos) console.error(`  - padrão de workspace que o portão não sabe expandir para procurar shrinkwrap: ${p}`);
     console.error(
       "O Dockerfile instala o package-lock.json, e o npm audit olharia o npm-shrinkwrap.json. Apague o shrinkwrap "
