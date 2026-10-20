@@ -245,7 +245,17 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
 A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
 `"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
 (`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
-`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
+`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida. Ela também
+confere o CORPO contra a moldura que a cabeça declarou (correção 6): toda resposta
+sai com `strictContentLength` ligado e a guarda conta os bytes de cada pedaço
+(texto, Buffer ou fluxo) contra o `content-length`, então nenhum byte além do
+declarado sai, nem pela API pública do Fastify (`header("content-length", "2")`
+com um fluxo maior) nem por baixo; com `chunked`, os pedaços são lidos e nada sai
+depois do terminador; `transfer-encoding` que não termina em `chunked`, ou corpo
+sem moldura, fecha a conexão no fim; `content-length` junto de
+`transfer-encoding` troca a resposta inteira. Excesso é desvio, sai só o que
+cabia e a conexão fecha. O caminho do desvio não lança (o trailer, que o Node
+recusa junto de `content-length`, sai da resposta trocada).
 
 O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
 Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
@@ -257,11 +267,7 @@ servidor HTTP que entregam o socket ou o pedido antes do Fastify
 varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
 desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
 método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
-`Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
-(`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
-tamanho declarado seriam lidos como a resposta seguinte da conexão (a varredura
-reprova o nome interno da resposta do Node, como `_writeRaw`, `_header` e
-`outputData`, a chave calculada na resposta e desestruturar `raw`). E nenhuma
+`Reflect`), que a varredura reprova. E nenhuma
 linha prende código no mesmo processo que troque, antes de a guarda carregar, as
 primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
 usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a

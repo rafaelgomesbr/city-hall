@@ -1,0 +1,151 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (29 tests | 2 failed) 5573ms
+   ✓ a guarda do console > em teste, m07 sai 500 e o desvio fica registrado com a rota 12ms
+   ✓ a guarda do console > em teste, m10 sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, m11 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, m16 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eab/x sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eag/x sai 500 e o desvio fica registrado com a rota 4ms
+   ✓ a guarda do console > em teste, eaf sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > fora de teste, m07 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m10 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m11 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m16 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eab/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eag/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eaf sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > controle: o código do contrato passa intacto, com a frase da rota 0ms
+   ✓ correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos 15ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-store não sai 403 com o código inventado, nos dois modos 4ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-header não sai 401 com o código inventado, nos dois modos 2ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-writeraw não sai 403 com o código inventado, nos dois modos 2ms
+   × correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado 5ms
+     → expected 'HTTP/1.1 200 OK\r\nContent-Security-P…' not to contain 'inventado_qa7'
+   × correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada 4004ms
+     → expected false to be true // Object.is equality
+     → resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado
+AssertionError: expected 'HTTP/1.1 200 OK\r\nContent-Security-P…' not to contain 'inventado_qa7'
+
+- Expected
++ Received
+
+- inventado_qa7
++ HTTP/1.1 200 OK
++ Content-Security-Policy: default-src 'none';script-src 'self';style-src 'self';connect-src 'self';img-src 'self' data:;base-uri 'none';form-action 'none';frame-ancestors 'none';font-src 'self' https: data:;object-src 'none';script-src-attr 'none';upgrade-insecure-requests
++ Cross-Origin-Opener-Policy: same-origin
++ Cross-Origin-Resource-Policy: same-origin
++ Origin-Agent-Cluster: ?1
++ Referrer-Policy: no-referrer
++ Strict-Transport-Security: max-age=15552000; includeSubDomains
++ X-Content-Type-Options: nosniff
++ X-DNS-Prefetch-Control: off
++ X-Download-Options: noopen
++ X-Frame-Options: SAMEORIGIN
++ X-Permitted-Cross-Domain-Policies: none
++ X-XSS-Protection: 0
++ content-length: 2
++ content-type: application/json
++ Date: Tue, 20 Oct 2026 13:20:18 GMT
++ Connection: keep-alive
++ Keep-Alive: timeout=72
++ 
++ {}HTTP/1.1 403 Forbidden
++ content-length: 39
++ 
++ {"erro":"inventado_qa7","mensagem":"x"}HTTP/1.1 404 Not Found
++ Content-Security-Policy: default-src 'none';script-src 'self';style-src 'self';connect-src 'self';img-src 'self' data:;base-uri 'none';form-action 'none';frame-ancestors 'none';font-src 'self' https: data:;object-src 'none';script-src-attr 'none';upgrade-insecure-requests
++ Cross-Origin-Opener-Policy: same-origin
++ Cross-Origin-Resource-Policy: same-origin
++ Origin-Agent-Cluster: ?1
++ Referrer-Policy: no-referrer
++ Strict-Transport-Security: max-age=15552000; includeSubDomains
++ X-Content-Type-Options: nosniff
++ X-DNS-Prefetch-Control: off
++ X-Download-Options: noopen
++ X-Frame-Options: SAMEORIGIN
++ X-Permitted-Cross-Domain-Policies: none
++ X-XSS-Protection: 0
++ content-type: application/json; charset=utf-8
++ content-length: 76
++ Date: Tue, 20 Oct 2026 13:20:18 GMT
++ Connection: close
++ 
++ {"message":"Route GET:/nada not found","error":"Not Found","statusCode":404}
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:198:21
+    196|       const b = await pipeline(modo, "/teste-da-guarda/cl-stream");
+    197|       expect(b.startsWith("HTTP/1.1 200 OK")).toBe(true);
+    198|       expect(b).not.toContain("inventado_qa7");
+       |                     ^
+    199|       expect(b).not.toContain("403 Forbidden");
+    200|       expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:211:83
+    209|       for (const modo of ["falhar", "corrigir"] as const) {
+    210|         const b = await pipeline(modo, "/teste-da-guarda/trailer-inven…
+    211|         expect(b.startsWith(modo === "falhar" ? "HTTP/1.1 500" : "HTTP…
+       |                                                                                   ^
+    212|         expect(b).not.toContain("inventado_qa7");
+    213|         expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada
+AssertionError: resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "erroVisto": "[fora da forma de um código, não registrado]",
++     "metodo": "GET",
++     "motivo": "código fora do catálogo",
++     "rota": "/teste-da-guarda/trailer-inventado",
++     "status": 403,
++   },
++ ]
+
+ ❯ test/apoio/guarda-falha-alto.ts:11:100
+      9| afterEach(() => {
+     10|   const desvios = lerDesviosDaGuarda();
+     11|   expect(desvios, "resposta 401 ou 403 fora do contrato do console (gu…
+       |                                                                                                    ^
+     12| });
+     13| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 27 passed (29)
+   Start at  10:20:17
+   Duration  5.96s (transform 119ms, setup 34ms, collect 172ms, tests 5.57s, environment 0ms, prepare 30ms)
+
+codigo de saida: 1

@@ -1,4 +1,6 @@
 import type { FastifyReply } from "fastify";
+import { connect } from "node:net";
+import { Readable } from "node:stream";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { lerDesviosDaGuarda } from "../src/guarda-de-codigos-de-erro.js";
 import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
@@ -78,6 +80,12 @@ beforeAll(async () => {
       rep.hijack(); const x = crua(rep);
       x._writeRaw(`HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpo.length}\r\n\r\n${corpo}`); x._header = "x"; x.end();
     });
+    // Correção 6 (rodada 7): corpo além do content-length pela API pública, e trailer no desvio.
+    const corpoQa7 = '{"erro":"inventado_qa7","mensagem":"x"}';
+    const cabecaQa7 = `HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpoQa7.length}\r\n\r\n`;
+    c.app.get(r("cl-stream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
+      .send(Readable.from([Buffer.from("{}" + cabecaQa7 + corpoQa7)])));
+    c.app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
     await c.app.ready();
     consoles.set(modo, c);
   }
@@ -167,4 +175,46 @@ describe("correção 4b: a linha de status escrita por baixo de writeHead, por H
       }
       expect(lerDesviosDaGuarda()).toEqual([]);
     });
+});
+
+describe("correção 6: a moldura do corpo e o trailer, por socket cru em pipeline", () => {
+  const pipeline = async (modo: "falhar" | "corrigir", caminho: string): Promise<string> => {
+    const porta = Number(new URL(await enderecoDe(modo)).port);
+    return new Promise((ok) => {
+      const s = connect(porta, "127.0.0.1", () => s.write(
+        `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /nada HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
+      let b = "";
+      s.on("data", (d: Buffer) => { b += d.toString("latin1"); });
+      s.on("error", () => {});
+      const fim = setTimeout(() => s.destroy(), 4000);
+      s.on("close", () => { clearTimeout(fim); ok(b); });
+    });
+  };
+
+  it("cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const b = await pipeline(modo, "/teste-da-guarda/cl-stream");
+      expect(b.startsWith("HTTP/1.1 200 OK")).toBe(true);
+      expect(b).not.toContain("inventado_qa7");
+      expect(b).not.toContain("403 Forbidden");
+      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada", async () => {
+    const naoTratadas: unknown[] = [];
+    const pegar = (e: unknown) => { naoTratadas.push(e); };
+    process.on("uncaughtException", pegar);
+    try {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const b = await pipeline(modo, "/teste-da-guarda/trailer-inventado");
+        expect(b.startsWith(modo === "falhar" ? "HTTP/1.1 500" : "HTTP/1.1 403")).toBe(true);
+        expect(b).not.toContain("inventado_qa7");
+        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      }
+    } finally {
+      process.off("uncaughtException", pegar);
+    }
+    expect(naoTratadas).toEqual([]);
+  });
 });

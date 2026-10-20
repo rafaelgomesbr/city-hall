@@ -1,0 +1,1505 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 9378756..b424a1e 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -245,7 +245,17 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
+ A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
+ `"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
+ (`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
+-`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
++`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida. Ela também
++confere o CORPO contra a moldura que a cabeça declarou (correção 6): toda resposta
++sai com `strictContentLength` ligado e a guarda conta os bytes de cada pedaço
++(texto, Buffer ou fluxo) contra o `content-length`, então nenhum byte além do
++declarado sai, nem pela API pública do Fastify (`header("content-length", "2")`
++com um fluxo maior) nem por baixo; com `chunked`, os pedaços são lidos e nada sai
++depois do terminador; `transfer-encoding` que não termina em `chunked`, ou corpo
++sem moldura, fecha a conexão no fim; `content-length` junto de
++`transfer-encoding` troca a resposta inteira. Excesso é desvio, sai só o que
++cabia e a conexão fecha. O caminho do desvio não lança (o trailer, que o Node
++recusa junto de `content-length`, sai da resposta trocada).
+ 
+ O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
+ Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
+@@ -257,11 +267,7 @@ servidor HTTP que entregam o socket ou o pedido antes do Fastify
+ varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
+ desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
+ método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
+-`Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
+-(`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
+-tamanho declarado seriam lidos como a resposta seguinte da conexão (a varredura
+-reprova o nome interno da resposta do Node, como `_writeRaw`, `_header` e
+-`outputData`, a chave calculada na resposta e desestruturar `raw`). E nenhuma
++`Reflect`), que a varredura reprova. E nenhuma
+ linha prende código no mesmo processo que troque, antes de a guarda carregar, as
+ primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
+ usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index 87c2e19..dbdd8f3 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -65,6 +65,18 @@ import {
+  * resposta inteira pela do desvio, com `connection: close`; o resto do que a
+  * rota escrever sai vazio, e byte escrito depois do fim da resposta também.
+  *
++ * A MOLDURA DO CORPO (correção 6, rodada 7): toda resposta sai com
++ * `strictContentLength` ligado, e a guarda conta cada pedaço do corpo (texto,
++ * Buffer, fluxo) contra o `content-length` antes de entregá-lo ao Node, que só
++ * confere do segundo pedaço em diante; a porta dos bytes conta de novo contra
++ * a moldura da cabeça que de fato saiu (`content-length`, ou os pedaços de
++ * `chunked` até o terminador). Nenhum byte além do declarado sai; o excesso é
++ * desvio, sai só o que cabia e a conexão fecha. `transfer-encoding` que não
++ * termina em `chunked`, ou corpo sem moldura, fecha a conexão no fim;
++ * `content-length` junto de `transfer-encoding` troca a resposta inteira. O
++ * caminho do desvio nunca lança: o trailer sai da resposta trocada, e se o Node
++ * recusar até a cabeça da troca, ela vai em bytes prontos e a conexão fecha.
++ *
+  * O QUE ELA NÃO VÊ, dito sem folga:
+  *
+  *   - escrita direta no SOCKET, que não passa pela resposta do Node:
+@@ -78,13 +90,6 @@ import {
+  *   - chamar o método do protótipo por fora da instância
+  *     (`ServerResponse.prototype.end` ou `_writeRaw` com `.call`, `.apply` ou
+  *     `Reflect`); a varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
+- *   - o CORPO depois de uma cabeça final que passou: a moldura dele (o
+- *     `content-length` ou o `chunked` da cabeça) não é conferida, então bytes
+- *     escritos por baixo ANTES do fim, além do tamanho que a cabeça declarou,
+- *     seriam lidos pelo cliente como a resposta seguinte da mesma conexão. Só
+- *     se chega aí pelo estado interno da resposta do Node (`_writeRaw`,
+- *     `_header`, `outputData`), que a varredura proíbe por nome, por chave
+- *     calculada na resposta e por desestruturação;
+  *   - código no mesmo processo que troque, ANTES de este módulo carregar, as
+  *     primitivas que ele usa para DECIDIR. Ele as guarda na carga
+  *     (`JSON.parse`, `Reflect.apply`, `Object.defineProperty`, `Object.keys`,
+@@ -145,6 +150,7 @@ const paraMinusculas = String.prototype.toLowerCase;
+ const proximoTique = process.nextTick;
+ const indiceDe = String.prototype.indexOf;
+ const fatiar = String.prototype.slice;
++const subarray = Buffer.prototype.subarray;
+ const HEX = "0123456789abcdef";
+ const TETO_DO_CORPO = 64 * 1024;
+ /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
+@@ -246,6 +252,10 @@ function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: bool
+  * espaço ou do fim da linha.
+  */
+ const LINHA_DE_STATUS = /^HTTP\/\d\.\d (\d{3})(?: |\r\n)/;
++/** O valor de `content-length`: só dígitos. */
++const SO_DIGITOS = /^\d+$/;
++/** `transfer-encoding` cuja última codificação é `chunked` (a moldura por pedaços). */
++const TERMINA_EM_CHUNKED = /(?:^|,)[ \t]*chunked[ \t]*$/;
+ /** Quanto do começo dos bytes a porta lê para achar as cabeças: a de Node cabe com folga. */
+ const TETO_DA_CABECA = 16 * 1024;
+ 
+@@ -275,7 +285,8 @@ function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
+   const saida: Record<string, unknown> = {};
+   const fora = (k: string) => {
+     const b = aplicar(paraMinusculas, k, []) as string;
+-    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding";
++    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding"
++      || b === "trailer";
+   };
+   if (ehArray(cabecalhos)) {
+     for (let i = 0; i + 1 < cabecalhos.length; i += 2) {
+@@ -332,7 +343,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   };
+ 
+   /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
+-  function registrarDesvio(status: 401 | 403, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
++  function registrarDesvio(status: number, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
+     const desvio: Desvio = {
+       metodo: req.method,
+       rota: req.routeOptions?.url ?? "(sem rota)",
+@@ -352,8 +363,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         ]),
+       };
+     }
+-    const g = opcoes.generico[status];
+-    return { statusFinal: status, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
++    const g = opcoes.generico[status === 401 ? 401 : 403];
++    return { statusFinal: status === 401 ? 401 : 403, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
+   }
+ 
+   /*
+@@ -376,80 +387,247 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     typeof dado === "string"
+       ? bufferDe(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
+       : bufferDe(dado as Uint8Array);
++  /** Tamanho em bytes de um pedaço, sem copiar Buffer. */
++  const tamanhoDe = (dado: unknown, codificacao: unknown): number =>
++    typeof dado === "string"
++      ? tamanhoEmBytes(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
++      : dado === null || dado === undefined ? 0 : (dado as Uint8Array).byteLength;
+ 
+-  /** Lê as cabeças no começo de um pedaço: `null` = continua pendente; número = status final; "ilegivel". */
+-  function lerCabecas(dado: unknown, codificacao: unknown): number | "ilegivel" | null {
++  /**
++   * Lê as cabeças no começo de um pedaço. `null` = pedaço vazio, continua
++   * pendente; `{ visto: "ilegivel" }`; ou o status final com o texto da cabeça
++   * final e o byte em que o corpo começa neste pedaço (-1 se a cabeça não
++   * termina dentro do que se leu).
++   */
++  function lerCabecas(dado: unknown, codificacao: unknown):
++    | null | { visto: "ilegivel" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
+     let texto: string;
+     try {
+       const b = paraBuffer(dado, codificacao);
+       texto = aplicar(bufferParaTexto, b, ["latin1", 0, b.length < TETO_DA_CABECA ? b.length : TETO_DA_CABECA]) as string;
+     } catch {
+-      return "ilegivel";
++      return { visto: "ilegivel" };
+     }
++    let deslocamento = 0;
+     for (;;) {
++      // Só cabeças provisórias (ou nada): a final vem no pedaço seguinte.
+       if (texto.length === 0) return null;
+       const m = casa(LINHA_DE_STATUS, texto);
+-      if (m === null) return "ilegivel";
++      if (m === null) return { visto: "ilegivel" };
+       const s = +m[1]!;
++      const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
+       if (s >= 100 && s <= 199 && s !== 101) {
+-        const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
+-        if (fim < 0) return "ilegivel";
++        if (fim < 0) return { visto: "ilegivel" };
+         texto = aplicar(fatiar, texto, [fim + 4]) as string;
++        deslocamento += fim + 4;
+         continue;
+       }
+-      return s;
++      return {
++        visto: s,
++        cabeca: fim < 0 ? texto : aplicar(fatiar, texto, [0, fim]) as string,
++        inicioDoCorpo: fim < 0 ? -1 : deslocamento + fim + 4,
++      };
+     }
+   }
+ 
+-  /**
+-   * Lê, na ordem em que vão sair, os pedaços ainda pendentes de cabeça. Devolve o
+-   * que faz trocar a resposta (o status final que a guarda não conferiu, ou
+-   * "ilegivel"), ou `null` para deixar sair.
+-   */
+-  function examinar(pedacos: ReadonlyArray<{ data: unknown; encoding?: unknown }>): number | "ilegivel" | null {
+-    for (let i = 0; i < pedacos.length && cabecaPendente; i += 1) {
+-      const visto = lerCabecas(pedacos[i]!.data, pedacos[i]!.encoding);
+-      if (visto === null) continue;
+-      cabecaPendente = false;
+-      if (visto === "ilegivel") return visto;
+-      if (!ehHead && ehAcesso(visto) && visto !== liberado) return visto;
++  /*
++    A MOLDURA DO CORPO (correção 6, rodada 7). Depois da cabeça final, a porta
++    conta o corpo contra a moldura que a própria cabeça declarou: com
++    `content-length`, nenhum byte além do declarado sai; com `chunked`, os
++    pedaços são lidos e nada sai depois do terminador; com `transfer-encoding`
++    que não termina em `chunked`, ou sem moldura nenhuma, o corpo vai até o fim
++    da conexão, e a conexão fecha. `content-length` repetido com valores
++    diferentes, ou junto de `transfer-encoding`, é cabeça ilegível. Excesso é
++    desvio: o que passa do limite sai vazio e a conexão fecha, então o cliente
++    nunca lê ali uma segunda resposta.
++  */
++  type Moldura =
++    | { tipo: "tamanho"; restante: number }
++    | { tipo: "pedacos"; estado: "tamanho" | "extensao" | "lf-tamanho" | "dados" | "cr-dados" | "lf-dados" | "trailer" | "lf-trailer" | "fim";
++      restante: number; tamanho: number; linhaVazia: boolean }
++    | { tipo: "ate-fechar" };
++  let moldura: Moldura = { tipo: "ate-fechar" };
++  let excessoRegistrado = false;
++  /** A resposta de desvio em bytes prontos (o último recurso do `end`): só ela sai depois de bloqueado. */
++  let passaLivre: unknown = null;
++  /** O status da cabeça final que passou pela porta (para o registro do excesso). */
++  let statusDaCabeca = 0;
++
++  /** A moldura que a cabeça final declara; `null` = cabeça ilegível. */
++  function lerMoldura(cabeca: string, status: number): Moldura | null {
++    let comprimento: number | null = null;
++    let te: string | null = null;
++    let i = aplicar(indiceDe, cabeca, ["\r\n"]) as number;
++    while (i >= 0) {
++      const proximo = aplicar(indiceDe, cabeca, ["\r\n", i + 2]) as number;
++      const linha = aplicar(fatiar, cabeca, proximo < 0 ? [i + 2] : [i + 2, proximo]) as string;
++      const dois = aplicar(indiceDe, linha, [":"]) as number;
++      if (dois > 0) {
++        const nome = aplicar(paraMinusculas, aplicar(fatiar, linha, [0, dois]) as string, []) as string;
++        let valor = aplicar(fatiar, linha, [dois + 1]) as string;
++        while (valor.length > 0 && (aplicar(codigoDoCaractere, valor, [0]) === 0x20 || aplicar(codigoDoCaractere, valor, [0]) === 0x09)) valor = aplicar(fatiar, valor, [1]) as string;
++        while (valor.length > 0 && (aplicar(codigoDoCaractere, valor, [valor.length - 1]) === 0x20 || aplicar(codigoDoCaractere, valor, [valor.length - 1]) === 0x09)) valor = aplicar(fatiar, valor, [0, valor.length - 1]) as string;
++        if (nome === "content-length") {
++          if (casa(SO_DIGITOS, valor) === null) return null;
++          const n = +valor;
++          if (comprimento !== null && comprimento !== n) return null;
++          comprimento = n;
++        } else if (nome === "transfer-encoding") {
++          te = te === null ? valor : `${te}, ${valor}`;
++        }
++      }
++      i = proximo;
+     }
+-    return null;
++    if (te !== null && comprimento !== null) return null;
++    if (ehHead || status === 204 || status === 304) return { tipo: "tamanho", restante: 0 };
++    if (te !== null) {
++      const t = aplicar(paraMinusculas, te, []) as string;
++      if (casa(TERMINA_EM_CHUNKED, t) !== null) {
++        return { tipo: "pedacos", estado: "tamanho", restante: 0, tamanho: 0, linhaVazia: true };
++      }
++      return { tipo: "ate-fechar" };
++    }
++    if (comprimento !== null) return { tipo: "tamanho", restante: comprimento };
++    return { tipo: "ate-fechar" };
++  }
++
++  /** Quantos bytes de `b`, a partir de `inicio`, cabem na moldura `chunked`; o resto é excesso. */
++  function lerPedacos(m: Extract<Moldura, { tipo: "pedacos" }>, b: Uint8Array, inicio: number): number {
++    let i = inicio;
++    const hex = (c: number) => (c >= 0x30 && c <= 0x39) ? c - 0x30 : (c >= 0x61 && c <= 0x66) ? c - 0x57 : (c >= 0x41 && c <= 0x46) ? c - 0x37 : -1;
++    while (i < b.length) {
++      if (m.estado === "fim") return i;
++      if (m.estado === "dados") {
++        const leva = b.length - i < m.restante ? b.length - i : m.restante;
++        i += leva;
++        m.restante -= leva;
++        if (m.restante === 0) m.estado = "cr-dados";
++        continue;
++      }
++      const c = b[i]!;
++      if (m.estado === "tamanho") {
++        const v = hex(c);
++        if (v >= 0 && m.tamanho < 0x10000000) { m.tamanho = m.tamanho * 16 + v; m.linhaVazia = false; }
++        else if (c === 0x3b && !m.linhaVazia) m.estado = "extensao";
++        else if (c === 0x0d && !m.linhaVazia) m.estado = "lf-tamanho";
++        else return i;
++      } else if (m.estado === "extensao") {
++        if (c === 0x0d) m.estado = "lf-tamanho";
++        else if (c === 0x0a) return i;
++      } else if (m.estado === "lf-tamanho") {
++        if (c !== 0x0a) return i;
++        if (m.tamanho === 0) { m.estado = "trailer"; m.linhaVazia = true; }
++        else { m.estado = "dados"; m.restante = m.tamanho; }
++      } else if (m.estado === "cr-dados") {
++        if (c !== 0x0d) return i;
++        m.estado = "lf-dados";
++      } else if (m.estado === "lf-dados") {
++        if (c !== 0x0a) return i;
++        m.estado = "tamanho"; m.tamanho = 0; m.linhaVazia = true;
++      } else if (m.estado === "trailer") {
++        if (c === 0x0d) m.estado = "lf-trailer";
++        else m.linhaVazia = false;
++      } else if (m.estado === "lf-trailer") {
++        if (c !== 0x0a) return i;
++        if (m.linhaVazia) m.estado = "fim";
++        else { m.estado = "trailer"; m.linhaVazia = true; }
++      }
++      i += 1;
++    }
++    return i;
++  }
++
++  /** O corpo passou da moldura: registra (uma vez), fecha a conexão e devolve só o que cabia. */
++  function cortar(dado: unknown, codificacao: unknown, cabe: number): unknown {
++    interna._last = true;
++    if (!excessoRegistrado) {
++      excessoRegistrado = true;
++      registrarDesvio(statusDaCabeca, null, "corpo além da moldura que a cabeça declarou (content-length ou chunked)");
++    }
++    if (cabe <= 0) return "";
++    const b = paraBuffer(dado, codificacao);
++    return aplicar(subarray, b, [0, cabe]);
++  }
++
++  /** Confere o corpo de um pedaço, a partir de `inicio`, contra a moldura. */
++  function contar(dado: unknown, codificacao: unknown, inicio: number): unknown {
++    if (moldura.tipo === "ate-fechar") return dado;
++    const total = tamanhoDe(dado, codificacao);
++    if (moldura.tipo === "tamanho") {
++      const corpo = total - inicio;
++      if (corpo <= moldura.restante) { moldura.restante -= corpo; return dado; }
++      const cabe = inicio + moldura.restante;
++      moldura.restante = 0;
++      return cortar(dado, codificacao, cabe);
++    }
++    const b = typeof dado === "string" ? paraBuffer(dado, codificacao) : dado as Uint8Array;
++    const ate = lerPedacos(moldura, b, inicio);
++    if (ate >= b.length) return dado;
++    return cortar(dado, codificacao, ate);
+   }
+ 
+   /** A resposta inteira do desvio, já em bytes: cabeça e corpo. */
+   function substituta(visto: number | "ilegivel"): Buffer {
+     const status: 401 | 403 = visto === 401 ? 401 : 403;
+     const { statusFinal, novo } = registrarDesvio(status, null, visto === "ilegivel"
+-      ? "bytes da resposta que não começam com uma linha de status"
++      ? "bytes da resposta que não começam com uma linha de status legível (ou moldura de corpo contraditória)"
+       : `linha de status ${visto} escrita por fora da guarda`);
++    return bytesDaResposta(statusFinal, novo);
++  }
++  function bytesDaResposta(statusFinal: number, novo: string): Buffer {
+     return bufferDe(`HTTP/1.1 ${statusFinal} ${FRASE_DO_STATUS[statusFinal]!}\r\n`
+       + "content-type: application/json; charset=utf-8\r\n"
+       + `content-length: ${tamanhoEmBytes(novo)}\r\nconnection: close\r\n\r\n${novo}`, "utf8");
+   }
+ 
+-  /** A substituta que ficou na fila do Node (socket ainda sem ligação): só ela sai dali. */
+-  let substitutaNaFila: Buffer | null = null;
+-  /** Esvazia a fila do Node, menos a substituta. Os itens ficam (vazios) para a conta de bytes e os retornos. */
+-  const esvaziarFila = () => {
+-    const fila = interna.outputData;
+-    for (let i = 0; i < fila.length; i += 1) if (fila[i]!.data !== substitutaNaFila) fila[i]!.data = "";
++  /**
++   * O que sai deste pedaço, na ordem em que os pedaços saem: a cabeça é lida
++   * (e pode trocar a resposta inteira), o corpo é contado contra a moldura, e
++   * depois de trocada a resposta nada da rota sai.
++   */
++  function processar(dado: unknown, codificacao: unknown): unknown {
++    if (bloqueado) return dado === passaLivre ? dado : "";
++    if (!cabecaPendente) return contar(dado, codificacao, 0);
++    const lido = lerCabecas(dado, codificacao);
++    if (lido === null) return dado;
++    cabecaPendente = false;
++    let visto: number | "ilegivel" = lido.visto;
++    let m: Moldura | null = null;
++    if (visto !== "ilegivel") {
++      m = "cabeca" in lido ? lerMoldura(lido.cabeca, visto) : null;
++      if (m === null) visto = "ilegivel";
++    }
++    if (visto === "ilegivel" || (!ehHead && ehAcesso(visto) && visto !== liberado)) {
++      bloqueado = true;
++      interna._last = true;
++      return substituta(visto);
++    }
++    moldura = m!;
++    statusDaCabeca = visto;
++    if (moldura.tipo === "ate-fechar") interna._last = true;
++    const inicio = "inicioDoCorpo" in lido ? lido.inicioDoCorpo : -1;
++    if (inicio < 0) {
++      // A cabeça passa do que a porta lê: sem como contar o corpo, a conexão fecha no fim.
++      moldura = { tipo: "ate-fechar" };
++      interna._last = true;
++      return dado;
++    }
++    return contar(dado, codificacao, inicio);
++  }
++
++  /** O socket ligado a esta resposta, quando o Node escreve direto nele (e não na fila). */
++  const ligado = (): boolean => {
++    const s = raw.socket as unknown as { destroyed?: boolean; writable?: boolean; _httpMessage?: unknown } | null;
++    return !!s && !s.destroyed && s._httpMessage === raw && !!s.writable;
+   };
+-  /** Troca a resposta: a substituta entra no primeiro pedaço que vai sair, e o resto sai vazio. */
+-  function trocar(visto: number | "ilegivel"): unknown {
+-    bloqueado = true;
+-    // A conexão fecha depois da substituta: o que a rota montou por baixo (moldura de corpo,
+-    // cabeçalho de conexão) não fica valendo para o pedido seguinte do mesmo socket.
+-    interna._last = true;
+-    const nova = substituta(visto);
++
++  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
+     const fila = interna.outputData;
+-    if (fila.length > 0) {
+-      substitutaNaFila = nova;
+-      fila[0]!.data = nova;
+-      esvaziarFila();
+-      return "";
++    for (let i = 0; i < fila.length; i += 1) {
++      const item = fila[i]!;
++      if (item.data !== null) item.data = processar(item.data, item.encoding);
+     }
+-    return nova;
++    return aplicar(flushOutputOriginal, raw, args);
+   }
+ 
+   function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
+@@ -458,34 +636,23 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       if (!ehHead) registrarDesvio(403, null, "bytes escritos na resposta depois do fim dela");
+       bloqueado = true;
+     }
+-    if (bloqueado) {
+-      esvaziarFila();
+-      return aplicar(writeRawOriginal, raw, ["", ...resto]);
+-    }
+-    if (cabecaPendente) {
+-      const fila = interna.outputData;
+-      const pedacos: Array<{ data: unknown; encoding?: unknown }> = [];
+-      for (let i = 0; i < fila.length; i += 1) pedacos[pedacos.length] = fila[i]!;
+-      pedacos[pedacos.length] = { data: dado, encoding: typeof resto[0] === "string" ? resto[0] : undefined };
+-      const visto = examinar(pedacos);
+-      if (visto !== null) return aplicar(writeRawOriginal, raw, [trocar(visto), ...resto]);
+-    }
+-    return aplicar(writeRawOriginal, raw, [dado, ...resto]);
+-  }
+-
+-  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
+-    if (bloqueado) esvaziarFila();
+-    else if (cabecaPendente && interna.outputData.length > 0) {
+-      const visto = examinar(interna.outputData);
+-      if (visto !== null) trocar(visto);
+-    }
+-    return aplicar(flushOutputOriginal, raw, args);
++    // Ligado ao socket, o Node esvaziaria a fila e escreveria direto: a fila passa antes pela porta,
++    // na ordem; desligado, o pedaço entra na fila e passa pela porta quando ela for esvaziada.
++    if (!ligado()) return aplicar(writeRawOriginal, raw, [dado, ...resto]);
++    if (interna.outputData.length > 0) aplicar(_flushOutput, raw, [raw.socket]);
++    const codificacao = typeof resto[0] === "string" ? resto[0] : undefined;
++    return aplicar(writeRawOriginal, raw, [processar(dado, codificacao), ...resto]);
+   }
+ 
+   function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
+     const { efetivo, torto } = statusComoONodeEscreve(status);
++    // Já segurando, o `_implicitHeader` do Node (pelo `flushHeaders`, que relê `statusCode`) chama de
++    // novo sem cabeçalhos: a cabeça segurada continua valendo.
++    if (segurando && resto.length === 0 && efetivo === statusSegurado) return raw;
+     if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
+       comecarASegurar(efetivo, torto);
++      // O `statusCode` que a guarda decidiu: quem o reler (o `flushHeaders`) lê este (correção 6).
++      raw.statusCode = efetivo;
+       // Como o Node lê os argumentos: frase em texto e depois os cabeçalhos; sem frase em texto, os
+       // cabeçalhos são o terceiro argumento, ou o segundo quando o terceiro falta (`obj ??= reason`).
+       if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
+@@ -510,9 +677,82 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     else if (torto) raw.statusCode = efetivo;
+   };
+ 
++  /*
++    O CONTENT-LENGTH ESTRITO (correção 6, rodada 7): `strictContentLength` faz o
++    Node recusar corpo diferente do `content-length` declarado. Ele recusa
++    LANÇANDO, e quem escreve pode ser o `pipe` de um fluxo (o `send` de stream do
++    Fastify), onde a exceção subiria como não tratada. Aqui ela é pega: o
++    excesso é desvio, sai só o que cabia no declarado, a conexão fecha, e o resto
++    do corpo é descartado; o corpo menor que o declarado derruba a conexão (o
++    cliente não fica esperando bytes que não vêm).
++  */
++  let escritosNoCorpo = 0;
++  let corpoEstourou = false;
++  const ehDescompasso = (e: unknown) =>
++    typeof e === "object" && e !== null && (e as { code?: unknown }).code === "ERR_HTTP_CONTENT_LENGTH_MISMATCH";
++  /**
++   * O tamanho de corpo que a resposta declarou, ou `null` quando não há limite a
++   * conferir (HEAD, 1xx, 204, 304, `transfer-encoding`, sem `content-length`).
++   * O Node só confere a partir do SEGUNDO pedaço (o `content-length` dele é lido
++   * quando a cabeça é montada, depois da conferência do primeiro), então a guarda
++   * confere antes de cada pedaço, e o `strictContentLength` fica de segunda rede.
++   */
++  const limiteDoCorpo = (): number | null => {
++    if (ehHead) return null;
++    const s = raw.statusCode;
++    if (s === 204 || s === 304 || (s >= 100 && s <= 199)) return null;
++    if (raw.hasHeader("transfer-encoding")) return null;
++    const v = raw.headersSent
++      ? (raw as unknown as { _contentLength?: unknown })._contentLength
++      : raw.getHeader("content-length");
++    if (typeof v === "number") return v;
++    if (typeof v === "string" && casa(SO_DIGITOS, v) !== null) return +v;
++    return null;
++  };
++  const declarado = (): number => limiteDoCorpo() ?? 0;
++  /** O pedaço não coube: sai o que cabia, registra, fecha a conexão e descarta o resto. */
++  function estourar(dado: unknown, codificacao: unknown): void {
++    corpoEstourou = true;
++    interna._last = true;
++    if (!excessoRegistrado) {
++      excessoRegistrado = true;
++      registrarDesvio(raw.statusCode, null, "corpo maior que o content-length declarado");
++    }
++    const cabe = declarado() - escritosNoCorpo;
++    if (cabe > 0) {
++      try {
++        aplicar(writeOriginal, raw, [aplicar(subarray, paraBuffer(dado, codificacao), [0, cabe])]);
++        escritosNoCorpo += cabe;
++      } catch { /* o que não coube não sai */ }
++    }
++  }
++  function derrubar(): void {
++    try { raw.destroy(); } catch { /* a conexão já caiu */ }
++  }
++
+   function write(this: ServerResponse, ...args: unknown[]) {
+     conferirCabecalhoImplicito();
+-    if (!segurando) return aplicar(writeOriginal, raw, args);
++    if (!segurando) {
++      const cbw = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
++      if (corpoEstourou) { if (cbw) aplicar(proximoTique, process, [cbw]); return true; }
++      const codificacao = typeof args[1] === "string" ? args[1] : undefined;
++      const limite = limiteDoCorpo();
++      if (limite !== null && escritosNoCorpo + tamanhoDe(args[0], codificacao) > limite) {
++        estourar(args[0], codificacao);
++        if (cbw) aplicar(proximoTique, process, [cbw]);
++        return true;
++      }
++      try {
++        const r = aplicar(writeOriginal, raw, args);
++        escritosNoCorpo += tamanhoDe(args[0], codificacao);
++        return r;
++      } catch (e) {
++        if (!ehDescompasso(e)) throw e;
++        estourar(args[0], codificacao);
++        if (cbw) aplicar(proximoTique, process, [cbw]);
++        return true;
++      }
++    }
+     const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
+     guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
+     if (cb) aplicar(proximoTique, process, [cb]);
+@@ -521,7 +761,33 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+ 
+   function end(this: ServerResponse, ...args: unknown[]) {
+     conferirCabecalhoImplicito();
+-    if (!segurando) return aplicar(endOriginal, raw, args);
++    if (!segurando) {
++      const temDado = args.length > 0 && typeof args[0] !== "function" && args[0] !== null && args[0] !== undefined;
++      const codificacao = typeof args[1] === "string" ? args[1] : undefined;
++      const resto: unknown[] = [];
++      for (let i = temDado ? 1 : 0; i < args.length; i += 1) if (typeof args[i] === "function") resto[resto.length] = args[i];
++      if (corpoEstourou) {
++        try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
++      }
++      const limite = limiteDoCorpo();
++      if (temDado && limite !== null && escritosNoCorpo + tamanhoDe(args[0], codificacao) > limite) {
++        estourar(args[0], codificacao);
++        try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
++      }
++      try {
++        return aplicar(endOriginal, raw, args);
++      } catch (e) {
++        if (!ehDescompasso(e)) throw e;
++        if (temDado && escritosNoCorpo + tamanhoDe(args[0], codificacao) > declarado()) {
++          estourar(args[0], codificacao);
++          try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
++        }
++        // Corpo menor que o declarado: o cliente esperaria bytes que não vêm.
++        log.error({ rota: req.routeOptions?.url ?? "(sem rota)" }, "corpo menor que o content-length declarado");
++        derrubar();
++        return raw;
++      }
++    }
+     segurando = false;
+     let cb: unknown;
+     if (typeof args[0] === "function") cb = args[0];
+@@ -549,20 +815,44 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       const cabeca: unknown[] = [statusSegurado];
+       if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
+       if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
+-      aplicar(writeHeadOriginal, raw, cabeca);
+-      return fimComCb(corpoOriginal);
++      try {
++        aplicar(writeHeadOriginal, raw, cabeca);
++        return fimComCb(corpoOriginal);
++      } catch (e) {
++        // Cabeça ou corpo que o Node recusa (trailer com content-length, content-length que não bate):
++        // a resposta conferida não sai como veio, e sai a do desvio.
++        achado = { motivo: `o Node recusou a resposta conferida (${(e as { code?: string }).code ?? "erro"})`, erroVisto: null };
++      }
+     }
+-    const { statusFinal, novo } = registrarDesvio(statusSegurado as 401 | 403, achado.erroVisto, achado.motivo);
++    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo);
+     liberado = statusFinal;
+-    const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
+-    for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
+-    const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+-    cabecalhos["content-type"] = "application/json; charset=utf-8";
+-    cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
+-    aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
+-    return fimComCb(novo);
++    try {
++      const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding", "trailer"];
++      for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
++      // O trailer de `addTrailers` só sai em `chunked`; com content-length o Node recusaria a cabeça.
++      (raw as unknown as { _trailer: string })._trailer = "";
++      const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
++      cabecalhos["content-type"] = "application/json; charset=utf-8";
++      cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
++      aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
++      return fimComCb(novo);
++    } catch {
++      // O caminho do desvio NUNCA lança (correção 6): se o Node recusar até a cabeça da troca, a
++      // resposta do desvio vai em bytes prontos pela porta, e a conexão fecha.
++      try {
++        cabecaPendente = false;
++        bloqueado = true;
++        interna._last = true;
++        passaLivre = bytesDaResposta(statusFinal, novo);
++        aplicar(writeRawOriginal, raw, [passaLivre, "latin1", () => derrubar()]);
++      } catch {
++        derrubar();
++      }
++      return raw;
++    }
+   }
+ 
++  raw.strictContentLength = true;
+   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+index 59fea98..56a4d34 100644
+--- a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -1,5 +1,6 @@
+ import type { FastifyInstance, FastifyReply } from "fastify";
+ import { request } from "node:http";
++import { connect } from "node:net";
+ import { Readable } from "node:stream";
+ import { afterAll, beforeAll, describe, expect, it } from "vitest";
+ import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
+@@ -345,6 +346,99 @@ function plantarPorBaixo(app: FastifyInstance): void {
+   app.get(r("ok-403"), async (_q, rep) => rep.code(403).send({ erro: "sem_permissao", mensagem: "Frase da rota." }));
+ }
+ 
++/*
++  Correção 6 (rodada 7, QA): a MOLDURA DO CORPO. Pela API pública do Fastify,
++  `code(200).header("content-length", "2").send(Readable.from(["{}" + cabeca403 + corpo]))`
++  escrevia tudo (o Node não confere o content-length sem `strictContentLength`),
++  e um cliente em pipeline lia, depois do `200 {}`, uma segunda resposta `403`
++  com código inventado. E o trailer com código fora do catálogo derrubava o
++  processo com `ERR_HTTP_TRAILER_INVALID` no caminho do desvio.
++*/
++const CORPO_QA7 = JSON.stringify({ erro: "inventado_qa7", mensagem: "x" });
++const CABECA_QA7 = `HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: ${CORPO_QA7.length}\r\n\r\n`;
++function plantarMoldura(app: FastifyInstance): void {
++  const r = (n: string) => `/moldura/${n}`;
++  const crua = (rep: FastifyReply): Interna => { const k = "ra" + "w"; return (rep as unknown as Record<string, Interna>)[k]!; };
++  app.get(r("cl-stream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
++    .send(Readable.from([Buffer.from("{}" + CABECA_QA7 + CORPO_QA7)])));
++  app.get(r("cl-response"), async (_q, rep) => rep.send(new Response("{}" + CABECA_QA7 + CORPO_QA7,
++    { status: 200, headers: { "content-type": "application/json", "content-length": "2" } })));
++  app.get(r("cl-stream-pedacos"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
++    .send(Readable.from(["{", "}", CABECA_QA7, CORPO_QA7])));
++  app.get(r("cl-raw-end"), async (_q, rep) => { rep.hijack(); const x = crua(rep); x.writeHead(200, { "content-length": "2" }); x.end("{}" + CABECA_QA7 + CORPO_QA7); });
++  app.get(r("cl-writeraw"), async (_q, rep) => {
++    rep.hijack(); const x = crua(rep);
++    x.writeHead(200, { "content-length": "2" }); x.write("{}"); x._writeRaw(CABECA_QA7 + CORPO_QA7); x.end();
++  });
++  app.get(r("chunked-depois-do-terminador"), async (_q, rep) => {
++    rep.hijack(); const x = crua(rep);
++    x.writeHead(200, { "content-type": "application/json" }); x.write("{}"); x._writeRaw("0\r\n\r\n" + CABECA_QA7 + CORPO_QA7); x.end();
++  });
++  app.get(r("cl-e-te"), async (_q, rep) => rep.code(200).header("content-length", "2").header("transfer-encoding", "chunked")
++    .type("application/json").send(Readable.from(["{}" + CABECA_QA7 + CORPO_QA7])));
++  app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
++  app.get(r("trailer-catalogo"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "sem_permissao", mensagem: "x" }));
++  app.get(r("flush-403"), async (_q, rep) => {
++    rep.hijack(); const x = crua(rep);
++    x.writeHead(403, { "content-type": "application/json" }); x.flushHeaders(); x.end(CORPO_QA7);
++  });
++  app.get(r("flush-403-catalogo"), async (_q, rep) => {
++    rep.hijack(); const x = crua(rep);
++    x.writeHead(403, { "content-type": "application/json" }); x.flushHeaders(); x.end('{"erro":"sem_permissao","mensagem":"x"}');
++  });
++  // Controles: os downloads do produto (ZIP em fluxo sem content-length, PDF em Buffer), fluxo com o
++  // content-length certo, e `transfer-encoding: chunked` forjado, que o Node emoldura sozinho.
++  app.get(r("zip"), async (_q, rep) => rep.type("application/zip")
++    .send(Readable.from((function* () { for (let i = 0; i < 40; i += 1) yield Buffer.alloc(4096, i); })())));
++  app.get(r("pdf"), async (_q, rep) => rep.type("application/pdf").send(Buffer.alloc(300_000, 7)));
++  app.get(r("stream-cl-certo"), async (_q, rep) => rep.header("content-length", "8").type("text/plain").send(Readable.from(["abcd", "efgh"])));
++  app.get(r("te-forjado"), async (_q, rep) => rep.code(200).header("transfer-encoding", "chunked").type("application/json")
++    .send(Readable.from(["0\r\n\r\n" + CABECA_QA7 + CORPO_QA7])));
++  app.get(r("estrito"), async (_q, rep) => ({ estrito: rep.raw.strictContentLength }));
++}
++
++type RespostaLida = { linha: string; status: number; corpo: string };
++/** Lê, em ordem, as respostas que um cliente em pipeline leria dos bytes (content-length ou chunked). */
++function lerRespostas(bytes: Buffer): { respostas: RespostaLida[]; resto: string } {
++  const t = bytes.toString("latin1");
++  const respostas: RespostaLida[] = [];
++  let i = 0;
++  while (i < t.length && t.startsWith("HTTP/", i)) {
++    const fim = t.indexOf("\r\n\r\n", i);
++    if (fim < 0) break;
++    const cab = t.slice(i, fim);
++    const linha = cab.split("\r\n")[0]!;
++    const cl = /\r\ncontent-length: *(\d+)/i.exec(cab);
++    const te = /\r\ntransfer-encoding: *([^\r]+)/i.exec(cab);
++    let j = fim + 4;
++    let corpo = "";
++    if (cl) { corpo = t.slice(j, j + Number(cl[1])); j += Number(cl[1]); }
++    else if (te && /chunked/i.test(te[1]!)) {
++      for (;;) {
++        const f = t.indexOf("\r\n", j); if (f < 0) { j = t.length; break; }
++        const n = parseInt(t.slice(j, f), 16); j = f + 2;
++        if (!n) { for (;;) { const ft = t.indexOf("\r\n", j); if (ft < 0) { j = t.length; break; } const vazia = ft === j; j = ft + 2; if (vazia) break; } break; }
++        corpo += t.slice(j, j + n); j += n + 2;
++      }
++    } else { corpo = t.slice(j); j = t.length; }
++    respostas.push({ linha, status: Number(linha.split(" ")[1]), corpo });
++    i = j;
++  }
++  return { respostas, resto: t.slice(i) };
++}
++/** Dois pedidos em pipeline no mesmo socket: a forma e um `GET` comum sem credencial (que é 401). */
++function pipeline(porta: number, caminho: string): Promise<Buffer> {
++  return new Promise((ok) => {
++    const s = connect(porta, "127.0.0.1", () => s.write(
++      `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /moldura/sem-rota-alguma HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
++    const partes: Buffer[] = [];
++    s.on("data", (d: Buffer) => partes.push(d));
++    s.on("error", () => {});
++    const fim = setTimeout(() => s.destroy(), 4000);
++    s.on("close", () => { clearTimeout(fim); ok(Buffer.concat(partes)); });
++  });
++}
++
+ /** As formas por baixo: [rota, status que a linha forjada tinha]. */
+ const FORMAS_POR_BAIXO: ReadonlyArray<[string, 401 | 403]> = [
+   ["calc-store", 403], ["destruct-store", 403], ["header-trocado", 403], ["header-401", 401], ["writeraw", 403],
+@@ -402,6 +496,7 @@ beforeAll(async () => {
+     plantarEscapesDaRevisao(app);
+     plantarStatusTorto(app);
+     plantarPorBaixo(app);
++    plantarMoldura(app);
+     await app.ready();
+     servidores.set(modo, app);
+   }
+@@ -768,3 +863,91 @@ describe("correção 4b: a linha de status escrita por baixo de writeHead, por H
+     expect(lerDesviosDaGuarda()).toEqual([]);
+   });
+ });
++
++describe("correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade)", () => {
++  const porta = async (modo: ModoDaGuarda) => Number(new URL(await enderecoDe(modo)).port);
++  const nenhumaForjada = (rs: RespostaLida[]) =>
++    rs.filter((x) => (x.status === 401 || x.status === 403) && x.corpo.includes("inventado_qa7"));
++
++  it.each(["cl-stream", "cl-response", "cl-stream-pedacos", "cl-raw-end", "cl-writeraw", "chunked-depois-do-terminador"])(
++    "%s: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste", async (n) => {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas, resto } = lerRespostas(await pipeline(await porta(modo), `/moldura/${n}`));
++        expect(nenhumaForjada(respostas), `${modo} ${n}`).toEqual([]);
++        expect(respostas[0], `${modo} ${n}`).toMatchObject({ status: 200, corpo: "{}" });
++        expect(resto, `${modo} ${n}`).not.toContain("inventado_qa7");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    });
++
++  it("content-length junto de transfer-encoding é cabeça ilegível: a resposta inteira é trocada", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { respostas } = lerRespostas(await pipeline(await porta(modo), "/moldura/cl-e-te"));
++      expect(nenhumaForjada(respostas)).toEqual([]);
++      expect(respostas[0]!.status).toBe(modo === "falhar" ? 500 : 403);
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("trailer com código fora do catálogo: o desvio não lança (nada de exceção não tratada) e a resposta sai", async () => {
++    const naoTratadas: unknown[] = [];
++    const pegar = (e: unknown) => { naoTratadas.push(e); };
++    process.on("uncaughtException", pegar);
++    try {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const { respostas } = lerRespostas(await pipeline(await porta(modo), "/moldura/trailer-inventado"));
++        expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
++        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "sem_permissao");
++        expect(respostas[1]!.status, "o pedido seguinte no socket").toBe(404);
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++        const ok = lerRespostas(await pipeline(await porta(modo), "/moldura/trailer-catalogo")).respostas[0]!;
++        expect(ok.status).toBe(403);
++        expect(JSON.parse(ok.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
++      }
++    } finally {
++      process.off("uncaughtException", pegar);
++    }
++    expect(naoTratadas).toEqual([]);
++  });
++
++  it("writeHead(403) mais flushHeaders: sai o 403 decidido pela guarda (não 200 sem corpo)", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const fora = lerRespostas(await pipeline(await porta(modo), "/moldura/flush-403")).respostas[0]!;
++      expect(fora.status, modo).toBe(modo === "falhar" ? 500 : 403);
++      expect(fora.corpo).not.toContain("inventado_qa7");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      const dentro = lerRespostas(await pipeline(await porta(modo), "/moldura/flush-403-catalogo")).respostas[0]!;
++      expect(dentro.status).toBe(403);
++      expect(JSON.parse(dentro.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("controles: ZIP em fluxo, PDF em Buffer, fluxo com content-length certo e chunked forjado saem inteiros", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const p = await porta(modo);
++      const zip = lerRespostas(await pipeline(p, "/moldura/zip")).respostas;
++      expect(zip[0]!.status).toBe(200);
++      expect(zip[0]!.corpo.length).toBe(40 * 4096);
++      expect(zip[1]!.status, "o pedido seguinte no socket").toBe(404);
++      const pdf = lerRespostas(await pipeline(p, "/moldura/pdf")).respostas;
++      expect(pdf[0]!.corpo.length).toBe(300_000);
++      expect(pdf[1]!.status).toBe(404);
++      const certo = lerRespostas(await pipeline(p, "/moldura/stream-cl-certo")).respostas;
++      expect(certo[0]!.corpo).toBe("abcdefgh");
++      expect(certo[1]!.status).toBe(404);
++      // O Node emoldura o corpo em pedaços: o texto forjado é corpo, não uma resposta.
++      const te = lerRespostas(await pipeline(p, "/moldura/te-forjado")).respostas;
++      expect(te[0]!.status).toBe(200);
++      expect(te[0]!.corpo).toContain("inventado_qa7");
++      expect(te[1]!.status).toBe(404);
++      expect(nenhumaForjada(te)).toEqual([]);
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("toda resposta sai com strictContentLength ligado", async () => {
++    const r = await pedirEm("falhar", "/moldura/estrito");
++    expect(r.json()).toEqual({ estrito: true });
++  });
++});
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index 5e3a34e..6487edf 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -20,8 +20,9 @@ import type { ServerResponse } from "node:http";
+  * escrito no módulo da API: escrita direta no socket (`.socket`,
+  * `.connection`, `.client`, ouvinte de `connection` ou `request` no servidor),
+  * que só a varredura proíbe, o método do protótipo chamado por
+- * fora da instância, a moldura do corpo depois de uma cabeça que passou, e
+- * código que troque as primitivas dela antes da carga ou o próprio Node.
++ * fora da instância, e código que troque as primitivas dela antes da carga ou
++ * o próprio Node. A moldura do corpo (`content-length`, `chunked`) ela confere,
++ * como a da API (correção 6).
+  */
+ 
+ export type ModoDaGuarda = "falhar" | "corrigir";
+@@ -72,6 +73,7 @@ const paraMinusculas = String.prototype.toLowerCase;
+ const proximoTique = process.nextTick;
+ const indiceDe = String.prototype.indexOf;
+ const fatiar = String.prototype.slice;
++const subarray = Buffer.prototype.subarray;
+ const HEX = "0123456789abcdef";
+ const TETO_DO_CORPO = 64 * 1024;
+ /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
+@@ -173,6 +175,10 @@ function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: bool
+  * espaço ou do fim da linha.
+  */
+ const LINHA_DE_STATUS = /^HTTP\/\d\.\d (\d{3})(?: |\r\n)/;
++/** O valor de `content-length`: só dígitos. */
++const SO_DIGITOS = /^\d+$/;
++/** `transfer-encoding` cuja última codificação é `chunked` (a moldura por pedaços). */
++const TERMINA_EM_CHUNKED = /(?:^|,)[ \t]*chunked[ \t]*$/;
+ /** Quanto do começo dos bytes a porta lê para achar as cabeças: a de Node cabe com folga. */
+ const TETO_DA_CABECA = 16 * 1024;
+ 
+@@ -202,7 +208,8 @@ function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
+   const saida: Record<string, unknown> = {};
+   const fora = (k: string) => {
+     const b = aplicar(paraMinusculas, k, []) as string;
+-    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding";
++    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding"
++      || b === "trailer";
+   };
+   if (ehArray(cabecalhos)) {
+     for (let i = 0; i + 1 < cabecalhos.length; i += 2) {
+@@ -259,7 +266,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   };
+ 
+   /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
+-  function registrarDesvio(status: 401 | 403, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
++  function registrarDesvio(status: number, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
+     const desvio: Desvio = {
+       metodo: req.method,
+       rota: req.routeOptions?.url ?? "(sem rota)",
+@@ -279,8 +286,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+         ]),
+       };
+     }
+-    const g = opcoes.generico[status];
+-    return { statusFinal: status, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
++    const g = opcoes.generico[status === 401 ? 401 : 403];
++    return { statusFinal: status === 401 ? 401 : 403, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
+   }
+ 
+   /*
+@@ -303,80 +310,247 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     typeof dado === "string"
+       ? bufferDe(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
+       : bufferDe(dado as Uint8Array);
++  /** Tamanho em bytes de um pedaço, sem copiar Buffer. */
++  const tamanhoDe = (dado: unknown, codificacao: unknown): number =>
++    typeof dado === "string"
++      ? tamanhoEmBytes(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
++      : dado === null || dado === undefined ? 0 : (dado as Uint8Array).byteLength;
+ 
+-  /** Lê as cabeças no começo de um pedaço: `null` = continua pendente; número = status final; "ilegivel". */
+-  function lerCabecas(dado: unknown, codificacao: unknown): number | "ilegivel" | null {
++  /**
++   * Lê as cabeças no começo de um pedaço. `null` = pedaço vazio, continua
++   * pendente; `{ visto: "ilegivel" }`; ou o status final com o texto da cabeça
++   * final e o byte em que o corpo começa neste pedaço (-1 se a cabeça não
++   * termina dentro do que se leu).
++   */
++  function lerCabecas(dado: unknown, codificacao: unknown):
++    | null | { visto: "ilegivel" } | { visto: number; cabeca: string; inicioDoCorpo: number } {
+     let texto: string;
+     try {
+       const b = paraBuffer(dado, codificacao);
+       texto = aplicar(bufferParaTexto, b, ["latin1", 0, b.length < TETO_DA_CABECA ? b.length : TETO_DA_CABECA]) as string;
+     } catch {
+-      return "ilegivel";
++      return { visto: "ilegivel" };
+     }
++    let deslocamento = 0;
+     for (;;) {
++      // Só cabeças provisórias (ou nada): a final vem no pedaço seguinte.
+       if (texto.length === 0) return null;
+       const m = casa(LINHA_DE_STATUS, texto);
+-      if (m === null) return "ilegivel";
++      if (m === null) return { visto: "ilegivel" };
+       const s = +m[1]!;
++      const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
+       if (s >= 100 && s <= 199 && s !== 101) {
+-        const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
+-        if (fim < 0) return "ilegivel";
++        if (fim < 0) return { visto: "ilegivel" };
+         texto = aplicar(fatiar, texto, [fim + 4]) as string;
++        deslocamento += fim + 4;
+         continue;
+       }
+-      return s;
++      return {
++        visto: s,
++        cabeca: fim < 0 ? texto : aplicar(fatiar, texto, [0, fim]) as string,
++        inicioDoCorpo: fim < 0 ? -1 : deslocamento + fim + 4,
++      };
+     }
+   }
+ 
+-  /**
+-   * Lê, na ordem em que vão sair, os pedaços ainda pendentes de cabeça. Devolve o
+-   * que faz trocar a resposta (o status final que a guarda não conferiu, ou
+-   * "ilegivel"), ou `null` para deixar sair.
+-   */
+-  function examinar(pedacos: ReadonlyArray<{ data: unknown; encoding?: unknown }>): number | "ilegivel" | null {
+-    for (let i = 0; i < pedacos.length && cabecaPendente; i += 1) {
+-      const visto = lerCabecas(pedacos[i]!.data, pedacos[i]!.encoding);
+-      if (visto === null) continue;
+-      cabecaPendente = false;
+-      if (visto === "ilegivel") return visto;
+-      if (!ehHead && ehAcesso(visto) && visto !== liberado) return visto;
++  /*
++    A MOLDURA DO CORPO (correção 6, rodada 7). Depois da cabeça final, a porta
++    conta o corpo contra a moldura que a própria cabeça declarou: com
++    `content-length`, nenhum byte além do declarado sai; com `chunked`, os
++    pedaços são lidos e nada sai depois do terminador; com `transfer-encoding`
++    que não termina em `chunked`, ou sem moldura nenhuma, o corpo vai até o fim
++    da conexão, e a conexão fecha. `content-length` repetido com valores
++    diferentes, ou junto de `transfer-encoding`, é cabeça ilegível. Excesso é
++    desvio: o que passa do limite sai vazio e a conexão fecha, então o cliente
++    nunca lê ali uma segunda resposta.
++  */
++  type Moldura =
++    | { tipo: "tamanho"; restante: number }
++    | { tipo: "pedacos"; estado: "tamanho" | "extensao" | "lf-tamanho" | "dados" | "cr-dados" | "lf-dados" | "trailer" | "lf-trailer" | "fim";
++      restante: number; tamanho: number; linhaVazia: boolean }
++    | { tipo: "ate-fechar" };
++  let moldura: Moldura = { tipo: "ate-fechar" };
++  let excessoRegistrado = false;
++  /** A resposta de desvio em bytes prontos (o último recurso do `end`): só ela sai depois de bloqueado. */
++  let passaLivre: unknown = null;
++  /** O status da cabeça final que passou pela porta (para o registro do excesso). */
++  let statusDaCabeca = 0;
++
++  /** A moldura que a cabeça final declara; `null` = cabeça ilegível. */
++  function lerMoldura(cabeca: string, status: number): Moldura | null {
++    let comprimento: number | null = null;
++    let te: string | null = null;
++    let i = aplicar(indiceDe, cabeca, ["\r\n"]) as number;
++    while (i >= 0) {
++      const proximo = aplicar(indiceDe, cabeca, ["\r\n", i + 2]) as number;
++      const linha = aplicar(fatiar, cabeca, proximo < 0 ? [i + 2] : [i + 2, proximo]) as string;
++      const dois = aplicar(indiceDe, linha, [":"]) as number;
++      if (dois > 0) {
++        const nome = aplicar(paraMinusculas, aplicar(fatiar, linha, [0, dois]) as string, []) as string;
++        let valor = aplicar(fatiar, linha, [dois + 1]) as string;
++        while (valor.length > 0 && (aplicar(codigoDoCaractere, valor, [0]) === 0x20 || aplicar(codigoDoCaractere, valor, [0]) === 0x09)) valor = aplicar(fatiar, valor, [1]) as string;
++        while (valor.length > 0 && (aplicar(codigoDoCaractere, valor, [valor.length - 1]) === 0x20 || aplicar(codigoDoCaractere, valor, [valor.length - 1]) === 0x09)) valor = aplicar(fatiar, valor, [0, valor.length - 1]) as string;
++        if (nome === "content-length") {
++          if (casa(SO_DIGITOS, valor) === null) return null;
++          const n = +valor;
++          if (comprimento !== null && comprimento !== n) return null;
++          comprimento = n;
++        } else if (nome === "transfer-encoding") {
++          te = te === null ? valor : `${te}, ${valor}`;
++        }
++      }
++      i = proximo;
+     }
+-    return null;
++    if (te !== null && comprimento !== null) return null;
++    if (ehHead || status === 204 || status === 304) return { tipo: "tamanho", restante: 0 };
++    if (te !== null) {
++      const t = aplicar(paraMinusculas, te, []) as string;
++      if (casa(TERMINA_EM_CHUNKED, t) !== null) {
++        return { tipo: "pedacos", estado: "tamanho", restante: 0, tamanho: 0, linhaVazia: true };
++      }
++      return { tipo: "ate-fechar" };
++    }
++    if (comprimento !== null) return { tipo: "tamanho", restante: comprimento };
++    return { tipo: "ate-fechar" };
++  }
++
++  /** Quantos bytes de `b`, a partir de `inicio`, cabem na moldura `chunked`; o resto é excesso. */
++  function lerPedacos(m: Extract<Moldura, { tipo: "pedacos" }>, b: Uint8Array, inicio: number): number {
++    let i = inicio;
++    const hex = (c: number) => (c >= 0x30 && c <= 0x39) ? c - 0x30 : (c >= 0x61 && c <= 0x66) ? c - 0x57 : (c >= 0x41 && c <= 0x46) ? c - 0x37 : -1;
++    while (i < b.length) {
++      if (m.estado === "fim") return i;
++      if (m.estado === "dados") {
++        const leva = b.length - i < m.restante ? b.length - i : m.restante;
++        i += leva;
++        m.restante -= leva;
++        if (m.restante === 0) m.estado = "cr-dados";
++        continue;
++      }
++      const c = b[i]!;
++      if (m.estado === "tamanho") {
++        const v = hex(c);
++        if (v >= 0 && m.tamanho < 0x10000000) { m.tamanho = m.tamanho * 16 + v; m.linhaVazia = false; }
++        else if (c === 0x3b && !m.linhaVazia) m.estado = "extensao";
++        else if (c === 0x0d && !m.linhaVazia) m.estado = "lf-tamanho";
++        else return i;
++      } else if (m.estado === "extensao") {
++        if (c === 0x0d) m.estado = "lf-tamanho";
++        else if (c === 0x0a) return i;
++      } else if (m.estado === "lf-tamanho") {
++        if (c !== 0x0a) return i;
++        if (m.tamanho === 0) { m.estado = "trailer"; m.linhaVazia = true; }
++        else { m.estado = "dados"; m.restante = m.tamanho; }
++      } else if (m.estado === "cr-dados") {
++        if (c !== 0x0d) return i;
++        m.estado = "lf-dados";
++      } else if (m.estado === "lf-dados") {
++        if (c !== 0x0a) return i;
++        m.estado = "tamanho"; m.tamanho = 0; m.linhaVazia = true;
++      } else if (m.estado === "trailer") {
++        if (c === 0x0d) m.estado = "lf-trailer";
++        else m.linhaVazia = false;
++      } else if (m.estado === "lf-trailer") {
++        if (c !== 0x0a) return i;
++        if (m.linhaVazia) m.estado = "fim";
++        else { m.estado = "trailer"; m.linhaVazia = true; }
++      }
++      i += 1;
++    }
++    return i;
++  }
++
++  /** O corpo passou da moldura: registra (uma vez), fecha a conexão e devolve só o que cabia. */
++  function cortar(dado: unknown, codificacao: unknown, cabe: number): unknown {
++    interna._last = true;
++    if (!excessoRegistrado) {
++      excessoRegistrado = true;
++      registrarDesvio(statusDaCabeca, null, "corpo além da moldura que a cabeça declarou (content-length ou chunked)");
++    }
++    if (cabe <= 0) return "";
++    const b = paraBuffer(dado, codificacao);
++    return aplicar(subarray, b, [0, cabe]);
++  }
++
++  /** Confere o corpo de um pedaço, a partir de `inicio`, contra a moldura. */
++  function contar(dado: unknown, codificacao: unknown, inicio: number): unknown {
++    if (moldura.tipo === "ate-fechar") return dado;
++    const total = tamanhoDe(dado, codificacao);
++    if (moldura.tipo === "tamanho") {
++      const corpo = total - inicio;
++      if (corpo <= moldura.restante) { moldura.restante -= corpo; return dado; }
++      const cabe = inicio + moldura.restante;
++      moldura.restante = 0;
++      return cortar(dado, codificacao, cabe);
++    }
++    const b = typeof dado === "string" ? paraBuffer(dado, codificacao) : dado as Uint8Array;
++    const ate = lerPedacos(moldura, b, inicio);
++    if (ate >= b.length) return dado;
++    return cortar(dado, codificacao, ate);
+   }
+ 
+   /** A resposta inteira do desvio, já em bytes: cabeça e corpo. */
+   function substituta(visto: number | "ilegivel"): Buffer {
+     const status: 401 | 403 = visto === 401 ? 401 : 403;
+     const { statusFinal, novo } = registrarDesvio(status, null, visto === "ilegivel"
+-      ? "bytes da resposta que não começam com uma linha de status"
++      ? "bytes da resposta que não começam com uma linha de status legível (ou moldura de corpo contraditória)"
+       : `linha de status ${visto} escrita por fora da guarda`);
++    return bytesDaResposta(statusFinal, novo);
++  }
++  function bytesDaResposta(statusFinal: number, novo: string): Buffer {
+     return bufferDe(`HTTP/1.1 ${statusFinal} ${FRASE_DO_STATUS[statusFinal]!}\r\n`
+       + "content-type: application/json; charset=utf-8\r\n"
+       + `content-length: ${tamanhoEmBytes(novo)}\r\nconnection: close\r\n\r\n${novo}`, "utf8");
+   }
+ 
+-  /** A substituta que ficou na fila do Node (socket ainda sem ligação): só ela sai dali. */
+-  let substitutaNaFila: Buffer | null = null;
+-  /** Esvazia a fila do Node, menos a substituta. Os itens ficam (vazios) para a conta de bytes e os retornos. */
+-  const esvaziarFila = () => {
+-    const fila = interna.outputData;
+-    for (let i = 0; i < fila.length; i += 1) if (fila[i]!.data !== substitutaNaFila) fila[i]!.data = "";
++  /**
++   * O que sai deste pedaço, na ordem em que os pedaços saem: a cabeça é lida
++   * (e pode trocar a resposta inteira), o corpo é contado contra a moldura, e
++   * depois de trocada a resposta nada da rota sai.
++   */
++  function processar(dado: unknown, codificacao: unknown): unknown {
++    if (bloqueado) return dado === passaLivre ? dado : "";
++    if (!cabecaPendente) return contar(dado, codificacao, 0);
++    const lido = lerCabecas(dado, codificacao);
++    if (lido === null) return dado;
++    cabecaPendente = false;
++    let visto: number | "ilegivel" = lido.visto;
++    let m: Moldura | null = null;
++    if (visto !== "ilegivel") {
++      m = "cabeca" in lido ? lerMoldura(lido.cabeca, visto) : null;
++      if (m === null) visto = "ilegivel";
++    }
++    if (visto === "ilegivel" || (!ehHead && ehAcesso(visto) && visto !== liberado)) {
++      bloqueado = true;
++      interna._last = true;
++      return substituta(visto);
++    }
++    moldura = m!;
++    statusDaCabeca = visto;
++    if (moldura.tipo === "ate-fechar") interna._last = true;
++    const inicio = "inicioDoCorpo" in lido ? lido.inicioDoCorpo : -1;
++    if (inicio < 0) {
++      // A cabeça passa do que a porta lê: sem como contar o corpo, a conexão fecha no fim.
++      moldura = { tipo: "ate-fechar" };
++      interna._last = true;
++      return dado;
++    }
++    return contar(dado, codificacao, inicio);
++  }
++
++  /** O socket ligado a esta resposta, quando o Node escreve direto nele (e não na fila). */
++  const ligado = (): boolean => {
++    const s = raw.socket as unknown as { destroyed?: boolean; writable?: boolean; _httpMessage?: unknown } | null;
++    return !!s && !s.destroyed && s._httpMessage === raw && !!s.writable;
+   };
+-  /** Troca a resposta: a substituta entra no primeiro pedaço que vai sair, e o resto sai vazio. */
+-  function trocar(visto: number | "ilegivel"): unknown {
+-    bloqueado = true;
+-    // A conexão fecha depois da substituta: o que a rota montou por baixo (moldura de corpo,
+-    // cabeçalho de conexão) não fica valendo para o pedido seguinte do mesmo socket.
+-    interna._last = true;
+-    const nova = substituta(visto);
++
++  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
+     const fila = interna.outputData;
+-    if (fila.length > 0) {
+-      substitutaNaFila = nova;
+-      fila[0]!.data = nova;
+-      esvaziarFila();
+-      return "";
++    for (let i = 0; i < fila.length; i += 1) {
++      const item = fila[i]!;
++      if (item.data !== null) item.data = processar(item.data, item.encoding);
+     }
+-    return nova;
++    return aplicar(flushOutputOriginal, raw, args);
+   }
+ 
+   function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
+@@ -385,34 +559,23 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       if (!ehHead) registrarDesvio(403, null, "bytes escritos na resposta depois do fim dela");
+       bloqueado = true;
+     }
+-    if (bloqueado) {
+-      esvaziarFila();
+-      return aplicar(writeRawOriginal, raw, ["", ...resto]);
+-    }
+-    if (cabecaPendente) {
+-      const fila = interna.outputData;
+-      const pedacos: Array<{ data: unknown; encoding?: unknown }> = [];
+-      for (let i = 0; i < fila.length; i += 1) pedacos[pedacos.length] = fila[i]!;
+-      pedacos[pedacos.length] = { data: dado, encoding: typeof resto[0] === "string" ? resto[0] : undefined };
+-      const visto = examinar(pedacos);
+-      if (visto !== null) return aplicar(writeRawOriginal, raw, [trocar(visto), ...resto]);
+-    }
+-    return aplicar(writeRawOriginal, raw, [dado, ...resto]);
+-  }
+-
+-  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
+-    if (bloqueado) esvaziarFila();
+-    else if (cabecaPendente && interna.outputData.length > 0) {
+-      const visto = examinar(interna.outputData);
+-      if (visto !== null) trocar(visto);
+-    }
+-    return aplicar(flushOutputOriginal, raw, args);
++    // Ligado ao socket, o Node esvaziaria a fila e escreveria direto: a fila passa antes pela porta,
++    // na ordem; desligado, o pedaço entra na fila e passa pela porta quando ela for esvaziada.
++    if (!ligado()) return aplicar(writeRawOriginal, raw, [dado, ...resto]);
++    if (interna.outputData.length > 0) aplicar(_flushOutput, raw, [raw.socket]);
++    const codificacao = typeof resto[0] === "string" ? resto[0] : undefined;
++    return aplicar(writeRawOriginal, raw, [processar(dado, codificacao), ...resto]);
+   }
+ 
+   function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
+     const { efetivo, torto } = statusComoONodeEscreve(status);
++    // Já segurando, o `_implicitHeader` do Node (pelo `flushHeaders`, que relê `statusCode`) chama de
++    // novo sem cabeçalhos: a cabeça segurada continua valendo.
++    if (segurando && resto.length === 0 && efetivo === statusSegurado) return raw;
+     if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
+       comecarASegurar(efetivo, torto);
++      // O `statusCode` que a guarda decidiu: quem o reler (o `flushHeaders`) lê este (correção 6).
++      raw.statusCode = efetivo;
+       // Como o Node lê os argumentos: frase em texto e depois os cabeçalhos; sem frase em texto, os
+       // cabeçalhos são o terceiro argumento, ou o segundo quando o terceiro falta (`obj ??= reason`).
+       if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
+@@ -437,9 +600,82 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     else if (torto) raw.statusCode = efetivo;
+   };
+ 
++  /*
++    O CONTENT-LENGTH ESTRITO (correção 6, rodada 7): `strictContentLength` faz o
++    Node recusar corpo diferente do `content-length` declarado. Ele recusa
++    LANÇANDO, e quem escreve pode ser o `pipe` de um fluxo (o `send` de stream do
++    Fastify), onde a exceção subiria como não tratada. Aqui ela é pega: o
++    excesso é desvio, sai só o que cabia no declarado, a conexão fecha, e o resto
++    do corpo é descartado; o corpo menor que o declarado derruba a conexão (o
++    cliente não fica esperando bytes que não vêm).
++  */
++  let escritosNoCorpo = 0;
++  let corpoEstourou = false;
++  const ehDescompasso = (e: unknown) =>
++    typeof e === "object" && e !== null && (e as { code?: unknown }).code === "ERR_HTTP_CONTENT_LENGTH_MISMATCH";
++  /**
++   * O tamanho de corpo que a resposta declarou, ou `null` quando não há limite a
++   * conferir (HEAD, 1xx, 204, 304, `transfer-encoding`, sem `content-length`).
++   * O Node só confere a partir do SEGUNDO pedaço (o `content-length` dele é lido
++   * quando a cabeça é montada, depois da conferência do primeiro), então a guarda
++   * confere antes de cada pedaço, e o `strictContentLength` fica de segunda rede.
++   */
++  const limiteDoCorpo = (): number | null => {
++    if (ehHead) return null;
++    const s = raw.statusCode;
++    if (s === 204 || s === 304 || (s >= 100 && s <= 199)) return null;
++    if (raw.hasHeader("transfer-encoding")) return null;
++    const v = raw.headersSent
++      ? (raw as unknown as { _contentLength?: unknown })._contentLength
++      : raw.getHeader("content-length");
++    if (typeof v === "number") return v;
++    if (typeof v === "string" && casa(SO_DIGITOS, v) !== null) return +v;
++    return null;
++  };
++  const declarado = (): number => limiteDoCorpo() ?? 0;
++  /** O pedaço não coube: sai o que cabia, registra, fecha a conexão e descarta o resto. */
++  function estourar(dado: unknown, codificacao: unknown): void {
++    corpoEstourou = true;
++    interna._last = true;
++    if (!excessoRegistrado) {
++      excessoRegistrado = true;
++      registrarDesvio(raw.statusCode, null, "corpo maior que o content-length declarado");
++    }
++    const cabe = declarado() - escritosNoCorpo;
++    if (cabe > 0) {
++      try {
++        aplicar(writeOriginal, raw, [aplicar(subarray, paraBuffer(dado, codificacao), [0, cabe])]);
++        escritosNoCorpo += cabe;
++      } catch { /* o que não coube não sai */ }
++    }
++  }
++  function derrubar(): void {
++    try { raw.destroy(); } catch { /* a conexão já caiu */ }
++  }
++
+   function write(this: ServerResponse, ...args: unknown[]) {
+     conferirCabecalhoImplicito();
+-    if (!segurando) return aplicar(writeOriginal, raw, args);
++    if (!segurando) {
++      const cbw = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
++      if (corpoEstourou) { if (cbw) aplicar(proximoTique, process, [cbw]); return true; }
++      const codificacao = typeof args[1] === "string" ? args[1] : undefined;
++      const limite = limiteDoCorpo();
++      if (limite !== null && escritosNoCorpo + tamanhoDe(args[0], codificacao) > limite) {
++        estourar(args[0], codificacao);
++        if (cbw) aplicar(proximoTique, process, [cbw]);
++        return true;
++      }
++      try {
++        const r = aplicar(writeOriginal, raw, args);
++        escritosNoCorpo += tamanhoDe(args[0], codificacao);
++        return r;
++      } catch (e) {
++        if (!ehDescompasso(e)) throw e;
++        estourar(args[0], codificacao);
++        if (cbw) aplicar(proximoTique, process, [cbw]);
++        return true;
++      }
++    }
+     const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
+     guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
+     if (cb) aplicar(proximoTique, process, [cb]);
+@@ -448,7 +684,33 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+ 
+   function end(this: ServerResponse, ...args: unknown[]) {
+     conferirCabecalhoImplicito();
+-    if (!segurando) return aplicar(endOriginal, raw, args);
++    if (!segurando) {
++      const temDado = args.length > 0 && typeof args[0] !== "function" && args[0] !== null && args[0] !== undefined;
++      const codificacao = typeof args[1] === "string" ? args[1] : undefined;
++      const resto: unknown[] = [];
++      for (let i = temDado ? 1 : 0; i < args.length; i += 1) if (typeof args[i] === "function") resto[resto.length] = args[i];
++      if (corpoEstourou) {
++        try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
++      }
++      const limite = limiteDoCorpo();
++      if (temDado && limite !== null && escritosNoCorpo + tamanhoDe(args[0], codificacao) > limite) {
++        estourar(args[0], codificacao);
++        try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
++      }
++      try {
++        return aplicar(endOriginal, raw, args);
++      } catch (e) {
++        if (!ehDescompasso(e)) throw e;
++        if (temDado && escritosNoCorpo + tamanhoDe(args[0], codificacao) > declarado()) {
++          estourar(args[0], codificacao);
++          try { return aplicar(endOriginal, raw, resto); } catch { derrubar(); return raw; }
++        }
++        // Corpo menor que o declarado: o cliente esperaria bytes que não vêm.
++        log.error({ rota: req.routeOptions?.url ?? "(sem rota)" }, "corpo menor que o content-length declarado");
++        derrubar();
++        return raw;
++      }
++    }
+     segurando = false;
+     let cb: unknown;
+     if (typeof args[0] === "function") cb = args[0];
+@@ -476,20 +738,44 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+       const cabeca: unknown[] = [statusSegurado];
+       if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
+       if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
+-      aplicar(writeHeadOriginal, raw, cabeca);
+-      return fimComCb(corpoOriginal);
++      try {
++        aplicar(writeHeadOriginal, raw, cabeca);
++        return fimComCb(corpoOriginal);
++      } catch (e) {
++        // Cabeça ou corpo que o Node recusa (trailer com content-length, content-length que não bate):
++        // a resposta conferida não sai como veio, e sai a do desvio.
++        achado = { motivo: `o Node recusou a resposta conferida (${(e as { code?: string }).code ?? "erro"})`, erroVisto: null };
++      }
+     }
+-    const { statusFinal, novo } = registrarDesvio(statusSegurado as 401 | 403, achado.erroVisto, achado.motivo);
++    const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo);
+     liberado = statusFinal;
+-    const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
+-    for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
+-    const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+-    cabecalhos["content-type"] = "application/json; charset=utf-8";
+-    cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
+-    aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
+-    return fimComCb(novo);
++    try {
++      const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding", "trailer"];
++      for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
++      // O trailer de `addTrailers` só sai em `chunked`; com content-length o Node recusaria a cabeça.
++      (raw as unknown as { _trailer: string })._trailer = "";
++      const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
++      cabecalhos["content-type"] = "application/json; charset=utf-8";
++      cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
++      aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
++      return fimComCb(novo);
++    } catch {
++      // O caminho do desvio NUNCA lança (correção 6): se o Node recusar até a cabeça da troca, a
++      // resposta do desvio vai em bytes prontos pela porta, e a conexão fecha.
++      try {
++        cabecaPendente = false;
++        bloqueado = true;
++        interna._last = true;
++        passaLivre = bytesDaResposta(statusFinal, novo);
++        aplicar(writeRawOriginal, raw, [passaLivre, "latin1", () => derrubar()]);
++      } catch {
++        derrubar();
++      }
++      return raw;
++    }
+   }
+ 
++  raw.strictContentLength = true;
+   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+index e7c078a..76c9a8e 100644
+--- a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -1,4 +1,6 @@
+ import type { FastifyReply } from "fastify";
++import { connect } from "node:net";
++import { Readable } from "node:stream";
+ import { afterAll, beforeAll, describe, expect, it } from "vitest";
+ import { lerDesviosDaGuarda } from "../src/guarda-de-codigos-de-erro.js";
+ import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
+@@ -78,6 +80,12 @@ beforeAll(async () => {
+       rep.hijack(); const x = crua(rep);
+       x._writeRaw(`HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpo.length}\r\n\r\n${corpo}`); x._header = "x"; x.end();
+     });
++    // Correção 6 (rodada 7): corpo além do content-length pela API pública, e trailer no desvio.
++    const corpoQa7 = '{"erro":"inventado_qa7","mensagem":"x"}';
++    const cabecaQa7 = `HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpoQa7.length}\r\n\r\n`;
++    c.app.get(r("cl-stream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
++      .send(Readable.from([Buffer.from("{}" + cabecaQa7 + corpoQa7)])));
++    c.app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
+     await c.app.ready();
+     consoles.set(modo, c);
+   }
+@@ -168,3 +176,45 @@ describe("correção 4b: a linha de status escrita por baixo de writeHead, por H
+       expect(lerDesviosDaGuarda()).toEqual([]);
+     });
+ });
++
++describe("correção 6: a moldura do corpo e o trailer, por socket cru em pipeline", () => {
++  const pipeline = async (modo: "falhar" | "corrigir", caminho: string): Promise<string> => {
++    const porta = Number(new URL(await enderecoDe(modo)).port);
++    return new Promise((ok) => {
++      const s = connect(porta, "127.0.0.1", () => s.write(
++        `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /nada HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
++      let b = "";
++      s.on("data", (d: Buffer) => { b += d.toString("latin1"); });
++      s.on("error", () => {});
++      const fim = setTimeout(() => s.destroy(), 4000);
++      s.on("close", () => { clearTimeout(fim); ok(b); });
++    });
++  };
++
++  it("cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const b = await pipeline(modo, "/teste-da-guarda/cl-stream");
++      expect(b.startsWith("HTTP/1.1 200 OK")).toBe(true);
++      expect(b).not.toContain("inventado_qa7");
++      expect(b).not.toContain("403 Forbidden");
++      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++    }
++  });
++
++  it("trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada", async () => {
++    const naoTratadas: unknown[] = [];
++    const pegar = (e: unknown) => { naoTratadas.push(e); };
++    process.on("uncaughtException", pegar);
++    try {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const b = await pipeline(modo, "/teste-da-guarda/trailer-inventado");
++        expect(b.startsWith(modo === "falhar" ? "HTTP/1.1 500" : "HTTP/1.1 403")).toBe(true);
++        expect(b).not.toContain("inventado_qa7");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++      }
++    } finally {
++      process.off("uncaughtException", pegar);
++    }
++    expect(naoTratadas).toEqual([]);
++  });
++});
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index 172db9b..5bd2709 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -158,11 +158,11 @@
+  * entregam o socket ou o pedido (`app.server.on("connection", ...)`, `request`,
+  * `upgrade`, `secureConnection`, `clientError`); contra isso não há garantia em
+  * tempo de execução, só a varredura (correção 4c). Também não vê o método do protótipo da
+- * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
+- * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
+- * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
+- * declarado seriam lidos como a resposta seguinte da conexão. A varredura
+- * proíbe os três caminhos (`.socket`, `.connection`, `.client`, ouvinte de
++ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). O
++ * corpo além da moldura que a cabeça declarou (`content-length`, `chunked`)
++ * saiu desta lista na correção 6: a guarda liga `strictContentLength`, conta o
++ * corpo e não deixa sair byte além do declarado. A varredura proíbe os dois
++ * caminhos que restam (`.socket`, `.connection`, `.client`, ouvinte de
+  * `connection`, `request` e afins no servidor, `.call`, `.apply`,
+  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
+  * `_header` e `outputData`, chave calculada na resposta, desestruturação de

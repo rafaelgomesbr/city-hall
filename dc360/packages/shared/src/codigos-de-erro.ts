@@ -158,11 +158,11 @@
  * entregam o socket ou o pedido (`app.server.on("connection", ...)`, `request`,
  * `upgrade`, `secureConnection`, `clientError`); contra isso não há garantia em
  * tempo de execução, só a varredura (correção 4c). Também não vê o método do protótipo da
- * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
- * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
- * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
- * declarado seriam lidos como a resposta seguinte da conexão. A varredura
- * proíbe os três caminhos (`.socket`, `.connection`, `.client`, ouvinte de
+ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). O
+ * corpo além da moldura que a cabeça declarou (`content-length`, `chunked`)
+ * saiu desta lista na correção 6: a guarda liga `strictContentLength`, conta o
+ * corpo e não deixa sair byte além do declarado. A varredura proíbe os dois
+ * caminhos que restam (`.socket`, `.connection`, `.client`, ouvinte de
  * `connection`, `request` e afins no servidor, `.call`, `.apply`,
  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
  * `_header` e `outputData`, chave calculada na resposta, desestruturação de

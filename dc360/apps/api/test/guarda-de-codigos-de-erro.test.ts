@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { request } from "node:http";
+import { connect } from "node:net";
 import { Readable } from "node:stream";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
@@ -345,6 +346,99 @@ function plantarPorBaixo(app: FastifyInstance): void {
   app.get(r("ok-403"), async (_q, rep) => rep.code(403).send({ erro: "sem_permissao", mensagem: "Frase da rota." }));
 }
 
+/*
+  Correção 6 (rodada 7, QA): a MOLDURA DO CORPO. Pela API pública do Fastify,
+  `code(200).header("content-length", "2").send(Readable.from(["{}" + cabeca403 + corpo]))`
+  escrevia tudo (o Node não confere o content-length sem `strictContentLength`),
+  e um cliente em pipeline lia, depois do `200 {}`, uma segunda resposta `403`
+  com código inventado. E o trailer com código fora do catálogo derrubava o
+  processo com `ERR_HTTP_TRAILER_INVALID` no caminho do desvio.
+*/
+const CORPO_QA7 = JSON.stringify({ erro: "inventado_qa7", mensagem: "x" });
+const CABECA_QA7 = `HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: ${CORPO_QA7.length}\r\n\r\n`;
+function plantarMoldura(app: FastifyInstance): void {
+  const r = (n: string) => `/moldura/${n}`;
+  const crua = (rep: FastifyReply): Interna => { const k = "ra" + "w"; return (rep as unknown as Record<string, Interna>)[k]!; };
+  app.get(r("cl-stream"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
+    .send(Readable.from([Buffer.from("{}" + CABECA_QA7 + CORPO_QA7)])));
+  app.get(r("cl-response"), async (_q, rep) => rep.send(new Response("{}" + CABECA_QA7 + CORPO_QA7,
+    { status: 200, headers: { "content-type": "application/json", "content-length": "2" } })));
+  app.get(r("cl-stream-pedacos"), async (_q, rep) => rep.code(200).header("content-length", "2").type("application/json")
+    .send(Readable.from(["{", "}", CABECA_QA7, CORPO_QA7])));
+  app.get(r("cl-raw-end"), async (_q, rep) => { rep.hijack(); const x = crua(rep); x.writeHead(200, { "content-length": "2" }); x.end("{}" + CABECA_QA7 + CORPO_QA7); });
+  app.get(r("cl-writeraw"), async (_q, rep) => {
+    rep.hijack(); const x = crua(rep);
+    x.writeHead(200, { "content-length": "2" }); x.write("{}"); x._writeRaw(CABECA_QA7 + CORPO_QA7); x.end();
+  });
+  app.get(r("chunked-depois-do-terminador"), async (_q, rep) => {
+    rep.hijack(); const x = crua(rep);
+    x.writeHead(200, { "content-type": "application/json" }); x.write("{}"); x._writeRaw("0\r\n\r\n" + CABECA_QA7 + CORPO_QA7); x.end();
+  });
+  app.get(r("cl-e-te"), async (_q, rep) => rep.code(200).header("content-length", "2").header("transfer-encoding", "chunked")
+    .type("application/json").send(Readable.from(["{}" + CABECA_QA7 + CORPO_QA7])));
+  app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
+  app.get(r("trailer-catalogo"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "sem_permissao", mensagem: "x" }));
+  app.get(r("flush-403"), async (_q, rep) => {
+    rep.hijack(); const x = crua(rep);
+    x.writeHead(403, { "content-type": "application/json" }); x.flushHeaders(); x.end(CORPO_QA7);
+  });
+  app.get(r("flush-403-catalogo"), async (_q, rep) => {
+    rep.hijack(); const x = crua(rep);
+    x.writeHead(403, { "content-type": "application/json" }); x.flushHeaders(); x.end('{"erro":"sem_permissao","mensagem":"x"}');
+  });
+  // Controles: os downloads do produto (ZIP em fluxo sem content-length, PDF em Buffer), fluxo com o
+  // content-length certo, e `transfer-encoding: chunked` forjado, que o Node emoldura sozinho.
+  app.get(r("zip"), async (_q, rep) => rep.type("application/zip")
+    .send(Readable.from((function* () { for (let i = 0; i < 40; i += 1) yield Buffer.alloc(4096, i); })())));
+  app.get(r("pdf"), async (_q, rep) => rep.type("application/pdf").send(Buffer.alloc(300_000, 7)));
+  app.get(r("stream-cl-certo"), async (_q, rep) => rep.header("content-length", "8").type("text/plain").send(Readable.from(["abcd", "efgh"])));
+  app.get(r("te-forjado"), async (_q, rep) => rep.code(200).header("transfer-encoding", "chunked").type("application/json")
+    .send(Readable.from(["0\r\n\r\n" + CABECA_QA7 + CORPO_QA7])));
+  app.get(r("estrito"), async (_q, rep) => ({ estrito: rep.raw.strictContentLength }));
+}
+
+type RespostaLida = { linha: string; status: number; corpo: string };
+/** Lê, em ordem, as respostas que um cliente em pipeline leria dos bytes (content-length ou chunked). */
+function lerRespostas(bytes: Buffer): { respostas: RespostaLida[]; resto: string } {
+  const t = bytes.toString("latin1");
+  const respostas: RespostaLida[] = [];
+  let i = 0;
+  while (i < t.length && t.startsWith("HTTP/", i)) {
+    const fim = t.indexOf("\r\n\r\n", i);
+    if (fim < 0) break;
+    const cab = t.slice(i, fim);
+    const linha = cab.split("\r\n")[0]!;
+    const cl = /\r\ncontent-length: *(\d+)/i.exec(cab);
+    const te = /\r\ntransfer-encoding: *([^\r]+)/i.exec(cab);
+    let j = fim + 4;
+    let corpo = "";
+    if (cl) { corpo = t.slice(j, j + Number(cl[1])); j += Number(cl[1]); }
+    else if (te && /chunked/i.test(te[1]!)) {
+      for (;;) {
+        const f = t.indexOf("\r\n", j); if (f < 0) { j = t.length; break; }
+        const n = parseInt(t.slice(j, f), 16); j = f + 2;
+        if (!n) { for (;;) { const ft = t.indexOf("\r\n", j); if (ft < 0) { j = t.length; break; } const vazia = ft === j; j = ft + 2; if (vazia) break; } break; }
+        corpo += t.slice(j, j + n); j += n + 2;
+      }
+    } else { corpo = t.slice(j); j = t.length; }
+    respostas.push({ linha, status: Number(linha.split(" ")[1]), corpo });
+    i = j;
+  }
+  return { respostas, resto: t.slice(i) };
+}
+/** Dois pedidos em pipeline no mesmo socket: a forma e um `GET` comum sem credencial (que é 401). */
+function pipeline(porta: number, caminho: string): Promise<Buffer> {
+  return new Promise((ok) => {
+    const s = connect(porta, "127.0.0.1", () => s.write(
+      `GET ${caminho} HTTP/1.1\r\nhost: x\r\n\r\nGET /moldura/sem-rota-alguma HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
+    const partes: Buffer[] = [];
+    s.on("data", (d: Buffer) => partes.push(d));
+    s.on("error", () => {});
+    const fim = setTimeout(() => s.destroy(), 4000);
+    s.on("close", () => { clearTimeout(fim); ok(Buffer.concat(partes)); });
+  });
+}
+
 /** As formas por baixo: [rota, status que a linha forjada tinha]. */
 const FORMAS_POR_BAIXO: ReadonlyArray<[string, 401 | 403]> = [
   ["calc-store", 403], ["destruct-store", 403], ["header-trocado", 403], ["header-401", 401], ["writeraw", 403],
@@ -402,6 +496,7 @@ beforeAll(async () => {
     plantarEscapesDaRevisao(app);
     plantarStatusTorto(app);
     plantarPorBaixo(app);
+    plantarMoldura(app);
     await app.ready();
     servidores.set(modo, app);
   }
@@ -766,5 +861,93 @@ describe("correção 4b: a linha de status escrita por baixo de writeHead, por H
       expect(JSON.parse(o.corpo)).toEqual({ erro: "sem_permissao", mensagem: "Frase da rota." });
     }
     expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+});
+
+describe("correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade)", () => {
+  const porta = async (modo: ModoDaGuarda) => Number(new URL(await enderecoDe(modo)).port);
+  const nenhumaForjada = (rs: RespostaLida[]) =>
+    rs.filter((x) => (x.status === 401 || x.status === 403) && x.corpo.includes("inventado_qa7"));
+
+  it.each(["cl-stream", "cl-response", "cl-stream-pedacos", "cl-raw-end", "cl-writeraw", "chunked-depois-do-terminador"])(
+    "%s: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste", async (n) => {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const { respostas, resto } = lerRespostas(await pipeline(await porta(modo), `/moldura/${n}`));
+        expect(nenhumaForjada(respostas), `${modo} ${n}`).toEqual([]);
+        expect(respostas[0], `${modo} ${n}`).toMatchObject({ status: 200, corpo: "{}" });
+        expect(resto, `${modo} ${n}`).not.toContain("inventado_qa7");
+        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      }
+    });
+
+  it("content-length junto de transfer-encoding é cabeça ilegível: a resposta inteira é trocada", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const { respostas } = lerRespostas(await pipeline(await porta(modo), "/moldura/cl-e-te"));
+      expect(nenhumaForjada(respostas)).toEqual([]);
+      expect(respostas[0]!.status).toBe(modo === "falhar" ? 500 : 403);
+      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("trailer com código fora do catálogo: o desvio não lança (nada de exceção não tratada) e a resposta sai", async () => {
+    const naoTratadas: unknown[] = [];
+    const pegar = (e: unknown) => { naoTratadas.push(e); };
+    process.on("uncaughtException", pegar);
+    try {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const { respostas } = lerRespostas(await pipeline(await porta(modo), "/moldura/trailer-inventado"));
+        expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
+        expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "sem_permissao");
+        expect(respostas[1]!.status, "o pedido seguinte no socket").toBe(404);
+        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+        const ok = lerRespostas(await pipeline(await porta(modo), "/moldura/trailer-catalogo")).respostas[0]!;
+        expect(ok.status).toBe(403);
+        expect(JSON.parse(ok.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
+      }
+    } finally {
+      process.off("uncaughtException", pegar);
+    }
+    expect(naoTratadas).toEqual([]);
+  });
+
+  it("writeHead(403) mais flushHeaders: sai o 403 decidido pela guarda (não 200 sem corpo)", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const fora = lerRespostas(await pipeline(await porta(modo), "/moldura/flush-403")).respostas[0]!;
+      expect(fora.status, modo).toBe(modo === "falhar" ? 500 : 403);
+      expect(fora.corpo).not.toContain("inventado_qa7");
+      expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
+      const dentro = lerRespostas(await pipeline(await porta(modo), "/moldura/flush-403-catalogo")).respostas[0]!;
+      expect(dentro.status).toBe(403);
+      expect(JSON.parse(dentro.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("controles: ZIP em fluxo, PDF em Buffer, fluxo com content-length certo e chunked forjado saem inteiros", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const p = await porta(modo);
+      const zip = lerRespostas(await pipeline(p, "/moldura/zip")).respostas;
+      expect(zip[0]!.status).toBe(200);
+      expect(zip[0]!.corpo.length).toBe(40 * 4096);
+      expect(zip[1]!.status, "o pedido seguinte no socket").toBe(404);
+      const pdf = lerRespostas(await pipeline(p, "/moldura/pdf")).respostas;
+      expect(pdf[0]!.corpo.length).toBe(300_000);
+      expect(pdf[1]!.status).toBe(404);
+      const certo = lerRespostas(await pipeline(p, "/moldura/stream-cl-certo")).respostas;
+      expect(certo[0]!.corpo).toBe("abcdefgh");
+      expect(certo[1]!.status).toBe(404);
+      // O Node emoldura o corpo em pedaços: o texto forjado é corpo, não uma resposta.
+      const te = lerRespostas(await pipeline(p, "/moldura/te-forjado")).respostas;
+      expect(te[0]!.status).toBe(200);
+      expect(te[0]!.corpo).toContain("inventado_qa7");
+      expect(te[1]!.status).toBe(404);
+      expect(nenhumaForjada(te)).toEqual([]);
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("toda resposta sai com strictContentLength ligado", async () => {
+    const r = await pedirEm("falhar", "/moldura/estrito");
+    expect(r.json()).toEqual({ estrito: true });
   });
 });
