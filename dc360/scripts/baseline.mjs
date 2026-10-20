@@ -569,6 +569,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
   // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
   "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
+  // V2-F00-E09, correção 5: `correcao-5-da-e09.test.ts` é novo, com 11 casos (o detector de email solto no JSX e a varredura de todo .tsx do painel, as duas janelas e a tentativa de envio do ofício usando o EmailQuebravel, a regra da dica da janela sem `anywhere`, o hook que leva o foco depois do commit e as duas telas que o usam, o `scroll-padding-top` e a margem do campo no topo de duas linhas, e o foco que rola pelo `scrollIntoView`). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o foco por efeito), sem caso novo. Nenhuma falha nova.
+  "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -863,13 +865,22 @@ export const PASSOS = [
     (o aviso passageiro por cima da janela da senha temporaria, o email que nao
     quebra no meio da palavra e a frase da senha atual errada nas duas telas):
     de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
+
+    Correcao 5 da E09 (2026-10-20): de 149 para 197 (mais 48): o foco depois da
+    senha errada enviada com Espaco e com Enter (4), o campo focado que nao fica
+    atras do topo fixo, ele e o rotulo (6) e o email nas janelas "Redefinir senha" e "Desativar
+    usuario" a 320, 360, 390 e 768 px mais a linha da tentativa de envio do oficio
+    a 320, 360 e 390 px (38). Medido no Mac, Node 24: 197 no Chromium e no
+    Firefox; no WebKit 196 (uma verificacao do Tab
+    e PULADA la, por escolha antiga do arquivo) e so a tela estreita, ver
+    `e2e-api.mjs --so-layout`.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 197   Falhou: 0"] },
   },
 ];
 

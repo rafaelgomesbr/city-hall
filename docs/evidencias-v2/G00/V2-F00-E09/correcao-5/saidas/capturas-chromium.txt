@@ -1,0 +1,41 @@
+cadastro Ana Subdominios 201
+cadastro Coordenadora de Captura 201
+cadastro Pessoa Provisoria 201
+redefinir provisoria 200
+janela redefinir 320 claro chromium
+janela desativar 320 claro chromium
+janela redefinir 360 claro chromium
+janela desativar 360 claro chromium
+janela redefinir 390 claro chromium
+janela desativar 390 claro chromium
+janela redefinir 768 claro chromium
+janela desativar 768 claro chromium
+janela redefinir 1280 claro chromium
+janela desativar 1280 claro chromium
+janela redefinir 320 escuro chromium
+janela desativar 320 escuro chromium
+janela redefinir 360 escuro chromium
+janela desativar 360 escuro chromium
+janela redefinir 390 escuro chromium
+janela desativar 390 escuro chromium
+janela redefinir 768 escuro chromium
+janela desativar 768 escuro chromium
+janela redefinir 1280 escuro chromium
+janela desativar 1280 escuro chromium
+minha conta senha errada 320 claro chromium foco: conta-senha-atual
+minha conta senha errada 360 claro chromium foco: conta-senha-atual
+minha conta senha errada 390 claro chromium foco: conta-senha-atual
+minha conta senha errada 768 claro chromium foco: conta-senha-atual
+minha conta senha errada 1280 claro chromium foco: conta-senha-atual
+minha conta senha errada 320 escuro chromium foco: conta-senha-atual
+minha conta senha errada 360 escuro chromium foco: conta-senha-atual
+minha conta senha errada 390 escuro chromium foco: conta-senha-atual
+minha conta senha errada 768 escuro chromium foco: conta-senha-atual
+minha conta senha errada 1280 escuro chromium foco: conta-senha-atual
+defina a senha provisoria errada 390 claro chromium foco: senha-nova-atual
+defina a senha provisoria errada 320 claro chromium foco: senha-nova-atual
+defina a senha provisoria errada 1280 claro chromium foco: senha-nova-atual
+defina a senha provisoria errada 390 escuro chromium foco: senha-nova-atual
+defina a senha provisoria errada 320 escuro chromium foco: senha-nova-atual
+defina a senha provisoria errada 1280 escuro chromium foco: senha-nova-atual
+erros de console/pagina: nenhum

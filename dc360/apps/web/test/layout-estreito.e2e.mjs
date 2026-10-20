@@ -615,6 +615,35 @@ async function textoDoErro(erro) {
     return "(o campo não mostrou erro nenhum)";
   }
 }
+/*
+  O foco depois da senha errada, pelos três jeitos de enviar (V2-F00-E09, correção
+  5, rodada 6): o clique já era medido; aqui entram o Espaço no botão focado e o
+  Enter no último campo. A rodada 6 viu o foco em BODY no Firefox nos dois
+  primeiros e, no Enter, parado no último campo, e não no campo inválido. Espera
+  a resposta do servidor e mais um instante, porque o que se mede é o foco já
+  ASSENTADO, e não o do quadro seguinte ao clique.
+*/
+async function enviarPeloTeclado(pg, modo, botao, ultimoCampo) {
+  const resposta = pg.waitForResponse((r) => r.url().includes("/auth/trocar-senha"), { timeout: 20_000 });
+  if (modo === "Enter") {
+    await pg.locator(ultimoCampo).press("Enter");
+  } else {
+    await botao.focus();
+    await pg.keyboard.press("Space");
+  }
+  await resposta;
+  /*
+    A resposta que se espera é a PRIMEIRA: o 401 de senha errada faz o cliente
+    renovar o token e repetir o pedido uma vez, então o desfecho de verdade
+    chega depois (e, sob carga, bem depois). O sinal de que acabou é o botão de
+    enviar voltar a ficar habilitado: medir antes disso media o foco do meio do
+    envio, e reprovou ao acaso no Firefox e no WebKit.
+  */
+  const sinalDeFim = await botao.elementHandle();
+  await pg.waitForFunction((el) => !el.disabled, sinalDeFim, { timeout: 20_000 });
+  await pg.waitForTimeout(300);
+  return pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName);
+}
 {
   const { ctx, pg } = await contextoQueEsperaOs401();
   await entrar(emailCoordenacao, SENHA_DO_TESTE, pg);
@@ -635,9 +664,53 @@ async function textoDoErro(erro) {
     ok(`Minha conta a ${largura} px: depois do envio o foco está no campo da senha atual, e não em BODY`,
        (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual",
        `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
+    // O foco por código rola o campo para a vista, e o topo fixo não pode ficar por cima do rótulo e da borda dele (correção 5).
+    ok(`Minha conta a ${largura} px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)`,
+       await pg.evaluate(() => {
+         const campo = document.activeElement?.closest(".campo") ?? document.activeElement;
+         return campo.getBoundingClientRect().top >= document.querySelector(".topo").getBoundingClientRect().bottom - 0.5;
+       }));
     ok(`Minha conta a ${largura} px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento`,
        ((await pg.locator("#conta-senha-atual").getAttribute("aria-describedby")) ?? "").includes("conta-senha-atual-erro")
          && !/\bnao\b/.test(texto), `("${texto}")`);
+  }
+  /*
+    O campo focado por código tem de aparecer COM o rótulo, e não por baixo do
+    topo fixo (V2-F00-E09, correção 5, visto nas capturas). O topo do celular tem
+    duas linhas (129 px) e o foco leva o CAMPO ao `scroll-padding-top`, deixando o
+    rótulo (uns 32 px acima) escondido. Só aparece quando a página precisa rolar
+    até o campo, então a altura da janela é baixa de propósito (700 px).
+  */
+  for (const largura of [390, 360, 320]) {
+    await pg.setViewportSize({ width: largura, height: 700 });
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-dela");
+    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
+    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
+    await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
+    await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
+    await pg.waitForTimeout(500);
+    const m = await pg.evaluate(() => {
+      const campo = document.activeElement?.closest(".campo");
+      return {
+        foco: document.activeElement?.id,
+        rotuloTopo: campo?.querySelector("label")?.getBoundingClientRect().top,
+        topoFixo: document.querySelector(".topo").getBoundingClientRect().bottom,
+      };
+    });
+    ok(`Minha conta a ${largura}x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo`,
+       m.foco === "conta-senha-atual" && m.rotuloTopo >= m.topoFixo - 0.5, `(${JSON.stringify(m)})`);
+  }
+  for (const modo of ["Espaço", "Enter"]) {
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-dela");
+    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
+    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
+    const focoFinal = await enviarPeloTeclado(
+      pg, modo, pg.getByRole("button", { name: "Trocar senha", exact: true }), "#conta-senha-repetida");
+    ok(`Minha conta, enviando com ${modo}: depois da senha errada o foco está no campo da senha atual, e não em BODY nem no último campo`,
+       focoFinal === "conta-senha-atual", `(${focoFinal})`);
   }
   /*
     Troca certa e, logo depois, senha errada: a confirmação verde da primeira não
@@ -700,6 +773,16 @@ async function textoDoErro(erro) {
        ((await pg.locator("#senha-nova-atual").getAttribute("aria-describedby")) ?? "").includes("senha-nova-atual-erro")
          && (await pg.locator("#senha-nova-erro").count()) === 0 && !/\bnao\b/.test(texto), `("${texto}")`);
   }
+  for (const modo of ["Espaço", "Enter"]) {
+    await pg.setViewportSize({ width: 390, height: 844 });
+    await pg.locator("#senha-nova-atual").fill("provisoria-digitada-errada");
+    await pg.locator("#senha-nova").fill("frase-nova-do-teste-2026");
+    await pg.locator("#senha-nova-repetida").fill("frase-nova-do-teste-2026");
+    const focoFinal = await enviarPeloTeclado(
+      pg, modo, pg.getByRole("button", { name: "Definir senha e entrar" }), "#senha-nova-repetida");
+    ok(`"Defina a sua senha", enviando com ${modo}: depois da provisória errada o foco está no campo da provisória, e não em BODY nem no último campo`,
+       focoFinal === "senha-nova-atual", `(${focoFinal})`);
+  }
   await ctx.close();
 }
 
@@ -761,6 +844,128 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a 
     ok(`Órgãos a ${largura} px: há telefone para medir`, telefones.length >= 1, `(${telefones.length})`);
     ok(`Órgãos a ${largura} px: nenhum telefone é partido em duas linhas`,
        telefones.every((t) => t.linhas === 1), `(${telefones.filter((t) => t.linhas > 1).map((t) => t.texto).join(", ")})`);
+  }
+
+  console.log("\n== 12. O email nas janelas do painel não quebra no meio da palavra (V2-F00-E09, correção 5) ==");
+  /*
+    A rodada 6 viu a linha "matrícula, email, papel" da janela "Redefinir senha"
+    quebrar o email no meio ("...secretar / ia.serraalta") a 390, 360 e 320 px: a
+    correção 4 consertou a tabela e deixou a janela com `overflow-wrap: anywhere`.
+    Mede por caractere (Range), só os caracteres do email: toda quebra DENTRO dele
+    tem de vir logo depois de "@" ou de ".". O email inteiro tem de caber na
+    janela. Vale para as duas janelas que mostram a pessoa (redefinir e desativar).
+  */
+  async function quebrasDoEmailNaJanela(pg, email) {
+    return pg.evaluate((alvo) => {
+      const dica = [...document.querySelectorAll(".modal__painel .campo__dica")].find((p) => p.textContent.includes(alvo));
+      if (!dica) return null;
+      const nos = [];
+      const w = document.createTreeWalker(dica, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) nos.push(w.currentNode);
+      const todo = nos.map((n) => n.textContent).join("");
+      const inicio = todo.indexOf(alvo);
+      const posicoes = [];
+      for (const no of nos) for (let i = 0; i < no.textContent.length; i++) posicoes.push([no, i]);
+      const topos = [];
+      for (let k = inicio; k < inicio + alvo.length; k++) {
+        const [no, i] = posicoes[k];
+        const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
+        topos.push(Math.round(r.getBoundingClientRect().top));
+      }
+      const quebras = [];
+      for (let k = 0; k < alvo.length - 1; k++) {
+        if (topos[k + 1] > topos[k] + 2) quebras.push({ depoisDe: alvo[k], pedaco: alvo.slice(Math.max(0, k - 6), k + 7) });
+      }
+      const painel = document.querySelector(".modal__painel");
+      const estilo = getComputedStyle(painel);
+      const direita = painel.getBoundingClientRect().right - parseFloat(estilo.paddingRight) - parseFloat(estilo.borderRightWidth);
+      const ultimo = posicoes[inicio + alvo.length - 1];
+      const rUlt = document.createRange(); rUlt.setStart(ultimo[0], ultimo[1]); rUlt.setEnd(ultimo[0], ultimo[1] + 1);
+      let maiorDireita = 0;
+      for (let k = inicio; k < inicio + alvo.length; k++) {
+        const [no, i] = posicoes[k];
+        const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
+        maiorDireita = Math.max(maiorDireita, r.getBoundingClientRect().right);
+      }
+      return {
+        linhas: new Set(topos).size, quebras,
+        noMeioDaPalavra: quebras.filter((q) => q.depoisDe !== "@" && q.depoisDe !== "."),
+        passaDaJanela: maiorDireita > direita + 0.5,
+        dica: dica.textContent,
+      };
+    }, email);
+  }
+  for (const [largura, altura] of [[320, 568], [360, 740], [390, 844], [768, 900]]) {
+    await page.setViewportSize({ width: largura, height: altura });
+    await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+    await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+    const linha = page.locator("tbody tr", { hasText: subdominios });
+    for (const [botao, titulo] of [["Redefinir senha", "Redefinir senha"], ["Desativar", "Desativar usuário"]]) {
+      await linha.getByRole("button", { name: botao, exact: true }).scrollIntoViewIfNeeded();
+      await linha.getByRole("button", { name: botao, exact: true }).click();
+      await page.getByRole("dialog").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(200);
+      const m = await quebrasDoEmailNaJanela(page, subdominios);
+      ok(`a ${largura} px, a janela "${titulo}" mostra o email da pessoa`, m !== null);
+      if (m) {
+        ok(`a ${largura} px, na janela "${titulo}" o email quebra só depois do @ e dos pontos`,
+           m.noMeioDaPalavra.length === 0, `(${m.noMeioDaPalavra.map((q) => q.pedaco).join(" | ")})`);
+        ok(`a ${largura} px, na janela "${titulo}" o email cabe na área útil da janela`, !m.passaDaJanela);
+        ok(`a ${largura} px, na janela "${titulo}" a janela não ganha rolagem horizontal`,
+           await page.evaluate(() => { const p = document.querySelector(".modal__painel"); return p.scrollWidth <= p.clientWidth + 1; }));
+      }
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
+    }
+  }
+
+  /*
+    A tentativa de envio do ofício ("Tentativa 1 para <email>, por ... em ...")
+    só aparece depois de um envio de verdade, que este roteiro não faz. Então a
+    medida usa o MESMO markup e o CSS carregado do painel, montado na página: o
+    teste de fonte (`correcao-5-da-e09.test.ts`) prova que a tela tem este
+    markup. Limite dito: não é a tela de Ocorrência aberta.
+  */
+  for (const largura of [320, 360, 390]) {
+    await page.setViewportSize({ width: largura, height: 800 });
+    await page.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+    const m = await page.evaluate((alvo) => {
+      const ul = document.createElement("ul");
+      ul.style.cssText = "margin:0;padding:0 16px 0 20px;position:absolute;top:0;left:0;width:100%;box-sizing:border-box;background:var(--ds-surface)";
+      const pedacos = alvo.match(/[^@.]+[@.]?|[@.]/g);
+      const ultimo = pedacos.length - 1;
+      const juntos = [...pedacos.slice(0, ultimo - 1), pedacos[ultimo - 1] + pedacos[ultimo]];
+      const li = document.createElement("li");
+      li.className = "oficio__linha";
+      const span = document.createElement("span");
+      span.append("Tentativa 1 para ");
+      juntos.forEach((p, i) => { if (i > 0) span.append(document.createElement("wbr")); span.append(p); });
+      span.append(", por Rita Lopes em 20/10/2026 10:00:");
+      li.append(span, document.createElement("strong"));
+      li.lastChild.textContent = "enviado";
+      ul.append(li);
+      document.body.append(ul);
+      const nos = [];
+      const w = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) nos.push(w.currentNode);
+      const todo = nos.map((n) => n.textContent).join("");
+      const inicio = todo.indexOf(alvo);
+      const pos = [];
+      for (const no of nos) for (let i = 0; i < no.textContent.length; i++) pos.push([no, i]);
+      const topos = [];
+      for (let k = inicio; k < inicio + alvo.length; k++) {
+        const r = document.createRange(); r.setStart(pos[k][0], pos[k][1]); r.setEnd(pos[k][0], pos[k][1] + 1);
+        topos.push(Math.round(r.getBoundingClientRect().top));
+      }
+      const ruins = [];
+      for (let k = 0; k < alvo.length - 1; k++) {
+        if (topos[k + 1] > topos[k] + 2 && alvo[k] !== "@" && alvo[k] !== ".") ruins.push(alvo.slice(Math.max(0, k - 6), k + 7));
+      }
+      return { ruins, rolagem: document.documentElement.scrollWidth > window.innerWidth + 1 };
+    }, subdominios);
+    ok(`a ${largura} px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos`,
+       m.ruins.length === 0, `(${m.ruins.join(" | ")})`);
+    ok(`a ${largura} px, a linha da tentativa de envio não dá rolagem horizontal à página`, !m.rolagem);
   }
 }
 

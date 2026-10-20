@@ -13,7 +13,8 @@ import {
 import { Campo } from "../componentes/Campo";
 import { AtivarSegundoFator } from "../componentes/SegundoFator";
 import { useTitulo } from "../seo/titulo";
-import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
+import { focarPrimeiroInvalido } from "../componentes/foco";
+import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
 import { conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada } from "./entrar-regras";
 import { conferirSenhaNova, erroDaSenhaAtual, passoDepoisDeEntrar } from "./senha-provisoria-regras";
 
@@ -520,11 +521,9 @@ function PassoDaSenhaNova(
     de campo leva ao campo inválido; erro que não é de campo, à própria
     mensagem (`#senha-nova-erro`, focável por código).
   */
-  function levarOFocoAoErro() {
-    depoisDePintar(() => {
-      if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
-    });
-  }
+  const levarOFocoAoErro = useFocoDepoisDeRenderizar(() => {
+    if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
+  });
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();

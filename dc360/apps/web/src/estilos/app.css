@@ -569,8 +569,14 @@ a:hover { color: var(--ds-accent-hover); }
   área útil da janela e entrava no respiro da borda (o teste de geometria
   mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
   que sair da janela.
+
+  V2-F00-E09, correção 5 (rodada 6, achado 2): `anywhere` cortava o email no
+  meio da palavra ("...secretar / ia.serraalta") a 390, 360 e 320 px, porque
+  ignora os pontos de quebra do `EmailQuebravel` (o `<wbr>` depois do "@" e de
+  cada ponto). `break-word` respeita o `<wbr>` e só corta se um pedaço sozinho
+  for mais largo que a janela, que é a rede de segurança que a 320 px importa.
 */
-.modal__painel .campo__dica { overflow-wrap: anywhere; }
+.modal__painel .campo__dica { overflow-wrap: break-word; word-break: normal; }
 /* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
    margem própria dele e a distância até o primeiro rótulo fica maior que a
    distância entre os campos, sugerindo que a frase é de outro bloco. */
@@ -1107,6 +1113,22 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 */
 @media (max-width: 600px) {
   .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
+  /*
+    O topo agora tem duas linhas (a marca e a conta, e a busca): são 125 px, e o
+    `scroll-padding-top` de cima (80 px, o topo de uma linha só) deixava o campo
+    focado por código com o rótulo e a borda de cima por baixo dele. Visto na
+    correção 5 da V2-F00-E09, na senha errada em Minha conta a 320 e 390 px. Duas
+    alturas de toque, três respiros de `--ds-sp-3` (cima, entre as linhas, baixo)
+    e mais um `--ds-sp-4` de folga.
+  */
+  html { scroll-padding-top: calc(var(--ds-touch) * 2 + var(--ds-sp-3) * 3 + var(--ds-sp-4)); }
+  /*
+    O foco leva o CAMPO ao `scroll-padding-top`, e o rótulo fica uns 32 px acima
+    dele: sem esta margem o rótulo ("Senha que você usa hoje") ficava por baixo do
+    topo (medido: rótulo em 108 px, topo até 129 px). Um passo de `--ds-sp-5` mais
+    um de `--ds-sp-3` cobre a linha do rótulo e o respiro entre ele e o campo.
+  */
+  .campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
   .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
   .identidade__nome, .identidade__papel, .identidade br { display: none; }
   .identidade--acionavel { padding: var(--ds-sp-1); }
@@ -1382,6 +1404,8 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
 }
+/* O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`. */
+.oficio__linha > span { overflow-wrap: break-word; word-break: normal; }
 
 /* ---------------------------------------------------------------------------
    Verificação em duas etapas
