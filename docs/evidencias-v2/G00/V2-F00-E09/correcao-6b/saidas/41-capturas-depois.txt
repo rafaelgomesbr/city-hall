@@ -1,0 +1,27 @@
+[depois chromium quadro-lento minha-conta 390x844] input#conta-senha-repetida 683..727 entre 129 e 765
+[depois chromium quadro-lento minha-conta 640x450] input#conta-senha-repetida 252..296 entre 141 e 371
+[depois chromium tab-caixa /painel 390x400] o Tab deste motor não para na caixa que rola
+[depois chromium tab-caixa /orgaos 390x400] o Tab deste motor não para na caixa que rola
+[depois chromium 320 /ocorrencias] largura da página 320 de 320; paginação presente
+[depois chromium 320 /auditoria] largura da página 320 de 320; paginação presente
+[depois chromium usuarios 1440] tabela 1062/1062
+[depois chromium deitado 640x360] À VISTA foco=conta-senha-atual rótulo=157..181 campo=189..233 topo até 141 pé desde 281 janela 640x360 spt=153px spb=91px
+[depois chromium deitado 740x360] À VISTA foco=conta-senha-atual rótulo=97..121 campo=129..173 topo até 81 pé desde 281 janela 740x360 spt=93px spb=91px
+[depois firefox quadro-lento minha-conta 390x844] input#conta-senha-repetida 683..727 entre 129 e 765
+[depois firefox quadro-lento minha-conta 640x450] input#conta-senha-repetida 252..296 entre 141 e 371
+[depois firefox tab-caixa /painel 390x400] div.tabela-envolucro 129..745 entre 129 e 321
+[depois firefox tab-caixa /orgaos 390x400] div.tabela-envolucro 179..309 entre 129 e 321
+[depois firefox 320 /ocorrencias] largura da página 320 de 320; paginação presente
+[depois firefox 320 /auditoria] largura da página 320 de 320; paginação presente
+[depois firefox usuarios 1440] tabela 1062/1062
+[depois firefox deitado 640x360] À VISTA foco=conta-senha-atual rótulo=157..181 campo=189..233 topo até 141 pé desde 281 janela 640x360 spt=153px spb=91px
+[depois firefox deitado 740x360] À VISTA foco=conta-senha-atual rótulo=97..121 campo=129..173 topo até 81 pé desde 281 janela 740x360 spt=93px spb=91px
+[depois webkit quadro-lento minha-conta 390x844] input#conta-senha-repetida 709..753 entre 129 e 765
+[depois webkit quadro-lento minha-conta 640x450] input#conta-senha-repetida 315..359 entre 141 e 371
+[depois webkit tab-caixa /painel 390x400] o Tab deste motor não para na caixa que rola
+[depois webkit tab-caixa /orgaos 390x400] o Tab deste motor não para na caixa que rola
+[depois webkit 320 /ocorrencias] largura da página 320 de 320; paginação presente
+[depois webkit 320 /auditoria] largura da página 320 de 320; paginação presente
+[depois webkit usuarios 1440] tabela 1062/1062
+[depois webkit deitado 640x360] À VISTA foco=conta-senha-atual rótulo=157..181 campo=189..233 topo até 141 pé desde 281 janela 640x360 spt=153px spb=91px
+[depois webkit deitado 740x360] À VISTA foco=conta-senha-atual rótulo=97..121 campo=129..173 topo até 81 pé desde 281 janela 740x360 spt=93px spb=91px

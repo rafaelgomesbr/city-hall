@@ -1,0 +1,317 @@
+
+== 1. Preparo: pessoa de nome longo, criada pela API ==
+  OK   a administradora entra pela API
+  OK   a pessoa de nome longo foi cadastrada
+  OK   a coordenadora de teste foi cadastrada
+
+== 2. As janelas de confirmação cabem, do celular pequeno à mesa ==
+  OK   "Encerrar sessões" a 320 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 390 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 768 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 1280 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 320 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 390 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 768 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 1280 px: o botao com o nome inteiro cabe na janela
+
+== 3. A barra de navegação não corta os rótulos ==
+  OK   a 320 px a barra existe e tem o item "Mapa da cidade"
+  OK   a 320 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra
+  OK   a 320 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 320 px nenhum item da barra tem texto cortado
+  OK   a 320 px todo item tem pelo menos 44 px de toque
+  OK   a 320 px a página não ganhou rolagem horizontal
+  OK   a 360 px a barra existe e tem o item "Mapa da cidade"
+  OK   a 360 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra
+  OK   a 360 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 360 px nenhum item da barra tem texto cortado
+  OK   a 360 px todo item tem pelo menos 44 px de toque
+  OK   a 360 px a página não ganhou rolagem horizontal
+  OK   a 361 px a barra existe e tem o item "Mapa da cidade"
+  OK   a 361 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra
+  OK   a 361 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 361 px nenhum item da barra tem texto cortado
+  OK   a 361 px todo item tem pelo menos 44 px de toque
+  OK   a 361 px a página não ganhou rolagem horizontal
+  OK   a 390 px a barra existe e tem o item "Mapa da cidade"
+  OK   a 390 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra
+  OK   a 390 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 390 px nenhum item da barra tem texto cortado
+  OK   a 390 px todo item tem pelo menos 44 px de toque
+  OK   a 390 px a página não ganhou rolagem horizontal
+  OK   a 768 px a barra existe e tem o item "Mapa da cidade"
+  OK   a 768 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra
+  OK   a 768 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 768 px nenhum item da barra tem texto cortado
+  OK   a 768 px todo item tem pelo menos 44 px de toque
+  OK   a 768 px a página não ganhou rolagem horizontal
+  OK   a 390 px o ladrilho da tela atual (Organização) está inteiro à vista
+  OK   o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada
+  OK   a 1280 px a barra é a lateral e não o pé da tela
+
+== 4. O painel pede só o que o papel pode ver ==
+  OK   o operador abre /painel sem pedir as devolvidas (que ele não pode ver)
+  OK   o operador em /painel não lê a frase de que a consulta falhou
+  OK   a coordenadora abre /painel e pede as devolvidas, com 200
+  OK   o operador abre /ocorrencias sem pedir as devolvidas (que ele não pode ver)
+  OK   o operador em /ocorrencias não lê a frase de que a consulta falhou
+  OK   a coordenadora abre /ocorrencias e pede as devolvidas, com 200
+
+== 5. Minha conta cabe, do celular pequeno à mesa (V2-F00-E09, correção 2) ==
+  OK   a coordenadora abre uma sessão a mais pela API
+  OK   Minha conta lista pelo menos duas sessões e mostra o botão de encerrar as outras
+  OK   Minha conta a 320 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+  OK   Minha conta a 390 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+  OK   Minha conta a 768 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+  OK   Minha conta a 1280 px: nada fora do lugar (botão, selos, lista e campos dentro do cartão)
+
+== 6. Usuários e a janela da senha temporária a 320 e 390 px ==
+  OK   Usuários a 320 px: nada fora do lugar fora da tabela que rola
+  OK   Usuários a 390 px: nada fora do lugar fora da tabela que rola
+  OK   Usuários a 768 px: nada fora do lugar fora da tabela que rola
+  OK   a janela da senha temporária a 320 px: nada fora do lugar
+  OK   a janela da senha temporária a 390 px: nada fora do lugar
+
+== 7. Depois de encerrar as outras sessões, o foco não cai em BODY (WCAG 2.4.3) ==
+  OK   depois de encerrar as outras sessões o foco continua num elemento que existe, e não em BODY
+  OK   e esse elemento é a confirmação (quem usa leitor de tela ouve o que aconteceu)
+  OK   a confirmação é o próprio aviso (tabindex -1), sem papel de região viva, e não há região viva em volta nem dentro
+
+== 8. O aviso passageiro não cobre a janela da senha temporária (V2-F00-E09, correção 4) ==
+  OK   a 320 px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre
+  OK   a 320 px, o centro de cada botão da janela da senha temporária recebe o toque
+  OK   a 320 px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista
+  OK   a 320 px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)
+  OK   a 320 px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)
+  OK   a 320 px, o Fechar do aviso responde e o aviso sai da tela
+  OK   a 390 px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre
+  OK   a 390 px, o centro de cada botão da janela da senha temporária recebe o toque
+  OK   a 390 px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista
+  OK   a 390 px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)
+  OK   a 390 px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)
+  OK   a 390 px, o Fechar do aviso responde e o aviso sai da tela
+  OK   a 1280 px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre
+  OK   a 1280 px, o centro de cada botão da janela da senha temporária recebe o toque
+  OK   a 1280 px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista
+  OK   a 1280 px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)
+  OK   a 1280 px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)
+  OK   a 1280 px, o Fechar do aviso responde e o aviso sai da tela
+
+== 9. O email da lista de usuários não quebra no meio da palavra (V2-F00-E09, correção 4) ==
+  OK   a 1440 px a lista mostra pelo menos 5 emails para medir
+  OK   a 1440 px nenhum email quebra no meio da palavra
+  OK   a 1440 px nenhum email passa da própria célula
+  OK   a 1280 px a lista mostra pelo menos 5 emails para medir
+  OK   a 1280 px nenhum email quebra no meio da palavra
+  OK   a 1280 px nenhum email passa da própria célula
+  OK   a 768 px a lista mostra pelo menos 5 emails para medir
+  OK   a 768 px nenhum email quebra no meio da palavra
+  OK   a 768 px nenhum email passa da própria célula
+  OK   a 390 px a lista mostra pelo menos 5 emails para medir
+  OK   a 390 px nenhum email quebra no meio da palavra
+  OK   a 390 px nenhum email passa da própria célula
+  OK   a 320 px a lista mostra pelo menos 5 emails para medir
+  OK   a 320 px nenhum email quebra no meio da palavra
+  OK   a 320 px nenhum email passa da própria célula
+
+== 10. A senha atual errada diz o que fazer, com acento, no campo certo (V2-F00-E09, correção 4) ==
+  OK   Minha conta a 1280 px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer
+  OK   Minha conta a 1280 px: o ícone do erro não é espremido (14x14)
+  OK   Minha conta a 1280 px: depois do envio o foco está no campo da senha atual, e não em BODY
+  OK   Minha conta a 1280 px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)
+  OK   Minha conta a 1280 px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento
+  OK   Minha conta a 390 px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer
+  OK   Minha conta a 390 px: o ícone do erro não é espremido (14x14)
+  OK   Minha conta a 390 px: depois do envio o foco está no campo da senha atual, e não em BODY
+  OK   Minha conta a 390 px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)
+  OK   Minha conta a 390 px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento
+  OK   Minha conta a 320 px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer
+  OK   Minha conta a 320 px: o ícone do erro não é espremido (14x14)
+  OK   Minha conta a 320 px: depois do envio o foco está no campo da senha atual, e não em BODY
+  OK   Minha conta a 320 px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)
+  OK   Minha conta a 320 px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento
+  OK   Minha conta a 390x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo
+  OK   Minha conta a 360x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo
+  OK   Minha conta a 320x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo
+  OK   Minha conta, enviando com Espaço: depois da senha errada o foco está no campo da senha atual, e não em BODY nem no último campo
+  OK   Minha conta, enviando com Enter: depois da senha errada o foco está no campo da senha atual, e não em BODY nem no último campo
+  OK   Minha conta: depois da troca certa o foco vai à confirmação (e não a BODY)
+  OK   Minha conta: a senha errada logo depois de uma troca certa tira a confirmação verde da tela
+  OK   Minha conta: e o foco vai ao campo da senha atual
+  OK   a administradora redefine a senha da pessoa de teste (200 com senha temporária)
+  OK   "Defina a sua senha" a 390 px: a frase da provisória errada nomeia a provisória e diz o que fazer
+  OK   "Defina a sua senha" a 390 px: o ícone do erro não é espremido (14x14)
+  OK   "Defina a sua senha" a 390 px: depois do envio o foco está no campo da provisória, e não em BODY
+  OK   "Defina a sua senha" a 390 px: o erro está no campo da provisória, e não na senha nova
+  OK   "Defina a sua senha" a 1280 px: a frase da provisória errada nomeia a provisória e diz o que fazer
+  OK   "Defina a sua senha" a 1280 px: o ícone do erro não é espremido (14x14)
+  OK   "Defina a sua senha" a 1280 px: depois do envio o foco está no campo da provisória, e não em BODY
+  OK   "Defina a sua senha" a 1280 px: o erro está no campo da provisória, e não na senha nova
+  OK   "Defina a sua senha" a 320 px: a frase da provisória errada nomeia a provisória e diz o que fazer
+  OK   "Defina a sua senha" a 320 px: o ícone do erro não é espremido (14x14)
+  OK   "Defina a sua senha" a 320 px: depois do envio o foco está no campo da provisória, e não em BODY
+  OK   "Defina a sua senha" a 320 px: o erro está no campo da provisória, e não na senha nova
+  OK   "Defina a sua senha", enviando com Espaço: depois da provisória errada o foco está no campo da provisória, e não em BODY nem no último campo
+  OK   "Defina a sua senha", enviando com Enter: depois da provisória errada o foco está no campo da provisória, e não em BODY nem no último campo
+
+== 11. Email de parte comprida não esconde a coluna Ação, e a lista de órgãos não parte email nem telefone (V2-F00-E09, correção 4, revisão) ==
+  OK   Joana Semponto foi cadastrada para a medida
+  OK   Ana Subdominios foi cadastrada para a medida
+  OK   o órgão de teste foi cadastrado
+  OK   a 1280 px, com um email de parte comprida na lista, a tabela não rola
+  OK   a 1280 px, todos os botões de ação continuam dentro da tabela
+  OK   a 1280 px, o email de subdomínios quebra só depois do @ e dos pontos
+  OK   a 1440 px, com um email de parte comprida na lista, a tabela não rola
+  OK   a 1440 px, todos os botões de ação continuam dentro da tabela
+  OK   a 1440 px, o email de subdomínios quebra só depois do @ e dos pontos
+  OK   Órgãos a 1440 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 1440 px: há telefone para medir
+  OK   Órgãos a 1440 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 1280 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 1280 px: há telefone para medir
+  OK   Órgãos a 1280 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 768 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 768 px: há telefone para medir
+  OK   Órgãos a 768 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 390 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 390 px: há telefone para medir
+  OK   Órgãos a 390 px: nenhum telefone é partido em duas linhas
+  OK   Órgãos a 320 px: o email do órgão quebra só depois do @ e dos pontos
+  OK   Órgãos a 320 px: há telefone para medir
+  OK   Órgãos a 320 px: nenhum telefone é partido em duas linhas
+
+== 12. O email nas janelas do painel não quebra no meio da palavra (V2-F00-E09, correção 5) ==
+  OK   a 320 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 320 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 320 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 320 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 320 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 320 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 320 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 320 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 360 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 360 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 360 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 360 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 360 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 360 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 360 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 360 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 390 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 390 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 390 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 390 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 390 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 390 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 390 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 390 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 768 px, a janela "Redefinir senha" mostra o email da pessoa
+  OK   a 768 px, na janela "Redefinir senha" o email quebra só depois do @ e dos pontos
+  OK   a 768 px, na janela "Redefinir senha" o email cabe na área útil da janela
+  OK   a 768 px, na janela "Redefinir senha" a janela não ganha rolagem horizontal
+  OK   a 768 px, a janela "Desativar usuário" mostra o email da pessoa
+  OK   a 768 px, na janela "Desativar usuário" o email quebra só depois do @ e dos pontos
+  OK   a 768 px, na janela "Desativar usuário" o email cabe na área útil da janela
+  OK   a 768 px, na janela "Desativar usuário" a janela não ganha rolagem horizontal
+  OK   a 320 px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos
+  OK   a 320 px, a linha da tentativa de envio não dá rolagem horizontal à página
+  OK   a 360 px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos
+  OK   a 360 px, a linha da tentativa de envio não dá rolagem horizontal à página
+  OK   a 390 px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos
+  OK   a 390 px, a linha da tentativa de envio não dá rolagem horizontal à página
+
+== 13. O campo focado depois do erro fica inteiro entre o topo fixo e a barra do pé, e o ofício não sai do cartão (V2-F00-E09, correção 6) ==
+  OK   Minha conta a 640x450 (zoom de 200 por cento), senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x256 (zoom de 400 por cento), senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 640x360, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 740x360, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 601x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 700x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 768x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 900x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 1024x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 1280x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 390x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 360x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x568, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x568, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 390x700, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 640x450 (zoom de 200 por cento), Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 320x256 (zoom de 400 por cento), Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 768x600, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Nova ocorrência a 320x640, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 390x844, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 640x450 (zoom de 200 por cento), Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 320x256 (zoom de 400 por cento), Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 640x360, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 740x360, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 768x600, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 1280x600, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   há um ofício emitido na ocorrência da Equipe Alfa para medir
+  OK   Ocorrência a 320 px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal
+  OK   Ocorrência a 320 px, a linha da tentativa fica dentro do cartão
+  OK   com uma tentativa só, o botão diz "Ver a tentativa" e "Esconder a tentativa" (sem "as 1")
+  OK   e a explicação concorda no singular ("A tentativa ficou registrada")
+  OK   Ocorrência a 360 px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal
+  OK   Ocorrência a 360 px, a linha da tentativa fica dentro do cartão
+  OK   "Defina a sua senha" a 320x256 (zoom de 400 por cento): a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   "Defina a sua senha" a 640x450 (zoom de 200 por cento): a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   "Defina a sua senha" a 390x844: a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   Usuários a 320x256 (zoom de 400 por cento), cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 320x256 (zoom de 400 por cento), "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Usuários a 640x450 (zoom de 200 por cento), cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 640x450 (zoom de 200 por cento), "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Usuários a 390x844, cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 390x844, "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Quero conhecer a 320x256 (zoom de 400 por cento), sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Quero conhecer a 640x450 (zoom de 200 por cento), sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Quero conhecer a 390x844, sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Tab em /ocorrencias/nova a 390x844: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x844: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x844: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x844: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 320x640: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 320x640: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 320x640: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 320x640: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x450 (zoom de 200 por cento): as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x450 (zoom de 200 por cento): as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x450 (zoom de 200 por cento): as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x450 (zoom de 200 por cento): as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 320x256 (zoom de 400 por cento): as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 320x256 (zoom de 400 por cento): as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 320x256 (zoom de 400 por cento): as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 320x256 (zoom de 400 por cento): as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 390x400: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x400: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x400: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x400: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x360: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x360: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x360: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x360: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 740x360: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 740x360: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 740x360: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 740x360: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 390x844, com o quadro lento: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x844, com o quadro lento: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x844, com o quadro lento: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x844, com o quadro lento: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x450 (zoom de 200 por cento), com o quadro lento: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x450 (zoom de 200 por cento), com o quadro lento: as 7 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x450 (zoom de 200 por cento), com o quadro lento: as 10 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x450 (zoom de 200 por cento), com o quadro lento: as 16 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   a 390 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 320 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 1280 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 320 px, o texto de exemplo da busca do topo cabe inteiro no campo
+  OK   a 360 px, o texto de exemplo da busca do topo cabe inteiro no campo
+  OK   o agente de campo de teste foi cadastrado (para medir "Meu trabalho")
+  OK   a 320 px, no tema claro, nenhuma das 13 telas logadas rola na horizontal
+  OK   a 320 px, o texto de exemplo do filtro de Ocorrências ("Protocolo, endereço ou relato") cabe inteiro no campo
+  OK   a 320 px, no tema escuro, nenhuma das 13 telas logadas rola na horizontal
+
+====================================================
+Passou: 287   Falhou: 0
+Zero erro de console.

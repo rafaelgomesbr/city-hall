@@ -1,0 +1,6 @@
+[antes-f0e5f1b chromium 320 #filtro-busca] CORTADO "Protocolo, endereço, solicitante ou relato" 283.3 + 24 em 262.0
+[antes-f0e5f1b chromium 320 #busca-global] CABE "Buscar registro ou função" 176.3 + 24 em 226.0
+[antes-f0e5f1b firefox 320 #filtro-busca] CORTADO "Protocolo, endereço, solicitante ou relato" 283.3 + 24 em 262.0
+[antes-f0e5f1b firefox 320 #busca-global] CABE "Buscar registro ou função" 176.8 + 24 em 226.0
+[antes-f0e5f1b webkit 320 #filtro-busca] CORTADO "Protocolo, endereço, solicitante ou relato" 283.3 + 24 em 262.0
+[antes-f0e5f1b webkit 320 #busca-global] CABE "Buscar registro ou função" 176.5 + 24 em 226.0

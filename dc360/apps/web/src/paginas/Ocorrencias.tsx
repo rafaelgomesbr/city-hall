@@ -200,9 +200,17 @@ export function Ocorrencias() {
         onSubmit={(e) => { e.preventDefault(); trocar("busca", rascunhoBusca.trim() || null); }}
       >
         <label className="oculto-visualmente" htmlFor="filtro-busca">Buscar ocorrência</label>
+        {/*
+          O texto de exemplo é o único que se vê (o rótulo é só para quem ouve a
+          tela), então ele tem de caber a 320 px: saía cortado em "...solicitante
+          ou r" (revisão da correção 6 da V2-F00-E09), e "pessoa" no lugar de
+          "solicitante" ainda cortava no WebKit ("...pessoa ou relat"), que guarda
+          o lugar do "x" do campo de busca. A busca continua achando pelo nome do
+          solicitante; o exemplo não precisa listar tudo.
+        */}
         <input id="filtro-busca" type="search" value={rascunhoBusca}
                onChange={(e) => setRascunhoBusca(e.target.value)}
-               placeholder="Protocolo, endereço, solicitante ou relato"
+               placeholder="Protocolo, endereço ou relato"
                className="campo--longo" />
         <button type="submit" className="botao botao--secundario">Buscar</button>
         {(busca || soAtrasadas || severidade !== "todas" || status !== "ativas") && (

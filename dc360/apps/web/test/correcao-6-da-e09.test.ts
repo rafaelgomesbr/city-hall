@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { focarPrimeiroInvalido, SELETOR_MOLDURA, type NoFocavel } from "../src/componentes/foco";
 import {
-  barraPresaNoPe, comoLevarAoFocar, folgaDaBorda, topoPreso, VARIAVEL_PE, VARIAVEL_TOPO,
+  barraPresaNoPe, deslocamentoParaAFaixa, focoDoPonteiro, folgaDaBorda, JANELA_DO_PONTEIRO_MS, topoPreso, VARIAVEL_PE, VARIAVEL_TOPO,
 } from "../src/componentes/usar-bordas-fixas";
 import { estadoDoEnvio, rotuloDasTentativas } from "../src/paginas/oficio-regras";
 import { lerFonte } from "./ler-fonte";
@@ -101,26 +101,26 @@ describe("Achados 1 e 2: as folgas do topo e da barra do pé são medidas", () =
   });
 
   it("em janela muito baixa (zoom de 400 por cento, 320x256) o topo e a barra rolam com a página, e a medida os ignora", () => {
-    const baixa = blocoDaMidia(css(), "@media (max-height: 360px) {");
+    // Correção 6b: a altura desceu de 360 para 340 px (o Android deitado, 640x360, mantém a navegação fixa).
+    const baixa = blocoDaMidia(css(), "@media (max-height: 340px) {");
     expect(baixa).toMatch(/\.topo, \.lateral \{ position: static; \}/);
     expect(topoPreso({ position: "sticky" })).toBe(true);
     expect(topoPreso({ position: "static" })).toBe(false);
     expect(fonte("componentes", "usar-bordas-fixas.ts")).toMatch(/folgaDaBorda\(preso \? topo\.getBoundingClientRect\(\)\.height : 0\)/);
   });
 
-  it("o Tab também respeita as bordas: o foco que cai no conteúdo é levado à vista, e o que mora nas bordas não", () => {
-    const base = { naBorda: false, ehRegiao: false, topo: 500, altura: 44, faixaDe: 141, faixaAte: 549 };
-    expect(comoLevarAoFocar(base)).toBe("nearest");
-    expect(comoLevarAoFocar({ ...base, naBorda: true })).toBeNull();
-    expect(comoLevarAoFocar({ ...base, ehRegiao: true })).toBeNull();
-    // Mais alto que a faixa livre (a caixa da tabela no Tab do Firefox, 267 px numa faixa de 218): o começo à vista basta.
-    const alta = { ...base, altura: 267, faixaDe: 153, faixaAte: 359 };
-    expect(comoLevarAoFocar({ ...alta, topo: 200 })).toBeNull();
-    expect(comoLevarAoFocar({ ...alta, topo: 400 })).toBe("start");
-    expect(comoLevarAoFocar({ ...alta, topo: 100 })).toBe("start");
+  it("o Tab também respeita as bordas: o foco que cai no conteúdo é levado inteiro à faixa entre o topo e a barra do pé", () => {
+    const faixa = { faixaDe: 129, faixaAte: 765, respiro: 12 };
+    // Já inteiro na faixa: não mexe.
+    expect(deslocamentoParaAFaixa({ ...faixa, topo: 300, altura: 44 })).toBe(0);
+    // Sob a barra do pé: sobe até a barra, com o respiro.
+    expect(deslocamentoParaAFaixa({ ...faixa, topo: 857, altura: 44 })).toBe(857 + 44 - (765 - 12));
+    // Sob o topo: desce até o topo, com o respiro.
+    expect(deslocamentoParaAFaixa({ ...faixa, topo: 100, altura: 44 })).toBe(100 - (129 + 12));
     const hook = fonte("componentes", "usar-bordas-fixas.ts");
     expect(hook).toMatch(/document\.addEventListener\("focusin", aoFocar\)/);
-    expect(hook).toMatch(/if \(bloco\) alvo\.scrollIntoView\(\{ block: bloco \}\);/);
+    expect(hook).toMatch(/if \(desvio !== 0\) window\.scrollBy\(0, desvio\);/);
+    expect(hook).toMatch(/alvo\.closest\("\.topo, \.lateral, \.pular-para-conteudo, \[role=\\"dialog\\"\]"\) \|\| alvo\.id === "conteudo"/);
     expect(fonte("componentes", "Estrutura.tsx")).toMatch(/useFocoForaDasBordas\(Boolean\(sessao\)\);/);
   });
 
@@ -130,6 +130,60 @@ describe("Achados 1 e 2: as folgas do topo e da barra do pé são medidas", () =
     expect(folha.split(regra).length - 1).toBe(1);
     const linha = folha.split("\n").find((l) => l.includes(regra));
     expect(linha?.startsWith(".campo")).toBe(true);
+  });
+});
+
+describe("Correção 6b: o ajuste do Tab não espera o quadro seguinte", () => {
+  it("roda na hora, dentro do focusin, numa tarefa logo depois e de novo no quadro seguinte (no WebKit do Linux o quadro chegava tarde)", () => {
+    const hook = fonte("componentes", "usar-bordas-fixas.ts");
+    const corpo = hook.slice(hook.indexOf("const aoFocar = (evento: FocusEvent) => {"), hook.indexOf('document.addEventListener("focusin", aoFocar);'));
+    expect(corpo).toMatch(/\n\s+ajustar\(alvo\);\n\s+setTimeout\(\(\) => ajustar\(alvo\), 0\);\n\s+requestAnimationFrame\(\(\) => ajustar\(alvo\)\);/);
+    // E cada passada confere que o foco ainda está no mesmo elemento antes de rolar.
+    expect(hook).toMatch(/const ajustar = \(alvo: HTMLElement\) => \{\n\s+if \(document\.activeElement !== alvo\) return;/);
+  });
+});
+
+describe("Correção 6b: o ajuste é do teclado, e não rola a página sob o clique", () => {
+  it("o foco que chega logo depois de um toque ou clique não é ajustado (rolar no pointerdown perde o clique)", () => {
+    expect(focoDoPonteiro(1000, null)).toBe(false);
+    expect(focoDoPonteiro(1000, 900)).toBe(true);
+    expect(focoDoPonteiro(1000 + JANELA_DO_PONTEIRO_MS, 1000)).toBe(false);
+    const hook = fonte("componentes", "usar-bordas-fixas.ts");
+    expect(hook).toMatch(/document\.addEventListener\("pointerdown", aoApontar, true\);/);
+    expect(hook).toMatch(/if \(focoDoPonteiro\(performance\.now\(\), ultimoPonteiro\)\) return;\n\s+ajustar\(alvo\);/);
+  });
+});
+
+describe("Correção 6b, revisão: a conta do Tab usa as bordas reais", () => {
+  it("o que cabe na faixa real mas não na faixa com respiro vai inteiro, com o respiro que sobra (a caixa do painel a 390x400)", () => {
+    // Faixa real de 192 px (129 a 321), caixa de 180 px: sobram 6 px de cada lado.
+    expect(deslocamentoParaAFaixa({ topo: 147, altura: 180, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(147 + 180 - (321 - 6));
+    expect(deslocamentoParaAFaixa({ topo: 135, altura: 180, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(0);
+  });
+
+  it("o que é mais alto que a faixa real vai com o começo ao começo da faixa (a caixa de Órgãos a 390x400)", () => {
+    expect(deslocamentoParaAFaixa({ topo: 295, altura: 267, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(295 - 129);
+    expect(deslocamentoParaAFaixa({ topo: 129.4, altura: 267, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(0);
+  });
+});
+
+describe("Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga", () => {
+  it("o teto do email da tabela vale em qualquer largura, e não só até 1399 px", () => {
+    const folha = css();
+    expect(folha).toMatch(/^\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}$/m);
+    expect(folha).not.toMatch(/@media \(max-width: 1399px\) \{\n  \.tabela__secundario--email/);
+  });
+
+  it("a paginação e os controles dela quebram em linhas", () => {
+    const folha = css();
+    expect(folha).toMatch(/\.paginacao \{\n  display: flex; flex-wrap: wrap;/);
+    expect(folha).toMatch(/\.paginacao__controles \{ display: flex; flex-wrap: wrap; gap: var\(--ds-sp-2\); \}/);
+  });
+
+  it("o texto de exemplo do filtro de Ocorrências é o curto, que cabe a 320 px", () => {
+    const tela = fonte("paginas", "Ocorrencias.tsx");
+    expect(tela).toMatch(/placeholder="Protocolo, endereço ou relato"/);
+    expect(tela).not.toMatch(/solicitante ou relato/);
   });
 });
 

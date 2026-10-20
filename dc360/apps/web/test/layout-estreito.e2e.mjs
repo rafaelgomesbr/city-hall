@@ -791,7 +791,15 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a 
 {
   const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
   const mat = () => `RV-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
-  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixo}@serraalta.exemplo.gov.br`;
+  /*
+    O sufixo do email de parte comprida é de PIOR CASO, e não ao acaso (revisão
+    da correção 6): com o \`Date.now().toString(36)\` a largura mudava a cada
+    execução, e com letras largas a tabela rolava a 1440 px (1083 de 1062) numa
+    execução e não na outra. Aqui o sufixo só tem "m" e "w", as letras mais
+    largas, e é único por execução (o relógio em binário, uma letra por bit).
+  */
+  const sufixoLargo = Date.now().toString(2).slice(-16).replace(/0/g, "m").replace(/1/g, "w");
+  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixoLargo}@serraalta.exemplo.gov.br`;
   const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
   for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
     const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
@@ -996,9 +1004,34 @@ async function contextoDeFoco(largura, altura, dpr = 1) {
   pg.on("console", (m) => {
     if (m.type() !== "error") return;
     if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
+    // A mesma exceção do contexto principal: a fonte cuja carga o Firefox aborta ao trocar de página.
+    if (/downloadable font: download failed .*status=2152398850 /.test(m.text())) return;
     erros.push(`console: ${m.text()}`);
   });
   return { ctx, pg };
+}
+/**
+ * O texto de exemplo de um campo cabe inteiro? Medido pelo layout do próprio
+ * motor, e não pelo canvas: um <span> com a fonte computada do campo, contra a
+ * caixa de conteúdo dele, menos a reserva do "x" que o WebKit guarda no campo de
+ * busca (a medida pelo canvas aprovou "Protocolo, endereço, pessoa ou relato",
+ * que o WebKit mostrava cortado em "...ou relat").
+ */
+async function exemploCabe(pg, seletor) {
+  return pg.evaluate((sel) => {
+    const campo = document.querySelector(sel);
+    const cs = getComputedStyle(campo);
+    const regua = document.createElement("span");
+    regua.textContent = campo.placeholder;
+    regua.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${cs.font};letter-spacing:${cs.letterSpacing}`;
+    document.body.append(regua);
+    const texto = regua.getBoundingClientRect().width;
+    regua.remove();
+    const area = campo.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)
+      - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const reservaDoX = campo.type === "search" ? 24 : 0;
+    return { cabe: texto + reservaDoX <= area + 0.5, texto, area, reservaDoX, exemplo: campo.placeholder };
+  }, seletor);
 }
 /** Rótulo e campo focados, inteiros entre o topo fixo e a barra do pé, sem nada por cima. */
 async function campoFocadoAVista(pg) {
@@ -1040,7 +1073,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
   }
 
   // A) Minha conta, senha atual errada (o 401 do servidor): uma conta por tamanho, para não chegar ao bloqueio por tentativas.
-  for (const [l, a, d] of [[640, 450, 2], [320, 256, 1], [601, 700, 1], [700, 600, 1], [768, 600, 1], [900, 600, 1], [1024, 600, 1], [1280, 600, 1], [390, 700, 1], [360, 700, 1], [320, 568, 1]]) {
+  for (const [l, a, d] of [[640, 450, 2], [320, 256, 1], [640, 360, 1], [740, 360, 1], [601, 700, 1], [700, 600, 1], [768, 600, 1], [900, 600, 1], [1024, 600, 1], [1280, 600, 1], [390, 700, 1], [360, 700, 1], [320, 568, 1]]) {
     const email = await contaDeOperador();
     const { ctx, pg } = await contextoDeFoco(l, a, d);
     await entrar(email, SENHA_DO_TESTE, pg);
@@ -1081,7 +1114,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
 
   // C) Nova ocorrência: o nome do solicitante e Enter (o "Ir" do teclado do celular); o primeiro campo que falta, Endereço, está abaixo da janela.
   const emailDaOcorrencia = await contaDeOperador();
-  for (const [l, a, d] of [[320, 640, 1], [390, 844, 1], [640, 450, 2], [320, 256, 1], [768, 600, 1], [1280, 600, 1]]) {
+  for (const [l, a, d] of [[320, 640, 1], [390, 844, 1], [640, 450, 2], [320, 256, 1], [640, 360, 1], [740, 360, 1], [768, 600, 1], [1280, 600, 1]]) {
     const { ctx, pg } = await contextoDeFoco(l, a, d);
     await entrar(emailDaOcorrencia, SENHA_DO_TESTE, pg);
     await pg.goto(`${BASE}/ocorrencias/nova`, { waitUntil: "networkidle" });
@@ -1230,10 +1263,30 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
     Safari, o Tab não para em botão nem link; lá cada elemento que o Tab
     alcançaria recebe o foco por código, na ordem do documento, que faz a mesma
     rolagem do motor.
+
+    Correção 6b: no WebKit sem tela do Linux (CI, run 39488319365) o ajuste do
+    painel, que rodava só no quadro seguinte, chegava tarde e os campos ficavam
+    sob a barra do pé a 640x450 e abaixo da janela a 390x844. A rodada com o
+    QUADRO LENTO (o `requestAnimationFrame` atrasado em 1 s em qualquer motor)
+    reproduz essa condição no Mac e prova que o foco fica à vista sem depender
+    do quadro seguinte.
   */
-  for (const [l, a, d] of [[390, 844, 1], [320, 640, 1], [640, 450, 2], [320, 256, 1]]) {
-    for (const rota of ["/ocorrencias/nova", "/minha-conta", "/orgaos"]) {
+  /*
+    A revisão da correção 6 achou ainda o Tab do Firefox na caixa que rola uma
+    tabela (Painel e Órgãos a 390x400, a caixa ficava 6 px ou quase inteira sob a
+    barra do pé), e pediu o Android deitado (640x360 e 740x360), onde topo e
+    barra continuam fixos.
+  */
+  const TAMANHOS_DO_TAB = [[390, 844, 1, 0], [320, 640, 1, 0], [640, 450, 2, 0], [320, 256, 1, 0], [390, 400, 1, 0], [640, 360, 1, 0], [740, 360, 1, 0], [390, 844, 1, 1000], [640, 450, 2, 1000]];
+  for (const [l, a, d, atrasoDoQuadro] of TAMANHOS_DO_TAB) {
+    for (const rota of ["/ocorrencias/nova", "/minha-conta", "/orgaos", "/painel"]) {
       const { ctx, pg } = await contextoDeFoco(l, a, d);
+      if (atrasoDoQuadro) {
+        await ctx.addInitScript((ms) => {
+          const original = window.requestAnimationFrame.bind(window);
+          window.requestAnimationFrame = (acao) => { setTimeout(() => original(acao), ms); return 0; };
+        }, atrasoDoQuadro);
+      }
       await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
       await pg.goto(`${BASE}${rota}`, { waitUntil: "networkidle" });
       await pg.waitForTimeout(300);
@@ -1279,7 +1332,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
           const m = await medirParada(); if (!m) continue; paradas++; if (!m.ok) fora.push(m.nome);
         }
       }
-      ok(`Tab em ${rota} a ${tamanho(l, a, d)}: as ${paradas} paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé`,
+      ok(`Tab em ${rota} a ${tamanho(l, a, d)}${atrasoDoQuadro ? ", com o quadro lento" : ""}: as ${paradas} paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé`,
          paradas > 0 && fora.length === 0, `(${fora.slice(0, 4).join("; ")})`);
       await ctx.close();
     }
@@ -1307,19 +1360,57 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
   for (const largura of [320, 360]) {
     await pg.setViewportSize({ width: largura, height: 700 });
     await pg.waitForTimeout(200);
-    const m = await pg.evaluate(() => {
-      const campo = document.querySelector("#busca-global");
-      const cs = getComputedStyle(campo);
-      const regua = document.createElement("canvas").getContext("2d");
-      regua.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-      const area = campo.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)
-        - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      return { texto: regua.measureText(campo.placeholder).width, area };
-    });
+    const m = await exemploCabe(pg, "#busca-global");
     ok(`a ${largura} px, o texto de exemplo da busca do topo cabe inteiro no campo`,
-       m.texto <= m.area + 0.5, `(texto ${m.texto.toFixed(1)} px, área ${m.area.toFixed(1)} px)`);
+       m.cabe, `(texto ${m.texto.toFixed(1)} px mais ${m.reservaDoX} do "x", área ${m.area.toFixed(1)} px)`);
   }
   await ctx.close();
+
+  /*
+    I) Nenhuma tela logada rola na horizontal a 320 px, nos dois temas (revisão
+    da correção 6: Ocorrências em 325 de 320 e Prestação de contas em 330, com
+    "Próxima" da paginação fora da tela). E o texto de exemplo do filtro de
+    Ocorrências cabe inteiro ("...solicitante ou r" saía cortado).
+  */
+  // "Meu trabalho" é a tela do agente de campo: a administradora recebe 403 nela, então ela é medida com um agente, logo abaixo.
+  const TELAS_LOGADAS = ["/painel", "/minha-conta", "/ocorrencias", "/ocorrencias/nova", `/ocorrencias/${OC_DO_OFICIO}`,
+    "/mapa", "/quem-esta-em-campo", "/equipes", "/orgaos", "/usuarios", "/auditoria", "/organizacao"];
+  const equipes = await viaApi("/equipes", { token: adm.json.acesso });
+  const equipeId = (equipes.json.itens ?? equipes.json)[0]?.id;
+  const emailDoAgente = `agente.320.${sufixo}@serraalta.exemplo.gov.br`;
+  const agente = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+    corpo: { nome: "Agente da Tela Estreita", matricula: `AG-${sufixo}`.toUpperCase(), email: emailDoAgente, papel: "agente_campo", equipeId, senha: SENHA_DO_TESTE } });
+  ok("o agente de campo de teste foi cadastrado (para medir \"Meu trabalho\")", agente.status === 201 || agente.status === 200, `(${agente.status})`);
+  for (const tema of ["claro", "escuro"]) {
+    const { ctx: c320, pg: p320 } = await contextoDeFoco(320, 640);
+    await c320.addInitScript((t) => { try { localStorage.setItem("dc360:tema", t); } catch { /* sem armazenamento */ } }, tema);
+    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, p320);
+    const rolam = [];
+    for (const rota of TELAS_LOGADAS) {
+      await p320.goto(`${BASE}${rota}`, { waitUntil: "networkidle" });
+      await p320.waitForTimeout(300);
+      const largura = await p320.evaluate(() => document.documentElement.scrollWidth);
+      if (largura > 321) rolam.push(`${rota} (${largura} de 320)`);
+    }
+    {
+      const { ctx: cAg, pg: pAg } = await contextoDeFoco(320, 640);
+      await cAg.addInitScript((t) => { try { localStorage.setItem("dc360:tema", t); } catch { /* sem armazenamento */ } }, tema);
+      await entrar(emailDoAgente, SENHA_DO_TESTE, pAg);
+      await pAg.goto(`${BASE}/meu-trabalho`, { waitUntil: "networkidle" });
+      await pAg.waitForTimeout(300);
+      const doAgente = await pAg.evaluate(() => document.documentElement.scrollWidth);
+      if (doAgente > 321) rolam.push(`/meu-trabalho (${doAgente} de 320)`);
+      await cAg.close();
+    }
+    ok(`a 320 px, no tema ${tema}, nenhuma das ${TELAS_LOGADAS.length + 1} telas logadas rola na horizontal`, rolam.length === 0, `(${rolam.join("; ")})`);
+    if (tema === "claro") {
+      await p320.goto(`${BASE}/ocorrencias`, { waitUntil: "networkidle" });
+      const f = await exemploCabe(p320, "#filtro-busca");
+      ok(`a 320 px, o texto de exemplo do filtro de Ocorrências ("${f.exemplo}") cabe inteiro no campo`,
+         f.cabe, `(texto ${f.texto.toFixed(1)} px mais ${f.reservaDoX} do "x", área ${f.area.toFixed(1)} px)`);
+    }
+    await c320.close();
+  }
 }
 
 await navegador.close();

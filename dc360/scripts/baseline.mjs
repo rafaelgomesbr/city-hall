@@ -616,6 +616,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
   // V2-F00-E09, correção 6: `correcao-6-da-e09.test.ts` é novo, com 17 casos (o foco que leva à vista a moldura do campo e depois o controle, as folgas medidas do topo e da barra do pé, a janela muito baixa em que os dois rolam com a página, o Tab que respeita as bordas, a margem do rótulo em qualquer largura, o ofício que encolhe abaixo da palavra mais longa, o singular e o plural das tentativas, a busca a 320 px e o nome do link de Minha conta). `correcao-5-da-e09.test.ts` trocou duas asserções no lugar (a folga medida e a regra do ofício), sem caso novo. Nenhuma falha nova.
   "V2-F00-E09-correcao-6": { total: 17, falhas: 0 },
+  // V2-F00-E09, correção 6b: `correcao-6-da-e09.test.ts` ganha 7 casos (o ajuste do Tab roda na hora, numa tarefa logo depois e no quadro seguinte; o foco que vem do toque ou do clique não é ajustado; a conta do Tab pelas bordas reais, para o que cabe e para o que é mais alto que a faixa; o teto do email em qualquer largura; a paginação que quebra em linhas; o texto de exemplo curto do filtro de Ocorrências). Dois casos da correção 6 e um da correção 4 trocaram a asserção no lugar (a altura de 340 px, a conta do Tab e o teto do email em qualquer largura). Nenhuma falha nova.
+  "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -928,13 +930,22 @@ export const PASSOS = [
     quatro tamanhos (12), a linha do oficio na tela de verdade a 320 e 360 px
     (7), a busca do topo a 320 e 360 px (2) e o nome do link de Minha conta (3).
     Medido no Mac, Node 24: 255 no Chromium e no Firefox, 254 no WebKit.
+
+    Correcao 6b da E09 (2026-10-20): de 255 para 287 (mais 32): o Tab com o
+    quadro lento (requestAnimationFrame atrasado em 1 s, a condicao do WebKit
+    sem tela do Linux que reprovou no CI, run 39488319365), a 390x400 e no
+    Android deitado (640x360 e 740x360), agora em quatro telas com o Painel
+    (de 12 para 36), Minha conta e Nova ocorrencia no Android deitado (4), e a
+    rolagem horizontal a 320 px de todas as telas logadas nos dois temas, mais o
+    texto de exemplo do filtro de Ocorrencias e o cadastro do agente (4). 287 no
+    Chromium e no Firefox, 286 no WebKit.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 255   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 287   Falhou: 0"] },
   },
 ];
 

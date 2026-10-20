@@ -94,56 +94,110 @@ export function useBordasFixas(
  * rodada 7 da V2-F00-E09, WCAG 2.4.11). Cada motor rola o elemento que recebe o
  * Tab do seu jeito: o Chromium deixava a caixa "Descrição" da Nova ocorrência
  * pela metade atrás da barra do pé a 320 px, porque um elemento já à vista em
- * parte não é rolado. Depois da rolagem do próprio motor, o foco que caiu no
- * conteúdo é levado à vista com `nearest`, que respeita o `scroll-padding`
- * medido acima e não mexe em nada se o elemento já está inteiro na faixa livre.
+ * parte não é rolado.
  *
- * O que é mais alto que a faixa livre (a caixa que rola uma tabela larga, que o
- * Firefox põe no Tab) não cabe inteiro: aí o que importa é o COMEÇO dele à
- * vista, e ele só é rolado (`start`) quando a borda de cima está fora da faixa.
+ * Diz quantos pixels a página tem de rolar na vertical para o elemento focado
+ * ficar inteiro entre a borda de baixo do topo fixo (`faixaDe`) e a de cima da
+ * barra do pé (`faixaAte`), com um respiro de cada lado quando cabe. Zero quando
+ * já está.
  *
- * Fica de fora o que mora nas próprias bordas (o topo, a barra do pé, o "Pular
- * para o conteúdo"), o `<main>` que recebe o foco do "Pular" e a janela de
- * diálogo, que tem a própria rolagem.
+ * A conta é sobre as bordas REAIS, e não sobre o `scroll-padding` (que já soma o
+ * respiro): a versão anterior decidia pela faixa com as folgas, e o elemento que
+ * cabia na faixa real mas não na faixa com folgas (a caixa que rola o painel no
+ * Firefox, a 390x400) era tratado como alto demais e ficava 6 px escondido sob a
+ * barra (revisão da correção 6). O que é mais alto que a faixa real não cabe
+ * inteiro: aí o começo dele vai para o começo da faixa, o máximo que se pode
+ * mostrar (antes só rolava quando o começo estava fora, e a caixa de Órgãos a
+ * 390x400 ficava com 26 px à vista).
  */
-export function comoLevarAoFocar(alvo: {
-  naBorda: boolean;
-  ehRegiao: boolean;
+export function deslocamentoParaAFaixa(alvo: {
   topo: number;
   altura: number;
-  /** Onde a faixa livre começa e termina, na janela (as duas folgas já descontadas). */
   faixaDe: number;
   faixaAte: number;
-}): "nearest" | "start" | null {
-  if (alvo.naBorda || alvo.ehRegiao) return null;
-  if (alvo.altura <= alvo.faixaAte - alvo.faixaDe) return "nearest";
-  const comecoAVista = alvo.topo >= alvo.faixaDe - 0.5 && alvo.topo < alvo.faixaAte;
-  return comecoAVista ? null : "start";
+  respiro: number;
+}): number {
+  const faixa = alvo.faixaAte - alvo.faixaDe;
+  const baixo = alvo.topo + alvo.altura;
+  if (alvo.altura > faixa) {
+    const desvio = alvo.topo - alvo.faixaDe;
+    return Math.abs(desvio) < 1 ? 0 : desvio;
+  }
+  const respiro = Math.max(0, Math.min(alvo.respiro, (faixa - alvo.altura) / 2));
+  if (alvo.topo < alvo.faixaDe - 0.5) return alvo.topo - (alvo.faixaDe + respiro);
+  if (baixo > alvo.faixaAte + 0.5) return baixo - (alvo.faixaAte - respiro);
+  return 0;
 }
 
-/** Liga o ajuste do Tab enquanto a estrutura (com as bordas fixas) está na tela. */
+/**
+ * Quanto tempo depois de um toque ou clique o foco ainda é "do ponteiro".
+ *
+ * O ajuste é do TECLADO (WCAG 2.4.11 fala do foco de quem navega por teclado).
+ * No foco que vem do ponteiro ele não pode rolar: o foco chega no `pointerdown`,
+ * e rolar a página ali faz o `pointerup` cair em outro lugar, e o clique se
+ * perde. Visto no WebKit, que não foca o botão clicado e leva o foco ao
+ * envoltório focável de fora (`#cartao-coordenada`, `tabIndex={-1}`): a página
+ * rolava sob o dedo e "Corrigir a coordenada" não abria (correção 6b).
+ */
+export const JANELA_DO_PONTEIRO_MS = 800;
+
+export function focoDoPonteiro(agora: number, ultimoPonteiro: number | null): boolean {
+  return ultimoPonteiro !== null && agora - ultimoPonteiro >= 0 && agora - ultimoPonteiro < JANELA_DO_PONTEIRO_MS;
+}
+
+/**
+ * Liga o ajuste do Tab enquanto a estrutura (com as bordas fixas) está na tela.
+ *
+ * O ajuste roda TRÊS vezes: na hora, dentro do `focusin`; numa tarefa logo
+ * depois (`setTimeout` sem espera), quando a rolagem do próprio motor já
+ * aconteceu; e de novo no quadro seguinte. Era só no quadro seguinte
+ * (`requestAnimationFrame`), e no WebKit sem tela do Linux (o CI, run
+ * 39488319365) o quadro demorava mais que o Tab seguinte: o campo ficava parado
+ * sob a barra do pé (a 640x450, "Senha nova" em 407..451 com a barra desde 371)
+ * ou nem rolava (a 390x844, "Repita a senha" em 857..901, abaixo da janela).
+ * Reproduzido no Mac atrasando o quadro em 1 s: os três motores deixavam campos
+ * fora da faixa livre. Rodando na hora, o elemento já está inteiro na faixa
+ * quando o motor faz a rolagem dele, que só rola o que não está à vista. Em
+ * todas as passadas, o que já está na faixa não se mexe.
+ *
+ * Cada passada leva o elemento à vista na horizontal, dentro da caixa que rola
+ * uma tabela larga (`inline: "nearest"`), e acerta a vertical da página pela
+ * conta de `deslocamentoParaAFaixa`. Fica de fora o que mora nas próprias
+ * bordas (o topo, a barra do pé, o "Pular para o conteúdo"), o `<main>` que
+ * recebe o foco do "Pular" e a janela de diálogo, que tem a própria rolagem.
+ */
 export function useFocoForaDasBordas(desenhada: boolean): void {
   useEffect(() => {
     if (!desenhada) return;
+    const ajustar = (alvo: HTMLElement) => {
+      if (document.activeElement !== alvo) return;
+      if (alvo.closest(".topo, .lateral, .pular-para-conteudo, [role=\"dialog\"]") || alvo.id === "conteudo") return;
+      const topo = document.querySelector<HTMLElement>(".topo");
+      const barra = document.querySelector<HTMLElement>(".lateral");
+      const faixaDe = topo && topoPreso(getComputedStyle(topo)) ? topo.getBoundingClientRect().bottom : 0;
+      const faixaAte = barra && barraPresaNoPe(getComputedStyle(barra))
+        ? barra.getBoundingClientRect().top : window.innerHeight;
+      alvo.scrollIntoView({ block: "nearest", inline: "nearest" });
+      const caixa = alvo.getBoundingClientRect();
+      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
+      const desvio = deslocamentoParaAFaixa({ topo: caixa.top, altura: caixa.height, faixaDe, faixaAte, respiro });
+      if (desvio !== 0) window.scrollBy(0, desvio);
+    };
+    let ultimoPonteiro: number | null = null;
+    const aoApontar = () => { ultimoPonteiro = performance.now(); };
     const aoFocar = (evento: FocusEvent) => {
       const alvo = evento.target;
       if (!(alvo instanceof HTMLElement)) return;
-      requestAnimationFrame(() => {
-        if (document.activeElement !== alvo) return;
-        const folgas = getComputedStyle(document.documentElement);
-        const caixa = alvo.getBoundingClientRect();
-        const bloco = comoLevarAoFocar({
-          naBorda: alvo.closest(".topo, .lateral, .pular-para-conteudo") !== null,
-          ehRegiao: alvo.id === "conteudo" || alvo.closest('[role="dialog"]') !== null,
-          topo: caixa.top,
-          altura: caixa.height,
-          faixaDe: parseFloat(folgas.scrollPaddingTop) || 0,
-          faixaAte: window.innerHeight - (parseFloat(folgas.scrollPaddingBottom) || 0),
-        });
-        if (bloco) alvo.scrollIntoView({ block: bloco });
-      });
+      if (focoDoPonteiro(performance.now(), ultimoPonteiro)) return;
+      ajustar(alvo);
+      setTimeout(() => ajustar(alvo), 0);
+      requestAnimationFrame(() => ajustar(alvo));
     };
+    document.addEventListener("pointerdown", aoApontar, true);
     document.addEventListener("focusin", aoFocar);
-    return () => document.removeEventListener("focusin", aoFocar);
+    return () => {
+      document.removeEventListener("pointerdown", aoApontar, true);
+      document.removeEventListener("focusin", aoFocar);
+    };
   }, [desenhada]);
 }

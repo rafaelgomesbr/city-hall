@@ -1,0 +1,27 @@
+[antes-f0e5f1b chromium quadro-lento minha-conta 390x844] input#conta-senha-repetida 683..727 entre 129 e 765
+[antes-f0e5f1b chromium quadro-lento minha-conta 640x450] input#conta-senha-repetida 252..296 entre 141 e 371
+[antes-f0e5f1b chromium tab-caixa /painel 390x400] o Tab deste motor não para na caixa que rola
+[antes-f0e5f1b chromium tab-caixa /orgaos 390x400] o Tab deste motor não para na caixa que rola
+[antes-f0e5f1b chromium 320 /ocorrencias] largura da página 325 de 320; paginação presente
+[antes-f0e5f1b chromium 320 /auditoria] largura da página 330 de 320; paginação presente
+[antes-f0e5f1b chromium usuarios 1440] tabela 1097/1062
+[antes-f0e5f1b chromium deitado 640x360] À VISTA foco=conta-senha-atual rótulo=16..40 campo=48..92 topo até -497 pé desde 360 janela 640x360 spt=12px spb=12px
+[antes-f0e5f1b chromium deitado 740x360] À VISTA foco=conta-senha-atual rótulo=16..40 campo=48..92 topo até -481 pé desde 360 janela 740x360 spt=12px spb=12px
+[antes-f0e5f1b firefox quadro-lento minha-conta 390x844] input#conta-senha-repetida 683..727 entre 129 e 765
+[antes-f0e5f1b firefox quadro-lento minha-conta 640x450] input#conta-senha-repetida 252..296 entre 141 e 371
+[antes-f0e5f1b firefox tab-caixa /painel 390x400] div.tabela-envolucro 267..883 entre 129 e 321
+[antes-f0e5f1b firefox tab-caixa /orgaos 390x400] div.tabela-envolucro 179..309 entre 129 e 321
+[antes-f0e5f1b firefox 320 /ocorrencias] largura da página 325 de 320; paginação presente
+[antes-f0e5f1b firefox 320 /auditoria] largura da página 330 de 320; paginação presente
+[antes-f0e5f1b firefox usuarios 1440] tabela 1105/1062
+[antes-f0e5f1b firefox deitado 640x360] À VISTA foco=conta-senha-atual rótulo=16..40 campo=48..92 topo até -497 pé desde 360 janela 640x360 spt=12px spb=12px
+[antes-f0e5f1b firefox deitado 740x360] À VISTA foco=conta-senha-atual rótulo=16..40 campo=48..92 topo até -481 pé desde 360 janela 740x360 spt=12px spb=12px
+[antes-f0e5f1b webkit quadro-lento minha-conta 390x844] input#conta-senha-repetida 723..767 entre 129 e 765
+[antes-f0e5f1b webkit quadro-lento minha-conta 640x450] input#conta-senha-repetida 329..373 entre 141 e 371
+[antes-f0e5f1b webkit tab-caixa /painel 390x400] o Tab deste motor não para na caixa que rola
+[antes-f0e5f1b webkit tab-caixa /orgaos 390x400] o Tab deste motor não para na caixa que rola
+[antes-f0e5f1b webkit 320 /ocorrencias] largura da página 325 de 320; paginação presente
+[antes-f0e5f1b webkit 320 /auditoria] largura da página 330 de 320; paginação presente
+[antes-f0e5f1b webkit usuarios 1440] tabela 1097/1062
+[antes-f0e5f1b webkit deitado 640x360] À VISTA foco=conta-senha-atual rótulo=16..40 campo=48..92 topo até -497 pé desde 360 janela 640x360 spt=12px spb=12px
+[antes-f0e5f1b webkit deitado 740x360] À VISTA foco=conta-senha-atual rótulo=16..40 campo=48..92 topo até -481 pé desde 360 janela 740x360 spt=12px spb=12px

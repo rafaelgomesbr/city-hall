@@ -187,9 +187,9 @@ describe("Revisão 3: depois de enviar o foco não cai em BODY", () => {
 });
 
 describe("Revisão 4: um email de parte comprida não empurra a coluna Ação", () => {
-  it("a linha do email tem teto até 1399 px e quebra a palavra só se ela não couber", () => {
+  it("a linha do email tem teto (desde a correção 6b, em qualquer largura) e quebra a palavra só se ela não couber", () => {
     const css = fonte("estilos", "app.css");
-    expect(css).toMatch(/@media \(max-width: 1399px\) \{\s+\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}\s+\}/);
+    expect(css).toMatch(/^\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}$/m);
     expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: break-word;/);
   });
 });
