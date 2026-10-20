@@ -3,9 +3,12 @@
 # O que ele impõe, e por quê:
 #
 # - Dependência com vulnerabilidade conhecida em runtime é bug, não pendência
-#   (CLAUDE.md). Quem decide é `npm run auditar`, a política do CP-03 já
-#   codificada, e não um `npm audit` cru. Ele roda no job `dependencias`, sozinho,
-#   para a leitura job a job ficar limpa. O CP-03 está decidido (2026-10-07):
+#   (CLAUDE.md). Quem decide é `scripts/auditar.mjs` (o `npm run auditar` da
+#   máquina), a política do CP-03 já codificada, e não um `npm audit` cru. Aqui
+#   ele é chamado pelo `node`, e não pelo `npm run`, para que nenhuma
+#   configuração do npm decida se ele roda. Roda no job `dependencias`, sozinho,
+#   para a leitura job a job ficar limpa (antes, o job reprova `.npmrc`
+#   versionado), e de novo no job `windows`. O CP-03 está decidido (2026-10-07):
 #   o runtime da raiz fecha em zero e o aplicativo de campo é auditado contra a
 #   lista nomeada de `scripts/auditar-excecoes.mjs` (motivo, dono e prazo).
 #   Job vermelho ali quer dizer dependência de execução vulnerável, exceção
@@ -16,24 +19,33 @@
 #
 # ESTE CI É PROVA DE EXECUÇÃO EM LINUX (docs/roadmap-v2/28-execucao-e-validacao.md,
 # seções 6 e 8): o gatekeeper lê o run do SHA do commit candidato e avalia job a
-# job, com artefato. O job `plataformas` é a exceção que também prova Windows
-# (`windows-latest`, V2-F00-E21): os três casos de ambiente da etapa, sob a
-# condição hostil real, em Windows e em Linux. Por isso:
+# job, com artefato. Dois jobs provam também Windows (`windows-latest`): o
+# `windows` (o `auditar` da E19, `test:scripts` e `conferir:numeros` da E17) e o
+# `plataformas` (V2-F00-E21: os três casos de ambiente da etapa, sob a condição
+# hostil real, em matriz Windows e Linux). O `npm run verificar` inteiro em
+# Windows não roda aqui. Por isso:
 #
 # - Roda em push para main, master e para todo ramo `v2/**`, e em pull_request.
 # - Em ramo `v2/**` nenhum run é cancelado nem substituído: cada SHA candidato
 #   tem de ter o seu run completo (ver `concurrency`).
 # - TODO job grava as saídas em arquivo e publica um artefato chamado
-#   `<job>-<sha>`, retenção de 30 dias, mesmo quando falha. Em pull_request o
-#   `github.sha` é o de um merge sintético: o commit candidato (a ponta do ramo)
-#   vem escrito em `00-contexto.txt` de cada artefato.
-# - Nenhum segredo entra em artefato: `scripts/ci-artefatos.sh redigir` limpa
-#   URL com senha, JWT, Bearer e `PASSWORD '...'` antes de publicar (o baseline
-#   já redige a própria saída e traz INDEX.md com SHA-256, por isso é pulado).
+#   `<job>-<sha>` (`plataformas-<sistema>-<sha>` na matriz), mesmo quando falha,
+#   com retenção de 30 dias, salvo o `windows`, que fica com a retenção padrão
+#   do repositório. Em pull_request o `github.sha` é o de um merge sintético: o
+#   commit candidato (a ponta do ramo) vem escrito em `00-contexto.txt` de cada
+#   artefato, salvo o do `windows`, que não grava esse arquivo (o primeiro
+#   dele é `00-versoes.txt`, com as versões do node e do npm).
+# - `scripts/ci-artefatos.sh redigir` limpa URL com senha, JWT, Bearer e
+#   `PASSWORD '...'` antes de publicar, para segredo não entrar em artefato (o
+#   baseline já redige a própria saída e traz INDEX.md com SHA-256, por isso é
+#   pulado). O job `windows` NÃO tem esse passo e publica as saídas como
+#   saíram (anotado na correção 5 da V2-F00-E22).
 #
-# Dois jobs só rodam em push (não em pull_request), porque são os mais longos e
-# a prova que a política lê é a do run do commit candidato, que é de push:
-# `baseline` e `restore`. Remover a linha `if:` deles os traz de volta ao PR.
+# Dois jobs, os mais longos, não rodam em todo push: `baseline` e `restore`.
+# Rodam só em push cuja mensagem de commit traga `[ci completo]`, no disparo
+# manual e na agenda (estes dois só valem quando este arquivo chegar ao ramo
+# padrão; ver o comentário de `on:`), e nunca em pull_request. Quem decide é a
+# linha `if:` de cada um.
 
 name: Verificar
 
@@ -576,7 +588,7 @@ jobs:
           EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK: "1"
         run: npx expo-doctor 2>&1 | tee "$RUNNER_TEMP/artefatos/07-expo-doctor.txt"
 
-      # O `npm audit` cru que ficava aqui saiu: `npm run auditar` (job
+      # O `npm audit` cru que ficava aqui saiu: `node scripts/auditar.mjs` (job
       # `dependencias`) já audita `apps/campo` contra a lista nomeada
       # `ACEITAS_NO_APLICATIVO`.
 
@@ -1064,7 +1076,8 @@ jobs:
     # `npm audit` que fechar em 0, ou um advisory que derrube o `auditar`, faz o
     # job FALHAR: é o que se quer, alguém precisa explicar.
     #
-    # Só em push (ver o comentário do topo): é o job mais longo.
+    # Só com `[ci completo]`, à mão ou na agenda (ver o comentário do topo): é
+    # o job mais longo.
     name: Linha de base (baseline.mjs) em Linux
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
     runs-on: ubuntu-latest
@@ -1183,7 +1196,7 @@ jobs:
     # PostgreSQL: o do runner é o 16, e `pg_dump` mais velho que o servidor
     # recusa trabalhar.
     #
-    # Só em push (ver o comentário do topo).
+    # Só com `[ci completo]`, à mão ou na agenda (ver o comentário do topo).
     name: Restore do banco, Postgres 17 (CA-08)
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
     runs-on: ubuntu-latest

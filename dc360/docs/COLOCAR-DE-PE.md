@@ -39,7 +39,7 @@ D-U-N-S e a revisão não forem gargalo.
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
 - **5538 testes somando o aplicativo** (contagem estática de `npm run
-  conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+  conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
   15 de 17, por dois passos que dependem da máquina (README, "O roteiro da linha

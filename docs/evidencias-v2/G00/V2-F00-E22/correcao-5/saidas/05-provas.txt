@@ -1,0 +1,84 @@
+# Provas das frases corrigidas (worktree trab/correcao-7, HEAD f0e5f1b, 2026-10-20 16:56 -0300)
+
+$ grep -n -E "app\.get\(r\(\"m[0-9]+\"" dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts | wc -l   (rotas m01..m16 plantadas)
+      15
+$ grep -c "r(\"m08\")" (a M08 não é plantada)
+0
+$ sed -n "/^const ESCAPES_DA_REVISAO/p" (16 escapes)
+const ESCAPES_DA_REVISAO = ["e01/x", "e02/x", "e04/nada", "e05/nada", "e06/x", "e07/x", "e09", "e10", "e11", "e12", "e13", "e14", "e15", "e16", "e17", "e18/x"];
+
+$ arquivos de REGRAS e QUADROS em ressalva-saida-a-campo.test.ts
+78:  { arquivo: "docs/apresentacao-produto-alyson.html"
+79:  { arquivo: "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html"
+80:  { arquivo: "dc360/docs/PRIVACIDADE.md"
+81:  { arquivo: "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md"
+82:  { arquivo: "dc360/README.md"
+83:  { arquivo: "dc360/docs/LEIA-ME.md"
+87:  { arquivo: "dc360/docs/SEGURANCA-DO-AGENTE.md"
+88:  { arquivo: "dc360/docs/GUIA-DO-COORDENADOR.md"
+89:  { arquivo: "dc360/docs/CARTAO-DO-AGENTE.md"
+90:  { arquivo: "dc360/README.md"
+arquivos distintos:        9
+
+$ formas da correção 7 sem caso no console (identity e flushHeaders)
+API h-te-identity/flush-403: 2
+console identity|flush: 0
+
+$ jobs de .github/workflows/verificar.yml
+53:  push:
+55:  pull_request:
+64:  workflow_dispatch:
+65:  schedule:
+83:  produto:
+174:  dependencias:
+247:  roadmap:
+306:  navegador:
+433:  demonstracao:
+501:  aplicativo:
+609:  windows:
+667:  plataformas:
+894:  implantavel:
+1042:  baseline:
+1180:  restore:
+
+$ chamadas do auditar e o .npmrc no workflow
+215:          versionados="$(git ls-files -- '.npmrc' '**/.npmrc')"
+220:        run: node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar.txt"
+615:    runs-on: windows-latest
+634:          node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar-windows.txt"
+709:        sistema: [windows-latest, ubuntu-latest]
+
+$ job windows: sem passo de redigir nem retention-days (linhas do job)
+24:          node --version | tee "$RUNNER_TEMP/artefatos/00-versoes.txt"
+25:          npm --version | tee -a "$RUNNER_TEMP/artefatos/00-versoes.txt"
+
+$ if: de baseline e restore
+1082:    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
+1201:    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
+
+$ gatilhos do verificar.yml em origin/master (sem workflow_dispatch nem schedule)
+14:  push:
+16:  pull_request:
+
+$ script verificar e auditar de dc360/package.json
+30:    "verificar": "npm run typecheck && npm test && npm run test:scripts && npm run test:campo && npm run auditar && npm run conferir:numeros",
+35:    "auditar": "node scripts/auditar.mjs"
+
+$ passos do roteiro da linha de base
+20
+
+$ runs citados no VEREDITO da E22 (rodadas 6 e 7, checkout principal, só leitura)
+10:| 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
+11:| 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
+32:- QA PASS (Opus, média): os números novos e os parágrafos novos da guarda e do `auditar` conferem com o código; o do `auditar` resistiu a uma sonda com configuração do npm hostil (o caminho de `package-lock=false` da 
+37:Run 39420436042 (workflow "Verificar", evento push, CI completo pedido por `[ci completo]`) sobre `55209ab`, registro do candidato: o diff `fd17ff4..55209ab` só toca `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida da
+
+$ runs citados no STATUS
+1127:| 2026-10-18 | CI completo do candidato `bb0f654` (run 39143791434, sobre o registro `ecaad76`): 9 de 9 verdes, incluindo linha de base em Linux, restore em Postgres 17 e a corrida de renovação em Postgres real. | C
+1130:| 2026-10-19 | CI completo do candidato `4ce0433` (run 39241470718, sobre o registro `766bc0a`): 9 de 9 verdes, incluindo linha de base em Linux, restore em Postgres 17 e a corrida em Postgres real. | Claude (orques
+1132:| 2026-10-20 | CI completo do candidato `1ed0b71` recusado pelo GitHub (run 39366804765): faturamento da conta do GitHub Actions (H32). Rodada 6 lançada numa sessão nova mesmo assim. | Claude (orquestrador) |
+
+$ data das mudanças do total 5538 (commits que tocaram COLOCAR-DE-PE.md desde fd17ff4)
+f0e5f1b 2026-10-20 V2-F00-E09: correção 6, o campo focado fica inteiro entre o topo fixo e a barra do pé, o email do ofício cabe no cartão e
+1731b62 2026-10-20 V2-F00-E05: correção 7, o status 1xx como resposta final vira desvio e o 403 com content-length errado volta a ter respos
+f37bdac 2026-10-20 V2-F00: totais de teste da correção 6 da E05

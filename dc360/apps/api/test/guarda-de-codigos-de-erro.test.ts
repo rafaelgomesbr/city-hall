@@ -18,7 +18,8 @@ import {
  *
  * A varredura do fonte é heurística: a revisão independente plantou dezesseis
  * formas de responder 403 com código fora do catálogo que ela não lia. Aqui
- * cada forma vira uma rota de verdade, no servidor de verdade, e o que se
+ * quinze delas viram rota de verdade, no servidor de verdade (a M08, escrita
+ * no socket, fica de fora porque a guarda não a vê; ver abaixo), e o que se
  * confere é a RESPOSTA: em teste (modo "falhar") ela sai 500
  * `desvio_do_catalogo_de_erro` e o desvio fica registrado (o apoio
  * `test/guarda-falha-alto.ts` reprova qualquer outro caso que passe por um);
