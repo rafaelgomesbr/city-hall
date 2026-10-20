@@ -233,9 +233,11 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
   agente 62, operador 61, administrador 100, conta desativada 47, senha
   provisória 49, coordenador de outro município 96, município suspenso 54. Ou
   seja, a prova dinâmica NÃO é "todas as rotas com todos os perfis até o fim": a
-  garantia de que nenhuma recusa de acesso sai fora do catálogo vem primeiro da
-  varredura do fonte, e a prova dinâmica fecha o que o texto esconde só onde ela
-  chega.
+  garantia de que nenhuma recusa de acesso sai fora do catálogo é a guarda em
+  tempo de execução (o primeiro item desta lista). A varredura do fonte é a
+  primeira linha dos testes, heurística, e a prova dinâmica é a segunda: ela
+  fecha o que o texto esconde só onde chega, com os perfis e os corpos mínimos
+  que usa. Nenhuma das duas é garantia sozinha.
 - **Execução por código** (no mesmo arquivo da varredura): cada um dos dez códigos sai do servidor real, por
   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
   padrão).
