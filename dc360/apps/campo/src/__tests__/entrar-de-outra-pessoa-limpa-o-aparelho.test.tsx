@@ -111,6 +111,7 @@ jest.mock("../dados/api", () => {
 });
 
 import { ProvedorDeSessao, useSessao } from "../dados/sessao";
+import { geracaoDaSessao } from "../dados/geracao-da-sessao";
 import { bancoLocal, donoDosDadosLocais, esquecerConexao } from "../dados/banco-local";
 import { listarRascunhos, salvarRascunho, type Rascunho } from "../dados/rascunho";
 
@@ -379,5 +380,26 @@ describe("a credencial e a identidade saem do cofre do aparelho", () => {
     semRastroDaAna();
     expect(mockCofre.get("dc360.credenciais")).toContain("renovacao-bruno");
     expect(mockCofre.get("dc360.identidade")).toContain(BRUNO);
+  });
+});
+
+/*
+  A pausa da fila cai quando a pessoa entra de novo (V2-F00-E06, correção 3):
+  o login é quem sobe a geração da credencial que a fila compara.
+*/
+describe("a geração da credencial, que derruba a pausa velha da fila", () => {
+  it("cada `entrar` bem-sucedido sobe a geração, mesmo sendo a mesma pessoa voltando", async () => {
+    await act(async () => { render(<ProvedorDeSessao><Sonda /></ProvedorDeSessao>); });
+    await criarATabelaDaFila();
+    const antes = geracaoDaSessao();
+
+    await entrarComo("ana@teste.gov.br");
+    const aposPrimeira = geracaoDaSessao();
+    await act(async () => { await sessao!.encerrarSessaoVencida(); });
+    expect(geracaoDaSessao()).toBe(aposPrimeira); // sair não é entrar
+    await entrarComo("ana@teste.gov.br");
+
+    expect(aposPrimeira).toBe(antes + 1);
+    expect(geracaoDaSessao()).toBe(antes + 2);
   });
 });

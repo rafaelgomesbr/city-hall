@@ -229,7 +229,7 @@ async function abrirAColetada(): Promise<void> {
   mockColeta = COLETA_NA_FILA;
   await render(<TelaDeVistoria />);
   await act(async () => {});
-  await screen.findByText(/já foi coletada neste aparelho/);
+  await screen.findByText(/Esta ocorrência já foi coletada/);
 }
 
 beforeEach(() => {
@@ -280,5 +280,7 @@ describe("a ocorrência que o aparelho já coletou, ainda na fila", () => {
       frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
     ))).toBeTruthy();
     expect(screen.queryByText(/houver sinal|horas sem sinal/)).toBeNull();
+    /* Não repete "neste aparelho" na mesma frase: o `detalhe` já o diz. */
+    expect(screen.queryByText(/já foi coletada neste aparelho/)).toBeNull();
   });
 });

@@ -191,9 +191,10 @@ describe("a pergunta antes de sair", () => {
     await tocar("Sair da conta");
 
     expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
-    expect(screen.getByText(new RegExp(
+    /* A frase da pausa está no aviso do Perfil e na pergunta: duas vezes. */
+    expect(screen.getAllByText(new RegExp(
       frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-    ))).toBeTruthy();
+    ))).toHaveLength(2);
     expect(screen.queryByText(/entrar de novo, com sinal|entrar de novo,\s+com sinal/)).toBeNull();
   });
 
@@ -205,6 +206,53 @@ describe("a pergunta antes de sair", () => {
     await tocar("Sair da conta");
 
     expect(screen.getByText(/precisar de sinal e da sua senha/)).toBeTruthy();
+  });
+});
+
+/*
+  O Perfil, ANTES do toque em "Sair da conta" (V2-F00-E06, correção 3): o aviso
+  acima do botão mandava "procurar sinal e esperar a fila esvaziar", e o rótulo
+  falado do chip dizia "esperam sinal para serem enviadas", com a fila pausada
+  pela sessão. Sinal não destrava nenhum dos três casos.
+*/
+describe("o Perfil com a fila pausada pela sessão", () => {
+  const MOTIVOS = ["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const;
+
+  it("controle: com a fila andando, o aviso e o chip são os de sempre", async () => {
+    mockPendentes = 2;
+    await abrirATela();
+
+    expect(screen.getByText("Espere a fila esvaziar antes de sair")).toBeTruthy();
+    expect(screen.getByTestId("coletas-esperando").props.accessibilityLabel).toBe(
+      "2 coletas esperam sinal para serem enviadas",
+    );
+  });
+
+  it.each(MOTIVOS)("%s: o aviso acima de 'Sair da conta' diz a pausa e não manda procurar sinal", async (motivo) => {
+    mockPendentes = 2;
+    mockPausadaPor = motivo;
+    await abrirATela();
+
+    expect(screen.queryByText("Espere a fila esvaziar antes de sair")).toBeNull();
+    expect(screen.queryByText(/Procure sinal/)).toBeNull();
+    expect(screen.getByText(frasesDaPausa(motivo).titulo)).toBeTruthy();
+    expect(screen.getByText(new RegExp(
+      frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    ))).toBeTruthy();
+    /* O que continua verdade fica: fora da conta, ninguém envia estas coletas. */
+    expect(screen.getByText(/estas coletas não são enviadas, nem por quem entrar depois/)).toBeTruthy();
+  });
+
+  it.each(MOTIVOS)("%s: o rótulo falado do chip não diz que a coleta espera sinal", async (motivo) => {
+    mockPendentes = 2;
+    mockPausadaPor = motivo;
+    await abrirATela();
+
+    const chip = screen.getByTestId("coletas-esperando");
+    expect(chip.props.accessibilityLabel).toBe(
+      `2 coletas guardadas neste aparelho. ${frasesDaPausa(motivo).titulo}`,
+    );
+    expect(chip.props.accessibilityLabel).not.toMatch(/sinal/);
   });
 });
 

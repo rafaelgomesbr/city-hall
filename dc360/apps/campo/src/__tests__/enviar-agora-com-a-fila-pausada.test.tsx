@@ -42,10 +42,15 @@ jest.mock("../dados/api", () => ({
 }));
 
 let mockTarefas: Pendencia[] = [];
+/* O fornecedor suspendeu o acesso: a baixa da lista responde 403 `acesso_suspenso`. */
+let mockAcessoSuspenso = false;
 jest.mock("../dados/pendencias", () => ({
   pendenciasGuardadas: jest.fn(async () => mockTarefas),
   baixadasEm: jest.fn(async () => "2026-09-13T13:00:00.000Z"),
-  atualizarPendencias: jest.fn(async () => mockTarefas),
+  atualizarPendencias: jest.fn(async () => {
+    if (mockAcessoSuspenso) throw Object.assign(new Error("suspenso"), { status: 403, codigo: "acesso_suspenso" });
+    return mockTarefas;
+  }),
   tetoAtingido: jest.fn(async () => null),
   esquecerPendencia: jest.fn(async () => {}),
 }));
@@ -156,6 +161,7 @@ beforeEach(() => {
   mockColetas = [{ ocorrenciaId: ID, situacao: "na_fila" }];
   mockPausadaNoResumo = null;
   mockParadaPor = undefined;
+  mockAcessoSuspenso = false;
   mockDrenar.mockClear();
 });
 
@@ -196,6 +202,26 @@ describe("Enviar agora com a fila pausada", () => {
 
     expect(screen.getByText(frases.faixaTitulo)).toBeTruthy();
     expect(screen.getByText(frases.doCartao)).toBeTruthy();
+    expect(screen.queryByText("Ainda não deu para enviar")).toBeNull();
+    expect(screen.queryByText(/houver sinal/)).toBeNull();
+  });
+});
+
+/*
+  O ACESSO SUSPENSO não é pausa da fila: o motor trata o 403 como falha
+  temporária e o item espera. Quem sabe dele é a lista desta mesma tela, que diz
+  "Acesso suspenso pelo fornecedor". A tarja de "Enviar agora" dizia "sai quando
+  ... houver sinal" ao lado disso, e sinal não resolve suspensão de contrato
+  (V2-F00-E06, correção 3).
+*/
+describe("Enviar agora com o acesso suspenso pelo fornecedor", () => {
+  it("a tarja diz o mesmo que a lista, e não manda esperar sinal", async () => {
+    mockAcessoSuspenso = true;
+
+    await tocarEmEnviarAgora();
+
+    expect(screen.getAllByText("Acesso suspenso pelo fornecedor").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/quem resolve é quem administra o contrato/)).toBeTruthy();
     expect(screen.queryByText("Ainda não deu para enviar")).toBeNull();
     expect(screen.queryByText(/houver sinal/)).toBeNull();
   });

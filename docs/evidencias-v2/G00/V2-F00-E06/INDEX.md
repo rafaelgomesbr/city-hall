@@ -62,6 +62,17 @@
 | correcao-3/saidas/25-conferir-numeros.txt | 97a7ba097e87c826060a996d84b176e6f4279fd625a2666f68aae23840d27ae8 |
 | correcao-3/saidas/26-baseline-test.txt | 4cffe34f6034e8575127bc0d8efb89c45a6ff5084bd40edfe1a459e6892ae423 |
 | correcao-3/saidas/27-indices-de-evidencia.txt | 1f0cd6e283e8be79c64cbe456f50f28a039bbd7bfd592040a3b43371df9c84a9 |
+| correcao-3b/RESUMO.md | 3ddde36141ff6a59a9a382860925c5e3a628122d50406635a0a898f98a7fe331 |
+| correcao-3b/diff-da-correcao.patch | d4f35eb850ff1f02f8336cd759d934fa44579a9c8e35d22bc11a21da21d84bb5 |
+| correcao-3b/saidas/12-mordida-por-arquivo.txt | 232c6986f997fad50e78cee160807321516a3805ebb61dfdecdc5f81dc92bf49 |
+| correcao-3b/saidas/13-mordida-m07.txt | 87f9460f06e4afdce6349637b1ece55a3f894a7ade1a6db3f380410295cb0908 |
+| correcao-3b/saidas/20-test-campo.txt | 4c2a84df4051d5dc2bd7ff03f121caa25982d74469fc9357b42497fb9b3c4c23 |
+| correcao-3b/saidas/21-pacote-campo.txt | a977fb290e045c88f9b7c5e6f23b4c3704ff7c035d7828fc1c670da87b8dd5a0 |
+| correcao-3b/saidas/22-portoes.txt | 26d374e8cb9d662a275a7d3472f35d5065cefe4c6e4d1e78e30e41f423068162 |
+| correcao-3b/saidas/23-portao-de-conteudo.txt | 5dbe6a066024a83184b436708903cc55c9b469b983c7d0110e8fcd6532ceb1b4 |
+| correcao-3b/saidas/25-conferir-numeros.txt | f7977c7df9e6fcc63974316c25162cd365ec585a48d2a58ef310f11a7eb47499 |
+| correcao-3b/saidas/27-indices-de-evidencia.txt | 905fcc12e9bb3ee292cada72f4903d22e26f771b6e1d756e2f1d6d06d9f99f54 |
+| correcao-3b/saidas/28-test-scripts.txt | e1bf04a25acb24c7a9468cb24e6c4b6094abe8c704ed96b0c0a0b6db10d786cf |
 | saidas/02a-sonda-transporte-antigo.txt | 4d0569bf861e4c71b6edd66af0dd25184523df3b9a16ffeca0e691c94373bd45 |
 | saidas/02b-sonda-fila-antiga.txt | 3c45c02e5997825e4df0e9e28322edcd4bb36e2b48b8ab918b7d8f294613aeb9 |
 | saidas/02c-sonda-tela-antiga.txt | 1d224e76184d92026e913330446828b92ebf3895b9e5dfdf108c23133e32db4c |

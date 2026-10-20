@@ -42,7 +42,7 @@ O que É verificável daqui, e está verificado:
 | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
 | Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
 | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-13: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as seis exceções nomeadas do CP-03 (`decode-uri-component`, `brace-expansion`, `braces`, `node-forge`, `shell-quote`, `sprintf-js`), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
-| A fila que ele consome | `npm test --workspace @dc360/campo` | 231 testes do motor de campo |
+| A fila que ele consome | `npm test --workspace @dc360/campo` | 238 testes do motor de campo |
 
 **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
 o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
@@ -115,7 +115,7 @@ na chuva.
    de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
 
 Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
-231 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+238 testes do motor de campo cobrindo a lógica fora do celular, inclusive
 retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
 quando o sistema mata o processo.
 
@@ -132,7 +132,7 @@ src/ui/              tokens e componentes
 ```
 
 **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
-feita sem sinal vive em `packages/campo`, com 231 testes de unidade do motor de campo, e a
+feita sem sinal vive em `packages/campo`, com 238 testes de unidade do motor de campo, e a
 integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.test.ts`). Este diretório liga os
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.

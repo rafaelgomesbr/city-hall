@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 <worktree>/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 389ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  00:36:36
+   Duration  582ms (transform 27ms, setup 0ms, collect 27ms, tests 389ms, environment 0ms, prepare 28ms)
+
+codigo 0

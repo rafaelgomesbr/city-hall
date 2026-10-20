@@ -12,6 +12,7 @@ import {
 import { bancoLocal } from "./banco-local";
 import { arquivosDoAparelho } from "./evidencia-no-disco";
 import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
+import { geracaoDaSessao } from "./geracao-da-sessao";
 
 /**
  * Onde a parte testada encontra o aparelho.
@@ -135,6 +136,8 @@ async function criarFila(
         organizacaoId: eu.organizacaoId,
       };
     },
+    /* A pausa por sessão cai quando a pessoa entra de novo (correção 3 da E06). */
+    geracaoDaSessao,
     /*
       A leitura dos bytes, com o cuidado de dizer em português (e como falha
       permanente) quando o arquivo não está mais no aparelho. Ver

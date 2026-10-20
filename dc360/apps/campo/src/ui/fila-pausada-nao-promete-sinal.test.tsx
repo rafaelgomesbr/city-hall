@@ -183,6 +183,25 @@ describe("fila pausada", () => {
   });
 });
 
+/*
+  A pausa é de QUEM ESTÁ LOGADO. Uma devolução sem autor registrado (de uma
+  versão antiga do aplicativo) não é dessa pessoa: a frase da pausa, que fala de
+  "sua sessão" e "sua conta", não é dela, e o cartão fica como estava. Sem a
+  guarda de autoria no cartão da devolução, esta pessoa leria a pausa dela sobre
+  uma devolução que nunca foi dela.
+*/
+describe("fila pausada e a devolução que não é da pessoa logada", () => {
+  it.each(MOTIVOS)("%s: devolução sem autor registrado não ganha a frase da pausa", async (motivo) => {
+    const semAutor = { ...devolucao("s", "2026/000481"), autor: null } as unknown as ItemFila;
+    mockItens = [semAutor];
+
+    await abrirComPausa(motivo);
+
+    expect(screen.queryByText("Devolução guardada")).toBeNull();
+    expect(screen.queryByText(new RegExp(escapar(frasesDaPausa(motivo).doCartao)))).toBeNull();
+  });
+});
+
 /* O controle: as quatro frases de antes continuam valendo quando a fila anda. */
 describe("fila andando", () => {
   it("devolução aguardando, tarja de sem sinal, legenda e retorno do reenvio são os de sempre", async () => {

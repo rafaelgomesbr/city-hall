@@ -2192,14 +2192,21 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           }
         />
 
-        <Aviso tom="info">
-          Esta ocorrência já foi coletada neste aparelho.
-          {jaColetada.situacao === "enviada"
-            ? " A vistoria já foi enviada ao servidor."
-            : pausadaPor
-              ? ` ${frasesDaPausa(pausadaPor).detalhe}`
+        {/* Com a fila pausada o aviso deixa de ser informativo (é um alerta, como
+            o da tela de depois de guardar) e não repete "neste aparelho": o
+            `detalhe` da pausa já diz que as coletas ficam guardadas aqui. */}
+        {jaColetada.situacao !== "enviada" && pausadaPor ? (
+          <Aviso tom="alerta" peso="leve">
+            {`Esta ocorrência já foi coletada. ${frasesDaPausa(pausadaPor).detalhe}`}
+          </Aviso>
+        ) : (
+          <Aviso tom="info">
+            Esta ocorrência já foi coletada neste aparelho.
+            {jaColetada.situacao === "enviada"
+              ? " A vistoria já foi enviada ao servidor."
               : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
-        </Aviso>
+          </Aviso>
+        )}
 
         <Txt variante="corpoP" discreto>
           {jaColetada.situacao !== "enviada" && pausadaPor

@@ -909,6 +909,22 @@ export default function Tarefas() {
             titulo: frases.faixaTitulo,
             texto: frases.doCartao,
           });
+        } else if (falhaDeRede === "acesso-suspenso") {
+          /*
+            ACESSO SUSPENSO PELO FORNECEDOR: o motor trata o 403 como falha
+            temporária (o item espera, sem pausa), então nem `paradaPor` nem a
+            pausa da fila sabem dele. Quem sabe é a lista desta mesma tela, que
+            já diz "Acesso suspenso pelo fornecedor"; a tarja diz a mesma
+            coisa, com a mesma frase, em vez de mandar esperar sinal que não
+            resolve (V2-F00-E06, correção 3).
+          */
+          const frase = comoContarAFalha("acesso-suspenso", "");
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: frase.resumo,
+            texto: frase.detalhe,
+          });
         } else {
           setEnvio({
             ocorrenciaId: alvo.id,

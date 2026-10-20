@@ -190,6 +190,24 @@ export type OpcoesFila = {
    * sem token o transporte falharia de todo jeito.
    */
   sessaoAtual: () => AutorDaColeta | null;
+  /**
+   * A "geração" da credencial: um número que sobe cada vez que a pessoa ENTRA
+   * de novo (V2-F00-E06, correção 3).
+   *
+   * Existe porque a pausa da fila (`sessao_encerrada`, `conta_desativada`,
+   * `troca_de_senha_obrigatoria`) é uma observação sobre a credencial que
+   * levou o 401 ou o 403, e a pessoa tem um único ato que a muda: entrar de
+   * novo (depois de a coordenação reativar a conta, de definir a senha no
+   * painel, ou só porque a sessão caiu). Sem isto a pausa só caía quando um
+   * envio dava certo ou a fila esvaziava, e quem acabava de entrar, com a
+   * rede ruim, continuava lendo "entre de novo" sobre a credencial nova.
+   *
+   * Renovar o token em silêncio NÃO sobe a geração: não é a pessoa agindo, e a
+   * pausa por sessão encerrada nasce justamente de a renovação ter sido
+   * recusada. Opcional: sem ela a geração é sempre a mesma e a pausa se
+   * comporta como antes.
+   */
+  geracaoDaSessao?: () => number;
   /** De onde saem os bytes das fotos. So necessario se houver foto na coleta. */
   arquivos?: Arquivos;
   /** Injetáveis para o teste poder controlar o tempo em vez de esperar por ele. */
@@ -240,6 +258,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     deposito,
     transporte,
     sessaoAtual,
+    geracaoDaSessao = () => 0,
     arquivos,
     agora = () => new Date(),
     dormir = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
@@ -272,10 +291,20 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    * da manha (conta desativada) nao pode aparecer para o agente da noite, que
    * entrou com outra conta e nao tem nada a ver com ela.
    */
-  let pausa: { motivo: MotivoDeSessao; usuarioId: string | null } | null = null;
+  let pausa: { motivo: MotivoDeSessao; usuarioId: string | null; geracao: number } | null = null;
 
+  /**
+   * A pausa só vale para a credencial que a causou. Se a pessoa entrou de novo
+   * desde então (a geração mudou), a causa pode ter acabado, e quem decide é a
+   * próxima tentativa, não uma marca velha: a pausa cai aqui, na leitura, sem
+   * esperar um dreno (que pode nem rodar, por falta de sinal).
+   */
   function pausadaPeloUsuarioAtual(): MotivoDeSessao | null {
     if (!pausa) return null;
+    if (pausa.geracao !== geracaoDaSessao()) {
+      pausa = null;
+      return null;
+    }
     return pausa.usuarioId === (sessaoAtual()?.usuarioId ?? null) ? pausa.motivo : null;
   }
 
@@ -644,6 +673,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
          * de idempotência é a mesma: se chegou, o servidor devolve o recibo
          * antigo em vez de gravar de novo.
          */
+        // A credencial com que ESTE pedido sai: se a pessoa entrar de novo
+        // enquanto ele voa, a recusa que voltar é da credencial velha.
+        const geracaoDoPedido = geracaoDaSessao();
         await deposito.salvar({
           ...item,
           estado: "enviando",
@@ -724,7 +756,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
             o mesmo 401 ou 403. Os itens seguintes nem sao tocados.
           */
           if (erro instanceof FalhaDeSessao) {
-            await guardarPausaDeSessao(item, erro, minhaMarca);
+            await guardarPausaDeSessao(item, erro, minhaMarca, geracaoDoPedido);
             resultado.paradaPor = erro.motivo;
             resultado.interrompido = true;
             await avisar();
@@ -1076,9 +1108,10 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     item: ItemFila,
     erro: FalhaDeSessao,
     minhaMarca: number,
+    geracao: number,
   ): Promise<void> {
     if (!(await devolverAoEstadoAnterior(item, minhaMarca))) return;
-    pausa = { motivo: erro.motivo, usuarioId: item.autor?.usuarioId ?? null };
+    pausa = { motivo: erro.motivo, usuarioId: item.autor?.usuarioId ?? null, geracao };
   }
 
   async function tratarFalha(

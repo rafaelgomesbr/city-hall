@@ -1,0 +1,1 @@
+fila.tsx, guarda de autoria da devolução (M07 da revisão) retirada: Tests: 3 failed, 14 passed, 17 total (src/ui/fila-pausada-nao-promete-sinal.test.tsx, caso novo 'devolução sem autor registrado')

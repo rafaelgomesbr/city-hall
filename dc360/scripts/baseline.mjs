@@ -640,6 +640,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E06-correcao-1": { total: 35, falhas: 0 },
   // V2-F00-E05, correção 2: a matriz de `pausa-por-senha-provisoria.test.ts` ganha 4 linhas (403 de cada código novo do catálogo é recusa permanente), com 2 casos por linha.
   "V2-F00-E05-correcao-2": { total: 8, falhas: 0 },
+  // V2-F00-E06, correção 3b: `pausa-velha.test.ts` (7 casos: a pausa cai quando a pessoa entra de novo).
+  "V2-F00-E06-correcao-3b": { total: 7, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -683,6 +685,14 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
     e 3 em `dialogo-na-conta.test.tsx`; os `it.each` entram com uma linha por motivo.
   */
   "V2-F00-E06-correcao-3": { total: 41, falhas: 0 },
+  /*
+    V2-F00-E06, correção 3b (14 casos): `pausa-cai-ao-entrar-de-novo.test.tsx` (2),
+    1 em `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` (a geração sobe no
+    login), 1 em `enviar-agora-com-a-fila-pausada.test.tsx` (acesso suspenso),
+    7 em `dialogo-na-conta.test.tsx` (o Perfil pausado: controle, aviso e chip por
+    motivo) e 3 em `fila-pausada-nao-promete-sinal.test.tsx` (devolução sem autor).
+  */
+  "V2-F00-E06-correcao-3b": { total: 14, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
