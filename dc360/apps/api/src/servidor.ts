@@ -965,6 +965,17 @@ export class RegraDeNegocio extends Error {
     campos?: ReadonlyArray<{ campo: string; mensagem: string }>,
   ) {
     super(mensagem);
+    /*
+      Status de erro é número INTEIRO de 400 a 599 (V2-F00-E05, correção 4). O
+      Node escreve `403.5` como 403 (`statusCode |= 0`), e uma regra com status
+      fracionário ou em texto sairia como resposta de acesso com um código que
+      nenhum cliente conhece. Recusar aqui faz o engano virar 500 com o detalhe no
+      log, no primeiro pedido que passar por ele; a guarda da resposta pega o
+      mesmo status por outro caminho.
+    */
+    if (typeof status !== "number" || !Number.isInteger(status) || status < 400 || status > 599) {
+      throw new TypeError(`RegraDeNegocio("${codigo}") com status ${String(status)}: tem de ser inteiro de 400 a 599`);
+    }
     this.codigo = codigo;
     this.status = status;
     if (campos && campos.length > 0) this.campos = campos;

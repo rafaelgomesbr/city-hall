@@ -1,0 +1,65 @@
+$ repro.sh dc360   (sobre 1ed0b71, ANTES da correção; macOS arm64, Node v24.15.0, npm 11.12.1, com rede)
+=== N1 npm real com npm_config_offline=true
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+=== N2 npm real com registro que responde {} ao endpoint de advisories (npm_config_registry=http://127.0.0.1:48731/)
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+    pedidos que o registro falso recebeu: 3
+=== npm falso do validador, modo lixo
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: a saída do npm audit não é JSON
+    codigo=2
+=== npm falso do validador, modo vazio
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: a saída do npm audit não é JSON
+    codigo=2
+=== npm falso do validador, modo objeto
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o relatório não traz metadata.vulnerabilities (o npm não chegou a auditar)
+    codigo=2
+=== npm falso do validador, modo lista
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o npm não devolveu um relatório JSON
+    codigo=2
+=== npm falso do validador, modo falha
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o npm falhou sem relatório (Command failed: npm audit --json --omit=dev --audit-level=low)
+    codigo=2
+=== npm falso do validador, modo texto-total
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o relatório não traz metadata.vulnerabilities (o npm não chegou a auditar)
+    codigo=2
+=== npm falso do validador, modo cortado
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: a saída do npm audit não é JSON
+    codigo=2
+=== npm falso do validador, modo runtime-alta
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== npm falso do validador, modo app-nova
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 1 vulnerabilidade(s)
+      NOVA:   lodash
+    REPROVADO: 1 advisory nova no aplicativo de campo (lodash).
+    codigo=1
+=== npm falso do validador, modo forge-nova
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 1 vulnerabilidade(s)
+      aceita: node-forge (dono Rafael, até 2027-01-05)
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+=== npm falso que ignora as bandeiras e devolve o relatório vazio bem formado em toda pasta (o espelho que responde {}, mesmo com o registro fixado)
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+    chamadas ao npm falso:
+      /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360 :: audit --json --omit=dev --audit-level=low
+      /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360 :: audit --json --audit-level=low
+      /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/campo :: audit --json --omit=dev --audit-level=low

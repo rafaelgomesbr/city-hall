@@ -50,6 +50,34 @@ beforeAll(async () => {
       f.get("/x", async () => ({ ok: true }));
     }, { prefix: "/teste-da-guarda/eag" });
     c.app.get(r("eaf"), async (_q, rep) => rep.code(403).type("application/json").send('{"erro":"vazou_eaf","erro":"so_o_dono"}'));
+    // Correção 4 (rodada 6): status que o Node escreve como 401 ou 403 sem ser 401 ou 403.
+    c.app.get(r("frac"), async (_q, rep) => rep.code(403.5).send({ erro: "vazou_frac_console", mensagem: "x" }));
+    c.app.get(r("frac-401"), async (_q, rep) => rep.code(401.9).send({ erro: "vazou_frac_um", mensagem: "x" }));
+    c.app.get(r("frac-texto"), async (_q, rep) => rep.code("403.2" as unknown as 403).send({ erro: "so_o_dono", mensagem: "x" }));
+    c.app.get(r("hijack-grande"), async (_q, rep) => {
+      rep.hijack();
+      (rep.raw as unknown as { writeHead: (...a: unknown[]) => unknown }).writeHead(403 + 2 ** 32, { "content-type": "application/json" });
+      rep.raw.end('{"erro":"vazou_grande"}');
+    });
+    // Correção 4b (revisão de `05ab42d`): a linha de status gravada por baixo de writeHead.
+    const corpo = '{"erro":"inventado_c6","mensagem":"x"}';
+    const crua = (rep: FastifyReply) => { const k = "ra" + "w"; return (rep as unknown as Record<string, Record<string, any>>)[k]!; };
+    c.app.get(r("por-baixo-store"), async (_q, rep) => {
+      const x = crua(rep);
+      x._storeHeader("HTTP/1.1 403 Forbidden\r\n", { "content-type": "application/json", "content-length": String(corpo.length) });
+      x.end(corpo);
+      return rep;
+    });
+    c.app.get(r("por-baixo-header"), async (_q, rep) => {
+      rep.hijack(); const x = crua(rep);
+      x.writeHead(200, { "content-type": "application/json" });
+      x._header = x._header.replace("200 OK", "401 Unauthorized");
+      x.end(corpo);
+    });
+    c.app.get(r("por-baixo-writeraw"), async (_q, rep) => {
+      rep.hijack(); const x = crua(rep);
+      x._writeRaw(`HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpo.length}\r\n\r\n${corpo}`); x._header = "x"; x.end();
+    });
     await c.app.ready();
     consoles.set(modo, c);
   }
@@ -62,6 +90,8 @@ afterAll(async () => {
 const FORMAS: ReadonlyArray<[string, number, string | null]> = [
   ["m07", 403, "vazou_mah"], ["m10", 401, "vazou_mba"], ["m11", 403, "vazou_mbb"], ["m16", 403, "vazou_mbg"],
   ["eab/x", 403, "vazou_eab"], ["eag/x", 403, null], ["eaf", 403, "so_o_dono"],
+  ["frac", 403, "vazou_frac_console"], ["frac-401", 401, "vazou_frac_um"], ["frac-texto", 403, null],
+  ["hijack-grande", 403, "vazou_grande"],
 ];
 
 describe("a guarda do console", () => {
@@ -92,4 +122,49 @@ describe("a guarda do console", () => {
     }
     expect(lerDesviosDaGuarda()).toEqual([]);
   });
+});
+
+/** O console do modo escutando numa porta efêmera, uma vez só (o `afterAll` o encerra). */
+const enderecos = new Map<"falhar" | "corrigir", Promise<string>>();
+const enderecoDe = (modo: "falhar" | "corrigir"): Promise<string> => {
+  if (!enderecos.has(modo)) enderecos.set(modo, consoles.get(modo)!.app.listen({ port: 0, host: "127.0.0.1" }));
+  return enderecos.get(modo)!;
+};
+
+describe("correção 4: o status torto, por HTTP de verdade (porta efêmera)", () => {
+  it("403.5 não sai 403 com o código fora do contrato, nos dois modos", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const endereco = await enderecoDe(modo);
+      const r = await fetch(`${endereco}/teste-da-guarda/frac`);
+      const corpo = await r.json() as { erro: string };
+      if (modo === "falhar") {
+        expect(r.status).toBe(500);
+        expect(lerDesviosDaGuarda()).toHaveLength(1);
+      } else {
+        expect(r.status).toBe(403);
+        expect(corpo.erro).toBe("so_o_dono");
+        expect(r.statusText).toBe("Forbidden");
+      }
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+});
+
+describe("correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade", () => {
+  it.each([["por-baixo-store", 403], ["por-baixo-header", 401], ["por-baixo-writeraw", 403]] as const)(
+    "%s não sai %s com o código inventado, nos dois modos", async (n, status) => {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        const r = await fetch(`${await enderecoDe(modo)}/teste-da-guarda/${n}`, { headers: { connection: "close" } });
+        const corpo = await r.text();
+        expect(corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+        if (modo === "falhar") {
+          expect(r.status).toBe(500);
+          expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ rota: `/teste-da-guarda/${n}` })]);
+        } else {
+          expect(r.status).toBe(status);
+          expect(JSON.parse(corpo).erro).toBe(status === 401 ? "sem_sessao" : "so_o_dono");
+        }
+      }
+      expect(lerDesviosDaGuarda()).toEqual([]);
+    });
 });

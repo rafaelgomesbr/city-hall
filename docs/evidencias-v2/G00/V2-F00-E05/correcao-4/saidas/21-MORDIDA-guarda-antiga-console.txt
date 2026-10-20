@@ -1,0 +1,232 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (24 tests | 9 failed) 1506ms
+   ✓ a guarda do console > em teste, m07 sai 500 e o desvio fica registrado com a rota 8ms
+   ✓ a guarda do console > em teste, m10 sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, m11 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, m16 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eab/x sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eag/x sai 500 e o desvio fica registrado com a rota 4ms
+   ✓ a guarda do console > em teste, eaf sai 500 e o desvio fica registrado com a rota 0ms
+   × a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota 2ms
+     → {"erro":"vazou_frac_console","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota 1ms
+     → {"erro":"vazou_frac_um","mensagem":"x"}: expected 401 to be 500 // Object.is equality
+   × a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota 0ms
+     → {"erro":"so_o_dono","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota 0ms
+     → {"erro":"vazou_grande"}: expected 403 to be 500 // Object.is equality
+   ✓ a guarda do console > fora de teste, m07 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m10 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m11 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m16 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eab/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eag/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eaf sai com o código genérico do console e vai para o log 0ms
+   × a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log 1ms
+     → expected { erro: 'vazou_frac_console', …(1) } to deeply equal { erro: 'so_o_dono', …(1) }
+   × a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log 0ms
+     → expected { Object (erro, mensagem) } to deeply equal { erro: 'sem_sessao', …(1) }
+   × a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log 0ms
+     → expected { erro: 'so_o_dono', mensagem: 'x' } to deeply equal { erro: 'so_o_dono', …(1) }
+   × a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log 0ms
+     → expected { erro: 'vazou_grande' } to deeply equal { erro: 'so_o_dono', …(1) }
+   ✓ a guarda do console > controle: o código do contrato passa intacto, com a frase da rota 0ms
+   × correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos 12ms
+     → expected 403 to be 500 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota
+AssertionError: {"erro":"vazou_frac_console","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:81:34
+     79|   it.each(FORMAS)("em teste, %s sai 500 e o desvio fica registrado com…
+     80|     const r = await consoles.get("falhar")!.app.inject({ method: "GET"…
+     81|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+     82|     expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ ro…
+     83|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota
+AssertionError: {"erro":"vazou_frac_um","mensagem":"x"}: expected 401 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 401
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:81:34
+     79|   it.each(FORMAS)("em teste, %s sai 500 e o desvio fica registrado com…
+     80|     const r = await consoles.get("falhar")!.app.inject({ method: "GET"…
+     81|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+     82|     expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ ro…
+     83|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota
+AssertionError: {"erro":"so_o_dono","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:81:34
+     79|   it.each(FORMAS)("em teste, %s sai 500 e o desvio fica registrado com…
+     80|     const r = await consoles.get("falhar")!.app.inject({ method: "GET"…
+     81|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+     82|     expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ ro…
+     83|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota
+AssertionError: {"erro":"vazou_grande"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:81:34
+     79|   it.each(FORMAS)("em teste, %s sai 500 e o desvio fica registrado com…
+     80|     const r = await consoles.get("falhar")!.app.inject({ method: "GET"…
+     81|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+     82|     expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ ro…
+     83|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log
+AssertionError: expected { erro: 'vazou_frac_console', …(1) } to deeply equal { erro: 'so_o_dono', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "so_o_dono",
+-   "mensagem": "Só o dono do console faz isto.",
++   "erro": "vazou_frac_console",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:90:22
+     88|     const r = await c.app.inject({ method: "GET", url: `/teste-da-guar…
+     89|     expect(r.statusCode).toBe(status);
+     90|     expect(r.json()).toEqual(status === 401
+       |                      ^
+     91|       ? { erro: "sem_sessao", mensagem: "Entre de novo." }
+     92|       : { erro: "so_o_dono", mensagem: "Só o dono do console faz isto.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log
+AssertionError: expected { Object (erro, mensagem) } to deeply equal { erro: 'sem_sessao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_sessao",
+-   "mensagem": "Entre de novo.",
++   "erro": "vazou_frac_um",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:90:22
+     88|     const r = await c.app.inject({ method: "GET", url: `/teste-da-guar…
+     89|     expect(r.statusCode).toBe(status);
+     90|     expect(r.json()).toEqual(status === 401
+       |                      ^
+     91|       ? { erro: "sem_sessao", mensagem: "Entre de novo." }
+     92|       : { erro: "so_o_dono", mensagem: "Só o dono do console faz isto.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log
+AssertionError: expected { erro: 'so_o_dono', mensagem: 'x' } to deeply equal { erro: 'so_o_dono', …(1) }
+
+- Expected
++ Received
+
+  {
+    "erro": "so_o_dono",
+-   "mensagem": "Só o dono do console faz isto.",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:90:22
+     88|     const r = await c.app.inject({ method: "GET", url: `/teste-da-guar…
+     89|     expect(r.statusCode).toBe(status);
+     90|     expect(r.json()).toEqual(status === 401
+       |                      ^
+     91|       ? { erro: "sem_sessao", mensagem: "Entre de novo." }
+     92|       : { erro: "so_o_dono", mensagem: "Só o dono do console faz isto.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log
+AssertionError: expected { erro: 'vazou_grande' } to deeply equal { erro: 'so_o_dono', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "so_o_dono",
+-   "mensagem": "Só o dono do console faz isto.",
++   "erro": "vazou_grande",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:90:22
+     88|     const r = await c.app.inject({ method: "GET", url: `/teste-da-guar…
+     89|     expect(r.statusCode).toBe(status);
+     90|     expect(r.json()).toEqual(status === 401
+       |                      ^
+     91|       ? { erro: "sem_sessao", mensagem: "Entre de novo." }
+     92|       : { erro: "so_o_dono", mensagem: "Só o dono do console faz isto.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos
+AssertionError: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:117:28
+    115|         const corpo = await r.json() as { erro: string };
+    116|         if (modo === "falhar") {
+    117|           expect(r.status).toBe(500);
+       |                            ^
+    118|           expect(lerDesviosDaGuarda()).toHaveLength(1);
+    119|         } else {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 15 passed (24)
+   Start at  06:38:46
+   Duration  1.87s (transform 114ms, setup 30ms, collect 162ms, tests 1.51s, environment 0ms, prepare 30ms)
+
+codigo de saida: 1

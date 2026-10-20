@@ -1,0 +1,39 @@
+$ repro-proxy.sh dc360 <portão>   (proxy de inspeção TLS da revisão de 915bb6a, rodado de /tmp/e19c6/proxy na porta 5661; npm_config_https_proxy, npm_config_proxy e npm_config_cafile; macOS arm64, Node v24.15.0, npm 11.12.1, com rede)
+
+##### ANTES: o portão de 915bb6a (cópia temporária em dc360/antes-c6/, apagada depois)
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+
+Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+
+Aviso: decode-uri-component GHSA-vcc3-ghjq-m6fr, brace-expansion GHSA-q2hr-2g5m-vwhr, brace-expansion GHSA-qhr7-859c-m2p7, brace-expansion GHSA-6j4f-fj2g-mc7p, braces GHSA-vfj7-8cjw-p6xm, node-forge GHSA-86w9-cpqp-85rv, shell-quote GHSA-pqg4-j6r4-53mv, sprintf-js GHSA-hp3w-g68c-fv3c não aparece(m) mais no relatório do aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs.
+
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo. O zero acima é de consulta real.
+
+Runtime limpo, e o aplicativo sem advisory nova.
+codigo=0
+--- o que o proxy fez:
+pronto
+bulk pacotes=80 FORJADO {}
+bulk pacotes=231 FORJADO {}
+bulk pacotes=669 FORJADO {}
+bulk pacotes=1 CONTROLE->real
+outro GET /lodash
+bulk pacotes=1 CONTROLE->real
+outro GET /lodash
+
+##### DEPOIS: o portão desta correção (6b)
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+
+Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+
+ERRO: a auditoria do aplicativo de campo não é confiável, então este portão NÃO aprova.
+Advisories aceitas (conhecidas) que deveriam voltar e não voltaram: decode-uri-component GHSA-vcc3-ghjq-m6fr, brace-expansion GHSA-q2hr-2g5m-vwhr, brace-expansion GHSA-qhr7-859c-m2p7, brace-expansion GHSA-6j4f-fj2g-mc7p, braces GHSA-vfj7-8cjw-p6xm, node-forge GHSA-86w9-cpqp-85rv, shell-quote GHSA-pqg4-j6r4-53mv, sprintf-js GHSA-hp3w-g68c-fv3c.
+Ou a resposta do registro foi forjada no caminho (proxy, espelho ou inspeção TLS que responde vazio), ou a lista de aceitas está velha. Confira com `npm audit` direto no registro oficial; se a advisory sumiu de verdade, apague a linha em ACEITAS_NO_APLICATIVO (scripts/auditar-excecoes.mjs).
+codigo=2
+--- o que o proxy fez:
+pronto
+bulk pacotes=80 FORJADO {}
+bulk pacotes=231 FORJADO {}
+bulk pacotes=669 FORJADO {}

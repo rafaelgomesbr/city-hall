@@ -1,0 +1,12 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 725ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  383ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  08:51:10
+   Duration  905ms (transform 26ms, setup 0ms, collect 26ms, tests 725ms, environment 0ms, prepare 31ms)
+
+codigo de saida: 0

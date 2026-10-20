@@ -4,7 +4,7 @@
 **Por que existe:** regra do Rafael de 2026-10-13: "se depender de mim pra ir pra próxima etapa vamos ter uma limitação de tempo e o sistema fica ocioso muito tempo [...] se precisar estritamente de algo humano, salva em um roadmap pendencias-humanas, mas continue desenvolvendo". Tudo o que manda parar e esperar uma pessoa vem para cá e o trabalho segue; o que era "aparelho físico" passa a ser tentado no emulador Android e só fica aqui o que o emulador não prova. A prova automatizada (testes, e2e, capturas, conferência de que o teste morde) não sai daqui nem vira pendência: continua obrigatória.
 **Como usar:** cada item diz o que fazer, onde ler, o que deve acontecer e quem decide. Quando resolver, diga no chat o código do item e o resultado ("H03 feito", "H07 reprovo, porque ..."); quem registra sou eu. Item resolvido muda de seção, nunca some.
 **Fonte do estado:** `docs/roadmap-v2/STATUS.md` e os `VEREDITO.md` de cada etapa. Se este arquivo e o STATUS divergirem, vale o STATUS.
-**Atualizado em:** 2026-10-20, durante a correção 5 da F00 (rodada 5 interrompida pelo reinício do Mac, sem veredito).
+**Atualizado em:** 2026-10-20, depois de o repositório virar público (o CI voltou a rodar).
 
 ## Situação da F00 em uma linha
 
@@ -31,6 +31,7 @@ Antes: Correção 2 concluída em 2026-10-14: as 12 etapas reprovadas na rodada 
 | H29 | E04 | Uma escrita que já estava em andamento conclui até cerca de 223 ms depois de a conta ser desativada (8 de 8 no validador). Não quebra o critério escrito da E04, mas é a mesma família de defeito da E07. O conserto entra agora ou na F03-E03? | `docs/evidencias-v2/G00/V2-F00-E04/VEREDITO.md`, rodada 4 | Rafael |
 | H30 | E24 | A frase do painel "Declarar a saída é um passo do aplicativo do agente" promete algo que o aplicativo ainda não faz; depende da sua decisão sobre a D-25 (H01). | `docs/evidencias-v2/G00/V2-F00-E24/VEREDITO.md`, rodada 4 | Rafael (e Alyson) |
 | H31 | todas | A página de progresso (`/progresso`, projeto `dc360-progresso` na Vercel) não publica mais deste Mac: o token da CLI da Vercel expirou. Rodar `npx vercel login` uma vez; depois disso o `node scripts/roadmap/publicar-progresso.mjs` publica a cada etapa (o vínculo `vercel link` da pasta do site é feito pelo agente). | `scripts/roadmap/publicar-progresso.mjs` | Rafael |
+| H33 | E16 e E19 | O repositório ficou público em 2026-10-20 (decisão do Rafael, para o GitHub Actions voltar a rodar sem cobrança). A chave de API do Firebase/Google do aplicativo, em `dc360/apps/campo/google-services.json` (também no histórico), agora é pública. Ela já vai dentro do aplicativo instalado, mas, se estiver sem restrição, outra pessoa pode gastar a cota. Restringir a chave ao pacote do aplicativo Android (e às APIs que ele usa) no console do Google Cloud, em APIs e serviços, Credenciais. | `dc360/apps/campo/google-services.json` | Rafael |
 
 ## B. Texto de produto e percepção visual (gatilhos da seção 10 de `28`)
 
@@ -77,6 +78,7 @@ Não são pendências humanas; estão aqui porque não admitem risco aceito e vo
 
 | Código | Data | O que foi | Resultado |
 | --- | --- | --- | --- |
+| H32 | 2026-10-20 | CI recusado pelo GitHub por faturamento da conta (franquia de minutos de repositório privado) | Rafael decidiu tornar o repositório público em 2026-10-20; o GitHub não cobra Actions de repositório público e o CI completo voltou a rodar (run 39366804765 reexecutado) |
 | D1 a D8 | 2026-10-13 | Parte 1 do `ROTEIRO-G00.md` (Expo, prazo de teste pulado, perguntas da E03, isenções, D-25, CP-19, frases, tabela de documentação) | decididos por você; registro na seção 10 do STATUS |
 | T1 a T6 | 2026-10-13 | Telas no navegador do `ROTEIRO-G00.md` | executados por agente nos três motores (Chromium, Firefox, WebKit) sobre o SHA `4b96ea7`; os defeitos achados viraram correção (E09, E10); prova em `docs/evidencias-v2/G00/validacao/4b96ea7/navegador/` |
 | T7 a T9 (parte) | 2026-10-13 | Celular do `ROTEIRO-G00.md` | executados no emulador Android; o que o emulador não prova ficou em H18 a H20 |

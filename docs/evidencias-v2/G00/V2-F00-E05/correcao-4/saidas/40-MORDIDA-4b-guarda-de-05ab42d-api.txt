@@ -1,0 +1,242 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (108 tests | 12 failed) 846ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 9ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada 1ms
+   ✓ HEAD não leva corpo > o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > controles: o que está no catálogo sai como a rota mandou, com a frase da rota 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 401 {"erro":"credenciais"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"acesso_suspenso"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"nao_autenticado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"inventado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 403 ["sem_permissao"] 0ms
+   ✓ a conferência do corpo, isolada > 403 proibido 0ms
+   ✓ a conferência do corpo, isolada > 403  0ms
+   ✓ a conferência do corpo, isolada > 403 null 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","campos":[{"erro":"x"}]} 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme) 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em teste sai 500 com o desvio registrado (status 401) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em teste sai 500 com o desvio registrado (status 401) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > a frase da linha de status da rota não sai na resposta trocada 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora 19ms
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > calc-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 4ms
+     → falhar calc-store: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > destruct-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+     → falhar destruct-store: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-trocado: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+     → falhar header-trocado: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-401: nunca sai 401 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+     → falhar header-401: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+     → Parse Error: Expected HTTP/, RTSP/ or ICE/
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-base64: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+     → Parse Error: Expected HTTP/, RTSP/ or ICE/
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-buffer: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 0ms
+     → Parse Error: Expected HTTP/, RTSP/ or ICE/
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > continue-junto: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 0ms
+     → Parse Error: Expected HTTP/, RTSP/ or ICE/
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > linha-partida: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 0ms
+     → Parse Error: Expected HTTP/, RTSP/ or ICE/
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > fila: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 1ms
+     → Parse Error: Expected HTTP/, RTSP/ or ICE/
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > bytes depois do fim da resposta não saem (seriam lidos como a resposta seguinte da conexão) 2ms
+     → expected [] to have a length of 1 but got +0
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > a resposta trocada fecha a conexão, e o pedido seguinte do mesmo agente sai certo 1ms
+     → expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > controles: 100 Continue de verdade seguido do 403 do catálogo, e o 403 comum, passam intactos 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > calc-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+AssertionError: falhar calc-store: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:702:43
+    700|       log.length = 0;
+    701|       const r = await pedirHttp(porta, `/por-baixo/${n}`);
+    702|       expect(r.corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    703|       if (modo === "falhar") {
+    704|         expect(r.status, `${modo} ${n}`).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > destruct-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+AssertionError: falhar destruct-store: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:702:43
+    700|       log.length = 0;
+    701|       const r = await pedirHttp(porta, `/por-baixo/${n}`);
+    702|       expect(r.corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    703|       if (modo === "falhar") {
+    704|         expect(r.status, `${modo} ${n}`).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-trocado: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+AssertionError: falhar header-trocado: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:702:43
+    700|       log.length = 0;
+    701|       const r = await pedirHttp(porta, `/por-baixo/${n}`);
+    702|       expect(r.corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    703|       if (modo === "falhar") {
+    704|         expect(r.status, `${modo} ${n}`).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-401: nunca sai 401 com o código inventado; em teste 500 com desvio, em produção o genérico
+AssertionError: falhar header-401: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:702:43
+    700|       log.length = 0;
+    701|       const r = await pedirHttp(porta, `/por-baixo/${n}`);
+    702|       expect(r.corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    703|       if (modo === "falhar") {
+    704|         expect(r.status, `${modo} ${n}`).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-base64: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-buffer: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > continue-junto: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > linha-partida: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > fila: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico
+Error: Parse Error: Expected HTTP/, RTSP/ or ICE/
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > bytes depois do fim da resposta não saem (seriam lidos como a resposta seguinte da conexão)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:728:38
+    726|         expect(r.status).toBe(200);
+    727|         expect(r.corpo).toBe("{}");
+    728|         expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? …
+       |                                      ^
+    729|         // O pedido seguinte, no mesmo socket, recebe a resposta dele …
+    730|         const seguinte = await pedirHttp(porta, "/por-baixo/ok-403", a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > a resposta trocada fecha a conexão, e o pedido seguinte do mesmo agente sai certo
+AssertionError: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:747:35
+    745|       try {
+    746|         const trocada = await pedirHttp(porta, "/por-baixo/calc-store"…
+    747|         expect(trocada.corpo).not.toContain("inventado_c6");
+       |                                   ^
+    748|         lerDesviosDaGuarda();
+    749|         const seguinte = await pedirHttp(porta, "/por-baixo/ok-403", a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 96 passed (108)
+   Start at  07:03:56
+   Duration  1.35s (transform 205ms, setup 69ms, collect 267ms, tests 846ms, environment 0ms, prepare 33ms)
+
+codigo de saida: 1

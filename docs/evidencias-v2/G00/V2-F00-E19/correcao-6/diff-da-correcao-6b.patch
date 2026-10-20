@@ -1,0 +1,831 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index f1bbf72..6bd2980 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1535,15 +1535,26 @@ que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
+ quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem
+ ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
+ devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
+-código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei"). Toda
+-chamada fixa o registro oficial (`https://registry.npmjs.org/`) e anula o modo
+-offline, então `offline=true` ou outro registro na configuração do npm não mudam
+-para onde ele pergunta; e, antes de aprovar, ele exige que o relatório diga
+-quantas dependências olhou e faz uma consulta de controle (`lodash` 4.17.20, que
+-tem advisory publicada) com a mesma configuração da raiz e do aplicativo: se ela
+-voltar vazia, o zero não prova nada e o portão sai 2. As exceções do aplicativo
+-casam pelo id da advisory (GHSA), não pelo nome do pacote: advisory nova num
+-pacote já aceito reprova.
++código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
++
++O que o portão anula: toda chamada fixa o registro oficial
++(`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
++`dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
++`offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
++ou em `npm_config_*`, não mudam para onde ele pergunta. O que ele exige antes de
++aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
++aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
++próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
++está velha, e o portão sai 2); o que a auditoria completa acusa em pacote que o
++`package-lock.json` não marca como só de desenvolvimento conta como runtime; e
++uma consulta de controle à parte (`lodash` 4.17.20, com o `.npmrc` de cada
++projeto) volta com a advisory conhecida. As exceções do aplicativo casam pelo id
++da advisory e pela gravidade aceita: advisory nova num pacote já aceito reprova,
++e advisory aceita que muda de gravidade também. O que continua FORA do alcance:
++um `npm` falso no `PATH` (o portão confia no programa que executa), um proxy de
++inspeção TLS que reescreve a resposta tirando só a advisory nova e deixando as
++conhecidas, e o dia em que as duas listas de aceitas ficarem vazias (aí a única
++prova é a consulta de controle à parte).
+ 
+ ### O aplicativo de campo precisa de um comando próprio
+ 
+diff --git a/dc360/scripts/auditar-excecoes.mjs b/dc360/scripts/auditar-excecoes.mjs
+index d8abca6..b5c31a8 100644
+--- a/dc360/scripts/auditar-excecoes.mjs
++++ b/dc360/scripts/auditar-excecoes.mjs
+@@ -21,12 +21,17 @@
+ /*
+   Cada exceção tem `advisories`, `motivo`, `dono` e `ate` (AAAA-MM-DD).
+ 
+-  `advisories` é a lista dos ids GHSA aceitos NAQUELE pacote (vale também a URL
+-  da advisory, que o portão reduz ao id). Até 2026-10-20 a exceção casava pelo
+-  nome do pacote, e uma advisory nova e crítica em `node-forge` passava como
+-  "aceita" porque o pacote já estava na lista (validação da rodada 6). Aceitar
+-  um risco é aceitar AQUELE risco: advisory nova no mesmo pacote reprova até
+-  alguém ler, escrever o motivo e acrescentar o id. Vencido o prazo, o
++  `advisories` mapeia cada id GHSA aceito NAQUELE pacote (vale também a URL da
++  advisory, que o portão reduz ao id) para a gravidade com que foi aceito. Até
++  2026-10-20 a exceção casava pelo nome do pacote, e uma advisory nova e crítica
++  em `node-forge` passava como "aceita" porque o pacote já estava na lista
++  (validação da rodada 6). Aceitar um risco é aceitar AQUELE risco, com AQUELA
++  gravidade: advisory nova no mesmo pacote reprova, e advisory aceita que muda de
++  gravidade também, até alguém ler, decidir e atualizar a linha.
++
++  A lista também é prova: cada advisory aceita TEM de voltar na própria auditoria
++  do aplicativo. Se uma some, ou a auditoria não é confiável (proxy ou espelho
++  que forja a resposta) ou a lista está velha; nos dois casos o portão sai 2. Vencido o prazo, o
+   portão reprova até alguém reavaliar. `comCorrecao: true` só vale para o caso em
+   que o `npm audit` diz `fixAvailable: true` mas a correção é inaplicável (ver
+   CP-03, decidido por Rafael em 2026-10-07): o `npm audit fix` em apps/campo
+@@ -43,7 +48,7 @@ const SEM_FIX_SEGURO = "O `npm audit fix` em apps/campo não é aplicável: "
+ 
+ export const ACEITAS_NO_APLICATIVO = {
+   "decode-uri-component": {
+-    advisories: ["GHSA-vcc3-ghjq-m6fr"],
++    advisories: { "GHSA-vcc3-ghjq-m6fr": "moderate" },
+     motivo: "Chega por expo-router > query-string, e esta vai "
+       + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
+       + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
+@@ -51,34 +56,34 @@ export const ACEITAS_NO_APLICATIVO = {
+     dono: DONO, ate: PRAZO,
+   },
+   "brace-expansion": {
+-    advisories: ["GHSA-q2hr-2g5m-vwhr", "GHSA-qhr7-859c-m2p7", "GHSA-6j4f-fj2g-mc7p"],
++    advisories: { "GHSA-q2hr-2g5m-vwhr": "moderate", "GHSA-qhr7-859c-m2p7": "high", "GHSA-6j4f-fj2g-mc7p": "high" },
+     motivo: FERRAMENTA_DO_EXPO + "Três avisos de negação de serviço na expansão de "
+       + "glob (padrão `{a},b}` e recursão em chaves aninhadas), e o aplicativo não "
+       + "expande glob em execução. " + SEM_FIX_SEGURO,
+     dono: DONO, ate: PRAZO, comCorrecao: true,
+   },
+   braces: {
+-    advisories: ["GHSA-vfj7-8cjw-p6xm"],
++    advisories: { "GHSA-vfj7-8cjw-p6xm": "high" },
+     motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
+       + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
+     dono: DONO, ate: PRAZO,
+   },
+   "node-forge": {
+-    advisories: ["GHSA-86w9-cpqp-85rv"],
++    advisories: { "GHSA-86w9-cpqp-85rv": "high" },
+     motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
+       + "para assinar atualização do EAS na máquina de build, não no telefone. "
+       + SEM_FIX_SEGURO,
+     dono: DONO, ate: PRAZO,
+   },
+   "shell-quote": {
+-    advisories: ["GHSA-pqg4-j6r4-53mv"],
++    advisories: { "GHSA-pqg4-j6r4-53mv": "critical" },
+     motivo: FERRAMENTA_DO_EXPO + "Vem de react-devtools-core, só no modo de "
+       + "desenvolvimento. Injeção de comando exige que o desenvolvedor passe "
+       + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
+     dono: DONO, ate: PRAZO, comCorrecao: true,
+   },
+   "sprintf-js": {
+-    advisories: ["GHSA-hp3w-g68c-fv3c"],
++    advisories: { "GHSA-hp3w-g68c-fv3c": "moderate" },
+     motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
+       + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
+     dono: DONO, ate: PRAZO,
+@@ -127,8 +132,8 @@ export const ACEITAS_EM_DESENVOLVIMENTO = {
+  * Vale até o fim do dia escrito: vence quando `ate < hoje`.
+  *
+  * Com `exigirAdvisories` (a lista do aplicativo), cada exceção precisa nomear as
+- * advisories que aceita, por id GHSA ou URL: sem isso o portão voltaria a aceitar
+- * pelo nome do pacote.
++ * advisories que aceita, por id GHSA ou URL, cada uma com a gravidade aceita: sem
++ * isso o portão voltaria a aceitar pelo nome do pacote.
+  *
+  * @param {Record<string, {advisories?: unknown, motivo?: unknown, dono?: unknown, ate?: unknown}>} aceitas
+  * @param {string} hoje AAAA-MM-DD
+@@ -140,13 +145,17 @@ export function problemasDasExcecoes(aceitas, hoje, { exigirAdvisories = false }
+   const preenchido = (v) => typeof v === "string" && v.trim() !== "";
+   for (const [nome, e] of Object.entries(aceitas)) {
+     if (exigirAdvisories) {
+-      if (!Array.isArray(e?.advisories) || e.advisories.length === 0) {
+-        problemas.push(`${nome}: exceção sem a lista \`advisories\` (o id GHSA ou a URL de cada advisory aceita)`);
++      const lista = e?.advisories;
++      if (lista === null || typeof lista !== "object" || Array.isArray(lista) || Object.keys(lista).length === 0) {
++        problemas.push(`${nome}: exceção sem a lista \`advisories\` (o id GHSA ou a URL de cada advisory aceita, com a gravidade)`);
+       } else {
+-        for (const a of e.advisories) {
+-          if (typeof a !== "string" || !idDaAdvisory(a)?.startsWith("GHSA-")) {
++        for (const [a, gravidade] of Object.entries(lista)) {
++          if (!idDaAdvisory(a)?.startsWith("GHSA-")) {
+             problemas.push(`${nome}: advisory inválida ${JSON.stringify(a)} (esperado o id GHSA-xxxx-xxxx-xxxx ou a URL dela)`);
+           }
++          if (!GRAVIDADES.includes(gravidade)) {
++            problemas.push(`${nome}: gravidade aceita inválida ${JSON.stringify(gravidade)} para ${a} (esperado ${GRAVIDADES.join(", ")})`);
++          }
+         }
+       }
+     }
+@@ -202,15 +211,13 @@ export function advisoriesProprias(entrada) {
+  * não está em `advisories` também.
+  *
+  * @param {Record<string, {via?: unknown[]}>} vulnerabilidades o `vulnerabilities` do relatório
+- * @param {Record<string, {advisories?: string[]}>} aceitas
++ * @param {Record<string, {advisories?: Record<string, string>}>} aceitas
+  * @returns {{pacote: string, id: string, gravidade: string, titulo: string}[]}
+  */
+ export function advisoriesNaoAceitas(vulnerabilidades, aceitas) {
+   const novas = new Map();
+   for (const [pacote, entrada] of Object.entries(vulnerabilidades ?? {})) {
+-    const aceitasDoPacote = new Set(
+-      Object.hasOwn(aceitas, pacote) ? (aceitas[pacote].advisories ?? []).map(idDaAdvisory).filter(Boolean) : [],
+-    );
++    const aceitasDoPacote = new Set(aceitasDe(aceitas, pacote).keys());
+     for (const origem of advisoriesProprias(entrada)) {
+       const id = idDaAdvisory(origem) ?? "(sem id)";
+       if (aceitasDoPacote.has(id) || novas.has(`${pacote} ${id}`)) continue;
+@@ -222,6 +229,84 @@ export function advisoriesNaoAceitas(vulnerabilidades, aceitas) {
+   return [...novas.values()];
+ }
+ 
++/** As gravidades do `npm audit`, da menor para a maior. */
++export const GRAVIDADES = Object.freeze(["info", "low", "moderate", "high", "critical"]);
++
++/** Mapa id GHSA normalizado para a gravidade aceita, das exceções de um pacote. */
++function aceitasDe(aceitas, pacote) {
++  const lista = Object.hasOwn(aceitas, pacote) ? aceitas[pacote].advisories ?? {} : {};
++  return new Map(Object.entries(lista).map(([a, g]) => [idDaAdvisory(a), g]).filter(([id]) => id));
++}
++
++/**
++ * A gravidade de cada par (pacote, id) no relatório. O mesmo GHSA aparece uma vez
++ * por faixa de versão; vale a maior gravidade entre elas.
++ *
++ * @returns {Map<string, string>} chave `pacote id`
++ */
++function gravidadesNoRelatorio(vulnerabilidades) {
++  const mapa = new Map();
++  for (const [pacote, entrada] of Object.entries(vulnerabilidades ?? {})) {
++    for (const origem of advisoriesProprias(entrada)) {
++      const chave = `${pacote} ${idDaAdvisory(origem) ?? "(sem id)"}`;
++      const g = String(origem.severity ?? "");
++      if (!mapa.has(chave) || GRAVIDADES.indexOf(g) > GRAVIDADES.indexOf(mapa.get(chave))) mapa.set(chave, g);
++    }
++  }
++  return mapa;
++}
++
++/**
++ * Advisory aceita que voltou com outra gravidade. A aceitação foi daquela
++ * gravidade: subiu (ou desceu), alguém decide de novo.
++ *
++ * @returns {{pacote: string, id: string, aceita: string, agora: string}[]}
++ */
++export function mudancasDeGravidade(vulnerabilidades, aceitas) {
++  const mudancas = [];
++  for (const [chave, agora] of gravidadesNoRelatorio(vulnerabilidades)) {
++    const [pacote, id] = chave.split(" ");
++    const aceita = aceitasDe(aceitas, pacote).get(id);
++    if (aceita !== undefined && aceita !== agora) mudancas.push({ pacote, id, aceita, agora });
++  }
++  return mudancas;
++}
++
++/**
++ * Advisories aceitas que NÃO voltaram no relatório (`pacote id`). É a prova
++ * dentro da própria consulta: um proxy ou espelho que responde `{}`, ou que
++ * repassa só a consulta de controle, apaga também as aceitas, e isso aparece aqui.
++ */
++export function aceitasAusentes(vulnerabilidades, aceitas) {
++  const vistas = gravidadesNoRelatorio(vulnerabilidades);
++  return Object.keys(aceitas).flatMap((pacote) => [...aceitasDe(aceitas, pacote).keys()]
++    .filter((id) => !vistas.has(`${pacote} ${id}`))
++    .map((id) => `${pacote} ${id}`));
++}
++
++/** Pacotes aceitos em desenvolvimento que não voltaram com advisory própria no relatório completo. */
++export function pacotesAceitosAusentes(vulnerabilidades, aceitas) {
++  return Object.keys(aceitas).filter((nome) => advisoriesProprias(vulnerabilidades?.[nome]).length === 0);
++}
++
++/**
++ * Os pacotes vulneráveis do relatório COMPLETO que não são só de desenvolvimento,
++ * pelo `package-lock.json`: nó que não tem `dev: true` (ou que o lockfile não
++ * conhece) é runtime. Serve para não depender só da consulta `--omit=dev`, que
++ * não tem nenhuma advisory conhecida dentro e por isso, sozinha, poderia ser
++ * forjada vazia sem ninguém notar; a completa traz as aceitas de desenvolvimento.
++ */
++export function pacotesDeRuntimeNoCompleto(vulnerabilidades, lockfile) {
++  const pacotes = lockfile?.packages ?? {};
++  return Object.entries(vulnerabilidades ?? {})
++    .filter(([nome, v]) => {
++      const nos = Array.isArray(v.nodes) && v.nodes.length > 0 ? v.nodes : [`node_modules/${nome}`];
++      return nos.some((no) => pacotes[no]?.dev !== true);
++    })
++    .map(([nome]) => nome)
++    .sort();
++}
++
+ /* ---------- Provar que houve consulta de verdade ---------- */
+ 
+ /**
+diff --git a/dc360/scripts/auditar.mjs b/dc360/scripts/auditar.mjs
+index 4d00a55..94ff606 100755
+--- a/dc360/scripts/auditar.mjs
++++ b/dc360/scripts/auditar.mjs
+@@ -35,16 +35,20 @@
+  * linha.
+  */
+ import { execFileSync } from "node:child_process";
+-import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
++import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
+-  advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle, idDaAdvisory,
+-  problemasDasExcecoes,
++  aceitasAusentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
++  idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const RAIZ = join(AQUI, "..");
++const APLICATIVO = join(RAIZ, "apps", "campo");
++
+ /**
+  * Sai com código 2 dizendo, em português, que a auditoria NÃO aconteceu.
+  *
+@@ -61,8 +65,8 @@ import {
+  * `{}` ao endpoint de advisories, o npm devolve `total: 0` sem ter perguntado a
+  * ninguém (validação da rodada 6). Por isso toda chamada fixa o registro oficial
+  * e anula o modo offline (`BANDEIRAS_DA_CONSULTA_REAL`), e o portão só aprova
+- * depois de uma consulta de controle que TEM de voltar com advisory (ver
+- * `provarConsultaReal`, no fim).
++ * depois de provar, dentro das próprias consultas, que a resposta é real: as
++ * advisories aceitas (conhecidas) têm de voltar (ver o fim do arquivo).
+  */
+ function naoAuditou(rotulo, motivo) {
+   console.error(`\nERRO: ${rotulo} NÃO foi auditado, então este portão NÃO aprova.`);
+@@ -74,6 +78,23 @@ function naoAuditou(rotulo, motivo) {
+   process.exit(2);
+ }
+ 
++/**
++ * Sai com código 2 quando advisories que SABEMOS existir não voltaram. Não dá
++ * para saber, daqui, qual das duas coisas aconteceu: a resposta foi forjada no
++ * caminho (proxy de inspeção TLS ou espelho que responde `{}`) ou a lista de
++ * aceitas envelheceu (o pacote foi corrigido). Nas duas, alguém tem de olhar.
++ */
++function semProvaNaConsulta(rotulo, oQue, ausentes, onde) {
++  console.error(`\nERRO: ${rotulo} não é confiável, então este portão NÃO aprova.`);
++  console.error(`${oQue} que deveriam voltar e não voltaram: ${ausentes.join(", ")}.`);
++  console.error(
++    "Ou a resposta do registro foi forjada no caminho (proxy, espelho ou inspeção TLS que responde vazio), "
++    + `ou a lista de aceitas está velha. Confira com \`npm audit\` direto no registro oficial; se a advisory `
++    + `sumiu de verdade, apague a linha em ${onde} (scripts/auditar-excecoes.mjs).`,
++  );
++  process.exit(2);
++}
++
+ /** Aceita só um relatório que de fato contém a contagem de vulnerabilidades. */
+ function relatorioValido(relatorio) {
+   if (relatorio === null || typeof relatorio !== "object" || Array.isArray(relatorio)) {
+@@ -153,6 +174,20 @@ const runtime = contar(relatorioDoRuntime);
+ const tudo = contar(relatorioDeTudo);
+ const soDesenvolvimento = Math.max(0, tudo.total - runtime.total);
+ 
++/*
++  A consulta `--omit=dev` não tem advisory conhecida dentro, então, sozinha, uma
++  resposta forjada vazia passaria. A completa tem (as aceitas de desenvolvimento,
++  conferidas no fim), e o `package-lock.json` diz quais pacotes são só de
++  desenvolvimento: o que estiver vulnerável na completa e não for `dev` é runtime.
++*/
++let lockfile;
++try {
++  lockfile = JSON.parse(readFileSync(join(RAIZ, "package-lock.json"), "utf8"));
++} catch (erro) {
++  naoAuditou("o conjunto de runtime da raiz", `não consegui ler o package-lock.json da raiz (${erro.message})`);
++}
++const runtimeNoCompleto = pacotesDeRuntimeNoCompleto(relatorioDeTudo.vulnerabilities, lockfile);
++
+ console.log(`Runtime (vai para a imagem): ${runtime.total} vulnerabilidade(s)`);
+ console.log(`Desenvolvimento (fica na máquina): ${soDesenvolvimento} vulnerabilidade(s)`);
+ 
+@@ -161,6 +196,14 @@ if (runtime.total > 0) {
+   console.error("Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.");
+   process.exit(1);
+ }
++if (runtimeNoCompleto.length > 0) {
++  console.error(
++    `\nREPROVADO: a auditoria completa da raiz acusa ${runtimeNoCompleto.join(", ")}, que o package-lock.json `
++    + "NÃO marca como só de desenvolvimento (e a consulta de runtime voltou limpa: as duas não batem).",
++  );
++  console.error("Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.");
++  process.exit(1);
++}
+ 
+ if (soDesenvolvimento > 0) {
+   /*
+@@ -191,10 +234,6 @@ if (soDesenvolvimento > 0) {
+ 
+ /* ---------- O aplicativo de campo, que fica fora do `workspaces` ---------- */
+ 
+-const AQUI = dirname(fileURLToPath(import.meta.url));
+-const RAIZ = join(AQUI, "..");
+-const APLICATIVO = join(RAIZ, "apps", "campo");
+-
+ const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo");
+ const doApp = contar(relatorioDoApp);
+ /*
+@@ -241,14 +280,23 @@ const aceitasComCorrecao = pacotesDoApp.filter(
+     && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
+ );
+ 
++/*
++  A aceitação foi de uma advisory COM uma gravidade. Se o registro reclassifica
++  (por exemplo, de alta para crítica), a decisão antiga não cobre o risco novo.
++*/
++const mudancas = mudancasDeGravidade(relatorioDoApp.vulnerabilities, ACEITAS_NO_APLICATIVO);
++
+ console.log(`\nAplicativo de campo (vai para o telefone): ${doApp.total} vulnerabilidade(s)`);
+ for (const nome of pacotesDoApp) {
+   for (const id of idsNoRelatorio(nome)) {
+     const nova = naoAceitas.find((n) => n.pacote === nome && n.id === id);
++    const mudou = mudancas.find((m) => m.pacote === nome && m.id === id);
+     const aceita = ACEITAS_NO_APLICATIVO[nome];
+     console.log(nova
+       ? `  NOVA:   ${nome} ${id} (${nova.gravidade}: ${nova.titulo})`
+-      : `  aceita: ${nome} ${id} (dono ${aceita.dono}, até ${aceita.ate})`);
++      : mudou
++        ? `  MUDOU:  ${nome} ${id} (aceita como ${mudou.aceita}, agora ${mudou.agora})`
++        : `  aceita: ${nome} ${id} (${aceita.advisories[id] ?? "?"}, dono ${aceita.dono}, até ${aceita.ate})`);
+   }
+ }
+ 
+@@ -264,6 +312,18 @@ if (naoAceitas.length > 0) {
+   process.exit(1);
+ }
+ 
++if (mudancas.length > 0) {
++  console.error(
++    `\nREPROVADO: ${mudancas.length} advisory aceita mudou de gravidade no aplicativo de campo `
++    + `(${mudancas.map((m) => `${m.pacote} ${m.id}: aceita como ${m.aceita}, agora ${m.agora}`).join("; ")}).`,
++  );
++  console.error(
++    "A exceção foi decidida para a gravidade antiga e não vale para a nova sem decisão. Reavalie e, "
++    + "se continuar aceita, atualize a gravidade e o motivo em ACEITAS_NO_APLICATIVO (scripts/auditar-excecoes.mjs).",
++  );
++  process.exit(1);
++}
++
+ if (aceitasComCorrecao.length > 0) {
+   console.error(
+     `\nREPROVADO: ${aceitasComCorrecao.join(", ")} está em ACEITAS_NO_APLICATIVO, `
+@@ -276,31 +336,21 @@ if (aceitasComCorrecao.length > 0) {
+   process.exit(1);
+ }
+ 
+-/*
+-  Aceita que sobra na lista e sumiu do relatório é uma linha que virou mentira.
+-  Ela não reprova, porque não há risco nenhum nisso, mas precisa ser dita: uma
+-  lista de exceções que ninguém poda vira o lugar onde advisory de verdade se
+-  esconde.
+-*/
+-const obsoletas = Object.entries(ACEITAS_NO_APLICATIVO).flatMap(([nome, e]) => {
+-  const vistas = pacotesDoApp.includes(nome) ? idsNoRelatorio(nome) : [];
+-  return (e.advisories ?? []).map(idDaAdvisory).filter((id) => !vistas.includes(id)).map((id) => `${nome} ${id}`);
+-});
+-if (obsoletas.length > 0) {
+-  console.warn(
+-    `\nAviso: ${obsoletas.join(", ")} não aparece(m) mais no relatório do `
+-    + "aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs.",
+-  );
+-}
+ 
+ /* ---------- Antes de aprovar: provar que houve consulta de verdade ---------- */
+ 
+ /*
+   Reprovar não precisa de prova: achado é achado. Aprovar precisa. Um zero só
+-  vale se (1) o relatório diz que olhou uma árvore com dependências e (2) a mesma
+-  configuração de npm, com as mesmas bandeiras, devolve a advisory conhecida de
+-  um pacote de controle. Sem as duas coisas o zero pode ser o do npm offline ou o
+-  de um espelho que responde `{}`, e o portão sai 2.
++  vale se (1) o relatório diz que olhou uma árvore com dependências, (2) as
++  advisories que SABEMOS existir (as aceitas) voltaram DENTRO das próprias
++  consultas, e (3) a consulta de controle à parte devolve a advisory conhecida.
++
++  O (2) é o que importa. Até a revisão de 2026-10-20 só havia o (3), e um proxy
++  de inspeção TLS (`https-proxy` e `cafile` na configuração, como em rede
++  corporativa) que repassava ao registro só a consulta de controle e respondia
++  `{}` às outras fazia o portão dizer "consulta real" com o aplicativo em 0. Uma
++  consulta que carrega advisory conhecida não pode ser forjada vazia sem perder
++  essa advisory; a de controle, separada, pode ser tratada à parte.
+ */
+ for (const [relatorio, rotulo] of [
+   [relatorioDoRuntime, "o conjunto de runtime da raiz"],
+@@ -311,6 +361,18 @@ for (const [relatorio, rotulo] of [
+   if (defeito) naoAuditou(rotulo, defeito);
+ }
+ 
++const ausentesNoApp = aceitasAusentes(relatorioDoApp.vulnerabilities, ACEITAS_NO_APLICATIVO);
++if (ausentesNoApp.length > 0) semProvaNaConsulta(
++  "a auditoria do aplicativo de campo", "Advisories aceitas (conhecidas)", ausentesNoApp, "ACEITAS_NO_APLICATIVO",
++);
++const ausentesNoCompleto = pacotesAceitosAusentes(relatorioDeTudo.vulnerabilities, ACEITAS_EM_DESENVOLVIMENTO);
++if (ausentesNoCompleto.length > 0) {
++  semProvaNaConsulta(
++    "a auditoria completa da raiz", "Pacotes aceitos de desenvolvimento (com advisory conhecida)", ausentesNoCompleto,
++    "ACEITAS_EM_DESENVOLVIMENTO",
++  );
++}
++
+ /**
+  * Roda o `npm audit` num projeto de controle (pasta temporária) com as mesmas
+  * bandeiras e o mesmo `.npmrc` do projeto auditado, e exige a advisory conhecida.
+@@ -335,7 +397,9 @@ provarConsultaReal(RAIZ, "com a configuração da raiz");
+ provarConsultaReal(APLICATIVO, "com a configuração do aplicativo de campo");
+ console.log(
+   `\nConsulta de controle: ${CONTROLE.pacote} ${CONTROLE.versao} voltou com ${CONTROLE.advisory} `
+-  + `de ${REGISTRO_OFICIAL}, com a configuração da raiz e com a do aplicativo. O zero acima é de consulta real.`,
++  + `de ${REGISTRO_OFICIAL}, com a configuração da raiz e com a do aplicativo; e as `
++  + `${Object.values(ACEITAS_NO_APLICATIVO).reduce((n, e) => n + Object.keys(e.advisories).length, 0)} advisories aceitas do aplicativo e os `
++  + `${Object.keys(ACEITAS_EM_DESENVOLVIMENTO).length} pacotes aceitos de desenvolvimento voltaram nas próprias consultas.`,
+ );
+ 
+ console.log("\nRuntime limpo, e o aplicativo sem advisory nova.");
+diff --git a/dc360/scripts/auditar.test.mjs b/dc360/scripts/auditar.test.mjs
+index d23a3e1..a706a9c 100644
+--- a/dc360/scripts/auditar.test.mjs
++++ b/dc360/scripts/auditar.test.mjs
+@@ -27,7 +27,8 @@ import { after, before, describe, it } from "node:test";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
+-  advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, problemasDasExcecoes,
++  aceitasAusentes, advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
++  pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
+ const AQUI = dirname(fileURLToPath(import.meta.url));
+@@ -78,30 +79,57 @@ const VAZIO_BEM_FORMADO = {
+ };
+ const urlDe = (id) => `https://github.com/advisories/${id}`;
+ /** O primeiro GHSA aceito do pacote, ou um GHSA que nenhuma lista aceita. */
+-const ghsaDe = (nome) => ACEITAS_NO_APLICATIVO[nome]?.advisories?.[0] ?? "GHSA-n0va-0000-0000";
++const ghsaDe = (nome) => Object.keys(ACEITAS_NO_APLICATIVO[nome]?.advisories ?? {})[0] ?? "GHSA-n0va-0000-0000";
++/** A gravidade com que o GHSA foi aceito no pacote, ou "high". */
++const gravidadeAceita = (nome, id) => ACEITAS_NO_APLICATIVO[nome]?.advisories?.[id] ?? "high";
+ 
+ /**
+  * Relatório com advisory PRÓPRIA (via com objeto) por pacote informado. O valor é
+- * o `fixAvailable`, ou `{ fixAvailable, ids }` para escolher os GHSA.
++ * o `fixAvailable`, ou `{ fixAvailable, ids, gravidade, nodes }` para escolher os
++ * GHSA, forçar a gravidade e os caminhos no `node_modules` (o portão os confere
++ * no `package-lock.json` real para separar runtime de desenvolvimento).
+  */
+ function relatorio(pacotes) {
+   const vulnerabilities = {};
+   let total = 0;
+   for (const [nome, valor] of Object.entries(pacotes)) {
+-    const { fixAvailable, ids = [ghsaDe(nome)] } = valor !== null && typeof valor === "object" ? valor : { fixAvailable: valor };
++    const opcoes = valor !== null && typeof valor === "object" ? valor : { fixAvailable: valor };
++    const { fixAvailable, ids = [ghsaDe(nome)], gravidade, nodes = [`node_modules/${nome}`] } = opcoes;
+     vulnerabilities[nome] = {
+-      name: nome, severity: "high", fixAvailable,
+-      via: ids.map((id, i) => ({ source: 1000 + i, url: urlDe(id), title: `advisory ${id} de ${nome}`, severity: "high" })),
++      name: nome, severity: "high", fixAvailable, nodes,
++      via: ids.map((id, i) => ({
++        source: 1000 + i, url: urlDe(id), title: `advisory ${id} de ${nome}`, severity: gravidade ?? gravidadeAceita(nome, id),
++      })),
+     };
+     total += ids.length;
+   }
+   return { vulnerabilities, metadata: { vulnerabilities: { total, high: total }, dependencies: ARVORE } };
+ }
+ 
++/** Junta relatórios; pacote repetido fica com a versão do último. */
++function juntar(...relatorios) {
++  const vulnerabilities = Object.assign({}, ...relatorios.map((r) => r.vulnerabilities));
++  const total = Object.values(vulnerabilities).reduce((n, v) => n + v.via.filter((o) => typeof o === "object").length, 0);
++  return { vulnerabilities, metadata: { vulnerabilities: { total, high: total }, dependencies: ARVORE } };
++}
++
++/** O aplicativo como o registro responde hoje: todas as advisories aceitas, com a gravidade aceita. */
++const APP_ACEITO = relatorio(Object.fromEntries(Object.entries(ACEITAS_NO_APLICATIVO).map(
++  ([nome, e]) => [nome, { fixAvailable: Boolean(e.comCorrecao), ids: Object.keys(e.advisories) }],
++)));
++/** O conjunto completo da raiz como o registro responde hoje: os três pacotes aceitos do vitest. */
++const DEV_ACEITO = relatorio({ vitest: false, "@vitest/mocker": false, tinypool: false });
++/** Nó que o `package-lock.json` real marca como só de desenvolvimento. */
++const NO_DE_DEV = ["node_modules/vitest"];
++
+ /** A consulta de controle como o registro oficial responde: lodash 4.17.20 com a advisory conhecida. */
+ const CONTROLE_BOM = relatorio({ [CONTROLE.pacote]: { fixAvailable: true, ids: [CONTROLE.advisory, "GHSA-29mw-wpgm-hmr9"] } });
+ 
+-function fixtura({ runtime = limpo, tudo = runtime, app = limpo, controle = CONTROLE_BOM, ...resto }) {
++function fixtura({
++  runtime = limpo,
++  tudo = runtime?.vulnerabilities ? juntar(runtime, DEV_ACEITO) : DEV_ACEITO,
++  app = APP_ACEITO, controle = CONTROLE_BOM, ...resto
++}) {
+   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
+ }
+ 
+@@ -135,13 +163,13 @@ describe("auditar.mjs", () => {
+   });
+ 
+   it("só avisa de vulnerabilidade apenas de desenvolvimento", () => {
+-    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false }) });
++    const { codigo, saida } = rodar({ tudo: DEV_ACEITO });
+     assert.equal(codigo, 0, saida);
+     assert.match(saida, /apenas em ferramenta de/);
+   });
+ 
+   it("dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono'", () => {
+-    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false, tinypool: false }) });
++    const { codigo, saida } = rodar({ tudo: DEV_ACEITO });
+     assert.equal(codigo, 0, saida);
+     assert.match(saida, /aceita \(desenvolvimento\): vitest \(dono Rafael, até 2027-01-05\)/);
+     assert.match(saida, /aceita \(desenvolvimento\): tinypool/);
+@@ -150,22 +178,24 @@ describe("auditar.mjs", () => {
+   });
+ 
+   it("dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo", () => {
+-    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false, "pacote-novo-de-teste": false }) });
++    const { codigo, saida } = rodar({
++      tudo: juntar(DEV_ACEITO, relatorio({ "pacote-novo-de-teste": { fixAvailable: false, nodes: NO_DE_DEV } })),
++    });
+     assert.equal(codigo, 0, saida);
+     assert.match(saida, /sem dono e prazo: pacote-novo-de-teste/);
+     assert.match(saida, /aceita \(desenvolvimento\): vitest/);
+   });
+ 
+   it("reprova advisory nova no aplicativo de campo", () => {
+-    const { codigo, saida } = rodar({ app: relatorio({ "pacote-novo": false }) });
++    const { codigo, saida } = rodar({ app: juntar(APP_ACEITO, relatorio({ "pacote-novo": false })) });
+     assert.equal(codigo, 1);
+     assert.match(saida, /NOVA:\s+pacote-novo/);
+   });
+ 
+   it("aceita o nomeado, com o id da advisory, dono e prazo na saída", () => {
+-    const { codigo, saida } = rodar({ app: relatorio({ "node-forge": false }) });
++    const { codigo, saida } = rodar({});
+     assert.equal(codigo, 0, saida);
+-    assert.match(saida, /aceita: node-forge GHSA-86w9-cpqp-85rv \(dono .+, até \d{4}-\d{2}-\d{2}\)/);
++    assert.match(saida, /aceita: node-forge GHSA-86w9-cpqp-85rv \(high, dono .+, até \d{4}-\d{2}-\d{2}\)/);
+   });
+ 
+   /*
+@@ -174,7 +204,7 @@ describe("auditar.mjs", () => {
+   */
+   it("reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA)", () => {
+     const { codigo, saida } = rodar({
+-      app: relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv", "GHSA-n0va-cr1t-1ca0"] } }),
++      app: juntar(APP_ACEITO, relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv", "GHSA-n0va-cr1t-1ca0"] } })),
+     });
+     assert.equal(codigo, 1, saida);
+     assert.match(saida, /NOVA:\s+node-forge GHSA-n0va-cr1t-1ca0/);
+@@ -196,21 +226,23 @@ describe("auditar.mjs", () => {
+   });
+ 
+   it("aceita as três advisories nomeadas de brace-expansion e reprova a quarta", () => {
+-    const ids = ACEITAS_NO_APLICATIVO["brace-expansion"].advisories;
+-    assert.equal(rodar({ app: relatorio({ "brace-expansion": { fixAvailable: true, ids } }) }).codigo, 0);
+-    const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": { fixAvailable: true, ids: [...ids, "GHSA-qu4r-t4aa-0000"] } }) });
++    const ids = Object.keys(ACEITAS_NO_APLICATIVO["brace-expansion"].advisories);
++    assert.equal(rodar({ app: juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids } })) }).codigo, 0);
++    const { codigo, saida } = rodar({
++      app: juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids: [...ids, "GHSA-qu4r-t4aa-0000"] } })),
++    });
+     assert.equal(codigo, 1, saida);
+     assert.match(saida, /NOVA:\s+brace-expansion GHSA-qu4r-t4aa-0000/);
+   });
+ 
+   it("reprova aceita que tem correção disponível e não está marcada como inaplicável", () => {
+-    const { codigo, saida } = rodar({ app: relatorio({ "decode-uri-component": true }) });
++    const { codigo, saida } = rodar({ app: juntar(APP_ACEITO, relatorio({ "decode-uri-component": true })) });
+     assert.equal(codigo, 1);
+     assert.match(saida, /correção já existe/);
+   });
+ 
+   it("tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)", () => {
+-    const { codigo, saida } = rodar({ app: relatorio({ "brace-expansion": true }) });
++    const { codigo, saida } = rodar({ app: juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids: Object.keys(ACEITAS_NO_APLICATIVO["brace-expansion"].advisories) } })) });
+     assert.equal(codigo, 0, saida);
+   });
+ 
+@@ -281,23 +313,23 @@ describe("auditar.mjs", () => {
+   });
+ 
+   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
+-    const { codigo, saida } = rodar({ offline: true, app: relatorio({ "pacote-novo": false }) });
++    const { codigo, saida } = rodar({ offline: true, app: juntar(APP_ACEITO, relatorio({ "pacote-novo": false })) });
+     assert.equal(codigo, 1, saida);
+     assert.match(saida, /NOVA:\s+pacote-novo/);
+     assert.doesNotMatch(saida, /Runtime limpo/);
+   });
+ 
+   it("com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou)", () => {
+-    const { codigo, saida } = rodar({ offline: true, tudo: relatorio({ vitest: false }) });
++    const { codigo, saida } = rodar({ offline: true });
+     assert.equal(codigo, 0, saida);
+-    assert.match(saida, /Desenvolvimento \(fica na máquina\): 1 vulnerabilidade/);
++    assert.match(saida, /Desenvolvimento \(fica na máquina\): 3 vulnerabilidade/);
++    assert.match(saida, /Aplicativo de campo \(vai para o telefone\): 8 vulnerabilidade/);
+   });
+ 
+   it("sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {})", () => {
+     const { codigo, saida } = rodar({ ignorarBandeiras: true });
+     assert.equal(codigo, 2, saida);
+-    assert.match(saida, /NÃO foi auditad/);
+-    assert.match(saida, /consulta de controle \(lodash 4\.17\.20.*voltou sem advisory nenhuma/);
++    assert.match(saida, /não é confiável/);
+     assert.doesNotMatch(saida, /Runtime limpo/);
+   });
+ 
+@@ -327,6 +359,54 @@ describe("auditar.mjs", () => {
+     assert.equal(codigo, 1, saida);
+     assert.equal(chamadas.filter((c) => c.controle).length, 0);
+   });
++
++  /*
++    Revisão de 915bb6a: um proxy de inspeção TLS que repassa ao registro só a
++    consulta de controle e responde `{}` às outras fazia o portão dizer "consulta
++    real" com o aplicativo em 0. A prova agora vai DENTRO das consultas reais: as
++    advisories aceitas são conhecidas e têm de voltar.
++  */
++  it("sai 2 quando as consultas reais voltam vazias e só a de controle volta de verdade (o proxy da revisão)", () => {
++    const { codigo, saida } = rodar({ runtime: VAZIO_BEM_FORMADO, tudo: VAZIO_BEM_FORMADO, app: VAZIO_BEM_FORMADO });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /a auditoria do aplicativo de campo não é confiável/);
++    assert.match(saida, /node-forge GHSA-86w9-cpqp-85rv/);
++    assert.doesNotMatch(saida, /Runtime limpo|consulta real|voltaram nas próprias consultas/);
++  });
++
++  it("sai 2 quando só a auditoria completa da raiz volta vazia (os pacotes aceitos do vitest sumiram)", () => {
++    const { codigo, saida } = rodar({ tudo: VAZIO_BEM_FORMADO });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /a auditoria completa da raiz não é confiável/);
++    assert.match(saida, /vitest, @vitest\/mocker, tinypool/);
++    assert.doesNotMatch(saida, /Runtime limpo/);
++  });
++
++  it("sai 2 quando UMA advisory aceita some (lista velha ou resposta mexida), e diz qual", () => {
++    const semUma = juntar(APP_ACEITO, relatorio({ "brace-expansion": { fixAvailable: true, ids: ["GHSA-q2hr-2g5m-vwhr", "GHSA-qhr7-859c-m2p7"] } }));
++    const { codigo, saida } = rodar({ app: semUma });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /não voltaram: brace-expansion GHSA-6j4f-fj2g-mc7p\./);
++    assert.match(saida, /lista de aceitas está velha/);
++  });
++
++  it("runtime forjado vazio não esconde o que a auditoria completa acusa em pacote que o lockfile não marca como dev", () => {
++    const { codigo, saida } = rodar({ runtime: limpo, tudo: juntar(DEV_ACEITO, relatorio({ fastify: true })) });
++    assert.equal(codigo, 1, saida);
++    assert.match(saida, /auditoria completa da raiz acusa fastify/);
++    assert.doesNotMatch(saida, /Runtime limpo/);
++  });
++
++  it("advisory aceita que muda de gravidade (para cima ou para baixo) deixa de valer sem decisão: sai 1 e diz a mudança", () => {
++    for (const agora of ["critical", "moderate"]) {
++      const app = juntar(APP_ACEITO, relatorio({ "node-forge": { fixAvailable: false, ids: ["GHSA-86w9-cpqp-85rv"], gravidade: agora } }));
++      const { codigo, saida } = rodar({ app });
++      assert.equal(codigo, 1, `${agora}: ${saida}`);
++      assert.match(saida, new RegExp(`MUDOU:\\s+node-forge GHSA-86w9-cpqp-85rv \\(aceita como high, agora ${agora}\\)`));
++      assert.match(saida, /REPROVADO: 1 advisory aceita mudou de gravidade/);
++      assert.doesNotMatch(saida, /Runtime limpo/);
++    }
++  });
+ });
+ 
+ describe("regras puras do portão: advisory por id e prova de consulta", () => {
+@@ -338,7 +418,7 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
+   });
+ 
+   it("advisoriesNaoAceitas casa por GHSA, aceita a URL na lista, ignora arrasto e não repete o mesmo GHSA de faixas diferentes", () => {
+-    const aceitas = { a: { advisories: ["https://github.com/advisories/GHSA-aaaa-aaaa-aaaa"] } };
++    const aceitas = { a: { advisories: { "https://github.com/advisories/GHSA-aaaa-aaaa-aaaa": "high" } } };
+     const vulns = {
+       a: { via: [{ source: 1, url: urlDe("GHSA-aaaa-aaaa-aaaa") }, { source: 2, url: urlDe("GHSA-bbbb-bbbb-bbbb") }, { source: 3, url: urlDe("GHSA-bbbb-bbbb-bbbb") }] },
+       b: { via: ["a"] },
+@@ -353,6 +433,31 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
+     assert.match(defeitoDoControle(relatorio({ lodash: { fixAvailable: true, ids: ["GHSA-29mw-wpgm-hmr9"] } })), new RegExp(`sem ${CONTROLE.advisory}`));
+   });
+ 
++  it("mudancasDeGravidade compara com a maior gravidade do mesmo GHSA entre as faixas, e ignora o que não é aceito", () => {
++    const aceitas = { a: { advisories: { "GHSA-aaaa-aaaa-aaaa": "moderate" } } };
++    const igual = { a: { via: [{ url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "moderate" }] }, b: { via: [{ url: urlDe("GHSA-bbbb-bbbb-bbbb"), severity: "critical" }] } };
++    assert.deepEqual(mudancasDeGravidade(igual, aceitas), []);
++    const subiu = { a: { via: [{ url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "moderate" }, { url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "high" }] } };
++    assert.deepEqual(mudancasDeGravidade(subiu, aceitas), [{ pacote: "a", id: "GHSA-aaaa-aaaa-aaaa", aceita: "moderate", agora: "high" }]);
++  });
++
++  it("aceitasAusentes e pacotesAceitosAusentes listam o que sabíamos existir e não voltou", () => {
++    const aceitas = { a: { advisories: { "GHSA-aaaa-aaaa-aaaa": "high", "GHSA-cccc-cccc-cccc": "low" } }, b: { advisories: { "GHSA-bbbb-bbbb-bbbb": "high" } } };
++    const vulns = { a: { via: [{ url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "high" }] }, b: { via: ["a"] } };
++    assert.deepEqual(aceitasAusentes(vulns, aceitas), ["a GHSA-cccc-cccc-cccc", "b GHSA-bbbb-bbbb-bbbb"]);
++    assert.deepEqual(aceitasAusentes({}, {}), []);
++    assert.deepEqual(pacotesAceitosAusentes({ x: { via: [{ title: "t" }] }, y: { via: ["x"] } }, { x: {}, y: {}, z: {} }), ["y", "z"]);
++  });
++
++  it("pacotesDeRuntimeNoCompleto: só fica de fora o nó que o lockfile marca dev; nó desconhecido conta como runtime", () => {
++    const lock = { packages: { "node_modules/d": { dev: true }, "node_modules/p": {}, "node_modules/o": { devOptional: true } } };
++    const vulns = {
++      d: { nodes: ["node_modules/d"] }, p: { nodes: ["node_modules/p"] }, o: { nodes: ["node_modules/o"] },
++      misto: { nodes: ["node_modules/d", "node_modules/p"] }, desconhecido: { nodes: ["node_modules/zz"] }, semNos: {},
++    };
++    assert.deepEqual(pacotesDeRuntimeNoCompleto(vulns, lock), ["desconhecido", "misto", "o", "p", "semNos"]);
++  });
++
+   it("defeitoDaArvore exige dependencies.total maior que zero", () => {
+     assert.equal(defeitoDaArvore(limpo), null);
+     for (const rel of [{}, { metadata: {} }, { metadata: { dependencies: { total: 0 } } }, { metadata: { dependencies: { total: "249" } } }]) {
+@@ -361,14 +466,18 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
+   });
+ 
+   it("a lista do aplicativo exige advisories: sem a lista, lista vazia ou id inválido reprova", () => {
+-    const boa = { advisories: ["GHSA-aaaa-aaaa-aaaa"], motivo: "m", dono: "Rafael", ate: "2027-01-05" };
++    const boa = { advisories: { "GHSA-aaaa-aaaa-aaaa": "high" }, motivo: "m", dono: "Rafael", ate: "2027-01-05" };
+     const HOJE = "2026-10-20";
+     assert.deepEqual(problemasDasExcecoes({ p: boa }, HOJE, { exigirAdvisories: true }), []);
+     const { advisories, ...semLista } = boa;
+-    for (const e of [semLista, { ...boa, advisories: [] }, { ...boa, advisories: ["node-forge"] }, { ...boa, advisories: [42] }]) {
++    for (const e of [
++      semLista, { ...boa, advisories: {} }, { ...boa, advisories: ["GHSA-aaaa-aaaa-aaaa"] },
++      { ...boa, advisories: { "node-forge": "high" } }, { ...boa, advisories: { "GHSA-aaaa-aaaa-aaaa": "grave" } },
++      { ...boa, advisories: { "GHSA-aaaa-aaaa-aaaa": undefined } },
++    ]) {
+       const p = problemasDasExcecoes({ p: e }, HOJE, { exigirAdvisories: true });
+       assert.equal(p.length, 1, JSON.stringify(e));
+-      assert.match(p[0], /^p: (exceção sem a lista `advisories`|advisory inválida)/);
++      assert.match(p[0], /^p: (exceção sem a lista `advisories`|advisory inválida|gravidade aceita inválida)/);
+     }
+     // A lista de desenvolvimento não reprova, então não exige advisories.
+     assert.deepEqual(problemasDasExcecoes({ p: semLista }, HOJE), []);
+@@ -444,12 +553,13 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
+ 
+ describe("auditar.mjs com a lista de exceções adulterada", () => {
+   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
+-  function rodarCopia(alterar, { npmrc } = {}) {
++  function rodarCopia(alterar, { npmrc, semLockfile = false } = {}) {
+     const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
+     try {
+       mkdirSync(join(raiz, "scripts"));
+       mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
+       copyFileSync(SCRIPT, join(raiz, "scripts", "auditar.mjs"));
++      if (!semLockfile) copyFileSync(join(AQUI, "..", "package-lock.json"), join(raiz, "package-lock.json"));
+       const lista = readFileSync(join(AQUI, "auditar-excecoes.mjs"), "utf8").replaceAll("\r\n", "\n");
+       const nova = alterar(lista);
+       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
+@@ -465,7 +575,7 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
+           ...process.env,
+           PATH: pasta + delimiter + process.env.PATH,
+           AUDITAR_LOG: log,
+-          AUDITAR_FIXTURE: fixtura({ app: relatorio({ "node-forge": false }) }),
++          AUDITAR_FIXTURE: fixtura({}),
+         },
+       });
+       const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
+@@ -501,11 +611,18 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
+   });
+ 
+   it("reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote)", () => {
+-    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{\n)    advisories: \[[^\]]*\],\n/, "$1"));
++    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{\n)    advisories: \{[^}]*\},\n/, "$1"));
+     assert.equal(codigo, 1, saida);
+     assert.match(saida, /node-forge: exceção sem a lista `advisories`/);
+   });
+ 
++  it("sai 2 quando não consegue ler o package-lock.json da raiz (não dá para separar runtime de desenvolvimento)", () => {
++    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { semLockfile: true });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /package-lock\.json/);
++    assert.doesNotMatch(saida, /Runtime limpo/);
++  });
++
+   it("reprova a exceção vencida", () => {
+     const { codigo, saida } = rodarCopia((t) => t.replace('const PRAZO = "2027-01-05"', 'const PRAZO = "2020-01-01"'));
+     assert.equal(codigo, 1, saida);

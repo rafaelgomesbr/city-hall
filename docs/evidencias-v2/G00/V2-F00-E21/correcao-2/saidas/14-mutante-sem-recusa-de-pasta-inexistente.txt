@@ -1,0 +1,47 @@
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (36.106542ms)
+  ✔ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (34.8905ms)
+  ✔ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (33.704125ms)
+  ✔ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (65.551958ms)
+  ✔ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (32.135125ms)
+  ✔ com `node --preserve-symlinks-main <link>` confere do mesmo jeito (o Node não resolve o link em import.meta.url) (31.54675ms)
+  ✔ com --preserve-symlinks-main em NODE_OPTIONS também (32.019667ms)
+  ✖ pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK) (30.04825ms)
+  ✔ pasta que existe e não tem nenhum INDEX.md também sai 1 (nada conferido não é tudo certo) (30.644333ms)
+  ✔ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (124.453042ms)
+✖ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (451.796917ms)
+ℹ tests 10
+ℹ suites 1
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 506.94225
+
+✖ failing tests:
+
+test at conferir-indices-de-evidencia.test.mjs:389:3
+✖ pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK) (30.04825ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /a pasta de evidências não existe/. Input:
+  
+  'Índices de evidência: 0 INDEX.md, 0 arquivo(s) conferido(s) byte a byte.\n' +
+    'FALHA .\n' +
+    '  - não há nenhum INDEX.md embaixo de /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/indices-que-nao-existe-58460-1792496810955: não há o que conferir\n' +
+    'RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git\n'
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:393:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Índices de evidência: 0 INDEX.md, 0 arquivo(s) conferido(s) byte a byte.\nFALHA .\n  - não há nenhum INDEX.md embaixo de /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/indices-que-nao-existe-58460-1792496810955: não há o que conferir\nRESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git\n',
+    expected: /a pasta de evidências não existe/,
+    operator: 'match',
+    diff: 'simple'
+  }
+saida=1

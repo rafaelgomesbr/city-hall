@@ -1,0 +1,584 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (95 tests | 22 failed) 824ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 9ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada 1ms
+   ✓ HEAD não leva corpo > o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > controles: o que está no catálogo sai como a rota mandou, com a frase da rota 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 401 {"erro":"credenciais"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"acesso_suspenso"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"nao_autenticado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"inventado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 403 ["sem_permissao"] 0ms
+   ✓ a conferência do corpo, isolada > 403 proibido 0ms
+   ✓ a conferência do corpo, isolada > 403  0ms
+   ✓ a conferência do corpo, isolada > 403 null 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","campos":[{"erro":"x"}]} 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme) 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda 1ms
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em teste sai 500 com o desvio registrado (status 403) 2ms
+     → {"erro":"vazou_frac","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em teste sai 500 com o desvio registrado (status 401) 0ms
+     → {"erro":"vazou_frac_um","mensagem":"x"}: expected 401 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"vazou_frac_texto","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"sem_permissao","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"vazou_meio","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"vazou_texto_raw","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"vazou_grande"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"vazou_negativo"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em teste sai 500 com o desvio registrado (status 401) 0ms
+     → {"erro":"vazou_valueof"}: expected 401 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+     → {"erro":"vazou_implicito"}: expected 403 to be 500 // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+     → expected { erro: 'vazou_frac', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+     → expected { Object (erro, mensagem) } to deeply equal { erro: 'nao_autenticado', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_frac_texto', …(1) } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { Object (erro, mensagem) } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_meio', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_texto_raw', …(1) } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_grande' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_negativo' } to deeply equal { erro: 'sem_permissao', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_valueof' } to deeply equal { erro: 'nao_autenticado', …(1) }
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+     → expected { erro: 'vazou_implicito' } to deeply equal { erro: 'sem_permissao', …(1) }
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > a frase da linha de status da rota não sai na resposta trocada 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno 1ms
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez 0ms
+     → expected undefined to be 'terceiro' // Object.is equality
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora 12ms
+     → falhar regra-mutada: expected 403 to be 500 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_frac","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em teste sai 500 com o desvio registrado (status 401)
+AssertionError: {"erro":"vazou_frac_um","mensagem":"x"}: expected 401 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 401
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_frac_texto","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"sem_permissao","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_meio","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_texto_raw","mensagem":"x"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_grande"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_negativo"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em teste sai 500 com o desvio registrado (status 401)
+AssertionError: {"erro":"vazou_valueof"}: expected 401 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 401
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em teste sai 500 com o desvio registrado (status 403)
+AssertionError: {"erro":"vazou_implicito"}: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:522:34
+    520|     const r = await pedirEm("falhar", `/status-torto/${n}`);
+    521|     const desvios = lerDesviosDaGuarda();
+    522|     expect(r.statusCode, r.body).toBe(500);
+       |                                  ^
+    523|     expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    524|     expect(desvios).toEqual([expect.objectContaining({ rota: `/status-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_frac', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_frac",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em produção sai o código genérico do status 401 e o desvio vai para o log
+AssertionError: expected { Object (erro, mensagem) } to deeply equal { erro: 'nao_autenticado', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "nao_autenticado",
+-   "mensagem": "Token inválido ou expirado.",
++   "erro": "vazou_frac_um",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_frac_texto', …(1) } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_frac_texto",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { Object (erro, mensagem) } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+    "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_meio', mensagem: 'x' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_meio",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_texto_raw', …(1) } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_texto_raw",
++   "mensagem": "x",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_grande' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_grande",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_negativo' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_negativo",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em produção sai o código genérico do status 401 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_valueof' } to deeply equal { erro: 'nao_autenticado', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "nao_autenticado",
+-   "mensagem": "Token inválido ou expirado.",
++   "erro": "vazou_valueof",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log
+AssertionError: expected { erro: 'vazou_implicito' } to deeply equal { erro: 'sem_permissao', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "erro": "sem_permissao",
+-   "mensagem": "Seu perfil não tem permissão para esta ação.",
++   "erro": "vazou_implicito",
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:532:22
+    530|     const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    531|     expect(r.statusCode, r.body).toBe(status);
+    532|     expect(r.json()).toEqual(status === 401
+       |                      ^
+    533|       ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO…
+    534|       : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez
+AssertionError: expected undefined to be 'terceiro' // Object.is equality
+
+- Expected: 
+"terceiro"
+
++ Received: 
+undefined
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:572:36
+    570|       const c = await pedirEm(modo, "/status-torto/ok-cabecalho-tercei…
+    571|       expect(c.statusCode).toBe(403);
+    572|       expect(c.headers["x-sonda"]).toBe("terceiro");
+       |                                    ^
+    573|       expect(c.json()).toEqual({ erro: "sem_permissao", mensagem: "x" …
+    574|       // O valueOf deu 200 na leitura da guarda; o Node escreve 200, e…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/22]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora
+AssertionError: falhar regra-mutada: expected 403 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 403
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:590:46
+    588|           const corpo = await r.json() as { erro: string };
+    589|           if (modo === "falhar") {
+    590|             expect(r.status, `${modo} ${n}`).toBe(500);
+       |                                              ^
+    591|             expect(corpo.erro).toBe("desvio_do_catalogo_de_erro");
+    592|             expect(lerDesviosDaGuarda()).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/22]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  22 failed | 73 passed (95)
+   Start at  06:38:44
+   Duration  1.33s (transform 206ms, setup 69ms, collect 269ms, tests 824ms, environment 0ms, prepare 32ms)
+
+codigo de saida: 1

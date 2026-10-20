@@ -1,0 +1,61 @@
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (30.559083ms)
+  ✔ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (31.286917ms)
+  ✔ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (29.813167ms)
+  ✔ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (57.695458ms)
+  ✖ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (28.309458ms)
+  ✖ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (56.860458ms)
+✖ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (235.057209ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 4
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 285.526583
+
+✖ failing tests:
+
+test at conferir-indices-de-evidencia.test.mjs:344:3
+✖ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (28.309458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:357:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at conferir-indices-de-evidencia.test.mjs:361:3
+✖ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (56.860458ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /RESULTADO: OK\s*$/. Input:
+  
+  ''
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:382:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: /RESULTADO: OK\s*$/,
+    operator: 'match',
+    diff: 'simple'
+  }
+saida=1

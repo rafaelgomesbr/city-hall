@@ -1,0 +1,13 @@
+# Node sozinho (sem a guarda): writeHead(valor) e o status que chega pelo HTTP. A linha {} é o objeto com valueOf que dá 401.9.
+403.5 -> 403 x
+"403" -> 403 x
+"403.2" -> 403 x
+"0x193" -> 403 x
+4294967699 -> 403 x
+-4294966893 -> 403 x
+[403] -> 403 x
+{} -> 401 x
+" 403 " -> 403 x
+true -> 599 ERR_HTTP_INVALID_STATUS_CODE
+null -> 599 ERR_HTTP_INVALID_STATUS_CODE
+node v24.15.0

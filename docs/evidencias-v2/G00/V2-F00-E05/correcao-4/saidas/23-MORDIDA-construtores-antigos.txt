@@ -1,0 +1,122 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (95 tests | 1 failed) 846ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 9ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 1ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também 0ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada 1ms
+   ✓ HEAD não leva corpo > o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado 0ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > controles: o que está no catálogo sai como a rota mandou, com a frase da rota 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 401 {"erro":"credenciais"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"acesso_suspenso"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"nao_autenticado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"inventado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 403 ["sem_permissao"] 0ms
+   ✓ a conferência do corpo, isolada > 403 proibido 0ms
+   ✓ a conferência do corpo, isolada > 403  0ms
+   ✓ a conferência do corpo, isolada > 403 null 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","campos":[{"erro":"x"}]} 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme) 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em teste sai 500 com o desvio registrado (status 401) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em teste sai 500 com o desvio registrado (status 401) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em teste sai 500 com o desvio registrado (status 403) 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em produção sai o código genérico do status 401 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > a frase da linha de status da rota não sai na resposta trocada 0ms
+   × correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno 1ms
+     → 403.5
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora 25ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno
+AssertionError: 403.5
+ ❯ test/guarda-de-codigos-de-erro.test.ts:553:83
+    551|   it("RegraDeNegocio e AcessoSuspenso recusam status torto no construt…
+    552|     for (const s of [403.5, 401.9, "403", 4294967699, 399, 600, Number…
+    553|       expect(() => new RegraDeNegocio("vazou_meio", "x", s as number),…
+       |                                                                                   ^
+    554|     }
+    555|     expect(new RegraDeNegocio("sem_permissao", "x", 403).status).toBe(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 94 passed (95)
+   Start at  06:39:00
+   Duration  1.36s (transform 207ms, setup 70ms, collect 269ms, tests 846ms, environment 0ms, prepare 34ms)
+
+codigo de saida: 1

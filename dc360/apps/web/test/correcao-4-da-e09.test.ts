@@ -164,7 +164,10 @@ describe("Revisão 2: confirmação e erro não ficam juntos na troca de senha",
 describe("Revisão 3: depois de enviar o foco não cai em BODY", () => {
   it("Minha conta leva o foco ao campo inválido, ao erro e à confirmação", () => {
     const conta = fonte("paginas", "MinhaConta.tsx");
-    expect(conta).toContain("depoisDePintar(() => focarPrimeiroInvalido(formulario.current));");
+    // A correção 5 trocou o requestAnimationFrame por efeito depois do commit
+    // (`useFocoDepoisDeRenderizar`); o contrato desta frase, foco no campo inválido, é o mesmo.
+    expect(conta).toContain("focarPrimeiroInvalido(formulario.current);");
+    expect(conta).toContain("focarCampoInvalido();");
     expect(conta).toContain("<Aviso tom=\"perigo\" foco={avisoDeErro}>");
     expect(conta).toContain("<Aviso tom=\"sucesso\" foco={confirmacaoDaTroca}>");
     expect(conta).toMatch(/if \(erro\) avisoDeErro\.current\?\.focus\(\);/);

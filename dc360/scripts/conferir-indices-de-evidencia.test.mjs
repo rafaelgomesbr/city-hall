@@ -3,12 +3,13 @@
  * Cada caso monta uma pasta de evidência de mentira e prova que o conferidor
  * reprova o que tem de reprovar: índice adulterado, arquivo faltando, fim de
  * linha trocado ou misturado. O último bloco roda contra a evidência real e o
- * `.gitattributes` real.
+ * `.gitattributes` real. O bloco "como comando" roda o script como processo
+ * filho e confere o CÓDIGO DE SAÍDA, que é o que o CI lê (V2-F00-E21, correção 2).
  */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after, describe, it } from "node:test";
@@ -279,6 +280,161 @@ describe("conferir-indices-de-evidencia: varredura", () => {
     const r = conferirTudo(raiz);
     assert.deepEqual(r.falhas.map((f) => f.indice), ["G00/V2-F00-E99/saidas/baseline/INDEX.md"]);
     assert.match(relatorio(r), /RESULTADO: 1 índice\(s\) não batem/);
+  });
+});
+
+describe("conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)", () => {
+  /*
+    Todos os casos acima chamam as funções. O CI não chama função: roda
+    `node scripts/conferir-indices-de-evidencia.mjs` e lê o código de saída da
+    última linha do script (`process.exit(... ? 0 : 1)`). Se alguém mexesse nessa
+    linha (um `process.exit(0)` solto, um `exit` esquecido), todos os casos de
+    função continuariam verdes e o passo do CI ficaria verde com índice quebrado
+    (achado da rodada 4, repetido na rodada 6 da V2-F00-E21). Aqui o script roda
+    de verdade, como processo filho, sobre pastas de evidência de mentira.
+  */
+  const SCRIPT = join(AQUI, "conferir-indices-de-evidencia.mjs");
+
+  function comoComando(...argumentos) {
+    const r = spawnSync(process.execPath, [SCRIPT, ...argumentos], { encoding: "utf8", timeout: 30_000 });
+    assert.equal(r.error, undefined, `o processo filho não rodou: ${r.error}`);
+    assert.equal(r.signal, null, `o processo filho foi morto pelo sinal ${r.signal}`);
+    return { codigo: r.status, saida: r.stdout, erro: r.stderr };
+  }
+
+  it("evidência em ordem: código 0 e a linha final diz OK", () => {
+    const { raiz } = evidencia({ "RESUMO.md": "# resumo\n", "saidas/01.txt": SAIDA_LF });
+    const r = comoComando(raiz);
+    assert.equal(r.codigo, 0, r.saida + r.erro);
+    assert.match(r.saida, /2 arquivo\(s\) conferido\(s\) byte a byte/);
+    assert.match(r.saida, /RESULTADO: OK\s*$/);
+  });
+
+  it("INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem", () => {
+    const { raiz } = evidencia({ "RESUMO.md": "# resumo\n" }, { aparte: { "RESUMO.md": sha("outro conteúdo") } });
+    const r = comoComando(raiz);
+    assert.equal(r.codigo, 1, r.saida + r.erro);
+    assert.match(r.saida, /FALHA G00\/V2-F00-E99\/INDEX\.md/);
+    assert.match(r.saida, /RESUMO\.md tem SHA-256 diferente do índice/);
+    assert.match(r.saida, /RESULTADO: 1 índice\(s\) não batem/);
+  });
+
+  it("CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa", () => {
+    const { raiz } = evidencia({ "saidas/01.txt": "linha 1\r\nlinha 2\r\n" }, { aparte: { "saidas/01.txt": sha("linha 1\nlinha 2\n") } });
+    const r = comoComando(raiz);
+    assert.equal(r.codigo, 1, r.saida + r.erro);
+    assert.match(r.saida, /saidas\/01\.txt tem SHA-256 diferente do índice \(bateria com todo o arquivo em LF/);
+  });
+
+  it("pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1", () => {
+    const semIndice = mkdtempSync(join(tmpdir(), "comando-sem-indice-"));
+    temporarios.push(semIndice);
+    gravar(semIndice, "G00/V2-F00-E98/RESUMO.md", "x\n");
+    const a = comoComando(semIndice);
+    assert.equal(a.codigo, 1, a.saida + a.erro);
+    assert.match(a.saida, /a pasta da etapa não tem INDEX\.md/);
+
+    const { raiz, pasta } = evidencia({ "RESUMO.md": "x\n" });
+    gravar(pasta, "sobra.txt", "ninguém listou\n");
+    const b = comoComando(raiz);
+    assert.equal(b.codigo, 1, b.saida + b.erro);
+    assert.match(b.saida, /sobra\.txt existe na pasta e não está no índice/);
+  });
+
+  it("chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada)", (t) => {
+    const { raiz } = evidencia({ "RESUMO.md": "# resumo\n" }, { aparte: { "RESUMO.md": sha("outro conteúdo") } });
+    const pastaDoLink = mkdtempSync(join(tmpdir(), "comando-link-"));
+    temporarios.push(pastaDoLink);
+    const link = join(pastaDoLink, "conferir.mjs");
+    try {
+      symlinkSync(SCRIPT, link);
+    } catch (erro) {
+      // No Windows, criar link simbólico exige privilégio (modo de desenvolvedor): sem ele não há como armar o caso.
+      if (erro.code === "EPERM" || erro.code === "EACCES") return t.skip(`sem permissão para criar link simbólico (${erro.code})`);
+      throw erro;
+    }
+    const r = spawnSync(process.execPath, [link, raiz], { encoding: "utf8", timeout: 30_000 });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stdout, /RESULTADO: 1 índice\(s\) não batem/);
+  });
+
+  /** O caso do link simbólico, com o flag que o Node usa para NÃO resolver o link do script principal. */
+  function viaLinkComFlag(t, { noArgv, noAmbiente }) {
+    const { raiz } = evidencia({ "RESUMO.md": "# resumo\n" }, { aparte: { "RESUMO.md": sha("outro conteúdo") } });
+    const pastaDoLink = mkdtempSync(join(tmpdir(), "comando-link-flag-"));
+    temporarios.push(pastaDoLink);
+    const link = join(pastaDoLink, "conferir.mjs");
+    try {
+      symlinkSync(SCRIPT, link);
+    } catch (erro) {
+      if (erro.code === "EPERM" || erro.code === "EACCES") return t.skip(`sem permissão para criar link simbólico (${erro.code})`);
+      throw erro;
+    }
+    const r = spawnSync(process.execPath, [...(noArgv ? ["--preserve-symlinks-main"] : []), link, raiz], {
+      encoding: "utf8", timeout: 30_000,
+      env: { ...process.env, NODE_OPTIONS: noAmbiente ? "--preserve-symlinks-main" : "" },
+    });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stdout, /RESULTADO: 1 índice\(s\) não batem/);
+  }
+
+  it("com `node --preserve-symlinks-main <link>` confere do mesmo jeito (o Node não resolve o link em import.meta.url)", (t) => {
+    viaLinkComFlag(t, { noArgv: true, noAmbiente: false });
+  });
+
+  it("com --preserve-symlinks-main em NODE_OPTIONS também", (t) => {
+    viaLinkComFlag(t, { noArgv: false, noAmbiente: true });
+  });
+
+  it("pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK)", () => {
+    const inexistente = join(tmpdir(), `indices-que-nao-existe-${process.pid}-${Date.now()}`);
+    const r = comoComando(inexistente);
+    assert.equal(r.codigo, 1, r.saida + r.erro);
+    assert.match(r.saida, /a pasta de evidências não existe/);
+    assert.match(r.saida, /RESULTADO: 1 índice\(s\) não batem/);
+  });
+
+  it("pasta que existe e não tem nenhum INDEX.md também sai 1 (nada conferido não é tudo certo)", () => {
+    const vazia = mkdtempSync(join(tmpdir(), "comando-sem-nenhum-indice-"));
+    temporarios.push(vazia);
+    gravar(vazia, "qualquer-coisa.txt", "x\n");
+    const r = comoComando(vazia);
+    assert.equal(r.codigo, 1, r.saida + r.erro);
+    assert.match(r.saida, /não há nenhum INDEX\.md/);
+    // A função diz o mesmo, sem processo filho.
+    assert.equal(conferirTudo(vazia).falhas.length, 1);
+  });
+
+  it("sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1", () => {
+    // Repositório de mentira com o mesmo desenho do real: dc360/scripts/<o script> e docs/evidencias-v2/.
+    const raiz = mkdtempSync(join(tmpdir(), "comando-repo-"));
+    temporarios.push(raiz);
+    const git = (...args) => execFileSync("git", ["-C", raiz, "-c", "core.autocrlf=false", ...args], { encoding: "utf8" });
+    git("init", "-q");
+    writeFileSync(join(raiz, ".gitattributes"), "* text=auto eol=lf\n");
+    mkdirSync(join(raiz, "dc360", "scripts"), { recursive: true });
+    const copia = join(raiz, "dc360", "scripts", "conferir-indices-de-evidencia.mjs");
+    copyFileSync(SCRIPT, copia);
+    const etapa = "docs/evidencias-v2/G00/V2-F00-E99";
+    gravar(raiz, `${etapa}/NOTA.md`, "a\nb\n");
+    gravar(raiz, `${etapa}/INDEX.md`, `# INDEX\n\n| Arquivo | SHA-256 |\n| --- | --- |\n| NOTA.md | ${sha("a\nb\n")} |\n`);
+    git("add", "-A");
+    const rodar = () => {
+      const r = spawnSync(process.execPath, [copia], { encoding: "utf8", timeout: 30_000 });
+      assert.equal(r.error, undefined);
+      return { codigo: r.status, saida: r.stdout, erro: r.stderr };
+    };
+    const certo = rodar();
+    assert.equal(certo.codigo, 0, certo.saida + certo.erro);
+    assert.match(certo.saida, /RESULTADO: OK\s*$/);
+
+    // O falso verde local: o INDEX foi calculado sobre os bytes CRLF do disco, que o git devolve em LF.
+    gravar(raiz, `${etapa}/NOTA.md`, "a\r\nb\r\n");
+    gravar(raiz, `${etapa}/INDEX.md`, `# INDEX\n\n| Arquivo | SHA-256 |\n| --- | --- |\n| NOTA.md | ${sha("a\r\nb\r\n")} |\n`);
+    const errado = rodar();
+    assert.equal(errado.codigo, 1, errado.saida + errado.erro);
+    assert.match(errado.saida, /FALHA fim de linha no git: docs\/evidencias-v2\/G00\/V2-F00-E99\/NOTA\.md está no disco com fim de linha crlf/);
+    assert.match(errado.saida, /RESULTADO: 0 índice\(s\) não batem, 1 arquivo\(s\) com fim de linha errado no git/);
   });
 });
 

@@ -39,9 +39,13 @@
  *    `hijack` e `raw` terminam nesses três métodos. A primeira versão era um
  *    `onSend`, e a revisão passou por ela de três jeitos (`onSend` acrescentado
  *    depois por um `onRoute` de plugin, 404 de plugin trocado por 403, e o
- *    tratador de reserva escrevendo direto na resposta do Node). O corpo tem de
- *    ser JSON com UMA chave `erro` (repetida é recusada) deste catálogo (ou da
- *    lista da entrada) e o status que o catálogo dá a ele. Fora disso, em TESTE
+ *    tratador de reserva escrevendo direto na resposta do Node). "401 ou 403" é
+ *    o status que o Node ESCREVE, `statusCode | 0`, e não o pedido: `403.5`,
+ *    `"403"` e `4294967699` saem 403 no fio, e status que não é número inteiro
+ *    de 100 a 599 e vira 401 ou 403 é desvio mesmo com o corpo certo (correção
+ *    4). O corpo tem de ser JSON com UMA chave `erro` (repetida é recusada)
+ *    deste catálogo (ou da lista da entrada) e o status que o catálogo dá a
+ *    ele. Fora disso, em TESTE
  *    a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o
  *    `afterAll`) que passou por ali reprova (`test/guarda-falha-alto.ts`, em
  *    todo arquivo da suíte); FORA de teste ela sai com o código genérico do
@@ -141,12 +145,28 @@
  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
  *
- * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
- * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
- * revisão), que não passa pela resposta do Node, e o método do protótipo da
- * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). A
- * varredura proíbe os dois (`.socket`, `.connection`, `.call`, `.apply`,
- * `.bind`, `Reflect`), mas é heurística. Nenhuma das três linhas prende código
+ * A guarda também lê a linha de status nos BYTES que a resposta manda ao socket
+ * (`_writeRaw` e `_flushOutput` da instância): a cabeça gravada por baixo de
+ * `writeHead` (`_storeHeader`, `_header` reescrito, `_writeRaw` com a cabeça
+ * pronta) com 401 ou 403 que ela não conferiu troca a resposta inteira pela do
+ * desvio (correção 4b).
+ *
+ * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita
+ * direta no SOCKET, que não passa pela resposta do Node. Isso inclui
+ * `req.socket.end("HTTP/1.1 403 ...")` (o M08 da revisão), o mesmo socket por
+ * `.connection` ou `.client`, e um ouvinte nos eventos do servidor HTTP que
+ * entregam o socket ou o pedido (`app.server.on("connection", ...)`, `request`,
+ * `upgrade`, `secureConnection`, `clientError`); contra isso não há garantia em
+ * tempo de execução, só a varredura (correção 4c). Também não vê o método do protótipo da
+ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
+ * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
+ * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
+ * declarado seriam lidos como a resposta seguinte da conexão. A varredura
+ * proíbe os três caminhos (`.socket`, `.connection`, `.client`, ouvinte de
+ * `connection`, `request` e afins no servidor, `.call`, `.apply`,
+ * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
+ * `_header` e `outputData`, chave calculada na resposta, desestruturação de
+ * `raw` e `socket`), mas é heurística. Nenhuma das três linhas prende código
  * no mesmo processo que troque, ANTES de a guarda carregar, as primitivas que
  * ela usa para decidir (ela as guarda na carga e, ao decidir, só usa essas
  * cópias, então `JSON`, `includes` ou `hasOwnProperty` trocados depois não a

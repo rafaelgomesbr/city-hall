@@ -1,0 +1,21 @@
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (33.239625ms)
+  ✔ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (32.181583ms)
+  ✔ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (32.334041ms)
+  ✔ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (62.971708ms)
+  ✔ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (30.574584ms)
+  ✔ com `node --preserve-symlinks-main <link>` confere do mesmo jeito (o Node não resolve o link em import.meta.url) (34.159375ms)
+  ✔ com --preserve-symlinks-main em NODE_OPTIONS também (31.020125ms)
+  ✔ pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK) (30.2725ms)
+  ✔ pasta que existe e não tem nenhum INDEX.md também sai 1 (nada conferido não é tudo certo) (31.562666ms)
+  ✔ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (120.960083ms)
+✔ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (439.952083ms)
+ℹ tests 10
+ℹ suites 1
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 495.763958
+saida=0

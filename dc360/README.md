@@ -10,11 +10,11 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1590 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 699 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1685 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 274 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 286 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -240,10 +240,26 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
   padrão).
 
-O que a guarda NÃO vê, e a varredura proíbe (mas é heurística): escrita no socket
-da requisição (`req.socket.end("HTTP/1.1 403 ...")`, que não passa pela resposta
-do Node; a varredura reprova `.socket` e `.connection`) e o método do protótipo da
-resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). E nenhuma
+A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
+`"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
+(`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
+`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
+
+O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
+Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
+`.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
+servidor HTTP que entregam o socket ou o pedido antes do Fastify
+(`app.server.on("connection", (s) => s.end("HTTP/1.1 403 ..."))`, e `request`,
+`upgrade`, `secureConnection`, `clientError`, por `on`, `once`, `addListener` ou
+`prependListener`). Contra isso NÃO há garantia em tempo de execução: só a
+varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
+desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
+método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
+`Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
+(`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
+tamanho declarado seriam lidos como a resposta seguinte da conexão (a varredura
+reprova o nome interno da resposta do Node, como `_writeRaw`, `_header` e
+`outputData`, a chave calculada na resposta e desestruturar `raw`). E nenhuma
 linha prende código no mesmo processo que troque, antes de a guarda carregar, as
 primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
 usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
@@ -1512,9 +1528,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3358 testes em seis pacotes
+npm test                    # 3476 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1590 testes da API
+npm run test:api            # 1685 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -1536,6 +1552,25 @@ quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova s
 ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
 devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
 código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
+
+O que o portão anula: toda chamada fixa o registro oficial
+(`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
+`dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
+`offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
+ou em `npm_config_*`, não mudam para onde ele pergunta. O que ele exige antes de
+aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
+aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
+próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
+está velha, e o portão sai 2); o que a auditoria completa acusa em pacote que o
+`package-lock.json` não marca como só de desenvolvimento conta como runtime; e
+uma consulta de controle à parte (`lodash` 4.17.20, com o `.npmrc` de cada
+projeto) volta com a advisory conhecida. As exceções do aplicativo casam pelo id
+da advisory e pela gravidade aceita: advisory nova num pacote já aceito reprova,
+e advisory aceita que muda de gravidade também. O que continua FORA do alcance:
+um `npm` falso no `PATH` (o portão confia no programa que executa), um proxy de
+inspeção TLS que reescreve a resposta tirando só a advisory nova e deixando as
+conhecidas, e o dia em que as duas listas de aceitas ficarem vazias (aí a única
+prova é a consulta de controle à parte).
 
 ### O aplicativo de campo precisa de um comando próprio
 
@@ -1802,7 +1837,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 | Trabalho | O que ele impõe |
 | --- | --- |
 | Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
-| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
+| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
 | Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |

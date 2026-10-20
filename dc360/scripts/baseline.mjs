@@ -137,7 +137,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
     dava 0 para este arquivo e por isso ele ficou de fora).
   */
-  "V2-F00-E19": 28,
+  "V2-F00-E19": 54, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita)
   /*
     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
@@ -169,8 +169,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     pasta CP-xx sem INDEX.md e cinco sobre CRLF no git: no índice (`-text`), no
     disco com `eol=lf` (o falso verde local), com `.ps1` e binário, sem git e o
     repositório real). O arquivo inteiro entra na conta.
+
+    V2-F00-E21, correção 2: o mesmo arquivo ganha 6 casos que rodam o script
+    como COMANDO, em processo filho, e conferem o código de saída que o CI lê
+    (tudo certo dá 0; índice adulterado, CRLF, etapa sem INDEX.md, arquivo fora do
+    índice e CRLF no disco segundo o git dão 1; e o script chamado por link
+    simbólico confere do mesmo jeito). De 26 para 32; o arquivo inteiro segue
+    na conta, por isso é o mesmo número da correção 1.
   */
-  "V2-F00-E21-correcao-1": 26,
+  "V2-F00-E21-correcao-1": 36, // 26 na correção 1; a correção 2 (2026-10-20) acrescentou 6 e depois 4 casos que rodam o script como comando
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -487,6 +494,18 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     teto, chave repetida com escape e chave `erro` aninhada). 104 + 22 = 126.
   */
   "V2-F00-E05-correcao-3": { total: 126, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correção 4 (2026-10-20): status não inteiro na guarda e na
+    varredura: guarda da API de 71 para 95 casos (+24) e
+    `codigos-de-erro.test.ts` de 171 para 193 (+22); na segunda parte
+    (resposta crua, `_storeHeader`, chave calculada) guarda de 95 para 108
+    (+13) e `codigos-de-erro.test.ts` de 193 para 213 (+20). Na terceira parte
+    (socket por `.client` e ouvintes do servidor) `codigos-de-erro.test.ts`
+    de 213 para 229 (+16). Soma 95, sem
+    falha nem pulo novos. A guarda do console (+12) está no número do
+    próprio passo.
+  */
+  "V2-F00-E05-correcao-4": { total: 95, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -562,6 +581,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
   // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
   "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
+  // V2-F00-E09, correção 5: `correcao-5-da-e09.test.ts` é novo, com 11 casos (o detector de email solto no JSX e a varredura de todo .tsx do painel, as duas janelas e a tentativa de envio do ofício usando o EmailQuebravel, a regra da dica da janela sem `anywhere`, o hook que leva o foco depois do commit e as duas telas que o usam, o `scroll-padding-top` e a margem do campo no topo de duas linhas, e o foco que rola pelo `scrollIntoView`). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o foco por efeito), sem caso novo. Nenhuma falha nova.
+  "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -723,7 +744,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 274, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 286, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)
@@ -856,13 +877,22 @@ export const PASSOS = [
     (o aviso passageiro por cima da janela da senha temporaria, o email que nao
     quebra no meio da palavra e a frase da senha atual errada nas duas telas):
     de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
+
+    Correcao 5 da E09 (2026-10-20): de 149 para 197 (mais 48): o foco depois da
+    senha errada enviada com Espaco e com Enter (4), o campo focado que nao fica
+    atras do topo fixo, ele e o rotulo (6) e o email nas janelas "Redefinir senha" e "Desativar
+    usuario" a 320, 360, 390 e 768 px mais a linha da tentativa de envio do oficio
+    a 320, 360 e 390 px (38). Medido no Mac, Node 24: 197 no Chromium e no
+    Firefox; no WebKit 196 (uma verificacao do Tab
+    e PULADA la, por escolha antiga do arquivo) e so a tela estreita, ver
+    `e2e-api.mjs --so-layout`.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 197   Falhou: 0"] },
   },
 ];
 

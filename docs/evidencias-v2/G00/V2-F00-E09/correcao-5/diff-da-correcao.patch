@@ -1,0 +1,859 @@
+diff --git a/.github/workflows/verificar.yml b/.github/workflows/verificar.yml
+index 0aab547..dd9cdbf 100644
+--- a/.github/workflows/verificar.yml
++++ b/.github/workflows/verificar.yml
+@@ -307,7 +307,7 @@ jobs:
+       # critério de aceite exige. `--with-deps` traz as bibliotecas de sistema
+       # que faltam numa imagem limpa.
+       - name: Instalar navegadores
+-        run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
++        run: npx playwright install --with-deps chromium firefox webkit 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+ 
+       # O painel importa `@dc360/shared`, e a API do caminho de produção
+       # importa também `@dc360/db`, os dois pelo `dist/`, que numa imagem limpa
+@@ -371,6 +371,22 @@ jobs:
+         if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+         run: npm run test:e2e:api 2>&1 | tee "$RUNNER_TEMP/artefatos/06-e2e-contra-a-api.txt"
+ 
++      # O mesmo caminho de produção nos outros dois motores (V2-F00-E09,
++      # correção 5). A correção 4 provou o foco depois da senha errada só no
++      # Chromium, e no Firefox o foco ficava em <body>: o que o teclado e o
++      # leitor de tela veem é diferente em cada motor. `e2e-api.mjs` sobe um par
++      # de API e painel novo a cada chamada, então rodar em sequência é seguro.
++      - name: Caminho de produção, contra a API, no Firefox
++        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
++        run: node scripts/e2e-api.mjs firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/06b-e2e-contra-a-api-firefox.txt"
++
++      # No WebKit só a geometria e o foco da tela estreita (`--so-layout`): a
++      # suíte principal supõe que clicar num botão o foca, e no WebKit, como no
++      # Safari, não foca (ver o cabeçalho de `scripts/e2e-api.mjs`).
++      - name: Caminho de produção, contra a API, no WebKit (geometria e foco)
++        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
++        run: node scripts/e2e-api.mjs webkit --so-layout 2>&1 | tee "$RUNNER_TEMP/artefatos/06c-e2e-contra-a-api-webkit.txt"
++
+       - name: Registro do servidor de pré-visualização
+         if: ${{ always() }}
+         run: cp /tmp/preview.log "$RUNNER_TEMP/artefatos/07-preview.log" || true
+diff --git a/dc360/README.md b/dc360/README.md
+index 13aab18..1601f31 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,7 +10,7 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 699 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1636 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1522,7 +1522,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3413 testes em seis pacotes
++npm test                    # 3460 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1636 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+@@ -1831,7 +1831,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
+ | Trabalho | O que ele impõe |
+ | --- | --- |
+ | Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
+-| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
++| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
+ | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
+ | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
+ | Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
+diff --git a/dc360/apps/web/src/componentes/foco.ts b/dc360/apps/web/src/componentes/foco.ts
+index dec6bb2..8f859e9 100644
+--- a/dc360/apps/web/src/componentes/foco.ts
++++ b/dc360/apps/web/src/componentes/foco.ts
+@@ -21,8 +21,14 @@
+  * no teste, em voz alta.
+  */
+ 
+-/** O mínimo que um nó precisa saber fazer para receber o foco. */
+-export type NoFocavel = { focus(): void };
++/**
++ * O mínimo que um nó precisa saber fazer para receber o foco. `scrollIntoView`
++ * é opcional porque o teste usa nós de mentira que só focam.
++ */
++export type NoFocavel = {
++  focus(opcoes?: FocusOptions): void;
++  scrollIntoView?(opcoes?: ScrollIntoViewOptions): void;
++};
+ 
+ /** O mínimo que uma raiz precisa saber fazer: achar o primeiro nó de um seletor. */
+ export type RaizDeBusca = { querySelector(seletor: string): NoFocavel | null };
+@@ -54,10 +60,22 @@ export function focarPrimeiroCampo(raiz: RaizDeBusca | null | undefined): boolea
+   return focar(raiz, SELETOR_PRIMEIRO_CAMPO);
+ }
+ 
++/**
++ * Foca e leva o nó à vista, em DUAS chamadas, e não só com `focus()`.
++ *
++ * O defeito (V2-F00-E09, correção 5, visto nas capturas): o `focus()` sozinho
++ * rola a página por conta do motor, e cada motor escolhe uma posição. O
++ * Chromium respeita o `scroll-padding-top` da página (o topo é fixo), o WebKit
++ * não: o campo, e até o rótulo dele, ficavam por baixo do topo de duas linhas
++ * do celular (rótulo a 94 px, topo até 129 px). `scrollIntoView` é o gesto que
++ * os três motores fazem com `scroll-padding` e `scroll-margin`. `nearest` não
++ * mexe na página se o campo já está à vista.
++ */
+ function focar(raiz: RaizDeBusca | null | undefined, seletor: string): boolean {
+   const alvo = raiz?.querySelector(seletor) ?? null;
+   if (!alvo) return false;
+-  alvo.focus();
++  alvo.focus({ preventScroll: true });
++  alvo.scrollIntoView?.({ block: "nearest" });
+   return true;
+ }
+ 
+diff --git a/dc360/apps/web/src/componentes/usar-foco.ts b/dc360/apps/web/src/componentes/usar-foco.ts
+new file mode 100644
+index 0000000..7594b7d
+--- /dev/null
++++ b/dc360/apps/web/src/componentes/usar-foco.ts
+@@ -0,0 +1,36 @@
++import { useCallback, useLayoutEffect, useRef, useState } from "react";
++
++/**
++ * O foco que acontece DEPOIS de o React ter desenhado o resultado, e não um
++ * quadro de animação depois de a tela ter pedido.
++ *
++ * O defeito (V2-F00-E09, correção 5, rodada 6, achado 1): depois de enviar a
++ * senha errada, o foco ficava em `<body>` no Firefox. As telas faziam
++ * `depoisDePintar(() => focarPrimeiroInvalido(...))` DENTRO do `catch` de um
++ * `await`, e ali não existe "evento discreto": o React 18 agrupa os `setState`
++ * e renderiza numa tarefa própria do agendador. O `requestAnimationFrame`
++ * pedido na mesma linha pode rodar ANTES dessa renderização (no Chromium
++ * acontecia de rodar depois, e a correção 4 só foi provada ali). Com o DOM
++ * velho, `[aria-invalid="true"]` não existe ainda, nada recebe o foco, e o
++ * botão que o tinha estava desabilitado: sobra o `<body>`.
++ *
++ * O consertar é trocar "daqui a um quadro" por "depois do commit": quem pede
++ * só incrementa um contador junto dos outros `setState` (o mesmo lote), e o
++ * efeito de layout roda quando esse lote já está no DOM, nos três motores.
++ * `useLayoutEffect` e não `useEffect` porque o primeiro roda antes de o
++ * navegador pintar: a pessoa nunca vê o quadro intermediário sem foco.
++ *
++ * A função recebida é lida na hora de rodar (referência), então enxerga o
++ * formulário atual e não o de quando o pedido foi feito.
++ */
++export function useFocoDepoisDeRenderizar(acao: () => void): () => void {
++  const [pedidos, setPedidos] = useState(0);
++  const acaoAtual = useRef(acao);
++  acaoAtual.current = acao;
++
++  useLayoutEffect(() => {
++    if (pedidos > 0) acaoAtual.current();
++  }, [pedidos]);
++
++  return useCallback(() => setPedidos((n) => n + 1), []);
++}
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 1537d8c..1f9b2e0 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -569,8 +569,14 @@ a:hover { color: var(--ds-accent-hover); }
+   área útil da janela e entrava no respiro da borda (o teste de geometria
+   mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
+   que sair da janela.
++
++  V2-F00-E09, correção 5 (rodada 6, achado 2): `anywhere` cortava o email no
++  meio da palavra ("...secretar / ia.serraalta") a 390, 360 e 320 px, porque
++  ignora os pontos de quebra do `EmailQuebravel` (o `<wbr>` depois do "@" e de
++  cada ponto). `break-word` respeita o `<wbr>` e só corta se um pedaço sozinho
++  for mais largo que a janela, que é a rede de segurança que a 320 px importa.
+ */
+-.modal__painel .campo__dica { overflow-wrap: anywhere; }
++.modal__painel .campo__dica { overflow-wrap: break-word; word-break: normal; }
+ /* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
+    margem própria dele e a distância até o primeiro rótulo fica maior que a
+    distância entre os campos, sugerindo que a frase é de outro bloco. */
+@@ -1107,6 +1113,22 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ */
+ @media (max-width: 600px) {
+   .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
++  /*
++    O topo agora tem duas linhas (a marca e a conta, e a busca): são 125 px, e o
++    `scroll-padding-top` de cima (80 px, o topo de uma linha só) deixava o campo
++    focado por código com o rótulo e a borda de cima por baixo dele. Visto na
++    correção 5 da V2-F00-E09, na senha errada em Minha conta a 320 e 390 px. Duas
++    alturas de toque, três respiros de `--ds-sp-3` (cima, entre as linhas, baixo)
++    e mais um `--ds-sp-4` de folga.
++  */
++  html { scroll-padding-top: calc(var(--ds-touch) * 2 + var(--ds-sp-3) * 3 + var(--ds-sp-4)); }
++  /*
++    O foco leva o CAMPO ao `scroll-padding-top`, e o rótulo fica uns 32 px acima
++    dele: sem esta margem o rótulo ("Senha que você usa hoje") ficava por baixo do
++    topo (medido: rótulo em 108 px, topo até 129 px). Um passo de `--ds-sp-5` mais
++    um de `--ds-sp-3` cobre a linha do rótulo e o respiro entre ele e o campo.
++  */
++  .campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
+   .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
+   .identidade__nome, .identidade__papel, .identidade br { display: none; }
+   .identidade--acionavel { padding: var(--ds-sp-1); }
+@@ -1382,6 +1404,8 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+ }
++/* O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`. */
++.oficio__linha > span { overflow-wrap: break-word; word-break: normal; }
+ 
+ /* ---------------------------------------------------------------------------
+    Verificação em duas etapas
+diff --git a/dc360/apps/web/src/paginas/Entrar.tsx b/dc360/apps/web/src/paginas/Entrar.tsx
+index f4d6b5c..eb34440 100644
+--- a/dc360/apps/web/src/paginas/Entrar.tsx
++++ b/dc360/apps/web/src/paginas/Entrar.tsx
+@@ -13,7 +13,8 @@ import {
+ import { Campo } from "../componentes/Campo";
+ import { AtivarSegundoFator } from "../componentes/SegundoFator";
+ import { useTitulo } from "../seo/titulo";
+-import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
++import { focarPrimeiroInvalido } from "../componentes/foco";
++import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
+ import { conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada } from "./entrar-regras";
+ import { conferirSenhaNova, erroDaSenhaAtual, passoDepoisDeEntrar } from "./senha-provisoria-regras";
+ 
+@@ -520,11 +521,9 @@ function PassoDaSenhaNova(
+     de campo leva ao campo inválido; erro que não é de campo, à própria
+     mensagem (`#senha-nova-erro`, focável por código).
+   */
+-  function levarOFocoAoErro() {
+-    depoisDePintar(() => {
+-      if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
+-    });
+-  }
++  const levarOFocoAoErro = useFocoDepoisDeRenderizar(() => {
++    if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
++  });
+ 
+   async function enviar(evento: React.FormEvent) {
+     evento.preventDefault();
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index b3c646d..2013817 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -17,7 +17,8 @@ import {
+   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
+ } from "./sessoes-regras";
+ import { useTitulo } from "../seo/titulo";
+-import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
++import { focarPrimeiroInvalido } from "../componentes/foco";
++import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
+ import { erroDaSenhaAtual } from "./senha-provisoria-regras";
+ 
+ /**
+@@ -60,6 +61,15 @@ export function MinhaConta() {
+     foco (`Aviso` com `foco`, que por isso não é região viva: um mecanismo só, o
+     mesmo das sessões, abaixo).
+   */
++  /*
++    O erro de campo também leva o foco por efeito, e não por
++    `requestAnimationFrame` (correção 5): o rAF pedido dentro do `catch` de um
++    `await` rodava antes de o React desenhar o `aria-invalid`, e o Firefox
++    ficava em `<body>`. Ver `usar-foco.ts`.
++  */
++  const focarCampoInvalido = useFocoDepoisDeRenderizar(
++    () => { focarPrimeiroInvalido(formulario.current); },
++  );
+   useEffect(() => {
+     if (erro) avisoDeErro.current?.focus();
+   }, [erro]);
+@@ -88,7 +98,7 @@ export function MinhaConta() {
+       setErrosDeCampo(problemas);
+       setErro(null);
+       setSucesso(null);
+-      depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
++      focarCampoInvalido();
+       return;
+     }
+ 
+@@ -106,7 +116,7 @@ export function MinhaConta() {
+       const daSenha = erroDaSenhaAtual(e, "minha-conta");
+       if (daSenha) {
+         setErrosDeCampo({ atual: daSenha });
+-        depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
++        focarCampoInvalido();
+       } else {
+         setErro(e instanceof Error ? e.message : String(e));
+       }
+diff --git a/dc360/apps/web/src/paginas/Ocorrencia.tsx b/dc360/apps/web/src/paginas/Ocorrencia.tsx
+index 85ac757..7b355dc 100644
+--- a/dc360/apps/web/src/paginas/Ocorrencia.tsx
++++ b/dc360/apps/web/src/paginas/Ocorrencia.tsx
+@@ -41,6 +41,7 @@ import {
+ } from "./coordenada-corrigida";
+ import { lerLocalizacaoColada } from "./coordenada-colada";
+ import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
++import { EmailQuebravel } from "../componentes/EmailQuebravel";
+ import { useTitulo } from "../seo/titulo";
+ import { NaoEncontrada, ehIdentificadorValido } from "./NaoEncontrada";
+ import { paresDoDetalhe } from "./trilha-detalhe";
+@@ -1862,9 +1863,17 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar
+               <ul style={{ margin: 0, paddingLeft: "var(--ds-sp-5)" }}>
+                 {detalhe.envios.map((tentativa) => (
+                   <li key={tentativa.id} className="oficio__linha">
+-                    Tentativa {tentativa.tentativa} para {tentativa.destinatario_email},{" "}
+-                    por {tentativa.solicitado_por_nome} em{" "}
+-                    {formatarDataHora(tentativa.solicitado_em)}:{" "}
++                    {/*
++                      Num <span> só: a linha é `flex`, e cada <wbr> do
++                      `EmailQuebravel` solto viraria um item com o respiro
++                      entre os pedaços do endereço.
++                    */}
++                    <span>
++                      Tentativa {tentativa.tentativa} para{" "}
++                      <EmailQuebravel email={tentativa.destinatario_email} />,{" "}
++                      por {tentativa.solicitado_por_nome} em{" "}
++                      {formatarDataHora(tentativa.solicitado_em)}:
++                    </span>{" "}
+                     <strong>{tentativa.desfecho}</strong>
+                     {tentativa.detalhe && ` (${tentativa.detalhe})`}
+                   </li>
+diff --git a/dc360/apps/web/src/paginas/Usuarios.tsx b/dc360/apps/web/src/paginas/Usuarios.tsx
+index 071fbbc..095eab5 100644
+--- a/dc360/apps/web/src/paginas/Usuarios.tsx
++++ b/dc360/apps/web/src/paginas/Usuarios.tsx
+@@ -470,7 +470,7 @@ export function Usuarios() {
+             linha clicada não era a que se estava lendo.
+           */
+           <p className="campo__dica">
+-            <span className="mono">{aDesativar.matricula}</span>, {aDesativar.email},{" "}
++            <span className="mono">{aDesativar.matricula}</span>, <EmailQuebravel email={aDesativar.email} />,{" "}
+             {ROTULO_PAPEL[aDesativar.papel]}
+             {aDesativar.equipe_nome ? `, ${aDesativar.equipe_nome}` : ""}.
+           </p>
+@@ -561,7 +561,7 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
+         aoCancelar={() => setAberto(false)}
+       >
+         <p className="campo__dica">
+-          <span className="mono">{alvo.matricula}</span>, {alvo.email},{" "}
++          <span className="mono">{alvo.matricula}</span>, <EmailQuebravel email={alvo.email} />,{" "}
+           {ROTULO_PAPEL[alvo.papel]}.
+         </p>
+         {erro && <Aviso tom="perigo">{erro}</Aviso>}
+diff --git a/dc360/apps/web/test/correcao-4-da-e09.test.ts b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+index 5a6e330..07066e5 100644
+--- a/dc360/apps/web/test/correcao-4-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+@@ -164,7 +164,10 @@ describe("Revisão 2: confirmação e erro não ficam juntos na troca de senha",
+ describe("Revisão 3: depois de enviar o foco não cai em BODY", () => {
+   it("Minha conta leva o foco ao campo inválido, ao erro e à confirmação", () => {
+     const conta = fonte("paginas", "MinhaConta.tsx");
+-    expect(conta).toContain("depoisDePintar(() => focarPrimeiroInvalido(formulario.current));");
++    // A correção 5 trocou o requestAnimationFrame por efeito depois do commit
++    // (`useFocoDepoisDeRenderizar`); o contrato desta frase, foco no campo inválido, é o mesmo.
++    expect(conta).toContain("focarPrimeiroInvalido(formulario.current);");
++    expect(conta).toContain("focarCampoInvalido();");
+     expect(conta).toContain("<Aviso tom=\"perigo\" foco={avisoDeErro}>");
+     expect(conta).toContain("<Aviso tom=\"sucesso\" foco={confirmacaoDaTroca}>");
+     expect(conta).toMatch(/if \(erro\) avisoDeErro\.current\?\.focus\(\);/);
+diff --git a/dc360/apps/web/test/correcao-5-da-e09.test.ts b/dc360/apps/web/test/correcao-5-da-e09.test.ts
+new file mode 100644
+index 0000000..39000a0
+--- /dev/null
++++ b/dc360/apps/web/test/correcao-5-da-e09.test.ts
+@@ -0,0 +1,140 @@
++import { readdirSync, statSync } from "node:fs";
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { describe, expect, it } from "vitest";
++
++import { focarPrimeiroInvalido, type NoFocavel } from "../src/componentes/foco";
++import { lerFonte } from "./ler-fonte";
++
++/**
++ * Os dois achados da rodada 6 da V2-F00-E09 (validador de UX, FAIL), na parte
++ * que roda sem navegador. A prova no navegador, nos três motores, está em
++ * `test/layout-estreito.e2e.mjs` (seção 10 para o foco, seção 12 para o email
++ * na janela); aqui ficam as causas, na fonte, e a REGRA que impede o email solto
++ * de voltar a qualquer tela.
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const SRC = join(AQUI, "..", "src");
++const fonte = (...partes: string[]) => lerFonte(join(SRC, ...partes));
++
++function arquivosTsx(pasta: string): string[] {
++  return readdirSync(pasta).flatMap((nome) => {
++    const caminho = join(pasta, nome);
++    if (statSync(caminho).isDirectory()) return arquivosTsx(caminho);
++    return caminho.endsWith(".tsx") ? [caminho] : [];
++  });
++}
++
++/**
++ * Procura, no texto de uma tela, um endereço de email escrito solto no JSX
++ * (`{alvo.email}`, `{x.destinatario_email}`): é o que o `EmailQuebravel` existe
++ * para substituir. Atributo (`email={u.email}`, `value={email}`) não conta: o `=`
++ * antes da chave o distingue de texto, e `{ email }` com espaço é desestruturação
++ * de TypeScript, não JSX.
++ */
++export function emailsSoltosNoJsx(texto: string): string[] {
++  return [...texto.matchAll(/(?<![=\w])\{[\w.?]*(?:\bemail|destinatario_email)\}/g)].map((m) => m[0]);
++}
++
++describe("Achado 2: nenhum email aparece solto em tela do painel", () => {
++  it("o detector acha o email solto, e é por isso que o teste abaixo morde", () => {
++    // O texto que a janela "Redefinir senha" tinha ANTES da correção 5.
++    expect(emailsSoltosNoJsx('<span className="mono">{alvo.matricula}</span>, {alvo.email},{" "}'))
++      .toEqual(["{alvo.email}"]);
++    expect(emailsSoltosNoJsx("Tentativa {t.tentativa} para {t.destinatario_email}, por"))
++      .toEqual(["{t.destinatario_email}"]);
++    // O que NÃO é texto de tela: atributo e componente.
++    expect(emailsSoltosNoJsx("<EmailQuebravel email={alvo.email} />")).toEqual([]);
++    expect(emailsSoltosNoJsx('<input value={email} onChange={(e) => setEmail(e.target.value)} />')).toEqual([]);
++  });
++
++  it("em nenhum .tsx do painel há email escrito solto no JSX", () => {
++    const soltos = arquivosTsx(SRC).flatMap((arquivo) =>
++      emailsSoltosNoJsx(lerFonte(arquivo)).map((achado) => `${arquivo.replace(SRC, "src")}: ${achado}`));
++    expect(soltos).toEqual([]);
++  });
++
++  it("as janelas Redefinir senha e Desativar usuário usam o EmailQuebravel", () => {
++    const usuarios = fonte("paginas", "Usuarios.tsx");
++    expect(usuarios).toContain("<EmailQuebravel email={alvo.email} />");
++    expect(usuarios).toContain("<EmailQuebravel email={aDesativar.email} />");
++  });
++
++  it("a tentativa de envio do ofício também, dentro de um <span> só (a linha é flex)", () => {
++    const ocorrencia = fonte("paginas", "Ocorrencia.tsx");
++    expect(ocorrencia).toContain("<EmailQuebravel email={tentativa.destinatario_email} />");
++    const li = ocorrencia.slice(ocorrencia.indexOf('<li key={tentativa.id} className="oficio__linha">'));
++    expect(li.indexOf("<span>")).toBeGreaterThan(-1);
++    expect(li.indexOf("<span>")).toBeLessThan(li.indexOf("<EmailQuebravel"));
++    expect(li.indexOf("</span>")).toBeGreaterThan(li.indexOf("<EmailQuebravel"));
++    expect(fonte("estilos", "app.css")).toMatch(/\.oficio__linha > span \{ overflow-wrap: break-word; word-break: normal; \}/);
++  });
++
++  it("a regra da dica da janela deixou de cortar em qualquer lugar (anywhere ignora o <wbr>)", () => {
++    const css = fonte("estilos", "app.css");
++    expect(css).toMatch(/\.modal__painel \.campo__dica \{ overflow-wrap: break-word; word-break: normal; \}/);
++    expect(css).not.toMatch(/\.modal__painel \.campo__dica \{[^}]*anywhere/);
++  });
++});
++
++describe("Achado 1: o foco depois do erro é levado depois do commit, e não por requestAnimationFrame", () => {
++  it("o hook roda a ação em useLayoutEffect, atrás de um contador que muda junto dos outros setState", () => {
++    const hook = fonte("componentes", "usar-foco.ts");
++    expect(hook).toContain("export function useFocoDepoisDeRenderizar(");
++    expect(hook).toMatch(/useLayoutEffect\(\(\) => \{\s+if \(pedidos > 0\) acaoAtual\.current\(\);\s+\}, \[pedidos\]\);/);
++    expect(hook).toContain("setPedidos((n) => n + 1)");
++    // O defeito era o quadro de animação: o hook não pode voltar a depender dele.
++    expect(hook.replace(/\/\*\*[\s\S]*?\*\//g, "")).not.toMatch(/requestAnimationFrame|depoisDePintar/);
++  });
++
++  it("Minha conta e a senha provisória usam o hook, e nenhuma das duas pede o foco por rAF", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    const entrar = fonte("paginas", "Entrar.tsx");
++    for (const [nome, texto] of [["MinhaConta.tsx", conta], ["Entrar.tsx", entrar]] as const) {
++      expect(texto, nome).toContain("useFocoDepoisDeRenderizar(");
++      expect(texto, nome).not.toContain("depoisDePintar");
++    }
++    // As duas saídas de Minha conta (conferência da tela e 401 do servidor).
++    expect(conta.match(/focarCampoInvalido\(\);/g)?.length).toBe(2);
++    // As duas saídas da senha provisória (conferência da tela e recusa do servidor).
++    expect(entrar.match(/levarOFocoAoErro\(\);/g)?.length).toBe(2);
++  });
++
++  it("o pedido de foco do catch fica no mesmo bloco síncrono dos setState (mesmo lote)", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    const captura = conta.slice(conta.indexOf("} catch (e: unknown) {"), conta.indexOf("} finally {"));
++    expect(captura).toMatch(/setErrosDeCampo\(\{ atual: daSenha \}\);\s+focarCampoInvalido\(\);/);
++    expect(captura).not.toContain("await");
++  });
++});
++
++describe("Achado 3 (visto nas capturas): o campo focado não fica atrás do topo de duas linhas", () => {
++  it("em tela de celular o scroll-padding-top cobre as duas linhas do topo, e o de cima segue para o topo de uma linha", () => {
++    const css = fonte("estilos", "app.css");
++    expect(css).toMatch(/html \{ scroll-padding-top: calc\(var\(--ds-sp-8\) \+ var\(--ds-sp-4\)\); \}/);
++    const celular = css.slice(css.indexOf("@media (max-width: 600px) {\n  .topo {"));
++    expect(celular).toMatch(/html \{ scroll-padding-top: calc\(var\(--ds-touch\) \* 2 \+ var\(--ds-sp-3\) \* 3 \+ var\(--ds-sp-4\)\); \}/);
++    // E o rótulo, uns 32 px acima do campo, também fica à vista: a margem vale para os controles do `Campo`.
++    expect(celular).toMatch(/\.campo input, \.campo select, \.campo textarea \{ scroll-margin-top: calc\(var\(--ds-sp-5\) \+ var\(--ds-sp-3\)\); \}/);
++  });
++});
++
++describe("Achado 3, no WebKit: o foco leva o nó à vista pelo scrollIntoView", () => {
++  it("foca sem o scroll do próprio focus() e rola com `nearest`, que respeita scroll-padding e scroll-margin nos três motores", () => {
++    // O `focus()` sozinho deixou o campo e o rótulo atrás do topo fixo no WebKit (rótulo a 94 px, topo até 129 px).
++    const chamadas: string[] = [];
++    const no: NoFocavel = {
++      focus: (opcoes) => { chamadas.push(`focus ${JSON.stringify(opcoes)}`); },
++      scrollIntoView: (opcoes) => { chamadas.push(`scrollIntoView ${JSON.stringify(opcoes)}`); },
++    };
++    expect(focarPrimeiroInvalido({ querySelector: () => no })).toBe(true);
++    expect(chamadas).toEqual(['focus {"preventScroll":true}', 'scrollIntoView {"block":"nearest"}']);
++  });
++
++  it("um nó que só sabe focar (como os do teste de foco) continua funcionando", () => {
++    let focou = false;
++    expect(focarPrimeiroInvalido({ querySelector: () => ({ focus: () => { focou = true; } }) })).toBe(true);
++    expect(focou).toBe(true);
++  });
++});
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index ce5f43d..051b12b 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -615,6 +615,35 @@ async function textoDoErro(erro) {
+     return "(o campo não mostrou erro nenhum)";
+   }
+ }
++/*
++  O foco depois da senha errada, pelos três jeitos de enviar (V2-F00-E09, correção
++  5, rodada 6): o clique já era medido; aqui entram o Espaço no botão focado e o
++  Enter no último campo. A rodada 6 viu o foco em BODY no Firefox nos dois
++  primeiros e, no Enter, parado no último campo, e não no campo inválido. Espera
++  a resposta do servidor e mais um instante, porque o que se mede é o foco já
++  ASSENTADO, e não o do quadro seguinte ao clique.
++*/
++async function enviarPeloTeclado(pg, modo, botao, ultimoCampo) {
++  const resposta = pg.waitForResponse((r) => r.url().includes("/auth/trocar-senha"), { timeout: 20_000 });
++  if (modo === "Enter") {
++    await pg.locator(ultimoCampo).press("Enter");
++  } else {
++    await botao.focus();
++    await pg.keyboard.press("Space");
++  }
++  await resposta;
++  /*
++    A resposta que se espera é a PRIMEIRA: o 401 de senha errada faz o cliente
++    renovar o token e repetir o pedido uma vez, então o desfecho de verdade
++    chega depois (e, sob carga, bem depois). O sinal de que acabou é o botão de
++    enviar voltar a ficar habilitado: medir antes disso media o foco do meio do
++    envio, e reprovou ao acaso no Firefox e no WebKit.
++  */
++  const sinalDeFim = await botao.elementHandle();
++  await pg.waitForFunction((el) => !el.disabled, sinalDeFim, { timeout: 20_000 });
++  await pg.waitForTimeout(300);
++  return pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName);
++}
+ {
+   const { ctx, pg } = await contextoQueEsperaOs401();
+   await entrar(emailCoordenacao, SENHA_DO_TESTE, pg);
+@@ -635,10 +664,54 @@ async function textoDoErro(erro) {
+     ok(`Minha conta a ${largura} px: depois do envio o foco está no campo da senha atual, e não em BODY`,
+        (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual",
+        `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
++    // O foco por código rola o campo para a vista, e o topo fixo não pode ficar por cima do rótulo e da borda dele (correção 5).
++    ok(`Minha conta a ${largura} px: o campo focado, com o rótulo, fica abaixo do topo fixo (nada escondido atrás dele)`,
++       await pg.evaluate(() => {
++         const campo = document.activeElement?.closest(".campo") ?? document.activeElement;
++         return campo.getBoundingClientRect().top >= document.querySelector(".topo").getBoundingClientRect().bottom - 0.5;
++       }));
+     ok(`Minha conta a ${largura} px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento`,
+        ((await pg.locator("#conta-senha-atual").getAttribute("aria-describedby")) ?? "").includes("conta-senha-atual-erro")
+          && !/\bnao\b/.test(texto), `("${texto}")`);
+   }
++  /*
++    O campo focado por código tem de aparecer COM o rótulo, e não por baixo do
++    topo fixo (V2-F00-E09, correção 5, visto nas capturas). O topo do celular tem
++    duas linhas (129 px) e o foco leva o CAMPO ao `scroll-padding-top`, deixando o
++    rótulo (uns 32 px acima) escondido. Só aparece quando a página precisa rolar
++    até o campo, então a altura da janela é baixa de propósito (700 px).
++  */
++  for (const largura of [390, 360, 320]) {
++    await pg.setViewportSize({ width: largura, height: 700 });
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-dela");
++    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
++    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
++    await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
++    await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
++    await pg.waitForTimeout(500);
++    const m = await pg.evaluate(() => {
++      const campo = document.activeElement?.closest(".campo");
++      return {
++        foco: document.activeElement?.id,
++        rotuloTopo: campo?.querySelector("label")?.getBoundingClientRect().top,
++        topoFixo: document.querySelector(".topo").getBoundingClientRect().bottom,
++      };
++    });
++    ok(`Minha conta a ${largura}x700: o campo focado depois da senha errada aparece com o rótulo, abaixo do topo fixo`,
++       m.foco === "conta-senha-atual" && m.rotuloTopo >= m.topoFixo - 0.5, `(${JSON.stringify(m)})`);
++  }
++  for (const modo of ["Espaço", "Enter"]) {
++    await pg.setViewportSize({ width: 390, height: 844 });
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-dela");
++    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
++    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
++    const focoFinal = await enviarPeloTeclado(
++      pg, modo, pg.getByRole("button", { name: "Trocar senha", exact: true }), "#conta-senha-repetida");
++    ok(`Minha conta, enviando com ${modo}: depois da senha errada o foco está no campo da senha atual, e não em BODY nem no último campo`,
++       focoFinal === "conta-senha-atual", `(${focoFinal})`);
++  }
+   /*
+     Troca certa e, logo depois, senha errada: a confirmação verde da primeira não
+     pode ficar na tela junto do erro vermelho da segunda, e o foco acompanha cada
+@@ -700,6 +773,16 @@ async function textoDoErro(erro) {
+        ((await pg.locator("#senha-nova-atual").getAttribute("aria-describedby")) ?? "").includes("senha-nova-atual-erro")
+          && (await pg.locator("#senha-nova-erro").count()) === 0 && !/\bnao\b/.test(texto), `("${texto}")`);
+   }
++  for (const modo of ["Espaço", "Enter"]) {
++    await pg.setViewportSize({ width: 390, height: 844 });
++    await pg.locator("#senha-nova-atual").fill("provisoria-digitada-errada");
++    await pg.locator("#senha-nova").fill("frase-nova-do-teste-2026");
++    await pg.locator("#senha-nova-repetida").fill("frase-nova-do-teste-2026");
++    const focoFinal = await enviarPeloTeclado(
++      pg, modo, pg.getByRole("button", { name: "Definir senha e entrar" }), "#senha-nova-repetida");
++    ok(`"Defina a sua senha", enviando com ${modo}: depois da provisória errada o foco está no campo da provisória, e não em BODY nem no último campo`,
++       focoFinal === "senha-nova-atual", `(${focoFinal})`);
++  }
+   await ctx.close();
+ }
+ 
+@@ -762,6 +845,128 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a
+     ok(`Órgãos a ${largura} px: nenhum telefone é partido em duas linhas`,
+        telefones.every((t) => t.linhas === 1), `(${telefones.filter((t) => t.linhas > 1).map((t) => t.texto).join(", ")})`);
+   }
++
++  console.log("\n== 12. O email nas janelas do painel não quebra no meio da palavra (V2-F00-E09, correção 5) ==");
++  /*
++    A rodada 6 viu a linha "matrícula, email, papel" da janela "Redefinir senha"
++    quebrar o email no meio ("...secretar / ia.serraalta") a 390, 360 e 320 px: a
++    correção 4 consertou a tabela e deixou a janela com `overflow-wrap: anywhere`.
++    Mede por caractere (Range), só os caracteres do email: toda quebra DENTRO dele
++    tem de vir logo depois de "@" ou de ".". O email inteiro tem de caber na
++    janela. Vale para as duas janelas que mostram a pessoa (redefinir e desativar).
++  */
++  async function quebrasDoEmailNaJanela(pg, email) {
++    return pg.evaluate((alvo) => {
++      const dica = [...document.querySelectorAll(".modal__painel .campo__dica")].find((p) => p.textContent.includes(alvo));
++      if (!dica) return null;
++      const nos = [];
++      const w = document.createTreeWalker(dica, NodeFilter.SHOW_TEXT);
++      while (w.nextNode()) nos.push(w.currentNode);
++      const todo = nos.map((n) => n.textContent).join("");
++      const inicio = todo.indexOf(alvo);
++      const posicoes = [];
++      for (const no of nos) for (let i = 0; i < no.textContent.length; i++) posicoes.push([no, i]);
++      const topos = [];
++      for (let k = inicio; k < inicio + alvo.length; k++) {
++        const [no, i] = posicoes[k];
++        const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
++        topos.push(Math.round(r.getBoundingClientRect().top));
++      }
++      const quebras = [];
++      for (let k = 0; k < alvo.length - 1; k++) {
++        if (topos[k + 1] > topos[k] + 2) quebras.push({ depoisDe: alvo[k], pedaco: alvo.slice(Math.max(0, k - 6), k + 7) });
++      }
++      const painel = document.querySelector(".modal__painel");
++      const estilo = getComputedStyle(painel);
++      const direita = painel.getBoundingClientRect().right - parseFloat(estilo.paddingRight) - parseFloat(estilo.borderRightWidth);
++      const ultimo = posicoes[inicio + alvo.length - 1];
++      const rUlt = document.createRange(); rUlt.setStart(ultimo[0], ultimo[1]); rUlt.setEnd(ultimo[0], ultimo[1] + 1);
++      let maiorDireita = 0;
++      for (let k = inicio; k < inicio + alvo.length; k++) {
++        const [no, i] = posicoes[k];
++        const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
++        maiorDireita = Math.max(maiorDireita, r.getBoundingClientRect().right);
++      }
++      return {
++        linhas: new Set(topos).size, quebras,
++        noMeioDaPalavra: quebras.filter((q) => q.depoisDe !== "@" && q.depoisDe !== "."),
++        passaDaJanela: maiorDireita > direita + 0.5,
++        dica: dica.textContent,
++      };
++    }, email);
++  }
++  for (const [largura, altura] of [[320, 568], [360, 740], [390, 844], [768, 900]]) {
++    await page.setViewportSize({ width: largura, height: altura });
++    await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++    await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++    const linha = page.locator("tbody tr", { hasText: subdominios });
++    for (const [botao, titulo] of [["Redefinir senha", "Redefinir senha"], ["Desativar", "Desativar usuário"]]) {
++      await linha.getByRole("button", { name: botao, exact: true }).scrollIntoViewIfNeeded();
++      await linha.getByRole("button", { name: botao, exact: true }).click();
++      await page.getByRole("dialog").waitFor({ timeout: 10_000 });
++      await page.waitForTimeout(200);
++      const m = await quebrasDoEmailNaJanela(page, subdominios);
++      ok(`a ${largura} px, a janela "${titulo}" mostra o email da pessoa`, m !== null);
++      if (m) {
++        ok(`a ${largura} px, na janela "${titulo}" o email quebra só depois do @ e dos pontos`,
++           m.noMeioDaPalavra.length === 0, `(${m.noMeioDaPalavra.map((q) => q.pedaco).join(" | ")})`);
++        ok(`a ${largura} px, na janela "${titulo}" o email cabe na área útil da janela`, !m.passaDaJanela);
++        ok(`a ${largura} px, na janela "${titulo}" a janela não ganha rolagem horizontal`,
++           await page.evaluate(() => { const p = document.querySelector(".modal__painel"); return p.scrollWidth <= p.clientWidth + 1; }));
++      }
++      await page.keyboard.press("Escape");
++      await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
++    }
++  }
++
++  /*
++    A tentativa de envio do ofício ("Tentativa 1 para <email>, por ... em ...")
++    só aparece depois de um envio de verdade, que este roteiro não faz. Então a
++    medida usa o MESMO markup e o CSS carregado do painel, montado na página: o
++    teste de fonte (`correcao-5-da-e09.test.ts`) prova que a tela tem este
++    markup. Limite dito: não é a tela de Ocorrência aberta.
++  */
++  for (const largura of [320, 360, 390]) {
++    await page.setViewportSize({ width: largura, height: 800 });
++    await page.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
++    const m = await page.evaluate((alvo) => {
++      const ul = document.createElement("ul");
++      ul.style.cssText = "margin:0;padding:0 16px 0 20px;position:absolute;top:0;left:0;width:100%;box-sizing:border-box;background:var(--ds-surface)";
++      const pedacos = alvo.match(/[^@.]+[@.]?|[@.]/g);
++      const ultimo = pedacos.length - 1;
++      const juntos = [...pedacos.slice(0, ultimo - 1), pedacos[ultimo - 1] + pedacos[ultimo]];
++      const li = document.createElement("li");
++      li.className = "oficio__linha";
++      const span = document.createElement("span");
++      span.append("Tentativa 1 para ");
++      juntos.forEach((p, i) => { if (i > 0) span.append(document.createElement("wbr")); span.append(p); });
++      span.append(", por Rita Lopes em 20/10/2026 10:00:");
++      li.append(span, document.createElement("strong"));
++      li.lastChild.textContent = "enviado";
++      ul.append(li);
++      document.body.append(ul);
++      const nos = [];
++      const w = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
++      while (w.nextNode()) nos.push(w.currentNode);
++      const todo = nos.map((n) => n.textContent).join("");
++      const inicio = todo.indexOf(alvo);
++      const pos = [];
++      for (const no of nos) for (let i = 0; i < no.textContent.length; i++) pos.push([no, i]);
++      const topos = [];
++      for (let k = inicio; k < inicio + alvo.length; k++) {
++        const r = document.createRange(); r.setStart(pos[k][0], pos[k][1]); r.setEnd(pos[k][0], pos[k][1] + 1);
++        topos.push(Math.round(r.getBoundingClientRect().top));
++      }
++      const ruins = [];
++      for (let k = 0; k < alvo.length - 1; k++) {
++        if (topos[k + 1] > topos[k] + 2 && alvo[k] !== "@" && alvo[k] !== ".") ruins.push(alvo.slice(Math.max(0, k - 6), k + 7));
++      }
++      return { ruins, rolagem: document.documentElement.scrollWidth > window.innerWidth + 1 };
++    }, subdominios);
++    ok(`a ${largura} px, o email da tentativa de envio do ofício quebra só depois do @ e dos pontos`,
++       m.ruins.length === 0, `(${m.ruins.join(" | ")})`);
++    ok(`a ${largura} px, a linha da tentativa de envio não dá rolagem horizontal à página`, !m.rolagem);
++  }
+ }
+ 
+ await navegador.close();
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 9bf525c..72e3fcd 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5410 testes somando o aplicativo** (contagem estática de `npm run
++- **5457 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5410 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5457 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 108d524..aea3a96 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -569,6 +569,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
+   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
+   // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
+   "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
++  // V2-F00-E09, correção 5: `correcao-5-da-e09.test.ts` é novo, com 11 casos (o detector de email solto no JSX e a varredura de todo .tsx do painel, as duas janelas e a tentativa de envio do ofício usando o EmailQuebravel, a regra da dica da janela sem `anywhere`, o hook que leva o foco depois do commit e as duas telas que o usam, o `scroll-padding-top` e a margem do campo no topo de duas linhas, e o foco que rola pelo `scrollIntoView`). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o foco por efeito), sem caso novo. Nenhuma falha nova.
++  "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
+ };
+ export function esperadoDoTesteWeb() {
+   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
+@@ -863,13 +865,22 @@ export const PASSOS = [
+     (o aviso passageiro por cima da janela da senha temporaria, o email que nao
+     quebra no meio da palavra e a frase da senha atual errada nas duas telas):
+     de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
++
++    Correcao 5 da E09 (2026-10-20): de 149 para 197 (mais 48): o foco depois da
++    senha errada enviada com Espaco e com Enter (4), o campo focado que nao fica
++    atras do topo fixo, ele e o rotulo (6) e o email nas janelas "Redefinir senha" e "Desativar
++    usuario" a 320, 360, 390 e 768 px mais a linha da tentativa de envio do oficio
++    a 320, 360 e 390 px (38). Medido no Mac, Node 24: 197 no Chromium e no
++    Firefox; no WebKit 196 (uma verificacao do Tab
++    e PULADA la, por escolha antiga do arquivo) e so a tela estreita, ver
++    `e2e-api.mjs --so-layout`.
+   */
+   {
+     id: "e2e-api",
+     titulo: "npm run test:e2e:api",
+     cmd: "npm run test:e2e:api",
+     cwd: ".",
+-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 197   Falhou: 0"] },
+   },
+ ];
+ 
+diff --git a/dc360/scripts/e2e-api.mjs b/dc360/scripts/e2e-api.mjs
+index 7541b56..29f4bbd 100644
+--- a/dc360/scripts/e2e-api.mjs
++++ b/dc360/scripts/e2e-api.mjs
+@@ -23,7 +23,16 @@
+  * no mesmo endereço. Por isso este script sempre sobe um par novo, em portas
+  * próprias, e derruba tudo no fim.
+  *
+- * Uso: node scripts/e2e-api.mjs [chromium|firefox]
++ * Uso: node scripts/e2e-api.mjs [chromium|firefox|webkit] [--so-layout]
++ *
++ * `--so-layout` pula a suíte principal (`fluxo-api.e2e.mjs`) e roda só a
++ * geometria e o foco da tela estreita (`layout-estreito.e2e.mjs`). Existe por
++ * causa do WebKit (V2-F00-E09, correção 5): a suíte principal tem verificações
++ * de foco que supõem o comportamento do Chromium e do Firefox (clicar num
++ * botão o focar), e no WebKit do Mac, como no Safari, clicar num botão NÃO o
++ * foca; 5 delas reprovam por isso, nenhuma por defeito do painel. O que tem de
++ * valer nos três motores é o foco depois do erro e o email na janela, que moram
++ * em `layout-estreito.e2e.mjs`.
+  */
+ import { spawn, spawnSync } from "node:child_process";
+ import { createConnection } from "node:net";
+@@ -33,7 +42,8 @@ import { join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ 
+ const RAIZ = fileURLToPath(new URL("..", import.meta.url));
+-const MOTOR = process.argv[2] ?? "chromium";
++const MOTOR = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "chromium";
++const SO_LAYOUT = process.argv.includes("--so-layout");
+ 
+ // Portas próprias, longe das de desenvolvimento, para não brigar com um painel
+ // que alguém tenha deixado aberto.
+@@ -189,14 +199,18 @@ iniciar("web", "npx", ["vite", "preview", "--port", String(PORTA_WEB), "--strict
+ await esperar(BASE_WEB, 60, "O painel");
+ console.log("Painel de pé.");
+ 
+-console.log(`\n== Verificações do caminho de produção, em ${MOTOR} ==`);
+-await rodar("node", ["test/fluxo-api.e2e.mjs"], {
+-  cwd: join(RAIZ, "apps/web"),
+-  env: {
+-    BASE_WEB, BASE_API, MOTOR,
+-    NOTIFICADOR_ARQUIVO: ARQUIVO_NOTIFICACAO,
+-  },
+-});
++if (SO_LAYOUT) {
++  console.log(`\n== Suíte principal PULADA (--so-layout), em ${MOTOR} ==`);
++} else {
++  console.log(`\n== Verificações do caminho de produção, em ${MOTOR} ==`);
++  await rodar("node", ["test/fluxo-api.e2e.mjs"], {
++    cwd: join(RAIZ, "apps/web"),
++    env: {
++      BASE_WEB, BASE_API, MOTOR,
++      NOTIFICADOR_ARQUIVO: ARQUIVO_NOTIFICACAO,
++    },
++  });
++}
+ 
+ /*
+   A geometria da tela estreita (V2-F00-E09, correção 1) roda DEPOIS da suíte

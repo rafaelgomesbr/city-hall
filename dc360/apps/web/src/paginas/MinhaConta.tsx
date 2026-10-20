@@ -17,7 +17,8 @@ import {
   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
 } from "./sessoes-regras";
 import { useTitulo } from "../seo/titulo";
-import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
+import { focarPrimeiroInvalido } from "../componentes/foco";
+import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
 import { erroDaSenhaAtual } from "./senha-provisoria-regras";
 
 /**
@@ -60,6 +61,15 @@ export function MinhaConta() {
     foco (`Aviso` com `foco`, que por isso não é região viva: um mecanismo só, o
     mesmo das sessões, abaixo).
   */
+  /*
+    O erro de campo também leva o foco por efeito, e não por
+    `requestAnimationFrame` (correção 5): o rAF pedido dentro do `catch` de um
+    `await` rodava antes de o React desenhar o `aria-invalid`, e o Firefox
+    ficava em `<body>`. Ver `usar-foco.ts`.
+  */
+  const focarCampoInvalido = useFocoDepoisDeRenderizar(
+    () => { focarPrimeiroInvalido(formulario.current); },
+  );
   useEffect(() => {
     if (erro) avisoDeErro.current?.focus();
   }, [erro]);
@@ -88,7 +98,7 @@ export function MinhaConta() {
       setErrosDeCampo(problemas);
       setErro(null);
       setSucesso(null);
-      depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
+      focarCampoInvalido();
       return;
     }
 
@@ -106,7 +116,7 @@ export function MinhaConta() {
       const daSenha = erroDaSenhaAtual(e, "minha-conta");
       if (daSenha) {
         setErrosDeCampo({ atual: daSenha });
-        depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
+        focarCampoInvalido();
       } else {
         setErro(e instanceof Error ? e.message : String(e));
       }

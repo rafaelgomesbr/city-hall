@@ -470,7 +470,7 @@ export function Usuarios() {
             linha clicada não era a que se estava lendo.
           */
           <p className="campo__dica">
-            <span className="mono">{aDesativar.matricula}</span>, {aDesativar.email},{" "}
+            <span className="mono">{aDesativar.matricula}</span>, <EmailQuebravel email={aDesativar.email} />,{" "}
             {ROTULO_PAPEL[aDesativar.papel]}
             {aDesativar.equipe_nome ? `, ${aDesativar.equipe_nome}` : ""}.
           </p>
@@ -561,7 +561,7 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
         aoCancelar={() => setAberto(false)}
       >
         <p className="campo__dica">
-          <span className="mono">{alvo.matricula}</span>, {alvo.email},{" "}
+          <span className="mono">{alvo.matricula}</span>, <EmailQuebravel email={alvo.email} />,{" "}
           {ROTULO_PAPEL[alvo.papel]}.
         </p>
         {erro && <Aviso tom="perigo">{erro}</Aviso>}

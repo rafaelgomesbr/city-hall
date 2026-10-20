@@ -21,8 +21,14 @@
  * no teste, em voz alta.
  */
 
-/** O mínimo que um nó precisa saber fazer para receber o foco. */
-export type NoFocavel = { focus(): void };
+/**
+ * O mínimo que um nó precisa saber fazer para receber o foco. `scrollIntoView`
+ * é opcional porque o teste usa nós de mentira que só focam.
+ */
+export type NoFocavel = {
+  focus(opcoes?: FocusOptions): void;
+  scrollIntoView?(opcoes?: ScrollIntoViewOptions): void;
+};
 
 /** O mínimo que uma raiz precisa saber fazer: achar o primeiro nó de um seletor. */
 export type RaizDeBusca = { querySelector(seletor: string): NoFocavel | null };
@@ -54,10 +60,22 @@ export function focarPrimeiroCampo(raiz: RaizDeBusca | null | undefined): boolea
   return focar(raiz, SELETOR_PRIMEIRO_CAMPO);
 }
 
+/**
+ * Foca e leva o nó à vista, em DUAS chamadas, e não só com `focus()`.
+ *
+ * O defeito (V2-F00-E09, correção 5, visto nas capturas): o `focus()` sozinho
+ * rola a página por conta do motor, e cada motor escolhe uma posição. O
+ * Chromium respeita o `scroll-padding-top` da página (o topo é fixo), o WebKit
+ * não: o campo, e até o rótulo dele, ficavam por baixo do topo de duas linhas
+ * do celular (rótulo a 94 px, topo até 129 px). `scrollIntoView` é o gesto que
+ * os três motores fazem com `scroll-padding` e `scroll-margin`. `nearest` não
+ * mexe na página se o campo já está à vista.
+ */
 function focar(raiz: RaizDeBusca | null | undefined, seletor: string): boolean {
   const alvo = raiz?.querySelector(seletor) ?? null;
   if (!alvo) return false;
-  alvo.focus();
+  alvo.focus({ preventScroll: true });
+  alvo.scrollIntoView?.({ block: "nearest" });
   return true;
 }
 

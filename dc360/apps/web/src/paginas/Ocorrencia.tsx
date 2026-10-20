@@ -41,6 +41,7 @@ import {
 } from "./coordenada-corrigida";
 import { lerLocalizacaoColada } from "./coordenada-colada";
 import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
+import { EmailQuebravel } from "../componentes/EmailQuebravel";
 import { useTitulo } from "../seo/titulo";
 import { NaoEncontrada, ehIdentificadorValido } from "./NaoEncontrada";
 import { paresDoDetalhe } from "./trilha-detalhe";
@@ -1862,9 +1863,17 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar 
               <ul style={{ margin: 0, paddingLeft: "var(--ds-sp-5)" }}>
                 {detalhe.envios.map((tentativa) => (
                   <li key={tentativa.id} className="oficio__linha">
-                    Tentativa {tentativa.tentativa} para {tentativa.destinatario_email},{" "}
-                    por {tentativa.solicitado_por_nome} em{" "}
-                    {formatarDataHora(tentativa.solicitado_em)}:{" "}
+                    {/*
+                      Num <span> só: a linha é `flex`, e cada <wbr> do
+                      `EmailQuebravel` solto viraria um item com o respiro
+                      entre os pedaços do endereço.
+                    */}
+                    <span>
+                      Tentativa {tentativa.tentativa} para{" "}
+                      <EmailQuebravel email={tentativa.destinatario_email} />,{" "}
+                      por {tentativa.solicitado_por_nome} em{" "}
+                      {formatarDataHora(tentativa.solicitado_em)}:
+                    </span>{" "}
                     <strong>{tentativa.desfecho}</strong>
                     {tentativa.detalhe && ` (${tentativa.detalhe})`}
                   </li>

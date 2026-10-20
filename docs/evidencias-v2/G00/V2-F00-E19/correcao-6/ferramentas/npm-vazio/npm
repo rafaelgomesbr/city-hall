@@ -1,0 +1,7 @@
+#!/bin/sh
+# npm falso que ignora as bandeiras e devolve, para QUALQUER pasta, o relatório
+# vazio e bem formado que o npm real devolve em modo offline (ou atrás de um
+# espelho que responde {} ao endpoint de advisories). Registra os argumentos.
+echo "$PWD :: $*" >> /tmp/e19c6/npm-vazio.log
+echo '{"auditReportVersion":2,"vulnerabilities":{},"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0,"total":0},"dependencies":{"prod":94,"dev":154,"optional":55,"peer":0,"peerOptional":0,"total":249}}}'
+exit 0

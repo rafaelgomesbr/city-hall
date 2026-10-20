@@ -1,0 +1,121 @@
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (31.182584ms)
+  ✖ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (29.17375ms)
+  ✖ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (31.143708ms)
+  ✖ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (30.625375ms)
+  ✖ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (28.52875ms)
+  ✔ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (110.749625ms)
+✖ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (261.928375ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 2
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 312.623
+
+✖ failing tests:
+
+test at conferir-indices-de-evidencia.test.mjs:313:3
+✖ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (29.17375ms)
+  AssertionError [ERR_ASSERTION]: Índices de evidência: 1 INDEX.md, 1 arquivo(s) conferido(s) byte a byte.
+  FALHA G00/V2-F00-E99/INDEX.md
+    - linha 5: RESUMO.md tem SHA-256 diferente do índice
+  RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+  
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:316:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at conferir-indices-de-evidencia.test.mjs:322:3
+✖ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (31.143708ms)
+  AssertionError [ERR_ASSERTION]: Índices de evidência: 1 INDEX.md, 1 arquivo(s) conferido(s) byte a byte.
+  FALHA G00/V2-F00-E99/INDEX.md
+    - linha 5: saidas/01.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em LF: o índice foi calculado antes de o git trocar CRLF por LF)
+  RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+  
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:325:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at conferir-indices-de-evidencia.test.mjs:329:3
+✖ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (30.625375ms)
+  AssertionError [ERR_ASSERTION]: Índices de evidência: 0 INDEX.md, 0 arquivo(s) conferido(s) byte a byte.
+  FALHA G00/V2-F00-E98/INDEX.md
+    - a pasta da etapa não tem INDEX.md
+  RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+  
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:334:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at conferir-indices-de-evidencia.test.mjs:344:3
+✖ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (28.52875ms)
+  AssertionError [ERR_ASSERTION]: Índices de evidência: 1 INDEX.md, 1 arquivo(s) conferido(s) byte a byte.
+  FALHA G00/V2-F00-E99/INDEX.md
+    - linha 5: RESUMO.md tem SHA-256 diferente do índice
+  RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+  
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:357:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+saida=1

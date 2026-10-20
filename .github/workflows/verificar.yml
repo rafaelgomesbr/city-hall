@@ -307,7 +307,7 @@ jobs:
       # critério de aceite exige. `--with-deps` traz as bibliotecas de sistema
       # que faltam numa imagem limpa.
       - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+        run: npx playwright install --with-deps chromium firefox webkit 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
 
       # O painel importa `@dc360/shared`, e a API do caminho de produção
       # importa também `@dc360/db`, os dois pelo `dist/`, que numa imagem limpa
@@ -370,6 +370,22 @@ jobs:
       - name: Caminho de produção, contra a API
         if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
         run: npm run test:e2e:api 2>&1 | tee "$RUNNER_TEMP/artefatos/06-e2e-contra-a-api.txt"
+
+      # O mesmo caminho de produção nos outros dois motores (V2-F00-E09,
+      # correção 5). A correção 4 provou o foco depois da senha errada só no
+      # Chromium, e no Firefox o foco ficava em <body>: o que o teclado e o
+      # leitor de tela veem é diferente em cada motor. `e2e-api.mjs` sobe um par
+      # de API e painel novo a cada chamada, então rodar em sequência é seguro.
+      - name: Caminho de produção, contra a API, no Firefox
+        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        run: node scripts/e2e-api.mjs firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/06b-e2e-contra-a-api-firefox.txt"
+
+      # No WebKit só a geometria e o foco da tela estreita (`--so-layout`): a
+      # suíte principal supõe que clicar num botão o foca, e no WebKit, como no
+      # Safari, não foca (ver o cabeçalho de `scripts/e2e-api.mjs`).
+      - name: Caminho de produção, contra a API, no WebKit (geometria e foco)
+        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        run: node scripts/e2e-api.mjs webkit --so-layout 2>&1 | tee "$RUNNER_TEMP/artefatos/06c-e2e-contra-a-api-webkit.txt"
 
       - name: Registro do servidor de pré-visualização
         if: ${{ always() }}

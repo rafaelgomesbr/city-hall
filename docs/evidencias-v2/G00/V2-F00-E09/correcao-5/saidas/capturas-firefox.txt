@@ -1,0 +1,23 @@
+cadastro Ana Subdominios 201
+cadastro Coordenadora de Captura 201
+cadastro Pessoa Provisoria 201
+redefinir provisoria 200
+janela redefinir 390 claro firefox
+janela desativar 390 claro firefox
+janela redefinir 320 claro firefox
+janela desativar 320 claro firefox
+janela redefinir 390 escuro firefox
+janela desativar 390 escuro firefox
+janela redefinir 320 escuro firefox
+janela desativar 320 escuro firefox
+minha conta senha errada 390 claro firefox foco: conta-senha-atual
+minha conta senha errada 320 claro firefox foco: conta-senha-atual
+minha conta senha errada 390 escuro firefox foco: conta-senha-atual
+minha conta senha errada 320 escuro firefox foco: conta-senha-atual
+defina a senha provisoria errada 390 claro firefox foco: senha-nova-atual
+defina a senha provisoria errada 320 claro firefox foco: senha-nova-atual
+defina a senha provisoria errada 1280 claro firefox foco: senha-nova-atual
+defina a senha provisoria errada 390 escuro firefox foco: senha-nova-atual
+defina a senha provisoria errada 320 escuro firefox foco: senha-nova-atual
+defina a senha provisoria errada 1280 escuro firefox foco: senha-nova-atual
+erros de console/pagina: nenhum

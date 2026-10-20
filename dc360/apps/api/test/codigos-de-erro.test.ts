@@ -896,6 +896,117 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
     });
 
+    /*
+      Correção 4 (rodada 6, red-team e QA): o Node escreve o status com `| 0`, e `403.5`, `"403"` ou
+      `4294967699` saem 403 no fio. A regra comparava o literal com 401 e 403 e os via como "outro status".
+    */
+    it.each([
+      ["RegraDeNegocio com 403.5 e código novo (a forma do red-team)", 'throw new RegraDeNegocio("vazou_meio", "x", 403.5);'],
+      ["RegraDeNegocio com 403.5 e código do catálogo", 'throw new RegraDeNegocio("sem_permissao", "x", 403.5);'],
+      ["RegraDeNegocio com 401.9", 'throw new RegraDeNegocio("nao_autenticado", "x", 401.9);'],
+      ["RegraDeNegocio com status em texto", 'throw new RegraDeNegocio("sem_permissao", "x", "403" as never);'],
+      ["code(403.5) e código novo (QA)", 'resposta.code(403.5).send({ erro: "vazou_frac", mensagem: "x" });'],
+      ["code(401.9) e código do catálogo", 'resposta.code(401.9).send({ erro: "nao_autenticado", mensagem: "x" });'],
+      ["code(\"403.2\") (QA)", 'resposta.code("403.2").send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["code(\"403\") em texto", 'resposta.code("403").send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["status(`403`) por modelo de texto", "resposta.status(`403`).send({ erro: \"sem_permissao\", mensagem: \"x\" });"],
+      ["code(403.5 as number)", 'resposta.code(403.5 as number).send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["403.5 guardado numa constante", 'const S = 403.5;\nthrow new RegraDeNegocio("novo", "x", S);'],
+      ["403 + 2 ** 32 escrito por extenso", "const S = 4294967699;\nresposta.code(200);\nvoid S;"],
+      ["-4294966893, que o Node escreve como 403", "const S = -4294966893;\nvoid S;"],
+      ["status com sinal", 'resposta.code(+403).send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["statusCode em texto", 'throw Object.assign(new Error("x"), { statusCode: "403" });'],
+      ["par { status: 403.5, corpo }", 'function f() { return { status: 403.5, corpo: { erro: "sem_permissao", mensagem: "x" } }; }'],
+      ["status 403.5 declarado na classe", "class E extends Error { readonly status = 403.5; }"],
+      ["statusCode = 403.5 atribuído", "resposta.statusCode = 403.5;"],
+      ["redirect com 302.5", 'return resposta.redirect("/x", 302.5);'],
+    ])("correção 4, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    /*
+      Correção 4b (revisão de `05ab42d`): a resposta do Node alcançada por chave calculada ou por
+      desestruturação, e a linha de status gravada no estado interno dela. As três primeiras são as
+      fontes exatas da revisão (`zz-varre-c6.test.ts`), que saíam com 0 problemas.
+    */
+    it.each([
+      ["revisão: desestruturação de raw e _storeHeader",
+        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const { raw: r } = resposta; r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
+      ["revisão: chave calculada e _storeHeader",
+        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const k = "ra" + "w"; const r = resposta[k]; r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
+      ["revisão: chave calculada e _header reescrito",
+        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const k = "ra" + "w"; const r = resposta[k]; r.setHeader("x", "1"); r.end = r.end; r._header = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n"; r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
+      ["chave calculada na resposta com conversão de tipo", "const k = escolher();\nconst r = (resposta as unknown as Record<string, unknown>)[k];\nvoid r;"],
+      ["chave calculada num apelido da resposta", "const x = resposta;\nconst r = x[k];\nvoid r;"],
+      ["chave calculada em parâmetro anotado FastifyReply", "function f(qualquer: FastifyReply, k: string) { return (qualquer as never)[k]; }"],
+      ["chave calculada na resposta do Node", "const r = reply.raw;\nconst w = r[k];\nvoid w;"],
+      ["desestruturação de raw sem renomear", "const { raw } = resposta;\nvoid raw;"],
+      ["desestruturação por chave calculada", "const { [k]: r } = resposta;\nvoid r;"],
+      ["desestruturação de socket", "const { socket } = req;\nvoid socket;"],
+      ["_writeRaw com a cabeça pronta", 'algo._writeRaw("HTTP/1.1 403 Forbidden\\r\\n\\r\\n");'],
+      ["_header por colchete com texto", 'algo["_header"] = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n";'],
+      ["outputData empurrada à mão", 'algo.outputData.push({ data: "HTTP/1.1 403", encoding: "latin1", callback: null });'],
+      ["_header num Object.assign", 'Object.assign(algo, { _header: "HTTP/1.1 403 Forbidden\\r\\n\\r\\n" });'],
+      ["nome interno guardado num texto", 'const metodo = "_storeHeader";\nvoid metodo;'],
+      ["desestruturação de nome interno", "const { _storeHeader: gravar } = algo;\nvoid gravar;"],
+      ["qualquer propriedade com _ e letra", "algo._qualquerCoisaNova();"],
+    ])("correção 4b, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    /*
+      Correção 4c (revisão de `ae19e89`): o socket alcançado sem `.socket`, `.connection` nem `.raw` no
+      texto. A primeira é a sonda exata da revisão (`sonda-conexao.ts`), que chegava ao fio como 403 com
+      código inventado e saía daqui com 0 problemas; a guarda em tempo de execução não a vê.
+    */
+    it.each([
+      ["revisão: ouvinte de connection no servidor escrevendo no socket",
+        'app.server.on("connection", (s: any) => { s.once("data", () => s.end("HTTP/1.1 403 Forbidden\\r\\ncontent-length: 20\\r\\n\\r\\n{\\"erro\\":\\"inventado\\"}")); });'],
+      ["revisão: q.client, o apelido do socket no pedido", 'app.get("/x", async (q: any) => { q.client.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"); });'],
+      ["client por colchete", 'req["client"].write("HTTP/1.1 403");'],
+      ["client desestruturado", "const { client } = req;\nvoid client;"],
+      ["client desestruturado e renomeado", "const { client: s } = req;\nvoid s;"],
+      ["once de request", 'servidor.once("request", (q: any, r: any) => r.end());'],
+      ["prependListener de connection", 'app.server.prependListener("connection", (s: any) => s.end());'],
+      ["addListener de upgrade", 'app.server.addListener("upgrade", (q: any, s: any) => s.end());'],
+      ["on de secureConnection", 'srv.on("secureConnection", (s: any) => s.end());'],
+      ["on de clientError", 'app.server.on("clientError", (e: any, s: any) => s.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"));'],
+      ["on por colchete com texto", 'app.server["on"]("connection", (s: any) => s.end());'],
+      ["evento calculado no servidor", "const evento = escolher();\napp.server.on(evento, (s: any) => s.end());"],
+      ["tirar o ouvinte de request do Fastify", 'app.server.removeAllListeners("request");'],
+      ["ler os ouvintes de request", 'const [h] = app.server.listeners("request");\nvoid h;'],
+    ])("correção 4c, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    it("correção 4c, controles: sinal do processo, resposta do APNs e erro do pedido passam", () => {
+      for (const limpo of [
+        'for (const sinal of ["SIGINT", "SIGTERM"] as const) process.on(sinal, () => {});',
+        'requisicao.on("response", (cabecalhos: unknown) => { void cabecalhos; });',
+        'req.on("error", rejeitar);',
+        'nova.on("close", () => { sessao = null; });',
+      ]) expect(FORA(limpo), limpo).toEqual([]);
+    });
+
+    it("correção 4b, controles: chave calculada fora da resposta, desestruturação comum e `__dirname` passam", () => {
+      for (const limpo of [
+        "const ROTULO = { a: 1 } as Record<string, number>;\nconst v = ROTULO[k];\nvoid v;",
+        "const lista = [1, 2];\nfor (let i = 0; i < lista.length; i += 1) void lista[i];",
+        "const { id, nome } = dados;\nvoid id; void nome;",
+        "const aqui = __dirname;\nvoid aqui;",
+        'resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" });',
+      ]) expect(FORA(limpo), limpo).toEqual([]);
+    });
+
+    it("correção 4, controles: número decimal que não vira 401 nem 403 e status inteiro passam", () => {
+      for (const limpo of [
+        "const latitude = -23.5505;\nconst longitude = -46.6333;\nvoid latitude; void longitude;",
+        "const fator = 401.5 - 0.5;\nvoid fator;".replace("401.5", "40.15"),
+        'throw new RegraDeNegocio("sem_permissao", "x", 403);',
+        'resposta.code(503).send({ status: "indisponivel", banco: "indisponivel" });',
+      ]) expect(FORA(limpo), limpo).toEqual([]);
+    });
+
     it("correção 3, controles: a constante só lida, a chave por constante de texto e o hasOwnProperty passam", () => {
       const limpo = [
         R_OK + "resposta.code(403).send(R);",
@@ -1088,6 +1199,13 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
     });
 
+    it("correção 4c: ouvinte de connection no servidor real (servidor.ts, em memória) reprova", () => {
+      const falhas = mutarTrecho("servidor.ts", (t) => t
+        + '\nexport function zzConexao(app: FastifyInstance) {\n'
+        + '  app.server.on("connection", (s) => { s.once("data", () => s.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n")); });\n}\n');
+      expect(falhas.join("\n")).toContain("ouvinte de `connection`");
+    });
+
     /*
       Correção 3 (rodada 5): as quatro formas que o red-team plantou em `POST /orgaos`, DEPOIS da
       validação do corpo (onde a prova dinâmica não chega), e que passavam com a varredura verde. São as
@@ -1119,6 +1237,21 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
           + '    if (dados.nome === "Mutacao N") { const e = new Error("x") as Error & { code?: string; statusCode?: number }; '
           + 'const extra = { code: "FST_ERR_CTP_MUTACAO", statusCode }; throw { ...e, ...extra }; }',
         "`statusCode` abreviado"],
+      ["correção 4: RegraDeNegocio com status 403.5 (a forma do red-team da rodada 6)",
+        '    if (dados.nome === "Mutacao meio") throw new RegraDeNegocio("vazou_meio", "x", 403.5);',
+        "não é número inteiro"],
+      ["correção 4: code(\"403.2\") com código do catálogo",
+        '    if (dados.nome === "Mutacao texto") return resposta.code("403.2" as never).send({ erro: "sem_permissao", mensagem: "x" });',
+        "status em texto"],
+      ["correção 4b: a resposta do Node por chave calculada e a linha de status por _storeHeader (revisão de 05ab42d)",
+        '    const k = "ra" + "w";\n'
+          + '    const r = (resposta as unknown as Record<string, { _storeHeader(l: string, h: object): void; end(c: string): void }>)[k]!;\n'
+          + '    if (dados.nome === "Mutacao c6") { r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado_c6"}\'); return resposta; }',
+        "chave calculada na resposta"],
+      ["correção 4b: desestruturação de raw e _header reescrito",
+        '    const { raw: d } = resposta as unknown as { raw: { _header: string; end(c: string): void } };\n'
+          + '    if (dados.nome === "Mutacao c6b") { d._header = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n"; d.end(\'{"erro":"inventado_c6"}\'); return resposta; }',
+        "desestruturação de `raw`"],
       ["D: parâmetro homônimo de uma constante de corpo do módulo",
         '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
           + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'

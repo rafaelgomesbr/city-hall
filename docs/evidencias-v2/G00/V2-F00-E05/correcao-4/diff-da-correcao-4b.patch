@@ -1,0 +1,1144 @@
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index 4255326..e8592e2 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -56,14 +56,30 @@ import {
+  * Corpo de 401 ou 403 maior que 64 KiB é desvio: a guarda não guarda mais que
+  * isso na memória.
+  *
++ * A PORTA DOS BYTES (correção 4b): além dos três métodos públicos, a guarda
++ * envolve `_writeRaw` e `_flushOutput` da mesma resposta, por onde sai todo byte
++ * dela, e lê a linha de status nos bytes antes de saírem. A cabeça gravada por
++ * baixo de `writeHead` (`_storeHeader`, `_header` reescrito, `_writeRaw` ou a
++ * fila `outputData` com a cabeça pronta) que diga 401 ou 403 sem a guarda ter
++ * conferido o corpo, ou bytes que não começam com uma linha de status, trocam a
++ * resposta inteira pela do desvio, com `connection: close`; o resto do que a
++ * rota escrever sai vazio, e byte escrito depois do fim da resposta também.
++ *
+  * O QUE ELA NÃO VÊ, dito sem folga:
+  *
+  *   - escrita no SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`),
+  *     que não passa pela resposta do Node; a varredura do fonte proíbe
+- *     `.socket` e `.connection`;
++ *     `.socket` e `.connection`, e desestruturar `socket`;
+  *   - chamar o método do protótipo por fora da instância
+- *     (`ServerResponse.prototype.end` com `.call`, `.apply` ou `Reflect`); a
+- *     varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
++ *     (`ServerResponse.prototype.end` ou `_writeRaw` com `.call`, `.apply` ou
++ *     `Reflect`); a varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
++ *   - o CORPO depois de uma cabeça final que passou: a moldura dele (o
++ *     `content-length` ou o `chunked` da cabeça) não é conferida, então bytes
++ *     escritos por baixo ANTES do fim, além do tamanho que a cabeça declarou,
++ *     seriam lidos pelo cliente como a resposta seguinte da mesma conexão. Só
++ *     se chega aí pelo estado interno da resposta do Node (`_writeRaw`,
++ *     `_header`, `outputData`), que a varredura proíbe por nome, por chave
++ *     calculada na resposta e por desestruturação;
+  *   - código no mesmo processo que troque, ANTES de este módulo carregar, as
+  *     primitivas que ele usa para DECIDIR. Ele as guarda na carga
+  *     (`JSON.parse`, `Reflect.apply`, `Object.defineProperty`, `Object.keys`,
+@@ -122,6 +138,8 @@ const ehArray = Array.isArray;
+ const chavesDe = Object.keys;
+ const paraMinusculas = String.prototype.toLowerCase;
+ const proximoTique = process.nextTick;
++const indiceDe = String.prototype.indexOf;
++const fatiar = String.prototype.slice;
+ const HEX = "0123456789abcdef";
+ const TETO_DO_CORPO = 64 * 1024;
+ /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
+@@ -217,6 +235,15 @@ function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: bool
+   return { efetivo, torto };
+ }
+ 
++/**
++ * A LINHA DE STATUS DE VERDADE (correção 4b, revisão de `05ab42d`): o começo dos
++ * bytes de uma resposta, `HTTP/1.1 403 ...`. Status de três dígitos seguido de
++ * espaço ou do fim da linha.
++ */
++const LINHA_DE_STATUS = /^HTTP\/\d\.\d (\d{3})(?: |\r\n)/;
++/** Quanto do começo dos bytes a porta lê para achar as cabeças: a de Node cabe com folga. */
++const TETO_DA_CABECA = 16 * 1024;
++
+ /** A frase da linha de status da resposta trocada pela guarda (a da rota pode ser qualquer texto). */
+ const FRASE_DO_STATUS: Readonly<Record<number, string>> = Object.freeze({
+   401: "Unauthorized", 403: "Forbidden", 500: "Internal Server Error",
+@@ -260,6 +287,17 @@ function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
+ /** Troca, nesta resposta do Node, `writeHead`, `write` e `end` pelos que conferem 401 e 403. */
+ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: FastifyBaseLogger, opcoes: OpcoesDaGuarda): void {
+   const writeHeadOriginal = raw.writeHead;
++  type Interna = { _writeRaw: (...a: unknown[]) => unknown; _flushOutput: (...a: unknown[]) => unknown;
++    outputData: Array<{ data: unknown; encoding?: unknown }>; finished: boolean; _last: boolean };
++  const interna = raw as unknown as Interna;
++  const writeRawOriginal = interna._writeRaw;
++  const flushOutputOriginal = interna._flushOutput;
++  /** O status que a própria guarda conferiu e mandou escrever (401 ou 403), ou nenhum. */
++  let liberado = 0;
++  /** Ainda não saiu a cabeça final (só as provisórias 1xx, se alguma). */
++  let cabecaPendente = true;
++  /** A porta trocou a resposta: daqui em diante, nenhum byte da rota sai. */
++  let bloqueado = false;
+   const writeOriginal = raw.write;
+   const endOriginal = raw.end;
+   const ehHead = req.method === "HEAD";
+@@ -288,6 +326,157 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     else pedacos[pedacos.length] = b;
+   };
+ 
++  /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
++  function registrarDesvio(status: 401 | 403, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
++    const desvio: Desvio = {
++      metodo: req.method,
++      rota: req.routeOptions?.url ?? "(sem rota)",
++      status,
++      erroVisto: codigoParaRegistro(erroVisto),
++      motivo,
++    };
++    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
++    if (opcoes.modo === "falhar") {
++      desviosPendentes[desviosPendentes.length] = desvio;
++      return {
++        statusFinal: 500,
++        novo: textoJson([
++          ["erro", "desvio_do_catalogo_de_erro"],
++          ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
++            + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
++        ]),
++      };
++    }
++    const g = opcoes.generico[status];
++    return { statusFinal: status, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
++  }
++
++  /*
++    A PORTA DOS BYTES (correção 4b). `writeHead`, `write` e `end` são o caminho
++    público; por baixo deles, o Node monta a cabeça em `_storeHeader` (que grava
++    `_header`) e TODO byte da resposta sai por `_writeRaw` ou `_flushOutput` desta
++    instância. A revisão de `05ab42d` escreveu a linha de status por fora dos
++    três (`_storeHeader("HTTP/1.1 403 ...")`, `_header` reescrito depois de
++    `writeHead(200)`, `_writeRaw` com a cabeça pronta) e saiu 403 com código
++    inventado. Aqui se lê a linha de status nos BYTES que vão para o socket,
++    antes de saírem: cabeça provisória 1xx passa e a seguinte é lida; a cabeça
++    final com 401 ou 403 que a guarda não conferiu, ou bytes que não começam
++    com uma linha de status, trocam a resposta inteira pela do desvio, e o resto
++    do que a rota escrever é descartado (sai vazio, para os retornos e a conta
++    de bytes do Node seguirem certos). Byte escrito por `_writeRaw` depois do
++    fim da resposta também é descartado: seria lido como a resposta seguinte da
++    conexão.
++  */
++  const paraBuffer = (dado: unknown, codificacao: unknown): Buffer =>
++    typeof dado === "string"
++      ? bufferDe(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
++      : bufferDe(dado as Uint8Array);
++
++  /** Lê as cabeças no começo de um pedaço: `null` = continua pendente; número = status final; "ilegivel". */
++  function lerCabecas(dado: unknown, codificacao: unknown): number | "ilegivel" | null {
++    let texto: string;
++    try {
++      const b = paraBuffer(dado, codificacao);
++      texto = aplicar(bufferParaTexto, b, ["latin1", 0, b.length < TETO_DA_CABECA ? b.length : TETO_DA_CABECA]) as string;
++    } catch {
++      return "ilegivel";
++    }
++    for (;;) {
++      if (texto.length === 0) return null;
++      const m = casa(LINHA_DE_STATUS, texto);
++      if (m === null) return "ilegivel";
++      const s = +m[1]!;
++      if (s >= 100 && s <= 199 && s !== 101) {
++        const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
++        if (fim < 0) return "ilegivel";
++        texto = aplicar(fatiar, texto, [fim + 4]) as string;
++        continue;
++      }
++      return s;
++    }
++  }
++
++  /**
++   * Lê, na ordem em que vão sair, os pedaços ainda pendentes de cabeça. Devolve o
++   * que faz trocar a resposta (o status final que a guarda não conferiu, ou
++   * "ilegivel"), ou `null` para deixar sair.
++   */
++  function examinar(pedacos: ReadonlyArray<{ data: unknown; encoding?: unknown }>): number | "ilegivel" | null {
++    for (let i = 0; i < pedacos.length && cabecaPendente; i += 1) {
++      const visto = lerCabecas(pedacos[i]!.data, pedacos[i]!.encoding);
++      if (visto === null) continue;
++      cabecaPendente = false;
++      if (visto === "ilegivel") return visto;
++      if (!ehHead && ehAcesso(visto) && visto !== liberado) return visto;
++    }
++    return null;
++  }
++
++  /** A resposta inteira do desvio, já em bytes: cabeça e corpo. */
++  function substituta(visto: number | "ilegivel"): Buffer {
++    const status: 401 | 403 = visto === 401 ? 401 : 403;
++    const { statusFinal, novo } = registrarDesvio(status, null, visto === "ilegivel"
++      ? "bytes da resposta que não começam com uma linha de status"
++      : `linha de status ${visto} escrita por fora da guarda`);
++    return bufferDe(`HTTP/1.1 ${statusFinal} ${FRASE_DO_STATUS[statusFinal]!}\r\n`
++      + "content-type: application/json; charset=utf-8\r\n"
++      + `content-length: ${tamanhoEmBytes(novo)}\r\nconnection: close\r\n\r\n${novo}`, "utf8");
++  }
++
++  /** A substituta que ficou na fila do Node (socket ainda sem ligação): só ela sai dali. */
++  let substitutaNaFila: Buffer | null = null;
++  /** Esvazia a fila do Node, menos a substituta. Os itens ficam (vazios) para a conta de bytes e os retornos. */
++  const esvaziarFila = () => {
++    const fila = interna.outputData;
++    for (let i = 0; i < fila.length; i += 1) if (fila[i]!.data !== substitutaNaFila) fila[i]!.data = "";
++  };
++  /** Troca a resposta: a substituta entra no primeiro pedaço que vai sair, e o resto sai vazio. */
++  function trocar(visto: number | "ilegivel"): unknown {
++    bloqueado = true;
++    // A conexão fecha depois da substituta: o que a rota montou por baixo (moldura de corpo,
++    // cabeçalho de conexão) não fica valendo para o pedido seguinte do mesmo socket.
++    interna._last = true;
++    const nova = substituta(visto);
++    const fila = interna.outputData;
++    if (fila.length > 0) {
++      substitutaNaFila = nova;
++      fila[0]!.data = nova;
++      esvaziarFila();
++      return "";
++    }
++    return nova;
++  }
++
++  function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
++    if (!bloqueado && interna.finished) {
++      // Depois do fim, o Node não escreve mais nada desta resposta: isto seria lido como a próxima.
++      if (!ehHead) registrarDesvio(403, null, "bytes escritos na resposta depois do fim dela");
++      bloqueado = true;
++    }
++    if (bloqueado) {
++      esvaziarFila();
++      return aplicar(writeRawOriginal, raw, ["", ...resto]);
++    }
++    if (cabecaPendente) {
++      const fila = interna.outputData;
++      const pedacos: Array<{ data: unknown; encoding?: unknown }> = [];
++      for (let i = 0; i < fila.length; i += 1) pedacos[pedacos.length] = fila[i]!;
++      pedacos[pedacos.length] = { data: dado, encoding: typeof resto[0] === "string" ? resto[0] : undefined };
++      const visto = examinar(pedacos);
++      if (visto !== null) return aplicar(writeRawOriginal, raw, [trocar(visto), ...resto]);
++    }
++    return aplicar(writeRawOriginal, raw, [dado, ...resto]);
++  }
++
++  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
++    if (bloqueado) esvaziarFila();
++    else if (cabecaPendente && interna.outputData.length > 0) {
++      const visto = examinar(interna.outputData);
++      if (visto !== null) trocar(visto);
++    }
++    return aplicar(flushOutputOriginal, raw, args);
++  }
++
+   function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
+     const { efetivo, torto } = statusComoONodeEscreve(status);
+     if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
+@@ -351,34 +540,15 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     }
+     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
+     if (achado === null) {
++      liberado = statusSegurado;
+       const cabeca: unknown[] = [statusSegurado];
+       if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
+       if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
+       aplicar(writeHeadOriginal, raw, cabeca);
+       return fimComCb(corpoOriginal);
+     }
+-    const desvio: Desvio = {
+-      metodo: req.method,
+-      rota: req.routeOptions?.url ?? "(sem rota)",
+-      status: statusSegurado,
+-      erroVisto: codigoParaRegistro(achado.erroVisto),
+-      motivo: achado.motivo,
+-    };
+-    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
+-    let statusFinal = statusSegurado;
+-    let novo: string;
+-    if (opcoes.modo === "falhar") {
+-      desviosPendentes[desviosPendentes.length] = desvio;
+-      statusFinal = 500;
+-      novo = textoJson([
+-        ["erro", "desvio_do_catalogo_de_erro"],
+-        ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
+-          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
+-      ]);
+-    } else {
+-      const g = opcoes.generico[statusSegurado as 401 | 403];
+-      novo = textoJson([["erro", g.erro], ["mensagem", g.mensagem]]);
+-    }
++    const { statusFinal, novo } = registrarDesvio(statusSegurado as 401 | 403, achado.erroVisto, achado.motivo);
++    liberado = statusFinal;
+     const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
+     for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
+     const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+@@ -391,6 +561,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "_writeRaw", { value: _writeRaw, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "_flushOutput", { value: _flushOutput, writable: false, configurable: false, enumerable: false });
+ }
+ 
+ /**
+diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
+index 14371d6..4fa7a6c 100644
+--- a/dc360/apps/api/test/codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/codigos-de-erro.test.ts
+@@ -924,6 +924,46 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+     });
+ 
++    /*
++      Correção 4b (revisão de `05ab42d`): a resposta do Node alcançada por chave calculada ou por
++      desestruturação, e a linha de status gravada no estado interno dela. As três primeiras são as
++      fontes exatas da revisão (`zz-varre-c6.test.ts`), que saíam com 0 problemas.
++    */
++    it.each([
++      ["revisão: desestruturação de raw e _storeHeader",
++        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const { raw: r } = resposta; r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
++      ["revisão: chave calculada e _storeHeader",
++        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const k = "ra" + "w"; const r = resposta[k]; r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
++      ["revisão: chave calculada e _header reescrito",
++        'export function f(app: any) { app.get("/", async (req: any, resposta: any) => { const k = "ra" + "w"; const r = resposta[k]; r.setHeader("x", "1"); r.end = r.end; r._header = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n"; r.end(\'{"erro":"inventado"}\'); return resposta; }); }'],
++      ["chave calculada na resposta com conversão de tipo", "const k = escolher();\nconst r = (resposta as unknown as Record<string, unknown>)[k];\nvoid r;"],
++      ["chave calculada num apelido da resposta", "const x = resposta;\nconst r = x[k];\nvoid r;"],
++      ["chave calculada em parâmetro anotado FastifyReply", "function f(qualquer: FastifyReply, k: string) { return (qualquer as never)[k]; }"],
++      ["chave calculada na resposta do Node", "const r = reply.raw;\nconst w = r[k];\nvoid w;"],
++      ["desestruturação de raw sem renomear", "const { raw } = resposta;\nvoid raw;"],
++      ["desestruturação por chave calculada", "const { [k]: r } = resposta;\nvoid r;"],
++      ["desestruturação de socket", "const { socket } = req;\nvoid socket;"],
++      ["_writeRaw com a cabeça pronta", 'algo._writeRaw("HTTP/1.1 403 Forbidden\\r\\n\\r\\n");'],
++      ["_header por colchete com texto", 'algo["_header"] = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n";'],
++      ["outputData empurrada à mão", 'algo.outputData.push({ data: "HTTP/1.1 403", encoding: "latin1", callback: null });'],
++      ["_header num Object.assign", 'Object.assign(algo, { _header: "HTTP/1.1 403 Forbidden\\r\\n\\r\\n" });'],
++      ["nome interno guardado num texto", 'const metodo = "_storeHeader";\nvoid metodo;'],
++      ["desestruturação de nome interno", "const { _storeHeader: gravar } = algo;\nvoid gravar;"],
++      ["qualquer propriedade com _ e letra", "algo._qualquerCoisaNova();"],
++    ])("correção 4b, reprova: %s", (_forma, fonte) => {
++      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
++    });
++
++    it("correção 4b, controles: chave calculada fora da resposta, desestruturação comum e `__dirname` passam", () => {
++      for (const limpo of [
++        "const ROTULO = { a: 1 } as Record<string, number>;\nconst v = ROTULO[k];\nvoid v;",
++        "const lista = [1, 2];\nfor (let i = 0; i < lista.length; i += 1) void lista[i];",
++        "const { id, nome } = dados;\nvoid id; void nome;",
++        "const aqui = __dirname;\nvoid aqui;",
++        'resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" });',
++      ]) expect(FORA(limpo), limpo).toEqual([]);
++    });
++
+     it("correção 4, controles: número decimal que não vira 401 nem 403 e status inteiro passam", () => {
+       for (const limpo of [
+         "const latitude = -23.5505;\nconst longitude = -46.6333;\nvoid latitude; void longitude;",
+@@ -1162,6 +1202,15 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       ["correção 4: code(\"403.2\") com código do catálogo",
+         '    if (dados.nome === "Mutacao texto") return resposta.code("403.2" as never).send({ erro: "sem_permissao", mensagem: "x" });',
+         "status em texto"],
++      ["correção 4b: a resposta do Node por chave calculada e a linha de status por _storeHeader (revisão de 05ab42d)",
++        '    const k = "ra" + "w";\n'
++          + '    const r = (resposta as unknown as Record<string, { _storeHeader(l: string, h: object): void; end(c: string): void }>)[k]!;\n'
++          + '    if (dados.nome === "Mutacao c6") { r._storeHeader("HTTP/1.1 403 Forbidden\\r\\n", {}); r.end(\'{"erro":"inventado_c6"}\'); return resposta; }',
++        "chave calculada na resposta"],
++      ["correção 4b: desestruturação de raw e _header reescrito",
++        '    const { raw: d } = resposta as unknown as { raw: { _header: string; end(c: string): void } };\n'
++          + '    if (dados.nome === "Mutacao c6b") { d._header = "HTTP/1.1 403 Forbidden\\r\\n\\r\\n"; d.end(\'{"erro":"inventado_c6"}\'); return resposta; }',
++        "desestruturação de `raw`"],
+       ["D: parâmetro homônimo de uma constante de corpo do módulo",
+         '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
+           + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+index 0a22b59..59fea98 100644
+--- a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -1,4 +1,5 @@
+ import type { FastifyInstance, FastifyReply } from "fastify";
++import { request } from "node:http";
+ import { Readable } from "node:stream";
+ import { afterAll, beforeAll, describe, expect, it } from "vitest";
+ import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
+@@ -280,6 +281,91 @@ function plantarStatusTorto(app: FastifyInstance): void {
+   });
+ }
+ 
++/*
++  Correção 4b (revisão de `05ab42d`): a linha de status escrita POR BAIXO de
++  `writeHead`, `write` e `end`, no estado interno da resposta do Node. A rota
++  chega à resposta do Node por chave calculada ou desestruturação (o que a
++  varredura agora reprova) e grava a cabeça por `_storeHeader`, reescreve
++  `_header` depois de `writeHead(200)`, ou escreve os bytes prontos por
++  `_writeRaw` ou pela fila `outputData`. A guarda lê a linha de status nos bytes
++  que vão para o socket.
++*/
++type Interna = Record<string, any>;
++const CORPO_INVENTADO = '{"erro":"inventado_c6","mensagem":"x"}';
++const CABECA_403 = `HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: ${CORPO_INVENTADO.length}\r\n\r\n`;
++function plantarPorBaixo(app: FastifyInstance): void {
++  const r = (n: string) => `/por-baixo/${n}`;
++  const interna = (rep: FastifyReply): Interna => {
++    const k = "ra" + "w";
++    return (rep as unknown as Record<string, Interna>)[k]!;
++  };
++  const cab = { "content-type": "application/json", "content-length": String(CORPO_INVENTADO.length) };
++  app.get(r("calc-store"), async (_q, rep) => { const x = interna(rep); x._storeHeader("HTTP/1.1 403 Forbidden\r\n", cab); x.end(CORPO_INVENTADO); return rep; });
++  app.get(r("destruct-store"), async (_q, rep) => {
++    const { raw: d } = rep as unknown as { raw: Interna };
++    d._storeHeader("HTTP/1.1 403 Forbidden\r\n", cab); d.end(CORPO_INVENTADO); return rep;
++  });
++  app.get(r("header-trocado"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x.writeHead(200, { "content-type": "application/json" });
++    x._header = x._header.replace("200 OK", "403 Forbidden"); x.end(CORPO_INVENTADO);
++  });
++  app.get(r("header-401"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x.writeHead(200, cab); x._header = x._header.replace("200 OK", "401 Unauthorized"); x.end(CORPO_INVENTADO);
++  });
++  app.get(r("writeraw"), async (_q, rep) => { rep.hijack(); const x = interna(rep); x._writeRaw(CABECA_403 + CORPO_INVENTADO); x._header = "x"; x.end(); });
++  app.get(r("writeraw-base64"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x._writeRaw(Buffer.from(CABECA_403 + CORPO_INVENTADO).toString("base64"), "base64"); x._header = "x"; x.end();
++  });
++  app.get(r("writeraw-buffer"), async (_q, rep) => { rep.hijack(); const x = interna(rep); x._writeRaw(Buffer.from(CABECA_403 + CORPO_INVENTADO)); x._header = "x"; x.end(); });
++  app.get(r("continue-junto"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x._writeRaw("HTTP/1.1 100 Continue\r\n\r\n" + CABECA_403 + CORPO_INVENTADO); x._header = "x"; x.end();
++  });
++  app.get(r("linha-partida"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x._writeRaw("HTTP/1.1 4"); x._writeRaw(CABECA_403.slice(10) + CORPO_INVENTADO); x._header = "x"; x.end();
++  });
++  app.get(r("fila"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x.outputData.push({ data: CABECA_403 + CORPO_INVENTADO, encoding: "latin1", callback: null }); x._header = "x"; x.end();
++  });
++  app.get(r("depois-do-fim"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x.writeHead(200, { "content-type": "application/json", "content-length": "2" }); x.end("{}");
++    x._writeRaw(CABECA_403 + CORPO_INVENTADO);
++  });
++  // Controles: a cabeça provisória de verdade (100) seguida do 403 do catálogo, e o 403 comum.
++  app.get(r("ok-continue"), async (_q, rep) => {
++    rep.hijack(); const x = interna(rep);
++    x.writeContinue(); x.writeHead(403, { "content-type": "application/json" }); x.end('{"erro":"sem_permissao","mensagem":"x"}');
++  });
++  app.get(r("ok-403"), async (_q, rep) => rep.code(403).send({ erro: "sem_permissao", mensagem: "Frase da rota." }));
++}
++
++/** As formas por baixo: [rota, status que a linha forjada tinha]. */
++const FORMAS_POR_BAIXO: ReadonlyArray<[string, 401 | 403]> = [
++  ["calc-store", 403], ["destruct-store", 403], ["header-trocado", 403], ["header-401", 401], ["writeraw", 403],
++  ["writeraw-base64", 403], ["writeraw-buffer", 403], ["continue-junto", 403], ["linha-partida", 403], ["fila", 403],
++];
++
++/** GET por HTTP de verdade, socket novo a cada pedido (ou o agente dado), com status, frase e corpo. */
++function pedirHttp(porta: number, caminho: string, agente?: import("node:http").Agent): Promise<{ status: number; frase: string; corpo: string }> {
++  return new Promise((ok, falha) => {
++    const q = request({ host: "127.0.0.1", port: porta, path: caminho, agent: agente ?? false }, (r) => {
++      let corpo = "";
++      r.setEncoding("utf8");
++      r.on("data", (d: string) => { corpo += d; });
++      r.on("end", () => ok({ status: r.statusCode ?? 0, frase: r.statusMessage ?? "", corpo }));
++    });
++    q.on("error", falha);
++    q.setTimeout(5000, () => q.destroy(new Error(`sem resposta em ${caminho}`)));
++    q.end();
++  });
++}
++
+ /** As rotas de status torto que viram desvio: [rota, status que o Node escreve, código visto]. */
+ const FORMAS_TORTAS: ReadonlyArray<[string, 401 | 403, string | null]> = [
+   ["code-403.5", 403, "vazou_frac"], ["code-401.9", 401, "vazou_frac_um"], ["code-texto", 403, "vazou_frac_texto"],
+@@ -315,6 +401,7 @@ beforeAll(async () => {
+     plantarFormas(app);
+     plantarEscapesDaRevisao(app);
+     plantarStatusTorto(app);
++    plantarPorBaixo(app);
+     await app.ready();
+     servidores.set(modo, app);
+   }
+@@ -326,6 +413,12 @@ afterAll(async () => {
+ });
+ 
+ const pedirEm = (modo: ModoDaGuarda, url: string) => servidores.get(modo)!.inject({ method: "GET", url });
++/** O servidor do modo escutando numa porta efêmera, uma vez só (o `afterAll` o fecha). */
++const enderecos = new Map<ModoDaGuarda, Promise<string>>();
++const enderecoDe = (modo: ModoDaGuarda): Promise<string> => {
++  if (!enderecos.has(modo)) enderecos.set(modo, servidores.get(modo)!.listen({ port: 0, host: "127.0.0.1" }));
++  return enderecos.get(modo)!;
++};
+ const pedir = (modo: ModoDaGuarda, n: string) => pedirEm(modo, `/teste-da-guarda/${n}`);
+ 
+ describe("modo de teste: a resposta fora do catálogo falha alto", () => {
+@@ -580,25 +673,98 @@ describe("correção 4: a guarda decide pelo status que o Node ESCREVE, e não p
+ 
+   it("por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora", async () => {
+     for (const modo of ["falhar", "corrigir"] as const) {
+-      const app = servidores.get(modo)!;
+-      const endereco = await app.listen({ port: 0, host: "127.0.0.1" });
+-      try {
+-        for (const [n, status] of [["regra-mutada", 403], ["code-403.5", 403], ["code-401.9", 401], ["hijack-grande", 403], ["implicito-403.5", 403]] as const) {
+-          const r = await fetch(`${endereco}/status-torto/${n}`);
+-          const corpo = await r.json() as { erro: string };
+-          if (modo === "falhar") {
+-            expect(r.status, `${modo} ${n}`).toBe(500);
+-            expect(corpo.erro).toBe("desvio_do_catalogo_de_erro");
+-            expect(lerDesviosDaGuarda()).toHaveLength(1);
+-          } else {
+-            expect(r.status, `${modo} ${n}`).toBe(status);
+-            expect(corpo.erro).toBe(status === 401 ? "nao_autenticado" : "sem_permissao");
+-          }
++      const endereco = await enderecoDe(modo);
++      for (const [n, status] of [["regra-mutada", 403], ["code-403.5", 403], ["code-401.9", 401], ["hijack-grande", 403], ["implicito-403.5", 403]] as const) {
++        const r = await fetch(`${endereco}/status-torto/${n}`);
++        const corpo = await r.json() as { erro: string };
++        if (modo === "falhar") {
++          expect(r.status, `${modo} ${n}`).toBe(500);
++          expect(corpo.erro).toBe("desvio_do_catalogo_de_erro");
++          expect(lerDesviosDaGuarda()).toHaveLength(1);
++        } else {
++          expect(r.status, `${modo} ${n}`).toBe(status);
++          expect(corpo.erro).toBe(status === 401 ? "nao_autenticado" : "sem_permissao");
+         }
++      }
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
++
++describe("correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade", () => {
++  const subir = async (modo: ModoDaGuarda) => ({ porta: Number(new URL(await enderecoDe(modo)).port) });
++
++  it.each(FORMAS_POR_BAIXO)("%s: nunca sai %s com o código inventado; em teste 500 com desvio, em produção o genérico", async (n, status) => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { porta } = await subir(modo);
++      log.length = 0;
++      const r = await pedirHttp(porta, `/por-baixo/${n}`);
++      expect(r.corpo, `${modo} ${n}`).not.toContain("inventado_c6");
++      if (modo === "falhar") {
++        expect(r.status, `${modo} ${n}`).toBe(500);
++        expect(JSON.parse(r.corpo).erro).toBe("desvio_do_catalogo_de_erro");
++        const desvios = lerDesviosDaGuarda();
++        expect(desvios).toEqual([expect.objectContaining({ rota: `/por-baixo/${n}` })]);
++      } else {
++        expect(r.status, `${modo} ${n}`).toBe(status);
++        expect(r.frase).toBe(status === 401 ? "Unauthorized" : "Forbidden");
++        expect(JSON.parse(r.corpo).erro).toBe(status === 401 ? "nao_autenticado" : "sem_permissao");
++        const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalogo?: unknown }).find((l) => l.desvioDoCatalogo);
++        expect(registro?.desvioDoCatalogo).toMatchObject({ rota: `/por-baixo/${n}` });
++      }
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("bytes depois do fim da resposta não saem (seriam lidos como a resposta seguinte da conexão)", async () => {
++    const { Agent } = await import("node:http");
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { porta } = await subir(modo);
++      const agente = new Agent({ keepAlive: true, maxSockets: 1 });
++      try {
++        const r = await pedirHttp(porta, "/por-baixo/depois-do-fim", agente);
++        expect(r.status).toBe(200);
++        expect(r.corpo).toBe("{}");
++        expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
++        // O pedido seguinte, no mesmo socket, recebe a resposta dele e não o 403 que sobrou.
++        const seguinte = await pedirHttp(porta, "/por-baixo/ok-403", agente);
++        expect(seguinte.status).toBe(403);
++        expect(JSON.parse(seguinte.corpo)).toEqual({ erro: "sem_permissao", mensagem: "Frase da rota." });
+       } finally {
+-        await app.server.close();
++        agente.destroy();
+       }
+     }
+     expect(lerDesviosDaGuarda()).toEqual([]);
+   });
++
++  it("a resposta trocada fecha a conexão, e o pedido seguinte do mesmo agente sai certo", async () => {
++    const { Agent } = await import("node:http");
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { porta } = await subir(modo);
++      const agente = new Agent({ keepAlive: true, maxSockets: 1 });
++      try {
++        const trocada = await pedirHttp(porta, "/por-baixo/calc-store", agente);
++        expect(trocada.corpo).not.toContain("inventado_c6");
++        lerDesviosDaGuarda();
++        const seguinte = await pedirHttp(porta, "/por-baixo/ok-403", agente);
++        expect(seguinte.status).toBe(403);
++        expect(JSON.parse(seguinte.corpo).mensagem).toBe("Frase da rota.");
++      } finally {
++        agente.destroy();
++      }
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("controles: 100 Continue de verdade seguido do 403 do catálogo, e o 403 comum, passam intactos", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { porta } = await subir(modo);
++      const c = await pedirHttp(porta, "/por-baixo/ok-continue");
++      expect(c.status).toBe(403);
++      expect(JSON.parse(c.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
++      const o = await pedirHttp(porta, "/por-baixo/ok-403");
++      expect(JSON.parse(o.corpo)).toEqual({ erro: "sem_permissao", mensagem: "Frase da rota." });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
+ });
+diff --git a/dc360/apps/api/test/varredura-de-erros.ts b/dc360/apps/api/test/varredura-de-erros.ts
+index 1370e5e..8073450 100644
+--- a/dc360/apps/api/test/varredura-de-erros.ts
++++ b/dc360/apps/api/test/varredura-de-erros.ts
+@@ -54,6 +54,16 @@ import ts from "typescript";
+  *     expressão que não é nome) reprova.
+  */
+ 
++/*
++  Correção 4b (revisão de `05ab42d`): a rota chegava à resposta do Node por
++  `resposta["ra" + "w"]` ou `const { raw: r } = resposta` e gravava a linha de
++  status por `_storeHeader` ou `_header`, com 0 problemas aqui. Reprovam agora:
++  chave calculada em qualquer nome que guarde a resposta (os convencionais, o
++  parâmetro anotado `FastifyReply`/`ServerResponse` e os apelidos deles);
++  desestruturação de `raw`, `socket`, `connection`, de nome interno ou por
++  chave calculada; e o estado interno da resposta do Node (`._x`, a lista
++  `NOMES_INTERNOS_DO_NODE`, em propriedade, texto ou campo de objeto).
++*/
+ export type FormaDeEmissao = "send" | "RegraDeNegocio" | "FalhaAutenticacao" | "classe" | "recusa";
+ 
+ export type Emissao = {
+@@ -193,6 +203,22 @@ const LIDOS_COM_PONTO = new Set([
+ /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
+ const TROCAM_O_CORPO = new Set(["toJSON", "setReplySerializer", "setSerializerCompiler", "eval"]);
+ 
++/**
++ * Correção 4b (revisão de `05ab42d`): o estado interno da resposta do Node por
++ * onde a linha de status sai sem passar por `writeHead` (`_storeHeader`,
++ * `_header`, `_writeRaw`, a fila `outputData`). Qualquer nome com `_` e letra
++ * lido como propriedade também reprova, mesmo fora desta lista.
++ */
++const NOMES_INTERNOS_DO_NODE = new Set([
++  "_header", "_headers", "_headerSent", "_storeHeader", "_writeRaw", "_send", "_flush", "_flushOutput",
++  "_implicitHeader", "_last", "_hasBody", "_contentLength", "_trailer", "_finish", "_httpMessage", "_handle",
++  "_onPendingData", "_removedHeader", "_removedContLen", "_removedTE", "_writev", "_write", "_final",
++  "outputData", "outputSize", "chunkedEncoding", "shouldKeepAlive", "useChunkedEncodingByDefault",
++]);
++const PRIVADO = /^_[A-Za-z]/;
++/** Nomes que, por convenção do produto e do Fastify, são a resposta (ou a resposta do Node). */
++const NOMES_DE_RESPOSTA = new Set(["resposta", "reply", "rep", "res", "resp", "raw", "response"]);
++
+ /** O spread que não pode sobrescrever `erro`: objeto literal sem `erro`, ou condicional de dois assim. */
+ function espalhoSeguro(e: ts.Expression): boolean {
+   let x = e;
+@@ -455,6 +481,49 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+     return { objeto: init };
+   }
+ 
++  /**
++   * Correção 4b: os nomes que guardam a resposta neste arquivo. Os convencionais,
++   * o parâmetro anotado com `FastifyReply` ou `ServerResponse`, e todo nome
++   * inicializado com um deles ou com `X.raw` (por `as`, parênteses ou `!`), até
++   * não achar mais nenhum.
++   */
++  const respostas = new Set<string>(NOMES_DE_RESPOSTA);
++  {
++    const declaracoes: Array<{ nome: string; valor: ts.Expression }> = [];
++    const juntarResp = (no: ts.Node): void => {
++      if (ts.isParameter(no) && ts.isIdentifier(no.name) && no.type
++        && /FastifyReply|ServerResponse/.test(no.type.getText(sf))) respostas.add(no.name.text);
++      if (ts.isVariableDeclaration(no) && ts.isIdentifier(no.name) && no.initializer) {
++        declaracoes.push({ nome: no.name.text, valor: no.initializer });
++      }
++      ts.forEachChild(no, juntarResp);
++    };
++    juntarResp(sf);
++    let mudou = true;
++    while (mudou) {
++      mudou = false;
++      for (const d of declaracoes) {
++        if (respostas.has(d.nome)) continue;
++        let v: ts.Expression = d.valor;
++        while (ts.isAsExpression(v) || ts.isParenthesizedExpression(v) || ts.isNonNullExpression(v)
++          || ts.isTypeAssertionExpression(v) || ts.isSatisfiesExpression(v)) v = v.expression;
++        const ehResposta = (ts.isIdentifier(v) && respostas.has(v.text))
++          || (ts.isPropertyAccessExpression(v) && v.name.text === "raw")
++          || (ts.isElementAccessExpression(v) && ehDaResposta(v.expression));
++        if (ehResposta) { respostas.add(d.nome); mudou = true; }
++      }
++    }
++  }
++  /** A expressão é uma das respostas (ou `X.raw`), atravessando `as`, parênteses e `!`. */
++  function ehDaResposta(e: ts.Expression): boolean {
++    let v = e;
++    while (ts.isAsExpression(v) || ts.isParenthesizedExpression(v) || ts.isNonNullExpression(v)
++      || ts.isTypeAssertionExpression(v) || ts.isSatisfiesExpression(v)) v = v.expression;
++    if (ts.isIdentifier(v)) return respostas.has(v.text);
++    if (ts.isPropertyAccessExpression(v)) return v.name.text === "raw" || ehDaResposta(v.expression);
++    return false;
++  }
++
+   /** Os `.code(N)` e `.status(N)` que pertencem a uma cadeia terminada em `send`. */
+   const codesDeCadeiaComSend = new Set<ts.Node>();
+ 
+@@ -926,6 +995,41 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+       }
+     }
+ 
++    // 8. Correção 4b (revisão de `05ab42d`): a resposta do Node alcançada por chave calculada ou por
++    // desestruturação, e o estado interno dela por onde a linha de status sai sem `writeHead`.
++    if (ts.isElementAccessExpression(no) && ehDaResposta(no.expression)) {
++      const chave = textoDoLiteral(no.argumentExpression);
++      if (chave === null && !ts.isNumericLiteral(no.argumentExpression)) {
++        problema(no, `chave calculada na resposta (\`${no.getText(sf).slice(0, 60)}\`): a varredura não sabe que propriedade é`,
++          `resposta-calculada:${no.getText(sf)}`);
++      }
++    }
++    if (ts.isBindingElement(no) && ts.isObjectBindingPattern(no.parent)) {
++      const nomeDoCampo = no.propertyName ?? no.name;
++      if (ts.isComputedPropertyName(nomeDoCampo)) {
++        problema(no, `desestruturação por chave calculada (\`${no.getText(sf)}\`): a varredura não sabe que campo é`);
++      } else if (ts.isIdentifier(nomeDoCampo) || ts.isStringLiteral(nomeDoCampo)) {
++        const campo = nomeDoCampo.text;
++        if (campo === "raw" || campo === "socket" || campo === "connection" || PRIVADO.test(campo) || NOMES_INTERNOS_DO_NODE.has(campo)) {
++          problema(no, `desestruturação de \`${campo}\`: a resposta do Node (ou o estado dela) por um caminho que a varredura não segue`);
++        }
++      }
++    }
++    if (ts.isPropertyAccessExpression(no) && (PRIVADO.test(no.name.text) || NOMES_INTERNOS_DO_NODE.has(no.name.text))) {
++      problema(no, `\`.${no.name.text}\`: estado interno da resposta do Node, por onde a linha de status sai sem \`writeHead\``,
++        `interno:${no.name.text}`);
++    }
++    if ((ts.isStringLiteral(no) || ts.isNoSubstitutionTemplateLiteral(no))
++      && (NOMES_INTERNOS_DO_NODE.has(no.text) || (PRIVADO.test(no.text) && /^_[A-Za-z]\w*$/.test(no.text)))) {
++      problema(no, `texto \`${no.text}\`: nome interno da resposta do Node`, `interno:${no.text}`);
++    }
++    if ((ts.isPropertyAssignment(no) || ts.isShorthandPropertyAssignment(no)) && ts.isObjectLiteralExpression(no.parent)) {
++      const campo = nomeDaPropriedade(no.name);
++      if (campo !== null && NOMES_INTERNOS_DO_NODE.has(campo)) {
++        problema(no, `campo \`${campo}\` num objeto: o estado interno da resposta do Node`, `interno:${campo}`);
++      }
++    }
++
+     // 7. Correção 4 (rodada 6): status que o Node escreve como 401 ou 403 sem estar escrito assim.
+     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
+       && ["code", "status", "writeHead"].includes(no.expression.name.text) && no.arguments.length >= 1) {
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index 6db7f4b..d210d00 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -15,10 +15,11 @@ import type { ServerResponse } from "node:http";
+  * presas pelo mesmo tipo de teste, cada uma no seu pacote.
+  *
+  * Ela confere no nível da resposta do Node (`writeHead`, `write` e `end`
+- * envolvidos num `onRequest` instalado antes de tudo), e o que ela não vê está
++ * envolvidos num `onRequest` instalado antes de tudo, e a linha de status nos
++ * bytes que saem por `_writeRaw` e `_flushOutput`), e o que ela não vê está
+  * escrito no módulo da API: escrita no socket, o método do protótipo chamado por
+- * fora da instância, e código que troque as primitivas dela antes da carga ou o
+- * próprio Node.
++ * fora da instância, a moldura do corpo depois de uma cabeça que passou, e
++ * código que troque as primitivas dela antes da carga ou o próprio Node.
+  */
+ 
+ export type ModoDaGuarda = "falhar" | "corrigir";
+@@ -67,6 +68,8 @@ const ehArray = Array.isArray;
+ const chavesDe = Object.keys;
+ const paraMinusculas = String.prototype.toLowerCase;
+ const proximoTique = process.nextTick;
++const indiceDe = String.prototype.indexOf;
++const fatiar = String.prototype.slice;
+ const HEX = "0123456789abcdef";
+ const TETO_DO_CORPO = 64 * 1024;
+ /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
+@@ -162,6 +165,15 @@ function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: bool
+   return { efetivo, torto };
+ }
+ 
++/**
++ * A LINHA DE STATUS DE VERDADE (correção 4b, revisão de `05ab42d`): o começo dos
++ * bytes de uma resposta, `HTTP/1.1 403 ...`. Status de três dígitos seguido de
++ * espaço ou do fim da linha.
++ */
++const LINHA_DE_STATUS = /^HTTP\/\d\.\d (\d{3})(?: |\r\n)/;
++/** Quanto do começo dos bytes a porta lê para achar as cabeças: a de Node cabe com folga. */
++const TETO_DA_CABECA = 16 * 1024;
++
+ /** A frase da linha de status da resposta trocada pela guarda (a da rota pode ser qualquer texto). */
+ const FRASE_DO_STATUS: Readonly<Record<number, string>> = Object.freeze({
+   401: "Unauthorized", 403: "Forbidden", 500: "Internal Server Error",
+@@ -205,6 +217,17 @@ function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
+ /** Troca, nesta resposta do Node, `writeHead`, `write` e `end` pelos que conferem 401 e 403. */
+ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: FastifyBaseLogger, opcoes: OpcoesDaGuarda): void {
+   const writeHeadOriginal = raw.writeHead;
++  type Interna = { _writeRaw: (...a: unknown[]) => unknown; _flushOutput: (...a: unknown[]) => unknown;
++    outputData: Array<{ data: unknown; encoding?: unknown }>; finished: boolean; _last: boolean };
++  const interna = raw as unknown as Interna;
++  const writeRawOriginal = interna._writeRaw;
++  const flushOutputOriginal = interna._flushOutput;
++  /** O status que a própria guarda conferiu e mandou escrever (401 ou 403), ou nenhum. */
++  let liberado = 0;
++  /** Ainda não saiu a cabeça final (só as provisórias 1xx, se alguma). */
++  let cabecaPendente = true;
++  /** A porta trocou a resposta: daqui em diante, nenhum byte da rota sai. */
++  let bloqueado = false;
+   const writeOriginal = raw.write;
+   const endOriginal = raw.end;
+   const ehHead = req.method === "HEAD";
+@@ -233,6 +256,157 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     else pedacos[pedacos.length] = b;
+   };
+ 
++  /** Registra o desvio (log, e a lista do modo "falhar") e devolve o que sai no lugar. */
++  function registrarDesvio(status: 401 | 403, erroVisto: string | null, motivo: string): { statusFinal: number; novo: string } {
++    const desvio: Desvio = {
++      metodo: req.method,
++      rota: req.routeOptions?.url ?? "(sem rota)",
++      status,
++      erroVisto: codigoParaRegistro(erroVisto),
++      motivo,
++    };
++    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
++    if (opcoes.modo === "falhar") {
++      desviosPendentes[desviosPendentes.length] = desvio;
++      return {
++        statusFinal: 500,
++        novo: textoJson([
++          ["erro", "desvio_do_catalogo_de_erro"],
++          ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
++            + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
++        ]),
++      };
++    }
++    const g = opcoes.generico[status];
++    return { statusFinal: status, novo: textoJson([["erro", g.erro], ["mensagem", g.mensagem]]) };
++  }
++
++  /*
++    A PORTA DOS BYTES (correção 4b). `writeHead`, `write` e `end` são o caminho
++    público; por baixo deles, o Node monta a cabeça em `_storeHeader` (que grava
++    `_header`) e TODO byte da resposta sai por `_writeRaw` ou `_flushOutput` desta
++    instância. A revisão de `05ab42d` escreveu a linha de status por fora dos
++    três (`_storeHeader("HTTP/1.1 403 ...")`, `_header` reescrito depois de
++    `writeHead(200)`, `_writeRaw` com a cabeça pronta) e saiu 403 com código
++    inventado. Aqui se lê a linha de status nos BYTES que vão para o socket,
++    antes de saírem: cabeça provisória 1xx passa e a seguinte é lida; a cabeça
++    final com 401 ou 403 que a guarda não conferiu, ou bytes que não começam
++    com uma linha de status, trocam a resposta inteira pela do desvio, e o resto
++    do que a rota escrever é descartado (sai vazio, para os retornos e a conta
++    de bytes do Node seguirem certos). Byte escrito por `_writeRaw` depois do
++    fim da resposta também é descartado: seria lido como a resposta seguinte da
++    conexão.
++  */
++  const paraBuffer = (dado: unknown, codificacao: unknown): Buffer =>
++    typeof dado === "string"
++      ? bufferDe(dado, (typeof codificacao === "string" && codificacao ? codificacao : "utf8") as BufferEncoding)
++      : bufferDe(dado as Uint8Array);
++
++  /** Lê as cabeças no começo de um pedaço: `null` = continua pendente; número = status final; "ilegivel". */
++  function lerCabecas(dado: unknown, codificacao: unknown): number | "ilegivel" | null {
++    let texto: string;
++    try {
++      const b = paraBuffer(dado, codificacao);
++      texto = aplicar(bufferParaTexto, b, ["latin1", 0, b.length < TETO_DA_CABECA ? b.length : TETO_DA_CABECA]) as string;
++    } catch {
++      return "ilegivel";
++    }
++    for (;;) {
++      if (texto.length === 0) return null;
++      const m = casa(LINHA_DE_STATUS, texto);
++      if (m === null) return "ilegivel";
++      const s = +m[1]!;
++      if (s >= 100 && s <= 199 && s !== 101) {
++        const fim = aplicar(indiceDe, texto, ["\r\n\r\n"]) as number;
++        if (fim < 0) return "ilegivel";
++        texto = aplicar(fatiar, texto, [fim + 4]) as string;
++        continue;
++      }
++      return s;
++    }
++  }
++
++  /**
++   * Lê, na ordem em que vão sair, os pedaços ainda pendentes de cabeça. Devolve o
++   * que faz trocar a resposta (o status final que a guarda não conferiu, ou
++   * "ilegivel"), ou `null` para deixar sair.
++   */
++  function examinar(pedacos: ReadonlyArray<{ data: unknown; encoding?: unknown }>): number | "ilegivel" | null {
++    for (let i = 0; i < pedacos.length && cabecaPendente; i += 1) {
++      const visto = lerCabecas(pedacos[i]!.data, pedacos[i]!.encoding);
++      if (visto === null) continue;
++      cabecaPendente = false;
++      if (visto === "ilegivel") return visto;
++      if (!ehHead && ehAcesso(visto) && visto !== liberado) return visto;
++    }
++    return null;
++  }
++
++  /** A resposta inteira do desvio, já em bytes: cabeça e corpo. */
++  function substituta(visto: number | "ilegivel"): Buffer {
++    const status: 401 | 403 = visto === 401 ? 401 : 403;
++    const { statusFinal, novo } = registrarDesvio(status, null, visto === "ilegivel"
++      ? "bytes da resposta que não começam com uma linha de status"
++      : `linha de status ${visto} escrita por fora da guarda`);
++    return bufferDe(`HTTP/1.1 ${statusFinal} ${FRASE_DO_STATUS[statusFinal]!}\r\n`
++      + "content-type: application/json; charset=utf-8\r\n"
++      + `content-length: ${tamanhoEmBytes(novo)}\r\nconnection: close\r\n\r\n${novo}`, "utf8");
++  }
++
++  /** A substituta que ficou na fila do Node (socket ainda sem ligação): só ela sai dali. */
++  let substitutaNaFila: Buffer | null = null;
++  /** Esvazia a fila do Node, menos a substituta. Os itens ficam (vazios) para a conta de bytes e os retornos. */
++  const esvaziarFila = () => {
++    const fila = interna.outputData;
++    for (let i = 0; i < fila.length; i += 1) if (fila[i]!.data !== substitutaNaFila) fila[i]!.data = "";
++  };
++  /** Troca a resposta: a substituta entra no primeiro pedaço que vai sair, e o resto sai vazio. */
++  function trocar(visto: number | "ilegivel"): unknown {
++    bloqueado = true;
++    // A conexão fecha depois da substituta: o que a rota montou por baixo (moldura de corpo,
++    // cabeçalho de conexão) não fica valendo para o pedido seguinte do mesmo socket.
++    interna._last = true;
++    const nova = substituta(visto);
++    const fila = interna.outputData;
++    if (fila.length > 0) {
++      substitutaNaFila = nova;
++      fila[0]!.data = nova;
++      esvaziarFila();
++      return "";
++    }
++    return nova;
++  }
++
++  function _writeRaw(this: ServerResponse, dado: unknown, ...resto: unknown[]) {
++    if (!bloqueado && interna.finished) {
++      // Depois do fim, o Node não escreve mais nada desta resposta: isto seria lido como a próxima.
++      if (!ehHead) registrarDesvio(403, null, "bytes escritos na resposta depois do fim dela");
++      bloqueado = true;
++    }
++    if (bloqueado) {
++      esvaziarFila();
++      return aplicar(writeRawOriginal, raw, ["", ...resto]);
++    }
++    if (cabecaPendente) {
++      const fila = interna.outputData;
++      const pedacos: Array<{ data: unknown; encoding?: unknown }> = [];
++      for (let i = 0; i < fila.length; i += 1) pedacos[pedacos.length] = fila[i]!;
++      pedacos[pedacos.length] = { data: dado, encoding: typeof resto[0] === "string" ? resto[0] : undefined };
++      const visto = examinar(pedacos);
++      if (visto !== null) return aplicar(writeRawOriginal, raw, [trocar(visto), ...resto]);
++    }
++    return aplicar(writeRawOriginal, raw, [dado, ...resto]);
++  }
++
++  function _flushOutput(this: ServerResponse, ...args: unknown[]) {
++    if (bloqueado) esvaziarFila();
++    else if (cabecaPendente && interna.outputData.length > 0) {
++      const visto = examinar(interna.outputData);
++      if (visto !== null) trocar(visto);
++    }
++    return aplicar(flushOutputOriginal, raw, args);
++  }
++
+   function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
+     const { efetivo, torto } = statusComoONodeEscreve(status);
+     if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
+@@ -296,34 +470,15 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     }
+     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
+     if (achado === null) {
++      liberado = statusSegurado;
+       const cabeca: unknown[] = [statusSegurado];
+       if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
+       if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
+       aplicar(writeHeadOriginal, raw, cabeca);
+       return fimComCb(corpoOriginal);
+     }
+-    const desvio: Desvio = {
+-      metodo: req.method,
+-      rota: req.routeOptions?.url ?? "(sem rota)",
+-      status: statusSegurado,
+-      erroVisto: codigoParaRegistro(achado.erroVisto),
+-      motivo: achado.motivo,
+-    };
+-    log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
+-    let statusFinal = statusSegurado;
+-    let novo: string;
+-    if (opcoes.modo === "falhar") {
+-      desviosPendentes[desviosPendentes.length] = desvio;
+-      statusFinal = 500;
+-      novo = textoJson([
+-        ["erro", "desvio_do_catalogo_de_erro"],
+-        ["mensagem", `${desvio.metodo} ${desvio.rota} respondeu ${desvio.status} fora do catálogo: ${desvio.motivo}`
+-          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : "")],
+-      ]);
+-    } else {
+-      const g = opcoes.generico[statusSegurado as 401 | 403];
+-      novo = textoJson([["erro", g.erro], ["mensagem", g.mensagem]]);
+-    }
++    const { statusFinal, novo } = registrarDesvio(statusSegurado as 401 | 403, achado.erroVisto, achado.motivo);
++    liberado = statusFinal;
+     const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding"];
+     for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
+     const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+@@ -336,6 +491,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "_writeRaw", { value: _writeRaw, writable: false, configurable: false, enumerable: false });
++  definirPropriedade(raw, "_flushOutput", { value: _flushOutput, writable: false, configurable: false, enumerable: false });
+ }
+ 
+ /**
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+index b8e3231..e7c078a 100644
+--- a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -59,6 +59,25 @@ beforeAll(async () => {
+       (rep.raw as unknown as { writeHead: (...a: unknown[]) => unknown }).writeHead(403 + 2 ** 32, { "content-type": "application/json" });
+       rep.raw.end('{"erro":"vazou_grande"}');
+     });
++    // Correção 4b (revisão de `05ab42d`): a linha de status gravada por baixo de writeHead.
++    const corpo = '{"erro":"inventado_c6","mensagem":"x"}';
++    const crua = (rep: FastifyReply) => { const k = "ra" + "w"; return (rep as unknown as Record<string, Record<string, any>>)[k]!; };
++    c.app.get(r("por-baixo-store"), async (_q, rep) => {
++      const x = crua(rep);
++      x._storeHeader("HTTP/1.1 403 Forbidden\r\n", { "content-type": "application/json", "content-length": String(corpo.length) });
++      x.end(corpo);
++      return rep;
++    });
++    c.app.get(r("por-baixo-header"), async (_q, rep) => {
++      rep.hijack(); const x = crua(rep);
++      x.writeHead(200, { "content-type": "application/json" });
++      x._header = x._header.replace("200 OK", "401 Unauthorized");
++      x.end(corpo);
++    });
++    c.app.get(r("por-baixo-writeraw"), async (_q, rep) => {
++      rep.hijack(); const x = crua(rep);
++      x._writeRaw(`HTTP/1.1 403 Forbidden\r\ncontent-length: ${corpo.length}\r\n\r\n${corpo}`); x._header = "x"; x.end();
++    });
+     await c.app.ready();
+     consoles.set(modo, c);
+   }
+@@ -105,26 +124,47 @@ describe("a guarda do console", () => {
+   });
+ });
+ 
++/** O console do modo escutando numa porta efêmera, uma vez só (o `afterAll` o encerra). */
++const enderecos = new Map<"falhar" | "corrigir", Promise<string>>();
++const enderecoDe = (modo: "falhar" | "corrigir"): Promise<string> => {
++  if (!enderecos.has(modo)) enderecos.set(modo, consoles.get(modo)!.app.listen({ port: 0, host: "127.0.0.1" }));
++  return enderecos.get(modo)!;
++};
++
+ describe("correção 4: o status torto, por HTTP de verdade (porta efêmera)", () => {
+   it("403.5 não sai 403 com o código fora do contrato, nos dois modos", async () => {
+     for (const modo of ["falhar", "corrigir"] as const) {
+-      const app = consoles.get(modo)!.app;
+-      const endereco = await app.listen({ port: 0, host: "127.0.0.1" });
+-      try {
+-        const r = await fetch(`${endereco}/teste-da-guarda/frac`);
+-        const corpo = await r.json() as { erro: string };
++      const endereco = await enderecoDe(modo);
++      const r = await fetch(`${endereco}/teste-da-guarda/frac`);
++      const corpo = await r.json() as { erro: string };
++      if (modo === "falhar") {
++        expect(r.status).toBe(500);
++        expect(lerDesviosDaGuarda()).toHaveLength(1);
++      } else {
++        expect(r.status).toBe(403);
++        expect(corpo.erro).toBe("so_o_dono");
++        expect(r.statusText).toBe("Forbidden");
++      }
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
++
++describe("correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade", () => {
++  it.each([["por-baixo-store", 403], ["por-baixo-header", 401], ["por-baixo-writeraw", 403]] as const)(
++    "%s não sai %s com o código inventado, nos dois modos", async (n, status) => {
++      for (const modo of ["falhar", "corrigir"] as const) {
++        const r = await fetch(`${await enderecoDe(modo)}/teste-da-guarda/${n}`, { headers: { connection: "close" } });
++        const corpo = await r.text();
++        expect(corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+         if (modo === "falhar") {
+           expect(r.status).toBe(500);
+-          expect(lerDesviosDaGuarda()).toHaveLength(1);
++          expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ rota: `/teste-da-guarda/${n}` })]);
+         } else {
+-          expect(r.status).toBe(403);
+-          expect(corpo.erro).toBe("so_o_dono");
+-          expect(r.statusText).toBe("Forbidden");
++          expect(r.status).toBe(status);
++          expect(JSON.parse(corpo).erro).toBe(status === 401 ? "sem_sessao" : "so_o_dono");
+         }
+-      } finally {
+-        await app.server.close();
+       }
+-    }
+-    expect(lerDesviosDaGuarda()).toEqual([]);
+-  });
++      expect(lerDesviosDaGuarda()).toEqual([]);
++    });
+ });
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index ae22250..d272902 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -145,12 +145,23 @@
+  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
+  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
+  *
++ * A guarda também lê a linha de status nos BYTES que a resposta manda ao socket
++ * (`_writeRaw` e `_flushOutput` da instância): a cabeça gravada por baixo de
++ * `writeHead` (`_storeHeader`, `_header` reescrito, `_writeRaw` com a cabeça
++ * pronta) com 401 ou 403 que ela não conferiu troca a resposta inteira pela do
++ * desvio (correção 4b).
++ *
+  * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
+  * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
+- * revisão), que não passa pela resposta do Node, e o método do protótipo da
+- * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). A
+- * varredura proíbe os dois (`.socket`, `.connection`, `.call`, `.apply`,
+- * `.bind`, `Reflect`), mas é heurística. Nenhuma das três linhas prende código
++ * revisão), que não passa pela resposta do Node; o método do protótipo da
++ * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
++ * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
++ * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
++ * declarado seriam lidos como a resposta seguinte da conexão. A varredura
++ * proíbe os três caminhos (`.socket`, `.connection`, `.call`, `.apply`,
++ * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
++ * `_header` e `outputData`, chave calculada na resposta, desestruturação de
++ * `raw` e `socket`), mas é heurística. Nenhuma das três linhas prende código
+  * no mesmo processo que troque, ANTES de a guarda carregar, as primitivas que
+  * ela usa para decidir (ela as guarda na carga e, ao decidir, só usa essas
+  * cópias, então `JSON`, `includes` ou `hasOwnProperty` trocados depois não a
+diff --git a/dc360/README.md b/dc360/README.md
+index 6bd2980..13aab18 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -240,10 +240,20 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
+   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
+   padrão).
+ 
++A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
++`"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
++(`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
++`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
++
+ O que a guarda NÃO vê, e a varredura proíbe (mas é heurística): escrita no socket
+ da requisição (`req.socket.end("HTTP/1.1 403 ...")`, que não passa pela resposta
+-do Node; a varredura reprova `.socket` e `.connection`) e o método do protótipo da
+-resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`). E nenhuma
++do Node; a varredura reprova `.socket`, `.connection` e desestruturar `socket`), o
++método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
++`Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
++(`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
++tamanho declarado seriam lidos como a resposta seguinte da conexão (a varredura
++reprova o nome interno da resposta do Node, como `_writeRaw`, `_header` e
++`outputData`, a chave calculada na resposta e desestruturar `raw`). E nenhuma
+ linha prende código no mesmo processo que troque, antes de a guarda carregar, as
+ primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
+ usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a

@@ -1,0 +1,46 @@
+$ node --test scripts/auditar.test.mjs contra cópias do portão com a correção 6b desfeita em partes (em dc360, com o package-lock.json real ao lado)
+=== mutação: auditar.mjs de 915bb6a (correção 6 sem o 6b), com a lista e os testes novos
+  ✖ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (129.111542ms)
+  ✖ a cópia sem adulteração passa (controle do próprio teste) (125.803375ms)
+  ✖ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (182.580375ms)
+  ✖ aceita o nomeado, com o id da advisory, dono e prazo na saída (416.697833ms)
+  ✖ advisory aceita que muda de gravidade (para cima ou para baixo) deixa de valer sem decisão: sai 1 e diz a mudança (131.464791ms)
+  ✖ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (140.009542ms)
+  ✖ dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono' (334.598084ms)
+  ✖ dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo (407.550416ms)
+  ✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (122.82575ms)
+  ✖ passa quando runtime e aplicativo estão limpos (697.152292ms)
+  ✖ runtime forjado vazio não esconde o que a auditoria completa acusa em pacote que o lockfile não marca como dev (150.362584ms)
+  ✖ sai 2 quando UMA advisory aceita some (lista velha ou resposta mexida), e diz qual (139.158417ms)
+  ✖ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (125.915333ms)
+  ✖ sai 2 quando as consultas reais voltam vazias e só a de controle volta de verdade (o proxy da revisão) (138.064583ms)
+  ✖ sai 2 quando não consegue ler o package-lock.json da raiz (não dá para separar runtime de desenvolvimento) (140.548708ms)
+  ✖ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (125.262ms)
+  ✖ sai 2 quando só a auditoria completa da raiz volta vazia (os pacotes aceitos do vitest sumiram) (138.39575ms)
+  ✖ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (123.183958ms)
+  ✖ só avisa de vulnerabilidade apenas de desenvolvimento (398.009208ms)
+  ✖ tolera correção disponível quando a exceção é marcada como inaplicável (CP-03) (162.161875ms)
+ℹ fail 20
+ℹ pass 34
+ℹ tests 54
+=== mutação: sem exigir as advisories aceitas dentro da auditoria do aplicativo
+  ✖ sai 2 quando UMA advisory aceita some (lista velha ou resposta mexida), e diz qual (217.204917ms)
+  ✖ sai 2 quando as consultas reais voltam vazias e só a de controle volta de verdade (o proxy da revisão) (140.276417ms)
+ℹ fail 2
+ℹ pass 52
+ℹ tests 54
+=== mutação: sem exigir os pacotes aceitos de desenvolvimento dentro da auditoria completa
+  ✖ sai 2 quando só a auditoria completa da raiz volta vazia (os pacotes aceitos do vitest sumiram) (211.309708ms)
+ℹ fail 1
+ℹ pass 53
+ℹ tests 54
+=== mutação: sem tirar o runtime da auditoria completa pelo lockfile
+  ✖ runtime forjado vazio não esconde o que a auditoria completa acusa em pacote que o lockfile não marca como dev (236.570667ms)
+ℹ fail 1
+ℹ pass 53
+ℹ tests 54
+=== mutação: sem reprovar a mudança de gravidade
+  ✖ advisory aceita que muda de gravidade (para cima ou para baixo) deixa de valer sem decisão: sai 1 e diz a mudança (279.768708ms)
+ℹ fail 1
+ℹ pass 53
+ℹ tests 54
