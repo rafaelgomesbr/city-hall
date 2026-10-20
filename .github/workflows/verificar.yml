@@ -30,16 +30,13 @@
 #   tem de ter o seu run completo (ver `concurrency`).
 # - TODO job grava as saídas em arquivo e publica um artefato chamado
 #   `<job>-<sha>` (`plataformas-<sistema>-<sha>` na matriz), mesmo quando falha,
-#   com retenção de 30 dias, salvo o `windows`, que fica com a retenção padrão
-#   do repositório. Em pull_request o `github.sha` é o de um merge sintético: o
-#   commit candidato (a ponta do ramo) vem escrito em `00-contexto.txt` de cada
-#   artefato, salvo o do `windows`, que não grava esse arquivo (o primeiro
-#   dele é `00-versoes.txt`, com as versões do node e do npm).
+#   com retenção de 30 dias. Em pull_request o `github.sha` é o de um merge
+#   sintético: o commit candidato (a ponta do ramo) vem escrito em
+#   `00-contexto.txt` de cada artefato.
 # - `scripts/ci-artefatos.sh redigir` limpa URL com senha, JWT, Bearer e
 #   `PASSWORD '...'` antes de publicar, para segredo não entrar em artefato (o
 #   baseline já redige a própria saída e traz INDEX.md com SHA-256, por isso é
-#   pulado). O job `windows` NÃO tem esse passo e publica as saídas como
-#   saíram (anotado na correção 5 da V2-F00-E22).
+#   pulado).
 #
 # Dois jobs, os mais longos, não rodam em todo push: `baseline` e `restore`.
 # Rodam só em push cuja mensagem de commit traga `[ci completo]`, no disparo
@@ -626,9 +623,13 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
       - name: Política de dependências (node scripts/auditar.mjs) em Windows
         run: |
-          mkdir -p "$RUNNER_TEMP/artefatos"
           node --version | tee "$RUNNER_TEMP/artefatos/00-versoes.txt"
           npm --version | tee -a "$RUNNER_TEMP/artefatos/00-versoes.txt"
           node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar-windows.txt"
@@ -656,12 +657,18 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: npm run conferir:numeros 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conferir-numeros-windows.txt"
 
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
       - name: Publicar os artefatos
-        if: always()
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: windows-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
           if-no-files-found: error
 
   plataformas:
