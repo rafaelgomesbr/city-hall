@@ -1,0 +1,26 @@
+# ANTES (HEAD 7d067cc), SONDA DO RELÓGIO: o caso 0,0 com Date.now avançando 1 ms a cada chamada enquanto as duas tarefas são montadas (scripts/fazer-sonda.mjs), 10 rodadas
+  10 Tests:       1 failed, 18 skipped, 19 total
+
+# Detalhe de uma rodada (a mesma falha do CI, com o aviso de que a ordem não considerou distância NA TELA):
+  ● SONDA sem GPS a tela não inventa distância, e diz isso › a posição 0,0 de quem ainda não fixou o GPS não vira distância nenhuma
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "perto",
+        "longe",
+    +   "perto",
+      ]
+
+      644 |     expect(screen.getByText(/não considerou distância/)).toBeTruthy();
+      645 |     expect(screen.queryAllByText(/\d+\s?(m|km)\b/)).toHaveLength(0);
+    > 646 |     expect(aOrdemDaLista()).toEqual(["perto", "longe"]);
+          |                             ^
+      647 |   });
+      648 | });
+      649 |
+
+      at Object.toEqual (src/__tests__/zz-sonda-relogio.test.tsx:646:29)

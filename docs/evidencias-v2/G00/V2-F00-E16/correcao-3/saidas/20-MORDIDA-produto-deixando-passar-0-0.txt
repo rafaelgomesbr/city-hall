@@ -1,0 +1,6 @@
+# MORDIDA: produto com a linha 'if (latitude === 0 && longitude === 0) return null;' removida de pontoQueSeMede (src/dados/ordem-do-dia.ts), teste já corrigido.
+# Comando: npx jest src/__tests__/hoje-lista-e-mapa.test.tsx -t "0,0". Arquivo do produto restaurado da cópia logo depois (git diff vazio).
+    ✕ a posição 0,0 de quem ainda não fixou o GPS não vira distância nenhuma (83 ms)
+    Unable to find an element with text: /não considerou distância/
+      659 |     expect(screen.queryAllByText(/\d+\s?(m|km)\b/)).toHaveLength(0);
+Tests:       1 failed, 18 skipped, 19 total

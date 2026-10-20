@@ -1,0 +1,2 @@
+# DEPOIS, os três arquivos, --runInBand, 8 processos yes, 25 rodadas (scripts/carga.sh depois 25)
+  25 Tests:       95 passed, 95 total
