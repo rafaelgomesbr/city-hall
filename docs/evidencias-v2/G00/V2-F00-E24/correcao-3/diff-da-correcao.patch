@@ -1,0 +1,216 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 941e8a6..2d3cfe5 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -8,7 +8,7 @@ build) valem lá, não aqui.
+ 
+ | Pacote | O que é | Situação |
+ | --- | --- | --- |
+-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
++| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 193 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1590 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+@@ -818,6 +818,13 @@ Sobre artigo, a varredura é mais estreita e mais dura: nos geradores de
+ documento oficial, nenhum número de artigo passa. Comentário de código pode
+ falar de artigo; papel com o brasão do município, não.
+ 
++Outra regra de conteúdo que roda no `npm test`: enquanto o aplicativo do agente não
++declara a saída a campo (V2-F14-E01), nenhum texto do município promete que
++alguém "acompanha quem está em campo" sem dizer que o recurso está em
++construção. `packages/shared/test/ressalva-saida-a-campo.test.ts` confere os
++cinco documentos que tratam do assunto (README, privacidade, papéis e as duas
++apresentações), uma linha de tabela por vez, e morde se a ressalva sair.
++
+ ## O design system é verificado por máquina
+ 
+ `CLAUDE.md` diz que cor, sombra ou duração escritos direto no componente são
+@@ -1505,7 +1512,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3313 testes em seis pacotes
++npm test                    # 3321 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1590 testes da API
+ npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 241b521..e843420 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5255 testes somando o aplicativo** (contagem estática de `npm run
++- **5263 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5255 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5263 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md b/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+index b580459..ed091c6 100644
+--- a/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
++++ b/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+@@ -206,7 +206,7 @@ fornecedor, que é outro processo, com segundo fator.
+ | Emitir laudo ou termo | não | não | sim | sim |
+ | Consultar os ofícios de encaminhamento | sim | não | sim | sim |
+ | Levantar a interdição de um imóvel | não | não | sim | sim |
+-| Acompanhar quem está em campo agora | sim | não | sim | sim |
++| Acompanhar quem está em campo agora | sim (em construção) | não | sim (em construção) | sim (em construção) |
+ | Gerenciar equipes | não | não | sim | sim |
+ | Gerenciar usuários | não | não | sim | sim |
+ | Consultar a trilha | não | não | sim | sim |
+diff --git a/dc360/packages/shared/test/ressalva-saida-a-campo.test.ts b/dc360/packages/shared/test/ressalva-saida-a-campo.test.ts
+new file mode 100644
+index 0000000..2c99823
+--- /dev/null
++++ b/dc360/packages/shared/test/ressalva-saida-a-campo.test.ts
+@@ -0,0 +1,126 @@
++import { readFileSync } from "node:fs";
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { describe, expect, it } from "vitest";
++
++/**
++ * A ressalva da saída a campo, presa por teste (V2-F00-E24, correção 3).
++ *
++ * A decisão: o aplicativo do agente ainda NÃO declara a saída a campo
++ * (V2-F14-E01). Enquanto isso, nenhum texto que o município lê pode afirmar
++ * que alguém "acompanha quem está em campo", nem descrever a saída declarada
++ * pelo agente, sem dizer que o recurso está em construção. É a promessa de
++ * segurança física que a etapa existe para retirar.
++ *
++ * Por que está aqui. A correção 2 da E24 criou um guarda com a mesma regra,
++ * mas ele vivia só na pasta da evidência e nenhuma suíte o rodava. A correção 4
++ * da E22 reescreveu a tabela de papéis, soltou a ressalva de uma linha, e
++ * ninguém viu até a validação. Regra que só roda quando alguém lembra não
++ * existe: aqui ela roda no `npm test`.
++ *
++ * A unidade conferida é a linha nos HTML e o parágrafo nos Markdown, com uma
++ * exceção que fecha um buraco do guarda antigo: em tabela Markdown a unidade é
++ * a LINHA da tabela. Como a tabela inteira é um parágrafo só, uma ressalva em
++ * qualquer célula dela absolvia todas as outras linhas.
++ *
++ * Exceção deliberada: a tabela de permissões do README (`### Quem pode o quê`)
++ * é GERADA do catálogo `acoesDoPapel`, com teste que reprova edição manual
++ * (`permissoes-no-readme.test.ts`), por isso a regra do README só cobre a frase
++ * em negrito do texto corrido. Já a tabela de papéis é escrita à mão, e a
++ * ressalva cabe nela: "sim (em construção)".
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const RAIZ_REPO = join(AQUI, "..", "..", "..", "..");
++
++const RESSALVA = /em constru[cç][aã]o/i;
++
++export interface Regra {
++  arquivo: string;
++  unidade: "linha" | "paragrafo";
++  padrao: RegExp;
++}
++
++export const REGRAS: readonly Regra[] = [
++  { arquivo: "docs/apresentacao-produto-alyson.html", unidade: "linha", padrao: /acompanha(r)? quem est[aá] em campo/i },
++  { arquivo: "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html", unidade: "linha", padrao: /acompanha(r)? quem est[aá] em campo|retorno n[aã]o confirmado/i },
++  { arquivo: "dc360/docs/PRIVACIDADE.md", unidade: "paragrafo", padrao: /sa[ií]da a campo declarada pelo agente/i },
++  { arquivo: "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md", unidade: "paragrafo", padrao: /acompanhar quem est[aá] em campo|acompanha quem est[aá] em campo/i },
++  { arquivo: "dc360/README.md", unidade: "paragrafo", padrao: /\*\*acompanha quem est[aá] em campo\*\*/i },
++];
++
++/** Divide o texto em unidades; parágrafo que é tabela Markdown vira uma unidade por linha. */
++function unidadesDe(texto: string, unidade: Regra["unidade"]): string[] {
++  const linhas = texto.split(/\r?\n/);
++  if (unidade === "linha") return linhas;
++  const paragrafos = texto.split(/\r?\n\s*\r?\n/);
++  return paragrafos.flatMap((p) => (p.trimStart().startsWith("|") ? p.split(/\r?\n/) : [p]));
++}
++
++export function conferir(texto: string, regra: Regra): { conferidas: number; semRessalva: string[] } {
++  const ocorrencias = unidadesDe(texto, regra.unidade).filter((u) => regra.padrao.test(u));
++  return {
++    conferidas: ocorrencias.length,
++    semRessalva: ocorrencias.filter((u) => !RESSALVA.test(u)).map((u) => u.trim().slice(0, 110)),
++  };
++}
++
++const lerDoRepo = (arquivo: string) => readFileSync(join(RAIZ_REPO, arquivo), "utf8");
++
++/** Quantas ocorrências cada documento tem hoje: padrão que some do texto não pode virar aprovação em silêncio. */
++const OCORRENCIAS_ESPERADAS: Record<string, number> = {
++  "docs/apresentacao-produto-alyson.html": 3,
++  "dc360/docs/apresentacao/2026-09-15-para-o-alyson.html": 2,
++  "dc360/docs/PRIVACIDADE.md": 1,
++  "dc360/docs/PAPEIS_E_RESPONSABILIDADES.md": 4,
++  "dc360/README.md": 1,
++};
++
++describe("Saída a campo: nenhum documento promete o recurso sem a ressalva 'em construção'", () => {
++  for (const regra of REGRAS) {
++    it(`${regra.arquivo}: toda ocorrência traz a ressalva`, () => {
++      const r = conferir(lerDoRepo(regra.arquivo), regra);
++      expect(r.semRessalva).toEqual([]);
++      expect(r.conferidas).toBe(OCORRENCIAS_ESPERADAS[regra.arquivo]);
++    });
++  }
++
++  it("morde: tirar a ressalva de qualquer ocorrência de qualquer documento reprova", () => {
++    for (const regra of REGRAS) {
++      const texto = lerDoRepo(regra.arquivo);
++      const unidades = unidadesDe(texto, regra.unidade);
++      const alvos = unidades.filter((u) => regra.padrao.test(u));
++      expect(alvos.length).toBeGreaterThan(0);
++      for (const alvo of alvos) {
++        const sem = alvo.replace(/\s*\(?em constru[cç][aã]o[^)\n]*\)?/gi, "").replace(/em constru[cç][aã]o/gi, "");
++        expect(RESSALVA.test(sem)).toBe(false);
++        const r = conferir(texto.replace(alvo, sem), regra);
++        expect(r.semRessalva.length, `${regra.arquivo}: sem a ressalva em "${alvo.trim().slice(0, 60)}"`).toBeGreaterThan(0);
++      }
++    }
++  });
++
++  it("morde na regressão real da E22: a linha da tabela de papéis sem a ressalva é acusada, com ela passa", () => {
++    const regra = REGRAS.find((r) => r.arquivo.endsWith("PAPEIS_E_RESPONSABILIDADES.md"))!;
++    const texto = lerDoRepo(regra.arquivo);
++    const certa = "| Acompanhar quem está em campo agora | sim (em construção) | não | sim (em construção) | sim (em construção) |";
++    const antiga = "| Acompanhar quem está em campo agora | sim | não | sim | sim |";
++    expect(texto).toContain(certa);
++    const reprovada = conferir(texto.replace(certa, antiga), regra);
++    expect(reprovada.semRessalva.join("\n")).toContain("Acompanhar quem está em campo agora");
++    expect(conferir(texto, regra).semRessalva).toEqual([]);
++  });
++
++  it("a ressalva de uma linha da tabela não absolve as outras (unidade é a linha da tabela)", () => {
++    const regra = REGRAS.find((r) => r.arquivo.endsWith("PAPEIS_E_RESPONSABILIDADES.md"))!;
++    const tabela = [
++      "| Ação | Operador |",
++      "| --- | :---: |",
++      "| Acompanhar quem está em campo agora | sim |",
++      "| Outra ação qualquer | sim (em construção) |",
++    ].join("\n");
++    const r = conferir(tabela, regra);
++    expect(r.conferidas).toBe(1);
++    expect(r.semRessalva).toHaveLength(1);
++  });
++});
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 4880436..a4f860d 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -525,6 +525,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
+   "V2-F00-E05-correcao-2": { total: 5, falhas: 0 },
+   // V2-F00-E22, correção 4: `packages/shared/test/permissoes-no-readme.test.ts` (10 casos) prende a tabela de permissões do README e a de `docs/PAPEIS_E_RESPONSABILIDADES.md` ao catálogo `acoesDoPapel` (falta, sobra, papel sem linha, ordem, marcador, sim ou não trocado). A base do shared não conta puladas, por isso a entrada também não traz o campo.
+   "V2-F00-E22-correcao-4": { total: 10, falhas: 0 },
++  // V2-F00-E24, correção 3: `packages/shared/test/ressalva-saida-a-campo.test.ts` (8 casos) leva para o `npm test` o guarda que vivia só na pasta da evidência: nenhum documento promete "acompanhar quem está em campo" ou a saída declarada pelo agente sem a ressalva "em construção" (um caso por documento, a mordida em todas as ocorrências, a regressão real da E22 e a tabela em que a ressalva de uma linha não absolve as outras). Sem campo de puladas, pelo mesmo motivo da entrada anterior.
++  "V2-F00-E24-correcao-3": { total: 8, falhas: 0 },
+ };
+ export function esperadoDoTesteShared() {
+   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

@@ -2,6 +2,8 @@
 
 > Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
 
+> Nota de 2026-10-19 (V2-F00-E24, correção 3): entra `correcao-3/` (RESUMO, `saidas/` e o diff). `correcao-3/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 875d89f395aa2826a656b6a9df4c3809d14de99724b8198a332629fa875a4d0d |
@@ -43,6 +45,16 @@
 | correcao-2/saidas/05-saida-a-campo-api.txt | ca4745679c2c4dc6e0c1f0b66e77a1eb0b6282f1789dcd20f088642462a982a6 |
 | correcao-2/saidas/06-conferir-numeros-falha-do-ambiente.txt | 20f7ab960cd707d7168a1e4622a67a0d028f2964cd875a253d0826cde1db1a25 |
 | correcao-2/verificar-ressalvas.mjs | 9dc5fa537c37a908e93a69499cf2720b94528f86bc18c6c0e309cb275dd51df6 |
+| correcao-3/RESUMO.md | a5460f8af2d01475b0c9500fe81e013f80b8c356ad235f4871c2c8201024de0a |
+| correcao-3/diff-da-correcao.patch | f9f2bf38f50078b247b3356990f171c549be28fb93ade532a15bd1d8edc72273 |
+| correcao-3/saidas/01-guarda-antes-do-conserto.txt | 96a7259595575d89b605ce242304844728eb2b4b6abbd936dc8ed69efbfc4862 |
+| correcao-3/saidas/02-teste-novo-sem-o-conserto.txt | 2876ce28c2664afff089a64d77306bb80bd1a820437184c5519ebb2ce6e40de6 |
+| correcao-3/saidas/03-teste-novo-com-o-conserto.txt | e2104fe785bbcf62e955991aa3f6ce61e9e5648daf7ec20d325ac9cc99b75a68 |
+| correcao-3/saidas/04-guarda-depois-do-conserto.txt | 3533e75fd725767a6986574335521fc12e5f429affc15ae65538461c4f9b5723 |
+| correcao-3/saidas/05-shared-completo.txt | bbcca1a0b8d30b32d6ce493ed88945acdb53af451c93b26cde4174daaef2d4ea |
+| correcao-3/saidas/06-portao-de-conteudo-e-permissoes.txt | d8596225c888128b26d551cf8a71bcd3a9713c966e0b5350a248705b15110d66 |
+| correcao-3/saidas/07-conferir-numeros.txt | 8c343335ccdbf6780e37e0cb650f0828ff61b8dd9059ead88181872dc2b01def |
+| correcao-3/saidas/08-conferir-indices.txt | ca96f527fa5afab81d4645901ab7768f23062ede8b666a4337a672558ad20e15 |
 | depois/conferir-numeros.txt | a9bf679689854e1b00adcc8b23f008c48dfa32fea25df9d8d7404d27a1834630 |
 | depois/npm-test.txt | 3c4f2c0ee0a3c26851092ac5652122ac2324a5438fd5096f06abb5fa5724fee2 |
 | depois/regras-de-conteudo.txt | 46ddb8ec2efcba6fe7e421c71cb83f580e9fa48a11fec7678d55b42ac28e1fe3 |

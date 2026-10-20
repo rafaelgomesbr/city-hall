@@ -1,0 +1,8 @@
+# Documento COM o conserto
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+ ✓ test/ressalva-saida-a-campo.test.ts (8 tests) 7ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 5ms
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+   Start at  21:22:20
+   Duration  262ms (transform 90ms, setup 0ms, collect 131ms, tests 12ms, environment 0ms, prepare 67ms)
