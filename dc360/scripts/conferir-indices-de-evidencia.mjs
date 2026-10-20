@@ -50,7 +50,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 export const PASTA_DE_EVIDENCIAS = resolve(AQUI, "..", "..", "docs", "evidencias-v2");
@@ -150,6 +150,19 @@ export function conferirIndice(caminhoDoIndice) {
 /** Confere todos os índices embaixo de `raiz`. */
 export function conferirTudo(raiz = PASTA_DE_EVIDENCIAS) {
   const resultado = { indices: [], falhas: [] };
+  /*
+    Pasta que não existe, ou que não tem nenhum `INDEX.md`, não é "tudo certo":
+    é um caminho errado digitado (ou um checkout sem a evidência), e conferir
+    zero índices saía 0 com "RESULTADO: OK" (achado da revisão da correção 2 da
+    E21). Quem chama com uma pasta quer que ela tenha o que conferir.
+  */
+  if (!existsSync(raiz)) {
+    resultado.falhas.push({ indice: ".", problemas: [`a pasta de evidências não existe: ${raiz}`] });
+    return resultado;
+  }
+  if (acharIndices(raiz).length === 0) {
+    resultado.falhas.push({ indice: ".", problemas: [`não há nenhum INDEX.md embaixo de ${raiz}: não há o que conferir`] });
+  }
   for (const caminho of acharIndices(raiz)) {
     const rel = relative(raiz, caminho).split(sep).join("/");
     const r = conferirIndice(caminho);
@@ -237,7 +250,15 @@ export function relatorio(r, fimDeLinha = []) {
 const chamadoComoComando = () => {
   if (!process.argv[1]) return false;
   try {
-    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+    /*
+      O caminho real nos DOIS lados. Com `node --preserve-symlinks-main <link>`
+      (ou o mesmo flag em `NODE_OPTIONS`) o Node NÃO resolve o link em
+      `import.meta.url`: ele fica com o caminho do link, e comparar só o
+      `argv[1]` resolvido voltava a dar falso e a sair 0 calado (achado da
+      revisão da correção 2 da E21). Resolvendo os dois, link, caminho real e
+      flag chegam ao mesmo lugar.
+    */
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
   } catch {
     return false;
   }

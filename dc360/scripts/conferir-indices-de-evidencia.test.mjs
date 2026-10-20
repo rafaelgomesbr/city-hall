@@ -358,6 +358,53 @@ describe("conferir-indices-de-evidencia: como comando (o código de saída que o
     assert.match(r.stdout, /RESULTADO: 1 índice\(s\) não batem/);
   });
 
+  /** O caso do link simbólico, com o flag que o Node usa para NÃO resolver o link do script principal. */
+  function viaLinkComFlag(t, { noArgv, noAmbiente }) {
+    const { raiz } = evidencia({ "RESUMO.md": "# resumo\n" }, { aparte: { "RESUMO.md": sha("outro conteúdo") } });
+    const pastaDoLink = mkdtempSync(join(tmpdir(), "comando-link-flag-"));
+    temporarios.push(pastaDoLink);
+    const link = join(pastaDoLink, "conferir.mjs");
+    try {
+      symlinkSync(SCRIPT, link);
+    } catch (erro) {
+      if (erro.code === "EPERM" || erro.code === "EACCES") return t.skip(`sem permissão para criar link simbólico (${erro.code})`);
+      throw erro;
+    }
+    const r = spawnSync(process.execPath, [...(noArgv ? ["--preserve-symlinks-main"] : []), link, raiz], {
+      encoding: "utf8", timeout: 30_000,
+      env: { ...process.env, NODE_OPTIONS: noAmbiente ? "--preserve-symlinks-main" : "" },
+    });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stdout, /RESULTADO: 1 índice\(s\) não batem/);
+  }
+
+  it("com `node --preserve-symlinks-main <link>` confere do mesmo jeito (o Node não resolve o link em import.meta.url)", (t) => {
+    viaLinkComFlag(t, { noArgv: true, noAmbiente: false });
+  });
+
+  it("com --preserve-symlinks-main em NODE_OPTIONS também", (t) => {
+    viaLinkComFlag(t, { noArgv: false, noAmbiente: true });
+  });
+
+  it("pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK)", () => {
+    const inexistente = join(tmpdir(), `indices-que-nao-existe-${process.pid}-${Date.now()}`);
+    const r = comoComando(inexistente);
+    assert.equal(r.codigo, 1, r.saida + r.erro);
+    assert.match(r.saida, /a pasta de evidências não existe/);
+    assert.match(r.saida, /RESULTADO: 1 índice\(s\) não batem/);
+  });
+
+  it("pasta que existe e não tem nenhum INDEX.md também sai 1 (nada conferido não é tudo certo)", () => {
+    const vazia = mkdtempSync(join(tmpdir(), "comando-sem-nenhum-indice-"));
+    temporarios.push(vazia);
+    gravar(vazia, "qualquer-coisa.txt", "x\n");
+    const r = comoComando(vazia);
+    assert.equal(r.codigo, 1, r.saida + r.erro);
+    assert.match(r.saida, /não há nenhum INDEX\.md/);
+    // A função diz o mesmo, sem processo filho.
+    assert.equal(conferirTudo(vazia).falhas.length, 1);
+  });
+
   it("sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1", () => {
     // Repositório de mentira com o mesmo desenho do real: dc360/scripts/<o script> e docs/evidencias-v2/.
     const raiz = mkdtempSync(join(tmpdir(), "comando-repo-"));

@@ -1,38 +1,40 @@
-diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
-index aea3a96..09acaae 100644
---- a/dc360/scripts/baseline.mjs
-+++ b/dc360/scripts/baseline.mjs
-@@ -169,8 +169,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
-     pasta CP-xx sem INDEX.md e cinco sobre CRLF no git: no índice (`-text`), no
-     disco com `eol=lf` (o falso verde local), com `.ps1` e binário, sem git e o
-     repositório real). O arquivo inteiro entra na conta.
-+
-+    V2-F00-E21, correção 2: o mesmo arquivo ganha 6 casos que rodam o script
-+    como COMANDO, em processo filho, e conferem o código de saída que o CI lê
-+    (tudo certo dá 0; índice adulterado, CRLF, etapa sem INDEX.md, arquivo fora do
-+    índice e CRLF no disco segundo o git dão 1; e o script chamado por link
-+    simbólico confere do mesmo jeito). De 26 para 32; o arquivo inteiro segue
-+    na conta, por isso é o mesmo número da correção 1.
-   */
--  "V2-F00-E21-correcao-1": 26,
-+  "V2-F00-E21-correcao-1": 32,
- };
- 
- /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
 diff --git a/dc360/scripts/conferir-indices-de-evidencia.mjs b/dc360/scripts/conferir-indices-de-evidencia.mjs
-index aa94dba..9f96537 100644
+index aa94dba..9a245a3 100644
 --- a/dc360/scripts/conferir-indices-de-evidencia.mjs
 +++ b/dc360/scripts/conferir-indices-de-evidencia.mjs
-@@ -48,7 +48,7 @@
+@@ -48,9 +48,9 @@
   */
  import { execFileSync } from "node:child_process";
  import { createHash } from "node:crypto";
 -import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 +import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
  import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
- import { fileURLToPath, pathToFileURL } from "node:url";
+-import { fileURLToPath, pathToFileURL } from "node:url";
++import { fileURLToPath } from "node:url";
  
-@@ -226,7 +226,24 @@ export function relatorio(r, fimDeLinha = []) {
+ const AQUI = dirname(fileURLToPath(import.meta.url));
+ export const PASTA_DE_EVIDENCIAS = resolve(AQUI, "..", "..", "docs", "evidencias-v2");
+@@ -150,6 +150,19 @@ export function conferirIndice(caminhoDoIndice) {
+ /** Confere todos os índices embaixo de `raiz`. */
+ export function conferirTudo(raiz = PASTA_DE_EVIDENCIAS) {
+   const resultado = { indices: [], falhas: [] };
++  /*
++    Pasta que não existe, ou que não tem nenhum `INDEX.md`, não é "tudo certo":
++    é um caminho errado digitado (ou um checkout sem a evidência), e conferir
++    zero índices saía 0 com "RESULTADO: OK" (achado da revisão da correção 2 da
++    E21). Quem chama com uma pasta quer que ela tenha o que conferir.
++  */
++  if (!existsSync(raiz)) {
++    resultado.falhas.push({ indice: ".", problemas: [`a pasta de evidências não existe: ${raiz}`] });
++    return resultado;
++  }
++  if (acharIndices(raiz).length === 0) {
++    resultado.falhas.push({ indice: ".", problemas: [`não há nenhum INDEX.md embaixo de ${raiz}: não há o que conferir`] });
++  }
+   for (const caminho of acharIndices(raiz)) {
+     const rel = relative(raiz, caminho).split(sep).join("/");
+     const r = conferirIndice(caminho);
+@@ -226,7 +239,32 @@ export function relatorio(r, fimDeLinha = []) {
    return saida.join("\n");
  }
  
@@ -48,7 +50,15 @@ index aa94dba..9f96537 100644
 +const chamadoComoComando = () => {
 +  if (!process.argv[1]) return false;
 +  try {
-+    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
++    /*
++      O caminho real nos DOIS lados. Com `node --preserve-symlinks-main <link>`
++      (ou o mesmo flag em `NODE_OPTIONS`) o Node NÃO resolve o link em
++      `import.meta.url`: ele fica com o caminho do link, e comparar só o
++      `argv[1]` resolvido voltava a dar falso e a sair 0 calado (achado da
++      revisão da correção 2 da E21). Resolvendo os dois, link, caminho real e
++      flag chegam ao mesmo lugar.
++    */
++    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
 +  } catch {
 +    return false;
 +  }
@@ -59,7 +69,7 @@ index aa94dba..9f96537 100644
    const r = conferirTudo(raiz);
    // O fim de linha do git vale para o repositório inteiro, mas só se confere o repositório que contém a pasta padrão.
 diff --git a/dc360/scripts/conferir-indices-de-evidencia.test.mjs b/dc360/scripts/conferir-indices-de-evidencia.test.mjs
-index 1bbcd82..9c3ccad 100644
+index 1bbcd82..aeab1a1 100644
 --- a/dc360/scripts/conferir-indices-de-evidencia.test.mjs
 +++ b/dc360/scripts/conferir-indices-de-evidencia.test.mjs
 @@ -3,12 +3,13 @@
@@ -79,7 +89,7 @@ index 1bbcd82..9c3ccad 100644
  import { tmpdir } from "node:os";
  import { dirname, join, resolve } from "node:path";
  import { after, describe, it } from "node:test";
-@@ -282,6 +283,114 @@ describe("conferir-indices-de-evidencia: varredura", () => {
+@@ -282,6 +283,161 @@ describe("conferir-indices-de-evidencia: varredura", () => {
    });
  });
  
@@ -156,6 +166,53 @@ index 1bbcd82..9c3ccad 100644
 +    const r = spawnSync(process.execPath, [link, raiz], { encoding: "utf8", timeout: 30_000 });
 +    assert.equal(r.status, 1, r.stdout + r.stderr);
 +    assert.match(r.stdout, /RESULTADO: 1 índice\(s\) não batem/);
++  });
++
++  /** O caso do link simbólico, com o flag que o Node usa para NÃO resolver o link do script principal. */
++  function viaLinkComFlag(t, { noArgv, noAmbiente }) {
++    const { raiz } = evidencia({ "RESUMO.md": "# resumo\n" }, { aparte: { "RESUMO.md": sha("outro conteúdo") } });
++    const pastaDoLink = mkdtempSync(join(tmpdir(), "comando-link-flag-"));
++    temporarios.push(pastaDoLink);
++    const link = join(pastaDoLink, "conferir.mjs");
++    try {
++      symlinkSync(SCRIPT, link);
++    } catch (erro) {
++      if (erro.code === "EPERM" || erro.code === "EACCES") return t.skip(`sem permissão para criar link simbólico (${erro.code})`);
++      throw erro;
++    }
++    const r = spawnSync(process.execPath, [...(noArgv ? ["--preserve-symlinks-main"] : []), link, raiz], {
++      encoding: "utf8", timeout: 30_000,
++      env: { ...process.env, NODE_OPTIONS: noAmbiente ? "--preserve-symlinks-main" : "" },
++    });
++    assert.equal(r.status, 1, r.stdout + r.stderr);
++    assert.match(r.stdout, /RESULTADO: 1 índice\(s\) não batem/);
++  }
++
++  it("com `node --preserve-symlinks-main <link>` confere do mesmo jeito (o Node não resolve o link em import.meta.url)", (t) => {
++    viaLinkComFlag(t, { noArgv: true, noAmbiente: false });
++  });
++
++  it("com --preserve-symlinks-main em NODE_OPTIONS também", (t) => {
++    viaLinkComFlag(t, { noArgv: false, noAmbiente: true });
++  });
++
++  it("pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK)", () => {
++    const inexistente = join(tmpdir(), `indices-que-nao-existe-${process.pid}-${Date.now()}`);
++    const r = comoComando(inexistente);
++    assert.equal(r.codigo, 1, r.saida + r.erro);
++    assert.match(r.saida, /a pasta de evidências não existe/);
++    assert.match(r.saida, /RESULTADO: 1 índice\(s\) não batem/);
++  });
++
++  it("pasta que existe e não tem nenhum INDEX.md também sai 1 (nada conferido não é tudo certo)", () => {
++    const vazia = mkdtempSync(join(tmpdir(), "comando-sem-nenhum-indice-"));
++    temporarios.push(vazia);
++    gravar(vazia, "qualquer-coisa.txt", "x\n");
++    const r = comoComando(vazia);
++    assert.equal(r.codigo, 1, r.saida + r.erro);
++    assert.match(r.saida, /não há nenhum INDEX\.md/);
++    // A função diz o mesmo, sem processo filho.
++    assert.equal(conferirTudo(vazia).falhas.length, 1);
 +  });
 +
 +  it("sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1", () => {
