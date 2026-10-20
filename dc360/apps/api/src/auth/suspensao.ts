@@ -148,6 +148,8 @@ export class AcessoSuspenso extends Error {
   readonly status: 403 | 503;
   constructor(status: 403 | 503 = 403) {
     super(MENSAGEM_DE_ACESSO_SUSPENSO);
+    // Só 403 ou 503, e não o que o tipo deixa passar por conversão (`403.5 as 403`): V2-F00-E05, correção 4.
+    if (status !== 403 && status !== 503) throw new TypeError(`AcessoSuspenso com status ${String(status)}: só 403 ou 503`);
     this.name = "AcessoSuspenso";
     this.status = status;
   }

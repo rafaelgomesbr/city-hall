@@ -5,6 +5,7 @@ import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor, RegraDeNegocio } from "../src/servidor.js";
+import { AcessoSuspenso } from "../src/auth/suspensao.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import {
   CONTRATO_DE_ACESSO_DA_API, conferirCorpoDeAcesso, lerDesviosDaGuarda, type ModoDaGuarda,
@@ -210,6 +211,83 @@ function plantarEscapesDaRevisao(app: FastifyInstance) {
   }, { prefix: "/esc/e18" });
 }
 
+/*
+  Correção 4 (rodada 6, red-team e QA): o status que o Node escreve é `statusCode | 0`
+  (`403.5`, `"403.2"`, `4294967699`, `-4294966893`, um `valueOf` que dá `401.9`: tudo
+  sai 401 ou 403 no fio). A guarda decidia por `=== 401 || === 403` sobre o valor
+  pedido e deixava passar `403 {"erro":"vazou_meio"}`. Cada rota abaixo chega ao Node
+  com status torto por um caminho diferente.
+*/
+type RespostaCrua = { statusCode: unknown; writeHead: (...a: unknown[]) => unknown; end: (c?: string) => unknown };
+const crua = (resposta: FastifyReply) => resposta.raw as unknown as RespostaCrua;
+const JSON_CT = { "content-type": "application/json" };
+function plantarStatusTorto(app: FastifyInstance): void {
+  const r = (n: string) => `/status-torto/${n}`;
+  app.get(r("code-403.5"), async (_q, rep) => rep.code(403.5).send({ erro: "vazou_frac", mensagem: "x" }));
+  app.get(r("code-401.9"), async (_q, rep) => rep.code(401.9).send({ erro: "vazou_frac_um", mensagem: "x" }));
+  app.get(r("code-texto"), async (_q, rep) => rep.code("403.2" as unknown as 403).send({ erro: "vazou_frac_texto", mensagem: "x" }));
+  app.get(r("catalogo-403.5"), async (_q, rep) => rep.code(403.5).send({ erro: "sem_permissao", mensagem: "x" }));
+  // A forma do red-team pelo tratador global: o construtor recusa 403.5, então o status é trocado depois.
+  app.get(r("regra-mutada"), async () => {
+    const e = new RegraDeNegocio("vazou_meio", "x", 409);
+    (e as unknown as { status: number }).status = 403.5;
+    throw e;
+  });
+  app.get(r("raw-statuscode-texto"), async (_q, rep) => {
+    crua(rep).statusCode = "403";
+    return { erro: "vazou_texto_raw", mensagem: "x" };
+  });
+  app.get(r("hijack-grande"), async (_q, rep) => {
+    rep.hijack();
+    crua(rep).writeHead(403 + 2 ** 32, JSON_CT);
+    crua(rep).end('{"erro":"vazou_grande"}');
+  });
+  app.get(r("hijack-negativo"), async (_q, rep) => {
+    rep.hijack();
+    crua(rep).writeHead(-(2 ** 32) + 403, JSON_CT);
+    crua(rep).end('{"erro":"vazou_negativo"}');
+  });
+  app.get(r("hijack-valueof"), async (_q, rep) => {
+    rep.hijack();
+    crua(rep).writeHead({ valueOf: () => 401.9 }, JSON_CT);
+    crua(rep).end('{"erro":"vazou_valueof"}');
+  });
+  app.get(r("implicito-403.5"), async (_q, rep) => {
+    rep.hijack();
+    crua(rep).statusCode = 403.5;
+    crua(rep).end('{"erro":"vazou_implicito"}');
+  });
+  app.get(r("frase-vazou"), async (_q, rep) => {
+    rep.hijack();
+    crua(rep).writeHead(403, "vazou_frase", JSON_CT);
+    crua(rep).end('{"erro":"vazou_frase"}');
+  });
+  // O construtor recusa o status torto: a regra vira 500 erro_interno, que não é resposta de acesso.
+  app.get(r("regra-403.5"), async () => { throw new RegraDeNegocio("vazou_meio", "x", 403.5); });
+  // Controles.
+  app.get(r("ok-200.5"), async (_q, rep) => rep.code(200.5).send({ erro: "vazou_mas_e_200" }));
+  app.get(r("ok-cabecalho-terceiro"), async (_q, rep) => {
+    rep.hijack();
+    crua(rep).writeHead(403, undefined, { ...JSON_CT, "x-sonda": "terceiro" });
+    crua(rep).end('{"erro":"sem_permissao","mensagem":"x"}');
+  });
+  // O `valueOf` que muda a cada leitura: a guarda o lê UMA vez, e o Node escreve o que ela leu.
+  app.get(r("valueof-que-muda"), async (_q, rep) => {
+    let leituras = 0;
+    rep.hijack();
+    crua(rep).statusCode = { valueOf: () => (leituras++ === 0 ? 200 : 403) };
+    crua(rep).end('{"erro":"vazou_se_403"}');
+  });
+}
+
+/** As rotas de status torto que viram desvio: [rota, status que o Node escreve, código visto]. */
+const FORMAS_TORTAS: ReadonlyArray<[string, 401 | 403, string | null]> = [
+  ["code-403.5", 403, "vazou_frac"], ["code-401.9", 401, "vazou_frac_um"], ["code-texto", 403, "vazou_frac_texto"],
+  ["catalogo-403.5", 403, null], ["regra-mutada", 403, "vazou_meio"], ["raw-statuscode-texto", 403, "vazou_texto_raw"],
+  ["hijack-grande", 403, "vazou_grande"], ["hijack-negativo", 403, "vazou_negativo"], ["hijack-valueof", 401, "vazou_valueof"],
+  ["implicito-403.5", 403, "vazou_implicito"],
+];
+
 const ESCAPES_DA_REVISAO = ["e01/x", "e02/x", "e04/nada", "e05/nada", "e06/x", "e07/x", "e09", "e10", "e11", "e12", "e13", "e14", "e15", "e16", "e17", "e18/x"];
 
 /** As formas que respondem 403, com o código que tentaria sair. */
@@ -236,6 +314,7 @@ beforeAll(async () => {
     });
     plantarFormas(app);
     plantarEscapesDaRevisao(app);
+    plantarStatusTorto(app);
     await app.ready();
     servidores.set(modo, app);
   }
@@ -433,5 +512,93 @@ describe("os escapes da revisão da primeira guarda (onSend) não escapam da gua
       JSON.stringify = stringify;
     }
     expect(r.json().erro).toBe("sem_permissao");
+  });
+});
+
+describe("correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido", () => {
+  it.each(FORMAS_TORTAS)("%s: em teste sai 500 com o desvio registrado (status %s)", async (n, status, visto) => {
+    const r = await pedirEm("falhar", `/status-torto/${n}`);
+    const desvios = lerDesviosDaGuarda();
+    expect(r.statusCode, r.body).toBe(500);
+    expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
+    expect(desvios).toEqual([expect.objectContaining({ rota: `/status-torto/${n}`, status, erroVisto: visto })]);
+    expect(desvios[0]!.motivo).toContain("não é número inteiro de 100 a 599");
+  });
+
+  it.each(FORMAS_TORTAS)("%s: em produção sai o código genérico do status %s e o desvio vai para o log", async (n, status, visto) => {
+    log.length = 0;
+    const r = await pedirEm("corrigir", `/status-torto/${n}`);
+    expect(r.statusCode, r.body).toBe(status);
+    expect(r.json()).toEqual(status === 401
+      ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem }
+      : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem });
+    const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalogo?: unknown }).find((l) => l.desvioDoCatalogo);
+    expect(registro?.desvioDoCatalogo).toMatchObject({ rota: `/status-torto/${n}`, status, erroVisto: visto });
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("a frase da linha de status da rota não sai na resposta trocada", async () => {
+    const emTeste = await pedirEm("falhar", "/status-torto/frase-vazou");
+    expect(emTeste.statusCode).toBe(500);
+    expect(emTeste.statusMessage).toBe("Internal Server Error");
+    expect(lerDesviosDaGuarda()).toHaveLength(1);
+    const emProducao = await pedirEm("corrigir", "/status-torto/frase-vazou");
+    expect(emProducao.statusCode).toBe(403);
+    expect(emProducao.statusMessage).toBe("Forbidden");
+    expect(emProducao.json().erro).toBe("sem_permissao");
+  });
+
+  it("RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno", async () => {
+    for (const s of [403.5, 401.9, "403", 4294967699, 399, 600, Number.NaN]) {
+      expect(() => new RegraDeNegocio("vazou_meio", "x", s as number), String(s)).toThrow(TypeError);
+    }
+    expect(new RegraDeNegocio("sem_permissao", "x", 403).status).toBe(403);
+    expect(() => new AcessoSuspenso(403.5 as 403)).toThrow(TypeError);
+    expect(new AcessoSuspenso(503).status).toBe(503);
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const r = await pedirEm(modo, "/status-torto/regra-403.5");
+      expect(r.statusCode, modo).toBe(500);
+      expect(r.json().erro).toBe("erro_interno");
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const r = await pedirEm(modo, "/status-torto/ok-200.5");
+      expect(r.statusCode).toBe(200);
+      const c = await pedirEm(modo, "/status-torto/ok-cabecalho-terceiro");
+      expect(c.statusCode).toBe(403);
+      expect(c.headers["x-sonda"]).toBe("terceiro");
+      expect(c.json()).toEqual({ erro: "sem_permissao", mensagem: "x" });
+      // O valueOf deu 200 na leitura da guarda; o Node escreve 200, e não o 403 da segunda leitura.
+      const v = await pedirEm(modo, "/status-torto/valueof-que-muda");
+      expect(v.statusCode).toBe(200);
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const app = servidores.get(modo)!;
+      const endereco = await app.listen({ port: 0, host: "127.0.0.1" });
+      try {
+        for (const [n, status] of [["regra-mutada", 403], ["code-403.5", 403], ["code-401.9", 401], ["hijack-grande", 403], ["implicito-403.5", 403]] as const) {
+          const r = await fetch(`${endereco}/status-torto/${n}`);
+          const corpo = await r.json() as { erro: string };
+          if (modo === "falhar") {
+            expect(r.status, `${modo} ${n}`).toBe(500);
+            expect(corpo.erro).toBe("desvio_do_catalogo_de_erro");
+            expect(lerDesviosDaGuarda()).toHaveLength(1);
+          } else {
+            expect(r.status, `${modo} ${n}`).toBe(status);
+            expect(corpo.erro).toBe(status === 401 ? "nao_autenticado" : "sem_permissao");
+          }
+        }
+      } finally {
+        await app.server.close();
+      }
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
   });
 });

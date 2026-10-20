@@ -29,6 +29,14 @@ import {
  * tratador de erro, o 404, o tratador de reserva que escreve sozinho, `hijack` e
  * `raw`), e por isso a guarda vê todos.
  *
+ * "401 OU 403" É O STATUS QUE O NODE ESCREVE (correção 4, rodada 6): o
+ * `writeHead` do Node faz `statusCode |= 0`, e `403.5`, `"403.2"`, `4294967699`
+ * ou um `valueOf` que dá `401.9` saem 401 ou 403 no fio. A guarda decide pelo
+ * mesmo `| 0`, passa ao Node o inteiro que ela conferiu, e o status que chegou
+ * torto (não é número inteiro de 100 a 599) e vira 401 ou 403 é desvio mesmo
+ * com o corpo no catálogo. A frase da linha de status da rota não sai na
+ * resposta trocada.
+ *
  * A REGRA: toda resposta 401 ou 403 (fora HEAD, que o HTTP manda sem corpo) tem
  * de ter corpo JSON com UMA chave `erro` (chave repetida é recusada: o leitor do
  * cliente pode ficar com a primeira) cujo valor é um código do catálogo ou da
@@ -191,6 +199,29 @@ function textoJson(campos: ReadonlyArray<readonly [string, string]>): string {
   return `${saida}}`;
 }
 
+/**
+ * O status COMO O NODE O ESCREVE na linha de status, e se ele chegou torto
+ * (V2-F00-E05, correção 4). O `writeHead` do Node faz `statusCode |= 0` antes de
+ * conferir a faixa: `403.5`, `"403"`, `"403.2"`, `"0x193"`, `[403]`,
+ * `403 + 2 ** 32` e um objeto cujo `valueOf` dá `401.9` saem TODOS como 401 ou
+ * 403 no fio. A guarda decidia pelo valor pedido (`=== 403`), e o status
+ * fracionário passava por ela com código fora do catálogo. Agora ela decide pelo
+ * mesmo `| 0` que o Node usa, calculado UMA vez (o `valueOf` não roda de novo:
+ * o que segue para o Node é o inteiro já calculado), e o status que não é número
+ * inteiro de 100 a 599 é `torto`: se o Node o escreveria como 401 ou 403, é desvio
+ * mesmo com o corpo no catálogo.
+ */
+function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: boolean } {
+  const efetivo = (pedido as number) | 0;
+  const torto = typeof pedido !== "number" || efetivo !== pedido || efetivo < 100 || efetivo > 599;
+  return { efetivo, torto };
+}
+
+/** A frase da linha de status da resposta trocada pela guarda (a da rota pode ser qualquer texto). */
+const FRASE_DO_STATUS: Readonly<Record<number, string>> = Object.freeze({
+  401: "Unauthorized", 403: "Forbidden", 500: "Internal Server Error",
+});
+
 /** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia. */
 const desviosPendentes: Desvio[] = [];
 
@@ -234,15 +265,17 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   const ehHead = req.method === "HEAD";
   let segurando = false;
   let statusSegurado = 0;
+  let statusTorto = false;
   let cabecalhosSegurados: Cabecalhos;
   let mensagemDeStatus: string | undefined;
   const pedacos: Buffer[] = [];
   let bytes = 0;
   let excedeu = false;
 
-  const comecarASegurar = (status: number) => {
+  const comecarASegurar = (status: number, torto: boolean) => {
     segurando = true;
     statusSegurado = status;
+    statusTorto = torto;
   };
   const ehAcesso = (s: number) => s === 401 || s === 403;
   const guardar = (pedaco: unknown, codificacao?: unknown) => {
@@ -255,20 +288,36 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     else pedacos[pedacos.length] = b;
   };
 
-  function writeHead(this: ServerResponse, status: number, ...resto: unknown[]) {
-    if (!ehHead && ehAcesso(status) && !raw.headersSent) {
-      comecarASegurar(status);
+  function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
+    const { efetivo, torto } = statusComoONodeEscreve(status);
+    if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
+      comecarASegurar(efetivo, torto);
+      // Como o Node lê os argumentos: frase em texto e depois os cabeçalhos; sem frase em texto, os
+      // cabeçalhos são o terceiro argumento, ou o segundo quando o terceiro falta (`obj ??= reason`).
       if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
-      else cabecalhosSegurados = resto[0] as Cabecalhos;
+      else cabecalhosSegurados = (resto[1] !== undefined && resto[1] !== null ? resto[1] : resto[0]) as Cabecalhos;
       return raw;
     }
-    const todos: unknown[] = [status];
+    // O Node recebe o inteiro já calculado: o que ele escreve é o que a guarda conferiu.
+    const todos: unknown[] = [efetivo];
     for (let i = 0; i < resto.length; i += 1) todos[todos.length] = resto[i];
     return aplicar(writeHeadOriginal, raw, todos);
   }
 
+  /**
+   * O cabeçalho implícito (`write`/`end` sem `writeHead` antes): o Node escreve
+   * `this.statusCode`, com o mesmo `| 0`. Status de acesso começa a segurar; o
+   * torto que não é de acesso vira o inteiro antes de o Node lê-lo de novo.
+   */
+  const conferirCabecalhoImplicito = () => {
+    if (segurando || ehHead || raw.headersSent) return;
+    const { efetivo, torto } = statusComoONodeEscreve(raw.statusCode);
+    if (ehAcesso(efetivo)) comecarASegurar(efetivo, torto);
+    else if (torto) raw.statusCode = efetivo;
+  };
+
   function write(this: ServerResponse, ...args: unknown[]) {
-    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
+    conferirCabecalhoImplicito();
     if (!segurando) return aplicar(writeOriginal, raw, args);
     const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
     guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
@@ -277,7 +326,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   }
 
   function end(this: ServerResponse, ...args: unknown[]) {
-    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
+    conferirCabecalhoImplicito();
     if (!segurando) return aplicar(endOriginal, raw, args);
     segurando = false;
     let cb: unknown;
@@ -290,7 +339,13 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     let achado: { motivo: string; erroVisto: string | null } | null;
     try {
       const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
-      achado = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
+      const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
+      achado = statusTorto
+        ? {
+          motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
+          erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
+        }
+        : doCorpo;
     } catch {
       achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
     }
@@ -329,7 +384,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
     cabecalhos["content-type"] = "application/json; charset=utf-8";
     cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
-    aplicar(writeHeadOriginal, raw, [statusFinal, cabecalhos]);
+    aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
     return fimComCb(novo);
   }
 

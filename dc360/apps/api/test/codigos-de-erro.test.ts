@@ -896,6 +896,43 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
     });
 
+    /*
+      Correção 4 (rodada 6, red-team e QA): o Node escreve o status com `| 0`, e `403.5`, `"403"` ou
+      `4294967699` saem 403 no fio. A regra comparava o literal com 401 e 403 e os via como "outro status".
+    */
+    it.each([
+      ["RegraDeNegocio com 403.5 e código novo (a forma do red-team)", 'throw new RegraDeNegocio("vazou_meio", "x", 403.5);'],
+      ["RegraDeNegocio com 403.5 e código do catálogo", 'throw new RegraDeNegocio("sem_permissao", "x", 403.5);'],
+      ["RegraDeNegocio com 401.9", 'throw new RegraDeNegocio("nao_autenticado", "x", 401.9);'],
+      ["RegraDeNegocio com status em texto", 'throw new RegraDeNegocio("sem_permissao", "x", "403" as never);'],
+      ["code(403.5) e código novo (QA)", 'resposta.code(403.5).send({ erro: "vazou_frac", mensagem: "x" });'],
+      ["code(401.9) e código do catálogo", 'resposta.code(401.9).send({ erro: "nao_autenticado", mensagem: "x" });'],
+      ["code(\"403.2\") (QA)", 'resposta.code("403.2").send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["code(\"403\") em texto", 'resposta.code("403").send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["status(`403`) por modelo de texto", "resposta.status(`403`).send({ erro: \"sem_permissao\", mensagem: \"x\" });"],
+      ["code(403.5 as number)", 'resposta.code(403.5 as number).send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["403.5 guardado numa constante", 'const S = 403.5;\nthrow new RegraDeNegocio("novo", "x", S);'],
+      ["403 + 2 ** 32 escrito por extenso", "const S = 4294967699;\nresposta.code(200);\nvoid S;"],
+      ["-4294966893, que o Node escreve como 403", "const S = -4294966893;\nvoid S;"],
+      ["status com sinal", 'resposta.code(+403).send({ erro: "sem_permissao", mensagem: "x" });'],
+      ["statusCode em texto", 'throw Object.assign(new Error("x"), { statusCode: "403" });'],
+      ["par { status: 403.5, corpo }", 'function f() { return { status: 403.5, corpo: { erro: "sem_permissao", mensagem: "x" } }; }'],
+      ["status 403.5 declarado na classe", "class E extends Error { readonly status = 403.5; }"],
+      ["statusCode = 403.5 atribuído", "resposta.statusCode = 403.5;"],
+      ["redirect com 302.5", 'return resposta.redirect("/x", 302.5);'],
+    ])("correção 4, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    it("correção 4, controles: número decimal que não vira 401 nem 403 e status inteiro passam", () => {
+      for (const limpo of [
+        "const latitude = -23.5505;\nconst longitude = -46.6333;\nvoid latitude; void longitude;",
+        "const fator = 401.5 - 0.5;\nvoid fator;".replace("401.5", "40.15"),
+        'throw new RegraDeNegocio("sem_permissao", "x", 403);',
+        'resposta.code(503).send({ status: "indisponivel", banco: "indisponivel" });',
+      ]) expect(FORA(limpo), limpo).toEqual([]);
+    });
+
     it("correção 3, controles: a constante só lida, a chave por constante de texto e o hasOwnProperty passam", () => {
       const limpo = [
         R_OK + "resposta.code(403).send(R);",
@@ -1119,6 +1156,12 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
           + '    if (dados.nome === "Mutacao N") { const e = new Error("x") as Error & { code?: string; statusCode?: number }; '
           + 'const extra = { code: "FST_ERR_CTP_MUTACAO", statusCode }; throw { ...e, ...extra }; }',
         "`statusCode` abreviado"],
+      ["correção 4: RegraDeNegocio com status 403.5 (a forma do red-team da rodada 6)",
+        '    if (dados.nome === "Mutacao meio") throw new RegraDeNegocio("vazou_meio", "x", 403.5);',
+        "não é número inteiro"],
+      ["correção 4: code(\"403.2\") com código do catálogo",
+        '    if (dados.nome === "Mutacao texto") return resposta.code("403.2" as never).send({ erro: "sem_permissao", mensagem: "x" });',
+        "status em texto"],
       ["D: parâmetro homônimo de uma constante de corpo do módulo",
         '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
           + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'

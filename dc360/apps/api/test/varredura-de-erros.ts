@@ -355,6 +355,35 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
     problemas.push({ arquivo: nome, linha: linhaDe(no), problema: texto, chave, origem });
 
   /**
+   * Correção 4 (rodada 6): o status que o Node escreve é `statusCode | 0`, então
+   * `403.5`, `"403"`, `"403.2"` e `-4294966893` saem como 403 no fio, e a regra que
+   * comparava o literal com 401 e 403 os via como "outro status". No lugar de um
+   * status (`code`, `status`, terceiro argumento de `RegraDeNegocio`, `{ status }`,
+   * `statusCode`, `redirect`), literal em texto, número não inteiro, fora de 100 a
+   * 599 ou com sinal reprova.
+   */
+  const conferirLiteralDeStatus = (no: ts.Node | undefined): void => {
+    if (!no) return;
+    let atual = no;
+    while (ts.isAsExpression(atual) || ts.isParenthesizedExpression(atual) || ts.isTypeAssertionExpression(atual)
+      || ts.isSatisfiesExpression(atual) || ts.isNonNullExpression(atual)) atual = atual.expression;
+    if (ts.isStringLiteral(atual) || ts.isNoSubstitutionTemplateLiteral(atual) || ts.isTemplateExpression(atual)) {
+      problema(no, `status em texto (\`${no.getText(sf)}\`): o Node o converte com \`| 0\` e a varredura não o compara com 401 e 403`);
+      return;
+    }
+    if (ts.isPrefixUnaryExpression(atual) && ts.isNumericLiteral(atual.operand)) {
+      problema(no, `status com sinal (\`${no.getText(sf)}\`): o Node o converte com \`| 0\` e pode escrever 401 ou 403`);
+      return;
+    }
+    if (ts.isNumericLiteral(atual)) {
+      const n = Number(atual.text);
+      if (!Number.isInteger(n) || n < 100 || n > 599) {
+        problema(no, `status ${atual.text} não é número inteiro de 100 a 599: o Node escreve ${n | 0}`);
+      }
+    }
+  };
+
+  /**
    * O corpo passado por nome (`send(RESPOSTA_X)`), resolvido PELO ESCOPO (um
    * parâmetro homônimo não vira a constante do módulo). Só é lido quando é um
    * `const` não exportado com objeto literal e todo outro uso do nome no arquivo é
@@ -516,6 +545,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
       }
       const codigo = textoDoLiteral(args[0]);
       if (familia === "RegraDeNegocio") {
+        if (args.length >= 3) conferirLiteralDeStatus(args[2]);
         const status = args.length >= 3 ? numeroDoLiteral(args[2]) : 409;
         emissoes.push({
           arquivo: nome, linha: linhaDe(no2), forma, codigo,
@@ -637,6 +667,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
       let temStatus = false;
       let statusDoPar: number | null = null;
       let corpoDoPar: ts.Expression | null = null;
+      let noDoStatus: ts.Expression | undefined;
       for (const p of no.properties) {
         if (ts.isShorthandPropertyAssignment(p)) {
           if (p.name.text === "status") temStatus = true;
@@ -645,10 +676,11 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
         }
         if (!ts.isPropertyAssignment(p)) continue;
         const n = nomeDaPropriedade(p.name);
-        if (n === "status") { temStatus = true; statusDoPar = numeroDoLiteral(p.initializer); }
+        if (n === "status") { temStatus = true; statusDoPar = numeroDoLiteral(p.initializer); noDoStatus = p.initializer; }
         if (n === "corpo") corpoDoPar = p.initializer;
       }
       if (temStatus && corpoDoPar) {
+        conferirLiteralDeStatus(noDoStatus);
         let corpo: ts.Expression = corpoDoPar;
         while (ts.isAsExpression(corpo) || ts.isParenthesizedExpression(corpo)) corpo = corpo.expression;
         if (!ts.isObjectLiteralExpression(corpo)) {
@@ -756,6 +788,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
 
     // 4. `statusCode: 403` escrito à mão (erro do Fastify com status próprio).
     if (ts.isPropertyAssignment(no) && nomeDaPropriedade(no.name) === "statusCode") {
+      conferirLiteralDeStatus(no.initializer);
       const n = numeroDoLiteral(no.initializer);
       if (n === null || n === 401 || n === 403) problema(no, `\`statusCode: ${n ?? "calculado"}\` escrito à mão: a varredura não vê o código dessa resposta`);
     }
@@ -764,6 +797,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
       && ts.isPropertyAccessExpression(no.left)
       && (no.left.name.text === "statusCode" || no.left.name.text === "status")
     ) {
+      conferirLiteralDeStatus(no.right);
       const n = numeroDoLiteral(no.right);
       // `this.status = status` no construtor de uma classe de erro é o campo que o tratador lê; o
       // código dessa classe é varrido à parte. Só o literal 401 ou 403 ali é uma resposta de acesso.
@@ -877,6 +911,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
     // literal passa.
     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression) && no.expression.name.text === "redirect"
       && no.arguments.length !== 1) {
+      conferirLiteralDeStatus(no.arguments[1]);
       const n = numeroDoLiteral(no.arguments[1]);
       if (n === null || n < 300 || n > 399) problema(no, `\`.redirect(...)\` com status ${n ?? "calculado"}: resposta sem \`erro\``);
     }
@@ -888,6 +923,25 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
         let e: ts.Expression = t.expression;
         while (ts.isPropertyAccessExpression(e)) e = e.expression;
         if (!ts.isIdentifier(e)) problema(t, `\`extends\` de uma expressão (\`${t.getText(sf)}\`): a varredura não sabe de que classe é`);
+      }
+    }
+
+    // 7. Correção 4 (rodada 6): status que o Node escreve como 401 ou 403 sem estar escrito assim.
+    if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
+      && ["code", "status", "writeHead"].includes(no.expression.name.text) && no.arguments.length >= 1) {
+      conferirLiteralDeStatus(no.arguments[0]);
+    }
+    if (ts.isPropertyDeclaration(no) && no.initializer && nomeDaPropriedade(no.name) !== null
+      && (nomeDaPropriedade(no.name) === "status" || nomeDaPropriedade(no.name) === "statusCode")) {
+      conferirLiteralDeStatus(no.initializer);
+    }
+    // Em qualquer lugar: o número que vira 401 ou 403 pelo `| 0` do Node sem ser 401 ou 403
+    // (`403.5`, `401.9`, `4294967699`, `-4294966893`), mesmo guardado numa constante.
+    if (ts.isNumericLiteral(no)) {
+      const negativo = ts.isPrefixUnaryExpression(no.parent) && no.parent.operator === ts.SyntaxKind.MinusToken;
+      const v = (negativo ? -1 : 1) * Number(no.text);
+      if ((v | 0) !== v && ((v | 0) === 401 || (v | 0) === 403)) {
+        problema(no, `número ${negativo ? "-" : ""}${no.text} que o Node escreve como ${v | 0} num status: só 401 ou 403 escritos assim`);
       }
     }
 

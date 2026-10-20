@@ -1,0 +1,10 @@
+modo=falhar sonda=regra: HTTP 403 Forbidden corpo={"erro":"vazou_meio","mensagem":"x"} desvios=0
+modo=falhar sonda=code: HTTP 403 Forbidden corpo={"erro":"vazou_frac","mensagem":"x"} desvios=0
+modo=falhar sonda=texto: HTTP 403 Forbidden corpo={"erro":"vazou_frac_texto","mensagem":"x"} desvios=0
+modo=falhar sonda=catalogo: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"x"} desvios=0
+modo=falhar sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=corrigir sonda=regra: HTTP 403 Forbidden corpo={"erro":"vazou_meio","mensagem":"x"} desvios=0
+modo=corrigir sonda=code: HTTP 403 Forbidden corpo={"erro":"vazou_frac","mensagem":"x"} desvios=0
+modo=corrigir sonda=texto: HTTP 403 Forbidden corpo={"erro":"vazou_frac_texto","mensagem":"x"} desvios=0
+modo=corrigir sonda=catalogo: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"x"} desvios=0
+modo=corrigir sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0

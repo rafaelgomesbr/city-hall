@@ -39,9 +39,13 @@
  *    `hijack` e `raw` terminam nesses três métodos. A primeira versão era um
  *    `onSend`, e a revisão passou por ela de três jeitos (`onSend` acrescentado
  *    depois por um `onRoute` de plugin, 404 de plugin trocado por 403, e o
- *    tratador de reserva escrevendo direto na resposta do Node). O corpo tem de
- *    ser JSON com UMA chave `erro` (repetida é recusada) deste catálogo (ou da
- *    lista da entrada) e o status que o catálogo dá a ele. Fora disso, em TESTE
+ *    tratador de reserva escrevendo direto na resposta do Node). "401 ou 403" é
+ *    o status que o Node ESCREVE, `statusCode | 0`, e não o pedido: `403.5`,
+ *    `"403"` e `4294967699` saem 403 no fio, e status que não é número inteiro
+ *    de 100 a 599 e vira 401 ou 403 é desvio mesmo com o corpo certo (correção
+ *    4). O corpo tem de ser JSON com UMA chave `erro` (repetida é recusada)
+ *    deste catálogo (ou da lista da entrada) e o status que o catálogo dá a
+ *    ele. Fora disso, em TESTE
  *    a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o
  *    `afterAll`) que passou por ali reprova (`test/guarda-falha-alto.ts`, em
  *    todo arquivo da suíte); FORA de teste ela sai com o código genérico do
