@@ -4,7 +4,7 @@
 **Por que existe:** regra do Rafael de 2026-10-13: "se depender de mim pra ir pra próxima etapa vamos ter uma limitação de tempo e o sistema fica ocioso muito tempo [...] se precisar estritamente de algo humano, salva em um roadmap pendencias-humanas, mas continue desenvolvendo". Tudo o que manda parar e esperar uma pessoa vem para cá e o trabalho segue; o que era "aparelho físico" passa a ser tentado no emulador Android e só fica aqui o que o emulador não prova. A prova automatizada (testes, e2e, capturas, conferência de que o teste morde) não sai daqui nem vira pendência: continua obrigatória.
 **Como usar:** cada item diz o que fazer, onde ler, o que deve acontecer e quem decide. Quando resolver, diga no chat o código do item e o resultado ("H03 feito", "H07 reprovo, porque ..."); quem registra sou eu. Item resolvido muda de seção, nunca some.
 **Fonte do estado:** `docs/roadmap-v2/STATUS.md` e os `VEREDITO.md` de cada etapa. Se este arquivo e o STATUS divergirem, vale o STATUS.
-**Atualizado em:** 2026-10-19, depois da rodada 4 da validação (`bb0f654`) e durante a correção 4 da F00.
+**Atualizado em:** 2026-10-20, durante a correção 5 da F00 (rodada 5 interrompida pelo reinício do Mac, sem veredito).
 
 ## Situação da F00 em uma linha
 
@@ -30,6 +30,7 @@ Antes: Correção 2 concluída em 2026-10-14: as 12 etapas reprovadas na rodada 
 | H28 | E01, E17, E18, E19, E21 | A sessão nova que valida não conseguiu ler o CI: o `gh` está sem login e o modo de permissão negou tirar o token da credencial do git (o caminho da H25 só funciona nesta sessão). Sem isso, a dimensão Infra e CI fica BLOQUEADA nessas cinco etapas em toda rodada. Rodar `~/.local/bin/gh auth login` no Mac (uma vez) resolve. | `docs/evidencias-v2/G00/V2-F00-E01/VEREDITO.md`, rodada 4 | Rafael |
 | H29 | E04 | Uma escrita que já estava em andamento conclui até cerca de 223 ms depois de a conta ser desativada (8 de 8 no validador). Não quebra o critério escrito da E04, mas é a mesma família de defeito da E07. O conserto entra agora ou na F03-E03? | `docs/evidencias-v2/G00/V2-F00-E04/VEREDITO.md`, rodada 4 | Rafael |
 | H30 | E24 | A frase do painel "Declarar a saída é um passo do aplicativo do agente" promete algo que o aplicativo ainda não faz; depende da sua decisão sobre a D-25 (H01). | `docs/evidencias-v2/G00/V2-F00-E24/VEREDITO.md`, rodada 4 | Rafael (e Alyson) |
+| H31 | todas | A página de progresso (`/progresso`, projeto `dc360-progresso` na Vercel) não publica mais deste Mac: o token da CLI da Vercel expirou. Rodar `npx vercel login` uma vez; depois disso o `node scripts/roadmap/publicar-progresso.mjs` publica a cada etapa (o vínculo `vercel link` da pasta do site é feito pelo agente). | `scripts/roadmap/publicar-progresso.mjs` | Rafael |
 
 ## B. Texto de produto e percepção visual (gatilhos da seção 10 de `28`)
 
