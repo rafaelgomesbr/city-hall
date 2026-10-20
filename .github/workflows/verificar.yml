@@ -594,13 +594,14 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
-  auditar-windows:
-    # O mesmo portão do job `auditar`, no Windows, onde o `npm` é `npm.cmd` e
-    # os caminhos têm letra de unidade. Job próprio para que uma falha aqui não
-    # se confunda com a prova do ambiente hostil.
-    name: Dependências com vulnerabilidade conhecida (auditar) em Windows
+  windows:
+    # Os comandos que as etapas pedem verdes também no Windows, onde o `npm` é
+    # `npm.cmd` e os caminhos têm letra de unidade: o portão do `auditar` (E19)
+    # e `test:scripts` mais `conferir:numeros` (E17). Job próprio para que uma
+    # falha aqui não se confunda com a prova do ambiente hostil (`plataformas`).
+    name: Windows (auditar, test:scripts e conferir:numeros)
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     defaults:
       run:
         shell: bash
@@ -620,11 +621,34 @@ jobs:
           npm --version | tee -a "$RUNNER_TEMP/artefatos/00-versoes.txt"
           node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar-windows.txt"
 
+      - name: Instalar dependências
+        id: instalar
+        if: ${{ !cancelled() }}
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci.txt"
+
+      - name: Instalar dependências do aplicativo
+        id: instalar_app
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        working-directory: dc360/apps/campo
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/03-npm-ci-campo.txt"
+
+      - name: Compilar os pacotes compartilhados
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run build:shared 2>&1 | tee "$RUNNER_TEMP/artefatos/03b-build-shared.txt"
+
+      - name: Testes dos scripts em Windows (npm run test:scripts)
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm run test:scripts 2>&1 | tee "$RUNNER_TEMP/artefatos/04-test-scripts-windows.txt"
+
+      - name: Os números do README batem em Windows (npm run conferir:numeros)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run conferir:numeros 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conferir-numeros-windows.txt"
+
       - name: Publicar os artefatos
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: auditar-windows-${{ github.sha }}
+          name: windows-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
           if-no-files-found: error
 
