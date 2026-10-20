@@ -605,8 +605,8 @@ jobs:
     #    instalador do driver ODBC do PostgreSQL grava no Windows). Antes, o
     #    controle mostra o `openssl` cru reprovando com ela. Roda no bash (no
     #    Windows é o Git Bash, que traz o `openssl`) e, só no Windows, também no
-    #    Windows PowerShell 5.1 (`shell: powershell`), onde o `openssl` não está
-    #    no PATH do Git e o teste o procura ao lado do `git`.
+    #    Windows PowerShell 5.1 (`shell: powershell`). O passo registra qual
+    #    `openssl` o PowerShell achou; não promete que seja o do Git.
     # 3. Cache velho do Expo: `apps/campo/.expo/types/router.d.ts` sem
     #    `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`).
     #    O controle é o `tsc` direto dando TS2345; depois `npm run test:campo`
@@ -642,6 +642,7 @@ jobs:
         run: |
           git config --global core.autocrlf true
           git config --show-origin --get-all core.autocrlf
+          git config --global --get core.autocrlf | grep -qx true
 
       - uses: actions/checkout@v4
 
