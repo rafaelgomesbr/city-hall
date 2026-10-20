@@ -55,7 +55,13 @@ um cache de 2026-08-27 sem `mapa`, `perfil` e `avisos`). `npm run test:campo`,
 na raiz do `dc360`, confere o arquivo contra as rotas do disco antes do
 typecheck e apaga `.expo/types` quando falta alguma rota; o próximo
 `expo start` o recria. Quem rodar `npm run typecheck` direto aqui, com cache
-velho, apaga `.expo/types` à mão ou roda `npm run test:campo`.
+velho, apaga `.expo/types` à mão ou roda `npm run test:campo`. O job
+`plataformas` do CI (Windows e Linux) prova isso a cada push: põe aqui um cache
+sem `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`, na
+raiz do `dc360`), confere que o `tsc` direto reprova com TS2345 e só então roda
+o `npm run test:campo`. Se uma atualização do expo-router mudar o formato do
+arquivo gerado, a fixture pode precisar ser refeita a partir de um
+`router.d.ts` novo, tirando as três rotas.
 
 ## Para colocar de pé
 

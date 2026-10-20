@@ -1338,6 +1338,27 @@ coluna do macOS vem do roteiro rodado nesta máquina
 (`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
 da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
 
+**O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
+coluna do Windows acima é a máquina do autor, e a validação não a aceita como
+prova independente. Quem prova Windows é o job `plataformas` de
+`.github/workflows/verificar.yml`, que roda em todo push, em matriz
+`windows-latest` e `ubuntu-latest`, e publica o artefato
+`plataformas-<sistema>-<sha>`. Ele faz o checkout com `core.autocrlf=true` e
+roda os três casos sob a condição hostil de verdade, cada um depois de um
+controle que reprova o job se a condição não se reproduzir: (1) `git ls-files
+--eol` sem `i/crlf` e com CRLF no disco só onde o `.gitattributes` pede, depois
+`apps/web/src` e `apps/web/test` gravados em CRLF (a árvore de antes do
+`.gitattributes`) e a suíte do painel inteira sobre eles; (2) `OPENSSL_CONF`
+apontando para o arquivo inexistente do driver ODBC, com o `openssl` cru
+reprovando antes e `banco-tls.test.ts` mais `openssl-do-teste.test.ts` verdes
+depois, no bash (Git Bash, no Windows) e, só no Windows, também no Windows
+PowerShell 5.1; (3) o `router.d.ts` velho de `scripts/fixtures/router.d.ts.velho`
+em `apps/campo/.expo/types`, com o `tsc` direto dando TS2345, o
+`npm run test:campo` apagando o cache e passando, e o typecheck sem cache em
+zero. Roda também o conferidor de índices de evidência sobre esse checkout. A
+montagem e o controle das condições ficam em `scripts/ambiente-hostil.mjs`. O
+`npm run verificar` inteiro no Windows continua sendo validação humana.
+
 Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
 sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
 até alguém corrigir o texto. Isso é de propósito: o número velho é mentira

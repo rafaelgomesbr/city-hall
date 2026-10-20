@@ -1,0 +1,16 @@
+OPENSSL_CONF=/nao/existe/psqlODBC/etc/openssl.cnf
+
+ RUN  v3.2.7 /private/tmp/e21c3/sim/clone/dc360/apps/api
+
+stderr | test/banco-tls.test.ts
+banco-tls: OPENSSL_CONF aponta para "/nao/existe/psqlODBC/etc/openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+ ✓ test/banco-tls.test.ts (13 tests) 130ms
+ ✓ test/openssl-do-teste.test.ts (10 tests) 551ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente  325ms
+
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+   Start at  11:56:01
+   Duration  790ms (transform 77ms, setup 161ms, collect 39ms, tests 681ms, environment 0ms, prepare 64ms)
+

@@ -178,6 +178,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     na conta, por isso é o mesmo número da correção 1.
   */
   "V2-F00-E21-correcao-1": 36, // 26 na correção 1; a correção 2 (2026-10-20) acrescentou 6 e depois 4 casos que rodam o script como comando
+  /*
+    V2-F00-E21, correção 3: `scripts/ambiente-hostil.test.mjs` é novo, com 8
+    casos (o montador das condições hostis do job `plataformas` do CI: LF para
+    CRLF sem duplicar CR, a agulha antiga que some em CRLF, arquivo misto, o
+    resumo de `git ls-files --eol` que aceita e o que reprova, a fixture do
+    cache velho sem as três rotas, e o comando `eol` saindo com 1 diante de
+    `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
+  */
+  "V2-F00-E21-correcao-3": 8,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -186,6 +195,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E19": "auditar.test.mjs",
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
+  "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
