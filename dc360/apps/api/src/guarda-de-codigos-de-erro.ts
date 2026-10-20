@@ -89,6 +89,12 @@ import {
  * Quando o `end` do Node lança no meio (o `content-length` estrito), o socket
  * fica arrolhado; a guarda o desarrolha antes de mandar a resposta do desvio.
  *
+ * AS EARLY HINTS (correção 7b): o Node 22, o de produção, não confere o valor
+ * de `writeEarlyHints`, e CR ou LF nele põe uma cabeça inteira no fio; o Node
+ * 24 recusa. A guarda aplica a regra do Node 24 nas duas versões (lança
+ * `ERR_INVALID_CHAR` antes de escrever, e a rota sai 500), e a porta dos bytes
+ * fica de segunda rede.
+ *
  * O QUE ELA NÃO VÊ, dito sem folga:
  *
  *   - escrita direta no SOCKET, que não passa pela resposta do Node:
@@ -170,6 +176,9 @@ const TETO_DO_CORPO = 64 * 1024;
 /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
 const CHAVE_JSON = /"((?:[^"\\]|\\.)*)"\s*:/g;
 const FORMA_DE_CODIGO = /^[a-z_]{1,64}$/;
+/** Nome de cabeçalho válido (token do HTTP) e valor sem caractere de controle: a regra do Node 24. */
+const NOME_DE_CABECALHO = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
+const VALOR_DE_CABECALHO_INVALIDO = /[^\t\x20-\x7e\x80-\xff]/;
 
 const tem = (o: object, k: string): boolean => aplicar(temPropria, o, [k]) as boolean;
 const casa = (re: RegExp, s: string): RegExpExecArray | null => aplicar(executarRegex, re, [s]) as RegExpExecArray | null;
@@ -942,7 +951,44 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     }
   }
 
+  /*
+    AS EARLY HINTS (correção 7b, CI em Node 22). O Node 24 recusa CR ou LF no
+    valor de `writeEarlyHints` (lança `ERR_INVALID_CHAR`); o Node 22, que é o
+    de produção (`Dockerfile`), escreve o valor como veio, e
+    `writeEarlyHints({ "x": "a\r\n\r\nHTTP/1.1 403 ..." })` põe uma cabeça
+    403 inteira no fio. A porta dos bytes já pegava essa cabeça (troca a
+    resposta e fecha a conexão), mas o resultado mudava com a versão do Node.
+    Aqui a guarda aplica a regra do Node 24 nas duas versões: nome que não é
+    token, ou valor com caractere de controle, lança `ERR_INVALID_CHAR` antes de
+    qualquer byte sair, e a rota responde o 500 do tratador de erro. A porta
+    continua como segunda rede.
+  */
+  const earlyHintsOriginal = (raw as unknown as { writeEarlyHints?: (...a: unknown[]) => unknown }).writeEarlyHints;
+  function writeEarlyHints(this: ServerResponse, ...args: unknown[]) {
+    const dicas = args[0];
+    if (typeof dicas === "object" && dicas !== null) {
+      const nomes = chavesDe(dicas);
+      for (let i = 0; i < nomes.length; i += 1) {
+        const nome = nomes[i]!;
+        const v = (dicas as Record<string, unknown>)[nome];
+        const valores: unknown[] = ehArray(v) ? v : [v];
+        let ruim = casa(NOME_DE_CABECALHO, nome) === null;
+        for (let j = 0; !ruim && j < valores.length; j += 1) {
+          ruim = casa(VALOR_DE_CABECALHO_INVALIDO, `${valores[j] as string}`) !== null;
+        }
+        if (ruim) {
+          throw definirPropriedade(new TypeError(`Cabeçalho de Early Hints inválido: "${nome}"`), "code",
+            { value: "ERR_INVALID_CHAR", enumerable: false });
+        }
+      }
+    }
+    return aplicar(earlyHintsOriginal!, raw, args);
+  }
+
   raw.strictContentLength = true;
+  if (typeof earlyHintsOriginal === "function") {
+    definirPropriedade(raw, "writeEarlyHints", { value: writeEarlyHints, writable: false, configurable: false, enumerable: false });
+  }
   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });

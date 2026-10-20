@@ -55,6 +55,24 @@ function plantarCorrecao7(app: FastifyInstance): void {
     x.writeProcessing(); x._header = "x"; x._headerSent = true; x.end();
   });
   app.get(r("g-102-e-final"), async (_q, rep) => { crua7(rep).writeProcessing(); return rep.code(403).type("application/json").send(ok); });
+  // Correção 7b (CI em Node 22): Early Hints com CR/LF, o 103 legítimo, e a recusa direta.
+  app.get(r("f-early"), async (_q, rep) => {
+    rep.writeEarlyHints({ link: "</a.css>; rel=preload", "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 });
+    return { ok: true };
+  });
+  // Sem `await`: o `writeEarlyHints` do Fastify devolve a própria resposta, que é "thenable" e só
+  // resolve quando a resposta termina; esperar por ela ali trava o pedido.
+  app.get(r("f-early-legitimo"), async (_q, rep) => {
+    rep.writeEarlyHints({ link: "</a.css>; rel=preload" });
+    return rep.code(403).type("application/json").send(ok);
+  });
+  app.get(r("f-early-recusa"), async (_q, rep) => {
+    const x = crua7(rep);
+    try { x.writeEarlyHints({ "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 }); } catch (e) {
+      return { codigo: (e as { code?: string }).code ?? "sem-codigo", fila: x.outputData.length };
+    }
+    return { codigo: "escreveu", fila: x.outputData.length };
+  });
 }
 
 type RespostaLida = { status: number; corpo: string };
@@ -367,6 +385,32 @@ describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em p
       expect(b102).not.toContain("HTTP/1.1 404");
       expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 : 0);
     }
+  });
+
+  it("correção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const { respostas } = lerRespostas(await pipeline(modo, "/c7/f-early"));
+      expect(respostas.map((x) => x.status), `${modo} em Node ${process.versions.node}`).toEqual([500, 404]);
+      expect(forjadas(respostas)).toEqual([]);
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("correção 7b: o 103 legítimo antes do 403 do contrato passa intacto", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const { respostas } = lerRespostas(await pipeline(modo, "/c7/f-early-legitimo"));
+      expect(respostas.map((x) => x.status), modo).toEqual([103, 403, 404]);
+      expect(JSON.parse(respostas[1]!.corpo)).toEqual({ erro: "so_o_dono", mensagem: "x" });
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const r = await consoles.get(modo)!.app.inject({ method: "GET", url: "/c7/f-early-recusa" });
+      expect(r.json(), `${modo} em Node ${process.versions.node}`).toEqual({ codigo: "ERR_INVALID_CHAR", fila: 0 });
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
   });
 
   it("controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele", async () => {

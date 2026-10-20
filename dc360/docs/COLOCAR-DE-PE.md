@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **5538 testes somando o aplicativo** (contagem estática de `npm run
+- **5543 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 5538 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, 5543 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

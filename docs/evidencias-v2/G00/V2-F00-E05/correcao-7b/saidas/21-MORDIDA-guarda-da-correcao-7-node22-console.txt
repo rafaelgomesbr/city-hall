@@ -1,0 +1,136 @@
+v22.23.3
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (48 tests | 2 failed) 3330ms
+   ✓ a guarda do console > em teste, m07 sai 500 e o desvio fica registrado com a rota 14ms
+   ✓ a guarda do console > em teste, m10 sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, m11 sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, m16 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eab/x sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, eag/x sai 500 e o desvio fica registrado com a rota 7ms
+   ✓ a guarda do console > em teste, eaf sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota 4ms
+   ✓ a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > fora de teste, m07 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m10 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m11 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m16 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eab/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eag/x sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, eaf sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > controle: o código do contrato passa intacto, com a frase da rota 2ms
+   ✓ correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos 48ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-store não sai 403 com o código inventado, nos dois modos 8ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-header não sai 401 com o código inventado, nos dois modos 7ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-writeraw não sai 403 com o código inventado, nos dois modos 5ms
+   ✓ correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado 6ms
+   ✓ correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > c-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 3ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-stream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 3ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-response: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 3ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado) 4ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > addTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada 3ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão 4ms
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24 8ms
+     → falhar em Node 22.23.3: expected [ 500 ] to deeply equal [ 500, 404 ]
+     → resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: o 103 legítimo antes do 403 do contrato passa intacto 3ms
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte 2ms
+     → falhar em Node 22.23.3: expected { codigo: 'escreveu', fila: +0 } to deeply equal { Object (codigo, fila) }
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24
+AssertionError: falhar em Node 22.23.3: expected [ 500 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+    500,
+-   404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:393:90
+    391|     for (const modo of ["falhar", "corrigir"] as const) {
+    392|       const { respostas } = lerRespostas(await pipeline(modo, "/c7/f-e…
+    393|       expect(respostas.map((x) => x.status), `${modo} em Node ${proces…
+       |                                                                                          ^
+    394|       expect(forjadas(respostas)).toEqual([]);
+    395|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24
+AssertionError: resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "erroVisto": null,
++     "metodo": "GET",
++     "motivo": "linha de status 403 escrita por fora da guarda",
++     "rota": "/c7/f-early",
++     "status": 403,
++   },
++ ]
+
+ ❯ test/apoio/guarda-falha-alto.ts:11:100
+      9| afterEach(() => {
+     10|   const desvios = lerDesviosDaGuarda();
+     11|   expect(desvios, "resposta 401 ou 403 fora do contrato do console (gu…
+       |                                                                                                    ^
+     12| });
+     13| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte
+AssertionError: falhar em Node 22.23.3: expected { codigo: 'escreveu', fila: +0 } to deeply equal { Object (codigo, fila) }
+
+- Expected
++ Received
+
+  {
+-   "codigo": "ERR_INVALID_CHAR",
++   "codigo": "escreveu",
+    "fila": 0,
+  }
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:411:68
+    409|     for (const modo of ["falhar", "corrigir"] as const) {
+    410|       const r = await consoles.get(modo)!.app.inject({ method: "GET", …
+    411|       expect(r.json(), `${modo} em Node ${process.versions.node}`).toE…
+       |                                                                    ^
+    412|     }
+    413|     expect(lerDesviosDaGuarda()).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 46 passed (48)
+   Start at  17:28:04
+   Duration  4.10s (transform 278ms, setup 116ms, collect 372ms, tests 3.33s, environment 0ms, prepare 54ms)
+
+exit=1

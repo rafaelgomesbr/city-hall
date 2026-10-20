@@ -167,8 +167,10 @@
  * resposta que termina só com cabeça provisória fecha a conexão; e o 401 ou 403
  * do catálogo com `content-length` que não bate sai como a resposta do desvio
  * (o socket arrolhado pelo `end` do Node é desarrolhado). Os testes da guarda
- * provam cada forma da rodada 7 por socket cru em pipeline, nos dois modos; o
- * proxy da borda não foi medido. A varredura proíbe os dois
+ * provam cada forma da rodada 7 por socket cru em pipeline, nos dois modos, em
+ * Node 22 e 24; o proxy da borda não foi medido. CR ou LF nas Early Hints, que
+ * o Node 22 escreveria no fio, a guarda recusa antes de escrever (correção
+ * 7b). A varredura proíbe os dois
  * caminhos que restam (`.socket`, `.connection`, `.client`, ouvinte de
  * `connection`, `request` e afins no servidor, `.call`, `.apply`,
  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,

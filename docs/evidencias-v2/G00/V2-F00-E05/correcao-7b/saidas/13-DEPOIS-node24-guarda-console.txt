@@ -1,0 +1,12 @@
+v24.15.0
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console
+
+ ✓ test/guarda-de-codigos-de-erro.test.ts (48 tests) 3194ms
+
+ Test Files  1 passed (1)
+      Tests  48 passed (48)
+   Start at  17:27:56
+   Duration  3.84s (transform 214ms, setup 93ms, collect 266ms, tests 3.19s, environment 0ms, prepare 44ms)
+
+exit=0
