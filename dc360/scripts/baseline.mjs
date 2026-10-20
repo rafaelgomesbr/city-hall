@@ -177,7 +177,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     simbólico confere do mesmo jeito). De 26 para 32; o arquivo inteiro segue
     na conta, por isso é o mesmo número da correção 1.
   */
-  "V2-F00-E21-correcao-1": 32,
+  "V2-F00-E21-correcao-1": 36, // 26 na correção 1; a correção 2 (2026-10-20) acrescentou 6 e depois 4 casos que rodam o script como comando
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -499,11 +499,13 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     varredura: guarda da API de 71 para 95 casos (+24) e
     `codigos-de-erro.test.ts` de 171 para 193 (+22); na segunda parte
     (resposta crua, `_storeHeader`, chave calculada) guarda de 95 para 108
-    (+13) e `codigos-de-erro.test.ts` de 193 para 213 (+20). Soma 79, sem
+    (+13) e `codigos-de-erro.test.ts` de 193 para 213 (+20). Na terceira parte
+    (socket por `.client` e ouvintes do servidor) `codigos-de-erro.test.ts`
+    de 213 para 229 (+16). Soma 95, sem
     falha nem pulo novos. A guarda do console (+12) está no número do
     próprio passo.
   */
-  "V2-F00-E05-correcao-4": { total: 79, falhas: 0, puladas: 0 },
+  "V2-F00-E05-correcao-4": { total: 95, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
