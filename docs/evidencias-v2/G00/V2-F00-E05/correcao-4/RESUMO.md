@@ -4,7 +4,7 @@ Base: `1ed0b71`, ramo `trab/correcao-6`. Motivo: rodada 6 (SHA `1ed0b71`), red-t
 
 ## Fatos
 
-Patches: `diff-da-correcao.patch` (`1ed0b71` a `05ab42d`, a parte do status torto) e `diff-da-correcao-4b.patch` (`05ab42d` até o commit da parte 4b, a linha de status escrita por baixo de `writeHead`). Os dois só levam os caminhos desta correção; a parte 4b está na seção dela, no fim dos Fatos.
+Patches: `diff-da-correcao.patch` (`1ed0b71` a `05ab42d`, a parte do status torto) e `diff-da-correcao-4b.patch` (`05ab42d` até o commit da parte 4b, a linha de status escrita por baixo de `writeHead`). Há ainda `diff-da-correcao-4c.patch` (de `60445bc`, que já traz `ae19e89` e os totais do orquestrador, até o commit da parte 4c). Os três só levam os caminhos desta correção; as partes 4b e 4c estão nas seções delas, no fim dos Fatos.
 
 As sondas estão em `scripts/`: `sonda-node-writeHead.mjs` (o Node sozinho), `zz-sonda-e05c4.test.ts` (a API real por HTTP, posta em `apps/api/test/` só durante a execução e apagada depois) e `plantar.py` (o plantio em `rotas/orgaos.ts`, desfeito com `git restore`).
 
@@ -171,6 +171,51 @@ Totais: `test:api` com 106 arquivos, 1669 passados e 34 pulados, código 0 (eram
 - HEAD continua fora da conferência, como antes.
 - `inject` (light-my-request) não manda bytes a um socket de verdade. Por isso a porta é provada por HTTP de verdade, e não por `inject`.
 - As formas `bigint`, `NaN`, `Infinity` e `-403` da revisão terminam sem resposta (tempo esgotado), como antes: a conversão do status lança erro, igual à do Node, numa rota com `hijack` que ninguém encerra. Não sai 401 nem 403.
+
+### Parte 4c: o socket por outros caminhos (revisão de `ae19e89`)
+
+**O que a revisão provou** contra `ae19e89`.
+- Um ouvinte de `connection` no servidor HTTP chega ao fio como 403 com código inventado: `app.server.on("connection", (s) => s.once("data", () => s.end("HTTP/1.1 403 ... {\"erro\":\"inventado\"}")))`. A varredura dava 0 problemas.
+- `q.client`, o mesmo socket no pedido do Node, também passava com 0 problemas.
+- O README dava a entender que a varredura cobria o socket.
+
+A revisão confirmou bloqueadas: a escrita depois de `res.end` por timer, `_writeRaw`, `write` por chave calculada e `.call`.
+
+**Reprodução** (`saidas/51-4c-sonda-http-a-guarda-nao-ve.txt`, `scripts/zz-sonda-e05c4c.test.ts`). Um Fastify com a guarda instalada, pedido por HTTP de verdade em porta efêmera:
+- sem o ouvinte: `200 {"ok":true}`;
+- com o ouvinte de `connection`: `403 {"erro":"inventado"}`.
+
+Este é o limite que fica: a escrita direta no socket não passa pela resposta do Node, e a guarda não a vê depois desta parte nem antes dela.
+
+**O que mudou** (só a varredura e o texto; a guarda não muda).
+- `apps/api/test/varredura-de-erros.ts` passa a reprovar `.client` como já reprovava `.socket` e `.connection`, em qualquer objeto: por ponto, por colchete com texto e por desestruturação, renomeada ou não.
+- Reprova também ouvinte nos eventos do servidor HTTP que entregam o socket ou o pedido antes do Fastify: `connection`, `request`, `upgrade`, `secureConnection`, `connect`, `clientError`, `checkContinue`, `checkExpectation`, `dropRequest`, `tlsClientError`, `keylog`, `session` e `stream`.
+  - Vale por `on`, `once`, `addListener`, `prependListener` e `prependOnceListener`, e também por `off`, `removeListener`, `removeAllListeners`, `listeners` e `rawListeners`.
+  - Vale com o método por ponto ou por colchete com texto, em qualquer emissor.
+  - O evento calculado reprova quando o emissor tem `server` ou `servidor` no texto. `process.on(sinal, ...)` continua legítimo.
+- README (o parágrafo da guarda), cabeçalho do catálogo e cabeçalho das duas guardas dizem com exatidão o que fica fora:
+  - escrita direta no socket, por `.socket`, `.connection`, `.client` ou por ouvinte nesses eventos, NÃO é vista pela guarda;
+  - não há garantia em tempo de execução contra ela;
+  - só a varredura, que é heurística, a proíbe.
+
+**Casos acrescentados na parte 4c:** `apps/api/test/codigos-de-erro.test.ts` vai de 213 para 229 (+16).
+- 14 formas: a sonda exata da revisão, `q.client`, `client` por colchete e desestruturado (com e sem renomear), `once` de `request`, `prependListener` de `connection`, `addListener` de `upgrade`, `secureConnection`, `clientError`, `on` por colchete, evento calculado no servidor, `removeAllListeners("request")` e `listeners("request")`.
+- 1 controle: `process.on(sinal)`, `requisicao.on("response")` do APNs, `req.on("error")`, `nova.on("close")`.
+- 1 mutação no `servidor.ts` real, em memória.
+
+Nenhum caso foi acrescentado nos testes da guarda, que não mudou.
+
+**A mordida** (`saidas/50-MORDIDA-4c-varredura-de-ae19e89.txt`): com a varredura de `ae19e89`, 15 dos 229 falham. São todos os novos, menos o controle.
+
+**Regressão da parte 4c:**
+- `npm run test:api -- --maxWorkers=4`: 106 arquivos, 1685 passados e 34 pulados, código 0 (`saidas/80`; eram 1669, e os 16 novos são da varredura);
+- console: 286 de 286 (`saidas/81`);
+- `npm run typecheck`: código 0 (`saidas/82`);
+- `tsconfig` temporário com os dois testes tocados: código 0 (`saidas/83`);
+- portão de conteúdo: 10 de 10 (`saidas/84`);
+- `node scripts/conferir-indices-de-evidencia.mjs`: rodado depois de refazer os índices.
+
+**Limitação, sem folga.** A varredura lê nomes e formas, não fluxo de dados. Um caminho até o socket que ela não conheça continua fora das duas linhas: por exemplo, um módulo de rede próprio, `net`, ou o socket guardado por uma biblioteca e devolvido com outro nome.
 
 ## Justificativa
 

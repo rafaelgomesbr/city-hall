@@ -245,9 +245,15 @@ A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
 (`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
 `writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
 
-O que a guarda NÃO vê, e a varredura proíbe (mas é heurística): escrita no socket
-da requisição (`req.socket.end("HTTP/1.1 403 ...")`, que não passa pela resposta
-do Node; a varredura reprova `.socket`, `.connection` e desestruturar `socket`), o
+O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
+Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
+`.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
+servidor HTTP que entregam o socket ou o pedido antes do Fastify
+(`app.server.on("connection", (s) => s.end("HTTP/1.1 403 ..."))`, e `request`,
+`upgrade`, `secureConnection`, `clientError`, por `on`, `once`, `addListener` ou
+`prependListener`). Contra isso NÃO há garantia em tempo de execução: só a
+varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
+desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
 método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
 `Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
 (`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do

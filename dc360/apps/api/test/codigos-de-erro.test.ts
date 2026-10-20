@@ -954,6 +954,40 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
     });
 
+    /*
+      Correção 4c (revisão de `ae19e89`): o socket alcançado sem `.socket`, `.connection` nem `.raw` no
+      texto. A primeira é a sonda exata da revisão (`sonda-conexao.ts`), que chegava ao fio como 403 com
+      código inventado e saía daqui com 0 problemas; a guarda em tempo de execução não a vê.
+    */
+    it.each([
+      ["revisão: ouvinte de connection no servidor escrevendo no socket",
+        'app.server.on("connection", (s: any) => { s.once("data", () => s.end("HTTP/1.1 403 Forbidden\\r\\ncontent-length: 20\\r\\n\\r\\n{\\"erro\\":\\"inventado\\"}")); });'],
+      ["revisão: q.client, o apelido do socket no pedido", 'app.get("/x", async (q: any) => { q.client.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"); });'],
+      ["client por colchete", 'req["client"].write("HTTP/1.1 403");'],
+      ["client desestruturado", "const { client } = req;\nvoid client;"],
+      ["client desestruturado e renomeado", "const { client: s } = req;\nvoid s;"],
+      ["once de request", 'servidor.once("request", (q: any, r: any) => r.end());'],
+      ["prependListener de connection", 'app.server.prependListener("connection", (s: any) => s.end());'],
+      ["addListener de upgrade", 'app.server.addListener("upgrade", (q: any, s: any) => s.end());'],
+      ["on de secureConnection", 'srv.on("secureConnection", (s: any) => s.end());'],
+      ["on de clientError", 'app.server.on("clientError", (e: any, s: any) => s.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"));'],
+      ["on por colchete com texto", 'app.server["on"]("connection", (s: any) => s.end());'],
+      ["evento calculado no servidor", "const evento = escolher();\napp.server.on(evento, (s: any) => s.end());"],
+      ["tirar o ouvinte de request do Fastify", 'app.server.removeAllListeners("request");'],
+      ["ler os ouvintes de request", 'const [h] = app.server.listeners("request");\nvoid h;'],
+    ])("correção 4c, reprova: %s", (_forma, fonte) => {
+      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+    });
+
+    it("correção 4c, controles: sinal do processo, resposta do APNs e erro do pedido passam", () => {
+      for (const limpo of [
+        'for (const sinal of ["SIGINT", "SIGTERM"] as const) process.on(sinal, () => {});',
+        'requisicao.on("response", (cabecalhos: unknown) => { void cabecalhos; });',
+        'req.on("error", rejeitar);',
+        'nova.on("close", () => { sessao = null; });',
+      ]) expect(FORA(limpo), limpo).toEqual([]);
+    });
+
     it("correção 4b, controles: chave calculada fora da resposta, desestruturação comum e `__dirname` passam", () => {
       for (const limpo of [
         "const ROTULO = { a: 1 } as Record<string, number>;\nconst v = ROTULO[k];\nvoid v;",
@@ -1163,6 +1197,13 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
     ])("%s", (_nome, aplicar) => {
       const falhas = mutarTrecho("servidor.ts", aplicar);
       expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
+    });
+
+    it("correção 4c: ouvinte de connection no servidor real (servidor.ts, em memória) reprova", () => {
+      const falhas = mutarTrecho("servidor.ts", (t) => t
+        + '\nexport function zzConexao(app: FastifyInstance) {\n'
+        + '  app.server.on("connection", (s) => { s.once("data", () => s.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n")); });\n}\n');
+      expect(falhas.join("\n")).toContain("ouvinte de `connection`");
     });
 
     /*

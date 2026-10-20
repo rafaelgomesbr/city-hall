@@ -151,14 +151,19 @@
  * pronta) com 401 ou 403 que ela não conferiu troca a resposta inteira pela do
  * desvio (correção 4b).
  *
- * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
- * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
- * revisão), que não passa pela resposta do Node; o método do protótipo da
+ * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita
+ * direta no SOCKET, que não passa pela resposta do Node. Isso inclui
+ * `req.socket.end("HTTP/1.1 403 ...")` (o M08 da revisão), o mesmo socket por
+ * `.connection` ou `.client`, e um ouvinte nos eventos do servidor HTTP que
+ * entregam o socket ou o pedido (`app.server.on("connection", ...)`, `request`,
+ * `upgrade`, `secureConnection`, `clientError`); contra isso não há garantia em
+ * tempo de execução, só a varredura (correção 4c). Também não vê o método do protótipo da
  * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
  * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
  * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
  * declarado seriam lidos como a resposta seguinte da conexão. A varredura
- * proíbe os três caminhos (`.socket`, `.connection`, `.call`, `.apply`,
+ * proíbe os três caminhos (`.socket`, `.connection`, `.client`, ouvinte de
+ * `connection`, `request` e afins no servidor, `.call`, `.apply`,
  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
  * `_header` e `outputData`, chave calculada na resposta, desestruturação de
  * `raw` e `socket`), mas é heurística. Nenhuma das três linhas prende código

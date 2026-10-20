@@ -197,7 +197,7 @@ const LIDOS_COM_PONTO = new Set([
   "send", "code", "status", "statusCode", "erro", "codigo", "corpo", "raw", "hijack", "writeHead",
   "addHook", "setErrorHandler", "httpErrors", "assign", "defineProperty", "defineProperties",
   "setPrototypeOf", "create", "call", "apply", "bind", "__proto__", "prototype", "constructor", "serializer",
-  "socket", "connection",
+  "socket", "connection", "client",
 ]);
 
 /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
@@ -216,6 +216,21 @@ const NOMES_INTERNOS_DO_NODE = new Set([
   "outputData", "outputSize", "chunkedEncoding", "shouldKeepAlive", "useChunkedEncodingByDefault",
 ]);
 const PRIVADO = /^_[A-Za-z]/;
+/**
+ * Correção 4c (revisão de `ae19e89`): os eventos do servidor HTTP que entregam o
+ * socket (ou o pedido e a resposta antes do Fastify). Um ouvinte neles escreve no
+ * socket sem passar pela resposta do Node, e a guarda não o vê:
+ * `app.server.on("connection", (s) => s.end("HTTP/1.1 403 ..."))` chegava ao fio.
+ */
+const EVENTOS_DO_SERVIDOR = new Set([
+  "connection", "request", "upgrade", "secureConnection", "connect", "clientError",
+  "checkContinue", "checkExpectation", "dropRequest", "tlsClientError", "keylog", "session", "stream",
+]);
+/** Os métodos de emissor que registram, tiram ou leem ouvintes. */
+const METODOS_DE_OUVINTE = new Set([
+  "on", "once", "addListener", "prependListener", "prependOnceListener",
+  "off", "removeListener", "removeAllListeners", "listeners", "rawListeners",
+]);
 /** Nomes que, por convenção do produto e do Fastify, são a resposta (ou a resposta do Node). */
 const NOMES_DE_RESPOSTA = new Set(["resposta", "reply", "rep", "res", "resp", "raw", "response"]);
 
@@ -791,7 +806,8 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
     }
     // O socket da requisição: escrever nele é responder sem passar pelo Fastify, e é a única forma que a
     // guarda em tempo de execução não vê (M08 da revisão). Qualquer `.socket` ou `.connection` reprova.
-    if (ts.isPropertyAccessExpression(no) && (no.name.text === "socket" || no.name.text === "connection")) {
+    // Correção 4c: `.client` é o mesmo socket no pedido do Node (`IncomingMessage.client`), e vale igual.
+    if (ts.isPropertyAccessExpression(no) && (no.name.text === "socket" || no.name.text === "connection" || no.name.text === "client")) {
       problema(no, `\`.${no.name.text}\`: escrita direta no socket, que nem a guarda em tempo de execução vê`, `socket:${no.getText(sf)}`);
     }
     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
@@ -1010,7 +1026,8 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
         problema(no, `desestruturação por chave calculada (\`${no.getText(sf)}\`): a varredura não sabe que campo é`);
       } else if (ts.isIdentifier(nomeDoCampo) || ts.isStringLiteral(nomeDoCampo)) {
         const campo = nomeDoCampo.text;
-        if (campo === "raw" || campo === "socket" || campo === "connection" || PRIVADO.test(campo) || NOMES_INTERNOS_DO_NODE.has(campo)) {
+        if (campo === "raw" || campo === "socket" || campo === "connection" || campo === "client"
+          || PRIVADO.test(campo) || NOMES_INTERNOS_DO_NODE.has(campo)) {
           problema(no, `desestruturação de \`${campo}\`: a resposta do Node (ou o estado dela) por um caminho que a varredura não segue`);
         }
       }
@@ -1027,6 +1044,26 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
       const campo = nomeDaPropriedade(no.name);
       if (campo !== null && NOMES_INTERNOS_DO_NODE.has(campo)) {
         problema(no, `campo \`${campo}\` num objeto: o estado interno da resposta do Node`, `interno:${campo}`);
+      }
+    }
+
+    // 9. Correção 4c (revisão de `ae19e89`): ouvinte nos eventos do servidor HTTP que entregam o socket.
+    // Evento por texto da lista reprova em qualquer emissor; evento calculado reprova quando o emissor
+    // parece o servidor (`server`, `servidor` no texto), porque `process.on(sinal, ...)` é legítimo.
+    if (ts.isCallExpression(no) && no.arguments.length >= 1) {
+      const callee = no.expression;
+      const metodo = ts.isPropertyAccessExpression(callee) ? callee.name.text
+        : ts.isElementAccessExpression(callee) ? textoDoLiteral(callee.argumentExpression) : null;
+      if (metodo !== null && METODOS_DE_OUVINTE.has(metodo)) {
+        const evento = textoDoLiteral(no.arguments[0]);
+        const emissor = (callee as ts.PropertyAccessExpression | ts.ElementAccessExpression).expression.getText(sf);
+        if (evento !== null && EVENTOS_DO_SERVIDOR.has(evento)) {
+          problema(no, `ouvinte de \`${evento}\` (\`${emissor}.${metodo}\`): o servidor HTTP entrega o socket, e a escrita nele não passa pela guarda`,
+            `ouvinte:${emissor}.${metodo}(${evento})`);
+        } else if (evento === null && /server|servidor/i.test(emissor)) {
+          problema(no, `ouvinte de evento calculado no servidor (\`${emissor}.${metodo}\`): pode ser \`connection\` ou \`request\``,
+            `ouvinte:${emissor}.${metodo}`);
+        }
       }
     }
 

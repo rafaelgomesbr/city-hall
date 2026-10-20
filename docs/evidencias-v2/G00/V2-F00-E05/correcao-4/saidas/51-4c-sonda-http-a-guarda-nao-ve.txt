@@ -1,0 +1,2 @@
+sem ouvinte: HTTP 200 {"ok":true}
+com ouvinte de connection: HTTP 403 {"erro":"inventado"} (a guarda não vê; a varredura reprova o ouvinte)

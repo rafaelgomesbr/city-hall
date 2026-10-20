@@ -229,8 +229,9 @@
 | correcao-3/scripts/servidor-com-guarda.mts | 4c2dcb7c5a99fd6e7f4ab08d9970b25a24e5d78c1063d3083492420a8ac32bc0 |
 | correcao-3/scripts/sonda-p1-p3b.mts | dc561db76f104c262c3b5e9ee188fba826ae853a75386fef793e482602cc1027 |
 | correcao-3/scripts/zz-revisao-escape.test.ts | 8bf89d5cf7e8a56de5526038f28919967a92c704bb7234ef0a575b4d7cd2c181 |
-| correcao-4/RESUMO.md | e68c476fe19ea7f24e840b0fb987b46d9fe50e90785bb71d846b6a160a517ce9 |
+| correcao-4/RESUMO.md | fa92597460aa65e73a46f8c029370c228963d85acea4ce3ba5a7430d2a89fd7b |
 | correcao-4/diff-da-correcao-4b.patch | 366d5fdf77119170a48de9a0fbf9ab4e6dca10879186033c9a08c57a179918a2 |
+| correcao-4/diff-da-correcao-4c.patch | f5885e8d963ff9a1b47d7fff8eed925c7faf460d8829f09633a958396b10e414 |
 | correcao-4/diff-da-correcao.patch | 1b5ad56e5034bbe7cafaea8cceea7f0b0d1db14488809ec122161c601671d8c0 |
 | correcao-4/saidas/00-sonda-node-writeHead.txt | 97ca2f291e5c4565b26299ad3db09d1d79869ba160617382a315b8e76a10930e |
 | correcao-4/saidas/01-ANTES-sonda-http.txt | 15e1f83d03f716a1a538f8df2e8617a9abb678891bfaf9b2cdb0f1d6cb03e48a |
@@ -250,6 +251,8 @@
 | correcao-4/saidas/40-MORDIDA-4b-guarda-de-05ab42d-api.txt | 3e6d96847406336d7c5aba0a9b675734d8c29db8c5a628f03891a92bdd69da06 |
 | correcao-4/saidas/41-MORDIDA-4b-guarda-de-05ab42d-console.txt | 295c00c29bf716a15c0de9d64a36766ea232640482b0416f125db2088830474c |
 | correcao-4/saidas/42-MORDIDA-4b-varredura-de-05ab42d.txt | f0941a17ede6f8944bd342e5966da4e1a89b20b4a443a9d7a0e15f6b36239e3b |
+| correcao-4/saidas/50-MORDIDA-4c-varredura-de-ae19e89.txt | 6935880728d47725d03b16b6e1617339ed7f0526b911daf636f5d7838b5b5be6 |
+| correcao-4/saidas/51-4c-sonda-http-a-guarda-nao-ve.txt | f73befa1e8c83b85cbe22ad43b1f82aa886361188c1417665451625f65033280 |
 | correcao-4/saidas/60-test-api.txt | 210c69376be34426aad32fc08b165f8ff8ae644e85132774996101f2f58aeb22 |
 | correcao-4/saidas/61-test-shared.txt | 99948915ef8fe5ace9e058bc26834ff40a06adfeb0ad3750b8ab6099ee78cdbd |
 | correcao-4/saidas/62-test-console.txt | f8e55f945c192155a8e3f8f4a3be81366ccdf471a7e110a1115ad1aef2234cbf |
@@ -264,11 +267,17 @@
 | correcao-4/saidas/74-typecheck-dos-testes-tocados-4b.txt | 7bd30b64c60f5e321c2222835421b88c66f76143d2a2b7078dc7cce2f905f794 |
 | correcao-4/saidas/75-portao-de-conteudo-4b.txt | a06dd6a7bd8d6c2986071e6fd044e84a939ea8591bdb00747e504914bd0e0a8b |
 | correcao-4/saidas/76-test-isolamento-4b.txt | 0bae50017c4bde55aec5043dfd1e7c61b4082f4c5fec382b8b7d486b474e0949 |
+| correcao-4/saidas/80-test-api-4c.txt | 46fdca5dfaa046a1b6ea82ac6bea5c3fdf02ac25f0c3b1bf076c14272b3384d1 |
+| correcao-4/saidas/81-test-console-4c.txt | 1cb160d5adf24f48a876ef314e8232e97f410f09288ad5051680adc9f0a6a467 |
+| correcao-4/saidas/82-typecheck-4c.txt | 5a56ccad88c743e16bc01377d357554dd764184a5732248d5d9aa0005ea8eb21 |
+| correcao-4/saidas/83-typecheck-dos-testes-tocados-4c.txt | ff7b744a9c67139b665f4787123cd7e000860f150bbdd573e9110b855148e28d |
+| correcao-4/saidas/84-portao-de-conteudo-4c.txt | 0a88a9ac6413fdcd7ff85ad1ebcaed8dfd4c9fde7ba1910aeaa962dfffcc2aca |
 | correcao-4/scripts/plantar-4b.py | 0e8982cbd0aa1ff585275c00eb8e6456d87c232f248f6afb3babd1311048667d |
 | correcao-4/scripts/plantar.py | f3ffcfaa252d560caa59025aecda0f07a062aacac5f883d122f2906d3e7b3bbc |
 | correcao-4/scripts/sonda-node-writeHead.mjs | 64f3ff547c3d70d37775fde05b8e63392de24c1772839a5260a608b5b7639e26 |
 | correcao-4/scripts/zz-sonda-e05c4.test.ts | 61fa9e78bbe7968ea87dc0c10ba9fb0e1d69a4ad8fb19b377fa507c33331299c |
 | correcao-4/scripts/zz-sonda-e05c4b.test.ts | 06505c8fb66d4942d1c646048bc80e53ba46b8a5d2df1f284b4217c1e8a9a0aa |
+| correcao-4/scripts/zz-sonda-e05c4c.test.ts | 6ea312730ac1096292857f85f39302b5e4ca3a8f24bb90340bc08154f82a670a |
 | saidas/02-sonda-antes-do-conserto.txt | 0aaa1fb7913d5885f03967bc6f979e30b0919224da171c21adaed5d7b8a3a05e |
 | saidas/03-api-completa-depois.txt | d97e7b8e65a43fd6828892f25ed960261383b5ff638a22575287510e853c171e |
 | saidas/04-isolamento.txt | 88f415588a73ca62e09ef45ce333d8a325b6342bc2d6a573dc88856ddcf99759 |

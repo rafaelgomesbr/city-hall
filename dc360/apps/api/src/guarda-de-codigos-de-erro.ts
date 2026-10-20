@@ -67,9 +67,14 @@ import {
  *
  * O QUE ELA NÃO VÊ, dito sem folga:
  *
- *   - escrita no SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`),
- *     que não passa pela resposta do Node; a varredura do fonte proíbe
- *     `.socket` e `.connection`, e desestruturar `socket`;
+ *   - escrita direta no SOCKET, que não passa pela resposta do Node:
+ *     `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por `.connection`
+ *     ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
+ *     servidor HTTP que entregam o socket ou o pedido antes do Fastify
+ *     (`app.server.on("connection", (s) => s.end(...))`, `request`, `upgrade`,
+ *     `secureConnection`, `clientError`). Contra isso não há garantia em tempo
+ *     de execução: só a varredura do fonte, heurística, que reprova esses
+ *     nomes, a desestruturação deles e esses ouvintes;
  *   - chamar o método do protótipo por fora da instância
  *     (`ServerResponse.prototype.end` ou `_writeRaw` com `.call`, `.apply` ou
  *     `Reflect`); a varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;

@@ -17,7 +17,9 @@ import type { ServerResponse } from "node:http";
  * Ela confere no nível da resposta do Node (`writeHead`, `write` e `end`
  * envolvidos num `onRequest` instalado antes de tudo, e a linha de status nos
  * bytes que saem por `_writeRaw` e `_flushOutput`), e o que ela não vê está
- * escrito no módulo da API: escrita no socket, o método do protótipo chamado por
+ * escrito no módulo da API: escrita direta no socket (`.socket`,
+ * `.connection`, `.client`, ouvinte de `connection` ou `request` no servidor),
+ * que só a varredura proíbe, o método do protótipo chamado por
  * fora da instância, a moldura do corpo depois de uma cabeça que passou, e
  * código que troque as primitivas dela antes da carga ou o próprio Node.
  */
