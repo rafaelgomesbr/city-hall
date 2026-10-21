@@ -1,7 +1,7 @@
 # Proposta: acelerar a V2 sem abrir mão da prova
 
 **Para quem:** Rafael, para decidir antes da próxima semana.
-**Situação:** proposta, nada disto vale até o Rafael aprovar. Quando aprovado, vira uma decisão D-31 e emenda o `28-execucao-e-validacao.md`.
+**Situação:** APROVADA por Rafael em 2026-10-20, inteira (P1 a P8). Virou a decisão D-31 e a seção 19 de `28-execucao-e-validacao.md`, que é o texto que vale. Este arquivo fica como registro do motivo.
 **Data:** 2026-10-20.
 
 ## 1. O diagnóstico, com números
