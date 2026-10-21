@@ -1,0 +1,10 @@
+$ PATH=<npm 10.9.2 em pasta temporária>:$PATH VARIANTES="shrinkwrap uuid" rodar-copias.sh <worktree> <árvore da correção 9>   (o npm do Node 22 do CI)
+npm 10.9.2
+=== variante shrinkwrap (sem .npmrc; shrinkwrap: npm-shrinkwrap.json )
+    ERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.
+      - /private/tmp/e19c6/c9/copias/shrinkwrap/dc360/npm-shrinkwrap.json existe, e o npm o lê NO LUGAR do package-lock.json
+    codigo=2
+=== variante uuid (sem .npmrc; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1

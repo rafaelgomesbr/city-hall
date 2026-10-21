@@ -34,7 +34,7 @@ import { Modal } from "../componentes/Modal";
 import { DURACAO_PARA_DITAR, Toast } from "../componentes/Toast";
 import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
 import {
-  estadoDoEnvio, providenciasSemOficio, rotuloDoEnvio,
+  estadoDoEnvio, providenciasSemOficio, rotuloDasTentativas, rotuloDoEnvio,
 } from "./oficio-regras";
 import {
   avisoDaCorrecao, mensagemDaLeitura, podeCorrigirCoordenada, proximoPassoDaCorrecao,
@@ -1853,8 +1853,7 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar 
                           if (detalhe?.id === f.id) setDetalhe(null);
                           else void verTentativas(f);
                         }}>
-                  {detalhe?.id === f.id ? "Esconder" : "Ver"} as {f.envios}{" "}
-                  {f.envios === 1 ? "tentativa" : "tentativas"}
+                  {rotuloDasTentativas(f.envios, detalhe?.id === f.id)}
                 </button>
               )}
             </div>

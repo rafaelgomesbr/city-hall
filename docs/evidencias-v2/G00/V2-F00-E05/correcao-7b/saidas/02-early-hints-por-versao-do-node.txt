@@ -1,0 +1,2 @@
+v24.15.0 recusou ERR_INVALID_CHAR
+v22.23.3 escreveu ["HTTP/1.1 103 Early Hints\r\nLink: </a>; rel=preload\r\nx-s: a\r\n\r\nHTTP/1.1 403 X\r\n\r\n"]

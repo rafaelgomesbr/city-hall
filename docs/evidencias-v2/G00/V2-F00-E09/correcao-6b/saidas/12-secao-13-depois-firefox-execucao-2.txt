@@ -1,0 +1,101 @@
+
+== 1. Preparo: pessoa de nome longo, criada pela API ==
+  OK   a administradora entra pela API
+  OK   a pessoa de nome longo foi cadastrada
+  OK   a coordenadora de teste foi cadastrada
+
+== 13. O campo focado depois do erro fica inteiro entre o topo fixo e a barra do pé, e o ofício não sai do cartão (V2-F00-E09, correção 6) ==
+  OK   Minha conta a 640x450 (zoom de 200 por cento), senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x256 (zoom de 400 por cento), senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 640x360, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 740x360, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 601x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 700x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 768x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 900x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 1024x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 1280x600, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 390x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 360x700, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x568, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé
+  OK   Minha conta a 320x568, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 390x700, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 640x450 (zoom de 200 por cento), Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 320x256 (zoom de 400 por cento), Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Minha conta a 768x600, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé
+  OK   Nova ocorrência a 320x640, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 390x844, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 640x450 (zoom de 200 por cento), Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 320x256 (zoom de 400 por cento), Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 640x360, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 740x360, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 768x600, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Nova ocorrência a 1280x600, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   há um ofício emitido na ocorrência da Equipe Alfa para medir
+  OK   Ocorrência a 320 px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal
+  OK   Ocorrência a 320 px, a linha da tentativa fica dentro do cartão
+  OK   com uma tentativa só, o botão diz "Ver a tentativa" e "Esconder a tentativa" (sem "as 1")
+  OK   e a explicação concorda no singular ("A tentativa ficou registrada")
+  OK   Ocorrência a 360 px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal
+  OK   Ocorrência a 360 px, a linha da tentativa fica dentro do cartão
+  OK   "Defina a sua senha" a 320x256 (zoom de 400 por cento): a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   "Defina a sua senha" a 640x450 (zoom de 200 por cento): a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   "Defina a sua senha" a 390x844: a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (12px)
+  OK   Usuários a 320x256 (zoom de 400 por cento), cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 320x256 (zoom de 400 por cento), "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Usuários a 640x450 (zoom de 200 por cento), cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 640x450 (zoom de 200 por cento), "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Usuários a 390x844, cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Ocorrência a 390x844, "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé
+  OK   Quero conhecer a 320x256 (zoom de 400 por cento), sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Quero conhecer a 640x450 (zoom de 200 por cento), sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Quero conhecer a 390x844, sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista
+  OK   Tab em /ocorrencias/nova a 390x844: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x844: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x844: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x844: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 320x640: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 320x640: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 320x640: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 320x640: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x450 (zoom de 200 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x450 (zoom de 200 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x450 (zoom de 200 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x450 (zoom de 200 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 320x256 (zoom de 400 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 320x256 (zoom de 400 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 320x256 (zoom de 400 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 320x256 (zoom de 400 por cento): as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 390x400: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x400: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x400: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x400: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 740x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 740x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 740x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 740x360: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 390x844, com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 390x844, com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 390x844, com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 390x844, com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /ocorrencias/nova a 640x450 (zoom de 200 por cento), com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /minha-conta a 640x450 (zoom de 200 por cento), com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /orgaos a 640x450 (zoom de 200 por cento), com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   Tab em /painel a 640x450 (zoom de 200 por cento), com o quadro lento: as 23 paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé
+  OK   a 390 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 320 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 1280 px, o link do topo para Minha conta tem nome ("Rita Sampaio Lopes, Administrador da organização, Minha conta")
+  OK   a 320 px, o texto de exemplo da busca do topo cabe inteiro no campo
+  OK   a 360 px, o texto de exemplo da busca do topo cabe inteiro no campo
+  OK   o agente de campo de teste foi cadastrado (para medir "Meu trabalho")
+  OK   a 320 px, no tema claro, nenhuma das 13 telas logadas rola na horizontal
+  OK   a 320 px, o texto de exemplo do filtro de Ocorrências ("Protocolo, endereço, pessoa ou relato") cabe inteiro no campo
+  OK   a 320 px, no tema escuro, nenhuma das 13 telas logadas rola na horizontal
+
+====================================================
+Passou: 93   Falhou: 0
+Zero erro de console.

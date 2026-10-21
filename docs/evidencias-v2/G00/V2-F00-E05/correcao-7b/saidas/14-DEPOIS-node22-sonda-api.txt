@@ -1,0 +1,143 @@
+v22.23.3
+api modo=falhar a-stream: nao-escapou sincronizado desvios=1 (corpo maior que o content-length declarado)
+    [HTTP/1.1 200 OK] "{}"
+api modo=falhar b-response: nao-escapou sincronizado desvios=1 (corpo maior que o content-length declarado)
+    [HTTP/1.1 200 OK] "{}"
+api modo=falhar c-webstream: nao-escapou sincronizado desvios=1 (corpo maior que o content-length declarado)
+    [HTTP/1.1 200 OK] "{}"
+api modo=falhar d-buffer: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar i-cl0-stream: nao-escapou sincronizado desvios=1 (corpo maior que o content-length declarado)
+    [HTTP/1.1 200 OK] ""
+api modo=falhar i-cl0-response: nao-escapou sincronizado desvios=1 (corpo maior que o content-length declarado)
+    [HTTP/1.1 200 OK] ""
+api modo=falhar i-cl0-webstream: nao-escapou sincronizado desvios=1 (corpo maior que o content-length declarado)
+    [HTTP/1.1 200 OK] ""
+api modo=falhar e-403-cl-menor: nao-escapou sincronizado desvios=1 (o Node recusou a resposta conferida (ERR_HTTP_CONTENT_LENGTH_MISMATCH))
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/e-403-cl-menor respondeu 403 fora"(+87)
+api modo=falhar e-403-cl-maior: nao-escapou sincronizado desvios=1 (o Node recusou a resposta conferida (ERR_HTTP_CONTENT_LENGTH_MISMATCH))
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/e-403-cl-maior respondeu 403 fora"(+87)
+api modo=falhar e-200-cl-maior: nao-escapou sincronizado desvios=0
+    
+api modo=falhar f-early: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Informe o cÃ³digo abaixo ao suporte.\","(+52) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-100: nao-escapou sincronizado desvios=1 (status 100 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-100 respondeu 100 fora do catÃ¡"(+121) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-101: nao-escapou sincronizado desvios=1 (status 101 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-101 respondeu 101 fora do catÃ¡"(+121) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-102: nao-escapou sincronizado desvios=1 (status 102 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-102 respondeu 102 fora do catÃ¡"(+121) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-103: nao-escapou sincronizado desvios=1 (status 103 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-103 respondeu 103 fora do catÃ¡"(+121) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-199: nao-escapou sincronizado desvios=1 (status 199 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-199 respondeu 199 fora do catÃ¡"(+121) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-102-objeto: nao-escapou sincronizado desvios=1 (status 102 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-102-objeto respondeu 102 fora d"(+128) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-102-raw-writehead: nao-escapou sincronizado desvios=1 (status 102 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-102-raw-writehead respondeu 102"(+135) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-102-raw-implicito: nao-escapou sincronizado desvios=1 (status 102 (provisório) como resposta final: o cliente leria a resposta seguinte da conexão como a deste pedido)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-102-raw-implicito respondeu 102"(+135) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar g-101-writeraw: nao-escapou sincronizado desvios=1 (status 101 (provisório) escrito por fora da guarda como resposta final)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/g-101-writeraw respondeu 101 fora"(+88)
+api modo=falhar g-102-so-provisoria: nao-escapou sincronizado desvios=1 (resposta terminada só com cabeças provisórias 1xx, sem a cabeça final)
+    [HTTP/1.1 102 Processing] ""
+api modo=falhar g-102-e-final: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar h-te-identity: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28)
+api modo=falhar j-204: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 204 No Content] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar k-304: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 304 Not Modified] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar tr-reply-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/tr-reply-fora respondeu 403 fora "(+90) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar tr-reply-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar tr-addtrailers-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/tr-addtrailers-fora respondeu 403"(+96) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar tr-addtrailers-catalogo: nao-escapou sincronizado desvios=1 (bytes da resposta que não começam com uma linha de status legível (ou moldura de corpo contraditória))
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/tr-addtrailers-catalogo respondeu"(+131)
+api modo=falhar tr-addtrailers-cl: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/tr-addtrailers-cl respondeu 403 f"(+94) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar flush-403-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/flush-403-fora respondeu 403 fora"(+91) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar flush-403-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar flush-401-publico: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/flush-401-publico respondeu 401 f"(+94) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar z-ok: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=falhar z-ruim: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/z-ruim respondeu 403 fora do catÃ"(+53) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir a-stream: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}"
+api modo=corrigir b-response: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}"
+api modo=corrigir c-webstream: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}"
+api modo=corrigir d-buffer: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir i-cl0-stream: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+api modo=corrigir i-cl0-response: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+api modo=corrigir i-cl0-webstream: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+api modo=corrigir e-403-cl-menor: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}"
+api modo=corrigir e-403-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}"
+api modo=corrigir e-200-cl-maior: nao-escapou sincronizado desvios=0
+    
+api modo=corrigir f-early: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Informe o cÃ³digo abaixo ao suporte.\","(+52) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-100: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-101: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-103: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-199: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-objeto: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-raw-writehead: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-raw-implicito: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-101-writeraw: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Tente de novo.\"}"
+api modo=corrigir g-102-so-provisoria: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] ""
+api modo=corrigir g-102-e-final: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir h-te-identity: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28)
+api modo=corrigir j-204: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 204 No Content] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir k-304: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 304 Not Modified] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-reply-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-reply-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-addtrailers-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-addtrailers-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}"
+api modo=corrigir tr-addtrailers-cl: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir flush-403-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir flush-403-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir flush-401-publico: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 401 Unauthorized] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Token invÃ¡lido ou expirado.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir z-ok: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir z-ruim: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api: 0 escaparam, 0 dessincronizaram; processo de pé ao fim (sem tratador de uncaughtException)
+exit=0

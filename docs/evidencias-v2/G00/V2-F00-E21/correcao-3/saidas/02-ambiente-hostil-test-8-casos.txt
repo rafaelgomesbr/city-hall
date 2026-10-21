@@ -1,0 +1,17 @@
+✔ paraCrlf converte LF e não duplica o CR de linha que já é CRLF (0.760959ms)
+✔ numa fonte em CRLF a agulha antiga some, e é isso que reprovava o teste (0.107917ms)
+✔ estadoDoFimDeLinha conta LF sozinho num arquivo misto (0.326167ms)
+✔ resumirEol aceita LF, binário e CRLF no disco onde o .gitattributes pede (0.179042ms)
+✔ resumirEol reprova CRLF no disco sem eol=crlf e índice misto (0.109458ms)
+✔ a fixture do cache velho não conhece as três rotas e conhece as outras (0.110792ms)
+✔ como comando, `eol` sai com 1 diante de i/crlf e com 0 numa saída limpa (87.608041ms)
+✔ como comando, subcomando desconhecido sai com 2 (30.038917ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 160.556667
+codigo=0

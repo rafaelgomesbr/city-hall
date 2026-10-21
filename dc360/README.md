@@ -10,11 +10,11 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 699 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1685 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 723 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 286 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 307 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -148,8 +148,10 @@ O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
 código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
 servidor, o painel e o aplicativo importam. O catálogo cobre os erros de ACESSO
 (autenticação, vigência e permissão): toda resposta 401 ou 403 do servidor tem
-código nele. Quem GARANTE isto é uma guarda em tempo de execução; dois testes
-apontam o defeito antes, e nenhum deles é garantia sozinho:
+código nele, salvo pelos caminhos que a guarda não vê (escrita direta no socket
+e afins, listados em "O que a guarda NÃO vê", abaixo). Quem GARANTE isto é uma
+guarda em tempo de execução; dois testes apontam o defeito antes, e nenhum deles
+é garantia sozinho:
 
 - **Guarda em tempo de execução** (`apps/api/src/guarda-de-codigos-de-erro.ts`, e
   a cópia em `apps/console/src/` com o contrato do console): um `onRequest`
@@ -166,9 +168,11 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
   `nao_autenticado`, 403 `sem_permissao`) e o desvio vai para o log com o método,
   a rota e o código que tentou sair, este só se tiver a forma de um código
   (`^[a-z_]{1,64}$`; o resto vira um marcador, para não gravar e-mail ou CPF).
-  `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas as
-  dezesseis formas que a varredura não lia e os dezesseis escapes que a revisão
-  achou na primeira versão da guarda (um `onSend`), e prova os dois modos.
+  `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas quinze
+  das dezesseis formas que a varredura não lia (todas menos a M08, a escrita
+  direta no socket, que a guarda não vê; ver "O que a guarda NÃO vê", abaixo)
+  e os dezesseis escapes que a revisão achou na primeira versão da guarda (um
+  `onSend`), e prova os dois modos.
 - **Varredura do código-fonte** (`apps/api/test/codigos-de-erro.test.ts`, árvore
   sintática do TypeScript, na API, no pacote compartilhado e no console do
   fornecedor). É HEURÍSTICA, a primeira linha: a lista do que ela não lê não é
@@ -233,9 +237,11 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
   agente 62, operador 61, administrador 100, conta desativada 47, senha
   provisória 49, coordenador de outro município 96, município suspenso 54. Ou
   seja, a prova dinâmica NÃO é "todas as rotas com todos os perfis até o fim": a
-  garantia de que nenhuma recusa de acesso sai fora do catálogo vem primeiro da
-  varredura do fonte, e a prova dinâmica fecha o que o texto esconde só onde ela
-  chega.
+  garantia de que nenhuma recusa de acesso sai fora do catálogo é a guarda em
+  tempo de execução (o primeiro item desta lista). A varredura do fonte é a
+  primeira linha dos testes, heurística, e a prova dinâmica é a segunda: ela
+  fecha o que o texto esconde só onde chega, com os perfis e os corpos mínimos
+  que usa. Nenhuma das duas é garantia sozinha.
 - **Execução por código** (no mesmo arquivo da varredura): cada um dos dez códigos sai do servidor real, por
   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
   padrão).
@@ -243,7 +249,50 @@ apontam o defeito antes, e nenhum deles é garantia sozinho:
 A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
 `"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
 (`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
-`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
+`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida. Ela também
+confere o CORPO contra a moldura que a cabeça declarou (correção 6): toda resposta
+sai com `strictContentLength` ligado e a guarda conta os bytes de cada pedaço
+(texto, Buffer ou fluxo) contra o `content-length`, então nenhum byte além do
+declarado sai, nem pela API pública do Fastify (`header("content-length", "2")`
+com um fluxo maior) nem por baixo; com `chunked`, os pedaços são lidos e nada sai
+depois do terminador; `transfer-encoding` que não termina em `chunked`, ou corpo
+sem moldura, fecha a conexão no fim; `content-length` junto de
+`transfer-encoding` troca a resposta inteira. Excesso é desvio, sai só o que
+cabia e a conexão fecha. O caminho do desvio não lança (o trailer, que o Node
+recusa junto de `content-length`, sai da resposta trocada).
+
+O status 1xx como resposta FINAL (`reply.code(102).send(...)`, `code(101)`,
+`writeHead(103)` ou `statusCode = 102` antes do `end`) fazia o Node escrever só a
+linha provisória e dar a resposta por terminada, e o cliente lia a resposta do
+pedido SEGUINTE da conexão como a deste. Desde a correção 7 isso é desvio, HEAD
+inclusive, e sai 500 nos dois modos (`desvio_do_catalogo_de_erro` em teste;
+fora de teste, `erro_interno` na API e `falha_interna` no console). O 101
+escrito por baixo, que a porta dos bytes lê como cabeça final, também vira 500,
+e a resposta que termina só com cabeça provisória, sem a final, fecha a conexão.
+Os 1xx legítimos (`writeContinue`, `writeProcessing`, `writeEarlyHints`) não
+passam por `writeHead` e seguem intactos. Também na correção 7: quando o `end`
+do Node lança no meio (o `content-length` estrito que não bate com o corpo de um
+401 ou 403 do catálogo), o socket ficava arrolhado e o cliente ficava sem
+resposta até o tempo esgotar; a guarda o desarrolha e manda a resposta do
+desvio. O que os testes da guarda provam (por socket cru com dois pedidos em
+pipeline, nos dois modos, rodados em Node 22 e em Node 24): na API, cada forma dos
+relatórios da rodada 7 (fluxo do Node, `Response` e `ReadableStream` da web com
+`content-length` menor que o corpo ou `0`, 403 do catálogo com `content-length`
+errado, `transfer-encoding: identity`, `reply.trailer`, `addTrailers`,
+`writeHead(403)` mais `flushHeaders` e 1xx final) não leva código fora do
+catálogo ao fio e não dessincroniza a conexão, e os casos de trailer vigiam
+exceção não tratada; no console, as mesmas formas, menos `transfer-encoding:
+identity` e `writeHead(403)` mais `flushHeaders`, que não têm caso no teste
+dele (`apps/console/test/guarda-de-codigos-de-erro.test.ts`). O proxy da borda
+diante dessas formas não foi medido.
+
+As Early Hints (correção 7b): o Node 22, que é o de produção, não confere o valor
+de `writeEarlyHints`, e CR ou LF nele põe uma cabeça HTTP inteira no fio (o Node
+24 recusa). A guarda aplica a regra do Node 24 nas duas versões: nome que não é
+token, ou valor com caractere de controle, lança `ERR_INVALID_CHAR` antes de
+qualquer byte sair, e a rota responde o 500 do tratador de erro. O 103 legítimo
+antes de um 403 do catálogo passa intacto (caso na API e no console), e a porta
+dos bytes continua de segunda rede.
 
 O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
 Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
@@ -255,11 +304,9 @@ servidor HTTP que entregam o socket ou o pedido antes do Fastify
 varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
 desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
 método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
-`Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
-(`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
-tamanho declarado seriam lidos como a resposta seguinte da conexão (a varredura
-reprova o nome interno da resposta do Node, como `_writeRaw`, `_header` e
-`outputData`, a chave calculada na resposta e desestruturar `raw`). E nenhuma
+`Reflect`), que a varredura reprova. Corpo MENOR que o `content-length`
+declarado, em resposta que não é 401 nem 403, derruba a conexão sem resposta: o
+cliente vê a conexão cair, não uma resposta trocada. E nenhuma
 linha prende código no mesmo processo que troque, antes de a guarda carregar, as
 primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
 usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
@@ -837,9 +884,14 @@ falar de artigo; papel com o brasão do município, não.
 Outra regra de conteúdo que roda no `npm test`: enquanto o aplicativo do agente não
 declara a saída a campo (V2-F14-E01), nenhum texto do município promete que
 alguém "acompanha quem está em campo" sem dizer que o recurso está em
-construção. `packages/shared/test/ressalva-saida-a-campo.test.ts` confere os
-cinco documentos que tratam do assunto (README, privacidade, papéis e as duas
-apresentações), uma linha de tabela por vez, e morde se a ressalva sair.
+construção. `packages/shared/test/ressalva-saida-a-campo.test.ts` confere
+nove arquivos. Em seis (este README, privacidade, papéis, `docs/LEIA-ME.md` e
+as duas apresentações), todo parágrafo, linha de tabela ou item de lista que
+fala do assunto tem de trazer a ressalva (no README e na privacidade, as
+linhas de tabela ficam de fora). Em quatro (os quadros de estado de
+`SEGURANCA-DO-AGENTE.md`, `GUIA-DO-COORDENADOR.md`, `CARTAO-DO-AGENTE.md` e
+deste README, que entra nas duas listas) o quadro tem de existir, trazer a
+ressalva e dizer o que falta. O teste morde se a ressalva sair.
 
 ## O design system é verificado por máquina
 
@@ -1253,12 +1305,18 @@ npm run test:e2e:api            # painel contra a API
 
 `npm run verificar` encadeia typecheck, testes, `test:scripts`, `test:campo`,
 `auditar` e `conferir:numeros`. O CI roda esses passos em jobs separados
-(`test:scripts` e `conferir:numeros` no job de testes, `auditar` no job
+(`test:scripts` e `conferir:numeros` no job de testes, o `auditar` no job
 `dependencias`, `test:campo` no job do aplicativo); a diferença é que o CI não
-roda o `verificar` inteiro de uma vez, e sim cada passo no seu job.
+roda o `verificar` inteiro de uma vez, e sim cada passo no seu job. O CI chama
+o portão do `auditar` direto pelo `node` (`node scripts/auditar.mjs`), e não
+pelo `npm run`, para que nenhuma configuração do npm decida se ele roda; antes,
+o job `dependencias` reprova se houver `.npmrc` versionado no repositório. O
+job `windows` repete em `windows-latest` o `auditar` (também pelo `node`),
+`test:scripts` e `conferir:numeros`.
 
 **Portabilidade dos scripts.** `test:scripts` e `conferir:numeros` precisam
-fechar verdes no Windows e no Linux, e os três casos que só reprovavam no
+fechar verdes no Windows e no Linux (o job `windows` do CI os roda a cada
+push), e os três casos que só reprovavam no
 Windows ensinaram três regras para quem escrever um caso novo em `scripts/`:
 chamar `npm` com `shell: process.platform === "win32"` (lá ele é `npm.cmd`, e
 sem shell a chamada morre com ENOENT antes de rodar qualquer coisa); montar
@@ -1324,11 +1382,41 @@ comando da tabela um a um, e é anterior às correções 3 da E07 e da E12, à
 correção 1 da E21 e à correção 1 da E25. Depois delas houve o run 39143791434
 (2026-10-18, sobre o registro `ecaad76`, candidato `bb0f654`), 9 de 9 verdes
 segundo o STATUS, que o gatekeeper da rodada 4 NÃO conseguiu ler (o `gh` estava
-sem login); e as correções posteriores a ele (E03, E05, E07, E09, E10, E15, E25
-e esta) ainda não passaram por CI. A
+sem login); o run 39241470718 (2026-10-19, sobre o registro `766bc0a`,
+candidato `4ce0433`), 9 de 9 verdes segundo o STATUS, com as correções de E03,
+E05, E07, E09, E10, E15 e E25 posteriores ao anterior; o run 39366804765 (do
+candidato `1ed0b71`), que o GitHub recusou antes de começar, por faturamento
+(H32); e o run 39420436042 (2026-10-20, sobre o registro `55209ab`, candidato
+`fd17ff4`), 9 de 9 verdes, linha de base em Linux inclusive, lido pelo
+gatekeeper da rodada 7 pela API pública do GitHub (`VEREDITO.md` da E22). As
+correções posteriores a `fd17ff4` não estão nesse run; o run delas é o do
+candidato seguinte, registrado no `VEREDITO.md` de cada etapa. A
 coluna do macOS vem do roteiro rodado nesta máquina
 (`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
 da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+
+**O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
+coluna do Windows acima é a máquina do autor, e a validação não a aceita como
+prova independente. Quem prova Windows no CI são dois jobs de
+`.github/workflows/verificar.yml`, que rodam em todo push: o `windows`, com o
+`auditar`, `test:scripts` e `conferir:numeros` (ver "Portabilidade dos
+scripts"), e o `plataformas`, para os três casos acima, em matriz
+`windows-latest` e `ubuntu-latest`, e publica o artefato
+`plataformas-<sistema>-<sha>`. Ele faz o checkout com `core.autocrlf=true` e
+roda os três casos sob a condição hostil de verdade, cada um depois de um
+controle que reprova o job se a condição não se reproduzir: (1) `git ls-files
+--eol` sem `i/crlf` e com CRLF no disco só onde o `.gitattributes` pede, depois
+`apps/web/src` e `apps/web/test` gravados em CRLF (a árvore de antes do
+`.gitattributes`) e a suíte do painel inteira sobre eles; (2) `OPENSSL_CONF`
+apontando para o arquivo inexistente do driver ODBC, com o `openssl` cru
+reprovando antes e `banco-tls.test.ts` mais `openssl-do-teste.test.ts` verdes
+depois, no bash (Git Bash, no Windows) e, só no Windows, também no Windows
+PowerShell 5.1; (3) o `router.d.ts` velho de `scripts/fixtures/router.d.ts.velho`
+em `apps/campo/.expo/types`, com o `tsc` direto dando TS2345, o
+`npm run test:campo` apagando o cache e passando, e o typecheck sem cache em
+zero. Roda também o conferidor de índices de evidência sobre esse checkout. A
+montagem e o controle das condições ficam em `scripts/ambiente-hostil.mjs`. O
+`npm run verificar` inteiro no Windows continua sendo validação humana.
 
 Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
 sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
@@ -1372,7 +1460,7 @@ explicação, que reprova); 2 é o roteiro quebrado. Nenhum passo carrega hoje
 uma divergência explicada. Na árvore validada de `4b96ea7` o roteiro conferiu
 todos os passos com código 0 (17 de 17 com `--sem-instalar` no Windows, 19 de 19
 no Linux do CI; o roteiro de hoje tem 20 passos, 18 sem instalar, porque a
-correção 4 da E03 acrescentou o `e2e-firefox`; o run 39143791434, verde segundo o STATUS e não lido pelo gatekeeper, já rodou o roteiro de 20 passos), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
+correção 4 da E03 acrescentou o `e2e-firefox`; o run 39420436042, do candidato `fd17ff4`, lido pelo gatekeeper da rodada 7, rodou o roteiro de 20 passos com o job verde), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
 com a atualização dos patches do Expo. **Medido em 2026-10-14 num Mac (Node 24,
 `--sem-instalar`): 15 de 17**, e as duas divergências são de ambiente, nenhuma
 de teste de produto: `teste-api` (a falha do LibreSSL descrita acima, com 1319
@@ -1528,9 +1616,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3476 testes em seis pacotes
+npm test                    # 3553 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1685 testes da API
+npm run test:api            # 1717 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -1539,7 +1627,8 @@ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas
 
 **A política do `npm audit` (CP-03, decidido por Rafael em 2026-10-07).**
 Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
-de campo (`npm run auditar`, que agora também roda no Windows). Na raiz,
+de campo (`npm run auditar`, que também roda no Windows; no CI, o job
+`windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
 o que sobra é só de desenvolvimento (`vitest` e `tinypool`, que pedem salto de
 versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
 dentro do Expo (`brace-expansion`, `braces`, `node-forge`, `shell-quote`,
@@ -1553,24 +1642,51 @@ ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
 devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
 código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
 
-O que o portão anula: toda chamada fixa o registro oficial
-(`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
-`dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
-`offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
-ou em `npm_config_*`, não mudam para onde ele pergunta. O que ele exige antes de
-aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
-aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
-próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
-está velha, e o portão sai 2); o que a auditoria completa acusa em pacote que o
-`package-lock.json` não marca como só de desenvolvimento conta como runtime; e
-uma consulta de controle à parte (`lodash` 4.17.20, com o `.npmrc` de cada
-projeto) volta com a advisory conhecida. As exceções do aplicativo casam pelo id
-da advisory e pela gravidade aceita: advisory nova num pacote já aceito reprova,
-e advisory aceita que muda de gravidade também. O que continua FORA do alcance:
-um `npm` falso no `PATH` (o portão confia no programa que executa), um proxy de
-inspeção TLS que reescreve a resposta tirando só a advisory nova e deixando as
-conhecidas, e o dia em que as duas listas de aceitas ficarem vazias (aí a única
-prova é a consulta de controle à parte).
+Antes de auditar, o portão confere a configuração do npm: lê o que o próprio npm
+diz que carregou (`npm config list`: o npmrc embutido, o global, o do usuário, o
+do projeto e as `npm_config_*` do ambiente), o `.npmrc` da raiz e o do aplicativo
+direto do disco, e as `npm_config_*` do ambiente, e só aceita as chaves de
+`CHAVES_PERMITIDAS` (`scripts/auditar-excecoes.mjs`): as que só mexem no terminal
+(`loglevel`, `color`, `progress`, `fund`, `update-notifier`), as pastas `cache`
+e `prefix`, a credencial do registro oficial, e as que toda chamada anula na
+linha de comando, que vence configuração (`registry`, `offline`,
+`prefer-offline`, `prefer-online`, `dry-run`, `package-lock`,
+`package-lock-only`, `audit-level`, `json`). Qualquer outra chave, venha de onde
+vier, faz o portão sair 2 com o nome dela e o arquivo de origem: a rodada 7 achou
+`package-lock=false` num `.npmrc`, que faz o npm auditar a árvore ideal das
+faixas do `package.json` em vez do lockfile, e o portão aprovava um lockfile com
+runtime vulnerável. Por isso toda chamada passa `--package-lock=true`, e as
+consultas reais `--package-lock-only=false`. As variáveis que o `npm run` exporta
+para o script (`cache`, `prefix`, `userconfig`, `globalconfig`, `local-prefix` e
+afins) e as de workspace saem do ambiente das chamadas. O escopo também não
+depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
+do aplicativo no aplicativo), e o npm tem de confirmar a pasta (`npm local
+prefix`, comparado também com a máscara `***` que o npm 11 põe em trecho de
+caminho com cara de UUID). Um `npm-shrinkwrap.json` na raiz, no aplicativo ou
+num workspace faz o portão sair 2 antes de auditar: o npm o lê no lugar do
+`package-lock.json`, e é o `package-lock.json` que o Dockerfile instala. `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
+e a bandeira `--workspaces=false` saiu na correção 8: com uma dependência direta
+na raiz ela descarta do relatório tudo o que só os workspaces usam. O que ele
+exige antes de aprovar: cada relatório diz quantas dependências olhou; as
+advisories aceitas do aplicativo (por GHSA) e os pacotes aceitos de
+desenvolvimento voltam DENTRO das próprias consultas (se uma some, a resposta foi
+forjada no caminho ou a lista está velha, e o portão sai 2); o que a auditoria
+completa acusa em pacote que o `package-lock.json` não marca como só de
+desenvolvimento conta como runtime; e uma consulta de controle à parte (`lodash`
+4.17.20, com o `.npmrc` de cada projeto) volta com a advisory conhecida. As
+exceções do aplicativo casam pelo id da advisory e pela gravidade aceita:
+advisory nova num pacote já aceito reprova, e advisory aceita que muda de
+gravidade também. O prazo das exceções vale até o fim do dia escrito no fuso de
+São Paulo. O que continua FORA do alcance: um `npm` falso no `PATH` (o portão
+confia no programa que executa); um proxy de inspeção TLS que reescreve a
+resposta tirando só a advisory nova e deixando as conhecidas (as variáveis de
+proxy do sistema, como `HTTPS_PROXY`, não são configuração do npm e não passam
+pela lista); o dia em que as duas listas de aceitas ficarem vazias (aí a única
+prova é a consulta de controle à parte); e um `package-lock.json` adulterado que
+marca um pacote de runtime como `dev: true`, porque o portão confia nessa marca
+para separar runtime de desenvolvimento (o `npm ci --omit=dev` do Dockerfile usa
+a mesma marca e não instala o pacote, então a imagem não leva a versão
+vulnerável; anotado na rodada 7).
 
 ### O aplicativo de campo precisa de um comando próprio
 
@@ -1825,9 +1941,14 @@ mesmo papel sem privilégio que a API usará em produção.
 `.github/workflows/verificar.yml` roda a cada push em `main`, `master` ou `v2/**`
 e a cada pull request, em
 trabalhos paralelos (os cinco principais abaixo; há ainda o de dependências,
-`npm run auditar`, o da linha de base em Linux (`baseline.mjs`), o do restore do
-banco e o de ferramentas do roadmap, que também confere os `INDEX.md` da
-evidência com `scripts/conferir-indices-de-evidencia.mjs`: nove ao todo; os
+`node scripts/auditar.mjs`, que antes recusa `.npmrc` versionado; o `windows`,
+que repete o `auditar`, `test:scripts` e `conferir:numeros` em `windows-latest`;
+o `plataformas`, com os três casos de ambiente da E21 em Windows e em Linux (ver
+"O que prova Windows", na primeira seção "Como testar"); o da linha de base em Linux
+(`baseline.mjs`), o do restore do banco e o de ferramentas do roadmap, que
+também confere os `INDEX.md` da evidência com
+`scripts/conferir-indices-de-evidencia.mjs`: onze ao todo, doze execuções por
+causa da matriz do `plataformas`; os
 dois longos, linha de base e restore, hoje só rodam em push cujo commit traga
 `[ci completo]`: o disparo manual e a agenda de segunda-feira estão escritos no
 arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
@@ -1836,7 +1957,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 <!-- numeros: nao sao contagem -->
 | Trabalho | O que ele impõe |
 | --- | --- |
-| Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
+| Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`node scripts/auditar.mjs`, o mesmo portão do `npm run auditar`, política do CP-03, ver "Como testar") |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
@@ -1849,7 +1970,7 @@ um, e se ela quebrar nada mais importa.
 A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
 do CI foi conferida por uma pessoa durante a F00 (é validação humana pendente
 da V2-F00-E01); o gatekeeper leu o run 37739535524 do SHA 7005a60, com 9 jobs
-verdes, e depois o 38618369218 do SHA 7585801, também com 9 de 9. O CI decide dependência por `npm run auditar` (job `dependencias`), e não por
+verdes, depois o 38618369218 do SHA 7585801, também com 9 de 9, e o 39420436042 do SHA 55209ab (candidato fd17ff4), 9 de 9, na rodada 7, antes de existirem os jobs `windows` e `plataformas`. O CI decide dependência por `node scripts/auditar.mjs` (jobs `dependencias` e `windows`; é o mesmo portão do `npm run auditar`), e não por
 `npm audit` puro; o `npm audit` puro ainda lista os avisos aceitos pelo CP-03,
 e os relatórios brutos dele só são arquivados como evidência.
 

@@ -134,7 +134,23 @@ const daquiAMetros = (metros: number) => ({
   longitude: AQUI.longitude,
 });
 
+/**
+ * O PRAZO PADRÃO, UM instante só por caso, e não um `Date.now()` por tarefa.
+ *
+ * Calculado dentro de `tarefa()`, cada tarefa ganhava o relógio do instante em
+ * que foi montada, e duas tarefas "com o mesmo prazo" ficavam a um milissegundo
+ * uma da outra sempre que o relógio virava entre as duas chamadas. A ordem do
+ * dia desempata pelo instante exato do prazo ANTES do protocolo, então esse
+ * milissegundo decidia a ordem, e o caso passava ou reprovava conforme a carga
+ * da máquina (foi o que o CI mostrou no caso da posição 0,0: "longe" na frente
+ * de "perto", com o aviso de que a ordem não considerou distância na tela).
+ * Fixado no `beforeEach` de topo, que roda antes de todo `beforeEach` interno
+ * e de todo caso, o empate é de verdade e quem desempata é o protocolo.
+ */
+let prazoPadrao = "";
+
 function tarefa(parcial: Partial<Pendencia> & { id: string }): Pendencia {
+  if (!prazoPadrao) throw new Error("tarefa() montada antes do beforeEach de topo");
   return {
     protocolo: `0004${parcial.id}/2026`,
     tipo: "deslizamento",
@@ -148,7 +164,7 @@ function tarefa(parcial: Partial<Pendencia> & { id: string }): Pendencia {
     solicitante_contato: null,
     vulnerabilidade_presente: false,
     vulnerabilidade_descricao: null,
-    prazo_em: new Date(Date.now() + 9 * HORA).toISOString(),
+    prazo_em: prazoPadrao,
     criado_em: "2026-09-13T09:00:00.000Z",
     ...parcial,
   } as Pendencia;
@@ -226,6 +242,7 @@ function aRodaDePuxar(): boolean {
 }
 
 beforeEach(() => {
+  prazoPadrao = new Date(Date.now() + 9 * HORA).toISOString();
   mockTarefas = [tarefa({ id: "1" })];
   mockBaixadasEm.valor = new Date().toISOString();
   mockColetas = [];
@@ -624,7 +641,8 @@ describe("sem GPS a tela não inventa distância, e diz isso", () => {
     como se tivesse medido e apaga o aviso de que não mediu.
 
     Os protocolos são explícitos para o caso saber reprovar: sem posição, o
-    desempate final é o protocolo e a ordem é "perto" antes de "longe"; da ilha
+    desempate final é o protocolo (o prazo das duas é o MESMO instante, ver
+    `prazoPadrao`) e a ordem é "perto" antes de "longe"; da ilha
     nula, "longe" (mais ao norte) passa na frente. As duas metades da prova, a
     ordem e a frase, precisam das duas.
   */

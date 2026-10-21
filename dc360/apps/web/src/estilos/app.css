@@ -23,9 +23,24 @@
 
 html, body, #root { height: 100%; }
 
-/* O topo é fixo: sem isto, rolar até um elemento (âncora, foco por teclado,
-   scrollIntoView) o deixa por baixo do cabeçalho. */
-html { scroll-padding-top: calc(var(--ds-sp-8) + var(--ds-sp-4)); }
+/* O topo é fixo, e até 900 px a barra de navegação também, no pé: sem isto,
+   rolar até um elemento (âncora, foco por teclado, scrollIntoView) o deixa por
+   baixo de um dos dois. As duas folgas são MEDIDAS por `usar-bordas-fixas.ts`
+   (a altura do topo muda com a largura, o zoom e o nome de quem entrou) e
+   chegam aqui por variável, antes do primeiro desenho (`useLayoutEffect`).
+   Sem a medida não há borda fixa nenhuma (as telas públicas, como "Defina a
+   sua senha", não têm topo), e a folga é só o respiro: a estimativa de 140 px
+   que valia em toda tela até 600 px tirava espaço da tela pública no zoom de
+   400 por cento (V2-F00-E09, correção 6). */
+html {
+  scroll-padding-top: var(--topo-fixo-folga, var(--ds-sp-3));
+  scroll-padding-bottom: var(--pe-fixo-folga, var(--ds-sp-3));
+}
+/* O foco por teclado leva o CONTROLE à vista, e o rótulo fica uns 32 px acima
+   dele: a margem cobre a linha do rótulo e o respiro entre os dois, em qualquer
+   largura (até a correção 6 valia só até 600 px, e acima disso o rótulo ficava
+   atrás do topo). Um passo de `--ds-sp-5` mais um de `--ds-sp-3`. */
+.campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
 
 body {
   margin: 0;
@@ -542,11 +557,15 @@ a:hover { color: var(--ds-accent-hover); }
   permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
   (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
   `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
-  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
+  já rola 3 px).
+
+  Valia só até 1399 px, na conta de que "em tela larga a coluna tem folga". A
+  revisão da correção 6 mostrou que a folga depende das letras: com um email de
+  parte local larga ("...municipalmwmwmwmw@") a tabela rolava a 1440 px nos três
+  motores (1083 de 1062) e "Encerrar sessões" saía da tela. O teto vale em
+  qualquer largura; o email ainda quebra só nos `<wbr>`.
 */
-@media (max-width: 1399px) {
-  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
-}
+.tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
 /*
   Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
   se a coluna for estreita demais quem cede é a tabela, que rola.
@@ -797,13 +816,19 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 
 /* ---------- Paginação ---------- */
 
+/*
+  A paginação quebra em linhas: a 320 px "Página 1 de 3" e os dois botões não
+  cabem lado a lado, e "Próxima" saía da tela (Ocorrências em 325 de 320 px e
+  Prestação de contas em 330, nos três motores; revisão da correção 6 da
+  V2-F00-E09).
+*/
 .paginacao {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: var(--ds-sp-3); padding: var(--ds-sp-3) var(--ds-sp-4);
   border-top: 1px solid var(--ds-border);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
 }
-.paginacao__controles { display: flex; gap: var(--ds-sp-2); }
+.paginacao__controles { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
 
 /* ---------- Detalhe ---------- */
 
@@ -1090,6 +1115,24 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
           --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
 }
+/*
+  Janela muito baixa (o zoom de 400 por cento de uma tela de 1280x1024 é 320x256
+  de CSS; o celular deitado de 568x320): o topo de duas linhas (129 px) e a
+  barra do pé (79 px) deixavam 48 px de página, menos que um rótulo com o campo
+  embaixo, e qualquer campo focado ficava atrás de um dos dois (WCAG 2.4.11,
+  correção 6 da V2-F00-E09). Abaixo de 340 px de altura os dois deixam de ser
+  fixos e rolam com a página: a navegação continua lá, no fim dela, e o topo, no
+  começo. A medida de `usar-bordas-fixas.ts` vê que não estão presos e zera a
+  folga. Era 360 px; desceu para 340 (correção 6b) para o Android deitado
+  (640x360, 740x360) manter a navegação fixa, onde o campo focado ainda cabe
+  inteiro entre as duas bordas (medido). A altura é decisão de desenho a
+  confirmar pelo Rafael.
+*/
+@media (max-height: 340px) {
+  .topo, .lateral { position: static; }
+  /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
+  .toast { bottom: var(--ds-sp-4); }
+}
 @media (max-width: 600px) {
   .lateral { --barra-visiveis: 4; }
 }
@@ -1114,21 +1157,21 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 @media (max-width: 600px) {
   .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
   /*
-    O topo agora tem duas linhas (a marca e a conta, e a busca): são 125 px, e o
-    `scroll-padding-top` de cima (80 px, o topo de uma linha só) deixava o campo
-    focado por código com o rótulo e a borda de cima por baixo dele. Visto na
-    correção 5 da V2-F00-E09, na senha errada em Minha conta a 320 e 390 px. Duas
-    alturas de toque, três respiros de `--ds-sp-3` (cima, entre as linhas, baixo)
-    e mais um `--ds-sp-4` de folga.
+    O topo tem duas linhas aqui (a marca e a conta, e a busca): 129 px. A folga
+    da rolagem para ele é medida (`usar-bordas-fixas.ts`, correção 6 da
+    V2-F00-E09); a correção 5 a escrevia como número só nesta faixa, e acima de
+    600 px, onde o topo também chega a ter duas linhas, o campo focado ficava
+    por baixo dele.
   */
-  html { scroll-padding-top: calc(var(--ds-touch) * 2 + var(--ds-sp-3) * 3 + var(--ds-sp-4)); }
   /*
-    O foco leva o CAMPO ao `scroll-padding-top`, e o rótulo fica uns 32 px acima
-    dele: sem esta margem o rótulo ("Senha que você usa hoje") ficava por baixo do
-    topo (medido: rótulo em 108 px, topo até 129 px). Um passo de `--ds-sp-5` mais
-    um de `--ds-sp-3` cobre a linha do rótulo e o respiro entre ele e o campo.
+    O texto de exemplo da busca ("Buscar registro ou função") saía cortado a
+    320 px ("Buscar registro ou funç"): o recuo da direita guarda o lugar da
+    dica "Ctrl K", e no celular não há teclado com Ctrl. A dica some da tela e
+    continua no `aria-describedby` do campo (texto referenciado é lido mesmo
+    escondido), e o recuo volta ao respiro comum.
   */
-  .campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
+  .busca-global__atalho { display: none; }
+  .busca-global__caixa #busca-global { padding-right: var(--ds-sp-3); }
   .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
   .identidade__nome, .identidade__papel, .identidade br { display: none; }
   .identidade--acionavel { padding: var(--ds-sp-1); }
@@ -1404,8 +1447,20 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
 }
-/* O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`. */
-.oficio__linha > span { overflow-wrap: break-word; word-break: normal; }
+/*
+  O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`, e um
+  pedaço sem ponto mais largo que o cartão quebra dentro, em vez de sair dele.
+
+  A "rede de segurança" do `break-word` não bastava sozinha (correção 6 da
+  V2-F00-E09, rodada 7): com "plantaocoordenacaodefesacivilserraalta@..." o texto
+  saía do cartão a 360 px e a página rolava na horizontal a 320 px. Duas
+  larguras mínimas seguravam o pedaço inteiro: a do `<span>`, que é item de
+  linha `flex` (`min-width: auto` é a palavra mais longa), e a da coluna do
+  `.oficio`, que é `grid` com coluna `auto` (do tamanho mínimo do conteúdo).
+  Zerar as duas deixa o cartão mandar na largura, e o `break-word` age.
+*/
+.oficio { grid-template-columns: minmax(0, 1fr); }
+.oficio__linha > span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
 
 /* ---------------------------------------------------------------------------
    Verificação em duas etapas

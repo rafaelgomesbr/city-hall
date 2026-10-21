@@ -1,0 +1,13 @@
+$ npx vitest run test/regras-de-conteudo.test.ts test/permissoes-no-readme.test.ts   (em dc360/packages/shared, DEPOIS da correção 5)
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 5ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 782ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  436ms
+
+ Test Files  2 passed (2)
+      Tests  20 passed (20)
+   Start at  10:07:17
+   Duration  1.02s (transform 181ms, setup 0ms, collect 220ms, tests 787ms, environment 0ms, prepare 84ms)
+

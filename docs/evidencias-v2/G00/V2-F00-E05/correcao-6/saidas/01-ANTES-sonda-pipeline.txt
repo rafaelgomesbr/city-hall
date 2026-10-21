@@ -1,0 +1,155 @@
+modo=falhar cl-stream: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-response: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-stream-pedacos: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-buffer: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 119] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-leng"(+49 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-string: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 119] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-leng"(+49 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-raw-write: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-raw-end: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar cl-writeraw: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar chunked-depois-do-terminador: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | te chunked] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    resto="0\r\n\r\nHTTP/1.1 401 Unauthorized\r\nContent-Security-Policy: default-src 'none';fram"
+modo=falhar te-forjado-stream: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] "0\r\n\r\nHTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-l"(+52 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar te-identity: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te identity] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-leng"(+1090 bytes)
+modo=falhar cl-e-te: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 2] "77"
+    resto="\r\n{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 39\r\n"
+modo=falhar cl-menor-que-o-corpo-403: desvios=1 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 500 Internal Server Error | cl 170] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /orgaos respondeu"(+100 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar trailer-inventado: desvios=1 resposta_401_403_com_codigo_inventado=não
+    resto="[tempo]"
+modo=falhar trailer-catalogo: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 403 Forbidden | te chunked] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar flush-403: desvios=1 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] ""
+modo=falhar flush-403-catalogo: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] ""
+modo=falhar zip: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"(+204730 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar pdf: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 300000] "\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007"(+299930 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=falhar stream-cl-certo: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 8] "abcdefgh"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-stream: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-response: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-stream-pedacos: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-buffer: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 119] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-leng"(+49 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-string: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 119] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-leng"(+49 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-raw-write: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-raw-end: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir cl-writeraw: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | cl 2] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir chunked-depois-do-terminador: desvios=0 resposta_401_403_com_codigo_inventado=SIM
+    [HTTP/1.1 200 OK | te chunked] "{}"
+    [HTTP/1.1 403 Forbidden | cl 39] "{\"erro\":\"inventado_qa7\",\"mensagem\":\"x\"}"
+    resto="0\r\n\r\nHTTP/1.1 401 Unauthorized\r\nContent-Security-Policy: default-src 'none';fram"
+modo=corrigir te-forjado-stream: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] "0\r\n\r\nHTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-l"(+52 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir te-identity: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te identity] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-leng"(+1090 bytes)
+modo=corrigir cl-e-te: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 2] "77"
+    resto="\r\n{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 39\r\n"
+modo=corrigir cl-menor-que-o-corpo-403: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 403 Forbidden | cl 86] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o par"(+16 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir trailer-inventado: desvios=0 resposta_401_403_com_codigo_inventado=não
+    resto="[tempo]"
+modo=corrigir trailer-catalogo: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 403 Forbidden | te chunked] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir flush-403: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] ""
+modo=corrigir flush-403-catalogo: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] ""
+modo=corrigir zip: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | te chunked] "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"(+204730 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir pdf: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 300000] "\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007\u0007"(+299930 bytes)
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+modo=corrigir stream-cl-certo: desvios=0 resposta_401_403_com_codigo_inventado=não
+    [HTTP/1.1 200 OK | cl 8] "abcdefgh"
+    [HTTP/1.1 401 Unauthorized | cl 66] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Informe o token de acesso.\"}"
+    resto="[fechou]"
+exceções não tratadas: 2 ["ERR_HTTP_TRAILER_INVALID","ERR_HTTP_TRAILER_INVALID"]

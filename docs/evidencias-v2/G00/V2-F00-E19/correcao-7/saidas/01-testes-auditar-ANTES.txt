@@ -1,0 +1,127 @@
+▶ auditar.mjs
+  ✔ passa quando runtime e aplicativo estão limpos (349.343166ms)
+  ✔ reprova vulnerabilidade de runtime (98.432708ms)
+  ✔ só avisa de vulnerabilidade apenas de desenvolvimento (199.963792ms)
+  ✔ dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono' (202.2795ms)
+  ✔ dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo (203.026792ms)
+  ✔ reprova advisory nova no aplicativo de campo (134.977959ms)
+  ✔ aceita o nomeado, com o id da advisory, dono e prazo na saída (203.845791ms)
+  ✔ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (131.3925ms)
+  ✔ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (133.284542ms)
+  ✔ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (335.21375ms)
+  ✔ reprova aceita que tem correção disponível e não está marcada como inaplicável (133.604125ms)
+  ✔ tolera correção disponível quando a exceção é marcada como inaplicável (CP-03) (199.82675ms)
+  ✔ sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro (64.900917ms)
+  ✔ sai 2 quando a auditoria completa da raiz volta com erro do registro (97.170959ms)
+  ✔ sai 2 quando o aplicativo de campo volta com erro do registro (135.212209ms)
+  ✔ sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo (294.316208ms)
+  ✔ sai 2 quando o npm não devolve nem JSON (134.84875ms)
+  ✔ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (207.413583ms)
+  ✖ audita a RAIZ, e não o diretório de onde o comando foi dado (de dentro de um workspace) (202.142459ms)
+  ✖ nenhuma configuração de workspace do ambiente chega ao npm (npm_config_workspace, workspaces e include_workspace_root) (204.335459ms)
+  ✔ vulnerabilidade de runtime reprova (1) também quando o comando é dado de dentro de um workspace e com npm_config_workspace (99.692833ms)
+  ✔ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (131.385375ms)
+  ✔ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (202.855292ms)
+  ✔ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (134.373459ms)
+  ✔ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (832.727042ms)
+  ✔ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (400.670375ms)
+  ✔ achado não precisa de prova para reprovar: runtime vulnerável sai 1 mesmo com o controle vazio (96.756209ms)
+  ✔ sai 2 quando as consultas reais voltam vazias e só a de controle volta de verdade (o proxy da revisão) (135.714875ms)
+  ✔ sai 2 quando só a auditoria completa da raiz volta vazia (os pacotes aceitos do vitest sumiram) (132.139208ms)
+  ✔ sai 2 quando UMA advisory aceita some (lista velha ou resposta mexida), e diz qual (131.086583ms)
+  ✔ runtime forjado vazio não esconde o que a auditoria completa acusa em pacote que o lockfile não marca como dev (99.19075ms)
+  ✔ advisory aceita que muda de gravidade (para cima ou para baixo) deixa de valer sem decisão: sai 1 e diz a mudança (262.907667ms)
+✖ auditar.mjs (6326.202458ms)
+▶ regras puras do portão: advisory por id e prova de consulta
+  ✔ ambienteDaConsulta tira só as variáveis de workspace do npm, em qualquer caixa, e mantém o resto (0.269708ms)
+  ✔ idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA (0.189125ms)
+  ✔ advisoriesNaoAceitas casa por GHSA, aceita a URL na lista, ignora arrasto e não repete o mesmo GHSA de faixas diferentes (0.154333ms)
+  ✔ defeitoDoControle só aceita o relatório com a advisory conhecida do pacote de controle (0.093417ms)
+  ✔ mudancasDeGravidade compara com a maior gravidade do mesmo GHSA entre as faixas, e ignora o que não é aceito (0.137208ms)
+  ✔ aceitasAusentes e pacotesAceitosAusentes listam o que sabíamos existir e não voltou (0.1315ms)
+  ✔ pacotesDeRuntimeNoCompleto: só fica de fora o nó que o lockfile marca dev; nó desconhecido conta como runtime (0.085417ms)
+  ✔ defeitoDaArvore exige dependencies.total maior que zero (0.05075ms)
+  ✔ a lista do aplicativo exige advisories: sem a lista, lista vazia ou id inválido reprova (0.876958ms)
+✔ regras puras do portão: advisory por id e prova de consulta (2.103958ms)
+▶ exceções do CP-03: nome, dono e prazo
+  ✔ aceita exceção com motivo, dono e prazo no futuro (0.063666ms)
+  ✔ aceita exceção que vence hoje (o prazo vale até o fim do dia) (0.033417ms)
+  ✔ reprova exceção sem prazo (0.049333ms)
+  ✔ reprova prazo em branco, fora do formato ou que não existe no calendário (0.096833ms)
+  ✔ reprova exceção sem dono ou com dono em branco (0.081083ms)
+  ✔ reprova exceção sem motivo ou com motivo em branco (0.062416ms)
+  ✔ reprova exceção vencida e diz a data (0.050375ms)
+  ✔ aponta todos os defeitos de uma vez, de todas as exceções (0.036916ms)
+  ✔ a lista REAL tem advisories, motivo, dono e prazo válidos e no futuro (0.050959ms)
+  ✔ a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos (0.036583ms)
+✔ exceções do CP-03: nome, dono e prazo (0.664833ms)
+▶ auditar.mjs com a lista de exceções adulterada
+  ✔ a cópia sem adulteração passa (controle do próprio teste) (203.179917ms)
+  ✔ reprova a exceção sem prazo, mesmo que o pacote esteja no relatório (31.48225ms)
+  ✔ reprova a exceção sem dono (30.251833ms)
+  ✔ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (204.556708ms)
+  ✔ reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote) (33.054708ms)
+  ✔ sai 2 quando não consegue ler o package-lock.json da raiz (não dá para separar runtime de desenvolvimento) (102.543083ms)
+  ✔ reprova a exceção vencida (31.363541ms)
+✔ auditar.mjs com a lista de exceções adulterada (636.606583ms)
+ℹ tests 58
+ℹ suites 4
+ℹ pass 56
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7016.201417
+
+✖ failing tests:
+
+test at scripts/auditar.test.mjs:324:3
+✖ audita a RAIZ, e não o diretório de onde o comando foi dado (de dentro de um workspace) (202.142459ms)
+  AssertionError [ERR_ASSERTION]: a consulta da raiz rodou fora da raiz
+  + actual - expected
+  
+  + '/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared'
+  - '/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360'
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/auditar.test.mjs:332:42)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared',
+    expected: '/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/auditar.test.mjs:337:3
+✖ nenhuma configuração de workspace do ambiente chega ao npm (npm_config_workspace, workspaces e include_workspace_root) (204.335459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'npm_config_include_workspace_root',
+  +   'npm_config_include-workspace-root',
+  +   'npm_config_workspace',
+  +   'NPM_CONFIG_WORKSPACES'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/auditar.test.mjs:347:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'npm_config_include_workspace_root', 'npm_config_include-workspace-root', 'npm_config_workspace', 'NPM_CONFIG_WORKSPACES' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

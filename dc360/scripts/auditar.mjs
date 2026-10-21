@@ -35,13 +35,14 @@
  * linha.
  */
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
-  aceitasAusentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+  CHAVES_PERMITIDAS, aceitasAusentes, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas, hojeEmSaoPaulo,
+  lerNpmConfigList, mesmoProjeto, normalizarChave, shrinkwrapsPresentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
   idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
@@ -110,12 +111,19 @@ function relatorioValido(relatorio) {
   return null;
 }
 
+/**
+ * `cwd` é obrigatório e nunca o do processo: o npm restringe a auditoria ao
+ * workspace em que o comando é dado, então auditar "a raiz" no diretório atual
+ * dava "Runtime limpo" quando o portão era chamado de dentro de `packages/shared`
+ * (validação pré-rodada 7, V2-F00-E19 correção 7). A raiz é `RAIZ`, sempre.
+ */
 function auditar(argumentos, cwd, rotulo) {
+  if (typeof cwd !== "string" || cwd === "") throw new Error(`auditar(${rotulo}): cwd é obrigatório`);
   let saida;
   try {
     saida = execFileSync("npm", ["audit", "--json", ...BANDEIRAS_DA_CONSULTA_REAL, ...argumentos], {
       encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
-      ...(cwd ? { cwd } : {}),
+      cwd, env: ambienteDaConsulta(process.env),
     });
   } catch (erro) {
     // `npm audit` sai com código diferente de zero quando acha algo, e o JSON
@@ -150,7 +158,7 @@ function contar(relatorio) {
   prazo) ANTES de qualquer auditoria: lista malformada reprova mesmo que o
   pacote dela não apareça no relatório de hoje.
 */
-const hoje = new Date().toISOString().slice(0, 10);
+const hoje = hojeEmSaoPaulo();
 const defeitosDaLista = [
   ...problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje, { exigirAdvisories: true }),
   ...problemasDasExcecoes(ACEITAS_EM_DESENVOLVIMENTO, hoje).map((p) => `(desenvolvimento) ${p}`),
@@ -165,10 +173,87 @@ if (defeitosDaLista.length > 0) {
   process.exit(1);
 }
 
-const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], undefined, "o conjunto de runtime da raiz");
+/* ---------- A configuração do npm, antes de qualquer auditoria ---------- */
+
+/**
+ * Sai 2 se a configuração que o npm vai usar no `projeto` tem alguma chave fora
+ * de `CHAVES_PERMITIDAS`. Junta três leituras: o que o próprio npm diz que
+ * carregou (`npm config list`, com o mesmo ambiente das auditorias: builtin,
+ * global, usuário, projeto e ambiente), o `.npmrc` do projeto lido direto do
+ * disco, e as `npm_config_*` que sobram no ambiente. As duas últimas não
+ * dependem do formato do texto do npm. Confere também que o npm tomou o
+ * `projeto` como projeto (`npm local prefix`).
+ */
+function conferirConfiguracaoDoNpm(projeto, rotulo) {
+  let texto;
+  try {
+    texto = execFileSync("npm", ["config", "list"], {
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
+      cwd: projeto, env: ambienteDaConsulta(process.env),
+    });
+  } catch (erro) {
+    naoAuditou(rotulo, `o \`npm config list\` falhou (${String(erro.message).split(String.fromCharCode(10))[0]})`);
+  }
+  const { chaves, prefixoLocal } = lerNpmConfigList(texto);
+  const real = (caminho) => { try { return realpathSync(caminho); } catch { return caminho; } };
+  if (!mesmoProjeto(prefixoLocal, [projeto, real(projeto)])) {
+    naoAuditou(rotulo, `o npm não tomou ${projeto} como projeto (npm local prefix = ${prefixoLocal ?? "ausente"})`);
+  }
+  const npmrc = join(projeto, ".npmrc");
+  if (existsSync(npmrc)) {
+    for (const chave of chavesDoNpmrc(readFileSync(npmrc, "utf8"))) chaves.push({ chave, origem: `project (${npmrc})` });
+  }
+  for (const nome of Object.keys(ambienteDaConsulta(process.env))) {
+    if (/^npm_config_/i.test(nome)) chaves.push({ chave: normalizarChave(nome, { doAmbiente: true }), origem: `env (${nome})` });
+  }
+  const proibidas = chavesProibidas(chaves);
+  if (proibidas.length > 0) {
+    console.error(`\nERRO: a configuração do npm para ${rotulo} (${projeto}) tem chave fora da lista permitida, então este portão NÃO aprova.`);
+    for (const { chave, origem } of proibidas) console.error(`  - ${chave}   (de ${origem})`);
+    console.error(
+      "Uma chave de configuração pode mudar o que o `npm audit` olha (a rodada 7 achou `package-lock=false`, que faz "
+      + "o npm auditar outra árvore e aprovar um lockfile vulnerável). Tire a chave, ou, se ela for comprovadamente "
+      + `inofensiva, acrescente-a com o motivo a CHAVES_PERMITIDAS em scripts/auditar-excecoes.mjs. Permitidas: ${Object.keys(CHAVES_PERMITIDAS).join(", ")}.`,
+    );
+    process.exit(2);
+  }
+}
+
+conferirConfiguracaoDoNpm(RAIZ, "o projeto da raiz");
+conferirConfiguracaoDoNpm(APLICATIVO, "o projeto do aplicativo de campo");
+
+/*
+  O `npm-shrinkwrap.json` vence o `package-lock.json` no npm: com um ao lado, o
+  portão auditava o shrinkwrap e aprovava o lockfile que o Dockerfile instala.
+*/
+{
+  const { achados, naoExpandidos } = shrinkwrapsPresentes(RAIZ, [APLICATIVO], { existsSync, readFileSync, readdirSync });
+  if (achados.length > 0 || naoExpandidos.length > 0) {
+    console.error("\nERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.");
+    // Barra normal no caminho também no Windows (`join` dá `apps\campo`), para a
+    // mensagem ser a mesma nas duas plataformas.
+    for (const f of achados) console.error(`  - ${f.replaceAll("\\", "/")} existe, e o npm o lê NO LUGAR do package-lock.json`);
+    for (const p of naoExpandidos) console.error(`  - padrão de workspace que o portão não sabe expandir para procurar shrinkwrap: ${p}`);
+    console.error(
+      "O Dockerfile instala o package-lock.json, e o npm audit olharia o npm-shrinkwrap.json. Apague o shrinkwrap "
+      + "(este repositório não usa), ou ensine o portão a expandir o padrão em shrinkwrapsPresentes (scripts/auditar-excecoes.mjs).",
+    );
+    process.exit(2);
+  }
+}
+
+/*
+  `--package-lock-only=false` nas consultas reais (e `--package-lock=true` em
+  todas, por `BANDEIRAS_DA_CONSULTA_REAL`): o npm audita o que o lockfile diz,
+  que é o que o `npm ci` do Dockerfile instala.
+*/
+const relatorioDoRuntime = auditar(
+  ["--package-lock-only=false", "--omit=dev", "--audit-level=low"], RAIZ, "o conjunto de runtime da raiz",
+);
 // `--include` explícito: `omit=dev` na configuração do npm não esconde o desenvolvimento.
 const relatorioDeTudo = auditar(
-  ["--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], undefined, "o conjunto completo da raiz",
+  ["--package-lock-only=false", "--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], RAIZ,
+  "o conjunto completo da raiz",
 );
 const runtime = contar(relatorioDoRuntime);
 const tudo = contar(relatorioDeTudo);
@@ -234,7 +319,9 @@ if (soDesenvolvimento > 0) {
 
 /* ---------- O aplicativo de campo, que fica fora do `workspaces` ---------- */
 
-const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo");
+const relatorioDoApp = auditar(
+  ["--package-lock-only=false", "--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo",
+);
 const doApp = contar(relatorioDoApp);
 /*
   Só os pacotes com advisory PRÓPRIA, e não a cadeia inteira que depende deles.

@@ -1,0 +1,2 @@
+# ANTES (HEAD 7d067cc), os três arquivos com o auxiliar tarefa(), --runInBand, 8 processos yes ocupando os 8 núcleos, 25 rodadas (scripts/carga.sh antes 25)
+  25 Tests:       95 passed, 95 total

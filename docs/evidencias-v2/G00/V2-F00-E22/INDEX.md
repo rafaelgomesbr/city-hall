@@ -6,6 +6,8 @@
 
 > Nota de 2026-10-19 (V2-F00-E22, correção 4): entra `correcao-4/` (RESUMO com a tabela da varredura, `saidas/`, `sondas/` e o diff). `correcao-4/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
 
+> Nota de 2026-10-20 (V2-F00-E22, correção 5): entra `correcao-5/` (RESUMO com a tabela de antes, depois e prova das frases corrigidas, `saidas/` e o diff). `correcao-5/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 0083163cb82463808605fe368c8505ae018adc57fdae4f7f6aee5de339f411d1 |
@@ -94,6 +96,13 @@
 | correcao-4/sondas/tabelas-fora-do-dicionario.mjs | 3f37825d0098336088948ae908dc93ce1707eeb6e050cc9094d1fcb928de630a |
 | correcao-4/sondas/travessao-nos-arquivos-tocados.mjs | 4dce5ba109aa2f5329fbdd6c9ee6f2e48e262f9e04c0df9a53bad536762d10ad |
 | correcao-4/sondas/variaveis-e-rotas-citadas.mjs | 08337d9f7aa8b9c4a4e8389c262d3dbe169a6a51ac3c01b0b1026bf3e1d7326f |
+| correcao-5/RESUMO.md | b45d49973e446a2e427a8e3e253ee41796682916704ca1ece88a714996c70890 |
+| correcao-5/diff-da-correcao.patch | b6f7ed32a8abb855329769e908e26e7efff6a3770d5953a1d34eec308e455610 |
+| correcao-5/saidas/01-conferir-numeros.txt | c1bb43105da0d1169c243161c43f6022dc6370dc1716998ee7984f87c53fce60 |
+| correcao-5/saidas/02-portao-de-conteudo.txt | f5af8b585008561a3de02f1f1475cef23bbb41aa4206f9dd1ae9f66ce81a13bb |
+| correcao-5/saidas/03-teste-da-guarda-da-api.txt | ccdf8fcbcfb915304ab46f58a8b4d5c6dfeec90af2e5eb81de947d298cc2c26f |
+| correcao-5/saidas/04-ferramentas-do-roadmap.txt | 543c1316c84cfba648b709a7edf627af300130eecca9fd666cbee072bda1ea8e |
+| correcao-5/saidas/05-provas.txt | e3a17d215d724784453e0ffd1dcb78db551cc418a0a2026efe830a3d02ec9b65 |
 | saidas/antes/audit-campo-runtime.txt | a528c1c75dfb55d40c08b126115a1ce37fb4bda3048a0585bdf1c854f47cbaa3 |
 | saidas/antes/audit-raiz-runtime.txt | 48cfb220bd1c60fb3182a0cc3c7730f7e5b22545de62daa30a0ca3bfbd27c477 |
 | saidas/antes/auditar.txt | 4c4f1e327a4c3c365d0ec8066f50faae1cda6c04d34c235f2d290542076e8c64 |

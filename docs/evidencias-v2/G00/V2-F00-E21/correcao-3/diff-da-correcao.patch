@@ -1,0 +1,622 @@
+diff --git a/.github/workflows/verificar.yml b/.github/workflows/verificar.yml
+index dd9cdbf..c93b212 100644
+--- a/.github/workflows/verificar.yml
++++ b/.github/workflows/verificar.yml
+@@ -16,7 +16,9 @@
+ #
+ # ESTE CI É PROVA DE EXECUÇÃO EM LINUX (docs/roadmap-v2/28-execucao-e-validacao.md,
+ # seções 6 e 8): o gatekeeper lê o run do SHA do commit candidato e avalia job a
+-# job, com artefato. Por isso:
++# job, com artefato. O job `plataformas` é a exceção que também prova Windows
++# (`windows-latest`, V2-F00-E21): os três casos de ambiente da etapa, sob a
++# condição hostil real, em Windows e em Linux. Por isso:
+ #
+ # - Roda em push para main, master e para todo ramo `v2/**`, e em pull_request.
+ # - Em ramo `v2/**` nenhum run é cancelado nem substituído: cada SHA candidato
+@@ -581,6 +583,232 @@ jobs:
+           overwrite: true
+           if-no-files-found: error
+ 
++  plataformas:
++    # V2-F00-E21: os três casos da etapa sob a condição hostil REAL, em Windows
++    # e em Linux. A Definition of Done pede "três casos verdes em Windows e
++    # Linux", e até aqui só o Linux tinha run, e só a parte sintética (o
++    # checkout do Linux é LF, a variável não estava quebrada no ambiente e não
++    # havia cache velho no disco). O repositório é público, então o runner
++    # `windows-latest` não custa nada.
++    #
++    # Os três casos, cada um precedido de um CONTROLE que reprova o job se a
++    # condição hostil não se reproduzir (verde sobre condição amena não prova
++    # nada):
++    #
++    # 1. CRLF. O checkout é feito com `core.autocrlf=true`, a configuração do
++    #    Windows do autor (e o padrão do Git for Windows). Com o `.gitattributes`
++    #    em vigor o `eol=lf` vence e o checkout sai LF: é isso que o passo de
++    #    `git ls-files --eol` prova. A árvore CRLF de antes do `.gitattributes`
++    #    é então montada à mão em `apps/web/src` e `apps/web/test`, e a suíte
++    #    do painel inteira roda sobre ela.
++    # 2. `OPENSSL_CONF` apontando para arquivo que não existe (o valor que o
++    #    instalador do driver ODBC do PostgreSQL grava no Windows). Antes, o
++    #    controle mostra o `openssl` cru reprovando com ela. Roda no bash (no
++    #    Windows é o Git Bash, que traz o `openssl`) e, só no Windows, também no
++    #    Windows PowerShell 5.1 (`shell: powershell`), onde o `openssl` não está
++    #    no PATH do Git e o teste o procura ao lado do `git`.
++    # 3. Cache velho do Expo: `apps/campo/.expo/types/router.d.ts` sem
++    #    `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`).
++    #    O controle é o `tsc` direto dando TS2345; depois `npm run test:campo`
++    #    tem de apagar o cache e passar, e o typecheck sem cache dá zero.
++    #
++    # Mais o conferidor de índices de evidência (SHA-256) sobre um checkout
++    # feito com `autocrlf=true`, que é onde um índice tirado do disco errado
++    # deixaria de bater.
++    #
++    # Roda em TODO push, e não só com `[ci completo]`: a prova que a validação
++    # lê é o run do SHA candidato, e um commit candidato sem este job deixaria a
++    # E21 sem Windows de novo. Estimativa: 15 a 25 minutos no Windows (os dois
++    # `npm ci`, a suíte do painel e o jest do aplicativo), perto de 10 no Linux,
++    # em paralelo com os outros jobs.
++    name: Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ${{ matrix.sistema }}
++    strategy:
++      fail-fast: false
++      matrix:
++        sistema: [windows-latest, ubuntu-latest]
++    runs-on: ${{ matrix.sistema }}
++    timeout-minutes: 45
++    defaults:
++      run:
++        # No Windows `bash` é o Git Bash do runner. `bash` explícito liga o
++        # `pipefail`, e `comando | tee arquivo` devolve o código do comando.
++        shell: bash
++        working-directory: dc360
++
++    steps:
++      # Antes do checkout: é a configuração com que o git escreve a árvore.
++      - name: Fim de linha como no Windows do autor (core.autocrlf=true)
++        working-directory: .
++        run: |
++          git config --global core.autocrlf true
++          git config --show-origin --get-all core.autocrlf
++
++      - uses: actions/checkout@v4
++
++      - uses: actions/setup-node@v4
++        with:
++          node-version: "22"
++          cache: npm
++          cache-dependency-path: |
++            dc360/package-lock.json
++            dc360/apps/campo/package-lock.json
++
++      - name: Contexto do run
++        env:
++          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
++        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
++
++      # Nenhum arquivo CRLF ou misto no índice, e CRLF no disco só onde o
++      # `.gitattributes` pede (`.ps1`, `.bat`, `.cmd`), apesar do autocrlf.
++      - name: git ls-files --eol sem i/crlf (checkout com autocrlf=true)
++        working-directory: .
++        run: |
++          git config --show-origin --get-all core.autocrlf 2>&1 | tee "$RUNNER_TEMP/artefatos/01-autocrlf.txt"
++          git ls-files --eol > "$RUNNER_TEMP/artefatos/01-git-ls-files-eol-completo.txt"
++          node dc360/scripts/ambiente-hostil.mjs eol "$RUNNER_TEMP/artefatos/01-git-ls-files-eol-completo.txt" 2>&1 | tee "$RUNNER_TEMP/artefatos/01-git-ls-files-eol-resumo.txt"
++
++      - name: Os INDEX.md da evidência batem com os arquivos (SHA-256)
++        if: ${{ !cancelled() }}
++        working-directory: .
++        run: node dc360/scripts/conferir-indices-de-evidencia.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/02-indices-de-evidencia.txt"
++
++      - name: Instalar dependências
++        id: instalar
++        if: ${{ !cancelled() }}
++        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/03-npm-ci.txt"
++
++      - name: Compilar os pacotes compartilhados
++        id: compilar
++        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
++        run: npm run build:shared 2>&1 | tee "$RUNNER_TEMP/artefatos/04-build-shared.txt"
++
++      - name: "Caso 1, controle: árvore do painel em CRLF, sem a agulha antiga"
++        id: crlf
++        if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
++        run: |
++          {
++            node scripts/ambiente-hostil.mjs crlf apps/web/src apps/web/test
++            node scripts/ambiente-hostil.mjs conferir-crlf apps/web/src/paginas/Ocorrencia.tsx
++            node scripts/ambiente-hostil.mjs conferir-crlf apps/web/test/ocorrencia-encerramento.test.ts
++          } 2>&1 | tee "$RUNNER_TEMP/artefatos/05-crlf-controle.txt"
++
++      - name: "Caso 1: suíte do painel inteira sobre a árvore CRLF"
++        if: ${{ !cancelled() && steps.crlf.outcome == 'success' }}
++        run: npm run test --workspace @dc360/web 2>&1 | tee "$RUNNER_TEMP/artefatos/06-painel-em-crlf.txt"
++
++      # `MSYS_NO_PATHCONV`: sem ele o Git Bash reescreve `/CN=controle` como
++      # caminho do Windows e o `openssl` reprovaria pelo motivo errado.
++      - name: "Caso 2, controle: o openssl cru reprova com OPENSSL_CONF quebrado"
++        id: openssl_controle
++        if: ${{ !cancelled() }}
++        env:
++          OPENSSL_CONF: ${{ runner.os == 'Windows' && 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf' || '/nao/existe/psqlODBC/etc/openssl.cnf' }}
++          MSYS_NO_PATHCONV: "1"
++        run: |
++          {
++            echo "OPENSSL_CONF=$OPENSSL_CONF"
++            echo "openssl: $(command -v openssl)"
++            openssl version || true
++            if [ -e "$OPENSSL_CONF" ]; then echo "CONDIÇÃO HOSTIL NÃO REPRODUZIDA: o arquivo existe"; exit 1; fi
++            pasta="$(mktemp -d)"
++            if openssl req -x509 -newkey rsa:2048 -nodes -keyout "$pasta/chave.pem" -out "$pasta/cert.pem" -subj "/CN=controle" -days 1; then
++              echo "CONDIÇÃO HOSTIL NÃO REPRODUZIDA: o openssl gerou o certificado com a variável quebrada"
++              exit 1
++            fi
++            echo "controle: o openssl cru reprova com a variável quebrada, como na máquina do autor"
++          } 2>&1 | tee "$RUNNER_TEMP/artefatos/07-openssl-controle.txt"
++
++      - name: "Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (bash)"
++        if: ${{ !cancelled() && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
++        working-directory: dc360/apps/api
++        env:
++          OPENSSL_CONF: ${{ runner.os == 'Windows' && 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf' || '/nao/existe/psqlODBC/etc/openssl.cnf' }}
++        run: |
++          echo "OPENSSL_CONF=$OPENSSL_CONF" | tee "$RUNNER_TEMP/artefatos/08-banco-tls-bash.txt"
++          npx vitest run test/banco-tls.test.ts test/openssl-do-teste.test.ts 2>&1 | tee -a "$RUNNER_TEMP/artefatos/08-banco-tls-bash.txt"
++          # Prova de que o teste viu a variável quebrada, e não um ambiente limpo.
++          grep -q "OPENSSL_CONF aponta para" "$RUNNER_TEMP/artefatos/08-banco-tls-bash.txt" || { echo "FALHA: o teste não viu a variável quebrada"; exit 1; }
++
++      # Windows PowerShell 5.1, só no Windows. O GitHub abre o passo com
++      # `$ErrorActionPreference = 'Stop'`, e no 5.1 cada linha de stderr de
++      # comando nativo redirecionada com `2>&1` vira erro: o passo cairia no
++      # primeiro aviso do vitest, por isso `Continue`. `npx.cmd` e não `npx`
++      # para não depender da política de execução do `npx.ps1`. O script fica
++      # em ASCII porque o 5.1 lê arquivo sem BOM na página de código local.
++      - name: "Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (PowerShell 5.1, só Windows)"
++        if: ${{ !cancelled() && runner.os == 'Windows' && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
++        shell: powershell
++        working-directory: dc360/apps/api
++        env:
++          OPENSSL_CONF: 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf'
++        run: |
++          $ErrorActionPreference = 'Continue'
++          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
++          $arquivo = Join-Path $env:RUNNER_TEMP 'artefatos\09-banco-tls-powershell.txt'
++          $openssl = (Get-Command openssl -ErrorAction SilentlyContinue).Source
++          $cabecalho = @(
++            "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition))",
++            "OPENSSL_CONF=$env:OPENSSL_CONF (existe: $(Test-Path -LiteralPath $env:OPENSSL_CONF))",
++            "openssl no PATH do PowerShell: $openssl"
++          )
++          $saida = & npx.cmd vitest run test/banco-tls.test.ts test/openssl-do-teste.test.ts 2>&1 | ForEach-Object { "$_" }
++          $codigo = $LASTEXITCODE
++          $cabecalho + $saida + @("codigo=$codigo") | Out-File -FilePath $arquivo -Encoding utf8
++          Get-Content -LiteralPath $arquivo
++          if ($codigo -ne 0) { exit $codigo }
++          if (-not ($saida -match 'OPENSSL_CONF aponta para')) { Write-Output 'FALHA: o teste nao viu a variavel quebrada'; exit 1 }
++          exit 0
++
++      - name: Instalar dependências do aplicativo
++        id: instalar_app
++        if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
++        working-directory: dc360/apps/campo
++        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/10-npm-ci-campo.txt"
++
++      - name: "Caso 3, controle: com o cache velho o tsc direto dá TS2345"
++        id: cache_controle
++        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
++        run: |
++          A="$RUNNER_TEMP/artefatos/11-cache-velho-controle.txt"
++          node scripts/ambiente-hostil.mjs cache-velho 2>&1 | tee "$A"
++          if (cd apps/campo && npx tsc -p tsconfig.json --noEmit) >> "$A" 2>&1; then
++            cat "$A"
++            echo "CONDIÇÃO HOSTIL NÃO REPRODUZIDA: o tsc passou com o cache velho" | tee -a "$A"
++            exit 1
++          fi
++          cat "$A"
++          echo "erros TS2345: $(grep -c 'error TS2345' "$A")" | tee -a "$A"
++          grep -q "error TS2345" "$A" || { echo "FALHA: o tsc reprovou por outro motivo"; exit 1; }
++
++      - name: "Caso 3: npm run test:campo com o cache velho presente"
++        id: cache_teste
++        if: ${{ !cancelled() && steps.cache_controle.outcome == 'success' }}
++        run: |
++          A="$RUNNER_TEMP/artefatos/12-test-campo-com-cache-velho.txt"
++          npm run test:campo 2>&1 | tee "$A"
++          grep -q "Cache .expo/types desatualizado" "$A" || { echo "FALHA: o test:campo não viu o cache velho"; exit 1; }
++          grep -q "e o jest concordam" "$A" || { echo "FALHA: o test:campo não cruzou a contagem"; exit 1; }
++          if [ -e apps/campo/.expo/types ]; then echo "FALHA: o cache velho continua no disco"; exit 1; fi
++
++      - name: "Caso 3: typecheck do aplicativo sem o cache"
++        if: ${{ !cancelled() && steps.cache_teste.outcome == 'success' }}
++        working-directory: dc360/apps/campo
++        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/13-typecheck-campo-sem-cache.txt"
++
++      - name: Redigir segredo dos artefatos
++        if: ${{ always() }}
++        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
++
++      - name: Publicar os artefatos
++        if: ${{ always() }}
++        uses: actions/upload-artifact@v4
++        with:
++          name: plataformas-${{ matrix.sistema }}-${{ github.sha }}
++          path: ${{ runner.temp }}/artefatos
++          retention-days: 30
++          overwrite: true
++          if-no-files-found: error
++
+   implantavel:
+     # O job que faltava, e o que os auditores disseram valer mais que qualquer
+     # outro se fosse um só: prova que a API SOBE contra Postgres real, com o
+diff --git a/dc360/README.md b/dc360/README.md
+index b10f081..7b648ae 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1338,6 +1338,27 @@ coluna do macOS vem do roteiro rodado nesta máquina
+ (`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
+ da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+ 
++**O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
++coluna do Windows acima é a máquina do autor, e a validação não a aceita como
++prova independente. Quem prova Windows é o job `plataformas` de
++`.github/workflows/verificar.yml`, que roda em todo push, em matriz
++`windows-latest` e `ubuntu-latest`, e publica o artefato
++`plataformas-<sistema>-<sha>`. Ele faz o checkout com `core.autocrlf=true` e
++roda os três casos sob a condição hostil de verdade, cada um depois de um
++controle que reprova o job se a condição não se reproduzir: (1) `git ls-files
++--eol` sem `i/crlf` e com CRLF no disco só onde o `.gitattributes` pede, depois
++`apps/web/src` e `apps/web/test` gravados em CRLF (a árvore de antes do
++`.gitattributes`) e a suíte do painel inteira sobre eles; (2) `OPENSSL_CONF`
++apontando para o arquivo inexistente do driver ODBC, com o `openssl` cru
++reprovando antes e `banco-tls.test.ts` mais `openssl-do-teste.test.ts` verdes
++depois, no bash (Git Bash, no Windows) e, só no Windows, também no Windows
++PowerShell 5.1; (3) o `router.d.ts` velho de `scripts/fixtures/router.d.ts.velho`
++em `apps/campo/.expo/types`, com o `tsc` direto dando TS2345, o
++`npm run test:campo` apagando o cache e passando, e o typecheck sem cache em
++zero. Roda também o conferidor de índices de evidência sobre esse checkout. A
++montagem e o controle das condições ficam em `scripts/ambiente-hostil.mjs`. O
++`npm run verificar` inteiro no Windows continua sendo validação humana.
++
+ Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
+ sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
+ até alguém corrigir o texto. Isso é de propósito: o número velho é mentira
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 7efe3f2..e3740ae 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -55,7 +55,13 @@ um cache de 2026-08-27 sem `mapa`, `perfil` e `avisos`). `npm run test:campo`,
+ na raiz do `dc360`, confere o arquivo contra as rotas do disco antes do
+ typecheck e apaga `.expo/types` quando falta alguma rota; o próximo
+ `expo start` o recria. Quem rodar `npm run typecheck` direto aqui, com cache
+-velho, apaga `.expo/types` à mão ou roda `npm run test:campo`.
++velho, apaga `.expo/types` à mão ou roda `npm run test:campo`. O job
++`plataformas` do CI (Windows e Linux) prova isso a cada push: põe aqui um cache
++sem `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`, na
++raiz do `dc360`), confere que o `tsc` direto reprova com TS2345 e só então roda
++o `npm run test:campo`. Se uma atualização do expo-router mudar o formato do
++arquivo gerado, a fixture pode precisar ser refeita a partir de um
++`router.d.ts` novo, tirando as três rotas.
+ 
+ ## Para colocar de pé
+ 
+diff --git a/dc360/scripts/ambiente-hostil.mjs b/dc360/scripts/ambiente-hostil.mjs
+new file mode 100644
+index 0000000..71531c4
+--- /dev/null
++++ b/dc360/scripts/ambiente-hostil.mjs
+@@ -0,0 +1,173 @@
++/*
++  Monta, no CI, as três condições hostis da V2-F00-E21 e confere que elas
++  estão mesmo presentes antes de o teste rodar (job `plataformas` de
++  `.github/workflows/verificar.yml`, em Windows e em Linux).
++
++  Por que um script e não comandos soltos no YAML: o mesmo passo roda no Git
++  Bash do Windows e no bash do Linux, e `sed`, `unix2dos` e `cp` não se
++  comportam igual nos dois. Node é o mesmo nos dois lados.
++
++  Por que conferir a condição: um teste verde sobre uma árvore que, sem
++  ninguém perceber, ficou LF (o `.gitattributes` com `eol=lf` vence o
++  `core.autocrlf=true`) ou sobre um cache que não está velho não prova nada.
++  Cada subcomando sai com 1 quando a condição hostil NÃO se reproduz.
++
++  Subcomandos (rodar a partir de `dc360/`):
++
++    node scripts/ambiente-hostil.mjs crlf PASTA...
++        Grava em CRLF todo arquivo de texto de fonte das pastas. Simula a
++        árvore do Windows de antes do `.gitattributes` (índice LF, disco CRLF).
++
++    node scripts/ambiente-hostil.mjs conferir-crlf ARQUIVO
++        Confere que o arquivo está em CRLF no disco e que a agulha antiga do
++        teste ("\n}\n") não aparece nele: é o que fazia o teste reprovar.
++
++    node scripts/ambiente-hostil.mjs cache-velho
++        Põe em `apps/campo/.expo/types/router.d.ts` o cache de rotas tipadas
++        sem `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`,
++        derivado do arquivo que o `expo start` gera, com as três rotas tiradas).
++
++    node scripts/ambiente-hostil.mjs eol ARQUIVO
++        Lê a saída de `git ls-files --eol` e reprova se algum arquivo está
++        CRLF ou misto no índice, ou CRLF no disco sem o `.gitattributes` pedir.
++*/
++import { copyFileSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
++import { dirname, extname, join, relative } from "node:path";
++import { fileURLToPath } from "node:url";
++
++const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
++
++/** Extensões de fonte que os testes do painel leem do disco. */
++const EXTENSOES_DE_TEXTO = new Set([".ts", ".tsx", ".js", ".mjs", ".css", ".json", ".html", ".md"]);
++
++/** LF para CRLF, sem duplicar o CR de linha que já é CRLF. */
++export function paraCrlf(texto) {
++  return texto.replace(/\r?\n/g, "\r\n");
++}
++
++/** A agulha que o teste antigo procurava e que some numa árvore CRLF. */
++export const AGULHA_ANTIGA = "\n}\n";
++
++export function estadoDoFimDeLinha(texto) {
++  const crlf = (texto.match(/\r\n/g) ?? []).length;
++  const lfSozinho = (texto.match(/(?<!\r)\n/g) ?? []).length;
++  return { crlf, lfSozinho, agulhaAntiga: texto.includes(AGULHA_ANTIGA) };
++}
++
++/**
++ * Resume `git ls-files --eol` e devolve o que viola a regra do repositório.
++ * Formato de cada linha: `i/<x> w/<y> attr/<atributos>\t<caminho>`.
++ */
++export function resumirEol(saida) {
++  const contagem = {};
++  const violacoes = [];
++  let total = 0;
++  for (const linha of saida.split(/\r?\n/)) {
++    if (!linha.trim()) continue;
++    const tab = linha.indexOf("\t");
++    if (tab < 0) continue;
++    const [indice, disco, ...resto] = linha.slice(0, tab).trim().split(/\s+/);
++    const atributos = resto.join(" ");
++    const caminho = linha.slice(tab + 1);
++    total += 1;
++    contagem[indice] = (contagem[indice] ?? 0) + 1;
++    contagem[disco] = (contagem[disco] ?? 0) + 1;
++    if (indice === "i/crlf" || indice === "i/mixed") violacoes.push(`${indice} no índice: ${caminho}`);
++    if ((disco === "w/crlf" || disco === "w/mixed") && !atributos.includes("eol=crlf")) {
++      violacoes.push(`${disco} no disco sem eol=crlf no .gitattributes: ${caminho}`);
++    }
++  }
++  return { total, contagem, violacoes };
++}
++
++function arquivosDeTexto(pasta) {
++  const saida = [];
++  for (const nome of readdirSync(pasta)) {
++    const caminho = join(pasta, nome);
++    if (statSync(caminho).isDirectory()) saida.push(...arquivosDeTexto(caminho));
++    else if (EXTENSOES_DE_TEXTO.has(extname(nome))) saida.push(caminho);
++  }
++  return saida;
++}
++
++function falhar(mensagem) {
++  console.error(`\nCONDIÇÃO HOSTIL NÃO REPRODUZIDA: ${mensagem}`);
++  process.exit(1);
++}
++
++function crlf(pastas) {
++  if (pastas.length === 0) falhar("nenhuma pasta informada");
++  let convertidos = 0;
++  for (const pasta of pastas) {
++    for (const arquivo of arquivosDeTexto(join(RAIZ, pasta))) {
++      const antes = readFileSync(arquivo, "utf8");
++      const depois = paraCrlf(antes);
++      if (depois !== antes) {
++        writeFileSync(arquivo, depois);
++        convertidos += 1;
++      }
++    }
++  }
++  console.log(`Gravados em CRLF: ${convertidos} arquivos de ${pastas.join(", ")}.`);
++  if (convertidos === 0) falhar("nenhum arquivo mudou; a árvore já estava CRLF ou as pastas estão vazias");
++}
++
++function conferirCrlf(arquivo) {
++  if (!arquivo) falhar("nenhum arquivo informado");
++  const estado = estadoDoFimDeLinha(readFileSync(join(RAIZ, arquivo), "utf8"));
++  console.log(`${arquivo}: ${estado.crlf} linhas CRLF, ${estado.lfSozinho} LF sozinho, agulha antiga "\\n}\\n" presente: ${estado.agulhaAntiga ? "sim" : "não"}.`);
++  if (estado.crlf === 0 || estado.lfSozinho > 0) falhar(`${arquivo} não está inteiro em CRLF`);
++  if (estado.agulhaAntiga) falhar(`a agulha antiga ainda aparece em ${arquivo}; o teste antigo passaria`);
++}
++
++function cacheVelho() {
++  const origem = join(RAIZ, "scripts/fixtures/router.d.ts.velho");
++  const destino = join(RAIZ, "apps/campo/.expo/types/router.d.ts");
++  mkdirSync(dirname(destino), { recursive: true });
++  copyFileSync(origem, destino);
++  const texto = readFileSync(destino, "utf8");
++  const faltam = ["/avisos", "/mapa", "/perfil"].filter((rota) => !texto.includes(`${rota}\``));
++  console.log(`Cache velho em ${relative(RAIZ, destino)}; rotas ausentes nele: ${faltam.join(", ") || "nenhuma"}.`);
++  if (faltam.length !== 3) falhar("o cache gravado conhece rota que o cache velho não conhecia");
++}
++
++function eol(arquivo) {
++  if (!arquivo) falhar("nenhum arquivo informado");
++  const { total, contagem, violacoes } = resumirEol(readFileSync(arquivo, "utf8"));
++  console.log(`git ls-files --eol: ${total} arquivos.`);
++  for (const [chave, quantos] of Object.entries(contagem).sort()) console.log(`  ${chave.padEnd(10)} ${quantos}`);
++  if (total === 0) {
++    console.error("\nFALHA: a saída de git ls-files --eol está vazia.");
++    process.exit(1);
++  }
++  if (violacoes.length > 0) {
++    console.error(`\nFALHA: ${violacoes.length} arquivo(s) fora da regra de fim de linha:`);
++    for (const v of violacoes) console.error(`  ${v}`);
++    process.exit(1);
++  }
++  console.log("Nenhum i/crlf nem i/mixed; CRLF no disco só onde o .gitattributes pede.");
++}
++
++// Os dois lados por `realpath` e, no Windows, sem caixa: a letra da unidade
++// pode vir `C:` de um lado e `c:` do outro conforme o diretório digitado.
++function mesmoArquivo(a, b) {
++  try {
++    const [x, y] = [realpathSync(a), realpathSync(b)];
++    return process.platform === "win32" ? x.toLowerCase() === y.toLowerCase() : x === y;
++  } catch {
++    return false;
++  }
++}
++
++const executadoDireto = Boolean(process.argv[1]) && mesmoArquivo(fileURLToPath(import.meta.url), process.argv[1]);
++if (executadoDireto) {
++  const [subcomando, ...argumentos] = process.argv.slice(2);
++  if (subcomando === "crlf") crlf(argumentos);
++  else if (subcomando === "conferir-crlf") conferirCrlf(argumentos[0]);
++  else if (subcomando === "cache-velho") cacheVelho();
++  else if (subcomando === "eol") eol(argumentos[0]);
++  else {
++    console.error("uso: ambiente-hostil.mjs crlf PASTA... | conferir-crlf ARQUIVO | cache-velho | eol ARQUIVO");
++    process.exit(2);
++  }
++}
+diff --git a/dc360/scripts/ambiente-hostil.test.mjs b/dc360/scripts/ambiente-hostil.test.mjs
+new file mode 100644
+index 0000000..58dc327
+--- /dev/null
++++ b/dc360/scripts/ambiente-hostil.test.mjs
+@@ -0,0 +1,90 @@
++// Testes do montador das condições hostis da V2-F00-E21 (scripts/ambiente-hostil.mjs).
++//
++// O job `plataformas` do CI confia neste script para dizer que a árvore está
++// CRLF, que o cache está velho e que o índice não tem CRLF. Se ele mentir para
++// o lado verde, o job prova o que não aconteceu; por isso os casos abaixo
++// olham sobretudo o lado que reprova.
++import assert from "node:assert/strict";
++import { spawnSync } from "node:child_process";
++import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { dirname, join } from "node:path";
++import { test } from "node:test";
++import { fileURLToPath } from "node:url";
++import { AGULHA_ANTIGA, estadoDoFimDeLinha, paraCrlf, resumirEol } from "./ambiente-hostil.mjs";
++
++const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "ambiente-hostil.mjs");
++const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "router.d.ts.velho");
++
++test("paraCrlf converte LF e não duplica o CR de linha que já é CRLF", () => {
++  assert.equal(paraCrlf("a\nb\r\nc\n"), "a\r\nb\r\nc\r\n");
++  assert.equal(paraCrlf(paraCrlf("x\n}\n")), "x\r\n}\r\n");
++});
++
++test("numa fonte em CRLF a agulha antiga some, e é isso que reprovava o teste", () => {
++  const fonte = "function a() {\n  return 1;\n}\n\nfunction b() {}\n";
++  assert.equal(estadoDoFimDeLinha(fonte).agulhaAntiga, true);
++  const emCrlf = estadoDoFimDeLinha(paraCrlf(fonte));
++  assert.equal(emCrlf.agulhaAntiga, false);
++  assert.equal(emCrlf.lfSozinho, 0);
++  assert.equal(emCrlf.crlf, 5);
++  assert.equal(AGULHA_ANTIGA, "\n}\n");
++});
++
++test("estadoDoFimDeLinha conta LF sozinho num arquivo misto", () => {
++  const estado = estadoDoFimDeLinha("a\r\nb\nc\r\n");
++  assert.deepEqual([estado.crlf, estado.lfSozinho], [2, 1]);
++});
++
++test("resumirEol aceita LF, binário e CRLF no disco onde o .gitattributes pede", () => {
++  const saida = [
++    "i/lf    w/lf    attr/text=auto eol=lf \tdc360/a.ts",
++    "i/-text w/-text attr/-text            \tdc360/b.png",
++    "i/crlf  w/crlf  attr/text eol=crlf    \tdc360/c.ps1",
++    "i/lf    w/crlf  attr/text eol=crlf    \tdc360/d.ps1",
++  ].join("\n");
++  const { total, violacoes, contagem } = resumirEol(saida);
++  // `.ps1` em CRLF no índice também é violação: o índice é LF para todo texto.
++  assert.equal(total, 4);
++  assert.deepEqual(violacoes, ["i/crlf no índice: dc360/c.ps1"]);
++  assert.equal(contagem["w/crlf"], 2);
++});
++
++test("resumirEol reprova CRLF no disco sem eol=crlf e índice misto", () => {
++  const saida = [
++    "i/lf    w/crlf  attr/text=auto eol=lf \tdc360/a.ts",
++    "i/mixed w/mixed attr/                 \tdc360/b.txt",
++  ].join("\r\n");
++  const { violacoes } = resumirEol(saida);
++  assert.equal(violacoes.length, 3);
++  assert.match(violacoes[0], /w\/crlf no disco sem eol=crlf/);
++  assert.match(violacoes[1], /i\/mixed no índice/);
++});
++
++test("a fixture do cache velho não conhece as três rotas e conhece as outras", () => {
++  const texto = readFileSync(FIXTURE, "utf8");
++  for (const rota of ["/avisos", "/mapa", "/perfil"]) assert.equal(texto.includes(`${rota}\``), false, rota);
++  for (const rota of ["/entrar", "/fila", "/vistoria/[id]"]) assert.equal(texto.includes(`${rota}\``), true, rota);
++});
++
++test("como comando, `eol` sai com 1 diante de i/crlf e com 0 numa saída limpa", () => {
++  const pasta = mkdtempSync(join(tmpdir(), "ambiente-hostil-"));
++  try {
++    const limpo = join(pasta, "limpo.txt");
++    const sujo = join(pasta, "sujo.txt");
++    writeFileSync(limpo, "i/lf    w/lf    attr/text=auto eol=lf \ta.ts\n");
++    writeFileSync(sujo, "i/crlf  w/crlf  attr/                 \ta.ts\n");
++    assert.equal(spawnSync(process.execPath, [SCRIPT, "eol", limpo]).status, 0);
++    const r = spawnSync(process.execPath, [SCRIPT, "eol", sujo], { encoding: "utf8" });
++    assert.equal(r.status, 1);
++    assert.match(r.stderr, /i\/crlf no índice: a\.ts/);
++    writeFileSync(sujo, "");
++    assert.equal(spawnSync(process.execPath, [SCRIPT, "eol", sujo]).status, 1, "saída vazia não é verde");
++  } finally {
++    rmSync(pasta, { recursive: true, force: true });
++  }
++});
++
++test("como comando, subcomando desconhecido sai com 2", () => {
++  assert.equal(spawnSync(process.execPath, [SCRIPT, "outro"]).status, 2);
++});
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index fa1552d..82cbe2c 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -178,6 +178,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
+     na conta, por isso é o mesmo número da correção 1.
+   */
+   "V2-F00-E21-correcao-1": 36, // 26 na correção 1; a correção 2 (2026-10-20) acrescentou 6 e depois 4 casos que rodam o script como comando
++  /*
++    V2-F00-E21, correção 3: `scripts/ambiente-hostil.test.mjs` é novo, com 8
++    casos (o montador das condições hostis do job `plataformas` do CI: LF para
++    CRLF sem duplicar CR, a agulha antiga que some em CRLF, arquivo misto, o
++    resumo de `git ls-files --eol` que aceita e o que reprova, a fixture do
++    cache velho sem as três rotas, e o comando `eol` saindo com 1 diante de
++    `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
++  */
++  "V2-F00-E21-correcao-3": 8,
+ };
+ 
+ /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
+@@ -186,6 +195,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
+   "V2-F00-E19": "auditar.test.mjs",
+   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
+   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
++  "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
+ };
+ 
+ const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
+diff --git a/dc360/scripts/fixtures/router.d.ts.velho b/dc360/scripts/fixtures/router.d.ts.velho
+new file mode 100644
+index 0000000..f5be6ad
+--- /dev/null
++++ b/dc360/scripts/fixtures/router.d.ts.velho
+@@ -0,0 +1,14 @@
++/* eslint-disable */
++import * as Router from 'expo-router';
++
++export * from 'expo-router';
++
++declare module 'expo-router' {
++  export namespace ExpoRouter {
++    export interface __routes<T extends string | object = string> {
++      hrefInputParams: { pathname: Router.RelativePathString, params?: Router.UnknownInputParams } | { pathname: Router.ExternalPathString, params?: Router.UnknownInputParams } | { pathname: `/entrar`; params?: Router.UnknownInputParams; } | { pathname: `/`; params?: Router.UnknownInputParams; } | { pathname: `/_sitemap`; params?: Router.UnknownInputParams; } | { pathname: `${'/(agente)'}/fila` | `/fila`; params?: Router.UnknownInputParams; } | { pathname: `${'/(agente)'}` | `/`; params?: Router.UnknownInputParams; } | { pathname: `${'/(agente)'}/vistoria/[id]` | `/vistoria/[id]`, params: Router.UnknownInputParams & { id: string | number; } };
++      hrefOutputParams: { pathname: Router.RelativePathString, params?: Router.UnknownOutputParams } | { pathname: Router.ExternalPathString, params?: Router.UnknownOutputParams } | { pathname: `/entrar`; params?: Router.UnknownOutputParams; } | { pathname: `/`; params?: Router.UnknownOutputParams; } | { pathname: `/_sitemap`; params?: Router.UnknownOutputParams; } | { pathname: `${'/(agente)'}/fila` | `/fila`; params?: Router.UnknownOutputParams; } | { pathname: `${'/(agente)'}` | `/`; params?: Router.UnknownOutputParams; } | { pathname: `${'/(agente)'}/vistoria/[id]` | `/vistoria/[id]`, params: Router.UnknownOutputParams & { id: string; } };
++      href: Router.RelativePathString | Router.ExternalPathString | `/entrar${`?${string}` | `#${string}` | ''}` | `/${`?${string}` | `#${string}` | ''}` | `/_sitemap${`?${string}` | `#${string}` | ''}` | `${'/(agente)'}/fila${`?${string}` | `#${string}` | ''}` | `/fila${`?${string}` | `#${string}` | ''}` | `${'/(agente)'}${`?${string}` | `#${string}` | ''}` | `/${`?${string}` | `#${string}` | ''}` | { pathname: Router.RelativePathString, params?: Router.UnknownInputParams } | { pathname: Router.ExternalPathString, params?: Router.UnknownInputParams } | { pathname: `/entrar`; params?: Router.UnknownInputParams; } | { pathname: `/`; params?: Router.UnknownInputParams; } | { pathname: `/_sitemap`; params?: Router.UnknownInputParams; } | { pathname: `${'/(agente)'}/fila` | `/fila`; params?: Router.UnknownInputParams; } | { pathname: `${'/(agente)'}` | `/`; params?: Router.UnknownInputParams; } | `${'/(agente)'}/vistoria/${Router.SingleRoutePart<T>}${`?${string}` | `#${string}` | ''}` | `/vistoria/${Router.SingleRoutePart<T>}${`?${string}` | `#${string}` | ''}` | { pathname: `${'/(agente)'}/vistoria/[id]` | `/vistoria/[id]`, params: Router.UnknownInputParams & { id: string | number; } };
++    }
++  }
++}

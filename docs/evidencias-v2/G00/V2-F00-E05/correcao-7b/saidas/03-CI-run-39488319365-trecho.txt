@@ -1,0 +1,57 @@
+Trecho do log do job "Testes, tipos e scripts", run 39488319365, sobre c3ef03e, ubuntu-latest, Node v22.23.3 (linhas 1195 a 1250 do log baixado):
+2026-10-20T20:09:01.1174388Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+2026-10-20T20:09:01.1174957Z 
+2026-10-20T20:09:01.1179644Z  FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > controles: 102 de verdade antes do 403 do catálogo, Buffer com content-length errado (o Fastify corrige), 204, 304, Early Hints com CRLF e flushHeaders com 401
+2026-10-20T20:09:01.1193901Z AssertionError: expected [ 500 ] to deeply equal [ 500, 404 ]
+2026-10-20T20:09:01.1194640Z 
+2026-10-20T20:09:01.1195105Z - Expected
+2026-10-20T20:09:01.1195664Z + Received
+2026-10-20T20:09:01.1195985Z 
+2026-10-20T20:09:01.1198592Z   [
+2026-10-20T20:09:01.1199223Z     500,
+2026-10-20T20:09:01.1199658Z -   404,
+2026-10-20T20:09:01.1200047Z   ]
+2026-10-20T20:09:01.1200228Z 
+2026-10-20T20:09:01.1200850Z  ❯ test/guarda-de-codigos-de-erro.test.ts:1132:41
+2026-10-20T20:09:01.1627463Z     1130|       }
+2026-10-20T20:09:01.1629416Z     1131|       const cedo = lerRespostas(await pipeline(p, "/c7/f-early")).resp…
+2026-10-20T20:09:01.1631585Z     1132|       expect(cedo.map((x) => x.status)).toEqual([500, 404]);
+2026-10-20T20:09:01.1633657Z        |                                         ^
+2026-10-20T20:09:01.1635184Z     1133|       expect(forjadas(cedo)).toEqual([]);
+2026-10-20T20:09:01.1636865Z     1134|       expect(lerDesviosDaGuarda()).toEqual([]);
+2026-10-20T20:09:01.1664460Z 
+2026-10-20T20:09:01.1667344Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+2026-10-20T20:09:01.1667794Z 
+2026-10-20T20:09:01.1670848Z  FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > controles: 102 de verdade antes do 403 do catálogo, Buffer com content-length errado (o Fastify corrige), 204, 304, Early Hints com CRLF e flushHeaders com 401
+2026-10-20T20:09:01.1674906Z AssertionError: resposta 401 ou 403 fora do catálogo de códigos de erro (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+2026-10-20T20:09:01.1676015Z 
+2026-10-20T20:09:01.1676334Z - Expected
+2026-10-20T20:09:01.1677205Z + Received
+2026-10-20T20:09:01.1677486Z 
+2026-10-20T20:09:01.1677736Z - []
+2026-10-20T20:09:01.1678163Z + [
+2026-10-20T20:09:01.1678527Z +   {
+2026-10-20T20:09:01.1679034Z +     "erroVisto": null,
+2026-10-20T20:09:01.1679654Z +     "metodo": "GET",
+2026-10-20T20:09:01.1680590Z +     "motivo": "linha de status 403 escrita por fora da guarda",
+2026-10-20T20:09:01.1681476Z +     "rota": "/c7/f-early",
+2026-10-20T20:09:01.1682113Z +     "status": 403,
+2026-10-20T20:09:01.1682615Z +   },
+2026-10-20T20:09:01.1683029Z + ]
+2026-10-20T20:09:01.1683518Z 
+2026-10-20T20:09:01.1684087Z  ❯ test/guarda-falha-alto.ts:15:108
+2026-10-20T20:09:01.1685000Z      13| afterEach(() => {
+2026-10-20T20:09:01.1686078Z      14|   const desvios = lerDesviosDaGuarda();
+2026-10-20T20:09:01.1687334Z      15|   expect(desvios, "resposta 401 ou 403 fora do catálogo de códigos de …
+2026-10-20T20:09:01.1688666Z        |                                                                                                            ^
+2026-10-20T20:09:01.1689519Z      16| });
+2026-10-20T20:09:01.1690021Z      17| 
+2026-10-20T20:09:01.1690258Z 
+2026-10-20T20:09:01.1690734Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+2026-10-20T20:09:01.1691123Z 
+2026-10-20T20:09:01.1691132Z 
+2026-10-20T20:09:01.1692069Z  Test Files  1 failed | 105 passed (106)
+2026-10-20T20:09:01.1724967Z       Tests  1 failed | 1714 passed | 34 skipped (1749)
+2026-10-20T20:09:01.1754130Z    Start at  20:03:10
+2026-10-20T20:09:01.1785057Z    Duration  351.06s (transform 3.12s, setup 9.02s, collect 31.15s, tests 963.37s, environment 39ms, prepare 11.77s)
+2026-10-20T20:09:01.1801721Z 

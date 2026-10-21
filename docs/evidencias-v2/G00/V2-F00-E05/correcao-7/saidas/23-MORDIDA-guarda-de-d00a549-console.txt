@@ -1,0 +1,315 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (45 tests | 10 failed) 5709ms
+   ✓ a guarda do console > em teste, m07 sai 500 e o desvio fica registrado com a rota 11ms
+   ✓ a guarda do console > em teste, m10 sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, m11 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, m16 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eab/x sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eag/x sai 500 e o desvio fica registrado com a rota 4ms
+   ✓ a guarda do console > em teste, eaf sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > fora de teste, m07 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m10 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m11 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m16 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eab/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eag/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eaf sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > controle: o código do contrato passa intacto, com a frase da rota 0ms
+   ✓ correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos 15ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-store não sai 403 com o código inventado, nos dois modos 4ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-header não sai 401 com o código inventado, nos dois modos 2ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-writeraw não sai 403 com o código inventado, nos dois modos 2ms
+   ✓ correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado 3ms
+   ✓ correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > c-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-stream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 1ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-response: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 1ms
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado) 4015ms
+     → falhar: expected [] to deeply equal [ 500 ]
+     → resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > addTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada 4ms
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+     → falhar g-100: expected [ 100, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 2ms
+     → falhar g-101: expected [ 101 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+     → falhar g-102: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+     → falhar g-103: expected [ 103, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+     → falhar g-199: expected [ 199, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+     → falhar g-102-objeto: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+     → falhar g-102-raw-writehead: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 1ms
+     → falhar g-102-raw-implicito: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+   × correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão 1ms
+     → falhar: expected [ 101 ] to deeply equal [ 500 ]
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado)
+AssertionError: falhar: expected [] to deeply equal [ 500 ]
+
+- Expected
++ Received
+
+- [
+-   500,
+- ]
++ []
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:325:52
+    323|     for (const modo of ["falhar", "corrigir"] as const) {
+    324|       const { respostas } = lerRespostas(await pipeline(modo, "/c7/e-4…
+    325|       expect(respostas.map((x) => x.status), modo).toEqual([modo === "…
+       |                                                    ^
+    326|       expect(JSON.parse(respostas[0]!.corpo).erro).toBe(modo === "falh…
+    327|       expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado)
+AssertionError: resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução): expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "erroVisto": null,
++     "metodo": "GET",
++     "motivo": "o Node recusou a resposta conferida (ERR_HTTP_CONTENT_LENGTH_MISMATCH)",
++     "rota": "/c7/e-403-cl-menor",
++     "status": 403,
++   },
++ ]
+
+ ❯ test/apoio/guarda-falha-alto.ts:11:100
+      9| afterEach(() => {
+     10|   const desvios = lerDesviosDaGuarda();
+     11|   expect(desvios, "resposta 401 ou 403 fora do contrato do console (gu…
+       |                                                                                                    ^
+     12| });
+     13| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-100: expected [ 100, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   100,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-101: expected [ 101 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
+-   404,
++   101,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-102: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-103: expected [ 103, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   103,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-199: expected [ 199, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   199,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-102-objeto: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-102-raw-writehead: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+AssertionError: falhar g-102-raw-implicito: expected [ 102, 404 ] to deeply equal [ 500, 404 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   102,
+    404,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:352:64
+    350|       for (const modo of ["falhar", "corrigir"] as const) {
+    351|         const { respostas, resto } = lerRespostas(await pipeline(modo,…
+    352|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+       |                                                                ^
+    353|         expect(JSON.parse(respostas[0]!.corpo).erro).toBe(doDesvio(mod…
+    354|         expect(resto).toBe("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão
+AssertionError: falhar: expected [ 101 ] to deeply equal [ 500 ]
+
+- Expected
++ Received
+
+  [
+-   500,
++   101,
+  ]
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:362:71
+    360|     for (const modo of ["falhar", "corrigir"] as const) {
+    361|       const b101 = await pipeline(modo, "/c7/g-101-writeraw");
+    362|       expect(lerRespostas(b101).respostas.map((x) => x.status), modo).…
+       |                                                                       ^
+    363|       expect(b101).not.toContain("101 Switching");
+    364|       expect(lerDesviosDaGuarda()).toHaveLength(modo === "falhar" ? 1 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed | 35 passed (45)
+   Start at  13:02:11
+   Duration  6.11s (transform 126ms, setup 40ms, collect 168ms, tests 5.71s, environment 0ms, prepare 30ms)
+
+exit=1

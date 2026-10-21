@@ -20,14 +20,15 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
-  aceitasAusentes, advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+  CHAVES_PERMITIDAS, aceitasAusentes, mascararComoONpm, mesmoProjeto, shrinkwrapsPresentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
+  hojeEmSaoPaulo, lerNpmConfigList, normalizarChave, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
@@ -45,9 +46,37 @@ const cwd = process.cwd().replaceAll("\\\\", "/");
 const f = JSON.parse(process.env.AUDITAR_FIXTURE);
 const args = process.argv.slice(2);
 const controle = /\\/auditar-controle-[^/]*$/.test(cwd);
+// \`npm config list\`: o formato do npm real (projeto e ambiente), ou o texto da fixture.
+if (args[0] === "config") {
+  const nome = cwd.endsWith("apps/campo") ? "configApp" : "configRaiz";
+  if (typeof f[nome] === "string") { process.stdout.write(f[nome]); process.exit(f[nome + "Codigo"] ?? 0); }
+  const linhas = [];
+  if (existsSync(".npmrc")) {
+    linhas.push(\`; "project" config from \${process.cwd()}/.npmrc\`, "");
+    for (const l of readFileSync(".npmrc", "utf8").split(/\\r?\\n/)) {
+      const t = l.trim(); if (!t || t.startsWith(";") || t.startsWith("#")) continue;
+      const i = t.indexOf("="); linhas.push(i < 0 ? \`\${t} = true\` : \`\${t.slice(0, i).trim()} = \${t.slice(i + 1).trim()}\`);
+    }
+    linhas.push("");
+  }
+  const doAmbiente = Object.keys(process.env).filter((n) => /^npm_config_/i.test(n));
+  if (doAmbiente.length) {
+    linhas.push('; "env" config from environment', "");
+    for (const n of doAmbiente) linhas.push(\`\${n.slice(11).toLowerCase().replaceAll("_", "-")} = "\${process.env[n]}"\`);
+    linhas.push("");
+  }
+  if (f[nome + "Extra"]) linhas.push(f[nome + "Extra"], "");
+  // O npm 11 mascara com *** todo trecho com cara de UUID (@npmcli/redact), inclusive no caminho.
+  const mascarar = (t) => t.replace(/\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b/gi, "***");
+  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? mascarar(process.cwd())}\`, \`; cwd = \${mascarar(process.cwd())}\`);
+  process.stdout.write(linhas.join("\\n") + "\\n");
+  process.exit(0);
+}
 if (process.env.AUDITAR_LOG) {
   const npmrc = existsSync(".npmrc") ? readFileSync(".npmrc", "utf8").trim() : null;
-  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), args, npmrc }) + "\\n");
+  const workspaceNoAmbiente = Object.keys(process.env).filter((n) => /^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(n));
+  const npmConfig = Object.keys(process.env).filter((n) => /^npm_config_/i.test(n)).sort();
+  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente, npmConfig }) + "\\n");
 }
 const fixado = args.includes("--registry=${REGISTRO_OFICIAL}") && args.includes("--offline=false");
 const rel = f.ignorarBandeiras || (f.offline && !fixado) ? f.vazioBemFormado
@@ -133,18 +162,24 @@ function fixtura({
   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
 }
 
-function rodar(opcoes, { env = {} } = {}) {
+/**
+ * O ambiente do teste SEM nenhuma \`npm_config_*\`: rodando por \`npm run\`, o npm
+ * exporta várias, e o portão confere as que sobram. Cada teste põe as suas.
+ */
+const AMBIENTE_LIMPO = Object.fromEntries(Object.entries(process.env).filter(([n]) => !/^npm_config_/i.test(n)));
+
+function rodar(opcoes, { env = {}, cwd } = {}) {
   const r = spawnSync(process.execPath, [SCRIPT], {
-    encoding: "utf8",
-    env: { ...process.env, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
+    encoding: "utf8", ...(cwd ? { cwd } : {}),
+    env: { ...AMBIENTE_LIMPO, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
   });
   return { codigo: r.status, saida: r.stdout + r.stderr };
 }
 
 /** Roda e devolve também cada chamada que o npm falso recebeu. */
-function rodarComRegistro(opcoes) {
+function rodarComRegistro(opcoes, { env = {}, cwd } = {}) {
   const log = join(mkdtempSync(join(tmpdir(), "auditar-log-")), "chamadas.jsonl");
-  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log } });
+  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log, ...env }, cwd });
   const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
   rmSync(dirname(log), { recursive: true, force: true });
   return { ...resultado, chamadas };
@@ -302,14 +337,112 @@ describe("auditar.mjs", () => {
     assert.equal(codigo, 0, saida);
     assert.equal(chamadas.length, 5, JSON.stringify(chamadas)); // runtime, tudo, aplicativo e dois controles
     for (const { args } of chamadas) {
-      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false"]) {
+      for (const bandeira of [
+        `--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false",
+        "--package-lock=true",
+      ]) {
         assert.ok(args.includes(bandeira), `falta ${bandeira} em ${args.join(" ")}`);
       }
+      // Correção 8: \`--workspaces=false\` saiu (com dependência direta na raiz, ele descarta o runtime dos workspaces).
+      assert.ok(!args.some((a) => /^--(no-)?workspaces?(=|$)/.test(a)), args.join(" "));
     }
     const controles = chamadas.filter((c) => c.controle);
     assert.equal(controles.length, 2);
     for (const { args } of controles) assert.ok(args.includes("--package-lock-only"));
+    for (const { args } of chamadas.filter((c) => !c.controle)) assert.ok(args.includes("--package-lock-only=false"), args.join(" "));
     assert.match(saida, /Consulta de controle: lodash 4\.17\.20 voltou com GHSA-35jh-r3h4-6jhm/);
+  });
+
+  /*
+    Pré-validação da rodada 7, V2-F00-E19: `auditar()` recebia `cwd` undefined nas
+    duas consultas da raiz, então o `npm audit` rodava no diretório do PROCESSO.
+    Dentro de um workspace (`cd packages/shared && node ../../scripts/auditar.mjs`)
+    o npm audita só aquele workspace: com `fastify@4.10.0` no lockfile a raiz saía 1
+    e o mesmo comando de dentro do workspace saía 0 com "Runtime limpo". O mesmo
+    vale para `npm_config_workspace` no ambiente.
+  */
+  it("audita a RAIZ, e não o diretório de onde o comando foi dado (de dentro de um workspace)", () => {
+    const raiz = join(AQUI, "..");
+    const workspace = join(raiz, "packages", "shared");
+    assert.ok(existsSync(join(workspace, "package.json")), "o teste precisa de um workspace real");
+    const { codigo, saida, chamadas } = rodarComRegistro({}, { cwd: workspace });
+    assert.equal(codigo, 0, saida);
+    const daRaiz = chamadas.filter((c) => !c.controle && !c.app);
+    assert.equal(daRaiz.length, 2, JSON.stringify(chamadas));
+    for (const { cwd } of daRaiz) assert.equal(cwd, raiz.replaceAll("\\", "/"), "a consulta da raiz rodou fora da raiz");
+    assert.ok(chamadas.some((c) => c.app && c.cwd.endsWith("apps/campo")), "o aplicativo audita com o cwd dele");
+    assert.ok(chamadas.filter((c) => c.controle).every((c) => !c.cwd.startsWith(raiz.replaceAll("\\", "/"))), "o controle roda na pasta temporária");
+  });
+
+  it("nenhuma configuração de workspace do ambiente chega ao npm (npm_config_workspace, workspaces e include_workspace_root)", () => {
+    const { codigo, saida, chamadas } = rodarComRegistro({}, {
+      env: {
+        npm_config_workspace: "packages/shared", NPM_CONFIG_WORKSPACES: "true",
+        "npm_config_include-workspace-root": "false", npm_config_include_workspace_root: "false",
+      },
+    });
+    assert.equal(codigo, 0, saida);
+    assert.equal(chamadas.length, 5);
+    for (const { workspaceNoAmbiente, args } of chamadas) {
+      assert.deepEqual(workspaceNoAmbiente, []);
+      assert.ok(!args.some((a) => /^--(no-)?workspaces?(=|$)/.test(a)));
+    }
+  });
+
+  it("vulnerabilidade de runtime reprova (1) também quando o comando é dado de dentro de um workspace e com npm_config_workspace", () => {
+    const workspace = join(AQUI, "..", "packages", "shared");
+    const { codigo, saida } = rodar(
+      { runtime: relatorio({ fastify: true }) },
+      { cwd: workspace, env: { npm_config_workspace: "packages/shared" } },
+    );
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /dependência de runtime/);
+  });
+
+  it("npm_config_* fora da lista no ambiente sai 2 com o nome (em qualquer caixa), antes de auditar", () => {
+    for (const [nome, chave] of [["npm_config_before", "before"], ["NPM_CONFIG_OMIT", "omit"], ["npm_config_https_proxy", "https-proxy"]]) {
+      const { codigo, saida, chamadas } = rodarComRegistro({}, { env: { [nome]: "x" } });
+      assert.equal(codigo, 2, `${nome}: ${saida}`);
+      assert.ok(saida.includes(`  - ${chave}   (de env (${nome}))`), `${nome}: ${saida}`);
+      assert.equal(chamadas.length, 0);
+    }
+  });
+
+  it("as npm_config_* que o npm run exporta são anuladas (não chegam ao npm), e as permitidas chegam e passam", () => {
+    const { codigo, saida, chamadas } = rodarComRegistro({}, {
+      env: {
+        npm_config_userconfig: "/tmp/nao-existe/.npmrc", npm_config_globalconfig: "/tmp/nao-existe/npmrc",
+        npm_config_local_prefix: "/tmp", npm_config_prefix: "/tmp", npm_config_cache: "/tmp/cache",
+        npm_config_user_agent: "npm/0", npm_config_node_gyp: "x", npm_config_npm_version: "0", npm_config_init_module: "x",
+        npm_config_global_prefix: "/tmp", npm_config_noproxy: "",
+        npm_config_package_lock: "false", NPM_CONFIG_LOGLEVEL: "silent",
+      },
+    });
+    assert.equal(codigo, 0, saida);
+    assert.equal(chamadas.length, 5);
+    for (const { npmConfig } of chamadas) assert.deepEqual(npmConfig, ["NPM_CONFIG_LOGLEVEL", "npm_config_package_lock"]);
+  });
+
+  it("chave fora da lista que só o npm conhece (npmrc do usuário, global ou embutido) sai 2 com o arquivo de origem", () => {
+    const extra = '; "user" config from /casa/.npmrc\n\nfund = false\nomit = ["dev"]\n\n; "global" config from /usr/etc/npmrc\n\nbefore = "2020-01-01"';
+    const { codigo, saida } = rodar({ configRaizExtra: extra });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /  - omit   \(de user \(\/casa\/\.npmrc\)\)/);
+    assert.match(saida, /  - before   \(de global \(\/usr\/etc\/npmrc\)\)/);
+    assert.doesNotMatch(saida, /  - fund /);
+  });
+
+  it("sai 2 quando o npm config list falha, não diz o projeto, ou toma outra pasta como projeto", () => {
+    for (const [opcoes, motivo] of [
+      [{ configRaiz: "", configRaizCodigo: 1 }, /npm config list. falhou/],
+      [{ configRaiz: "; nada aqui\n" }, /npm local prefix = ausente/],
+      [{ configAppPrefixo: tmpdir() }, /não tomou .* como projeto/],
+    ]) {
+      const { codigo, saida } = rodar(opcoes);
+      assert.equal(codigo, 2, `${JSON.stringify(opcoes)}: ${saida}`);
+      assert.match(saida, motivo);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
   });
 
   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
@@ -410,6 +543,14 @@ describe("auditar.mjs", () => {
 });
 
 describe("regras puras do portão: advisory por id e prova de consulta", () => {
+  it("ambienteDaConsulta tira só as variáveis de workspace do npm, em qualquer caixa, e mantém o resto", () => {
+    const env = {
+      PATH: "/bin", npm_config_registry: "x", npm_config_workspace: "a", NPM_CONFIG_WORKSPACES: "true",
+      npm_config_include_workspace_root: "1", "npm_config_include-workspace-root": "1", npm_config_workspace_x: "mantém",
+    };
+    assert.deepEqual(ambienteDaConsulta(env), { PATH: "/bin", npm_config_registry: "x", npm_config_workspace_x: "mantém" });
+  });
+
   it("idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA", () => {
     assert.equal(idDaAdvisory({ url: "https://github.com/advisories/GHSA-86W9-CPQP-85RV" }), "GHSA-86w9-cpqp-85rv");
     assert.equal(idDaAdvisory("ghsa-86w9-cpqp-85rv"), "GHSA-86w9-cpqp-85rv");
@@ -456,6 +597,80 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
       misto: { nodes: ["node_modules/d", "node_modules/p"] }, desconhecido: { nodes: ["node_modules/zz"] }, semNos: {},
     };
     assert.deepEqual(pacotesDeRuntimeNoCompleto(vulns, lock), ["desconhecido", "misto", "o", "p", "semNos"]);
+  });
+
+  it("chavesDoNpmrc lê o ini do .npmrc: comentário, lista com [], seção e linha sem valor", () => {
+    assert.deepEqual(
+      chavesDoNpmrc("; c\n# d\n\npackage-lock = false\nfoo[]=1\r\n[secao]\n  //registry.npmjs.org/:_authToken=${T}\nsozinha\n"),
+      ["package-lock", "foo", "[secao]", "//registry.npmjs.org/:_authToken", "sozinha"],
+    );
+  });
+
+  it("lerNpmConfigList separa as chaves por fonte e acha o npm local prefix (formato do npm 10 e 11)", () => {
+    const texto = '; "user" config from /casa/.npmrc\n\n//registry.npmjs.org/:_authToken = (protected)\nfund = false\n\n'
+      + '; "project" config from /p/.npmrc\n\npackage-lock = false\n\n; "env" config from environment\n\nloglevel = "silent"\n\n'
+      + "; node bin location = /usr/local/bin/node\n; node version = v22.0.0\n; npm local prefix = /p\n; npm version = 10.9.2\n; cwd = /p\n";
+    const { chaves, prefixoLocal } = lerNpmConfigList(texto);
+    assert.equal(prefixoLocal, "/p");
+    assert.deepEqual(chaves, [
+      { chave: "//registry.npmjs.org/:_authToken", origem: "user (/casa/.npmrc)" },
+      { chave: "fund", origem: "user (/casa/.npmrc)" },
+      { chave: "package-lock", origem: "project (/p/.npmrc)" },
+      { chave: "loglevel", origem: "env (environment)" },
+    ]);
+    assert.deepEqual(chavesProibidas(chaves), []);
+  });
+
+  it("normalizarChave e chavesProibidas: variável em qualquer caixa vira a chave do npm; a lista não permite workspace, omit, include nem proxy", () => {
+    assert.equal(normalizarChave("NPM_CONFIG_PREFER_OFFLINE", { doAmbiente: true }), "prefer-offline");
+    assert.equal(normalizarChave("npm_config_package_lock", { doAmbiente: true }), "package-lock");
+    for (const chave of ["workspace", "workspaces", "include-workspace-root", "omit", "include", "before", "proxy", "https-proxy", "cafile", "global", "audit"]) {
+      assert.ok(!Object.hasOwn(CHAVES_PERMITIDAS, chave), chave);
+    }
+    assert.deepEqual(chavesProibidas([{ chave: "omit", origem: "a" }, { chave: "omit", origem: "a" }, { chave: "fund", origem: "a" }]), [{ chave: "omit", origem: "a" }]);
+  });
+
+  it("mesmoProjeto aceita o prefixo igual ou mascarado como o npm faz, e só isso", () => {
+    const uuid = "/tmp/123e4567-e89b-12d3-a456-426614174000/dc360";
+    assert.equal(mascararComoONpm(uuid), "/tmp/***/dc360");
+    assert.ok(mesmoProjeto("/tmp/***/dc360", [uuid]));
+    assert.ok(mesmoProjeto("/p/dc360", ["/x", "/p/dc360"]));
+    assert.ok(!mesmoProjeto("/tmp/***/outro", [uuid]));
+    assert.ok(!mesmoProjeto("/tmp/***/dc360", ["/tmp/nao-e-uuid/dc360"]));
+    assert.ok(!mesmoProjeto(null, [uuid]));
+    assert.ok(!mesmoProjeto("", [""]));
+  });
+
+  it("shrinkwrapsPresentes procura na raiz, nas pastas dadas e nos workspaces (pasta/* e literal)", () => {
+    const raiz = mkdtempSync(join(tmpdir(), "auditar-sw-"));
+    try {
+      const escrever = (c, t = "{}") => { mkdirSync(dirname(join(raiz, c)), { recursive: true }); writeFileSync(join(raiz, c), t); };
+      escrever("package.json", JSON.stringify({ workspaces: ["packages/*", "db", "nao-existe/*", "x/{a,b}"] }));
+      escrever("packages/a/npm-shrinkwrap.json"); escrever("packages/b/package.json"); escrever("db/npm-shrinkwrap.json");
+      escrever("app/npm-shrinkwrap.json");
+      const fs = { existsSync, readFileSync, readdirSync };
+      const r = shrinkwrapsPresentes(raiz, [join(raiz, "app")], fs);
+      assert.deepEqual(r.achados.map((f) => f.slice(raiz.length + 1)).sort(), ["app/npm-shrinkwrap.json", "db/npm-shrinkwrap.json", "packages/a/npm-shrinkwrap.json"]);
+      assert.deepEqual(r.naoExpandidos, ["x/{a,b}"]);
+      escrever("npm-shrinkwrap.json");
+      assert.ok(shrinkwrapsPresentes(raiz, [], fs).achados.some((f) => f === `${raiz}/npm-shrinkwrap.json`));
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it("hojeEmSaoPaulo: o prazo vence no fim do dia do Brasil, e não às 21h (UTC)", () => {
+    assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T01:00:00Z")), "2027-01-05"); // 22h do dia 5 em São Paulo
+    assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T03:00:00Z")), "2027-01-06"); // meia-noite do dia 6
+    assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hojeEmSaoPaulo(new Date("2027-01-06T02:59:00Z")), { exigirAdvisories: true }), []);
+  });
+
+  it("ambienteDaConsulta tira as npm_config_* do npm run e de workspace, e deixa as outras", () => {
+    const env = ambienteDaConsulta({
+      PATH: "/bin", npm_config_userconfig: "x", NPM_CONFIG_CACHE: "x", npm_config_local_prefix: "x", npm_config_workspace: "x",
+      npm_config_before: "x", npm_config_loglevel: "x",
+    });
+    assert.deepEqual(Object.keys(env).sort(), ["PATH", "npm_config_before", "npm_config_loglevel"]);
   });
 
   it("defeitoDaArvore exige dependencies.total maior que zero", () => {
@@ -553,8 +768,8 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
 
 describe("auditar.mjs com a lista de exceções adulterada", () => {
   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
-  function rodarCopia(alterar, { npmrc, semLockfile = false } = {}) {
-    const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
+  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {}, arquivos = {}, prefixo = "auditar-copia-" } = {}) {
+    const raiz = mkdtempSync(join(tmpdir(), prefixo));
     try {
       mkdirSync(join(raiz, "scripts"));
       mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
@@ -564,6 +779,10 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
       const nova = alterar(lista);
       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
       writeFileSync(join(raiz, "scripts", "auditar-excecoes.mjs"), nova);
+      for (const [caminho, conteudo] of Object.entries(arquivos)) {
+        mkdirSync(dirname(join(raiz, caminho)), { recursive: true });
+        writeFileSync(join(raiz, caminho), conteudo);
+      }
       if (npmrc) {
         writeFileSync(join(raiz, ".npmrc"), npmrc.raiz);
         writeFileSync(join(raiz, "apps", "campo", ".npmrc"), npmrc.app);
@@ -572,10 +791,10 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
       const r = spawnSync(process.execPath, [join(raiz, "scripts", "auditar.mjs")], {
         encoding: "utf8",
         env: {
-          ...process.env,
+          ...AMBIENTE_LIMPO,
           PATH: pasta + delimiter + process.env.PATH,
           AUDITAR_LOG: log,
-          AUDITAR_FIXTURE: fixtura({}),
+          AUDITAR_FIXTURE: fixtura(fixturaDaCopia),
         },
       });
       const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
@@ -621,6 +840,74 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
     assert.equal(codigo, 2, saida);
     assert.match(saida, /package-lock\.json/);
     assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  /*
+    Rodada 7, achado 1: \`package-lock=false\` no \`.npmrc\` da raiz fazia o npm
+    auditar a árvore ideal das faixas do \`package.json\`, e não o lockfile, e o
+    portão aprovava um lockfile com runtime vulnerável. A chave é permitida porque
+    toda chamada passa \`--package-lock=true\`, que vence a configuração.
+  */
+  it("package-lock=false (e offline) no .npmrc da raiz: a chave é anulada pela bandeira e o runtime vulnerável reprova", () => {
+    const npmrc = { raiz: "package-lock=false\noffline=true\n", app: "package-lock=false\n" };
+    const limpa = rodarCopia((t) => `${t}\n// controle\n`, { npmrc });
+    assert.equal(limpa.codigo, 0, limpa.saida);
+    for (const { args } of limpa.chamadas) assert.ok(args.includes("--package-lock=true"), args.join(" "));
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc, fixturaDaCopia: { runtime: relatorio({ fastify: true }) } });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /dependência de runtime/);
+  });
+
+  it("chave fora da lista no .npmrc da raiz sai 2 com o nome dela e a origem, ANTES de auditar", () => {
+    for (const linha of ["before=2020-01-01", "omit=dev", "workspace=packages/shared", "workspaces=false",
+      "include-workspace-root=false", "https-proxy=http://127.0.0.1:9", "ignore-scripts=true", "[secao]"]) {
+      const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: `${linha}\n`, app: "" } });
+      const chave = linha.startsWith("[") ? linha : linha.split("=")[0];
+      assert.equal(codigo, 2, `${linha}: ${saida}`);
+      assert.match(saida, /tem chave fora da lista permitida/);
+      assert.ok(saida.includes(`  - ${chave}   (de project (`), `${linha}: ${saida}`);
+      assert.equal(chamadas.length, 0, `${linha}: auditou antes de conferir a configuração`);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+  });
+
+  it("chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo", () => {
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: "fund=false\n", app: "omit=\n" } });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /para o projeto do aplicativo de campo .*tem chave fora da lista permitida/);
+    assert.match(saida, /  - omit   \(de project/);
+  });
+
+  /*
+    Revisão da correção 8: o \`npm-shrinkwrap.json\` vence o \`package-lock.json\` no
+    npm (\`sw || lock\`). Com um shrinkwrap limpo ao lado, o portão auditava o
+    shrinkwrap e aprovava o lockfile com runtime vulnerável que o Dockerfile instala.
+  */
+  it("sai 2, antes de auditar, se existe npm-shrinkwrap.json na raiz, no aplicativo ou num workspace", () => {
+    const pacote = JSON.stringify({ name: "copia", private: true, workspaces: ["packages/*", "db"] });
+    for (const onde of ["npm-shrinkwrap.json", "apps/campo/npm-shrinkwrap.json", "packages/um/npm-shrinkwrap.json", "db/npm-shrinkwrap.json"]) {
+      const arquivos = { "package.json": pacote, "packages/um/package.json": "{}", "db/package.json": "{}", [onde]: "{}" };
+      const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos });
+      assert.equal(codigo, 2, `${onde}: ${saida}`);
+      assert.ok(saida.includes(`${onde} existe, e o npm o lê NO LUGAR do package-lock.json`), `${onde}: ${saida}`);
+      assert.equal(chamadas.length, 0, `${onde}: auditou com o shrinkwrap ao lado`);
+      assert.doesNotMatch(saida, /Runtime limpo/);
+    }
+    const sem = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "package.json": pacote, "packages/um/package.json": "{}" } });
+    assert.equal(sem.codigo, 0, sem.saida);
+  });
+
+  it("sai 2 com padrão de workspace que o portão não sabe expandir (não dá para procurar shrinkwrap)", () => {
+    const arquivos = { "package.json": JSON.stringify({ name: "copia", workspaces: ["pacotes/**"] }) };
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos });
+    assert.equal(codigo, 2, saida);
+    assert.match(saida, /padrão de workspace que o portão não sabe expandir .*pacotes\/\*\*/);
+  });
+
+  it("projeto numa pasta com cara de UUID: o npm 11 mascara o caminho com *** e o portão reconhece o projeto mesmo assim", () => {
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { prefixo: "123e4567-e89b-12d3-a456-426614174000-" });
+    assert.equal(codigo, 0, saida);
+    assert.doesNotMatch(saida, /não tomou/);
   });
 
   it("reprova a exceção vencida", () => {

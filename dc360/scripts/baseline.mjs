@@ -137,7 +137,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
     dava 0 para este arquivo e por isso ele ficou de fora).
   */
-  "V2-F00-E19": 54, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita)
+  "V2-F00-E19": 75, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita); a correção 7 (2026-10-20) mais 4 (a raiz é auditada na raiz e sem variável de workspace: de dentro de um workspace, com npm_config_workspace, o ambiente puro e a reprovação de runtime; a correção 8 (2026-10-20) mais 12 (lista permitida de chaves da configuração do npm, lockfile sempre auditado, workspaces auditados de novo pela raiz); a correção 9 (2026-10-20) mais 5 (npm-shrinkwrap.json na raiz, no aplicativo ou num workspace sai 2, padrão de workspace que não se expande sai 2, caminho com UUID que o npm mascara com ***, e as regras puras mesmoProjeto e shrinkwrapsPresentes)
   /*
     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
@@ -178,6 +178,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     na conta, por isso é o mesmo número da correção 1.
   */
   "V2-F00-E21-correcao-1": 36, // 26 na correção 1; a correção 2 (2026-10-20) acrescentou 6 e depois 4 casos que rodam o script como comando
+  /*
+    V2-F00-E21, correção 3: `scripts/ambiente-hostil.test.mjs` é novo, com 8
+    casos (o montador das condições hostis do job `plataformas` do CI: LF para
+    CRLF sem duplicar CR, a agulha antiga que some em CRLF, arquivo misto, o
+    resumo de `git ls-files --eol` que aceita e o que reprova, a fixture do
+    cache velho sem as três rotas, e o comando `eol` saindo com 1 diante de
+    `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
+  */
+  "V2-F00-E21-correcao-3": 8,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -186,6 +195,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E19": "auditar.test.mjs",
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
+  "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -506,6 +516,27 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     próprio passo.
   */
   "V2-F00-E05-correcao-4": { total: 95, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correção 6 (2026-10-20): corpo além do `content-length`,
+    trailer no desvio e `flushHeaders`: guarda da API de 108 para 119 (+11).
+    A guarda do console (+2) está no número do próprio passo.
+  */
+  "V2-F00-E05-correcao-6": { total: 11, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correção 7 (2026-10-20): as formas da rodada 7 sobre `fd17ff4`
+    (ReadableStream e content-length 0, 403 do catálogo com content-length
+    errado, transfer-encoding identity, addTrailers, status 1xx como resposta
+    final): guarda da API de 119 para 138 (+19). A guarda do console (+16) está
+    no número do próprio passo.
+  */
+  "V2-F00-E05-correcao-7": { total: 19, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correção 7b (2026-10-20, CI em Node 22): a guarda recusa CR ou
+    LF nas Early Hints em qualquer versão do Node, e o 103 legítimo antes do
+    403 do catálogo passa: guarda da API de 138 para 140 (+2). A guarda do
+    console (+3) está no número do próprio passo.
+  */
+  "V2-F00-E05-correcao-7b": { total: 2, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -583,6 +614,10 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
   // V2-F00-E09, correção 5: `correcao-5-da-e09.test.ts` é novo, com 11 casos (o detector de email solto no JSX e a varredura de todo .tsx do painel, as duas janelas e a tentativa de envio do ofício usando o EmailQuebravel, a regra da dica da janela sem `anywhere`, o hook que leva o foco depois do commit e as duas telas que o usam, o `scroll-padding-top` e a margem do campo no topo de duas linhas, e o foco que rola pelo `scrollIntoView`). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o foco por efeito), sem caso novo. Nenhuma falha nova.
   "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
+  // V2-F00-E09, correção 6: `correcao-6-da-e09.test.ts` é novo, com 17 casos (o foco que leva à vista a moldura do campo e depois o controle, as folgas medidas do topo e da barra do pé, a janela muito baixa em que os dois rolam com a página, o Tab que respeita as bordas, a margem do rótulo em qualquer largura, o ofício que encolhe abaixo da palavra mais longa, o singular e o plural das tentativas, a busca a 320 px e o nome do link de Minha conta). `correcao-5-da-e09.test.ts` trocou duas asserções no lugar (a folga medida e a regra do ofício), sem caso novo. Nenhuma falha nova.
+  "V2-F00-E09-correcao-6": { total: 17, falhas: 0 },
+  // V2-F00-E09, correção 6b: `correcao-6-da-e09.test.ts` ganha 7 casos (o ajuste do Tab roda na hora, numa tarefa logo depois e no quadro seguinte; o foco que vem do toque ou do clique não é ajustado; a conta do Tab pelas bordas reais, para o que cabe e para o que é mais alto que a faixa; o teto do email em qualquer largura; a paginação que quebra em linhas; o texto de exemplo curto do filtro de Ocorrências). Dois casos da correção 6 e um da correção 4 trocaram a asserção no lugar (a altura de 340 px, a conta do Tab e o teto do email em qualquer largura). Nenhuma falha nova.
+  "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -744,7 +779,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 286, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 307, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)
@@ -886,13 +921,31 @@ export const PASSOS = [
     Firefox; no WebKit 196 (uma verificacao do Tab
     e PULADA la, por escolha antiga do arquivo) e so a tela estreita, ver
     `e2e-api.mjs --so-layout`.
+
+    Correcao 6 da E09 (2026-10-20): de 197 para 255 (mais 58), secao 13: o
+    rotulo e o campo focados depois do erro inteiros entre o topo fixo e a barra
+    do pe em Minha conta (11 tamanhos, com os zooms de 200 e 400 por cento, mais
+    5 com Enter e a pagina no alto), Nova ocorrencia (6), "Defina a sua senha",
+    Usuarios, Ocorrencia e Quero conhecer (12), o Tab natural em tres telas e
+    quatro tamanhos (12), a linha do oficio na tela de verdade a 320 e 360 px
+    (7), a busca do topo a 320 e 360 px (2) e o nome do link de Minha conta (3).
+    Medido no Mac, Node 24: 255 no Chromium e no Firefox, 254 no WebKit.
+
+    Correcao 6b da E09 (2026-10-20): de 255 para 287 (mais 32): o Tab com o
+    quadro lento (requestAnimationFrame atrasado em 1 s, a condicao do WebKit
+    sem tela do Linux que reprovou no CI, run 39488319365), a 390x400 e no
+    Android deitado (640x360 e 740x360), agora em quatro telas com o Painel
+    (de 12 para 36), Minha conta e Nova ocorrencia no Android deitado (4), e a
+    rolagem horizontal a 320 px de todas as telas logadas nos dois temas, mais o
+    texto de exemplo do filtro de Ocorrencias e o cadastro do agente (4). 287 no
+    Chromium e no Firefox, 286 no WebKit.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 197   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 287   Falhou: 0"] },
   },
 ];
 

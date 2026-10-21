@@ -1,0 +1,17 @@
+lockfile com packages[node_modules/fastify].version = 4.10.0 (runtime vulnerável); auditar.mjs corrigido (DEPOIS)
+=== raiz
+Runtime (vai para a imagem): 1 vulnerabilidade(s)
+REPROVADO: 1 high em dependência de runtime.
+codigo=1
+=== de dentro de packages/shared
+Runtime (vai para a imagem): 1 vulnerabilidade(s)
+REPROVADO: 1 high em dependência de runtime.
+codigo=1
+=== de dentro de packages/shared com npm_config_workspace=packages/shared
+Runtime (vai para a imagem): 1 vulnerabilidade(s)
+REPROVADO: 1 high em dependência de runtime.
+codigo=1
+=== da raiz com npm_config_workspace=packages/shared
+Runtime (vai para a imagem): 1 vulnerabilidade(s)
+REPROVADO: 1 high em dependência de runtime.
+codigo=1

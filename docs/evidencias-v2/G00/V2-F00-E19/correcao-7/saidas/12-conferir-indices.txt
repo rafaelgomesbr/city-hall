@@ -1,0 +1,3 @@
+$ node scripts/conferir-indices-de-evidencia.mjs   (a partir de dc360, com este arquivo já indexado)
+Índices de evidência: 78 INDEX.md, 3731 arquivo(s) conferido(s) byte a byte.
+RESULTADO: OK

@@ -1,0 +1,26 @@
+js-yaml e yaml (eemeli) leem o arquivo sem erro; avisos do yaml: 0
+jobs: produto, dependencias, roadmap, navegador, demonstracao, aplicativo, plataformas, implantavel, baseline, restore
+runs-on: ${{ matrix.sistema }} | matrix: {"sistema":["windows-latest","ubuntu-latest"]} | fail-fast: false | timeout: 45 | if do job: (nenhum: roda em todo push)
+- Fim de linha como no Windows do autor (core.autocrlf=true) | shell: bash | wd: . 
+- actions/checkout@v4 | shell: - | wd: - 
+- actions/setup-node@v4 | shell: - | wd: - 
+- Contexto do run | shell: bash | wd: dc360 
+- git ls-files --eol sem i/crlf (checkout com autocrlf=true) | shell: bash | wd: . 
+- Os INDEX.md da evidência batem com os arquivos (SHA-256) | shell: bash | wd: . | if: ${{ !cancelled() }}
+- Instalar dependências | shell: bash | wd: dc360 | if: ${{ !cancelled() }}
+- Compilar os pacotes compartilhados | shell: bash | wd: dc360 | if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+- Caso 1, controle: árvore do painel em CRLF, sem a agulha antiga | shell: bash | wd: dc360 | if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+- Caso 1: suíte do painel inteira sobre a árvore CRLF | shell: bash | wd: dc360 | if: ${{ !cancelled() && steps.crlf.outcome == 'success' }}
+- Caso 2, controle: o openssl cru reprova com OPENSSL_CONF quebrado | shell: bash | wd: dc360 | if: ${{ !cancelled() }}
+- Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (bash) | shell: bash | wd: dc360/apps/api | if: ${{ !cancelled() && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
+- Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (PowerShell 5.1, só Windows) | shell: powershell | wd: dc360/apps/api | if: ${{ !cancelled() && runner.os == 'Windows' && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
+- Instalar dependências do aplicativo | shell: bash | wd: dc360/apps/campo | if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+- Caso 3, controle: com o cache velho o tsc direto dá TS2345 | shell: bash | wd: dc360 | if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+- Caso 3: npm run test:campo com o cache velho presente | shell: bash | wd: dc360 | if: ${{ !cancelled() && steps.cache_controle.outcome == 'success' }}
+- Caso 3: typecheck do aplicativo sem o cache | shell: bash | wd: dc360/apps/campo | if: ${{ !cancelled() && steps.cache_teste.outcome == 'success' }}
+- Redigir segredo dos artefatos | shell: bash | wd: dc360 | if: ${{ always() }}
+- Publicar os artefatos | shell: - | wd: - | if: ${{ always() }}
+ids: instalar, compilar, crlf, openssl_controle, instalar_app, cache_controle, cache_teste
+os if citam só ids existentes: sim
+OPENSSL_CONF do controle: ${{ runner.os == 'Windows' && 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf' || '/nao/existe/psqlODBC/etc/openssl.cnf' }}
+OPENSSL_CONF do PowerShell: C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf

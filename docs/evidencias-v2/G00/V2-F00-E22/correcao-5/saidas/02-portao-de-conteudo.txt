@@ -1,0 +1,14 @@
+$ cd dc360 && npx vitest run packages/shared/test/regras-de-conteudo.test.ts packages/shared/test/ressalva-saida-a-campo.test.ts
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360
+
+ ✓ packages/shared/test/ressalva-saida-a-campo.test.ts (38 tests) 24ms
+ ✓ packages/shared/test/regras-de-conteudo.test.ts (10 tests) 646ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  306ms
+
+ Test Files  2 passed (2)
+      Tests  48 passed (48)
+   Start at  16:56:11
+   Duration  866ms (transform 58ms, setup 0ms, collect 80ms, tests 670ms, environment 0ms, prepare 78ms)
+
+codigo=0

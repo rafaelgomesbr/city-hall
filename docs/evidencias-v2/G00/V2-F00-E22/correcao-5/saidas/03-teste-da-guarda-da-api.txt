@@ -1,0 +1,12 @@
+$ cd dc360/apps/api && npx vitest run test/guarda-de-codigos-de-erro.test.ts   (só o comentário de topo mudou)
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ✓ test/guarda-de-codigos-de-erro.test.ts (138 tests) 1141ms
+
+ Test Files  1 passed (1)
+      Tests  138 passed (138)
+   Start at  16:56:23
+   Duration  1.81s (transform 259ms, setup 97ms, collect 393ms, tests 1.14s, environment 0ms, prepare 37ms)
+
+codigo=0

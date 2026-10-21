@@ -1,0 +1,6 @@
+$ npm_config_userconfig=<arquivo com "workspace=packages/shared"> node scripts/auditar.mjs   (npm real, lockfile limpo)
+
+ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+Motivo: o npm audit devolveu erro (Cannot use --no-workspaces and --workspace at the same time)
+Isto não é 'zero vulnerabilidades': é 'não consegui olhar'. Confira a rede e o registro (npm config get registry), rode de novo, e só então confie no resultado.
+codigo=2

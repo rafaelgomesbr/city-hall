@@ -1,0 +1,2 @@
+# DEPOIS, arquivo isolado, 40 rodadas
+  40 Tests:       19 passed, 19 total

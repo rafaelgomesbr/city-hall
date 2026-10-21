@@ -1,0 +1,6 @@
+[depois chromium 320 #filtro-busca] CABE "Protocolo, endereço ou relato" 203.5 + 24 em 262.0
+[depois chromium 320 #busca-global] CABE "Buscar registro ou função" 176.3 + 24 em 226.0
+[depois firefox 320 #filtro-busca] CABE "Protocolo, endereço ou relato" 203.4 + 24 em 262.0
+[depois firefox 320 #busca-global] CABE "Buscar registro ou função" 176.8 + 24 em 226.0
+[depois webkit 320 #filtro-busca] CABE "Protocolo, endereço ou relato" 203.5 + 24 em 262.0
+[depois webkit 320 #busca-global] CABE "Buscar registro ou função" 176.5 + 24 em 226.0

@@ -1,0 +1,45 @@
+### Mutante A: ler-fonte.ts sem normalizar CRLF; árvore do painel em CRLF; o passo 'Caso 1' tem de reprovar
+18:  return texto; // MUTANTE
+Gravados em CRLF: 119 arquivos de apps/web/src, apps/web/test.
+   × A fiação entre a página e as regras > nada grava o encerramento fora do ramo de confirmação 7ms
+   × Achado 3 (visto nas capturas): o campo focado não fica atrás do topo de duas linhas > em tela de celular o scroll-padding-top cobre as duas linhas do topo, e o de cima segue para o topo de uma linha 3ms
+   × A mesma fonte em CRLF e em LF > lê igual nas duas árvores, sem nenhum CR sobrando 206ms
+   × A mesma fonte em CRLF e em LF > recorta o mesmo bloco de BlocoEncerramento nas duas, com uma chamada de onEnviar só 1ms
+   × A mesma fonte em CRLF e em LF > o recorte aceita o texto cru em CRLF, sem depender de quem chamou ter normalizado 0ms
+   × Normalizar não esconde mudança real > a chave de fechamento movida para antes da gravação tira o onEnviar do bloco 8ms
+   × Normalizar não esconde mudança real > CR solto não é fim de linha e continua no texto 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/correcao-5-da-e09.test.ts > Achado 3 (visto nas capturas): o campo focado não fica atrás do topo de duas linhas > em tela de celular o scroll-padding-top cobre as duas linhas do topo, e o de cima segue para o topo de uma linha
+ FAIL  test/ler-fonte.test.ts > A mesma fonte em CRLF e em LF > lê igual nas duas árvores, sem nenhum CR sobrando
+ FAIL  test/ler-fonte.test.ts > A mesma fonte em CRLF e em LF > recorta o mesmo bloco de BlocoEncerramento nas duas, com uma chamada de onEnviar só
+ FAIL  test/ler-fonte.test.ts > A mesma fonte em CRLF e em LF > o recorte aceita o texto cru em CRLF, sem depender de quem chamou ter normalizado
+codigo do painel=
+codigo=1
+
+### Mutante B: ambienteDoOpenssl devolve o ambiente intacto; OPENSSL_CONF quebrado; o passo 'Caso 2' tem de reprovar
+ ❯ test/banco-tls.test.ts (13 tests | 13 skipped) 18ms
+ FAIL  test/banco-tls.test.ts [ test/banco-tls.test.ts ]
+Error: Command failed: openssl req -x509 -newkey rsa:2048 -nodes -keyout /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-tls-Bse3Vp/impostor.key -out /var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-tls-Bse3Vp/impostor.crt -days 3650 -subj /CN=localhost -addext subjectAltName=DNS:localhost,IP:127.0.0.1
+     92|     throw new Error("o openssl não está no PATH (nem ao lado do git, n…
+ Test Files  1 failed (1)
+      Tests  13 skipped (13)
+codigo=
+
+### Mutante C: testar-campo.mjs sem limpar o cache velho; o passo 'Caso 3' tem de reprovar
+268:  // limparCacheDeRotasVelho(); MUTANTE
+Cache velho em apps/campo/.expo/types/router.d.ts; rotas ausentes nele: /avisos, /mapa, /perfil.
+src/app/(agente)/perfil.tsx(1224,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | Rela
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathStrin
+FALHOU: npm run typecheck --prefix apps/campo saiu com 2.
+codigo=
+ M apps/campo/LEIA-ME.md
+ M scripts/baseline.mjs
+?? scripts/ambiente-hostil.mjs
+?? scripts/ambiente-hostil.test.mjs
+?? scripts/fixtures/
+
+### Códigos de saída de B e C, sem pipe (o shell desta máquina é zsh, sem PIPESTATUS: as linhas 'codigo=' vazias acima vêm disso)
+Mutante B, codigo=1
+B restaurado, codigo=0
+Mutante C, codigo=2
+(vazio acima: árvore restaurada)

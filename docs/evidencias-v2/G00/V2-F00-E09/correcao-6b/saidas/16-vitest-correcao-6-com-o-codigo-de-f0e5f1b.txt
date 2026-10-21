@@ -1,0 +1,3795 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/web
+
+ ❯ test/correcao-6-da-e09.test.ts (24 tests | 9 failed) 10ms
+   ✓ Achados 1, 2 e 4: o foco leva à vista a moldura do campo, e não só o controle > foca sem rolar, leva a moldura (rótulo, controle e erro) à vista e depois o controle, os dois com `nearest` 1ms
+   ✓ Achados 1, 2 e 4: o foco leva à vista a moldura do campo, e não só o controle > a moldura é a que o `Campo` desenha (o rótulo mora dentro dela) 0ms
+   ✓ Achados 1, 2 e 4: o foco leva à vista a moldura do campo, e não só o controle > controle fora de moldura (sem `.campo` em volta) continua indo à vista sozinho 0ms
+   ✓ Achados 1 e 2: as folgas do topo e da barra do pé são medidas > a folga é a altura medida arredondada para cima, mais um passo de respiro do design system 0ms
+   ✓ Achados 1 e 2: as folgas do topo e da barra do pé são medidas > a barra lateral só conta como borda do pé quando está presa embaixo (até 900 px) 0ms
+   ✓ Achados 1 e 2: as folgas do topo e da barra do pé são medidas > a Estrutura mede o topo e a barra que ela mesma desenha, e de novo quando a sessão aparece 0ms
+   ✓ Achados 1 e 2: as folgas do topo e da barra do pé são medidas > a folha usa as duas medidas no scroll-padding, e sem medida (tela pública, sem topo) a folga é só o respiro 0ms
+   × Achados 1 e 2: as folgas do topo e da barra do pé são medidas > em janela muito baixa (zoom de 400 por cento, 320x256) o topo e a barra rolam com a página, e a medida os ignora 3ms
+     → bloco "@media (max-height: 340px) {" na folha: expected -1 to be greater than or equal to 0
+   × Achados 1 e 2: as folgas do topo e da barra do pé são medidas > o Tab também respeita as bordas: o foco que cai no conteúdo é levado inteiro à faixa entre o topo e a barra do pé 0ms
+     → (0 , deslocamentoParaAFaixa) is not a function
+   ✓ Achados 1 e 2: as folgas do topo e da barra do pé são medidas > a margem do rótulo vale em qualquer largura, e não só até 600 px 0ms
+   × Correção 6b: o ajuste do Tab não espera o quadro seguinte > roda na hora, dentro do focusin, numa tarefa logo depois e de novo no quadro seguinte (no WebKit do Linux o quadro chegava tarde) 1ms
+     → expected 'const aoFocar = (evento: FocusEvent) …' to match /\n\s+ajustar\(alvo\);\n\s+setTimeout\…/
+   × Correção 6b: o ajuste é do teclado, e não rola a página sob o clique > o foco que chega logo depois de um toque ou clique não é ajustado (rolar no pointerdown perde o clique) 0ms
+     → (0 , focoDoPonteiro) is not a function
+   × Correção 6b, revisão: a conta do Tab usa as bordas reais > o que cabe na faixa real mas não na faixa com respiro vai inteiro, com o respiro que sobra (a caixa do painel a 390x400) 0ms
+     → (0 , deslocamentoParaAFaixa) is not a function
+   × Correção 6b, revisão: a conta do Tab usa as bordas reais > o que é mais alto que a faixa real vai com o começo ao começo da faixa (a caixa de Órgãos a 390x400) 0ms
+     → (0 , deslocamentoParaAFaixa) is not a function
+   × Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga > o teto do email da tabela vale em qualquer largura, e não só até 1399 px 1ms
+     → expected '/* ==================================…' to match /^\.tabela__secundario--email \{ max-…/m
+   × Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga > a paginação e os controles dela quebram em linhas 1ms
+     → expected '/* ==================================…' to match /\.paginacao \{\n  display: flex; flex…/
+   × Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga > o texto de exemplo do filtro de Ocorrências é o curto, que cabe a 320 px 0ms
+     → expected 'import { useEffect, useState } from "…' to match /placeholder="Protocolo, endereço ou r…/
+   ✓ Achado 3: o email longo da tentativa de envio não sai do cartão > a coluna do ofício e o texto da linha podem encolher abaixo da palavra mais longa 0ms
+   ✓ Achado 5: singular e plural certos no cartão do ofício > o botão diz "a tentativa" com uma e "as N tentativas" com mais de uma, nos dois estados 0ms
+   ✓ Achado 5: singular e plural certos no cartão do ofício > a explicação concorda o verbo e o particípio com o número de tentativas 0ms
+   ✓ Achado 5: singular e plural certos no cartão do ofício > a tela usa a regra e não monta mais o rótulo à mão 0ms
+   ✓ Achado 6: o texto de exemplo da busca cabe a 320 px > até 600 px a dica do atalho sai da tela e o recuo da direita volta ao respiro comum 0ms
+   ✓ Achado 6: o texto de exemplo da busca cabe a 320 px > a dica continua ligada ao campo para quem ouve a tela 0ms
+   ✓ Achado 3 da acessibilidade: o link do topo para Minha conta tem nome em qualquer largura > o nome dito começa pelo que se vê na largura de mesa (nome e papel) e termina no destino 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Achados 1 e 2: as folgas do topo e da barra do pé são medidas > em janela muito baixa (zoom de 400 por cento, 320x256) o topo e a barra rolam com a página, e a medida os ignora
+AssertionError: bloco "@media (max-height: 340px) {" na folha: expected -1 to be greater than or equal to 0
+ ❯ blocoDaMidia test/correcao-6-da-e09.test.ts:27:44
+     25| function blocoDaMidia(folha: string, inicio: string): string {
+     26|   const de = folha.indexOf(inicio);
+     27|   expect(de, `bloco "${inicio}" na folha`).toBeGreaterThanOrEqual(0);
+       |                                            ^
+     28|   return folha.slice(de, folha.indexOf("\n}", de) + 2);
+     29| }
+ ❯ test/correcao-6-da-e09.test.ts:105:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Achados 1 e 2: as folgas do topo e da barra do pé são medidas > o Tab também respeita as bordas: o foco que cai no conteúdo é levado inteiro à faixa entre o topo e a barra do pé
+TypeError: (0 , deslocamentoParaAFaixa) is not a function
+ ❯ test/correcao-6-da-e09.test.ts:115:12
+    113|     const faixa = { faixaDe: 129, faixaAte: 765, respiro: 12 };
+    114|     // Já inteiro na faixa: não mexe.
+    115|     expect(deslocamentoParaAFaixa({ ...faixa, topo: 300, altura: 44 })…
+       |            ^
+    116|     // Sob a barra do pé: sobe até a barra, com o respiro.
+    117|     expect(deslocamentoParaAFaixa({ ...faixa, topo: 857, altura: 44 })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b: o ajuste do Tab não espera o quadro seguinte > roda na hora, dentro do focusin, numa tarefa logo depois e de novo no quadro seguinte (no WebKit do Linux o quadro chegava tarde)
+AssertionError: expected 'const aoFocar = (evento: FocusEvent) …' to match /\n\s+ajustar\(alvo\);\n\s+setTimeout\…/
+
+[32m- Expected:[39m 
+/\n\s+ajustar\(alvo\);\n\s+setTimeout\(\(\) => ajustar\(alvo\), 0\);\n\s+requestAnimationFrame\(\(\) => ajustar\(alvo\)\);/
+
+[31m+ Received:[39m 
+"const aoFocar = (evento: FocusEvent) => {
+      const alvo = evento.target;
+      if (!(alvo instanceof HTMLElement)) return;
+      requestAnimationFrame(() => {
+        if (document.activeElement !== alvo) return;
+        const folgas = getComputedStyle(document.documentElement);
+        const caixa = alvo.getBoundingClientRect();
+        const bloco = comoLevarAoFocar({
+          naBorda: alvo.closest(\".topo, .lateral, .pular-para-conteudo\") !== null,
+          ehRegiao: alvo.id === \"conteudo\" || alvo.closest('[role=\"dialog\"]') !== null,
+          topo: caixa.top,
+          altura: caixa.height,
+          faixaDe: parseFloat(folgas.scrollPaddingTop) || 0,
+          faixaAte: window.innerHeight - (parseFloat(folgas.scrollPaddingBottom) || 0),
+        });
+        if (bloco) alvo.scrollIntoView({ block: bloco });
+      });
+    };
+    "
+
+ ❯ test/correcao-6-da-e09.test.ts:140:19
+    138|     const hook = fonte("componentes", "usar-bordas-fixas.ts");
+    139|     const corpo = hook.slice(hook.indexOf("const aoFocar = (evento: Fo…
+    140|     expect(corpo).toMatch(/\n\s+ajustar\(alvo\);\n\s+setTimeout\(\(\) …
+       |                   ^
+    141|     // E cada passada confere que o foco ainda está no mesmo elemento …
+    142|     expect(hook).toMatch(/const ajustar = \(alvo: HTMLElement\) => \{\…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b: o ajuste é do teclado, e não rola a página sob o clique > o foco que chega logo depois de um toque ou clique não é ajustado (rolar no pointerdown perde o clique)
+TypeError: (0 , focoDoPonteiro) is not a function
+ ❯ test/correcao-6-da-e09.test.ts:148:12
+    146| describe("Correção 6b: o ajuste é do teclado, e não rola a página sob …
+    147|   it("o foco que chega logo depois de um toque ou clique não é ajustad…
+    148|     expect(focoDoPonteiro(1000, null)).toBe(false);
+       |            ^
+    149|     expect(focoDoPonteiro(1000, 900)).toBe(true);
+    150|     expect(focoDoPonteiro(1000 + JANELA_DO_PONTEIRO_MS, 1000)).toBe(fa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b, revisão: a conta do Tab usa as bordas reais > o que cabe na faixa real mas não na faixa com respiro vai inteiro, com o respiro que sobra (a caixa do painel a 390x400)
+TypeError: (0 , deslocamentoParaAFaixa) is not a function
+ ❯ test/correcao-6-da-e09.test.ts:160:12
+    158|   it("o que cabe na faixa real mas não na faixa com respiro vai inteir…
+    159|     // Faixa real de 192 px (129 a 321), caixa de 180 px: sobram 6 px …
+    160|     expect(deslocamentoParaAFaixa({ topo: 147, altura: 180, faixaDe: 1…
+       |            ^
+    161|     expect(deslocamentoParaAFaixa({ topo: 135, altura: 180, faixaDe: 1…
+    162|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b, revisão: a conta do Tab usa as bordas reais > o que é mais alto que a faixa real vai com o começo ao começo da faixa (a caixa de Órgãos a 390x400)
+TypeError: (0 , deslocamentoParaAFaixa) is not a function
+ ❯ test/correcao-6-da-e09.test.ts:165:12
+    163| 
+    164|   it("o que é mais alto que a faixa real vai com o começo ao começo da…
+    165|     expect(deslocamentoParaAFaixa({ topo: 295, altura: 267, faixaDe: 1…
+       |            ^
+    166|     expect(deslocamentoParaAFaixa({ topo: 129.4, altura: 267, faixaDe:…
+    167|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga > o teto do email da tabela vale em qualquer largura, e não só até 1399 px
+AssertionError: expected '/* ==================================…' to match /^\.tabela__secundario--email \{ max-…/m
+
+[32m- Expected:[39m 
+/^\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}$/m
+
+[31m+ Received:[39m 
+"/* ============================================================
+   DC360 web: folha da aplicação.
+   Regra herdada do design system: nenhuma cor, sombra, raio ou duração
+   literal. Tudo vem de --ds-*. Valor fora daqui é bug.
+   ============================================================ */
+
+/*
+   Constantes locais de componente, nomeadas em vez de espalhadas como número
+   solto. Não são tokens do design system (não descrevem cor, sombra, raio nem
+   duração): são a anatomia de dois componentes deste painel. Ficam aqui para
+   que os quatro emblemas de iniciais do produto tenham dois tamanhos, e não
+   quatro, e para que todo rótulo em caixa alta use o mesmo tracking.
+*/
+:root {
+  --emblema-sm: 32px;   /* dentro de linha de tabela */
+  --emblema-md: 40px;   /* barra lateral, topo, lista de contas */
+  --emblema-lg: 56px;   /* marca da tela de entrada */
+  --tracking-rotulo: 0.06em;  /* rótulo em caixa alta sobre --ds-fs-caption */
+  --tracking-sigla: 0.02em;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+/* O topo é fixo, e até 900 px a barra de navegação também, no pé: sem isto,
+   rolar até um elemento (âncora, foco por teclado, scrollIntoView) o deixa por
+   baixo de um dos dois. As duas folgas são MEDIDAS por `usar-bordas-fixas.ts`
+   (a altura do topo muda com a largura, o zoom e o nome de quem entrou) e
+   chegam aqui por variável, antes do primeiro desenho (`useLayoutEffect`).
+   Sem a medida não há borda fixa nenhuma (as telas públicas, como \"Defina a
+   sua senha\", não têm topo), e a folga é só o respiro: a estimativa de 140 px
+   que valia em toda tela até 600 px tirava espaço da tela pública no zoom de
+   400 por cento (V2-F00-E09, correção 6). */
+html {
+  scroll-padding-top: var(--topo-fixo-folga, var(--ds-sp-3));
+  scroll-padding-bottom: var(--pe-fixo-folga, var(--ds-sp-3));
+}
+/* O foco por teclado leva o CONTROLE à vista, e o rótulo fica uns 32 px acima
+   dele: a margem cobre a linha do rótulo e o respiro entre os dois, em qualquer
+   largura (até a correção 6 valia só até 600 px, e acima disso o rótulo ficava
+   atrás do topo). Um passo de `--ds-sp-5` mais um de `--ds-sp-3`. */
+.campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
+
+body {
+  margin: 0;
+  background: var(--ds-bg);
+  color: var(--ds-text);
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Links na cor de destaque do sistema, nos dois temas. Sem isto, todo `<a>`
+   sem classe saía no azul do navegador, que no tema escuro é ilegível. */
+a { color: var(--ds-accent); }
+a:hover { color: var(--ds-accent-hover); }
+
+:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
+
+/*
+  Alto Contraste do Windows, que é o cenário de máquina de prefeitura.
+
+  O modo de cores forçadas DESCARTA `box-shadow`. Como o anel de foco desta
+  folha é desenhado só por sombra, quem liga o Alto Contraste fica sem foco
+  visível em lugar nenhum do painel: navegar por Tab passa a ser adivinhação.
+
+  `Highlight` e `CanvasText` são as cores que o próprio sistema expõe. Usar
+  qualquer outra aqui seria ignorar a escolha de quem ligou o modo, que é
+  exatamente o que o modo existe para impedir.
+*/
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /*
+    Selo, aviso, indicador e cartão perdem o fundo colorido no modo forçado, e
+    sem borda eles somem dentro do texto ao redor. A regra do produto de nunca
+    comunicar estado só por cor já garante que o texto continua dizendo o que
+    é; a borda devolve a separação visual.
+  */
+  .selo, .aviso, .indicador, .cartao {
+    border: 1px solid CanvasText;
+  }
+}
+
+.mono { font-family: var(--ds-font-mono); font-variant-numeric: tabular-nums; }
+
+/*
+  Parágrafo de apoio dentro de cartão.
+
+  Existia repetido como estilo escrito dentro do componente, três propriedades
+  de cada vez. Estilo copiado é estilo que diverge: bastava alguém esquecer o
+  `line-height` numa das cópias para o mesmo texto sair com respiro diferente
+  em duas telas irmãs.
+*/
+.texto-apoio {
+  margin: 0 0 var(--ds-sp-3);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.texto-apoio:last-child { margin-bottom: 0; }
+
+.oculto-visualmente {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Atalho de teclado: some da tela até alguém dar Tab nele. Fica acima de
+   tudo porque o cabeçalho é fixo e o esconderia. */
+.pular-para-conteudo {
+  position: absolute; left: var(--ds-sp-3); top: calc(var(--ds-sp-3) * -6);
+  z-index: var(--ds-z-toast);
+  display: inline-flex; align-items: center; min-height: var(--ds-touch);
+  padding: 0 var(--ds-sp-4); border-radius: var(--ds-radius);
+  background: var(--ds-accent); color: var(--ds-on-accent);
+  font-weight: var(--ds-fw-semibold); text-decoration: none;
+  transition: top var(--ds-dur-fast) var(--ds-ease);
+}
+.pular-para-conteudo:focus { top: var(--ds-sp-3); }
+
+/*
+  O aviso passageiro, no canto inferior direito.
+
+  A posição morava em `style` dentro de `componentes/Toast.tsx` e veio para cá
+  porque no celular ele precisa DESVIAR da barra de navegação: abaixo de 900px
+  a lateral vira barra fixa no pé da tela, e o aviso caía em cima dela, com a
+  frase da confirmação sobreposta a \"Painel\" e \"Ocorrências\". Regra de media
+  query não vence estilo escrito no elemento, então a posição tinha de sair de
+  lá. O deslocamento está no bloco responsivo, no fim deste arquivo.
+*/
+.toast {
+  position: fixed;
+  right: var(--ds-sp-4);
+  bottom: var(--ds-sp-4);
+  z-index: var(--ds-z-toast);
+  max-width: min(420px, calc(100% - var(--ds-sp-6)));
+  /*
+    O fundo opaco embaixo do aviso.
+
+    `--ds-success-bg` e os irmãos dele são TRANSLÚCIDOS no tema escuro (12%),
+    porque foram feitos para tingir um cartão, não para flutuar. Dentro de um
+    cartão isso é certo; aqui o aviso paira sobre a tela, e no tema escuro o
+    texto da página atravessava a confirmação: duas frases sobrepostas, sem
+    nenhuma legível. Com a superfície atrás, a tinta de 12% compõe sobre
+    exatamente o fundo que o teste de contraste supõe (`sobre: --ds-surface`).
+  */
+  background: var(--ds-surface);
+  border-radius: var(--ds-radius);
+}
+
+/* ---------- Estrutura ---------- */
+
+/*
+  `minmax(0, 1fr)`, e não `1fr`: na grade, `1fr` é `minmax(auto, 1fr)`, e o
+  mínimo `auto` deixa a coluna crescer até a linha mais larga da tabela. O
+  `overflow-x: auto` do envoltório da tabela nunca chegava a agir, e em 1280px
+  a tela inteira rolava para o lado com o sino e a conta fora da vista.
+  `min-width: 0` no topo e no conteúdo fecha o mesmo buraco pelo lado do filho.
+*/
+.aplicacao {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: \"lateral topo\" \"lateral conteudo\";
+  min-height: 100%;
+}
+
+/*
+   A barra lateral é deliberadamente escura nos dois temas, como a barra de
+   navegação de um sistema operacional: ela emoldura o conteúdo em vez de
+   competir com ele. Por isso, e só por isso, este bloco lê as primitivas
+   --ds-ink-* diretamente em vez dos tokens semânticos, que trocam com o tema.
+   É exceção declarada, não descuido. Os pares de cor daqui foram verificados
+   contra --ds-ink-950 como fundo, não contra branco.
+*/
+.lateral {
+  grid-area: lateral;
+  background: var(--ds-ink-950);
+  color: var(--ds-ice);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-sp-5);
+  padding: var(--ds-sp-5) var(--ds-sp-4);
+  border-right: 1px solid var(--ds-ink-800);
+}
+
+.lateral__marca {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  padding: 0 var(--ds-sp-2);
+}
+/* O raio do ícone da marca vinha escrito à mão no JSX (`borderRadius: \"8px\"`),
+   fora do design system e fora do alcance de quem mexe na folha. */
+.lateral__marca img { border-radius: var(--ds-radius); }
+
+
+/* `display: block` nos dois: são `span` dentro de `span`, e em linha o nome
+   e o município saíam colados (\"Defesa Civil 360Serra Alta, MG\"). */
+.lateral__nome { display: block; font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+.lateral__org { display: block; font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-ink-400); }
+
+.lateral__grupo { display: flex; flex-direction: column; gap: var(--ds-sp-1); }
+.lateral__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
+  /* ink-400 sobre ink-950: 7,71:1. ink-500 dava 3,32:1 e reprovava AA. */
+  color: var(--ds-ink-400); padding: 0 var(--ds-sp-2) var(--ds-sp-1);
+}
+
+.lateral__item {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  padding: 0 var(--ds-sp-3);
+  border-radius: var(--ds-radius);
+  color: var(--ds-ink-400);
+  text-decoration: none;
+  font-size: var(--ds-fs-body-sm);
+  font-weight: var(--ds-fw-medium);
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+.lateral__item:hover { background: var(--ds-ink-850); color: var(--ds-ice); }
+.lateral__item[aria-current=\"page\"] {
+  background: var(--ds-ink-800); color: var(--ds-white);
+  box-shadow: inset 3px 0 0 var(--ds-violet-400);
+}
+.lateral__item svg { flex: 0 0 18px; }
+
+.lateral__rodape { margin-top: auto; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+
+.topo {
+  grid-area: topo; min-width: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-4);
+  padding: var(--ds-sp-3) var(--ds-sp-6);
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
+  position: sticky; top: 0; z-index: var(--ds-z-sticky);
+}
+
+/* A marca no topo: o mesmo `/icone.svg` do ícone do site. Alvo de toque
+   inteiro, e o canto do emblema é o raio do produto. */
+.topo__marca {
+  display: flex; align-items: center; flex: 0 0 auto;
+  min-height: var(--ds-touch); border-radius: var(--ds-radius);
+}
+.topo__marca img { width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius); display: block; }
+
+/* ---------- Busca global (a caixa de comando do topo) ---------- */
+
+.topo__busca { flex: 1 1 auto; max-width: 480px; position: relative; }
+.busca-global__caixa { position: relative; }
+.busca-global__lupa {
+  position: absolute; left: var(--ds-sp-3); top: 50%; transform: translateY(-50%);
+  display: inline-flex; color: var(--ds-text-muted); pointer-events: none;
+}
+/*
+  RÉGUA, medida e não chutada: a regra genérica de campo (`input:not(...)`
+  oito vezes, mais abaixo) tem especificidade (0,8,1), porque cada
+  `:not([type])` conta como um atributo. `.topo__busca input` era (0,1,1) e
+  PERDIA: o `padding` da genérica reescrevia o `padding-left` daqui, o texto
+  começava a 12px e a lupa de 18px ficava em cima do placeholder. Toda regra
+  que estilize UM campo específico precisa vencer (0,8,1), e o `id` que o
+  rótulo já aponta vence por construção: (1,1,0). `test/design-system.test.ts`
+  calcula as duas e reprova a volta.
+
+  O recuo da direita reserva o lugar da dica do atalho (\"Ctrl K\").
+*/
+.busca-global__caixa #busca-global {
+  padding-left: var(--ds-sp-7);
+  padding-right: calc(var(--ds-sp-8) + var(--ds-sp-3));
+}
+/* O \"x\" nativo do campo de busca cairia debaixo da dica; Escape já limpa. */
+.busca-global__caixa #busca-global::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+.busca-global__atalho {
+  position: absolute; right: var(--ds-sp-2); top: 50%; transform: translateY(-50%);
+  padding: 0 var(--ds-sp-2); min-height: var(--ds-sp-5);
+  display: inline-flex; align-items: center;
+  font-family: var(--ds-font); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
+  pointer-events: none; white-space: nowrap;
+}
+
+.busca-global__lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + var(--ds-sp-2));
+  max-height: min(70vh, 520px); overflow-y: auto;
+  background: var(--ds-surface); color: var(--ds-text);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-3);
+  z-index: var(--ds-z-dropdown);
+  padding: var(--ds-sp-2);
+  animation: busca-global-entrar var(--ds-dur-base) var(--ds-ease);
+}
+@keyframes busca-global-entrar {
+  from { opacity: 0; transform: translateY(calc(var(--ds-sp-1) * -1)); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busca-global__lista { animation: none; }
+}
+
+.busca-global__grupo + .busca-global__grupo { margin-top: var(--ds-sp-2); }
+.busca-global__titulo-do-grupo {
+  padding: var(--ds-sp-2) var(--ds-sp-3) var(--ds-sp-1);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  font-weight: var(--ds-fw-semibold); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.busca-global__opcao {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  border-radius: var(--ds-radius);
+  cursor: pointer;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.busca-global__opcao:hover { background: var(--ds-surface-2); }
+/*
+  A opção ativa é a que o teclado aponta. Ela não recebe foco (o foco fica na
+  caixa), então o anel de foco é desenhado aqui, com o mesmo token, para quem
+  navega por seta enxergar onde está. Nunca só por cor: o fundo muda E o anel
+  aparece.
+*/
+.busca-global__opcao--ativa,
+.busca-global__opcao--ativa:hover {
+  background: var(--ds-surface-2);
+  box-shadow: var(--ds-focus-ring);
+}
+.busca-global__icone { display: inline-flex; flex: 0 0 auto; color: var(--ds-text-muted); }
+.busca-global__opcao--ativa .busca-global__icone { color: var(--ds-accent); }
+.busca-global__texto { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.busca-global__rotulo {
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); font-weight: var(--ds-fw-medium);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.busca-global__protocolo { margin-right: var(--ds-sp-2); color: var(--ds-text-muted); }
+.busca-global__detalhe {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* O trecho que casou: cor de destaque sobre o fundo de sempre, sem marca-texto
+   amarelo, que não acompanha o tema. */
+.busca-global__marca { background: transparent; color: var(--ds-accent); font-weight: var(--ds-fw-bold); }
+.busca-global__opcao .selo { flex: 0 0 auto; }
+
+.busca-global__estado {
+  padding: var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+.busca-global__estado--falha { color: var(--ds-danger-fg); }
+
+.topo__direita { margin-left: auto; display: flex; align-items: center; gap: var(--ds-sp-3); }
+
+.identidade { display: flex; align-items: center; gap: var(--ds-sp-3); }
+.identidade--acionavel {
+  text-decoration: none; color: inherit;
+  padding: var(--ds-sp-1) var(--ds-sp-2);
+  border-radius: var(--ds-radius);
+  min-height: var(--ds-touch);
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.identidade--acionavel:hover { background: var(--ds-surface-2); }
+.identidade__avatar {
+  /* Gradiente de marca e `on-accent`, iguais aos da sigla da lateral. Antes
+     era `accent-graphic` com branco fixo: o token diz, no próprio comentário,
+     que serve só para elemento gráfico grande, e branco fixo não acompanha o
+     tema, que foi exatamente o defeito de contraste já corrigido na sigla. */
+  width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent-gradient); color: var(--ds-on-accent);
+  display: grid; place-items: center; font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm);
+  flex: 0 0 var(--emblema-md);
+}
+.identidade__nome { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); line-height: var(--ds-lh-caption); }
+.identidade__papel { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); line-height: var(--ds-lh-caption); }
+
+/* `margin-inline: auto` centraliza o conteudo. Sem ele, o teto de 1320px
+   deixava o painel colado a esquerda e uma faixa vazia permanente a direita
+   em qualquer monitor largo: em 2560px sobravam quase mil pixels de fundo. */
+.conteudo { grid-area: conteudo; min-width: 0; padding: var(--ds-sp-6); max-width: 1320px; width: 100%; margin-inline: auto; }
+
+.cabecalho-pagina {
+  display: flex; align-items: flex-end; gap: var(--ds-sp-4);
+  flex-wrap: wrap; margin-bottom: var(--ds-sp-5);
+}
+.cabecalho-pagina h1 {
+  margin: 0; font-size: var(--ds-fs-h1); line-height: var(--ds-lh-h1);
+  font-weight: var(--ds-fw-bold); letter-spacing: -0.02em; text-wrap: balance;
+}
+.cabecalho-pagina p { margin: var(--ds-sp-1) 0 0; color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); }
+.cabecalho-pagina__acoes { margin-left: auto; display: flex; gap: var(--ds-sp-2); }
+
+/* ---------- Cartões ---------- */
+
+.cartao {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-1);
+}
+.cartao__corpo { padding: var(--ds-sp-5); }
+.cartao__titulo {
+  margin: 0 0 var(--ds-sp-4);
+  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3); font-weight: var(--ds-fw-semibold);
+}
+
+.grade-indicadores {
+  display: grid; gap: var(--ds-sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: var(--ds-sp-5);
+}
+
+.indicador {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  padding: var(--ds-sp-5);
+  display: flex; flex-direction: column; gap: var(--ds-sp-1);
+  text-align: left; width: 100%; cursor: pointer;
+  font-family: inherit; color: inherit;
+  box-shadow: var(--ds-shadow-1);
+  transition: transform var(--ds-dur-base) var(--ds-ease),
+              box-shadow var(--ds-dur-base) var(--ds-ease),
+              border-color var(--ds-dur-base) var(--ds-ease);
+}
+.indicador:hover { transform: translateY(-2px); box-shadow: var(--ds-shadow-2); border-color: var(--ds-accent-graphic); }
+.indicador__valor {
+  font-size: var(--ds-fs-display); line-height: var(--ds-lh-display);
+  font-weight: var(--ds-fw-bold); font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
+}
+.indicador__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); color: var(--ds-text-muted); font-weight: var(--ds-fw-semibold);
+}
+.indicador--alerta .indicador__valor { color: var(--ds-danger-fg); }
+
+/* ---------- Selos ---------- */
+
+.selo {
+  display: inline-flex; align-items: center; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-1) var(--ds-sp-2);
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  font-weight: var(--ds-fw-semibold); white-space: nowrap;
+}
+.selo--baixa   { color: var(--ds-sev-baixa-fg);   background: var(--ds-sev-baixa-bg); }
+.selo--media   { color: var(--ds-sev-media-fg);   background: var(--ds-sev-media-bg); }
+.selo--alta    { color: var(--ds-sev-alta-fg);    background: var(--ds-sev-alta-bg); }
+.selo--critica { color: var(--ds-sev-critica-fg); background: var(--ds-sev-critica-bg); }
+.selo--info    { color: var(--ds-info-fg);        background: var(--ds-info-bg); }
+.selo--sucesso { color: var(--ds-success-fg);     background: var(--ds-success-bg); }
+.selo--perigo  { color: var(--ds-danger-fg);      background: var(--ds-danger-bg); }
+.selo--neutro  { color: var(--ds-text-muted);     background: var(--ds-surface-2); }
+
+/*
+  O ponto continua existindo para os selos de estado de processo (\"Dentro do
+  prazo\", \"Prazo estourado\"); o selo de SEVERIDADE não o usa mais. Ali entra
+  o glifo compartilhado com o aplicativo (`.selo__glifo`), na altura da linha
+  da legenda, e a pulsação da crítica passou do ponto para ele.
+*/
+.selo__ponto { width: 6px; height: 6px; border-radius: var(--ds-radius-pill); background: currentColor; }
+.selo__glifo { width: var(--ds-fs-caption); height: var(--ds-fs-caption); flex: none; }
+.selo--critica .selo__glifo { animation: pulso calc(var(--ds-dur-slow) * 5) var(--ds-ease) infinite; }
+/*
+  Na legenda do mapa a crítica é pino branco sobre pílula vermelha, e a marca
+  de dentro, que é da cor da superfície, sumiria no branco: ali ela vai na cor
+  da própria pílula. Só a crítica precisa disso, porque é o único selo cujo
+  texto é branco.
+*/
+.selo--critica .forma-severidade__marca { stroke: var(--ds-sev-critica-bg); }
+@keyframes pulso { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- Tabela ---------- */
+
+.tabela-envolucro { overflow-x: auto; border-radius: var(--ds-radius-card); }
+/*
+  A tabela que rola para o lado avisa que rola.
+
+  Em 1280 a 1680px a lista de usuários tinha 854px num cartão de 569 a 771, e
+  a barra de rolagem do macOS some quando ninguém está rolando: as colunas de
+  Equipe, Situação e Ação simplesmente não existiam para quem olhava. O
+  componente `TabelaEnvolucro` mede a rolagem e liga as classes; a sombra na
+  borda é o sinal visual e a frase embaixo é o mesmo sinal em palavras, para
+  ninguém depender de perceber um degradê. A sombra é a tinta do lightbox
+  (ink-950 esmaecido), sem cor nova.
+*/
+.tabela-rolavel { position: relative; }
+.tabela-rolavel::before, .tabela-rolavel::after {
+  content: \"\"; position: absolute; top: 0; bottom: 0; width: var(--ds-sp-6);
+  pointer-events: none; opacity: 0;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease);
+}
+.tabela-rolavel::before {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--ds-ink-950) 18%, transparent), transparent);
+}
+.tabela-rolavel::after {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in srgb, var(--ds-ink-950) 18%, transparent), transparent);
+}
+.tabela-rolavel--esquerda::before, .tabela-rolavel--direita::after { opacity: 1; }
+.tabela-rolavel__dica {
+  margin: var(--ds-sp-2) 0 0;
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+.tabela { width: 100%; border-collapse: collapse; font-size: var(--ds-fs-body-sm); }
+.tabela th {
+  text-align: left; padding: var(--ds-sp-3) var(--ds-sp-4);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold);
+  color: var(--ds-text-muted); border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-surface-2); white-space: nowrap;
+}
+.tabela td { padding: var(--ds-sp-3) var(--ds-sp-4); border-bottom: 1px solid var(--ds-border); vertical-align: middle; }
+.tabela tbody tr { transition: background var(--ds-dur-fast) var(--ds-ease); }
+.tabela tbody tr:hover { background: var(--ds-surface-2); }
+.tabela__protocolo {
+  font-family: var(--ds-font-mono); font-weight: var(--ds-fw-semibold);
+  color: var(--ds-accent); text-decoration: none;
+}
+.tabela__protocolo:hover { text-decoration: underline; }
+.tabela__principal { font-weight: var(--ds-fw-semibold); }
+/* `overflow-wrap: anywhere` deixa um email comprido quebrar em vez de fixar a
+   largura mínima da coluna: é a linha secundária, e quebrar custa menos que
+   empurrar as três últimas colunas para fora do cartão. */
+.tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); overflow-wrap: anywhere; }
+/*
+  Frase curta de célula (\"Não despachada\"): não quebra no meio da palavra.
+
+  `overflow-wrap: anywhere`, acima, existe para endereço comprido, e ele ENCOLHE
+  a largura mínima da coluna a uma letra: com a tabela apertada, a coluna
+  \"Equipe\" do painel ficava com a menor largura que a tabela aceitasse e a frase
+  saía \"Não despach / ada\". Quebrar entre palavras (\"Não\" / \"despachada\") é
+  legítimo; no meio da palavra, não.
+*/
+.tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
+/*
+  Email na linha secundária: quebra SÓ onde o componente `EmailQuebravel` põe um
+  `<wbr>` (depois do \"@\" e de cada ponto). Sem `normal` aqui, o `anywhere` da
+  regra-mãe voltaria a cortar \"exemplo.gov.br\" no meio, e o `<wbr>` não valeria
+  de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
+  tabela (que rola), e não a palavra.
+*/
+.tabela__secundario--email { overflow-wrap: break-word; word-break: normal; }
+/*
+  O teto da linha do email (V2-F00-E09, correção 4, revisão): um email com uma
+  parte de uns 48 caracteres sem ponto (\"joanaplantao24horas...@\") tem largura
+  mínima de quase 300 px, a coluna Pessoa cresce junto, a tabela passa a rolar a
+  1280 px e a coluna Ação sai da tela. Com o teto, a linha quebra nos pontos
+  permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
+  (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
+  `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
+  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
+*/
+@media (max-width: 1399px) {
+  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
+}
+/*
+  Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
+  se a coluna for estreita demais quem cede é a tabela, que rola.
+*/
+.tabela__secundario--telefone { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
+.campo__erro svg { flex-shrink: 0; }
+
+.lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+.lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
+.lista-papeis__descricao--ultima { margin-bottom: 0; }
+
+/* ---------- Formulários ---------- */
+
+.campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
+.campo > label { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
+.campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+/*
+  A linha de identificação da janela de confirmação (\"matrícula, e-mail, papel\")
+  traz um e-mail inteiro, que não tem onde quebrar: a 320 px ele passava da
+  área útil da janela e entrava no respiro da borda (o teste de geometria
+  mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
+  que sair da janela.
+
+  V2-F00-E09, correção 5 (rodada 6, achado 2): `anywhere` cortava o email no
+  meio da palavra (\"...secretar / ia.serraalta\") a 390, 360 e 320 px, porque
+  ignora os pontos de quebra do `EmailQuebravel` (o `<wbr>` depois do \"@\" e de
+  cada ponto). `break-word` respeita o `<wbr>` e só corta se um pedaço sozinho
+  for mais largo que a janela, que é a rede de segurança que a 320 px importa.
+*/
+.modal__painel .campo__dica { overflow-wrap: break-word; word-break: normal; }
+/* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
+   margem própria dele e a distância até o primeiro rótulo fica maior que a
+   distância entre os campos, sugerindo que a frase é de outro bloco. */
+.formulario__obrigatorios { margin: 0 0 var(--ds-sp-4); }
+/*
+  A resposta do campo de localização.
+
+  Três estados, e nenhum deles comunicado só por cor: cada um traz um símbolo
+  antes do texto. O bloco reserva a própria altura mínima para que ler o link
+  colado não empurre o botão de registrar para fora da vista, que é o tipo de
+  salto que faz o operador clicar no lugar errado com o telefone no ombro.
+*/
+.campo__dica:has(.leitura) { min-height: calc(var(--ds-lh-caption) * 2); }
+.leitura { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--ds-sp-1); }
+.leitura--ok { color: var(--ds-success-fg); }
+/*
+  Só a coordenada invertida é `danger`, e a distinção não é estética.
+
+  Latitude e longitude trocadas gravam a família num ponto errado do mapa, e o
+  agente sai para o lugar errado: é dado errado entrando. Link encurtado e
+  texto não reconhecido não são erro nenhum, são o sistema avisando que não
+  conseguiu ler um campo OPCIONAL, e pintá-los de vermelho ensinaria o
+  operador a ignorar vermelho.
+*/
+.leitura--erro { color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold); }
+.leitura--nota { color: var(--ds-text); }
+.leitura .mono { color: inherit; }
+
+/*
+  Botão que se comporta como link.
+
+  Elemento `button` porque a ação é uma mudança de estado nesta página, e não
+  uma navegação: um `a` sem href mentiria para o leitor de tela sobre o que
+  vai acontecer ao ativar.
+*/
+.botao-texto {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--ds-accent);
+  text-decoration: underline; cursor: pointer;
+}
+.botao-texto:hover { color: var(--ds-accent-hover); }
+/* `--ds-focus-ring` é um valor de `box-shadow` completo nesta folha, e não
+   uma cor: usá-lo em `outline` não desenharia anel nenhum. */
+.botao-texto:focus-visible { box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
+
+.campo__erro {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold);
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+}
+
+/*
+  Lista de EXCEÇÃO, não lista de permissão.
+
+  Antes isto enumerava os tipos que recebiam estilo (text, email, search,
+  number), e o resultado foi previsível: `type=\"password\"` ficou de fora e os
+  quatro campos de senha do produto, inclusive o da tela de entrada, saíram com
+  a aparência crua do navegador, ao lado de um campo de email perfeitamente
+  estilizado no mesmo formulário.
+
+  Invertido, o esquecimento passa a ser inofensivo: um `type=\"date\"` ou
+  `type=\"tel\"` novo nasce com estilo, e só fica sem quem for excluído aqui de
+  propósito. Os excluídos são os que precisam do desenho nativo: as marcações,
+  os que já são botão e os controles com interface própria do sistema.
+*/
+input:not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"button\"]):not([type=\"submit\"]):not([type=\"reset\"]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"color\"]),
+select,
+textarea {
+  width: 100%;
+  min-height: var(--ds-touch);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  font-family: inherit; font-size: var(--ds-fs-body-sm);
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  /*
+    Borda de CONTROLE, e não a decorativa. O campo fica sobre um cartão da
+    mesma cor, então esta linha é a única coisa que diz onde ele começa: pela
+    WCAG 1.4.11 ela precisa de 3:1, e `--ds-border` dava 1.30.
+  */
+  border: 1px solid var(--ds-border-controle);
+  border-radius: var(--ds-radius);
+  transition: border-color var(--ds-dur-fast) var(--ds-ease);
+}
+textarea { min-height: calc(var(--ds-touch) * 2); resize: vertical; line-height: var(--ds-lh-body-sm); }
+/*
+  As regras de ESTADO do `input` repetem a lista de `:not([type])` da genérica
+  de propósito. A genérica pesa (0,8,1) e escreve `border` por atalho; um
+  `input[aria-invalid=\"true\"]` de (0,1,1) perdia para ela, e o campo inválido
+  ficava cinza enquanto o `textarea` do lado ficava vermelho. Com a lista, o
+  estado pesa (0,9,1) e vence. `test/design-system.test.ts` mede as duas.
+*/
+input:not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"button\"]):not([type=\"submit\"]):not([type=\"reset\"]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"color\"]):hover,
+select:hover, textarea:hover { border-color: var(--ds-text-muted); }
+input:not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"button\"]):not([type=\"submit\"]):not([type=\"reset\"]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"color\"])[aria-invalid=\"true\"],
+textarea[aria-invalid=\"true\"], select[aria-invalid=\"true\"] {
+  border-color: var(--ds-danger-fg);
+}
+/* O texto de exemplo na cor do sistema, e não na do navegador: o cinza padrão
+   do Chromium mede 3,65:1 sobre a superfície escura, abaixo de AA. `opacity: 1`
+   porque o Firefox esmaece o placeholder por conta própria. */
+::placeholder { color: var(--ds-text-muted); opacity: 1; }
+
+/* Larguras de campo por intenção, não por número solto na tela. Antes eram
+   três `style={{ maxWidth: \"240px\" }}` espalhados por duas páginas. */
+.campo--curto { max-width: calc(var(--ds-sp-8) * 2.5); }
+.campo--medio { max-width: calc(var(--ds-sp-8) * 3.75); }
+.campo--longo { max-width: calc(var(--ds-sp-8) * 5.625); }
+
+.linha-campos { display: grid; gap: var(--ds-sp-4); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+.caixa-marcacao {
+  display: flex; align-items: flex-start; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch); padding: var(--ds-sp-2) 0;
+  font-size: var(--ds-fs-body-sm); cursor: pointer;
+}
+.caixa-marcacao input { width: 20px; height: 20px; min-height: 0; flex: 0 0 20px; margin-top: var(--ds-sp-1); accent-color: var(--ds-accent); }
+
+/* ---------- Botões ---------- */
+
+.botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ds-sp-2);
+  min-height: var(--ds-touch); padding: 0 var(--ds-sp-4);
+  border-radius: var(--ds-radius); border: 1px solid transparent;
+  font-family: inherit; font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold);
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background var(--ds-dur-fast) var(--ds-ease),
+              transform var(--ds-dur-fast) var(--ds-ease),
+              box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.botao:disabled { opacity: 0.45; cursor: not-allowed; }
+.botao:not(:disabled):active { transform: translateY(1px); }
+
+.botao--primario { background: var(--ds-accent); color: var(--ds-on-accent); }
+/*
+  O `color` do hover é repetido de propósito: um botão que é `<a>` (o \"Entrar com a
+  nova senha\" da recuperação de senha) leva `a:hover` (0,1,1), que vence a cor do
+  repouso (0,1,0) e punha o texto em `--ds-accent-hover`, igual ao fundo do hover:
+  o rótulo sumia nos dois temas (V2-F00-E10, correção 2). Aqui (0,3,0) vence.
+*/
+.botao--primario:not(:disabled):hover {
+  background: var(--ds-accent-hover); color: var(--ds-on-accent); box-shadow: var(--ds-accent-glow);
+}
+
+.botao--secundario { background: var(--ds-surface); color: var(--ds-text); border-color: var(--ds-border); }
+.botao--secundario:not(:disabled):hover {
+  background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-text-muted);
+}
+
+.botao--perigo { background: var(--ds-danger-bg); color: var(--ds-danger-fg); border-color: var(--ds-danger-fg); }
+.botao--perigo:not(:disabled):hover { background: var(--ds-danger-fg); color: var(--ds-surface); }
+
+.botao--discreto { background: transparent; color: var(--ds-text-muted); padding: 0 var(--ds-sp-2); }
+.botao--discreto:not(:disabled):hover { color: var(--ds-text); background: var(--ds-surface-2); }
+
+.botao--icone { min-width: var(--ds-touch); padding: 0; }
+
+/*
+  Os botões do rodapé de toda janela (`Modal`, e por isso toda `ConfirmarAcao`).
+
+  `.botao` não quebra linha (`white-space: nowrap`), certo para \"Salvar\" e
+  \"Ver todas\". Mas o botão de confirmação REPETE o objeto por regra (\"Encerrar
+  sessões de Marcos Vinicius Teles\"), e nome de pessoa é comprido: a 390 px o
+  rótulo era mais largo que a janela, o painel ganhava rolagem horizontal e o
+  botão perdia a borda (reprovação da V2-F00-E09). Aqui o rótulo quebra em
+  linhas e o botão cresce em altura, sem passar da janela.
+
+  Até 600 px os botões empilham, cada um com a largura toda: dois botões lado a
+  lado com rótulo de duas linhas viram dois blocos estreitos e difíceis de
+  acertar com o dedo. A ordem do HTML continua (confirmar, depois cancelar),
+  que é a do leitor de tela e a do Tab.
+*/
+.modal__rodape .botao {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .modal__rodape { flex-direction: column; align-items: stretch; }
+  .modal__rodape .botao { width: 100%; }
+}
+
+/*
+  `.botao--quebra` é o mesmo tratamento para o botão que mora FORA de janela e
+  repete o objeto ou diz uma frase comprida: \"Encerrar minhas outras sessões\" em
+  Minha conta passava cerca de 16 px da coluna a 320 px, porque o conserto acima
+  só alcançava `.modal__rodape .botao` (reprovação da V2-F00-E09, rodada 2). Em
+  tela estreita ele também ocupa a largura da coluna, como os da janela. A regra é
+  própria, e não um seletor a mais na de cima, para um não quebrar o outro.
+*/
+.botao--quebra {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .botao--quebra { width: 100%; }
+}
+
+/* ---------- Filtros ---------- */
+
+.filtros {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+  margin-bottom: var(--ds-sp-4);
+}
+.filtros__pilula {
+  min-height: 36px; padding: 0 var(--ds-sp-3);
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-border); background: var(--ds-surface);
+  color: var(--ds-text-muted); font-family: inherit;
+  font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); cursor: pointer;
+  transition: all var(--ds-dur-fast) var(--ds-ease);
+}
+.filtros__pilula:hover { border-color: var(--ds-accent-graphic); color: var(--ds-text); }
+.filtros__pilula[aria-pressed=\"true\"] {
+  background: var(--ds-accent); color: var(--ds-on-accent); border-color: var(--ds-accent);
+}
+
+/* ---------- Paginação ---------- */
+
+.paginacao {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--ds-sp-3); padding: var(--ds-sp-3) var(--ds-sp-4);
+  border-top: 1px solid var(--ds-border);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+.paginacao__controles { display: flex; gap: var(--ds-sp-2); }
+
+/* ---------- Detalhe ---------- */
+
+.detalhe { display: grid; gap: var(--ds-sp-5); grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); align-items: start; }
+@media (max-width: 1080px) { .detalhe { grid-template-columns: minmax(0, 1fr); } }
+/* O bloco que atravessa as duas colunas: a tabela larga demais para a coluna
+   da esquerda (lista de usuários) vai por baixo, na largura inteira. */
+.detalhe__larga { grid-column: 1 / -1; min-width: 0; }
+
+.coluna { display: flex; flex-direction: column; gap: var(--ds-sp-5); }
+
+.par { display: flex; flex-direction: column; gap: var(--ds-sp-1); margin-bottom: var(--ds-sp-4); }
+.par__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold); color: var(--ds-text-muted);
+}
+.par__valor { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+
+/* ---------- Ver também ---------- */
+
+.relacionados__grupo + .relacionados__grupo { margin-top: var(--ds-sp-4); }
+.relacionados__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold);
+  color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-2);
+}
+.relacionados { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+/*
+  A linha inteira é o alvo do clique, e é um link de verdade: dá para abrir em
+  outra aba com o botão do meio, que é como quem coordena compara dois
+  chamados sem perder o que estava lendo.
+*/
+.relacionados__item {
+  display: flex; flex-direction: column; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-3); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius); color: var(--ds-text); text-decoration: none;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.relacionados__item:hover { background: var(--ds-surface-2); }
+.relacionados__topo { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-sp-2); flex-wrap: wrap; }
+.relacionados__meta { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+
+/* ---------- Linha do tempo ---------- */
+
+.trilha { list-style: none; margin: 0; padding: 0; position: relative; }
+.trilha::before {
+  /* 11px centraliza o fio no marcador de 24px, descontada a borda de 2px. */
+  content: \"\"; position: absolute; left: 11px; top: var(--ds-sp-3); bottom: var(--ds-sp-3);
+  width: 2px; background: var(--ds-border);
+}
+.trilha__item { position: relative; padding: 0 0 var(--ds-sp-5) var(--ds-sp-6); }
+.trilha__item:last-child { padding-bottom: 0; }
+.trilha__marca {
+  position: absolute; left: 0; top: 2px;
+  width: 24px; height: 24px; border-radius: var(--ds-radius-pill);
+  display: grid; place-items: center;
+  background: var(--ds-surface); border: 2px solid var(--ds-accent-graphic);
+  color: var(--ds-accent);
+}
+.trilha__titulo { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
+.trilha__autoria {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted); margin-top: var(--ds-sp-1);
+}
+.trilha__detalhe {
+  margin-top: var(--ds-sp-2); padding: var(--ds-sp-2) var(--ds-sp-3);
+  background: var(--ds-surface-2); border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+}
+
+/* ---------- Entrada ---------- */
+
+.entrada {
+  min-height: 100%;
+  display: grid; place-items: center;
+  padding: var(--ds-sp-6);
+  background: var(--ds-bg);
+}
+.entrada__painel { width: 100%; max-width: 520px; }
+.entrada__marca {
+  display: flex; flex-direction: column; align-items: center; gap: var(--ds-sp-3);
+  margin-bottom: var(--ds-sp-6); text-align: center;
+}
+.entrada__sigla {
+  width: var(--emblema-lg); height: var(--emblema-lg); display: grid; place-items: center;
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-accent-gradient); color: var(--ds-on-accent);
+  font-weight: var(--ds-fw-extrabold); font-size: var(--ds-fs-body);
+  box-shadow: var(--ds-accent-glow);
+}
+.entrada__titulo {
+  margin: 0; font-size: var(--ds-fs-h2); line-height: var(--ds-lh-h2);
+  font-weight: var(--ds-fw-bold); letter-spacing: -0.02em;
+}
+.entrada__subtitulo { margin: 0; color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); }
+
+.conta {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  width: 100%; min-height: var(--ds-touch);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius); cursor: pointer;
+  font-family: inherit; color: inherit; text-align: left;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease),
+              box-shadow var(--ds-dur-fast) var(--ds-ease),
+              transform var(--ds-dur-fast) var(--ds-ease);
+}
+.conta:hover { border-color: var(--ds-accent); box-shadow: var(--ds-shadow-2); transform: translateY(-1px); }
+.conta__avatar {
+  width: var(--emblema-md); height: var(--emblema-md); flex: 0 0 var(--emblema-md);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-2); color: var(--ds-accent);
+  display: grid; place-items: center; font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm);
+}
+.conta__nome { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
+.conta__meta { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+
+.conta__avatar--pequeno {
+  width: var(--emblema-sm); height: var(--emblema-sm); flex: 0 0 var(--emblema-sm);
+}
+
+.entrada__rodape {
+  margin-top: var(--ds-sp-4); text-align: center;
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+/* O link do rodape e alvo de toque: 44 px de altura, como todo controle do celular. */
+.entrada__rodape a {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--ds-touch); padding: 0 var(--ds-sp-3);
+}
+
+/* Texto corrido e ação das telas de recuperação de senha. */
+.entrada__texto {
+  margin: 0 0 var(--ds-sp-4);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.entrada__texto--apoio { color: var(--ds-text-muted); }
+.entrada__acao { width: 100%; }
+.entrada__verificando {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.entrada__verificando p { margin: 0; }
+.entrada__verificando .girador { flex: 0 0 auto; }
+
+/* Os passos de quem administra redefinir a senha: lista numerada, um passo por item. */
+.passos {
+  margin: 0 0 var(--ds-sp-2); padding-left: var(--ds-sp-5);
+  display: flex; flex-direction: column; gap: var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.passos li { padding-left: var(--ds-sp-1); }
+.passos li::marker { color: var(--ds-text-muted); font-weight: var(--ds-fw-bold); }
+
+.lista-contas { display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+.lista-contas__grupo { font-size: var(--ds-fs-caption); text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
+  font-weight: var(--ds-fw-bold); color: var(--ds-text-muted); margin: var(--ds-sp-4) 0 var(--ds-sp-1); }
+.lista-contas__grupo:first-child { margin-top: 0; }
+
+/* ---------- Avisos ---------- */
+
+.aviso {
+  display: flex; gap: var(--ds-sp-3); align-items: flex-start;
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  margin-bottom: var(--ds-sp-4);
+}
+.aviso--info    { background: var(--ds-info-bg);    color: var(--ds-info-fg); }
+.aviso--perigo  { background: var(--ds-danger-bg);  color: var(--ds-danger-fg); }
+.aviso--sucesso { background: var(--ds-success-bg); color: var(--ds-success-fg); }
+.aviso--alerta  { background: var(--ds-sev-media-bg); color: var(--ds-sev-media-fg); }
+.aviso svg { flex: 0 0 20px; margin-top: calc(var(--ds-sp-1) / 2); }
+
+.vazio {
+  padding: var(--ds-sp-8) var(--ds-sp-5);
+  text-align: center; color: var(--ds-text-muted);
+}
+.vazio__titulo { font-size: var(--ds-fs-h3); font-weight: var(--ds-fw-semibold); color: var(--ds-text); margin-bottom: var(--ds-sp-2); }
+
+/* ---------- Carregando ---------- */
+
+.carregando {
+  display: grid; place-items: center; min-height: 60vh; gap: var(--ds-sp-4);
+  color: var(--ds-text-muted); text-align: center; padding: var(--ds-sp-6);
+}
+.girador {
+  width: 32px; height: 32px; border-radius: var(--ds-radius-pill);
+  border: 3px solid var(--ds-border); border-top-color: var(--ds-accent);
+  animation: girar calc(var(--ds-dur-slow) * 3) linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ---------- Barra de progresso do prazo ---------- */
+
+.prazo { display: flex; flex-direction: column; gap: var(--ds-sp-1); min-width: 120px; }
+.prazo__trilho { height: 4px; border-radius: var(--ds-radius-pill); background: var(--ds-surface-2); overflow: hidden; }
+.prazo__preenchido { height: 100%; border-radius: var(--ds-radius-pill); background: var(--ds-accent-graphic); }
+.prazo--estourado .prazo__preenchido { background: var(--ds-danger-fg); }
+.prazo__texto { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+.prazo--estourado .prazo__texto { color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold); }
+
+/* ---------- Responsivo ---------- */
+
+@media (max-width: 900px) {
+  .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: \"topo\" \"conteudo\" \"lateral\"; }
+  /*
+    A barra do pé da tela: ladrilhos de ícone em cima e rótulo embaixo, em
+    número FIXO de ladrilhos visíveis, e o resto rola.
+
+    Era uma fila de itens com o rótulo em uma linha só (`white-space: nowrap`),
+    e dez destinos não cabem em 390 px: o terceiro item, \"Mapa da cidade\",
+    aparecia cortado na borda da tela, com a metade do rótulo faltando (a
+    validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa tela de
+    390). Cortar um rótulo no meio é o pior dos dois mundos: a pessoa lê metade
+    de uma palavra e ainda não sabe que a barra rola.
+
+    Agora a largura do ladrilho é a conta de quantos cabem INTEIROS
+    (`--barra-visiveis`), o rótulo quebra em até duas linhas dentro dele, e o
+    ladrilho seguinte só espia na borda, sem texto visível. \"Mapa da cidade\" é
+    sempre um dos primeiros três em qualquer papel, então nunca fica para a
+    parte que rola.
+
+    Os grupos e o rodapé viram `display: contents` para os ladrilhos serem
+    todos filhos diretos da barra: a largura em porcentagem é a da barra, e não
+    a de cada grupo, que é o que fazia a conta anterior não fechar.
+  */
+  .lateral { --barra-visiveis: 6;
+             flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: var(--ds-sp-2); align-items: center;
+             padding: var(--ds-sp-2) var(--ds-sp-4); scrollbar-width: thin;
+             border-right: none; border-top: 1px solid var(--ds-ink-800);
+             position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
+  .lateral__marca, .lateral__rotulo { display: none; }
+  /*
+    \"Tema\" e \"Sair\" continuam na barra, no fim dela. Antes o rodapé sumia
+    junto com a marca, e no celular não havia como sair nem trocar o tema fora
+    da caixa de busca, que é o único lugar onde ninguém procura isso.
+  */
+  .lateral__grupo, .lateral__rodape { display: contents; }
+  .lateral__item {
+    flex: 0 0 calc((100% - (var(--barra-visiveis) - 1) * var(--ds-sp-2)) / var(--barra-visiveis));
+    min-width: 0; height: var(--barra-item-altura);
+    flex-direction: column; justify-content: center; gap: var(--ds-sp-1);
+    padding: var(--ds-sp-1);
+    text-align: center; white-space: normal;
+    font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  }
+  /*
+    Os botões \"Tema\" e \"Sair\" nascem de `<button>`, que não herda a família da
+    fonte: sem isto o rótulo deles sairia na fonte do sistema, diferente do
+    resto da barra.
+  */
+  button.lateral__item { font-family: inherit; font-weight: var(--ds-fw-medium); }
+  .lateral__texto { display: block; max-width: 100%; }
+  /*
+    A barra rola na horizontal de propósito: onze destinos não cabem em 320px, e
+    o rótulo inteiro vale mais do que um ícone que a pessoa precisa adivinhar.
+
+    O respiro nas duas pontas é para o ladrilho não encostar na borda quando a
+    barra rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item e na
+    troca de tela: sozinho, o navegador não rola um item que está pela metade, e
+    o Tab parava com o rótulo cortado. O comentário de lá tem a medida.
+  */
+  .lateral { scroll-padding-inline: var(--ds-sp-4); }
+  .conteudo { padding: var(--ds-sp-4); }
+  /*
+    O aviso passageiro sobe a altura da barra do rodapé, senão a confirmação de
+    gravação aparece POR CIMA dos itens de navegação, com as duas frases
+    sobrepostas e o botão Fechar em cima de \"Mapa da cidade\".
+
+    A altura não é um número escolhido aqui: é a mesma conta que desenha a
+    barra, `--barra-altura` (o ladrilho mais o respiro de cima e de baixo da
+    própria `.lateral`). Mudar o ladrilho ou o respiro move os dois juntos.
+  */
+  .toast { bottom: calc(var(--ds-sp-4) + var(--barra-altura)); }
+  /*
+    As duas medidas moram no `:root` daqui para baixo, e não em `.lateral`,
+    porque o aviso não é filho da barra e precisa enxergá-las. Ladrilho: o
+    respiro, o ícone de 18 px, o respiro entre os dois e as duas linhas do
+    rótulo.
+  */
+  :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
+          --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
+}
+/*
+  Janela muito baixa (o zoom de 400 por cento de uma tela de 1280x1024 é 320x256
+  de CSS; o celular deitado de 568x320): o topo de duas linhas (129 px) e a
+  barra do pé (79 px) deixavam 48 px de página, menos que um rótulo com o campo
+  embaixo, e qualquer campo focado ficava atrás de um dos dois (WCAG 2.4.11,
+  correção 6 da V2-F00-E09). Abaixo de 360 px de altura os dois deixam de ser
+  fixos e rolam com a página: a navegação continua lá, no fim dela, e o topo, no
+  começo. A medida de `usar-bordas-fixas.ts` vê que não estão presos e zera a
+  folga.
+*/
+@media (max-height: 360px) {
+  .topo, .lateral { position: static; }
+  /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
+  .toast { bottom: var(--ds-sp-4); }
+}
+@media (max-width: 600px) {
+  .lateral { --barra-visiveis: 4; }
+}
+/*
+  Celular estreito (até 360 px): três ladrilhos, porque \"Ocorrências\" e
+  \"Organização\" em quatro ladrilhos de 66 px não cabem na largura do ladrilho.
+  A 361 px já cabem (o teste de geometria mede 360 e 361 por isso).
+*/
+@media (max-width: 360px) {
+  .lateral { --barra-visiveis: 3; }
+}
+
+/*
+  Celular: o topo em duas linhas.
+
+  A marca e a conta ficam na primeira linha, a busca ganha a segunda inteira.
+  `order` só reordena o desenho: o Tab continua na ordem do HTML (marca,
+  busca, sino, conta). Abaixo de 600px o nome e o papel da conta somem e fica
+  o avatar, que continua sendo o link para \"Minha conta\": nome inteiro numa
+  linha de 400px era o que empurrava o sino para fora da tela.
+*/
+@media (max-width: 600px) {
+  .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
+  /*
+    O topo tem duas linhas aqui (a marca e a conta, e a busca): 129 px. A folga
+    da rolagem para ele é medida (`usar-bordas-fixas.ts`, correção 6 da
+    V2-F00-E09); a correção 5 a escrevia como número só nesta faixa, e acima de
+    600 px, onde o topo também chega a ter duas linhas, o campo focado ficava
+    por baixo dele.
+  */
+  /*
+    O texto de exemplo da busca (\"Buscar registro ou função\") saía cortado a
+    320 px (\"Buscar registro ou funç\"): o recuo da direita guarda o lugar da
+    dica \"Ctrl K\", e no celular não há teclado com Ctrl. A dica some da tela e
+    continua no `aria-describedby` do campo (texto referenciado é lido mesmo
+    escondido), e o recuo volta ao respiro comum.
+  */
+  .busca-global__atalho { display: none; }
+  .busca-global__caixa #busca-global { padding-right: var(--ds-sp-3); }
+  .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
+  .identidade__nome, .identidade__papel, .identidade br { display: none; }
+  .identidade--acionavel { padding: var(--ds-sp-1); }
+}
+
+/* ---------- O desenho do mapa, nos dois modos ---------- */
+
+/*
+  A caixa do desenho tem a MESMA proporção nos dois modos.
+
+  O município com chave e o município sem chave leem a mesma tela, e a
+  legenda de modo, a tabela e a paginação caem no mesmo lugar em qualquer
+  captura de tela usada em treinamento. Altura diferente por modo faria a
+  documentação valer só para metade dos clientes.
+*/
+.mapa__plano, .mapa__base {
+  position: relative; width: 100%; aspect-ratio: 4 / 3;
+  background: var(--ds-surface-2);
+  border-radius: var(--ds-radius-card);
+  border: 1px solid var(--ds-border);
+  overflow: hidden;
+}
+.mapa__grade { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/*
+  A legenda de modo, colada embaixo do desenho.
+
+  Ela responde a pergunta que nasce ao olhar o plano quadriculado (\"cadê as
+  ruas?\"), então precisa estar onde o olho já está. Cor discreta e símbolo
+  antes do texto: é informação de contexto, não alarme, e não pode competir
+  com o aviso de teto logo acima.
+*/
+.mapa__modo {
+  margin: var(--ds-sp-3) 0 0;
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+.mapa__modo strong { color: var(--ds-text); }
+
+/* ---------- Pinos do mapa ---------- */
+
+/*
+   O alvo tem 24 px, o mínimo de WCAG 2.5.8, e não os 44 px da regra de toque
+   do aplicativo de campo: com 44 px em coordenadas reais e próximas, a área
+   invisível de um pino cobre o marcador visível do vizinho e rouba o clique.
+   O alcance por teclado e por toque grosso fica garantido pela lista logo
+   abaixo do mapa, que mostra exatamente os mesmos pontos.
+*/
+.mapa__pino {
+  width: 24px; height: 24px;
+  transform: translate(-50%, -50%);
+  display: grid; place-items: center;
+  background: transparent; border: none;
+  cursor: pointer; padding: 0;
+  border-radius: var(--ds-radius-pill);
+}
+.mapa__pino:hover, .mapa__pino:focus-visible { z-index: 2; }
+.mapa__pino svg { transition: transform var(--ds-dur-base) var(--ds-ease); }
+.mapa__pino--ativo svg { transform: scale(1.5); filter: drop-shadow(var(--ds-shadow-2)); }
+
+.legenda-mapa {
+  list-style: none; margin: var(--ds-sp-4) 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-2);
+}
+.legenda-mapa__item { display: inline-flex; align-items: center; gap: var(--ds-sp-2); }
+
+/* ---------- Galeria de evidência ---------- */
+
+.galeria {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--ds-sp-3);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.galeria__item {
+  display: block; width: 100%; padding: 0; cursor: pointer;
+  background: var(--ds-surface); color: inherit; font: inherit; text-align: left;
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
+  overflow: hidden;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease),
+              box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.galeria__item:hover { border-color: var(--ds-accent); box-shadow: var(--ds-shadow-2); }
+.galeria__item img {
+  display: block; width: 100%; height: 110px; object-fit: cover;
+  background: var(--ds-surface-2);
+}
+.galeria__legenda {
+  display: block; padding: var(--ds-sp-2) var(--ds-sp-3);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+}
+
+.lightbox {
+  position: fixed; inset: 0; z-index: var(--ds-z-modal);
+  background: color-mix(in srgb, var(--ds-ink-950) 88%, transparent);
+  display: grid; place-items: center; gap: var(--ds-sp-4);
+  padding: var(--ds-sp-5);
+}
+.lightbox img {
+  max-width: min(92vw, 1000px); max-height: 78vh;
+  border-radius: var(--ds-radius); box-shadow: var(--ds-shadow-3);
+}
+
+/* ---------- Barras de comparação ---------- */
+
+.barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-sp-3); }
+.barras li {
+  display: grid; align-items: center; gap: var(--ds-sp-3);
+  grid-template-columns: minmax(90px, 1fr) minmax(60px, 2fr) auto;
+  font-size: var(--ds-fs-body-sm);
+}
+.barras__rotulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barras__trilho {
+  height: 10px; border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-2); overflow: hidden;
+}
+.barras__preenchido {
+  display: block; height: 100%; border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent-graphic);
+  /* O valor sempre acompanha a barra em número: comprimento sozinho não
+     comunica quantidade a quem não enxerga bem. */
+  min-width: 3px;
+}
+.barras__valor { font-weight: var(--ds-fw-semibold); font-variant-numeric: tabular-nums; }
+
+/*
+  A tela pública de interesse.
+
+  Ela reusa `entrada__painel`, e só acrescenta o que a tela de login não
+  precisa: mais largura, porque o formulário tem duas colunas, e a lista dos
+  três motivos que aparecem ANTES de pedir qualquer dado.
+*/
+/*
+  Mais largo, porque o formulário tem duas colunas, e com respiro entre os
+  blocos.
+
+  `.entrada__painel` não tem `gap` porque a tela de login é uma pilha curta em
+  que as margens dos próprios elementos bastam. Aqui são cinco blocos
+  (identidade, lista de motivos, aviso, formulário, rodapé) e sem o `gap` eles
+  encostam uns nos outros: dá para ver na primeira captura de tela.
+*/
+.entrada__painel--largo {
+  max-width: 640px;
+  display: flex; flex-direction: column; gap: var(--ds-sp-5);
+}
+
+.lista-valor {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--ds-sp-3);
+}
+.lista-valor li {
+  padding-left: var(--ds-sp-4);
+  border-left: 2px solid var(--ds-accent-graphic);
+  color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm);
+  line-height: var(--ds-lh-body-sm);
+}
+.lista-valor strong { color: var(--ds-text); font-weight: var(--ds-fw-semibold); }
+
+/* Lista de campos recusados pelo servidor, dentro de um Aviso de perigo. */
+.erros-do-servidor { margin: var(--ds-sp-2) 0 0; padding-left: var(--ds-sp-5); display: grid; gap: var(--ds-sp-1); }
+.erros-do-servidor li { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+
+/* ---------------------------------------------------------------------------
+   Sino de avisos
+   ---------------------------------------------------------------------------
+   O painel é ancorado no botão e sai do fluxo, então ele precisa de `position:
+   relative` no envoltório: sem isso ele se ancoraria no primeiro ancestral
+   posicionado, que é o `.topo` fixo, e passaria a nascer na ponta esquerda do
+   cabeçalho em telas estreitas. */
+.sino { position: relative; }
+
+.sino__botao {
+  position: relative;
+  display: grid; place-items: center;
+  width: var(--ds-touch); height: var(--ds-touch);
+  border: 1px solid transparent; border-radius: var(--ds-radius);
+  background: transparent; color: var(--ds-text); cursor: pointer;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.sino__botao:hover { background: var(--ds-surface-2); }
+
+/* O selo é redundante com o `aria-label` do botão de propósito: o número
+   sozinho, para o leitor de tela, seria \"12\" sem dizer doze do quê.
+
+   O par é `accent` mais `on-accent`, e não vermelho. Vermelho seria o hábito,
+   e ele quebra nos dois temas de uma vez: `--ds-danger-fg` é escuro no tema
+   claro e claro no tema escuro, então um texto de cor fixa por cima dele fica
+   ilegível em um dos dois. `on-accent` existe justamente para ser o texto em
+   cima do accent, e troca junto com o tema. Contagem também não é severidade,
+   então a proibição de comunicar severidade com a cor da marca não se aplica
+   aqui. */
+.sino__selo {
+  position: absolute; top: var(--ds-sp-1); right: var(--ds-sp-1);
+  min-width: 18px; padding: 0 var(--ds-sp-1);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent); color: var(--ds-on-accent);
+  font-size: var(--ds-fs-caption); line-height: 18px; font-weight: var(--ds-fw-semibold);
+  text-align: center;
+}
+
+.sino__painel {
+  position: absolute; right: 0; top: calc(100% + var(--ds-sp-2));
+  width: min(400px, calc(100vw - var(--ds-sp-6)));
+  max-height: 70vh; overflow-y: auto;
+  background: var(--ds-surface); color: var(--ds-text);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-3);
+  z-index: var(--ds-z-dropdown);
+  padding: var(--ds-sp-4);
+}
+
+/*
+  Celular: o painel do sino se ancora na TELA, e não no botão.
+
+  Ancorado no botão (`right: 0`), o painel de largura quase total saía pela
+  esquerda, porque o sino está no meio do topo, ao lado do avatar: a 390 px os
+  primeiros 48 px do painel ficavam fora da tela e o título \"Avisos\" perdia o
+  começo. Aqui o `.sino` deixa de ser a referência e o painel passa a medir a
+  partir do `.topo` (que é posicionado, ver acima), com o mesmo respiro lateral
+  do resto da página.
+*/
+@media (max-width: 600px) {
+  .sino { position: static; }
+  .sino__painel { left: var(--ds-sp-4); right: var(--ds-sp-4); width: auto; top: calc(100% + var(--ds-sp-2)); }
+}
+
+.sino__cabecalho {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  margin-bottom: var(--ds-sp-3);
+}
+.sino__titulo { margin: 0; font-size: var(--ds-fs-h3); }
+.sino__cabecalho .botao { margin-left: auto; }
+
+.sino__nota {
+  margin: var(--ds-sp-2) 0 0;
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+
+.sino__lista { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--ds-sp-1); }
+.sino__item {
+  display: flex; align-items: flex-start; gap: var(--ds-sp-2);
+  padding: var(--ds-sp-2);
+  border-radius: var(--ds-radius);
+  border-left: 3px solid transparent;
+}
+.sino__item--novo { border-left-color: var(--ds-accent-graphic); background: var(--ds-surface-2); }
+
+.sino__link {
+  flex: 1 1 auto; display: grid; gap: var(--ds-sp-1);
+  color: inherit; text-decoration: none;
+  min-height: var(--ds-touch); align-content: center;
+}
+.sino__link:hover .sino__frase { color: var(--ds-accent-hover); }
+.sino__frase { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); line-height: var(--ds-lh-caption); }
+.sino__protocolo { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__complemento { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__instante { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__estado { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+
+.sino__rodape {
+  margin-top: var(--ds-sp-3); padding-top: var(--ds-sp-3);
+  border-top: 1px solid var(--ds-border);
+  display: grid; gap: var(--ds-sp-2);
+}
+
+/* ---------------------------------------------------------------------------
+   Catálogo de órgãos e ofícios
+   --------------------------------------------------------------------------- */
+.oficio { display: grid; gap: var(--ds-sp-2); padding: var(--ds-sp-3) 0; }
+.oficio + .oficio { border-top: 1px solid var(--ds-border); }
+.oficio__numero { font-size: var(--ds-fs-body-lg); font-weight: var(--ds-fw-semibold); }
+.oficio__linha {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+/*
+  O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`, e um
+  pedaço sem ponto mais largo que o cartão quebra dentro, em vez de sair dele.
+
+  A \"rede de segurança\" do `break-word` não bastava sozinha (correção 6 da
+  V2-F00-E09, rodada 7): com \"plantaocoordenacaodefesacivilserraalta@...\" o texto
+  saía do cartão a 360 px e a página rolava na horizontal a 320 px. Duas
+  larguras mínimas seguravam o pedaço inteiro: a do `<span>`, que é item de
+  linha `flex` (`min-width: auto` é a palavra mais longa), e a da coluna do
+  `.oficio`, que é `grid` com coluna `auto` (do tamanho mínimo do conteúdo).
+  Zerar as duas deixa o cartão mandar na largura, e o `break-word` age.
+*/
+.oficio { grid-template-columns: minmax(0, 1fr); }
+.oficio__linha > span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
+
+/* ---------------------------------------------------------------------------
+   Verificação em duas etapas
+   --------------------------------------------------------------------------- */
+.segundo-fator { display: grid; gap: var(--ds-sp-4); }
+
+.segundo-fator__passos {
+  margin: 0; padding-left: var(--ds-sp-5);
+  display: grid; gap: var(--ds-sp-2);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+
+/*
+  O desenho e o segredo lado a lado no computador, e um embaixo do outro no
+  telefone. Quem liga a verificação PELO telefone não consegue apontar a câmera
+  para a própria tela, e é exatamente essa pessoa que vai usar o segredo
+  escrito: empilhar põe os dois na ordem em que ela precisa.
+*/
+.segundo-fator__ativacao {
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-5); align-items: flex-start;
+}
+.segundo-fator__segredo { flex: 1 1 240px; display: grid; gap: var(--ds-sp-2); }
+.segundo-fator__valor {
+  margin: 0;
+  font-size: var(--ds-fs-body-lg);
+  letter-spacing: var(--tracking-rotulo);
+  word-break: break-all;
+}
+
+.segundo-fator__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+
+/*
+  Os códigos de recuperação em duas colunas, com número tabular: eles vão ser
+  COPIADOS À MÃO para um papel, e a leitura em coluna é a que não pula linha.
+*/
+.segundo-fator__codigos {
+  margin: 0; padding: var(--ds-sp-4);
+  list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--ds-sp-2);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-body-lg);
+  letter-spacing: var(--tracking-rotulo);
+}
+
+/*
+  O código QR é ESCURO SOBRE CLARO nos dois temas, e essa é a única superfície
+  do painel que não acompanha o tema. Não é descuido: leitor de código QR
+  espera esse contraste, e parte dos aplicativos simplesmente não lê o desenho
+  invertido. Por isso o fundo claro vem do token de superfície mais clara e o
+  módulo do token de texto mais escuro, e não de cor inventada.
+*/
+.qr {
+  width: 200px; height: 200px; flex: 0 0 auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.qr__fundo { fill: var(--ds-qr-claro); }
+.qr__modulo { fill: var(--ds-qr-escuro); }
+
+/* ---------------------------------------------------------------------------
+   Sessões e redefinição de senha (V2-F00-E09)
+   --------------------------------------------------------------------------- */
+
+/*
+  Os botões de uma linha da lista de usuários. Com quatro (Corrigir, Desativar,
+  Redefinir senha, Encerrar sessões) a coluna Ação passaria da largura do
+  cartão numa fileira só; em grade de duas colunas (Corrigir e Desativar em
+  cima, Redefinir senha e Encerrar sessões embaixo) o rótulo de cada um continua
+  inteiro, os botões alinham entre as linhas e a coluna ocupa o mínimo.
+*/
+.tabela__acoes {
+  display: grid; grid-template-columns: repeat(2, max-content);
+  justify-items: start; align-items: center;
+  gap: var(--ds-sp-1) var(--ds-sp-2);
+}
+
+/*
+  A janela da senha temporária. A senha é a única coisa da janela que vai ser
+  LIDA EM VOZ ALTA ao telefone, então ela ganha o maior corpo da família mono, o
+  espaçamento de rótulo e a seleção inteira com um toque. Quebra em qualquer
+  ponto para nunca estourar a janela no celular.
+*/
+.senha-temporaria { display: grid; gap: var(--ds-sp-4); margin-top: var(--ds-sp-4); }
+.senha-temporaria .aviso { margin-bottom: 0; }
+.senha-temporaria__mensagem {
+  margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+.senha-temporaria__bloco {
+  display: grid; gap: var(--ds-sp-2);
+  padding: var(--ds-sp-4);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.senha-temporaria__valor {
+  margin: 0;
+  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--tracking-rotulo);
+  word-break: break-all;
+  user-select: all;
+}
+.senha-temporaria__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+.senha-temporaria__estado {
+  margin: 0; min-height: var(--ds-lh-body-sm);
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+
+/*
+  A lista das sessões da própria conta. Cada item é uma linha com o aparelho em
+  destaque, e as duas datas embaixo, lado a lado quando cabe e empilhadas no
+  telefone. A marca \"Esta sessão\" é selo com ícone e texto, nunca só cor.
+*/
+.sessoes {
+  list-style: none; margin: 0 0 var(--ds-sp-4); padding: 0;
+  display: grid; gap: var(--ds-sp-2);
+}
+.sessoes__item {
+  display: grid; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.sessoes__topo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2); }
+.sessoes__aparelho { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
+.sessoes__datas {
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-1) var(--ds-sp-4);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+
+/*
+  A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
+  tabela dividia o que sobrava de modo que o nome quebrava em três linhas
+  (\"Diego / Nakamura / Alves\"). O piso de largura segura o nome em até duas
+  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, quebra só depois do \"@\" e dos pontos (`EmailQuebravel`), nunca no meio de uma palavra.
+*/
+.tabela__pessoa {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-width: calc(var(--ds-sp-8) * 2.75);
+}
+
+/*
+  A lista de usuários é a única tabela com seis colunas e quatro botões por
+  linha. Com o respiro lateral de 12 px no lugar de 16 (só nela), as seis
+  colunas cabem em 1280 px sem rolagem; abaixo disso a tabela rola, com o aviso
+  de sempre.
+*/
+.tabela--justa th, .tabela--justa td { padding-left: var(--ds-sp-3); padding-right: var(--ds-sp-3); }
+
+/* O indicador de carregamento do tamanho de um cartão, e não da página. */
+.carregando--no-cartao { min-height: 0; padding: var(--ds-sp-5) 0; }
+"
+
+ ❯ test/correcao-6-da-e09.test.ts:173:19
+    171|   it("o teto do email da tabela vale em qualquer largura, e não só até…
+    172|     const folha = css();
+    173|     expect(folha).toMatch(/^\.tabela__secundario--email \{ max-width: …
+       |                   ^
+    174|     expect(folha).not.toMatch(/@media \(max-width: 1399px\) \{\n  \.ta…
+    175|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga > a paginação e os controles dela quebram em linhas
+AssertionError: expected '/* ==================================…' to match /\.paginacao \{\n  display: flex; flex…/
+
+[32m- Expected:[39m 
+/\.paginacao \{\n  display: flex; flex-wrap: wrap;/
+
+[31m+ Received:[39m 
+"/* ============================================================
+   DC360 web: folha da aplicação.
+   Regra herdada do design system: nenhuma cor, sombra, raio ou duração
+   literal. Tudo vem de --ds-*. Valor fora daqui é bug.
+   ============================================================ */
+
+/*
+   Constantes locais de componente, nomeadas em vez de espalhadas como número
+   solto. Não são tokens do design system (não descrevem cor, sombra, raio nem
+   duração): são a anatomia de dois componentes deste painel. Ficam aqui para
+   que os quatro emblemas de iniciais do produto tenham dois tamanhos, e não
+   quatro, e para que todo rótulo em caixa alta use o mesmo tracking.
+*/
+:root {
+  --emblema-sm: 32px;   /* dentro de linha de tabela */
+  --emblema-md: 40px;   /* barra lateral, topo, lista de contas */
+  --emblema-lg: 56px;   /* marca da tela de entrada */
+  --tracking-rotulo: 0.06em;  /* rótulo em caixa alta sobre --ds-fs-caption */
+  --tracking-sigla: 0.02em;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+/* O topo é fixo, e até 900 px a barra de navegação também, no pé: sem isto,
+   rolar até um elemento (âncora, foco por teclado, scrollIntoView) o deixa por
+   baixo de um dos dois. As duas folgas são MEDIDAS por `usar-bordas-fixas.ts`
+   (a altura do topo muda com a largura, o zoom e o nome de quem entrou) e
+   chegam aqui por variável, antes do primeiro desenho (`useLayoutEffect`).
+   Sem a medida não há borda fixa nenhuma (as telas públicas, como \"Defina a
+   sua senha\", não têm topo), e a folga é só o respiro: a estimativa de 140 px
+   que valia em toda tela até 600 px tirava espaço da tela pública no zoom de
+   400 por cento (V2-F00-E09, correção 6). */
+html {
+  scroll-padding-top: var(--topo-fixo-folga, var(--ds-sp-3));
+  scroll-padding-bottom: var(--pe-fixo-folga, var(--ds-sp-3));
+}
+/* O foco por teclado leva o CONTROLE à vista, e o rótulo fica uns 32 px acima
+   dele: a margem cobre a linha do rótulo e o respiro entre os dois, em qualquer
+   largura (até a correção 6 valia só até 600 px, e acima disso o rótulo ficava
+   atrás do topo). Um passo de `--ds-sp-5` mais um de `--ds-sp-3`. */
+.campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
+
+body {
+  margin: 0;
+  background: var(--ds-bg);
+  color: var(--ds-text);
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Links na cor de destaque do sistema, nos dois temas. Sem isto, todo `<a>`
+   sem classe saía no azul do navegador, que no tema escuro é ilegível. */
+a { color: var(--ds-accent); }
+a:hover { color: var(--ds-accent-hover); }
+
+:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
+
+/*
+  Alto Contraste do Windows, que é o cenário de máquina de prefeitura.
+
+  O modo de cores forçadas DESCARTA `box-shadow`. Como o anel de foco desta
+  folha é desenhado só por sombra, quem liga o Alto Contraste fica sem foco
+  visível em lugar nenhum do painel: navegar por Tab passa a ser adivinhação.
+
+  `Highlight` e `CanvasText` são as cores que o próprio sistema expõe. Usar
+  qualquer outra aqui seria ignorar a escolha de quem ligou o modo, que é
+  exatamente o que o modo existe para impedir.
+*/
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /*
+    Selo, aviso, indicador e cartão perdem o fundo colorido no modo forçado, e
+    sem borda eles somem dentro do texto ao redor. A regra do produto de nunca
+    comunicar estado só por cor já garante que o texto continua dizendo o que
+    é; a borda devolve a separação visual.
+  */
+  .selo, .aviso, .indicador, .cartao {
+    border: 1px solid CanvasText;
+  }
+}
+
+.mono { font-family: var(--ds-font-mono); font-variant-numeric: tabular-nums; }
+
+/*
+  Parágrafo de apoio dentro de cartão.
+
+  Existia repetido como estilo escrito dentro do componente, três propriedades
+  de cada vez. Estilo copiado é estilo que diverge: bastava alguém esquecer o
+  `line-height` numa das cópias para o mesmo texto sair com respiro diferente
+  em duas telas irmãs.
+*/
+.texto-apoio {
+  margin: 0 0 var(--ds-sp-3);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.texto-apoio:last-child { margin-bottom: 0; }
+
+.oculto-visualmente {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Atalho de teclado: some da tela até alguém dar Tab nele. Fica acima de
+   tudo porque o cabeçalho é fixo e o esconderia. */
+.pular-para-conteudo {
+  position: absolute; left: var(--ds-sp-3); top: calc(var(--ds-sp-3) * -6);
+  z-index: var(--ds-z-toast);
+  display: inline-flex; align-items: center; min-height: var(--ds-touch);
+  padding: 0 var(--ds-sp-4); border-radius: var(--ds-radius);
+  background: var(--ds-accent); color: var(--ds-on-accent);
+  font-weight: var(--ds-fw-semibold); text-decoration: none;
+  transition: top var(--ds-dur-fast) var(--ds-ease);
+}
+.pular-para-conteudo:focus { top: var(--ds-sp-3); }
+
+/*
+  O aviso passageiro, no canto inferior direito.
+
+  A posição morava em `style` dentro de `componentes/Toast.tsx` e veio para cá
+  porque no celular ele precisa DESVIAR da barra de navegação: abaixo de 900px
+  a lateral vira barra fixa no pé da tela, e o aviso caía em cima dela, com a
+  frase da confirmação sobreposta a \"Painel\" e \"Ocorrências\". Regra de media
+  query não vence estilo escrito no elemento, então a posição tinha de sair de
+  lá. O deslocamento está no bloco responsivo, no fim deste arquivo.
+*/
+.toast {
+  position: fixed;
+  right: var(--ds-sp-4);
+  bottom: var(--ds-sp-4);
+  z-index: var(--ds-z-toast);
+  max-width: min(420px, calc(100% - var(--ds-sp-6)));
+  /*
+    O fundo opaco embaixo do aviso.
+
+    `--ds-success-bg` e os irmãos dele são TRANSLÚCIDOS no tema escuro (12%),
+    porque foram feitos para tingir um cartão, não para flutuar. Dentro de um
+    cartão isso é certo; aqui o aviso paira sobre a tela, e no tema escuro o
+    texto da página atravessava a confirmação: duas frases sobrepostas, sem
+    nenhuma legível. Com a superfície atrás, a tinta de 12% compõe sobre
+    exatamente o fundo que o teste de contraste supõe (`sobre: --ds-surface`).
+  */
+  background: var(--ds-surface);
+  border-radius: var(--ds-radius);
+}
+
+/* ---------- Estrutura ---------- */
+
+/*
+  `minmax(0, 1fr)`, e não `1fr`: na grade, `1fr` é `minmax(auto, 1fr)`, e o
+  mínimo `auto` deixa a coluna crescer até a linha mais larga da tabela. O
+  `overflow-x: auto` do envoltório da tabela nunca chegava a agir, e em 1280px
+  a tela inteira rolava para o lado com o sino e a conta fora da vista.
+  `min-width: 0` no topo e no conteúdo fecha o mesmo buraco pelo lado do filho.
+*/
+.aplicacao {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: \"lateral topo\" \"lateral conteudo\";
+  min-height: 100%;
+}
+
+/*
+   A barra lateral é deliberadamente escura nos dois temas, como a barra de
+   navegação de um sistema operacional: ela emoldura o conteúdo em vez de
+   competir com ele. Por isso, e só por isso, este bloco lê as primitivas
+   --ds-ink-* diretamente em vez dos tokens semânticos, que trocam com o tema.
+   É exceção declarada, não descuido. Os pares de cor daqui foram verificados
+   contra --ds-ink-950 como fundo, não contra branco.
+*/
+.lateral {
+  grid-area: lateral;
+  background: var(--ds-ink-950);
+  color: var(--ds-ice);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-sp-5);
+  padding: var(--ds-sp-5) var(--ds-sp-4);
+  border-right: 1px solid var(--ds-ink-800);
+}
+
+.lateral__marca {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  padding: 0 var(--ds-sp-2);
+}
+/* O raio do ícone da marca vinha escrito à mão no JSX (`borderRadius: \"8px\"`),
+   fora do design system e fora do alcance de quem mexe na folha. */
+.lateral__marca img { border-radius: var(--ds-radius); }
+
+
+/* `display: block` nos dois: são `span` dentro de `span`, e em linha o nome
+   e o município saíam colados (\"Defesa Civil 360Serra Alta, MG\"). */
+.lateral__nome { display: block; font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+.lateral__org { display: block; font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-ink-400); }
+
+.lateral__grupo { display: flex; flex-direction: column; gap: var(--ds-sp-1); }
+.lateral__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
+  /* ink-400 sobre ink-950: 7,71:1. ink-500 dava 3,32:1 e reprovava AA. */
+  color: var(--ds-ink-400); padding: 0 var(--ds-sp-2) var(--ds-sp-1);
+}
+
+.lateral__item {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  padding: 0 var(--ds-sp-3);
+  border-radius: var(--ds-radius);
+  color: var(--ds-ink-400);
+  text-decoration: none;
+  font-size: var(--ds-fs-body-sm);
+  font-weight: var(--ds-fw-medium);
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
+}
+.lateral__item:hover { background: var(--ds-ink-850); color: var(--ds-ice); }
+.lateral__item[aria-current=\"page\"] {
+  background: var(--ds-ink-800); color: var(--ds-white);
+  box-shadow: inset 3px 0 0 var(--ds-violet-400);
+}
+.lateral__item svg { flex: 0 0 18px; }
+
+.lateral__rodape { margin-top: auto; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+
+.topo {
+  grid-area: topo; min-width: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-4);
+  padding: var(--ds-sp-3) var(--ds-sp-6);
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
+  position: sticky; top: 0; z-index: var(--ds-z-sticky);
+}
+
+/* A marca no topo: o mesmo `/icone.svg` do ícone do site. Alvo de toque
+   inteiro, e o canto do emblema é o raio do produto. */
+.topo__marca {
+  display: flex; align-items: center; flex: 0 0 auto;
+  min-height: var(--ds-touch); border-radius: var(--ds-radius);
+}
+.topo__marca img { width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius); display: block; }
+
+/* ---------- Busca global (a caixa de comando do topo) ---------- */
+
+.topo__busca { flex: 1 1 auto; max-width: 480px; position: relative; }
+.busca-global__caixa { position: relative; }
+.busca-global__lupa {
+  position: absolute; left: var(--ds-sp-3); top: 50%; transform: translateY(-50%);
+  display: inline-flex; color: var(--ds-text-muted); pointer-events: none;
+}
+/*
+  RÉGUA, medida e não chutada: a regra genérica de campo (`input:not(...)`
+  oito vezes, mais abaixo) tem especificidade (0,8,1), porque cada
+  `:not([type])` conta como um atributo. `.topo__busca input` era (0,1,1) e
+  PERDIA: o `padding` da genérica reescrevia o `padding-left` daqui, o texto
+  começava a 12px e a lupa de 18px ficava em cima do placeholder. Toda regra
+  que estilize UM campo específico precisa vencer (0,8,1), e o `id` que o
+  rótulo já aponta vence por construção: (1,1,0). `test/design-system.test.ts`
+  calcula as duas e reprova a volta.
+
+  O recuo da direita reserva o lugar da dica do atalho (\"Ctrl K\").
+*/
+.busca-global__caixa #busca-global {
+  padding-left: var(--ds-sp-7);
+  padding-right: calc(var(--ds-sp-8) + var(--ds-sp-3));
+}
+/* O \"x\" nativo do campo de busca cairia debaixo da dica; Escape já limpa. */
+.busca-global__caixa #busca-global::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+.busca-global__atalho {
+  position: absolute; right: var(--ds-sp-2); top: 50%; transform: translateY(-50%);
+  padding: 0 var(--ds-sp-2); min-height: var(--ds-sp-5);
+  display: inline-flex; align-items: center;
+  font-family: var(--ds-font); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
+  pointer-events: none; white-space: nowrap;
+}
+
+.busca-global__lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + var(--ds-sp-2));
+  max-height: min(70vh, 520px); overflow-y: auto;
+  background: var(--ds-surface); color: var(--ds-text);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-3);
+  z-index: var(--ds-z-dropdown);
+  padding: var(--ds-sp-2);
+  animation: busca-global-entrar var(--ds-dur-base) var(--ds-ease);
+}
+@keyframes busca-global-entrar {
+  from { opacity: 0; transform: translateY(calc(var(--ds-sp-1) * -1)); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busca-global__lista { animation: none; }
+}
+
+.busca-global__grupo + .busca-global__grupo { margin-top: var(--ds-sp-2); }
+.busca-global__titulo-do-grupo {
+  padding: var(--ds-sp-2) var(--ds-sp-3) var(--ds-sp-1);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  font-weight: var(--ds-fw-semibold); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.busca-global__opcao {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  border-radius: var(--ds-radius);
+  cursor: pointer;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.busca-global__opcao:hover { background: var(--ds-surface-2); }
+/*
+  A opção ativa é a que o teclado aponta. Ela não recebe foco (o foco fica na
+  caixa), então o anel de foco é desenhado aqui, com o mesmo token, para quem
+  navega por seta enxergar onde está. Nunca só por cor: o fundo muda E o anel
+  aparece.
+*/
+.busca-global__opcao--ativa,
+.busca-global__opcao--ativa:hover {
+  background: var(--ds-surface-2);
+  box-shadow: var(--ds-focus-ring);
+}
+.busca-global__icone { display: inline-flex; flex: 0 0 auto; color: var(--ds-text-muted); }
+.busca-global__opcao--ativa .busca-global__icone { color: var(--ds-accent); }
+.busca-global__texto { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.busca-global__rotulo {
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); font-weight: var(--ds-fw-medium);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.busca-global__protocolo { margin-right: var(--ds-sp-2); color: var(--ds-text-muted); }
+.busca-global__detalhe {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* O trecho que casou: cor de destaque sobre o fundo de sempre, sem marca-texto
+   amarelo, que não acompanha o tema. */
+.busca-global__marca { background: transparent; color: var(--ds-accent); font-weight: var(--ds-fw-bold); }
+.busca-global__opcao .selo { flex: 0 0 auto; }
+
+.busca-global__estado {
+  padding: var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+.busca-global__estado--falha { color: var(--ds-danger-fg); }
+
+.topo__direita { margin-left: auto; display: flex; align-items: center; gap: var(--ds-sp-3); }
+
+.identidade { display: flex; align-items: center; gap: var(--ds-sp-3); }
+.identidade--acionavel {
+  text-decoration: none; color: inherit;
+  padding: var(--ds-sp-1) var(--ds-sp-2);
+  border-radius: var(--ds-radius);
+  min-height: var(--ds-touch);
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.identidade--acionavel:hover { background: var(--ds-surface-2); }
+.identidade__avatar {
+  /* Gradiente de marca e `on-accent`, iguais aos da sigla da lateral. Antes
+     era `accent-graphic` com branco fixo: o token diz, no próprio comentário,
+     que serve só para elemento gráfico grande, e branco fixo não acompanha o
+     tema, que foi exatamente o defeito de contraste já corrigido na sigla. */
+  width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent-gradient); color: var(--ds-on-accent);
+  display: grid; place-items: center; font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm);
+  flex: 0 0 var(--emblema-md);
+}
+.identidade__nome { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); line-height: var(--ds-lh-caption); }
+.identidade__papel { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); line-height: var(--ds-lh-caption); }
+
+/* `margin-inline: auto` centraliza o conteudo. Sem ele, o teto de 1320px
+   deixava o painel colado a esquerda e uma faixa vazia permanente a direita
+   em qualquer monitor largo: em 2560px sobravam quase mil pixels de fundo. */
+.conteudo { grid-area: conteudo; min-width: 0; padding: var(--ds-sp-6); max-width: 1320px; width: 100%; margin-inline: auto; }
+
+.cabecalho-pagina {
+  display: flex; align-items: flex-end; gap: var(--ds-sp-4);
+  flex-wrap: wrap; margin-bottom: var(--ds-sp-5);
+}
+.cabecalho-pagina h1 {
+  margin: 0; font-size: var(--ds-fs-h1); line-height: var(--ds-lh-h1);
+  font-weight: var(--ds-fw-bold); letter-spacing: -0.02em; text-wrap: balance;
+}
+.cabecalho-pagina p { margin: var(--ds-sp-1) 0 0; color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); }
+.cabecalho-pagina__acoes { margin-left: auto; display: flex; gap: var(--ds-sp-2); }
+
+/* ---------- Cartões ---------- */
+
+.cartao {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-1);
+}
+.cartao__corpo { padding: var(--ds-sp-5); }
+.cartao__titulo {
+  margin: 0 0 var(--ds-sp-4);
+  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3); font-weight: var(--ds-fw-semibold);
+}
+
+.grade-indicadores {
+  display: grid; gap: var(--ds-sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: var(--ds-sp-5);
+}
+
+.indicador {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  padding: var(--ds-sp-5);
+  display: flex; flex-direction: column; gap: var(--ds-sp-1);
+  text-align: left; width: 100%; cursor: pointer;
+  font-family: inherit; color: inherit;
+  box-shadow: var(--ds-shadow-1);
+  transition: transform var(--ds-dur-base) var(--ds-ease),
+              box-shadow var(--ds-dur-base) var(--ds-ease),
+              border-color var(--ds-dur-base) var(--ds-ease);
+}
+.indicador:hover { transform: translateY(-2px); box-shadow: var(--ds-shadow-2); border-color: var(--ds-accent-graphic); }
+.indicador__valor {
+  font-size: var(--ds-fs-display); line-height: var(--ds-lh-display);
+  font-weight: var(--ds-fw-bold); font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
+}
+.indicador__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); color: var(--ds-text-muted); font-weight: var(--ds-fw-semibold);
+}
+.indicador--alerta .indicador__valor { color: var(--ds-danger-fg); }
+
+/* ---------- Selos ---------- */
+
+.selo {
+  display: inline-flex; align-items: center; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-1) var(--ds-sp-2);
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  font-weight: var(--ds-fw-semibold); white-space: nowrap;
+}
+.selo--baixa   { color: var(--ds-sev-baixa-fg);   background: var(--ds-sev-baixa-bg); }
+.selo--media   { color: var(--ds-sev-media-fg);   background: var(--ds-sev-media-bg); }
+.selo--alta    { color: var(--ds-sev-alta-fg);    background: var(--ds-sev-alta-bg); }
+.selo--critica { color: var(--ds-sev-critica-fg); background: var(--ds-sev-critica-bg); }
+.selo--info    { color: var(--ds-info-fg);        background: var(--ds-info-bg); }
+.selo--sucesso { color: var(--ds-success-fg);     background: var(--ds-success-bg); }
+.selo--perigo  { color: var(--ds-danger-fg);      background: var(--ds-danger-bg); }
+.selo--neutro  { color: var(--ds-text-muted);     background: var(--ds-surface-2); }
+
+/*
+  O ponto continua existindo para os selos de estado de processo (\"Dentro do
+  prazo\", \"Prazo estourado\"); o selo de SEVERIDADE não o usa mais. Ali entra
+  o glifo compartilhado com o aplicativo (`.selo__glifo`), na altura da linha
+  da legenda, e a pulsação da crítica passou do ponto para ele.
+*/
+.selo__ponto { width: 6px; height: 6px; border-radius: var(--ds-radius-pill); background: currentColor; }
+.selo__glifo { width: var(--ds-fs-caption); height: var(--ds-fs-caption); flex: none; }
+.selo--critica .selo__glifo { animation: pulso calc(var(--ds-dur-slow) * 5) var(--ds-ease) infinite; }
+/*
+  Na legenda do mapa a crítica é pino branco sobre pílula vermelha, e a marca
+  de dentro, que é da cor da superfície, sumiria no branco: ali ela vai na cor
+  da própria pílula. Só a crítica precisa disso, porque é o único selo cujo
+  texto é branco.
+*/
+.selo--critica .forma-severidade__marca { stroke: var(--ds-sev-critica-bg); }
+@keyframes pulso { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- Tabela ---------- */
+
+.tabela-envolucro { overflow-x: auto; border-radius: var(--ds-radius-card); }
+/*
+  A tabela que rola para o lado avisa que rola.
+
+  Em 1280 a 1680px a lista de usuários tinha 854px num cartão de 569 a 771, e
+  a barra de rolagem do macOS some quando ninguém está rolando: as colunas de
+  Equipe, Situação e Ação simplesmente não existiam para quem olhava. O
+  componente `TabelaEnvolucro` mede a rolagem e liga as classes; a sombra na
+  borda é o sinal visual e a frase embaixo é o mesmo sinal em palavras, para
+  ninguém depender de perceber um degradê. A sombra é a tinta do lightbox
+  (ink-950 esmaecido), sem cor nova.
+*/
+.tabela-rolavel { position: relative; }
+.tabela-rolavel::before, .tabela-rolavel::after {
+  content: \"\"; position: absolute; top: 0; bottom: 0; width: var(--ds-sp-6);
+  pointer-events: none; opacity: 0;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease);
+}
+.tabela-rolavel::before {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--ds-ink-950) 18%, transparent), transparent);
+}
+.tabela-rolavel::after {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in srgb, var(--ds-ink-950) 18%, transparent), transparent);
+}
+.tabela-rolavel--esquerda::before, .tabela-rolavel--direita::after { opacity: 1; }
+.tabela-rolavel__dica {
+  margin: var(--ds-sp-2) 0 0;
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+.tabela { width: 100%; border-collapse: collapse; font-size: var(--ds-fs-body-sm); }
+.tabela th {
+  text-align: left; padding: var(--ds-sp-3) var(--ds-sp-4);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold);
+  color: var(--ds-text-muted); border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-surface-2); white-space: nowrap;
+}
+.tabela td { padding: var(--ds-sp-3) var(--ds-sp-4); border-bottom: 1px solid var(--ds-border); vertical-align: middle; }
+.tabela tbody tr { transition: background var(--ds-dur-fast) var(--ds-ease); }
+.tabela tbody tr:hover { background: var(--ds-surface-2); }
+.tabela__protocolo {
+  font-family: var(--ds-font-mono); font-weight: var(--ds-fw-semibold);
+  color: var(--ds-accent); text-decoration: none;
+}
+.tabela__protocolo:hover { text-decoration: underline; }
+.tabela__principal { font-weight: var(--ds-fw-semibold); }
+/* `overflow-wrap: anywhere` deixa um email comprido quebrar em vez de fixar a
+   largura mínima da coluna: é a linha secundária, e quebrar custa menos que
+   empurrar as três últimas colunas para fora do cartão. */
+.tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); overflow-wrap: anywhere; }
+/*
+  Frase curta de célula (\"Não despachada\"): não quebra no meio da palavra.
+
+  `overflow-wrap: anywhere`, acima, existe para endereço comprido, e ele ENCOLHE
+  a largura mínima da coluna a uma letra: com a tabela apertada, a coluna
+  \"Equipe\" do painel ficava com a menor largura que a tabela aceitasse e a frase
+  saía \"Não despach / ada\". Quebrar entre palavras (\"Não\" / \"despachada\") é
+  legítimo; no meio da palavra, não.
+*/
+.tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
+/*
+  Email na linha secundária: quebra SÓ onde o componente `EmailQuebravel` põe um
+  `<wbr>` (depois do \"@\" e de cada ponto). Sem `normal` aqui, o `anywhere` da
+  regra-mãe voltaria a cortar \"exemplo.gov.br\" no meio, e o `<wbr>` não valeria
+  de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
+  tabela (que rola), e não a palavra.
+*/
+.tabela__secundario--email { overflow-wrap: break-word; word-break: normal; }
+/*
+  O teto da linha do email (V2-F00-E09, correção 4, revisão): um email com uma
+  parte de uns 48 caracteres sem ponto (\"joanaplantao24horas...@\") tem largura
+  mínima de quase 300 px, a coluna Pessoa cresce junto, a tabela passa a rolar a
+  1280 px e a coluna Ação sai da tela. Com o teto, a linha quebra nos pontos
+  permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
+  (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
+  `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
+  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
+*/
+@media (max-width: 1399px) {
+  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
+}
+/*
+  Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
+  se a coluna for estreita demais quem cede é a tabela, que rola.
+*/
+.tabela__secundario--telefone { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
+.campo__erro svg { flex-shrink: 0; }
+
+.lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+.lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
+.lista-papeis__descricao--ultima { margin-bottom: 0; }
+
+/* ---------- Formulários ---------- */
+
+.campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
+.campo > label { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
+.campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+/*
+  A linha de identificação da janela de confirmação (\"matrícula, e-mail, papel\")
+  traz um e-mail inteiro, que não tem onde quebrar: a 320 px ele passava da
+  área útil da janela e entrava no respiro da borda (o teste de geometria
+  mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
+  que sair da janela.
+
+  V2-F00-E09, correção 5 (rodada 6, achado 2): `anywhere` cortava o email no
+  meio da palavra (\"...secretar / ia.serraalta\") a 390, 360 e 320 px, porque
+  ignora os pontos de quebra do `EmailQuebravel` (o `<wbr>` depois do \"@\" e de
+  cada ponto). `break-word` respeita o `<wbr>` e só corta se um pedaço sozinho
+  for mais largo que a janela, que é a rede de segurança que a 320 px importa.
+*/
+.modal__painel .campo__dica { overflow-wrap: break-word; word-break: normal; }
+/* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
+   margem própria dele e a distância até o primeiro rótulo fica maior que a
+   distância entre os campos, sugerindo que a frase é de outro bloco. */
+.formulario__obrigatorios { margin: 0 0 var(--ds-sp-4); }
+/*
+  A resposta do campo de localização.
+
+  Três estados, e nenhum deles comunicado só por cor: cada um traz um símbolo
+  antes do texto. O bloco reserva a própria altura mínima para que ler o link
+  colado não empurre o botão de registrar para fora da vista, que é o tipo de
+  salto que faz o operador clicar no lugar errado com o telefone no ombro.
+*/
+.campo__dica:has(.leitura) { min-height: calc(var(--ds-lh-caption) * 2); }
+.leitura { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--ds-sp-1); }
+.leitura--ok { color: var(--ds-success-fg); }
+/*
+  Só a coordenada invertida é `danger`, e a distinção não é estética.
+
+  Latitude e longitude trocadas gravam a família num ponto errado do mapa, e o
+  agente sai para o lugar errado: é dado errado entrando. Link encurtado e
+  texto não reconhecido não são erro nenhum, são o sistema avisando que não
+  conseguiu ler um campo OPCIONAL, e pintá-los de vermelho ensinaria o
+  operador a ignorar vermelho.
+*/
+.leitura--erro { color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold); }
+.leitura--nota { color: var(--ds-text); }
+.leitura .mono { color: inherit; }
+
+/*
+  Botão que se comporta como link.
+
+  Elemento `button` porque a ação é uma mudança de estado nesta página, e não
+  uma navegação: um `a` sem href mentiria para o leitor de tela sobre o que
+  vai acontecer ao ativar.
+*/
+.botao-texto {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--ds-accent);
+  text-decoration: underline; cursor: pointer;
+}
+.botao-texto:hover { color: var(--ds-accent-hover); }
+/* `--ds-focus-ring` é um valor de `box-shadow` completo nesta folha, e não
+   uma cor: usá-lo em `outline` não desenharia anel nenhum. */
+.botao-texto:focus-visible { box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
+
+.campo__erro {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold);
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+}
+
+/*
+  Lista de EXCEÇÃO, não lista de permissão.
+
+  Antes isto enumerava os tipos que recebiam estilo (text, email, search,
+  number), e o resultado foi previsível: `type=\"password\"` ficou de fora e os
+  quatro campos de senha do produto, inclusive o da tela de entrada, saíram com
+  a aparência crua do navegador, ao lado de um campo de email perfeitamente
+  estilizado no mesmo formulário.
+
+  Invertido, o esquecimento passa a ser inofensivo: um `type=\"date\"` ou
+  `type=\"tel\"` novo nasce com estilo, e só fica sem quem for excluído aqui de
+  propósito. Os excluídos são os que precisam do desenho nativo: as marcações,
+  os que já são botão e os controles com interface própria do sistema.
+*/
+input:not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"button\"]):not([type=\"submit\"]):not([type=\"reset\"]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"color\"]),
+select,
+textarea {
+  width: 100%;
+  min-height: var(--ds-touch);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  font-family: inherit; font-size: var(--ds-fs-body-sm);
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  /*
+    Borda de CONTROLE, e não a decorativa. O campo fica sobre um cartão da
+    mesma cor, então esta linha é a única coisa que diz onde ele começa: pela
+    WCAG 1.4.11 ela precisa de 3:1, e `--ds-border` dava 1.30.
+  */
+  border: 1px solid var(--ds-border-controle);
+  border-radius: var(--ds-radius);
+  transition: border-color var(--ds-dur-fast) var(--ds-ease);
+}
+textarea { min-height: calc(var(--ds-touch) * 2); resize: vertical; line-height: var(--ds-lh-body-sm); }
+/*
+  As regras de ESTADO do `input` repetem a lista de `:not([type])` da genérica
+  de propósito. A genérica pesa (0,8,1) e escreve `border` por atalho; um
+  `input[aria-invalid=\"true\"]` de (0,1,1) perdia para ela, e o campo inválido
+  ficava cinza enquanto o `textarea` do lado ficava vermelho. Com a lista, o
+  estado pesa (0,9,1) e vence. `test/design-system.test.ts` mede as duas.
+*/
+input:not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"button\"]):not([type=\"submit\"]):not([type=\"reset\"]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"color\"]):hover,
+select:hover, textarea:hover { border-color: var(--ds-text-muted); }
+input:not([type=\"checkbox\"]):not([type=\"radio\"]):not([type=\"button\"]):not([type=\"submit\"]):not([type=\"reset\"]):not([type=\"file\"]):not([type=\"range\"]):not([type=\"color\"])[aria-invalid=\"true\"],
+textarea[aria-invalid=\"true\"], select[aria-invalid=\"true\"] {
+  border-color: var(--ds-danger-fg);
+}
+/* O texto de exemplo na cor do sistema, e não na do navegador: o cinza padrão
+   do Chromium mede 3,65:1 sobre a superfície escura, abaixo de AA. `opacity: 1`
+   porque o Firefox esmaece o placeholder por conta própria. */
+::placeholder { color: var(--ds-text-muted); opacity: 1; }
+
+/* Larguras de campo por intenção, não por número solto na tela. Antes eram
+   três `style={{ maxWidth: \"240px\" }}` espalhados por duas páginas. */
+.campo--curto { max-width: calc(var(--ds-sp-8) * 2.5); }
+.campo--medio { max-width: calc(var(--ds-sp-8) * 3.75); }
+.campo--longo { max-width: calc(var(--ds-sp-8) * 5.625); }
+
+.linha-campos { display: grid; gap: var(--ds-sp-4); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+.caixa-marcacao {
+  display: flex; align-items: flex-start; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch); padding: var(--ds-sp-2) 0;
+  font-size: var(--ds-fs-body-sm); cursor: pointer;
+}
+.caixa-marcacao input { width: 20px; height: 20px; min-height: 0; flex: 0 0 20px; margin-top: var(--ds-sp-1); accent-color: var(--ds-accent); }
+
+/* ---------- Botões ---------- */
+
+.botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ds-sp-2);
+  min-height: var(--ds-touch); padding: 0 var(--ds-sp-4);
+  border-radius: var(--ds-radius); border: 1px solid transparent;
+  font-family: inherit; font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold);
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background var(--ds-dur-fast) var(--ds-ease),
+              transform var(--ds-dur-fast) var(--ds-ease),
+              box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.botao:disabled { opacity: 0.45; cursor: not-allowed; }
+.botao:not(:disabled):active { transform: translateY(1px); }
+
+.botao--primario { background: var(--ds-accent); color: var(--ds-on-accent); }
+/*
+  O `color` do hover é repetido de propósito: um botão que é `<a>` (o \"Entrar com a
+  nova senha\" da recuperação de senha) leva `a:hover` (0,1,1), que vence a cor do
+  repouso (0,1,0) e punha o texto em `--ds-accent-hover`, igual ao fundo do hover:
+  o rótulo sumia nos dois temas (V2-F00-E10, correção 2). Aqui (0,3,0) vence.
+*/
+.botao--primario:not(:disabled):hover {
+  background: var(--ds-accent-hover); color: var(--ds-on-accent); box-shadow: var(--ds-accent-glow);
+}
+
+.botao--secundario { background: var(--ds-surface); color: var(--ds-text); border-color: var(--ds-border); }
+.botao--secundario:not(:disabled):hover {
+  background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-text-muted);
+}
+
+.botao--perigo { background: var(--ds-danger-bg); color: var(--ds-danger-fg); border-color: var(--ds-danger-fg); }
+.botao--perigo:not(:disabled):hover { background: var(--ds-danger-fg); color: var(--ds-surface); }
+
+.botao--discreto { background: transparent; color: var(--ds-text-muted); padding: 0 var(--ds-sp-2); }
+.botao--discreto:not(:disabled):hover { color: var(--ds-text); background: var(--ds-surface-2); }
+
+.botao--icone { min-width: var(--ds-touch); padding: 0; }
+
+/*
+  Os botões do rodapé de toda janela (`Modal`, e por isso toda `ConfirmarAcao`).
+
+  `.botao` não quebra linha (`white-space: nowrap`), certo para \"Salvar\" e
+  \"Ver todas\". Mas o botão de confirmação REPETE o objeto por regra (\"Encerrar
+  sessões de Marcos Vinicius Teles\"), e nome de pessoa é comprido: a 390 px o
+  rótulo era mais largo que a janela, o painel ganhava rolagem horizontal e o
+  botão perdia a borda (reprovação da V2-F00-E09). Aqui o rótulo quebra em
+  linhas e o botão cresce em altura, sem passar da janela.
+
+  Até 600 px os botões empilham, cada um com a largura toda: dois botões lado a
+  lado com rótulo de duas linhas viram dois blocos estreitos e difíceis de
+  acertar com o dedo. A ordem do HTML continua (confirmar, depois cancelar),
+  que é a do leitor de tela e a do Tab.
+*/
+.modal__rodape .botao {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .modal__rodape { flex-direction: column; align-items: stretch; }
+  .modal__rodape .botao { width: 100%; }
+}
+
+/*
+  `.botao--quebra` é o mesmo tratamento para o botão que mora FORA de janela e
+  repete o objeto ou diz uma frase comprida: \"Encerrar minhas outras sessões\" em
+  Minha conta passava cerca de 16 px da coluna a 320 px, porque o conserto acima
+  só alcançava `.modal__rodape .botao` (reprovação da V2-F00-E09, rodada 2). Em
+  tela estreita ele também ocupa a largura da coluna, como os da janela. A regra é
+  própria, e não um seletor a mais na de cima, para um não quebrar o outro.
+*/
+.botao--quebra {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .botao--quebra { width: 100%; }
+}
+
+/* ---------- Filtros ---------- */
+
+.filtros {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+  margin-bottom: var(--ds-sp-4);
+}
+.filtros__pilula {
+  min-height: 36px; padding: 0 var(--ds-sp-3);
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-border); background: var(--ds-surface);
+  color: var(--ds-text-muted); font-family: inherit;
+  font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); cursor: pointer;
+  transition: all var(--ds-dur-fast) var(--ds-ease);
+}
+.filtros__pilula:hover { border-color: var(--ds-accent-graphic); color: var(--ds-text); }
+.filtros__pilula[aria-pressed=\"true\"] {
+  background: var(--ds-accent); color: var(--ds-on-accent); border-color: var(--ds-accent);
+}
+
+/* ---------- Paginação ---------- */
+
+.paginacao {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--ds-sp-3); padding: var(--ds-sp-3) var(--ds-sp-4);
+  border-top: 1px solid var(--ds-border);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+.paginacao__controles { display: flex; gap: var(--ds-sp-2); }
+
+/* ---------- Detalhe ---------- */
+
+.detalhe { display: grid; gap: var(--ds-sp-5); grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); align-items: start; }
+@media (max-width: 1080px) { .detalhe { grid-template-columns: minmax(0, 1fr); } }
+/* O bloco que atravessa as duas colunas: a tabela larga demais para a coluna
+   da esquerda (lista de usuários) vai por baixo, na largura inteira. */
+.detalhe__larga { grid-column: 1 / -1; min-width: 0; }
+
+.coluna { display: flex; flex-direction: column; gap: var(--ds-sp-5); }
+
+.par { display: flex; flex-direction: column; gap: var(--ds-sp-1); margin-bottom: var(--ds-sp-4); }
+.par__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold); color: var(--ds-text-muted);
+}
+.par__valor { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+
+/* ---------- Ver também ---------- */
+
+.relacionados__grupo + .relacionados__grupo { margin-top: var(--ds-sp-4); }
+.relacionados__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold);
+  color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-2);
+}
+.relacionados { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+/*
+  A linha inteira é o alvo do clique, e é um link de verdade: dá para abrir em
+  outra aba com o botão do meio, que é como quem coordena compara dois
+  chamados sem perder o que estava lendo.
+*/
+.relacionados__item {
+  display: flex; flex-direction: column; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-3); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius); color: var(--ds-text); text-decoration: none;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.relacionados__item:hover { background: var(--ds-surface-2); }
+.relacionados__topo { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-sp-2); flex-wrap: wrap; }
+.relacionados__meta { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+
+/* ---------- Linha do tempo ---------- */
+
+.trilha { list-style: none; margin: 0; padding: 0; position: relative; }
+.trilha::before {
+  /* 11px centraliza o fio no marcador de 24px, descontada a borda de 2px. */
+  content: \"\"; position: absolute; left: 11px; top: var(--ds-sp-3); bottom: var(--ds-sp-3);
+  width: 2px; background: var(--ds-border);
+}
+.trilha__item { position: relative; padding: 0 0 var(--ds-sp-5) var(--ds-sp-6); }
+.trilha__item:last-child { padding-bottom: 0; }
+.trilha__marca {
+  position: absolute; left: 0; top: 2px;
+  width: 24px; height: 24px; border-radius: var(--ds-radius-pill);
+  display: grid; place-items: center;
+  background: var(--ds-surface); border: 2px solid var(--ds-accent-graphic);
+  color: var(--ds-accent);
+}
+.trilha__titulo { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
+.trilha__autoria {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted); margin-top: var(--ds-sp-1);
+}
+.trilha__detalhe {
+  margin-top: var(--ds-sp-2); padding: var(--ds-sp-2) var(--ds-sp-3);
+  background: var(--ds-surface-2); border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+}
+
+/* ---------- Entrada ---------- */
+
+.entrada {
+  min-height: 100%;
+  display: grid; place-items: center;
+  padding: var(--ds-sp-6);
+  background: var(--ds-bg);
+}
+.entrada__painel { width: 100%; max-width: 520px; }
+.entrada__marca {
+  display: flex; flex-direction: column; align-items: center; gap: var(--ds-sp-3);
+  margin-bottom: var(--ds-sp-6); text-align: center;
+}
+.entrada__sigla {
+  width: var(--emblema-lg); height: var(--emblema-lg); display: grid; place-items: center;
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-accent-gradient); color: var(--ds-on-accent);
+  font-weight: var(--ds-fw-extrabold); font-size: var(--ds-fs-body);
+  box-shadow: var(--ds-accent-glow);
+}
+.entrada__titulo {
+  margin: 0; font-size: var(--ds-fs-h2); line-height: var(--ds-lh-h2);
+  font-weight: var(--ds-fw-bold); letter-spacing: -0.02em;
+}
+.entrada__subtitulo { margin: 0; color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); }
+
+.conta {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  width: 100%; min-height: var(--ds-touch);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius); cursor: pointer;
+  font-family: inherit; color: inherit; text-align: left;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease),
+              box-shadow var(--ds-dur-fast) var(--ds-ease),
+              transform var(--ds-dur-fast) var(--ds-ease);
+}
+.conta:hover { border-color: var(--ds-accent); box-shadow: var(--ds-shadow-2); transform: translateY(-1px); }
+.conta__avatar {
+  width: var(--emblema-md); height: var(--emblema-md); flex: 0 0 var(--emblema-md);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-2); color: var(--ds-accent);
+  display: grid; place-items: center; font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm);
+}
+.conta__nome { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
+.conta__meta { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+
+.conta__avatar--pequeno {
+  width: var(--emblema-sm); height: var(--emblema-sm); flex: 0 0 var(--emblema-sm);
+}
+
+.entrada__rodape {
+  margin-top: var(--ds-sp-4); text-align: center;
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+/* O link do rodape e alvo de toque: 44 px de altura, como todo controle do celular. */
+.entrada__rodape a {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--ds-touch); padding: 0 var(--ds-sp-3);
+}
+
+/* Texto corrido e ação das telas de recuperação de senha. */
+.entrada__texto {
+  margin: 0 0 var(--ds-sp-4);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.entrada__texto--apoio { color: var(--ds-text-muted); }
+.entrada__acao { width: 100%; }
+.entrada__verificando {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.entrada__verificando p { margin: 0; }
+.entrada__verificando .girador { flex: 0 0 auto; }
+
+/* Os passos de quem administra redefinir a senha: lista numerada, um passo por item. */
+.passos {
+  margin: 0 0 var(--ds-sp-2); padding-left: var(--ds-sp-5);
+  display: flex; flex-direction: column; gap: var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.passos li { padding-left: var(--ds-sp-1); }
+.passos li::marker { color: var(--ds-text-muted); font-weight: var(--ds-fw-bold); }
+
+.lista-contas { display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+.lista-contas__grupo { font-size: var(--ds-fs-caption); text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
+  font-weight: var(--ds-fw-bold); color: var(--ds-text-muted); margin: var(--ds-sp-4) 0 var(--ds-sp-1); }
+.lista-contas__grupo:first-child { margin-top: 0; }
+
+/* ---------- Avisos ---------- */
+
+.aviso {
+  display: flex; gap: var(--ds-sp-3); align-items: flex-start;
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  margin-bottom: var(--ds-sp-4);
+}
+.aviso--info    { background: var(--ds-info-bg);    color: var(--ds-info-fg); }
+.aviso--perigo  { background: var(--ds-danger-bg);  color: var(--ds-danger-fg); }
+.aviso--sucesso { background: var(--ds-success-bg); color: var(--ds-success-fg); }
+.aviso--alerta  { background: var(--ds-sev-media-bg); color: var(--ds-sev-media-fg); }
+.aviso svg { flex: 0 0 20px; margin-top: calc(var(--ds-sp-1) / 2); }
+
+.vazio {
+  padding: var(--ds-sp-8) var(--ds-sp-5);
+  text-align: center; color: var(--ds-text-muted);
+}
+.vazio__titulo { font-size: var(--ds-fs-h3); font-weight: var(--ds-fw-semibold); color: var(--ds-text); margin-bottom: var(--ds-sp-2); }
+
+/* ---------- Carregando ---------- */
+
+.carregando {
+  display: grid; place-items: center; min-height: 60vh; gap: var(--ds-sp-4);
+  color: var(--ds-text-muted); text-align: center; padding: var(--ds-sp-6);
+}
+.girador {
+  width: 32px; height: 32px; border-radius: var(--ds-radius-pill);
+  border: 3px solid var(--ds-border); border-top-color: var(--ds-accent);
+  animation: girar calc(var(--ds-dur-slow) * 3) linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ---------- Barra de progresso do prazo ---------- */
+
+.prazo { display: flex; flex-direction: column; gap: var(--ds-sp-1); min-width: 120px; }
+.prazo__trilho { height: 4px; border-radius: var(--ds-radius-pill); background: var(--ds-surface-2); overflow: hidden; }
+.prazo__preenchido { height: 100%; border-radius: var(--ds-radius-pill); background: var(--ds-accent-graphic); }
+.prazo--estourado .prazo__preenchido { background: var(--ds-danger-fg); }
+.prazo__texto { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+.prazo--estourado .prazo__texto { color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold); }
+
+/* ---------- Responsivo ---------- */
+
+@media (max-width: 900px) {
+  .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: \"topo\" \"conteudo\" \"lateral\"; }
+  /*
+    A barra do pé da tela: ladrilhos de ícone em cima e rótulo embaixo, em
+    número FIXO de ladrilhos visíveis, e o resto rola.
+
+    Era uma fila de itens com o rótulo em uma linha só (`white-space: nowrap`),
+    e dez destinos não cabem em 390 px: o terceiro item, \"Mapa da cidade\",
+    aparecia cortado na borda da tela, com a metade do rótulo faltando (a
+    validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa tela de
+    390). Cortar um rótulo no meio é o pior dos dois mundos: a pessoa lê metade
+    de uma palavra e ainda não sabe que a barra rola.
+
+    Agora a largura do ladrilho é a conta de quantos cabem INTEIROS
+    (`--barra-visiveis`), o rótulo quebra em até duas linhas dentro dele, e o
+    ladrilho seguinte só espia na borda, sem texto visível. \"Mapa da cidade\" é
+    sempre um dos primeiros três em qualquer papel, então nunca fica para a
+    parte que rola.
+
+    Os grupos e o rodapé viram `display: contents` para os ladrilhos serem
+    todos filhos diretos da barra: a largura em porcentagem é a da barra, e não
+    a de cada grupo, que é o que fazia a conta anterior não fechar.
+  */
+  .lateral { --barra-visiveis: 6;
+             flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: var(--ds-sp-2); align-items: center;
+             padding: var(--ds-sp-2) var(--ds-sp-4); scrollbar-width: thin;
+             border-right: none; border-top: 1px solid var(--ds-ink-800);
+             position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
+  .lateral__marca, .lateral__rotulo { display: none; }
+  /*
+    \"Tema\" e \"Sair\" continuam na barra, no fim dela. Antes o rodapé sumia
+    junto com a marca, e no celular não havia como sair nem trocar o tema fora
+    da caixa de busca, que é o único lugar onde ninguém procura isso.
+  */
+  .lateral__grupo, .lateral__rodape { display: contents; }
+  .lateral__item {
+    flex: 0 0 calc((100% - (var(--barra-visiveis) - 1) * var(--ds-sp-2)) / var(--barra-visiveis));
+    min-width: 0; height: var(--barra-item-altura);
+    flex-direction: column; justify-content: center; gap: var(--ds-sp-1);
+    padding: var(--ds-sp-1);
+    text-align: center; white-space: normal;
+    font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  }
+  /*
+    Os botões \"Tema\" e \"Sair\" nascem de `<button>`, que não herda a família da
+    fonte: sem isto o rótulo deles sairia na fonte do sistema, diferente do
+    resto da barra.
+  */
+  button.lateral__item { font-family: inherit; font-weight: var(--ds-fw-medium); }
+  .lateral__texto { display: block; max-width: 100%; }
+  /*
+    A barra rola na horizontal de propósito: onze destinos não cabem em 320px, e
+    o rótulo inteiro vale mais do que um ícone que a pessoa precisa adivinhar.
+
+    O respiro nas duas pontas é para o ladrilho não encostar na borda quando a
+    barra rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item e na
+    troca de tela: sozinho, o navegador não rola um item que está pela metade, e
+    o Tab parava com o rótulo cortado. O comentário de lá tem a medida.
+  */
+  .lateral { scroll-padding-inline: var(--ds-sp-4); }
+  .conteudo { padding: var(--ds-sp-4); }
+  /*
+    O aviso passageiro sobe a altura da barra do rodapé, senão a confirmação de
+    gravação aparece POR CIMA dos itens de navegação, com as duas frases
+    sobrepostas e o botão Fechar em cima de \"Mapa da cidade\".
+
+    A altura não é um número escolhido aqui: é a mesma conta que desenha a
+    barra, `--barra-altura` (o ladrilho mais o respiro de cima e de baixo da
+    própria `.lateral`). Mudar o ladrilho ou o respiro move os dois juntos.
+  */
+  .toast { bottom: calc(var(--ds-sp-4) + var(--barra-altura)); }
+  /*
+    As duas medidas moram no `:root` daqui para baixo, e não em `.lateral`,
+    porque o aviso não é filho da barra e precisa enxergá-las. Ladrilho: o
+    respiro, o ícone de 18 px, o respiro entre os dois e as duas linhas do
+    rótulo.
+  */
+  :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
+          --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
+}
+/*
+  Janela muito baixa (o zoom de 400 por cento de uma tela de 1280x1024 é 320x256
+  de CSS; o celular deitado de 568x320): o topo de duas linhas (129 px) e a
+  barra do pé (79 px) deixavam 48 px de página, menos que um rótulo com o campo
+  embaixo, e qualquer campo focado ficava atrás de um dos dois (WCAG 2.4.11,
+  correção 6 da V2-F00-E09). Abaixo de 360 px de altura os dois deixam de ser
+  fixos e rolam com a página: a navegação continua lá, no fim dela, e o topo, no
+  começo. A medida de `usar-bordas-fixas.ts` vê que não estão presos e zera a
+  folga.
+*/
+@media (max-height: 360px) {
+  .topo, .lateral { position: static; }
+  /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
+  .toast { bottom: var(--ds-sp-4); }
+}
+@media (max-width: 600px) {
+  .lateral { --barra-visiveis: 4; }
+}
+/*
+  Celular estreito (até 360 px): três ladrilhos, porque \"Ocorrências\" e
+  \"Organização\" em quatro ladrilhos de 66 px não cabem na largura do ladrilho.
+  A 361 px já cabem (o teste de geometria mede 360 e 361 por isso).
+*/
+@media (max-width: 360px) {
+  .lateral { --barra-visiveis: 3; }
+}
+
+/*
+  Celular: o topo em duas linhas.
+
+  A marca e a conta ficam na primeira linha, a busca ganha a segunda inteira.
+  `order` só reordena o desenho: o Tab continua na ordem do HTML (marca,
+  busca, sino, conta). Abaixo de 600px o nome e o papel da conta somem e fica
+  o avatar, que continua sendo o link para \"Minha conta\": nome inteiro numa
+  linha de 400px era o que empurrava o sino para fora da tela.
+*/
+@media (max-width: 600px) {
+  .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
+  /*
+    O topo tem duas linhas aqui (a marca e a conta, e a busca): 129 px. A folga
+    da rolagem para ele é medida (`usar-bordas-fixas.ts`, correção 6 da
+    V2-F00-E09); a correção 5 a escrevia como número só nesta faixa, e acima de
+    600 px, onde o topo também chega a ter duas linhas, o campo focado ficava
+    por baixo dele.
+  */
+  /*
+    O texto de exemplo da busca (\"Buscar registro ou função\") saía cortado a
+    320 px (\"Buscar registro ou funç\"): o recuo da direita guarda o lugar da
+    dica \"Ctrl K\", e no celular não há teclado com Ctrl. A dica some da tela e
+    continua no `aria-describedby` do campo (texto referenciado é lido mesmo
+    escondido), e o recuo volta ao respiro comum.
+  */
+  .busca-global__atalho { display: none; }
+  .busca-global__caixa #busca-global { padding-right: var(--ds-sp-3); }
+  .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
+  .identidade__nome, .identidade__papel, .identidade br { display: none; }
+  .identidade--acionavel { padding: var(--ds-sp-1); }
+}
+
+/* ---------- O desenho do mapa, nos dois modos ---------- */
+
+/*
+  A caixa do desenho tem a MESMA proporção nos dois modos.
+
+  O município com chave e o município sem chave leem a mesma tela, e a
+  legenda de modo, a tabela e a paginação caem no mesmo lugar em qualquer
+  captura de tela usada em treinamento. Altura diferente por modo faria a
+  documentação valer só para metade dos clientes.
+*/
+.mapa__plano, .mapa__base {
+  position: relative; width: 100%; aspect-ratio: 4 / 3;
+  background: var(--ds-surface-2);
+  border-radius: var(--ds-radius-card);
+  border: 1px solid var(--ds-border);
+  overflow: hidden;
+}
+.mapa__grade { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/*
+  A legenda de modo, colada embaixo do desenho.
+
+  Ela responde a pergunta que nasce ao olhar o plano quadriculado (\"cadê as
+  ruas?\"), então precisa estar onde o olho já está. Cor discreta e símbolo
+  antes do texto: é informação de contexto, não alarme, e não pode competir
+  com o aviso de teto logo acima.
+*/
+.mapa__modo {
+  margin: var(--ds-sp-3) 0 0;
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+.mapa__modo strong { color: var(--ds-text); }
+
+/* ---------- Pinos do mapa ---------- */
+
+/*
+   O alvo tem 24 px, o mínimo de WCAG 2.5.8, e não os 44 px da regra de toque
+   do aplicativo de campo: com 44 px em coordenadas reais e próximas, a área
+   invisível de um pino cobre o marcador visível do vizinho e rouba o clique.
+   O alcance por teclado e por toque grosso fica garantido pela lista logo
+   abaixo do mapa, que mostra exatamente os mesmos pontos.
+*/
+.mapa__pino {
+  width: 24px; height: 24px;
+  transform: translate(-50%, -50%);
+  display: grid; place-items: center;
+  background: transparent; border: none;
+  cursor: pointer; padding: 0;
+  border-radius: var(--ds-radius-pill);
+}
+.mapa__pino:hover, .mapa__pino:focus-visible { z-index: 2; }
+.mapa__pino svg { transition: transform var(--ds-dur-base) var(--ds-ease); }
+.mapa__pino--ativo svg { transform: scale(1.5); filter: drop-shadow(var(--ds-shadow-2)); }
+
+.legenda-mapa {
+  list-style: none; margin: var(--ds-sp-4) 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-2);
+}
+.legenda-mapa__item { display: inline-flex; align-items: center; gap: var(--ds-sp-2); }
+
+/* ---------- Galeria de evidência ---------- */
+
+.galeria {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--ds-sp-3);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.galeria__item {
+  display: block; width: 100%; padding: 0; cursor: pointer;
+  background: var(--ds-surface); color: inherit; font: inherit; text-align: left;
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
+  overflow: hidden;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease),
+              box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.galeria__item:hover { border-color: var(--ds-accent); box-shadow: var(--ds-shadow-2); }
+.galeria__item img {
+  display: block; width: 100%; height: 110px; object-fit: cover;
+  background: var(--ds-surface-2);
+}
+.galeria__legenda {
+  display: block; padding: var(--ds-sp-2) var(--ds-sp-3);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+}
+
+.lightbox {
+  position: fixed; inset: 0; z-index: var(--ds-z-modal);
+  background: color-mix(in srgb, var(--ds-ink-950) 88%, transparent);
+  display: grid; place-items: center; gap: var(--ds-sp-4);
+  padding: var(--ds-sp-5);
+}
+.lightbox img {
+  max-width: min(92vw, 1000px); max-height: 78vh;
+  border-radius: var(--ds-radius); box-shadow: var(--ds-shadow-3);
+}
+
+/* ---------- Barras de comparação ---------- */
+
+.barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-sp-3); }
+.barras li {
+  display: grid; align-items: center; gap: var(--ds-sp-3);
+  grid-template-columns: minmax(90px, 1fr) minmax(60px, 2fr) auto;
+  font-size: var(--ds-fs-body-sm);
+}
+.barras__rotulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barras__trilho {
+  height: 10px; border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-2); overflow: hidden;
+}
+.barras__preenchido {
+  display: block; height: 100%; border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent-graphic);
+  /* O valor sempre acompanha a barra em número: comprimento sozinho não
+     comunica quantidade a quem não enxerga bem. */
+  min-width: 3px;
+}
+.barras__valor { font-weight: var(--ds-fw-semibold); font-variant-numeric: tabular-nums; }
+
+/*
+  A tela pública de interesse.
+
+  Ela reusa `entrada__painel`, e só acrescenta o que a tela de login não
+  precisa: mais largura, porque o formulário tem duas colunas, e a lista dos
+  três motivos que aparecem ANTES de pedir qualquer dado.
+*/
+/*
+  Mais largo, porque o formulário tem duas colunas, e com respiro entre os
+  blocos.
+
+  `.entrada__painel` não tem `gap` porque a tela de login é uma pilha curta em
+  que as margens dos próprios elementos bastam. Aqui são cinco blocos
+  (identidade, lista de motivos, aviso, formulário, rodapé) e sem o `gap` eles
+  encostam uns nos outros: dá para ver na primeira captura de tela.
+*/
+.entrada__painel--largo {
+  max-width: 640px;
+  display: flex; flex-direction: column; gap: var(--ds-sp-5);
+}
+
+.lista-valor {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--ds-sp-3);
+}
+.lista-valor li {
+  padding-left: var(--ds-sp-4);
+  border-left: 2px solid var(--ds-accent-graphic);
+  color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm);
+  line-height: var(--ds-lh-body-sm);
+}
+.lista-valor strong { color: var(--ds-text); font-weight: var(--ds-fw-semibold); }
+
+/* Lista de campos recusados pelo servidor, dentro de um Aviso de perigo. */
+.erros-do-servidor { margin: var(--ds-sp-2) 0 0; padding-left: var(--ds-sp-5); display: grid; gap: var(--ds-sp-1); }
+.erros-do-servidor li { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+
+/* ---------------------------------------------------------------------------
+   Sino de avisos
+   ---------------------------------------------------------------------------
+   O painel é ancorado no botão e sai do fluxo, então ele precisa de `position:
+   relative` no envoltório: sem isso ele se ancoraria no primeiro ancestral
+   posicionado, que é o `.topo` fixo, e passaria a nascer na ponta esquerda do
+   cabeçalho em telas estreitas. */
+.sino { position: relative; }
+
+.sino__botao {
+  position: relative;
+  display: grid; place-items: center;
+  width: var(--ds-touch); height: var(--ds-touch);
+  border: 1px solid transparent; border-radius: var(--ds-radius);
+  background: transparent; color: var(--ds-text); cursor: pointer;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.sino__botao:hover { background: var(--ds-surface-2); }
+
+/* O selo é redundante com o `aria-label` do botão de propósito: o número
+   sozinho, para o leitor de tela, seria \"12\" sem dizer doze do quê.
+
+   O par é `accent` mais `on-accent`, e não vermelho. Vermelho seria o hábito,
+   e ele quebra nos dois temas de uma vez: `--ds-danger-fg` é escuro no tema
+   claro e claro no tema escuro, então um texto de cor fixa por cima dele fica
+   ilegível em um dos dois. `on-accent` existe justamente para ser o texto em
+   cima do accent, e troca junto com o tema. Contagem também não é severidade,
+   então a proibição de comunicar severidade com a cor da marca não se aplica
+   aqui. */
+.sino__selo {
+  position: absolute; top: var(--ds-sp-1); right: var(--ds-sp-1);
+  min-width: 18px; padding: 0 var(--ds-sp-1);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent); color: var(--ds-on-accent);
+  font-size: var(--ds-fs-caption); line-height: 18px; font-weight: var(--ds-fw-semibold);
+  text-align: center;
+}
+
+.sino__painel {
+  position: absolute; right: 0; top: calc(100% + var(--ds-sp-2));
+  width: min(400px, calc(100vw - var(--ds-sp-6)));
+  max-height: 70vh; overflow-y: auto;
+  background: var(--ds-surface); color: var(--ds-text);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-3);
+  z-index: var(--ds-z-dropdown);
+  padding: var(--ds-sp-4);
+}
+
+/*
+  Celular: o painel do sino se ancora na TELA, e não no botão.
+
+  Ancorado no botão (`right: 0`), o painel de largura quase total saía pela
+  esquerda, porque o sino está no meio do topo, ao lado do avatar: a 390 px os
+  primeiros 48 px do painel ficavam fora da tela e o título \"Avisos\" perdia o
+  começo. Aqui o `.sino` deixa de ser a referência e o painel passa a medir a
+  partir do `.topo` (que é posicionado, ver acima), com o mesmo respiro lateral
+  do resto da página.
+*/
+@media (max-width: 600px) {
+  .sino { position: static; }
+  .sino__painel { left: var(--ds-sp-4); right: var(--ds-sp-4); width: auto; top: calc(100% + var(--ds-sp-2)); }
+}
+
+.sino__cabecalho {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  margin-bottom: var(--ds-sp-3);
+}
+.sino__titulo { margin: 0; font-size: var(--ds-fs-h3); }
+.sino__cabecalho .botao { margin-left: auto; }
+
+.sino__nota {
+  margin: var(--ds-sp-2) 0 0;
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+
+.sino__lista { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--ds-sp-1); }
+.sino__item {
+  display: flex; align-items: flex-start; gap: var(--ds-sp-2);
+  padding: var(--ds-sp-2);
+  border-radius: var(--ds-radius);
+  border-left: 3px solid transparent;
+}
+.sino__item--novo { border-left-color: var(--ds-accent-graphic); background: var(--ds-surface-2); }
+
+.sino__link {
+  flex: 1 1 auto; display: grid; gap: var(--ds-sp-1);
+  color: inherit; text-decoration: none;
+  min-height: var(--ds-touch); align-content: center;
+}
+.sino__link:hover .sino__frase { color: var(--ds-accent-hover); }
+.sino__frase { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); line-height: var(--ds-lh-caption); }
+.sino__protocolo { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__complemento { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__instante { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__estado { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+
+.sino__rodape {
+  margin-top: var(--ds-sp-3); padding-top: var(--ds-sp-3);
+  border-top: 1px solid var(--ds-border);
+  display: grid; gap: var(--ds-sp-2);
+}
+
+/* ---------------------------------------------------------------------------
+   Catálogo de órgãos e ofícios
+   --------------------------------------------------------------------------- */
+.oficio { display: grid; gap: var(--ds-sp-2); padding: var(--ds-sp-3) 0; }
+.oficio + .oficio { border-top: 1px solid var(--ds-border); }
+.oficio__numero { font-size: var(--ds-fs-body-lg); font-weight: var(--ds-fw-semibold); }
+.oficio__linha {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+/*
+  O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`, e um
+  pedaço sem ponto mais largo que o cartão quebra dentro, em vez de sair dele.
+
+  A \"rede de segurança\" do `break-word` não bastava sozinha (correção 6 da
+  V2-F00-E09, rodada 7): com \"plantaocoordenacaodefesacivilserraalta@...\" o texto
+  saía do cartão a 360 px e a página rolava na horizontal a 320 px. Duas
+  larguras mínimas seguravam o pedaço inteiro: a do `<span>`, que é item de
+  linha `flex` (`min-width: auto` é a palavra mais longa), e a da coluna do
+  `.oficio`, que é `grid` com coluna `auto` (do tamanho mínimo do conteúdo).
+  Zerar as duas deixa o cartão mandar na largura, e o `break-word` age.
+*/
+.oficio { grid-template-columns: minmax(0, 1fr); }
+.oficio__linha > span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
+
+/* ---------------------------------------------------------------------------
+   Verificação em duas etapas
+   --------------------------------------------------------------------------- */
+.segundo-fator { display: grid; gap: var(--ds-sp-4); }
+
+.segundo-fator__passos {
+  margin: 0; padding-left: var(--ds-sp-5);
+  display: grid; gap: var(--ds-sp-2);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+
+/*
+  O desenho e o segredo lado a lado no computador, e um embaixo do outro no
+  telefone. Quem liga a verificação PELO telefone não consegue apontar a câmera
+  para a própria tela, e é exatamente essa pessoa que vai usar o segredo
+  escrito: empilhar põe os dois na ordem em que ela precisa.
+*/
+.segundo-fator__ativacao {
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-5); align-items: flex-start;
+}
+.segundo-fator__segredo { flex: 1 1 240px; display: grid; gap: var(--ds-sp-2); }
+.segundo-fator__valor {
+  margin: 0;
+  font-size: var(--ds-fs-body-lg);
+  letter-spacing: var(--tracking-rotulo);
+  word-break: break-all;
+}
+
+.segundo-fator__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+
+/*
+  Os códigos de recuperação em duas colunas, com número tabular: eles vão ser
+  COPIADOS À MÃO para um papel, e a leitura em coluna é a que não pula linha.
+*/
+.segundo-fator__codigos {
+  margin: 0; padding: var(--ds-sp-4);
+  list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--ds-sp-2);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-body-lg);
+  letter-spacing: var(--tracking-rotulo);
+}
+
+/*
+  O código QR é ESCURO SOBRE CLARO nos dois temas, e essa é a única superfície
+  do painel que não acompanha o tema. Não é descuido: leitor de código QR
+  espera esse contraste, e parte dos aplicativos simplesmente não lê o desenho
+  invertido. Por isso o fundo claro vem do token de superfície mais clara e o
+  módulo do token de texto mais escuro, e não de cor inventada.
+*/
+.qr {
+  width: 200px; height: 200px; flex: 0 0 auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.qr__fundo { fill: var(--ds-qr-claro); }
+.qr__modulo { fill: var(--ds-qr-escuro); }
+
+/* ---------------------------------------------------------------------------
+   Sessões e redefinição de senha (V2-F00-E09)
+   --------------------------------------------------------------------------- */
+
+/*
+  Os botões de uma linha da lista de usuários. Com quatro (Corrigir, Desativar,
+  Redefinir senha, Encerrar sessões) a coluna Ação passaria da largura do
+  cartão numa fileira só; em grade de duas colunas (Corrigir e Desativar em
+  cima, Redefinir senha e Encerrar sessões embaixo) o rótulo de cada um continua
+  inteiro, os botões alinham entre as linhas e a coluna ocupa o mínimo.
+*/
+.tabela__acoes {
+  display: grid; grid-template-columns: repeat(2, max-content);
+  justify-items: start; align-items: center;
+  gap: var(--ds-sp-1) var(--ds-sp-2);
+}
+
+/*
+  A janela da senha temporária. A senha é a única coisa da janela que vai ser
+  LIDA EM VOZ ALTA ao telefone, então ela ganha o maior corpo da família mono, o
+  espaçamento de rótulo e a seleção inteira com um toque. Quebra em qualquer
+  ponto para nunca estourar a janela no celular.
+*/
+.senha-temporaria { display: grid; gap: var(--ds-sp-4); margin-top: var(--ds-sp-4); }
+.senha-temporaria .aviso { margin-bottom: 0; }
+.senha-temporaria__mensagem {
+  margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+.senha-temporaria__bloco {
+  display: grid; gap: var(--ds-sp-2);
+  padding: var(--ds-sp-4);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.senha-temporaria__valor {
+  margin: 0;
+  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--tracking-rotulo);
+  word-break: break-all;
+  user-select: all;
+}
+.senha-temporaria__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+.senha-temporaria__estado {
+  margin: 0; min-height: var(--ds-lh-body-sm);
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+
+/*
+  A lista das sessões da própria conta. Cada item é uma linha com o aparelho em
+  destaque, e as duas datas embaixo, lado a lado quando cabe e empilhadas no
+  telefone. A marca \"Esta sessão\" é selo com ícone e texto, nunca só cor.
+*/
+.sessoes {
+  list-style: none; margin: 0 0 var(--ds-sp-4); padding: 0;
+  display: grid; gap: var(--ds-sp-2);
+}
+.sessoes__item {
+  display: grid; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.sessoes__topo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2); }
+.sessoes__aparelho { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
+.sessoes__datas {
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-1) var(--ds-sp-4);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+
+/*
+  A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
+  tabela dividia o que sobrava de modo que o nome quebrava em três linhas
+  (\"Diego / Nakamura / Alves\"). O piso de largura segura o nome em até duas
+  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, quebra só depois do \"@\" e dos pontos (`EmailQuebravel`), nunca no meio de uma palavra.
+*/
+.tabela__pessoa {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-width: calc(var(--ds-sp-8) * 2.75);
+}
+
+/*
+  A lista de usuários é a única tabela com seis colunas e quatro botões por
+  linha. Com o respiro lateral de 12 px no lugar de 16 (só nela), as seis
+  colunas cabem em 1280 px sem rolagem; abaixo disso a tabela rola, com o aviso
+  de sempre.
+*/
+.tabela--justa th, .tabela--justa td { padding-left: var(--ds-sp-3); padding-right: var(--ds-sp-3); }
+
+/* O indicador de carregamento do tamanho de um cartão, e não da página. */
+.carregando--no-cartao { min-height: 0; padding: var(--ds-sp-5) 0; }
+"
+
+ ❯ test/correcao-6-da-e09.test.ts:179:19
+    177|   it("a paginação e os controles dela quebram em linhas", () => {
+    178|     const folha = css();
+    179|     expect(folha).toMatch(/\.paginacao \{\n  display: flex; flex-wrap:…
+       |                   ^
+    180|     expect(folha).toMatch(/\.paginacao__controles \{ display: flex; fl…
+    181|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  test/correcao-6-da-e09.test.ts > Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga > o texto de exemplo do filtro de Ocorrências é o curto, que cabe a 320 px
+AssertionError: expected 'import { useEffect, useState } from "…' to match /placeholder="Protocolo, endereço ou r…/
+
+[32m- Expected:[39m 
+/placeholder="Protocolo, endereço ou relato"/
+
+[31m+ Received:[39m 
+"import { useEffect, useState } from \"react\";
+import { Link, useSearchParams } from \"react-router-dom\";
+import {
+  ROTULO_STATUS, SEVERIDADES, ROTULO_SEVERIDADE, podeExecutar,
+  type Severidade, type StatusOcorrencia,
+} from \"@dc360/shared\";
+import {
+  devolucoesPendentes, listarPaginaDeOcorrencias,
+  type DevolucaoPendente, type PaginaDeOcorrencias,
+} from \"../dados/repositorio\";
+import { marcaDaLista, podeVerDevolucoes, porOcorrencia } from \"../devolucao\";
+import { useSessaoObrigatoria } from \"../estado/sessao\";
+import {
+  Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, TipoDaOcorrencia,
+  Vazio, formatarDataHora,
+} from \"../componentes/comuns\";
+import { IconeMais, IconeVoltar } from \"../componentes/Icones\";
+import { useTitulo } from \"../seo/titulo\";
+
+const POR_PAGINA = 10;
+
+const FILTROS_STATUS: Array<{ chave: string; rotulo: string }> = [
+  { chave: \"ativas\", rotulo: \"Ativas\" },
+  { chave: \"todas\", rotulo: \"Todas\" },
+  { chave: \"registrada\", rotulo: ROTULO_STATUS.registrada },
+  { chave: \"triagem\", rotulo: ROTULO_STATUS.triagem },
+  { chave: \"em_campo\", rotulo: ROTULO_STATUS.em_campo },
+  { chave: \"vistoria_concluida\", rotulo: ROTULO_STATUS.vistoria_concluida },
+  { chave: \"providencia_pendente\", rotulo: ROTULO_STATUS.providencia_pendente },
+  { chave: \"encerrada\", rotulo: ROTULO_STATUS.encerrada },
+];
+
+/**
+ * Lista de ocorrências: busca, filtros e paginação.
+ *
+ * Os filtros vivem na URL de propósito. É o que faz um indicador do painel
+ * abrir esta tela já filtrada, e é o que permite ao coordenador mandar o link
+ * de uma visão específica para outra pessoa da equipe.
+ */
+export function Ocorrencias() {
+  useTitulo(\"Ocorrências\");
+  const sessao = useSessaoObrigatoria();
+  const [params, setParams] = useSearchParams();
+  const [dados, setDados] = useState<PaginaDeOcorrencias | null>(null);
+  /**
+   * As devolvidas do município inteiro, ou `null` enquanto não se sabe.
+   *
+   * São poucas por definição (uma devolução é um caso que espera decisão, não
+   * um estado em que ocorrência fica), então a lista cabe inteira e serve para
+   * marcar qualquer página sem uma consulta por linha.
+   */
+  const [devolvidas, setDevolvidas] = useState<DevolucaoPendente[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  /* \"Tentar de novo\" sem F5: o contador reinicia o efeito de carga. Ver o
+     mesmo em `Painel.tsx`. */
+  const [tentativa, setTentativa] = useState(0);
+
+  const busca = params.get(\"busca\") ?? \"\";
+  const status = params.get(\"status\") ?? \"ativas\";
+  const severidade = params.get(\"severidade\") ?? \"todas\";
+  const soAtrasadas = params.get(\"atrasadas\") === \"1\";
+  /*
+    A página vive na URL junto com os filtros, pelo mesmo motivo que eles: o
+    link que o coordenador manda para a equipe precisa reabrir a MESMA tela.
+    Guardá-la em estado, com os filtros na URL, também deixava as duas fontes
+    saírem de sincronia quando o painel abria esta tela já filtrada.
+  */
+  const pagina = Math.max(1, Math.trunc(Number(params.get(\"pagina\") ?? \"1\")) || 1);
+
+  const [rascunhoBusca, setRascunhoBusca] = useState(busca);
+  useEffect(() => { setRascunhoBusca(busca); }, [busca]);
+
+  /*
+    Busca, filtros e página vão TODOS para o servidor.
+
+    Antes, a tela baixava as cem primeiras e peneirava as atrasadas aqui, no
+    navegador. Isso mentia duas vezes: mostrava só as atrasadas que couberam
+    nas cem, e contava essas no rodapé. Numa enxurrada, o painel dizia trinta
+    atrasadas e a lista dizia doze, sem nada na tela explicando a diferença.
+  */
+  useEffect(() => {
+    let vivo = true;
+    setDados(null);
+    listarPaginaDeOcorrencias(sessao, {
+      busca,
+      status: status as StatusOcorrencia | \"todas\" | \"ativas\",
+      severidade: severidade as Severidade | \"todas\",
+      atrasadas: soAtrasadas,
+      pagina,
+      porPagina: POR_PAGINA,
+    })
+      .then((r) => { if (vivo) setDados(r); })
+      .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
+    return () => { vivo = false; };
+  }, [sessao, busca, status, severidade, soAtrasadas, pagina, tentativa]);
+
+  /*
+    A marcação vem de uma consulta própria, e o fracasso dela não derruba a
+    lista. O `catch` foi escrito quando a rota das devolvidas ainda não existia
+    no servidor, e continua aqui por uma razão diferente e deliberada: a marca
+    é acessória, e trocar a tabela inteira por uma faixa de erro por causa de um
+    rótulo embaixo de um selo seria pagar caro demais por ela.
+
+    O que deixou de ser aceitável é o silêncio. `null` significa \"não sei\", e
+    era desenhado igual a \"nenhuma devolvida\": a tela mostrava linhas limpas e
+    o coordenador concluía que nada voltou do campo. Agora a falha tem estado
+    próprio e frase própria acima da tabela. Ver o mesmo tratamento no painel.
+  */
+  const [marcaFalhou, setMarcaFalhou] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    /* Papel sem `despachar_equipe` não pede a lista: ver `podeVerDevolucoes`. */
+    if (!podeVerDevolucoes(sessao.papel)) {
+      setDevolvidas([]); setMarcaFalhou(false);
+      return () => { vivo = false; };
+    }
+    devolucoesPendentes(sessao)
+      .then((d) => { if (!vivo) return; setDevolvidas(d); setMarcaFalhou(false); })
+      .catch(() => { if (!vivo) return; setDevolvidas(null); setMarcaFalhou(true); });
+    return () => { vivo = false; };
+  }, [sessao]);
+
+  const devolucaoPor = porOcorrencia(devolvidas);
+
+  function trocar(chave: string, valor: string | null) {
+    const proximos = new URLSearchParams(params);
+    if (valor === null || valor === \"\") proximos.delete(chave);
+    else proximos.set(chave, valor);
+    /*
+      Trocar qualquer filtro devolve para a primeira página.
+
+      Continuar na página 3 do filtro anterior dava tabela com cabeçalho e
+      nenhuma linha, e a leitura óbvia disso é \"não tem nenhuma\", que é
+      justamente a conclusão errada no clique que o coordenador dá quando
+      alguma coisa acabou de vencer.
+    */
+    if (chave !== \"pagina\") proximos.delete(\"pagina\");
+    setParams(proximos, { replace: true });
+  }
+
+  const total = dados?.total ?? 0;
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+
+  /*
+    Página além do fim se corrige sozinha.
+
+    Com a paginação no servidor, a lista pode encurtar embaixo de quem está na
+    página 3 (alguém encerrou, alguém respondeu a providência). O servidor
+    devolve zero linhas e o total verdadeiro, e é por isso que o total precisa
+    vir junto: sem ele a tela só saberia dizer \"nenhuma ocorrência\" com a
+    cidade cheia.
+  */
+  useEffect(() => {
+    if (dados && dados.itens.length === 0 && dados.total > 0 && pagina > paginas) {
+      trocar(\"pagina\", String(paginas));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados, pagina, paginas]);
+
+  if (erro) {
+    return (
+      <Aviso tom=\"perigo\">
+        Falha ao carregar as ocorrências: {erro}{\" \"}
+        <button type=\"button\" className=\"botao botao--secundario\"
+                onClick={() => { setErro(null); setTentativa((t) => t + 1); }}>
+          Tentar de novo
+        </button>
+      </Aviso>
+    );
+  }
+
+  const visiveis = dados?.itens ?? [];
+
+  return (
+    <>
+      <div className=\"cabecalho-pagina\">
+        <div>
+          <h1>Ocorrências</h1>
+          <p>{sessao.organizacaoNome}</p>
+        </div>
+        <div className=\"cabecalho-pagina__acoes\">
+          {/*
+            Só aparece para quem consegue concluir. Sem esta guarda, o agente
+            de campo via o botão, preenchia endereço, relato e coordenada, e o
+            recusa vinha no fim, da camada de dados. Esconder não é controle de
+            acesso (quem impede é `exigirPermissao`), mas oferecer o que vai
+            ser negado é um beco sem saída construído de propósito.
+          */}
+          {podeExecutar(sessao.papel, \"abrir_ocorrencia\") && (
+            <Link className=\"botao botao--primario\" to=\"/ocorrencias/nova\">
+              <IconeMais /> Registrar ocorrência
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <form
+        className=\"filtros\"
+        role=\"search\"
+        onSubmit={(e) => { e.preventDefault(); trocar(\"busca\", rascunhoBusca.trim() || null); }}
+      >
+        <label className=\"oculto-visualmente\" htmlFor=\"filtro-busca\">Buscar ocorrência</label>
+        <input id=\"filtro-busca\" type=\"search\" value={rascunhoBusca}
+               onChange={(e) => setRascunhoBusca(e.target.value)}
+               placeholder=\"Protocolo, endereço, solicitante ou relato\"
+               className=\"campo--longo\" />
+        <button type=\"submit\" className=\"botao botao--secundario\">Buscar</button>
+        {(busca || soAtrasadas || severidade !== \"todas\" || status !== \"ativas\") && (
+          <button type=\"button\" className=\"botao botao--discreto\"
+                  onClick={() => setParams(new URLSearchParams(), { replace: true })}>
+            Limpar filtros
+          </button>
+        )}
+      </form>
+
+      <div className=\"filtros\" role=\"group\" aria-label=\"Filtrar por situação\">
+        {FILTROS_STATUS.map((f) => (
+          <button key={f.chave} type=\"button\" className=\"filtros__pilula\"
+                  aria-pressed={status === f.chave}
+                  onClick={() => trocar(\"status\", f.chave)}>
+            {f.rotulo}
+          </button>
+        ))}
+      </div>
+
+      <div className=\"filtros\" role=\"group\" aria-label=\"Filtrar por severidade\">
+        <button type=\"button\" className=\"filtros__pilula\" aria-pressed={severidade === \"todas\"}
+                onClick={() => trocar(\"severidade\", null)}>
+          Toda severidade
+        </button>
+        {SEVERIDADES.map((s) => (
+          <button key={s} type=\"button\" className=\"filtros__pilula\" aria-pressed={severidade === s}
+                  onClick={() => trocar(\"severidade\", s)}>
+            {ROTULO_SEVERIDADE[s]}
+          </button>
+        ))}
+        <button type=\"button\" className=\"filtros__pilula\" aria-pressed={soAtrasadas}
+                onClick={() => trocar(\"atrasadas\", soAtrasadas ? null : \"1\")}>
+          Só atrasadas
+        </button>
+      </div>
+
+      <section className=\"cartao\">
+        {/*
+          A consulta das devolvidas falhou, e a lista diz isso em vez de fingir.
+          Sem esta linha, ausência de marca por falha se lê exatamente como
+          \"nenhuma voltou do campo\", e as duas pedem decisões opostas. Ícone e
+          texto, nunca cor sozinha.
+        */}
+        {marcaFalhou && (
+          <p className=\"tabela__secundario\" style={{ marginTop: 0 }}>
+            <IconeVoltar tamanho={12} />{\" \"}
+            A consulta das ocorrências devolvidas do campo não respondeu agora.
+            As linhas abaixo podem estar sem essa marca. Atualize a página para
+            tentar de novo.
+          </p>
+        )}
+        {!dados ? (
+          <Carregando />
+        ) : total === 0 ? (
+          <Vazio titulo=\"Nenhuma ocorrência com esses filtros\">
+            <p>Ajuste a busca ou volte para a visão de ativas.</p>
+          </Vazio>
+        ) : visiveis.length === 0 ? (
+          /*
+            Página vazia com total cheio: o efeito acima já está trazendo a
+            página certa. Desenhar a tabela neste instante daria cabeçalho sem
+            linha nenhuma e um rodapé dizendo \"Mostrando 21 a 2 de 2\", que se
+            lê como \"não tem nenhuma\" bem na hora em que existem.
+          */
+          <Carregando mensagem=\"Ajustando a página\" />
+        ) : (
+          <>
+            <div className=\"tabela-envolucro\">
+              <table className=\"tabela\">
+                <caption className=\"oculto-visualmente\">
+                  {total} ocorrência(s) encontrada(s), página {pagina} de {paginas}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope=\"col\">Protocolo</th>
+                    <th scope=\"col\">Tipo e endereço</th>
+                    <th scope=\"col\">Solicitante</th>
+                    <th scope=\"col\">Severidade</th>
+                    <th scope=\"col\">Situação</th>
+                    <th scope=\"col\">Vence em</th>
+                    <th scope=\"col\">Restam</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visiveis.map((o) => (
+                    <tr key={o.id}>
+                      <td>
+                        <Link className=\"tabela__protocolo\" to={`/ocorrencias/${o.id}`}>{o.protocolo}</Link>
+                        <div className=\"tabela__secundario\">{formatarDataHora(o.criado_em)}</div>
+                      </td>
+                      <td>
+                        {/*
+                          Um chamado \"outro\" está ESPERANDO classificação, e
+                          isso é diferente de um classificado. Impresso igual
+                          aos outros oito no meio da coluna, ele lê como
+                          decisão já tomada, e a linha que exige uma decisão de
+                          quem está lendo é justamente a que desaparece.
+                        */}
+                        <div><TipoDaOcorrencia tipo={o.tipo} /></div>
+                        <div className=\"tabela__secundario\">{o.endereco}</div>
+                      </td>
+                      <td>
+                        {/*
+                          Só o nome. O contato não desce na lista desde
+                          15/09/2026 (`LinhaDaListaDeOcorrencias`): a tabela
+                          nunca precisou dele para nada, e listá-lo era ler
+                          o telefone de cada família do município, página a
+                          página, sem registro. Ele está na ocorrência.
+                        */}
+                        <div>{o.solicitante_nome}</div>
+                      </td>
+                      <td><SeloSeveridade severidade={o.severidade} /></td>
+                      <td>
+                        {/*
+                          Devolvida volta para \"Em triagem\" e passa a parecer,
+                          nesta coluna, igual à que nunca saiu do prédio. É o
+                          contrário: nesta alguém já foi até lá, perdeu a
+                          viagem, e o prazo continua vencido. Ícone e texto, e
+                          nunca cor sozinha.
+                        */}
+                        <SeloStatus status={o.status} />
+                        {devolucaoPor.has(o.id) && (
+                          <div className=\"tabela__secundario\">
+                            <IconeVoltar tamanho={12} />{\" \"}
+                            {marcaDaLista(devolucaoPor.get(o.id)!)}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <PrazoVenceEm prazoEm={o.prazo_em}
+                                      encerrada={o.status === \"encerrada\"} />
+                      </td>
+                      <td>
+                        <Prazo prazoEm={o.prazo_em} criadoEm={o.criado_em}
+                               encerrada={o.status === \"encerrada\"} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className=\"paginacao\">
+              {/*
+                O total é o do SERVIDOR, contado sobre o mesmo filtro. Ele é a
+                diferença entre \"estas são as ocorrências\" e \"estas são as que
+                couberam nesta página\", e essa frase é a única coisa que impede
+                o coordenador de achar que viu a cidade inteira.
+              */}
+              <span aria-live=\"polite\">
+                Mostrando {(pagina - 1) * POR_PAGINA + 1} a {Math.min(pagina * POR_PAGINA, total)} de {total}
+                {\" \"}ocorrência(s), página {pagina} de {paginas}
+              </span>
+              <div className=\"paginacao__controles\">
+                <button type=\"button\" className=\"botao botao--secundario\"
+                        disabled={pagina === 1} onClick={() => trocar(\"pagina\", String(pagina - 1))}>
+                  Anterior
+                </button>
+                <button type=\"button\" className=\"botao botao--secundario\"
+                        disabled={pagina >= paginas} onClick={() => trocar(\"pagina\", String(pagina + 1))}>
+                  Próxima
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    </>
+  );
+}
+"
+
+ ❯ test/correcao-6-da-e09.test.ts:185:18
+    183|   it("o texto de exemplo do filtro de Ocorrências é o curto, que cabe …
+    184|     const tela = fonte("paginas", "Ocorrencias.tsx");
+    185|     expect(tela).toMatch(/placeholder="Protocolo, endereço ou relato"/…
+       |                  ^
+    186|     expect(tela).not.toMatch(/solicitante ou relato/);
+    187|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 15 passed (24)
+   Start at  20:10:49
+   Duration  280ms (transform 72ms, setup 0ms, collect 108ms, tests 10ms, environment 0ms, prepare 34ms)
+

@@ -1,0 +1,185 @@
+api modo=falhar a-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir a-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante a-stream: exit=0]
+api modo=falhar b-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir b-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante b-response: exit=0]
+api modo=falhar c-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir c-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante c-webstream: exit=0]
+api modo=falhar d-buffer: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir d-buffer: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante d-buffer: exit=0]
+api modo=falhar i-cl0-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir i-cl0-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante i-cl0-stream: exit=0]
+api modo=falhar i-cl0-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir i-cl0-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante i-cl0-response: exit=0]
+api modo=falhar i-cl0-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir i-cl0-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante i-cl0-webstream: exit=0]
+api modo=falhar e-403-cl-menor: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"" | resto="erro\":\"sem_permissao\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none'"
+api modo=corrigir e-403-cl-menor: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"" | resto="erro\":\"sem_permissao\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none'"
+  [processo da variante e-403-cl-menor: exit=0]
+api modo=falhar e-403-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-s"(+410) | resto="ax-age=15552000; includeSubDomains\r\nX-Content-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: no"
+api modo=corrigir e-403-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-s"(+410) | resto="ax-age=15552000; includeSubDomains\r\nX-Content-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: no"
+  [processo da variante e-403-cl-maior: exit=0]
+api modo=falhar e-200-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none';base"(+410) | resto="-Content-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: noopen\r\nX-Frame-Options: SAMEORIGIN\r\nX-"
+api modo=corrigir e-200-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none';base"(+410) | resto="-Content-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: noopen\r\nX-Frame-Options: SAMEORIGIN\r\nX-"
+  [processo da variante e-200-cl-maior: exit=0]
+api modo=falhar f-early: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Informe o cÃ³digo abaixo ao suporte.\","(+52) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir f-early: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Informe o cÃ³digo abaixo ao suporte.\","(+52) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante f-early: exit=0]
+api modo=falhar g-100: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 100 Continue] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-100: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 100 Continue] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-100: exit=0]
+api modo=falhar g-101: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none';base-u"(+883)
+api modo=corrigir g-101: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none';base-u"(+883)
+  [processo da variante g-101: exit=0]
+api modo=falhar g-102: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102: exit=0]
+api modo=falhar g-103: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 103 Early Hints] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-103: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 103 Early Hints] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-103: exit=0]
+api modo=falhar g-199: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 199 unknown] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-199: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 199 unknown] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-199: exit=0]
+api modo=falhar g-102-objeto: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-objeto: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-objeto: exit=0]
+api modo=falhar g-102-raw-writehead: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-raw-writehead: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-raw-writehead: exit=0]
+api modo=falhar g-102-raw-implicito: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-raw-implicito: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-raw-implicito: exit=0]
+api modo=falhar h-te-identity: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+1001)
+api modo=corrigir h-te-identity: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+1001)
+  [processo da variante h-te-identity: exit=0]
+api modo=falhar j-204: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 204 No Content] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir j-204: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 204 No Content] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante j-204: exit=0]
+api modo=falhar k-304: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 304 Not Modified] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir k-304: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 304 Not Modified] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante k-304: exit=0]
+node:_http_outgoing:522
+    throw new ERR_HTTP_TRAILER_INVALID();
+    ^
+
+Error [ERR_HTTP_TRAILER_INVALID]: Trailers are invalid with this transfer encoding
+    at ServerResponse._storeHeader (node:_http_outgoing:522:11)
+    at ServerResponse.writeHead (node:_http_server:450:8)
+    at ServerResponse.end (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api/src/guarda-de-codigos-de-erro.ts:562:5)
+    at send (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/node_modules/fastify/lib/reply.js:912:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+  code: 'ERR_HTTP_TRAILER_INVALID'
+}
+
+Node.js v24.15.0
+  [processo da variante tr-reply-fora: exit=1]
+api modo=falhar tr-reply-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-reply-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-reply-catalogo: exit=0]
+api modo=falhar tr-addtrailers-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Informe o cÃ³digo abaixo ao suporte.\","(+52) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-addtrailers-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Forbidden] "{\"erro\":\"erro_interno\",\"mensagem\":\"Erro inesperado. Informe o cÃ³digo abaixo ao suporte.\","(+52) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-addtrailers-fora: exit=0]
+api modo=falhar tr-addtrailers-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-addtrailers-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-addtrailers-catalogo: exit=0]
+api modo=falhar tr-addtrailers-cl: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/tr-addtrailers-cl respondeu 403 f"(+94) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir tr-addtrailers-cl: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-addtrailers-cl: exit=0]
+api modo=falhar flush-403-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 200 OK] ""
+api modo=corrigir flush-403-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+  [processo da variante flush-403-fora: exit=0]
+api modo=falhar flush-403-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+api modo=corrigir flush-403-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+  [processo da variante flush-403-catalogo: exit=0]
+api modo=falhar flush-401-publico: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/flush-401-publico respondeu 401 f"(+94) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir flush-401-publico: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 401 Unauthorized] "{\"erro\":\"nao_autenticado\",\"mensagem\":\"Token invÃ¡lido ou expirado.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante flush-401-publico: exit=0]
+api modo=falhar z-ok: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir z-ok: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante z-ok: exit=0]
+api modo=falhar z-ruim: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/z-ruim respondeu 403 fora do catÃ"(+53) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir z-ruim: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"Seu perfil nÃ£o tem permissÃ£o para esta aÃ§Ã£o.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante z-ruim: exit=0]
+api modo=falhar g-101-writeraw: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none';base-u"(+883)
+api modo=corrigir g-101-writeraw: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';frame-ancestors 'none';base-u"(+883)
+  [processo da variante g-101-writeraw: exit=0]
+api modo=falhar g-102-so-provisoria: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-so-provisoria: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-so-provisoria: exit=0]
+api modo=falhar g-102-e-final: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+api modo=corrigir g-102-e-final: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"sem_permissao\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-e-final: exit=0]

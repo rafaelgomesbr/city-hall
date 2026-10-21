@@ -1,0 +1,109 @@
+[antes chromium minha-conta 320x256] ESCONDIDO foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes chromium minha-conta 640x450-dpr2] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium minha-conta 390x844] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes chromium minha-conta 320x640] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes chromium minha-conta 768x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium minha-conta 1280x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes chromium defina-a-senha 320x256] À VISTA foco=senha-nova-atual rótulo=120..168 campo=176..220 topo até 0 pé desde 256 janela 320x256 spt=140px spb=auto
+[antes chromium defina-a-senha 640x450-dpr2] À VISTA foco=senha-nova-atual rótulo=48..72 campo=80..124 topo até 0 pé desde 450 janela 640x450 spt=80px spb=auto
+[antes chromium defina-a-senha 390x844] À VISTA foco=senha-nova-atual rótulo=481..505 campo=513..557 topo até 0 pé desde 844 janela 390x844 spt=140px spb=auto
+[antes chromium defina-a-senha 320x640] À VISTA foco=senha-nova-atual rótulo=120..168 campo=176..220 topo até 0 pé desde 640 janela 320x640 spt=140px spb=auto
+[antes chromium defina-a-senha 768x600] À VISTA foco=senha-nova-atual rótulo=111..135 campo=143..187 topo até 0 pé desde 600 janela 768x600 spt=80px spb=auto
+[antes chromium defina-a-senha 1280x600] À VISTA foco=senha-nova-atual rótulo=111..135 campo=143..187 topo até 0 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes chromium nova-ocorrencia 320x256] ESCONDIDO foco=nova-endereco rótulo=180..204 campo=212..256 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes chromium nova-ocorrencia 640x450-dpr2] ESCONDIDO foco=nova-endereco rótulo=374..398 campo=406..450 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium nova-ocorrencia 390x844] ESCONDIDO foco=nova-endereco rótulo=768..792 campo=800..844 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes chromium nova-ocorrencia 320x640] ESCONDIDO foco=nova-endereco rótulo=564..588 campo=596..640 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes chromium nova-ocorrencia 768x600] ESCONDIDO foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium nova-ocorrencia 1280x600] À VISTA foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes chromium usuarios 320x256] ESCONDIDO foco=usuario-nome rótulo=144..168 campo=176..220 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes chromium usuarios 640x450-dpr2] ESCONDIDO foco=usuario-nome rótulo=296..320 campo=328..372 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium usuarios 390x844] À VISTA foco=usuario-nome rótulo=374..398 campo=406..450 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes chromium usuarios 320x640] À VISTA foco=usuario-nome rótulo=374..398 campo=406..450 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes chromium usuarios 768x600] À VISTA foco=usuario-nome rótulo=286..310 campo=318..362 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium usuarios 1280x600] À VISTA foco=usuario-nome rótulo=302..326 campo=334..378 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes chromium ocorrencia-coordenada 320x256] ESCONDIDO foco=corrigir-coordenada-ponto rótulo=180..204 campo=212..256 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes chromium ocorrencia-coordenada 640x450-dpr2] À VISTA foco=corrigir-coordenada-ponto rótulo=285..309 campo=317..361 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes chromium ocorrencia-coordenada 390x844] À VISTA foco=corrigir-coordenada-ponto rótulo=528..552 campo=560..604 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes chromium ocorrencia-coordenada 320x640] À VISTA foco=corrigir-coordenada-ponto rótulo=426..450 campo=458..502 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes chromium ocorrencia-coordenada 768x600] À VISTA foco=corrigir-coordenada-ponto rótulo=360..384 campo=392..436 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes chromium ocorrencia-coordenada 1280x600] À VISTA foco=corrigir-coordenada-ponto rótulo=360..384 campo=392..436 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes chromium quero-conhecer 320x256] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 256 janela 320x256 spt=140px spb=auto
+[antes chromium quero-conhecer 640x450-dpr2] À VISTA foco=ic-nome rótulo=48..72 campo=80..124 topo até 0 pé desde 450 janela 640x450 spt=80px spb=auto
+[antes chromium quero-conhecer 390x844] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 844 janela 390x844 spt=140px spb=auto
+[antes chromium quero-conhecer 320x640] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 640 janela 320x640 spt=140px spb=auto
+[antes chromium quero-conhecer 768x600] À VISTA foco=ic-nome rótulo=64..88 campo=96..140 topo até 0 pé desde 600 janela 768x600 spt=80px spb=auto
+[antes chromium quero-conhecer 1280x600] À VISTA foco=ic-nome rótulo=64..88 campo=96..140 topo até 0 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox minha-conta 320x256] ESCONDIDO foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes firefox minha-conta 640x450-dpr2] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox minha-conta 390x844] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes firefox minha-conta 320x640] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes firefox minha-conta 768x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox minha-conta 1280x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox defina-a-senha 320x256] À VISTA foco=senha-nova-atual rótulo=120..168 campo=176..220 topo até 0 pé desde 256 janela 320x256 spt=140px spb=auto
+[antes firefox defina-a-senha 640x450-dpr2] À VISTA foco=senha-nova-atual rótulo=48..72 campo=80..124 topo até 0 pé desde 450 janela 640x450 spt=80px spb=auto
+[antes firefox defina-a-senha 390x844] À VISTA foco=senha-nova-atual rótulo=339..363 campo=371..415 topo até 0 pé desde 844 janela 390x844 spt=140px spb=auto
+[antes firefox defina-a-senha 320x640] À VISTA foco=senha-nova-atual rótulo=120..168 campo=176..220 topo até 0 pé desde 640 janela 320x640 spt=140px spb=auto
+[antes firefox defina-a-senha 768x600] À VISTA foco=senha-nova-atual rótulo=111..135 campo=143..187 topo até 0 pé desde 600 janela 768x600 spt=80px spb=auto
+[antes firefox defina-a-senha 1280x600] À VISTA foco=senha-nova-atual rótulo=111..135 campo=143..187 topo até 0 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox nova-ocorrencia 320x256] ESCONDIDO foco=nova-endereco rótulo=180..204 campo=212..256 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes firefox nova-ocorrencia 640x450-dpr2] ESCONDIDO foco=nova-endereco rótulo=374..398 campo=406..450 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox nova-ocorrencia 390x844] ESCONDIDO foco=nova-endereco rótulo=768..792 campo=800..844 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes firefox nova-ocorrencia 320x640] ESCONDIDO foco=nova-endereco rótulo=564..588 campo=596..640 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes firefox nova-ocorrencia 768x600] ESCONDIDO foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox nova-ocorrencia 1280x600] À VISTA foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox usuarios 320x256] ESCONDIDO foco=usuario-nome rótulo=144..168 campo=176..220 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes firefox usuarios 640x450-dpr2] À VISTA foco=usuario-nome rótulo=247..271 campo=279..323 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox usuarios 390x844] À VISTA foco=usuario-nome rótulo=374..398 campo=406..450 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes firefox usuarios 320x640] À VISTA foco=usuario-nome rótulo=374..398 campo=406..450 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes firefox usuarios 768x600] À VISTA foco=usuario-nome rótulo=286..310 campo=318..362 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox usuarios 1280x600] À VISTA foco=usuario-nome rótulo=302..326 campo=334..378 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox ocorrencia-coordenada 320x256] ESCONDIDO foco=corrigir-coordenada-ponto rótulo=181..205 campo=213..257 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes firefox ocorrencia-coordenada 640x450-dpr2] À VISTA foco=corrigir-coordenada-ponto rótulo=285..309 campo=317..361 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes firefox ocorrencia-coordenada 390x844] À VISTA foco=corrigir-coordenada-ponto rótulo=528..552 campo=560..604 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes firefox ocorrencia-coordenada 320x640] À VISTA foco=corrigir-coordenada-ponto rótulo=426..450 campo=458..502 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes firefox ocorrencia-coordenada 768x600] À VISTA foco=corrigir-coordenada-ponto rótulo=360..384 campo=392..436 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes firefox ocorrencia-coordenada 1280x600] À VISTA foco=corrigir-coordenada-ponto rótulo=360..384 campo=392..436 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes firefox quero-conhecer 320x256] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 256 janela 320x256 spt=140px spb=auto
+[antes firefox quero-conhecer 640x450-dpr2] À VISTA foco=ic-nome rótulo=48..72 campo=80..124 topo até 0 pé desde 450 janela 640x450 spt=80px spb=auto
+[antes firefox quero-conhecer 390x844] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 844 janela 390x844 spt=140px spb=auto
+[antes firefox quero-conhecer 320x640] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 640 janela 320x640 spt=140px spb=auto
+[antes firefox quero-conhecer 768x600] À VISTA foco=ic-nome rótulo=64..88 campo=96..140 topo até 0 pé desde 600 janela 768x600 spt=80px spb=auto
+[antes firefox quero-conhecer 1280x600] À VISTA foco=ic-nome rótulo=64..88 campo=96..140 topo até 0 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit minha-conta 320x256] ESCONDIDO foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes webkit minha-conta 640x450-dpr2] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit minha-conta 390x844] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes webkit minha-conta 320x640] À VISTA foco=conta-senha-atual rótulo=144..168 campo=176..220 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes webkit minha-conta 768x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit minha-conta 1280x600] ESCONDIDO foco=conta-senha-atual rótulo=48..72 campo=80..124 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit defina-a-senha 320x256] À VISTA foco=senha-nova-atual rótulo=120..168 campo=176..220 topo até 0 pé desde 256 janela 320x256 spt=140px spb=auto
+[antes webkit defina-a-senha 640x450-dpr2] À VISTA foco=senha-nova-atual rótulo=48..72 campo=80..124 topo até 0 pé desde 450 janela 640x450 spt=80px spb=auto
+[antes webkit defina-a-senha 390x844] À VISTA foco=senha-nova-atual rótulo=481..505 campo=513..557 topo até 0 pé desde 844 janela 390x844 spt=140px spb=auto
+[antes webkit defina-a-senha 320x640] À VISTA foco=senha-nova-atual rótulo=120..168 campo=176..220 topo até 0 pé desde 640 janela 320x640 spt=140px spb=auto
+[antes webkit defina-a-senha 768x600] À VISTA foco=senha-nova-atual rótulo=111..135 campo=143..187 topo até 0 pé desde 600 janela 768x600 spt=80px spb=auto
+[antes webkit defina-a-senha 1280x600] À VISTA foco=senha-nova-atual rótulo=111..135 campo=143..187 topo até 0 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit nova-ocorrencia 320x256] ESCONDIDO foco=nova-endereco rótulo=180..204 campo=212..256 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes webkit nova-ocorrencia 640x450-dpr2] ESCONDIDO foco=nova-endereco rótulo=374..398 campo=406..450 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit nova-ocorrencia 390x844] ESCONDIDO foco=nova-endereco rótulo=768..792 campo=800..844 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes webkit nova-ocorrencia 320x640] ESCONDIDO foco=nova-endereco rótulo=564..588 campo=596..640 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes webkit nova-ocorrencia 768x600] ESCONDIDO foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit nova-ocorrencia 1280x600] À VISTA foco=nova-endereco rótulo=524..548 campo=556..600 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit usuarios 320x256] ESCONDIDO foco=usuario-nome rótulo=180..204 campo=212..256 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes webkit usuarios 640x450-dpr2] ESCONDIDO foco=usuario-nome rótulo=346..370 campo=378..422 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit usuarios 390x844] À VISTA foco=usuario-nome rótulo=374..398 campo=406..450 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes webkit usuarios 320x640] À VISTA foco=usuario-nome rótulo=374..398 campo=406..450 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes webkit usuarios 768x600] À VISTA foco=usuario-nome rótulo=286..310 campo=318..362 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit usuarios 1280x600] À VISTA foco=usuario-nome rótulo=302..326 campo=334..378 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit ocorrencia-coordenada 320x256] ESCONDIDO foco=corrigir-coordenada-ponto rótulo=180..204 campo=212..256 topo até 129 pé desde 177 janela 320x256 spt=140px spb=auto
+[antes webkit ocorrencia-coordenada 640x450-dpr2] À VISTA foco=corrigir-coordenada-ponto rótulo=284..308 campo=316..360 topo até 141 pé desde 371 janela 640x450 spt=80px spb=auto
+[antes webkit ocorrencia-coordenada 390x844] À VISTA foco=corrigir-coordenada-ponto rótulo=527..551 campo=559..603 topo até 129 pé desde 765 janela 390x844 spt=140px spb=auto
+[antes webkit ocorrencia-coordenada 320x640] À VISTA foco=corrigir-coordenada-ponto rótulo=425..449 campo=457..501 topo até 129 pé desde 561 janela 320x640 spt=140px spb=auto
+[antes webkit ocorrencia-coordenada 768x600] À VISTA foco=corrigir-coordenada-ponto rótulo=359..383 campo=391..435 topo até 81 pé desde 521 janela 768x600 spt=80px spb=auto
+[antes webkit ocorrencia-coordenada 1280x600] À VISTA foco=corrigir-coordenada-ponto rótulo=359..383 campo=391..435 topo até 81 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes webkit quero-conhecer 320x256] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 256 janela 320x256 spt=140px spb=auto
+[antes webkit quero-conhecer 640x450-dpr2] À VISTA foco=ic-nome rótulo=48..72 campo=80..124 topo até 0 pé desde 450 janela 640x450 spt=80px spb=auto
+[antes webkit quero-conhecer 390x844] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 844 janela 390x844 spt=140px spb=auto
+[antes webkit quero-conhecer 320x640] À VISTA foco=ic-nome rótulo=144..168 campo=176..220 topo até 0 pé desde 640 janela 320x640 spt=140px spb=auto
+[antes webkit quero-conhecer 768x600] À VISTA foco=ic-nome rótulo=64..88 campo=96..140 topo até 0 pé desde 600 janela 768x600 spt=80px spb=auto
+[antes webkit quero-conhecer 1280x600] À VISTA foco=ic-nome rótulo=64..88 campo=96..140 topo até 0 pé desde 600 janela 1280x600 spt=80px spb=auto
+[antes] resumo: 73 de 108 à vista

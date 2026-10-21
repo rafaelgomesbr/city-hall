@@ -1,0 +1,6 @@
+$ npm run conferir:numeros   (DEPOIS da correção 5)
+Afirmações conferidas: 25
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.
+codigo=0

@@ -1,0 +1,3 @@
+# ANTES (HEAD 7d067cc), só o caso 0,0, 200 rodadas, quatro em paralelo (scripts/amostra.sh antes 200)
+   1 Tests:       1 failed, 18 skipped, 19 total
+ 199 Tests:       18 skipped, 1 passed, 19 total

@@ -1,0 +1,7 @@
+git ls-files --eol: 5623 arquivos.
+  i/-text    2195
+  i/lf       3428
+  w/-text    2195
+  w/crlf     2
+  w/lf       3426
+Nenhum i/crlf nem i/mixed; CRLF no disco só onde o .gitattributes pede.

@@ -129,7 +129,8 @@ export const ACEITAS_EM_DESENVOLVIMENTO = {
  *
  * O prazo exige AAAA-MM-DD que exista no calendário. Sem isso `undefined < hoje`
  * e `"amanhã" < hoje` são falsos, e a exceção ficaria eterna sem ninguém ver.
- * Vale até o fim do dia escrito: vence quando `ate < hoje`.
+ * Vale até o fim do dia escrito, no fuso de São Paulo (`hojeEmSaoPaulo`): vence
+ * quando `ate < hoje`.
  *
  * Com `exigirAdvisories` (a lista do aplicativo), cada exceção precisa nomear as
  * advisories que aceita, por id GHSA ou URL, cada uma com a gravidade aceita: sem
@@ -330,7 +331,216 @@ export const BANDEIRAS_DA_CONSULTA_REAL = Object.freeze([
   "--prefer-offline=false",
   "--prefer-online",
   "--dry-run=false",
+  /*
+    Rodada 7: com `package-lock=false` num `.npmrc` o npm deixa de ler o
+    `package-lock.json` e audita a árvore IDEAL resolvida das faixas do
+    `package.json` (`arborist.audit()`), e o portão aprovava um lockfile com
+    dependência de runtime de advisory alta, que o `npm ci --omit=dev` do
+    Dockerfile instala. As consultas reais passam também `--package-lock-only=false`
+    (ver `auditar.mjs`); a de controle passa `--package-lock-only`.
+  */
+  "--package-lock=true",
+  /*
+    `--workspaces=false` (correção 7) SAIU daqui na correção 8. Com ele o npm
+    aplica `excludeWorkspacesDependencySet`: audita só o que a RAIZ declara e
+    descarta tudo o que só os workspaces usam. Hoje a raiz não declara
+    dependência nenhuma, o filtro sai vazio e por acaso não filtra nada; no dia
+    em que a raiz ganhar uma dependência direta, o runtime de `apps/api` some do
+    relatório (provado com o npm real numa cópia, `correcao-8/saidas`). Sem a
+    bandeira o npm audita a árvore inteira; o filtro por workspace fica fechado
+    pelo `cwd` fixo, pelas variáveis anuladas abaixo e pela recusa de
+    `workspace`, `workspaces` e `include-workspace-root` em qualquer `.npmrc`
+    (`CHAVES_PERMITIDAS`).
+  */
 ]);
+
+/**
+ * Variáveis `npm_config_*` que o próprio `npm run` exporta para o script (onde
+ * estão o cache, os arquivos de configuração, a versão) ou que restringem o npm
+ * a um workspace. Saem do ambiente de toda chamada ao npm: sem elas o npm usa os
+ * próprios padrões, e são esses os arquivos que o portão lê e confere. Qualquer
+ * OUTRA `npm_config_*` chega ao npm e passa pela lista de `CHAVES_PERMITIDAS`.
+ */
+const VARIAVEIS_ANULADAS = /^npm_config_(workspaces?|include[_-]workspace[_-]root|cache|global[_-]prefix|globalconfig|init[_-]module|local[_-]prefix|node[_-]gyp|noproxy|npm[_-]version|prefix|user[_-]agent|userconfig)$/i;
+
+/**
+ * O ambiente com que toda chamada ao npm roda: o do processo sem as
+ * `VARIAVEIS_ANULADAS`. As de workspace saíram na correção 7: dentro de um
+ * workspace, ou com uma delas definida, o npm audita só aquele workspace e
+ * devolve um relatório bem formado e limpo para a raiz inteira.
+ */
+export function ambienteDaConsulta(env) {
+  return Object.fromEntries(Object.entries(env).filter(([nome]) => !VARIAVEIS_ANULADAS.test(nome)));
+}
+
+/* ---------- O que a configuração do npm pode ter ---------- */
+
+/**
+ * As ÚNICAS chaves de configuração do npm que o portão aceita, venham de onde
+ * vierem (o `.npmrc` do projeto, do usuário, o global, o embutido no npm, ou uma
+ * `npm_config_*` do ambiente). Qualquer outra sai 2 com o nome dela (rodada 7:
+ * `package-lock=false` num `.npmrc` fazia o npm auditar outra árvore). Em vez de
+ * tapar bandeira por bandeira, a classe fecha ao contrário: o que não se sabe
+ * que é inofensivo não passa. Cada uma foi provada com o npm real numa cópia
+ * com runtime vulnerável plantado (`correcao-8/saidas`): com ela no `.npmrc`, o
+ * portão continua saindo 1.
+ */
+export const CHAVES_PERMITIDAS = Object.freeze({
+  // Só mexem no que o npm escreve no terminal; o relatório JSON sai igual.
+  loglevel: "só o nível de log do stderr",
+  color: "só a cor do terminal",
+  progress: "só a barra de progresso",
+  fund: "só a mensagem de financiamento do `npm install`",
+  "update-notifier": "só o aviso de versão nova do npm",
+  // Lugares no disco que não entram no que o `npm audit` olha.
+  cache: "pasta do cache; a consulta de advisories vai com --prefer-online e não sai do cache",
+  prefix: "pasta das instalações globais e do npmrc global (que o portão também lê e confere)",
+  // Anuladas: toda chamada passa a bandeira, e bandeira vence configuração.
+  registry: "anulada por --registry",
+  offline: "anulada por --offline=false",
+  "prefer-offline": "anulada por --prefer-offline=false",
+  "prefer-online": "anulada por --prefer-online",
+  "dry-run": "anulada por --dry-run=false",
+  "package-lock": "anulada por --package-lock=true",
+  "package-lock-only": "anulada por --package-lock-only (false nas consultas reais, true na de controle)",
+  "audit-level": "anulada por --audit-level=low",
+  json: "anulada por --json",
+  // Credencial do registro oficial: muda quem pergunta, não o que volta.
+  "//registry.npmjs.org/:_authToken": "credencial do registro oficial",
+});
+
+/**
+ * O nome de chave como o npm o entende: em variável de ambiente
+ * `npm_config_prefer_offline` (qualquer caixa) vira `prefer-offline`; num
+ * `.npmrc`, `chave[]` (lista) vira `chave`.
+ */
+export function normalizarChave(chave, { doAmbiente = false } = {}) {
+  if (doAmbiente) return chave.replace(/^npm_config_/i, "").toLowerCase().replaceAll("_", "-");
+  return chave.trim().replace(/\[\]$/, "");
+}
+
+/** As chaves de um `.npmrc` (formato ini): comentário com `;` ou `#`; seção `[x]` vira a chave `[x]`. */
+export function chavesDoNpmrc(texto) {
+  const chaves = [];
+  for (const crua of String(texto).split(/\r?\n/)) {
+    const linha = crua.trim();
+    if (linha === "" || linha.startsWith(";") || linha.startsWith("#")) continue;
+    if (/^\[.*\]$/.test(linha)) { chaves.push(linha); continue; }
+    const igual = linha.indexOf("=");
+    chaves.push(normalizarChave(igual === -1 ? linha : linha.slice(0, igual)));
+  }
+  return chaves;
+}
+
+/**
+ * Lê a saída de `npm config list` (sem `-l`): o npm lista ali, por fonte
+ * (`builtin`, `global`, `user`, `project`, `env`, `cli`), só o que difere do
+ * padrão, com o arquivo de onde veio. É o próprio npm dizendo o que vai usar,
+ * inclusive do npmrc embutido e do global, que o portão não saberia achar
+ * sozinho. Devolve também o `npm local prefix`, a pasta que o npm tomou como
+ * projeto.
+ *
+ * @returns {{ chaves: {chave: string, origem: string}[], prefixoLocal: string | null }}
+ */
+export function lerNpmConfigList(texto) {
+  const chaves = [];
+  let origem = null;
+  let prefixoLocal = null;
+  for (const crua of String(texto).split(/\r?\n/)) {
+    const linha = crua.trim();
+    const cabecalho = /^; "([^"]+)" config from (.+)$/.exec(linha);
+    if (cabecalho) { origem = `${cabecalho[1]} (${cabecalho[2]})`; continue; }
+    const prefixo = /^; npm local prefix = (.+)$/.exec(linha);
+    if (prefixo) { prefixoLocal = prefixo[1]; origem = null; continue; }
+    if (linha === "" || linha.startsWith(";")) continue;
+    const m = /^(.+?) = /.exec(linha);
+    chaves.push({ chave: normalizarChave(m ? m[1] : linha), origem: origem ?? "npm config list (fonte não identificada)" });
+  }
+  return { chaves, prefixoLocal };
+}
+
+/** As chaves fora de `CHAVES_PERMITIDAS`, sem repetir o par (chave, origem). */
+export function chavesProibidas(achadas) {
+  const vistas = new Set();
+  return achadas.filter(({ chave, origem }) => {
+    const k = `${chave} ${origem}`;
+    if (Object.hasOwn(CHAVES_PERMITIDAS, chave) || vistas.has(k)) return false;
+    vistas.add(k);
+    return true;
+  });
+}
+
+/**
+ * O texto como o npm 11 o mostra em `npm config list` e `npm prefix`: ele mascara
+ * com `***` todo trecho com cara de UUID (e `npm_***` para segredo do npm), pelo
+ * `@npmcli/redact`. Um caminho de projeto com um segmento assim (pasta temporária,
+ * worktree, runner de CI) volta mascarado, e a comparação direta com o caminho
+ * real falhava (revisão da correção 8). Comparar o mascarado com o mascarado só
+ * aceita a diferença que a própria máscara do npm produz.
+ */
+export function mascararComoONpm(texto) {
+  return String(texto)
+    .replace(/\b(npms?_)[a-zA-Z0-9]{36,48}\b/gi, "npm_***")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "***");
+}
+
+/**
+ * O npm tomou `projeto` como projeto? `prefixoDoNpm` é o `npm local prefix`
+ * (talvez mascarado); `caminhos` são o caminho dado e o real (sem link). Vale o
+ * igual, ou o igual depois de aplicar a mesma máscara do npm aos caminhos.
+ */
+export function mesmoProjeto(prefixoDoNpm, caminhos) {
+  if (typeof prefixoDoNpm !== "string" || prefixoDoNpm === "") return false;
+  return caminhos.some((c) => c === prefixoDoNpm || mascararComoONpm(c) === prefixoDoNpm);
+}
+
+/**
+ * Os `npm-shrinkwrap.json` que existem na raiz, no aplicativo ou em qualquer
+ * workspace. O npm dá precedência ao shrinkwrap sobre o `package-lock.json`
+ * (`sw || lock` no arborist): com um shrinkwrap limpo ao lado, o `npm audit`
+ * olhava o shrinkwrap e aprovava um `package-lock.json` com runtime vulnerável,
+ * que é o que o Dockerfile copia e o `npm ci` instala (revisão da correção 8).
+ * Não há motivo para shrinkwrap neste repositório: existir já é defeito.
+ *
+ * Os workspaces vêm do `package.json` da raiz; só `pasta/*` e caminho literal são
+ * expandidos, e um padrão diferente volta como defeito (`naoExpandidos`).
+ *
+ * @returns {{ achados: string[], naoExpandidos: string[] }}
+ */
+export function shrinkwrapsPresentes(raiz, outrasPastas = [], fs) {
+  const { existsSync, readFileSync, readdirSync } = fs;
+  const pastas = [raiz, ...outrasPastas];
+  const naoExpandidos = [];
+  let workspaces = [];
+  try {
+    const pacote = JSON.parse(readFileSync(`${raiz}/package.json`, "utf8"));
+    workspaces = Array.isArray(pacote.workspaces) ? pacote.workspaces : pacote.workspaces?.packages ?? [];
+  } catch { /* sem package.json legível o npm audit falha sozinho, e o portão sai 2 */ }
+  for (const padrao of workspaces) {
+    if (/^[^*?[\]{}!]+\/\*$/.test(padrao)) {
+      const base = `${raiz}/${padrao.slice(0, -2)}`;
+      if (!existsSync(base)) continue;
+      for (const e of readdirSync(base, { withFileTypes: true })) if (e.isDirectory()) pastas.push(`${base}/${e.name}`);
+    } else if (/^[^*?[\]{}!]+$/.test(padrao)) {
+      pastas.push(`${raiz}/${padrao}`);
+    } else {
+      naoExpandidos.push(padrao);
+    }
+  }
+  const achados = pastas.map((p) => `${p}/npm-shrinkwrap.json`).filter((f) => existsSync(f));
+  return { achados, naoExpandidos };
+}
+
+/**
+ * A data de hoje no fuso de São Paulo (AAAA-MM-DD). O prazo das exceções "vale
+ * até o fim do dia escrito", e o dia é o do Brasil: em UTC a exceção vencia às
+ * 21h do último dia (anotado na rodada 7).
+ */
+export function hojeEmSaoPaulo(agora = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(agora);
+}
 
 /**
  * A consulta de controle: um projeto mínimo com uma versão de pacote que TEM

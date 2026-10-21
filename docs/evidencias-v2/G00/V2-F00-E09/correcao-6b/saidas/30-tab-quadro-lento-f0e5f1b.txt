@@ -1,0 +1,37 @@
+[6b-f0e5f1b-raf-lento chromium 390x844 /ocorrencias/nova] 0 de 10 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 390x844 /minha-conta] 0 de 7 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 390x844 /orgaos] 0 de 8 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 320x640 /ocorrencias/nova] 1 de 10 paradas fora da faixa livre: textarea#nova-descricao 505..593 entre 129 e 561
+[6b-f0e5f1b-raf-lento chromium 320x640 /minha-conta] 0 de 7 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 320x640 /orgaos] 0 de 8 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 640x450-dpr2 /ocorrencias/nova] 0 de 10 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 640x450-dpr2 /minha-conta] 0 de 7 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 640x450-dpr2 /orgaos] 1 de 8 paradas fora da faixa livre: button "Desativar" 315..359 entre 141 e 371 COBERTO
+[6b-f0e5f1b-raf-lento chromium 320x256 /ocorrencias/nova] 0 de 10 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 320x256 /minha-conta] 0 de 7 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento chromium 320x256 /orgaos] 0 de 8 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento firefox 390x844 /ocorrencias/nova] 0 de 23 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento firefox 390x844 /minha-conta] 0 de 23 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento firefox 390x844 /orgaos] 1 de 23 paradas fora da faixa livre: div "ÓrgãoContatoProvidências" 701..831 entre 129 e 765 COBERTO
+[6b-f0e5f1b-raf-lento firefox 320x640 /ocorrencias/nova] 2 de 23 paradas fora da faixa livre: input#nova-ref 522..566 entre 129 e 561; textarea#nova-descricao 505..593 entre 129 e 561
+[6b-f0e5f1b-raf-lento firefox 320x640 /minha-conta] 0 de 23 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento firefox 320x640 /orgaos] 0 de 23 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento firefox 640x450-dpr2 /ocorrencias/nova] 14 de 23 paradas fora da faixa livre: button "Registrar e gerar protoc" 334..378 entre 141 e 371; button "Registrar e gerar protoc" 334..378 entre 141 e 371; button "Registrar e gerar protoc" 334..378 entre 141 e 371; button "Registrar e gerar protoc" 334..378 entre 141 e 371; button "Registrar e gerar protoc" 334..378 entre 141 e 371; button "Registrar e gerar protoc" 334..378 entre 141 e 371
+[6b-f0e5f1b-raf-lento firefox 640x450-dpr2 /minha-conta] 0 de 23 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento firefox 640x450-dpr2 /orgaos] 13 de 23 paradas fora da faixa livre: div "ÓrgãoContatoProvidências" 294..424 entre 141 e 371; button "Desativar" 234..278 entre 141 e 371 COBERTO; button "Desativar" 234..278 entre 141 e 371 COBERTO; button "Desativar" 234..278 entre 141 e 371 COBERTO; button "Desativar" 234..278 entre 141 e 371 COBERTO; button "Desativar" 234..278 entre 141 e 371 COBERTO
+[6b-f0e5f1b-raf-lento firefox 320x256 /ocorrencias/nova] 2 de 23 paradas fora da faixa livre: input#nova-solicitante 216..260 entre 0 e 256; input#nova-endereco 216..260 entre 0 e 256
+[6b-f0e5f1b-raf-lento firefox 320x256 /minha-conta] 1 de 23 paradas fora da faixa livre: input#conta-senha-nova 216..260 entre 0 e 256
+[6b-f0e5f1b-raf-lento firefox 320x256 /orgaos] 2 de 23 paradas fora da faixa livre: input#orgao-email 216..260 entre 0 e 256; div "ÓrgãoContatoProvidências" 186..316 entre 0 e 256
+[6b-f0e5f1b-raf-lento webkit 390x844 /ocorrencias/nova] 5 de 10 paradas fora da faixa livre: input#nova-contato 723..767 entre 129 e 765; input#nova-endereco 723..767 entre 129 e 765; input#nova-ref 723..767 entre 129 e 765; input#nova-local 723..767 entre 129 e 765; textarea#nova-descricao 725..813 entre 129 e 765 COBERTO
+[6b-f0e5f1b-raf-lento webkit 390x844 /minha-conta] 3 de 5 paradas fora da faixa livre: input#conta-senha-atual 723..767 entre 129 e 765; input#conta-senha-nova 723..767 entre 129 e 765; input#conta-senha-repetida 723..767 entre 129 e 765
+[6b-f0e5f1b-raf-lento webkit 390x844 /orgaos] 1 de 8 paradas fora da faixa livre: input#orgao-telefone 723..767 entre 129 e 765
+[6b-f0e5f1b-raf-lento webkit 320x640 /ocorrencias/nova] 6 de 10 paradas fora da faixa livre: input#nova-solicitante 519..563 entre 129 e 561; input#nova-contato 519..563 entre 129 e 561; input#nova-endereco 519..563 entre 129 e 561; input#nova-ref 519..563 entre 129 e 561; input#nova-local 519..563 entre 129 e 561; textarea#nova-descricao 521..609 entre 129 e 561 COBERTO
+[6b-f0e5f1b-raf-lento webkit 320x640 /minha-conta] 1 de 5 paradas fora da faixa livre: input#conta-senha-repetida 519..563 entre 129 e 561
+[6b-f0e5f1b-raf-lento webkit 320x640 /orgaos] 2 de 8 paradas fora da faixa livre: input#orgao-email 519..563 entre 129 e 561; input#orgao-telefone 519..563 entre 129 e 561
+[6b-f0e5f1b-raf-lento webkit 640x450-dpr2 /ocorrencias/nova] 6 de 10 paradas fora da faixa livre: input#nova-solicitante 329..373 entre 141 e 371; input#nova-contato 329..373 entre 141 e 371; input#nova-endereco 329..373 entre 141 e 371; input#nova-ref 329..373 entre 141 e 371; input#nova-local 329..373 entre 141 e 371; textarea#nova-descricao 331..419 entre 141 e 371 COBERTO
+[6b-f0e5f1b-raf-lento webkit 640x450-dpr2 /minha-conta] 1 de 5 paradas fora da faixa livre: input#conta-senha-repetida 329..373 entre 141 e 371
+[6b-f0e5f1b-raf-lento webkit 640x450-dpr2 /orgaos] 4 de 8 paradas fora da faixa livre: input#orgao-nome 329..373 entre 141 e 371; input#orgao-sigla 329..373 entre 141 e 371; input#orgao-email 329..373 entre 141 e 371; input#orgao-telefone 329..373 entre 141 e 371
+[6b-f0e5f1b-raf-lento webkit 320x256 /ocorrencias/nova] 0 de 10 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento webkit 320x256 /minha-conta] 0 de 5 paradas fora da faixa livre
+[6b-f0e5f1b-raf-lento webkit 320x256 /orgaos] 1 de 8 paradas fora da faixa livre: input#orgao-sigla 214..258 entre 0 e 256
+[6b-f0e5f1b-raf-lento] resumo: 67 de 468 paradas fora da faixa livre

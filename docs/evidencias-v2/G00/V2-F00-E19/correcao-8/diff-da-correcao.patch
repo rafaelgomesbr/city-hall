@@ -1,0 +1,640 @@
+diff --git a/dc360/scripts/auditar-excecoes.mjs b/dc360/scripts/auditar-excecoes.mjs
+index f954712..cd2e0ce 100644
+--- a/dc360/scripts/auditar-excecoes.mjs
++++ b/dc360/scripts/auditar-excecoes.mjs
+@@ -129,7 +129,8 @@ export const ACEITAS_EM_DESENVOLVIMENTO = {
+  *
+  * O prazo exige AAAA-MM-DD que exista no calendário. Sem isso `undefined < hoje`
+  * e `"amanhã" < hoje` são falsos, e a exceção ficaria eterna sem ninguém ver.
+- * Vale até o fim do dia escrito: vence quando `ate < hoje`.
++ * Vale até o fim do dia escrito, no fuso de São Paulo (`hojeEmSaoPaulo`): vence
++ * quando `ate < hoje`.
+  *
+  * Com `exigirAdvisories` (a lista do aplicativo), cada exceção precisa nomear as
+  * advisories que aceita, por id GHSA ou URL, cada uma com a gravidade aceita: sem
+@@ -330,24 +331,154 @@ export const BANDEIRAS_DA_CONSULTA_REAL = Object.freeze([
+   "--prefer-offline=false",
+   "--prefer-online",
+   "--dry-run=false",
+-  "--workspaces=false",
++  /*
++    Rodada 7: com `package-lock=false` num `.npmrc` o npm deixa de ler o
++    `package-lock.json` e audita a árvore IDEAL resolvida das faixas do
++    `package.json` (`arborist.audit()`), e o portão aprovava um lockfile com
++    dependência de runtime de advisory alta, que o `npm ci --omit=dev` do
++    Dockerfile instala. As consultas reais passam também `--package-lock-only=false`
++    (ver `auditar.mjs`); a de controle passa `--package-lock-only`.
++  */
++  "--package-lock=true",
++  /*
++    `--workspaces=false` (correção 7) SAIU daqui na correção 8. Com ele o npm
++    aplica `excludeWorkspacesDependencySet`: audita só o que a RAIZ declara e
++    descarta tudo o que só os workspaces usam. Hoje a raiz não declara
++    dependência nenhuma, o filtro sai vazio e por acaso não filtra nada; no dia
++    em que a raiz ganhar uma dependência direta, o runtime de `apps/api` some do
++    relatório (provado com o npm real numa cópia, `correcao-8/saidas`). Sem a
++    bandeira o npm audita a árvore inteira; o filtro por workspace fica fechado
++    pelo `cwd` fixo, pelas variáveis anuladas abaixo e pela recusa de
++    `workspace`, `workspaces` e `include-workspace-root` em qualquer `.npmrc`
++    (`CHAVES_PERMITIDAS`).
++  */
+ ]);
+ 
+ /**
+- * O ambiente com que toda chamada ao `npm audit` roda: o do processo, SEM as
+- * variáveis que restringem o npm a um workspace (`npm_config_workspace`,
+- * `npm_config_workspaces`, `npm_config_include_workspace_root`, em qualquer caixa
+- * e com `-` ou `_`). Dentro de um workspace, ou com uma delas definida, o npm
+- * audita só aquele workspace e devolve um relatório bem formado e limpo para a
+- * raiz inteira (validação pré-rodada 7: a raiz com `fastify@4.10.0` saía 1, e o
+- * mesmo comando rodado de dentro de `packages/shared` saía 0 com "Runtime
+- * limpo"). Junto com `cwd` fixo na raiz e com `--workspaces=false` na chamada,
+- * é o que impede que o escopo da auditoria dependa de onde o comando foi dado.
++ * Variáveis `npm_config_*` que o próprio `npm run` exporta para o script (onde
++ * estão o cache, os arquivos de configuração, a versão) ou que restringem o npm
++ * a um workspace. Saem do ambiente de toda chamada ao npm: sem elas o npm usa os
++ * próprios padrões, e são esses os arquivos que o portão lê e confere. Qualquer
++ * OUTRA `npm_config_*` chega ao npm e passa pela lista de `CHAVES_PERMITIDAS`.
++ */
++const VARIAVEIS_ANULADAS = /^npm_config_(workspaces?|include[_-]workspace[_-]root|cache|global[_-]prefix|globalconfig|init[_-]module|local[_-]prefix|node[_-]gyp|noproxy|npm[_-]version|prefix|user[_-]agent|userconfig)$/i;
++
++/**
++ * O ambiente com que toda chamada ao npm roda: o do processo sem as
++ * `VARIAVEIS_ANULADAS`. As de workspace saíram na correção 7: dentro de um
++ * workspace, ou com uma delas definida, o npm audita só aquele workspace e
++ * devolve um relatório bem formado e limpo para a raiz inteira.
+  */
+ export function ambienteDaConsulta(env) {
+-  return Object.fromEntries(Object.entries(env).filter(
+-    ([nome]) => !/^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(nome),
+-  ));
++  return Object.fromEntries(Object.entries(env).filter(([nome]) => !VARIAVEIS_ANULADAS.test(nome)));
++}
++
++/* ---------- O que a configuração do npm pode ter ---------- */
++
++/**
++ * As ÚNICAS chaves de configuração do npm que o portão aceita, venham de onde
++ * vierem (o `.npmrc` do projeto, do usuário, o global, o embutido no npm, ou uma
++ * `npm_config_*` do ambiente). Qualquer outra sai 2 com o nome dela (rodada 7:
++ * `package-lock=false` num `.npmrc` fazia o npm auditar outra árvore). Em vez de
++ * tapar bandeira por bandeira, a classe fecha ao contrário: o que não se sabe
++ * que é inofensivo não passa. Cada uma foi provada com o npm real numa cópia
++ * com runtime vulnerável plantado (`correcao-8/saidas`): com ela no `.npmrc`, o
++ * portão continua saindo 1.
++ */
++export const CHAVES_PERMITIDAS = Object.freeze({
++  // Só mexem no que o npm escreve no terminal; o relatório JSON sai igual.
++  loglevel: "só o nível de log do stderr",
++  color: "só a cor do terminal",
++  progress: "só a barra de progresso",
++  fund: "só a mensagem de financiamento do `npm install`",
++  "update-notifier": "só o aviso de versão nova do npm",
++  // Lugares no disco que não entram no que o `npm audit` olha.
++  cache: "pasta do cache; a consulta de advisories vai com --prefer-online e não sai do cache",
++  prefix: "pasta das instalações globais e do npmrc global (que o portão também lê e confere)",
++  // Anuladas: toda chamada passa a bandeira, e bandeira vence configuração.
++  registry: "anulada por --registry",
++  offline: "anulada por --offline=false",
++  "prefer-offline": "anulada por --prefer-offline=false",
++  "prefer-online": "anulada por --prefer-online",
++  "dry-run": "anulada por --dry-run=false",
++  "package-lock": "anulada por --package-lock=true",
++  "package-lock-only": "anulada por --package-lock-only (false nas consultas reais, true na de controle)",
++  "audit-level": "anulada por --audit-level=low",
++  json: "anulada por --json",
++  // Credencial do registro oficial: muda quem pergunta, não o que volta.
++  "//registry.npmjs.org/:_authToken": "credencial do registro oficial",
++});
++
++/**
++ * O nome de chave como o npm o entende: em variável de ambiente
++ * `npm_config_prefer_offline` (qualquer caixa) vira `prefer-offline`; num
++ * `.npmrc`, `chave[]` (lista) vira `chave`.
++ */
++export function normalizarChave(chave, { doAmbiente = false } = {}) {
++  if (doAmbiente) return chave.replace(/^npm_config_/i, "").toLowerCase().replaceAll("_", "-");
++  return chave.trim().replace(/\[\]$/, "");
++}
++
++/** As chaves de um `.npmrc` (formato ini): comentário com `;` ou `#`; seção `[x]` vira a chave `[x]`. */
++export function chavesDoNpmrc(texto) {
++  const chaves = [];
++  for (const crua of String(texto).split(/\r?\n/)) {
++    const linha = crua.trim();
++    if (linha === "" || linha.startsWith(";") || linha.startsWith("#")) continue;
++    if (/^\[.*\]$/.test(linha)) { chaves.push(linha); continue; }
++    const igual = linha.indexOf("=");
++    chaves.push(normalizarChave(igual === -1 ? linha : linha.slice(0, igual)));
++  }
++  return chaves;
++}
++
++/**
++ * Lê a saída de `npm config list` (sem `-l`): o npm lista ali, por fonte
++ * (`builtin`, `global`, `user`, `project`, `env`, `cli`), só o que difere do
++ * padrão, com o arquivo de onde veio. É o próprio npm dizendo o que vai usar,
++ * inclusive do npmrc embutido e do global, que o portão não saberia achar
++ * sozinho. Devolve também o `npm local prefix`, a pasta que o npm tomou como
++ * projeto.
++ *
++ * @returns {{ chaves: {chave: string, origem: string}[], prefixoLocal: string | null }}
++ */
++export function lerNpmConfigList(texto) {
++  const chaves = [];
++  let origem = null;
++  let prefixoLocal = null;
++  for (const crua of String(texto).split(/\r?\n/)) {
++    const linha = crua.trim();
++    const cabecalho = /^; "([^"]+)" config from (.+)$/.exec(linha);
++    if (cabecalho) { origem = `${cabecalho[1]} (${cabecalho[2]})`; continue; }
++    const prefixo = /^; npm local prefix = (.+)$/.exec(linha);
++    if (prefixo) { prefixoLocal = prefixo[1]; origem = null; continue; }
++    if (linha === "" || linha.startsWith(";")) continue;
++    const m = /^(.+?) = /.exec(linha);
++    chaves.push({ chave: normalizarChave(m ? m[1] : linha), origem: origem ?? "npm config list (fonte não identificada)" });
++  }
++  return { chaves, prefixoLocal };
++}
++
++/** As chaves fora de `CHAVES_PERMITIDAS`, sem repetir o par (chave, origem). */
++export function chavesProibidas(achadas) {
++  const vistas = new Set();
++  return achadas.filter(({ chave, origem }) => {
++    const k = `${chave} ${origem}`;
++    if (Object.hasOwn(CHAVES_PERMITIDAS, chave) || vistas.has(k)) return false;
++    vistas.add(k);
++    return true;
++  });
++}
++
++/**
++ * A data de hoje no fuso de São Paulo (AAAA-MM-DD). O prazo das exceções "vale
++ * até o fim do dia escrito", e o dia é o do Brasil: em UTC a exceção vencia às
++ * 21h do último dia (anotado na rodada 7).
++ */
++export function hojeEmSaoPaulo(agora = new Date()) {
++  return new Intl.DateTimeFormat("en-CA", {
++    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
++  }).format(agora);
+ }
+ 
+ /**
+diff --git a/dc360/scripts/auditar.mjs b/dc360/scripts/auditar.mjs
+index 380777a..0e0e3ad 100755
+--- a/dc360/scripts/auditar.mjs
++++ b/dc360/scripts/auditar.mjs
+@@ -35,13 +35,14 @@
+  * linha.
+  */
+ import { execFileSync } from "node:child_process";
+-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { copyFileSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
+-  aceitasAusentes, ambienteDaConsulta, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
++  CHAVES_PERMITIDAS, aceitasAusentes, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas, hojeEmSaoPaulo,
++  lerNpmConfigList, normalizarChave, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+   idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
+@@ -157,7 +158,7 @@ function contar(relatorio) {
+   prazo) ANTES de qualquer auditoria: lista malformada reprova mesmo que o
+   pacote dela não apareça no relatório de hoje.
+ */
+-const hoje = new Date().toISOString().slice(0, 10);
++const hoje = hojeEmSaoPaulo();
+ const defeitosDaLista = [
+   ...problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje, { exigirAdvisories: true }),
+   ...problemasDasExcecoes(ACEITAS_EM_DESENVOLVIMENTO, hoje).map((p) => `(desenvolvimento) ${p}`),
+@@ -172,10 +173,67 @@ if (defeitosDaLista.length > 0) {
+   process.exit(1);
+ }
+ 
+-const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], RAIZ, "o conjunto de runtime da raiz");
++/* ---------- A configuração do npm, antes de qualquer auditoria ---------- */
++
++/**
++ * Sai 2 se a configuração que o npm vai usar no `projeto` tem alguma chave fora
++ * de `CHAVES_PERMITIDAS`. Junta três leituras: o que o próprio npm diz que
++ * carregou (`npm config list`, com o mesmo ambiente das auditorias: builtin,
++ * global, usuário, projeto e ambiente), o `.npmrc` do projeto lido direto do
++ * disco, e as `npm_config_*` que sobram no ambiente. As duas últimas não
++ * dependem do formato do texto do npm. Confere também que o npm tomou o
++ * `projeto` como projeto (`npm local prefix`).
++ */
++function conferirConfiguracaoDoNpm(projeto, rotulo) {
++  let texto;
++  try {
++    texto = execFileSync("npm", ["config", "list"], {
++      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
++      cwd: projeto, env: ambienteDaConsulta(process.env),
++    });
++  } catch (erro) {
++    naoAuditou(rotulo, `o \`npm config list\` falhou (${String(erro.message).split(String.fromCharCode(10))[0]})`);
++  }
++  const { chaves, prefixoLocal } = lerNpmConfigList(texto);
++  const real = (caminho) => { try { return realpathSync(caminho); } catch { return caminho; } };
++  if (prefixoLocal === null || real(prefixoLocal) !== real(projeto)) {
++    naoAuditou(rotulo, `o npm não tomou ${projeto} como projeto (npm local prefix = ${prefixoLocal ?? "ausente"})`);
++  }
++  const npmrc = join(projeto, ".npmrc");
++  if (existsSync(npmrc)) {
++    for (const chave of chavesDoNpmrc(readFileSync(npmrc, "utf8"))) chaves.push({ chave, origem: `project (${npmrc})` });
++  }
++  for (const nome of Object.keys(ambienteDaConsulta(process.env))) {
++    if (/^npm_config_/i.test(nome)) chaves.push({ chave: normalizarChave(nome, { doAmbiente: true }), origem: `env (${nome})` });
++  }
++  const proibidas = chavesProibidas(chaves);
++  if (proibidas.length > 0) {
++    console.error(`\nERRO: a configuração do npm para ${rotulo} (${projeto}) tem chave fora da lista permitida, então este portão NÃO aprova.`);
++    for (const { chave, origem } of proibidas) console.error(`  - ${chave}   (de ${origem})`);
++    console.error(
++      "Uma chave de configuração pode mudar o que o `npm audit` olha (a rodada 7 achou `package-lock=false`, que faz "
++      + "o npm auditar outra árvore e aprovar um lockfile vulnerável). Tire a chave, ou, se ela for comprovadamente "
++      + `inofensiva, acrescente-a com o motivo a CHAVES_PERMITIDAS em scripts/auditar-excecoes.mjs. Permitidas: ${Object.keys(CHAVES_PERMITIDAS).join(", ")}.`,
++    );
++    process.exit(2);
++  }
++}
++
++conferirConfiguracaoDoNpm(RAIZ, "a raiz");
++conferirConfiguracaoDoNpm(APLICATIVO, "o aplicativo de campo");
++
++/*
++  `--package-lock-only=false` nas consultas reais (e `--package-lock=true` em
++  todas, por `BANDEIRAS_DA_CONSULTA_REAL`): o npm audita o que o lockfile diz,
++  que é o que o `npm ci` do Dockerfile instala.
++*/
++const relatorioDoRuntime = auditar(
++  ["--package-lock-only=false", "--omit=dev", "--audit-level=low"], RAIZ, "o conjunto de runtime da raiz",
++);
+ // `--include` explícito: `omit=dev` na configuração do npm não esconde o desenvolvimento.
+ const relatorioDeTudo = auditar(
+-  ["--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], RAIZ, "o conjunto completo da raiz",
++  ["--package-lock-only=false", "--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], RAIZ,
++  "o conjunto completo da raiz",
+ );
+ const runtime = contar(relatorioDoRuntime);
+ const tudo = contar(relatorioDeTudo);
+@@ -241,7 +299,9 @@ if (soDesenvolvimento > 0) {
+ 
+ /* ---------- O aplicativo de campo, que fica fora do `workspaces` ---------- */
+ 
+-const relatorioDoApp = auditar(["--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo");
++const relatorioDoApp = auditar(
++  ["--package-lock-only=false", "--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo",
++);
+ const doApp = contar(relatorioDoApp);
+ /*
+   Só os pacotes com advisory PRÓPRIA, e não a cadeia inteira que depende deles.
+diff --git a/dc360/scripts/auditar.test.mjs b/dc360/scripts/auditar.test.mjs
+index faddc31..0864091 100644
+--- a/dc360/scripts/auditar.test.mjs
++++ b/dc360/scripts/auditar.test.mjs
+@@ -27,7 +27,8 @@ import { after, before, describe, it } from "node:test";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
+-  aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
++  CHAVES_PERMITIDAS, aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
++  hojeEmSaoPaulo, lerNpmConfigList, normalizarChave, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
+@@ -45,10 +46,35 @@ const cwd = process.cwd().replaceAll("\\\\", "/");
+ const f = JSON.parse(process.env.AUDITAR_FIXTURE);
+ const args = process.argv.slice(2);
+ const controle = /\\/auditar-controle-[^/]*$/.test(cwd);
++// \`npm config list\`: o formato do npm real (projeto e ambiente), ou o texto da fixture.
++if (args[0] === "config") {
++  const nome = cwd.endsWith("apps/campo") ? "configApp" : "configRaiz";
++  if (typeof f[nome] === "string") { process.stdout.write(f[nome]); process.exit(f[nome + "Codigo"] ?? 0); }
++  const linhas = [];
++  if (existsSync(".npmrc")) {
++    linhas.push(\`; "project" config from \${process.cwd()}/.npmrc\`, "");
++    for (const l of readFileSync(".npmrc", "utf8").split(/\\r?\\n/)) {
++      const t = l.trim(); if (!t || t.startsWith(";") || t.startsWith("#")) continue;
++      const i = t.indexOf("="); linhas.push(i < 0 ? \`\${t} = true\` : \`\${t.slice(0, i).trim()} = \${t.slice(i + 1).trim()}\`);
++    }
++    linhas.push("");
++  }
++  const doAmbiente = Object.keys(process.env).filter((n) => /^npm_config_/i.test(n));
++  if (doAmbiente.length) {
++    linhas.push('; "env" config from environment', "");
++    for (const n of doAmbiente) linhas.push(\`\${n.slice(11).toLowerCase().replaceAll("_", "-")} = "\${process.env[n]}"\`);
++    linhas.push("");
++  }
++  if (f[nome + "Extra"]) linhas.push(f[nome + "Extra"], "");
++  linhas.push("; npm version = 11.0.0", \`; npm local prefix = \${f[nome + "Prefixo"] ?? process.cwd()}\`, \`; cwd = \${process.cwd()}\`);
++  process.stdout.write(linhas.join("\\n") + "\\n");
++  process.exit(0);
++}
+ if (process.env.AUDITAR_LOG) {
+   const npmrc = existsSync(".npmrc") ? readFileSync(".npmrc", "utf8").trim() : null;
+   const workspaceNoAmbiente = Object.keys(process.env).filter((n) => /^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(n));
+-  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente }) + "\\n");
++  const npmConfig = Object.keys(process.env).filter((n) => /^npm_config_/i.test(n)).sort();
++  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente, npmConfig }) + "\\n");
+ }
+ const fixado = args.includes("--registry=${REGISTRO_OFICIAL}") && args.includes("--offline=false");
+ const rel = f.ignorarBandeiras || (f.offline && !fixado) ? f.vazioBemFormado
+@@ -134,10 +160,16 @@ function fixtura({
+   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
+ }
+ 
++/**
++ * O ambiente do teste SEM nenhuma \`npm_config_*\`: rodando por \`npm run\`, o npm
++ * exporta várias, e o portão confere as que sobram. Cada teste põe as suas.
++ */
++const AMBIENTE_LIMPO = Object.fromEntries(Object.entries(process.env).filter(([n]) => !/^npm_config_/i.test(n)));
++
+ function rodar(opcoes, { env = {}, cwd } = {}) {
+   const r = spawnSync(process.execPath, [SCRIPT], {
+     encoding: "utf8", ...(cwd ? { cwd } : {}),
+-    env: { ...process.env, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
++    env: { ...AMBIENTE_LIMPO, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
+   });
+   return { codigo: r.status, saida: r.stdout + r.stderr };
+ }
+@@ -303,13 +335,19 @@ describe("auditar.mjs", () => {
+     assert.equal(codigo, 0, saida);
+     assert.equal(chamadas.length, 5, JSON.stringify(chamadas)); // runtime, tudo, aplicativo e dois controles
+     for (const { args } of chamadas) {
+-      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false", "--workspaces=false"]) {
++      for (const bandeira of [
++        `--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false",
++        "--package-lock=true",
++      ]) {
+         assert.ok(args.includes(bandeira), `falta ${bandeira} em ${args.join(" ")}`);
+       }
++      // Correção 8: \`--workspaces=false\` saiu (com dependência direta na raiz, ele descarta o runtime dos workspaces).
++      assert.ok(!args.some((a) => /^--(no-)?workspaces?(=|$)/.test(a)), args.join(" "));
+     }
+     const controles = chamadas.filter((c) => c.controle);
+     assert.equal(controles.length, 2);
+     for (const { args } of controles) assert.ok(args.includes("--package-lock-only"));
++    for (const { args } of chamadas.filter((c) => !c.controle)) assert.ok(args.includes("--package-lock-only=false"), args.join(" "));
+     assert.match(saida, /Consulta de controle: lodash 4\.17\.20 voltou com GHSA-35jh-r3h4-6jhm/);
+   });
+ 
+@@ -345,8 +383,7 @@ describe("auditar.mjs", () => {
+     assert.equal(chamadas.length, 5);
+     for (const { workspaceNoAmbiente, args } of chamadas) {
+       assert.deepEqual(workspaceNoAmbiente, []);
+-      assert.ok(args.includes("--workspaces=false"));
+-      assert.ok(!args.some((a) => /^--workspace(=|$)/.test(a)));
++      assert.ok(!args.some((a) => /^--(no-)?workspaces?(=|$)/.test(a)));
+     }
+   });
+ 
+@@ -360,6 +397,52 @@ describe("auditar.mjs", () => {
+     assert.match(saida, /dependência de runtime/);
+   });
+ 
++  it("npm_config_* fora da lista no ambiente sai 2 com o nome (em qualquer caixa), antes de auditar", () => {
++    for (const [nome, chave] of [["npm_config_before", "before"], ["NPM_CONFIG_OMIT", "omit"], ["npm_config_https_proxy", "https-proxy"]]) {
++      const { codigo, saida, chamadas } = rodarComRegistro({}, { env: { [nome]: "x" } });
++      assert.equal(codigo, 2, `${nome}: ${saida}`);
++      assert.ok(saida.includes(`  - ${chave}   (de env (${nome}))`), `${nome}: ${saida}`);
++      assert.equal(chamadas.length, 0);
++    }
++  });
++
++  it("as npm_config_* que o npm run exporta são anuladas (não chegam ao npm), e as permitidas chegam e passam", () => {
++    const { codigo, saida, chamadas } = rodarComRegistro({}, {
++      env: {
++        npm_config_userconfig: "/tmp/nao-existe/.npmrc", npm_config_globalconfig: "/tmp/nao-existe/npmrc",
++        npm_config_local_prefix: "/tmp", npm_config_prefix: "/tmp", npm_config_cache: "/tmp/cache",
++        npm_config_user_agent: "npm/0", npm_config_node_gyp: "x", npm_config_npm_version: "0", npm_config_init_module: "x",
++        npm_config_global_prefix: "/tmp", npm_config_noproxy: "",
++        npm_config_package_lock: "false", NPM_CONFIG_LOGLEVEL: "silent",
++      },
++    });
++    assert.equal(codigo, 0, saida);
++    assert.equal(chamadas.length, 5);
++    for (const { npmConfig } of chamadas) assert.deepEqual(npmConfig, ["NPM_CONFIG_LOGLEVEL", "npm_config_package_lock"]);
++  });
++
++  it("chave fora da lista que só o npm conhece (npmrc do usuário, global ou embutido) sai 2 com o arquivo de origem", () => {
++    const extra = '; "user" config from /casa/.npmrc\n\nfund = false\nomit = ["dev"]\n\n; "global" config from /usr/etc/npmrc\n\nbefore = "2020-01-01"';
++    const { codigo, saida } = rodar({ configRaizExtra: extra });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /  - omit   \(de user \(\/casa\/\.npmrc\)\)/);
++    assert.match(saida, /  - before   \(de global \(\/usr\/etc\/npmrc\)\)/);
++    assert.doesNotMatch(saida, /  - fund /);
++  });
++
++  it("sai 2 quando o npm config list falha, não diz o projeto, ou toma outra pasta como projeto", () => {
++    for (const [opcoes, motivo] of [
++      [{ configRaiz: "", configRaizCodigo: 1 }, /npm config list. falhou/],
++      [{ configRaiz: "; nada aqui\n" }, /npm local prefix = ausente/],
++      [{ configAppPrefixo: tmpdir() }, /não tomou .* como projeto/],
++    ]) {
++      const { codigo, saida } = rodar(opcoes);
++      assert.equal(codigo, 2, `${JSON.stringify(opcoes)}: ${saida}`);
++      assert.match(saida, motivo);
++      assert.doesNotMatch(saida, /Runtime limpo/);
++    }
++  });
++
+   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
+     const { codigo, saida } = rodar({ offline: true, app: juntar(APP_ACEITO, relatorio({ "pacote-novo": false })) });
+     assert.equal(codigo, 1, saida);
+@@ -514,6 +597,51 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
+     assert.deepEqual(pacotesDeRuntimeNoCompleto(vulns, lock), ["desconhecido", "misto", "o", "p", "semNos"]);
+   });
+ 
++  it("chavesDoNpmrc lê o ini do .npmrc: comentário, lista com [], seção e linha sem valor", () => {
++    assert.deepEqual(
++      chavesDoNpmrc("; c\n# d\n\npackage-lock = false\nfoo[]=1\r\n[secao]\n  //registry.npmjs.org/:_authToken=${T}\nsozinha\n"),
++      ["package-lock", "foo", "[secao]", "//registry.npmjs.org/:_authToken", "sozinha"],
++    );
++  });
++
++  it("lerNpmConfigList separa as chaves por fonte e acha o npm local prefix (formato do npm 10 e 11)", () => {
++    const texto = '; "user" config from /casa/.npmrc\n\n//registry.npmjs.org/:_authToken = (protected)\nfund = false\n\n'
++      + '; "project" config from /p/.npmrc\n\npackage-lock = false\n\n; "env" config from environment\n\nloglevel = "silent"\n\n'
++      + "; node bin location = /usr/local/bin/node\n; node version = v22.0.0\n; npm local prefix = /p\n; npm version = 10.9.2\n; cwd = /p\n";
++    const { chaves, prefixoLocal } = lerNpmConfigList(texto);
++    assert.equal(prefixoLocal, "/p");
++    assert.deepEqual(chaves, [
++      { chave: "//registry.npmjs.org/:_authToken", origem: "user (/casa/.npmrc)" },
++      { chave: "fund", origem: "user (/casa/.npmrc)" },
++      { chave: "package-lock", origem: "project (/p/.npmrc)" },
++      { chave: "loglevel", origem: "env (environment)" },
++    ]);
++    assert.deepEqual(chavesProibidas(chaves), []);
++  });
++
++  it("normalizarChave e chavesProibidas: variável em qualquer caixa vira a chave do npm; a lista não permite workspace, omit, include nem proxy", () => {
++    assert.equal(normalizarChave("NPM_CONFIG_PREFER_OFFLINE", { doAmbiente: true }), "prefer-offline");
++    assert.equal(normalizarChave("npm_config_package_lock", { doAmbiente: true }), "package-lock");
++    for (const chave of ["workspace", "workspaces", "include-workspace-root", "omit", "include", "before", "proxy", "https-proxy", "cafile", "global", "audit"]) {
++      assert.ok(!Object.hasOwn(CHAVES_PERMITIDAS, chave), chave);
++    }
++    assert.deepEqual(chavesProibidas([{ chave: "omit", origem: "a" }, { chave: "omit", origem: "a" }, { chave: "fund", origem: "a" }]), [{ chave: "omit", origem: "a" }]);
++  });
++
++  it("hojeEmSaoPaulo: o prazo vence no fim do dia do Brasil, e não às 21h (UTC)", () => {
++    assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T01:00:00Z")), "2027-01-05"); // 22h do dia 5 em São Paulo
++    assert.equal(hojeEmSaoPaulo(new Date("2027-01-06T03:00:00Z")), "2027-01-06"); // meia-noite do dia 6
++    assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hojeEmSaoPaulo(new Date("2027-01-06T02:59:00Z")), { exigirAdvisories: true }), []);
++  });
++
++  it("ambienteDaConsulta tira as npm_config_* do npm run e de workspace, e deixa as outras", () => {
++    const env = ambienteDaConsulta({
++      PATH: "/bin", npm_config_userconfig: "x", NPM_CONFIG_CACHE: "x", npm_config_local_prefix: "x", npm_config_workspace: "x",
++      npm_config_before: "x", npm_config_loglevel: "x",
++    });
++    assert.deepEqual(Object.keys(env).sort(), ["PATH", "npm_config_before", "npm_config_loglevel"]);
++  });
++
+   it("defeitoDaArvore exige dependencies.total maior que zero", () => {
+     assert.equal(defeitoDaArvore(limpo), null);
+     for (const rel of [{}, { metadata: {} }, { metadata: { dependencies: { total: 0 } } }, { metadata: { dependencies: { total: "249" } } }]) {
+@@ -609,7 +737,7 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
+ 
+ describe("auditar.mjs com a lista de exceções adulterada", () => {
+   /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
+-  function rodarCopia(alterar, { npmrc, semLockfile = false } = {}) {
++  function rodarCopia(alterar, { npmrc, semLockfile = false, fixturaDaCopia = {} } = {}) {
+     const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
+     try {
+       mkdirSync(join(raiz, "scripts"));
+@@ -628,10 +756,10 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
+       const r = spawnSync(process.execPath, [join(raiz, "scripts", "auditar.mjs")], {
+         encoding: "utf8",
+         env: {
+-          ...process.env,
++          ...AMBIENTE_LIMPO,
+           PATH: pasta + delimiter + process.env.PATH,
+           AUDITAR_LOG: log,
+-          AUDITAR_FIXTURE: fixtura({}),
++          AUDITAR_FIXTURE: fixtura(fixturaDaCopia),
+         },
+       });
+       const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
+@@ -679,6 +807,42 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
+     assert.doesNotMatch(saida, /Runtime limpo/);
+   });
+ 
++  /*
++    Rodada 7, achado 1: \`package-lock=false\` no \`.npmrc\` da raiz fazia o npm
++    auditar a árvore ideal das faixas do \`package.json\`, e não o lockfile, e o
++    portão aprovava um lockfile com runtime vulnerável. A chave é permitida porque
++    toda chamada passa \`--package-lock=true\`, que vence a configuração.
++  */
++  it("package-lock=false (e offline) no .npmrc da raiz: a chave é anulada pela bandeira e o runtime vulnerável reprova", () => {
++    const npmrc = { raiz: "package-lock=false\noffline=true\n", app: "package-lock=false\n" };
++    const limpa = rodarCopia((t) => `${t}\n// controle\n`, { npmrc });
++    assert.equal(limpa.codigo, 0, limpa.saida);
++    for (const { args } of limpa.chamadas) assert.ok(args.includes("--package-lock=true"), args.join(" "));
++    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc, fixturaDaCopia: { runtime: relatorio({ fastify: true }) } });
++    assert.equal(codigo, 1, saida);
++    assert.match(saida, /dependência de runtime/);
++  });
++
++  it("chave fora da lista no .npmrc da raiz sai 2 com o nome dela e a origem, ANTES de auditar", () => {
++    for (const linha of ["before=2020-01-01", "omit=dev", "workspace=packages/shared", "workspaces=false",
++      "include-workspace-root=false", "https-proxy=http://127.0.0.1:9", "ignore-scripts=true", "[secao]"]) {
++      const { codigo, saida, chamadas } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: `${linha}\n`, app: "" } });
++      const chave = linha.startsWith("[") ? linha : linha.split("=")[0];
++      assert.equal(codigo, 2, `${linha}: ${saida}`);
++      assert.match(saida, /tem chave fora da lista permitida/);
++      assert.ok(saida.includes(`  - ${chave}   (de project (`), `${linha}: ${saida}`);
++      assert.equal(chamadas.length, 0, `${linha}: auditou antes de conferir a configuração`);
++      assert.doesNotMatch(saida, /Runtime limpo/);
++    }
++  });
++
++  it("chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo", () => {
++    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { npmrc: { raiz: "fund=false\n", app: "omit=\n" } });
++    assert.equal(codigo, 2, saida);
++    assert.match(saida, /para o aplicativo de campo .*tem chave fora da lista permitida/);
++    assert.match(saida, /  - omit   \(de project/);
++  });
++
+   it("reprova a exceção vencida", () => {
+     const { codigo, saida } = rodarCopia((t) => t.replace('const PRAZO = "2027-01-05"', 'const PRAZO = "2020-01-01"'));
+     assert.equal(codigo, 1, saida);
+diff --git a/dc360/README.md b/dc360/README.md
+index 7b648ae..1114e29 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1582,31 +1582,48 @@ ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
+ devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
+ código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
+ 
+-O que o portão anula: toda chamada fixa o registro oficial
+-(`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
+-`dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
+-`offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
+-ou em `npm_config_*`, não mudam para onde ele pergunta. O escopo também não
++Antes de auditar, o portão confere a configuração do npm: lê o que o próprio npm
++diz que carregou (`npm config list`: o npmrc embutido, o global, o do usuário, o
++do projeto e as `npm_config_*` do ambiente), o `.npmrc` da raiz e o do aplicativo
++direto do disco, e as `npm_config_*` do ambiente, e só aceita as chaves de
++`CHAVES_PERMITIDAS` (`scripts/auditar-excecoes.mjs`): as que só mexem no terminal
++(`loglevel`, `color`, `progress`, `fund`, `update-notifier`), as pastas `cache`
++e `prefix`, a credencial do registro oficial, e as que toda chamada anula na
++linha de comando, que vence configuração (`registry`, `offline`,
++`prefer-offline`, `prefer-online`, `dry-run`, `package-lock`,
++`package-lock-only`, `audit-level`, `json`). Qualquer outra chave, venha de onde
++vier, faz o portão sair 2 com o nome dela e o arquivo de origem: a rodada 7 achou
++`package-lock=false` num `.npmrc`, que faz o npm auditar a árvore ideal das
++faixas do `package.json` em vez do lockfile, e o portão aprovava um lockfile com
++runtime vulnerável. Por isso toda chamada passa `--package-lock=true`, e as
++consultas reais `--package-lock-only=false`. As variáveis que o `npm run` exporta
++para o script (`cache`, `prefix`, `userconfig`, `globalconfig`, `local-prefix` e
++afins) e as de workspace saem do ambiente das chamadas. O escopo também não
+ depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
+-do aplicativo no aplicativo), com `--workspaces=false` e sem as variáveis
+-`npm_config_workspace`, `npm_config_workspaces` e `npm_config_include_workspace_root`
+-no ambiente, porque o npm audita só o workspace em que está e devolve "limpo" para
+-o resto (dado de dentro de `packages/shared`, o comando ficava em "Runtime limpo"
+-com uma dependência de runtime vulnerável na raiz). Um `workspace=` fixado num
+-`.npmrc` faz o npm recusar a chamada, e aí o portão sai 2. O que ele exige antes de
+-aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
+-aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
+-próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
+-está velha, e o portão sai 2); o que a auditoria completa acusa em pacote que o
+-`package-lock.json` não marca como só de desenvolvimento conta como runtime; e
+-uma consulta de controle à parte (`lodash` 4.17.20, com o `.npmrc` de cada
+-projeto) volta com a advisory conhecida. As exceções do aplicativo casam pelo id
+-da advisory e pela gravidade aceita: advisory nova num pacote já aceito reprova,
+-e advisory aceita que muda de gravidade também. O que continua FORA do alcance:
+-um `npm` falso no `PATH` (o portão confia no programa que executa), um proxy de
+-inspeção TLS que reescreve a resposta tirando só a advisory nova e deixando as
+-conhecidas, e o dia em que as duas listas de aceitas ficarem vazias (aí a única
+-prova é a consulta de controle à parte).
++do aplicativo no aplicativo), e o npm tem de confirmar a pasta (`npm local
++prefix`). `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
++e a bandeira `--workspaces=false` saiu na correção 8: com uma dependência direta
++na raiz ela descarta do relatório tudo o que só os workspaces usam. O que ele
++exige antes de aprovar: cada relatório diz quantas dependências olhou; as
++advisories aceitas do aplicativo (por GHSA) e os pacotes aceitos de
++desenvolvimento voltam DENTRO das próprias consultas (se uma some, a resposta foi
++forjada no caminho ou a lista está velha, e o portão sai 2); o que a auditoria
++completa acusa em pacote que o `package-lock.json` não marca como só de
++desenvolvimento conta como runtime; e uma consulta de controle à parte (`lodash`
++4.17.20, com o `.npmrc` de cada projeto) volta com a advisory conhecida. As
++exceções do aplicativo casam pelo id da advisory e pela gravidade aceita:
++advisory nova num pacote já aceito reprova, e advisory aceita que muda de
++gravidade também. O prazo das exceções vale até o fim do dia escrito no fuso de
++São Paulo. O que continua FORA do alcance: um `npm` falso no `PATH` (o portão
++confia no programa que executa); um proxy de inspeção TLS que reescreve a
++resposta tirando só a advisory nova e deixando as conhecidas (as variáveis de
++proxy do sistema, como `HTTPS_PROXY`, não são configuração do npm e não passam
++pela lista); o dia em que as duas listas de aceitas ficarem vazias (aí a única
++prova é a consulta de controle à parte); e um `package-lock.json` adulterado que
++marca um pacote de runtime como `dev: true`, porque o portão confia nessa marca
++para separar runtime de desenvolvimento (o `npm ci --omit=dev` do Dockerfile usa
++a mesma marca e não instala o pacote, então a imagem não leva a versão
++vulnerável; anotado na rodada 7).
+ 
+ ### O aplicativo de campo precisa de um comando próprio
+ 
