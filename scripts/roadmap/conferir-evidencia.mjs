@@ -78,7 +78,7 @@ export const PADROES_DE_SEGREDO = [
   { nome: "JWT", re: /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/ },
   { nome: "cabeçalho Bearer com valor", re: /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/i },
   { nome: "cabeçalho Basic com valor", re: /\bBasic\s+[A-Za-z0-9+/=]{16,}/ },
-  { nome: "PASSWORD com valor", re: /\bPASSWORD\s+'[^']+'|\bPASSWORD\s*[=:]\s*["'][^"']{2,}["']/i },
+  { nome: "PASSWORD com valor", re: /\bPASSWORD\s+'(?!(?:\.\.\.|\*{3}|redigido|exemplo)')[^']+'|\bPASSWORD\s*[=:]\s*["'][^"']{2,}["']/i },
   { nome: "URL com usuário e senha", re: /\b[a-z][a-z0-9+.-]*:\/\/[^/\s:@\[\]]+:[^/\s@\[\]]+@/i },
   { nome: "variável *_SEGREDO com valor", re: /\b[A-Z][A-Z0-9_]*SEGREDO[A-Z0-9_]*\s*=\s*(?!\s|["']?\s*$|\[|<|\$|["']?(?:xxx|\*{3}|\.\.\.|redigido|exemplo))[^\s"']{3,}/i },
 ];

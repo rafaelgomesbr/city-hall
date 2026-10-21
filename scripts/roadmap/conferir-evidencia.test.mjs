@@ -226,6 +226,7 @@ test("segredos: o que a redação do baseline deixa não é segredo", () => {
         "DC360_JWT_SEGREDO=<segredo>",
         "DC360_JWT_SEGREDO=$DC360_JWT_SEGREDO",
         "a coluna PASSWORD existe e o texto password aparece sem valor",
+        "o passo redigir limpa `PASSWORD '...'` antes de publicar (texto de documentação)",
         "SEGREDO sozinho e Bearer curto",
       ].join("\n"),
     );
