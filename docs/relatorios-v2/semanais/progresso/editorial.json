@@ -1,9 +1,9 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "Do diagnóstico de 30/09 à primeira validação independente de 13/10. Nenhuma etapa está concluída ainda, e este relatório mostra o motivo.",
+  "lead": "A F00 passou por sete rodadas de validação independente desde 13/10. Na rodada 7, de 20/10, 21 das 25 etapas foram aprovadas. A correção das quatro restantes já está no ramo da fase, e a validação ganhou regras para terminar.",
   "aSeguir": {
-    "titulo": "Segunda validação, aprovação do gate G00 e fase 2",
-    "texto": "Cada fase só começa quando o gate da anterior é aprovado."
+    "titulo": "Rodada 8 da validação, gate G00 e fase 1",
+    "texto": "A rodada 8 já segue as regras novas: valida só o que mudou e usa o CI, em Linux e em Windows, como prova. A fase 1 pode começar num ramo próprio quando restarem até 3 etapas abertas na F00."
   },
   "imagens": [
     {
@@ -22,31 +22,26 @@
   "notaDasImagens": "Capturas reais do ambiente de teste, com dados fictícios.",
   "validacao": {
     "titulo": "O que a validação achou",
-    "lead": "Um revisor que não escreveu o código tentou quebrar cada uma das 25 etapas. Quase metade reprovou, e é para isso que ele existe. As 12 reprovadas já foram corrigidas e aguardam nova validação.",
+    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para 3 na rodada 7. A correção dessas três já foi implementada e espera a rodada 8.",
     "achados": [
       {
-        "titulo": "Conta desativada",
-        "texto": "ainda emitia documento oficial por alguns caminhos.",
+        "titulo": "Códigos de erro:",
+        "texto": "a API escapava do catálogo em casos de resposta em fluxo; corrigido. O caso que exige código hostil dentro da própria rota virou dívida, com prazo antes do G02.",
         "selo": "corrigido"
       },
       {
-        "titulo": "Fila do campo",
-        "texto": "travava e oferecia \"descartar\", com risco de perder trabalho.",
+        "titulo": "Auditoria de pacotes:",
+        "texto": "configurações do npm davam verde falso; o CI agora recusa essas configurações e roda também em Windows.",
         "selo": "corrigido"
       },
       {
-        "titulo": "Vistoria em andamento",
-        "texto": "era apagada ao sair da conta, sem aviso.",
+        "titulo": "Telas de sessão e senha:",
+        "texto": "foco do teclado escondido atrás do topo e da barra do celular; corrigido de 320 px até tela larga.",
         "selo": "corrigido"
       },
       {
-        "titulo": "Celular:",
-        "texto": "botão saía da janela e um item do menu ficava cortado.",
-        "selo": "corrigido"
-      },
-      {
-        "titulo": "Aplicativo",
-        "texto": "prometia envio em segundo plano, que ele não faz.",
+        "titulo": "Windows:",
+        "texto": "a prova deixou de depender de uma máquina sua: sai do CI a cada commit.",
         "selo": "corrigido"
       }
     ]
@@ -54,13 +49,18 @@
   "decisoes": [
     {
       "quem": "Rafael",
-      "titulo": "Gate G00",
-      "texto": "Aprovar a fase 1 depois da segunda validação."
+      "titulo": "Proposta de aceleração",
+      "texto": "Aprovada em 20/10: achado que só existe com código hostil no repositório vira dívida, e não reprova a etapa."
     },
     {
       "quem": "Rafael",
-      "titulo": "E-mail e atualizações",
-      "texto": "Escolher o provedor de e-mail e decidir sobre seis atualizações pendentes do Expo."
+      "titulo": "Gate G00",
+      "texto": "Aprovar a fase 1 quando o gatekeeper recomendar, depois da rodada 8."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Chave do Firebase",
+      "texto": "Restringir a chave do aplicativo no console do Google, porque o repositório agora é público."
     },
     {
       "quem": "Rafael e Alyson",
