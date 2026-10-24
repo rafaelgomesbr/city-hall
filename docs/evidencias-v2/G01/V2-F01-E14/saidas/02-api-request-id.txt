@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/api
+
+ ✓ test/request-id.test.ts (13 tests) 1954ms
+   ✓ o 500 e o banco fora do ar > o reportador injetado recebe o molde da rota e o id, e nunca a barra de endereço  500ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  18:31:05
+   Duration  2.65s (transform 252ms, setup 134ms, collect 328ms, tests 1.95s, environment 0ms, prepare 39ms)
+

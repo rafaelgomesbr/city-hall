@@ -1,0 +1,12 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/api
+
+ ✓ test/alerta-de-armazenamento.test.ts (11 tests) 11ms
+ ✓ test/reportador-de-erros.test.ts (17 tests) 13ms
+ ✓ test/rotinas-em-nivel-error.test.ts (8 tests) 27ms
+
+ Test Files  3 passed (3)
+      Tests  36 passed (36)
+   Start at  18:31:08
+   Duration  380ms (transform 126ms, setup 370ms, collect 77ms, tests 51ms, environment 0ms, prepare 128ms)
+

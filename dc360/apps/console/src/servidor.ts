@@ -29,6 +29,7 @@ import { FACES_DE_FONTE } from "./fontes.js";
 import { conferirSenha, derivarSenha, gerarSenhaTemporaria } from "../../api/src/auth/senha.js";
 import { gerarSegredoTotp, uriDeAtivacao } from "../../api/src/auth/totp.js";
 import { versaoDoBuild } from "../../api/src/versao-do-build.js";
+import { idDeRequisicaoRecebido } from "../../api/src/observabilidade/id-de-requisicao.js";
 import { TextoLongoDemais, matrizQr } from "./qr.js";
 import {
   CODIGO_JA_CONSUMIDO, acharCodigo, candidatosPorEmail, codigosRestantes, consumirCodigo,
@@ -266,6 +267,9 @@ export async function construirConsole(
   const nivelDeLog = "info";
 
   const app = Fastify({
+    // Mesma regra da API (V2-F01-E14): o `X-Request-Id` de entrada só vale se for
+    // UUID, e o id sai em toda resposta e no corpo do 500.
+    genReqId: (req) => idDeRequisicaoRecebido(req.headers["x-request-id"]) ?? crypto.randomUUID(),
     logger: {
       level: nivelDeLog,
       ...(dep.destinoDeLog ? { stream: dep.destinoDeLog } : {}),
@@ -412,6 +416,10 @@ export async function construirConsole(
   /** As rotas sob `LIMITE_DE_ACOES`, para o tratador de 429 dizer a espera certa. */
   const ROTAS_DE_ACAO = /^\/(operadores|senha|codigos-de-recuperacao|municipios\/[^/]+\/(suspender|reativar|eliminar|eliminacao\/cancelar))/;
 
+  app.addHook("onSend", async (req, resposta) => {
+    resposta.header("x-request-id", req.id);
+  });
+
   /**
    * Um tratador só, e ele nunca devolve a mensagem crua do erro.
    *
@@ -449,10 +457,12 @@ export async function construirConsole(
       });
     }
     app.log.error(
-      { erro: erro instanceof Error ? erro.message : String(erro) },
+      { erro: erro instanceof Error ? erro.message : String(erro), requisicao: req.id },
       "falha no console",
     );
-    return resposta.code(500).send({ erro: "falha_interna" });
+    // O id é o código de suporte: sem ele quem opera o console não tem como
+    // dizer ao fornecedor qual linha do log olhar.
+    return resposta.code(500).send({ erro: "falha_interna", requisicao: req.id });
   });
 
   /**

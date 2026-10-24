@@ -46,6 +46,8 @@ import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
 import type { UltimaRodada } from "./push/varredor.js";
 import { chaveDoLimitador, declararProxyDeBorda, enderecoDoCliente } from "./rede.js";
+import { criarReportador, type ReportadorDeErros } from "./observabilidade/reportador.js";
+import { idDeRequisicaoRecebido } from "./observabilidade/id-de-requisicao.js";
 
 export type Identidade = {
   usuarioId: string;
@@ -167,6 +169,12 @@ export type Dependencias = {
    * fora dele. Só o teste da guarda passa, para provar o modo de produção.
    */
   modoDaGuarda?: ModoDaGuarda;
+  /**
+   * Para onde vai o erro inesperado (500). Sem isto: o log em nível `error`, que
+   * é o único destino até o CP-06 decidir a ferramenta de erro. O teste passa um
+   * coletor para afirmar o que sairia para um terceiro.
+   */
+  reportador?: ReportadorDeErros;
 };
 
 /**
@@ -270,7 +278,7 @@ export const CAMINHOS_REDIGIDOS = [
 export async function construirServidor(
   {
     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
-    push, modoDaGuarda,
+    push, modoDaGuarda, reportador: reportadorInjetado,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -355,9 +363,12 @@ export async function construirServidor(
   };
 
   const app = Fastify({
-    // O id de requisição aparece em todo log e na resposta de erro 500. É o
-    // que permite alguém dizer "deu erro às 14h32" e a equipe achar a linha.
-    genReqId: () => crypto.randomUUID(),
+    // O id de requisição aparece em todo log, no cabeçalho `X-Request-Id` de
+    // toda resposta e no corpo do 500. É o que permite alguém dizer "deu erro às
+    // 14h32" e a equipe achar a linha. Um `X-Request-Id` de entrada só vale se
+    // for UUID (ver `idDeRequisicaoRecebido`): texto livre viraria injeção de
+    // linha no log e no cabeçalho de volta.
+    genReqId: (req) => idDeRequisicaoRecebido(req.headers["x-request-id"]) ?? crypto.randomUUID(),
     logger: opcoesDeLog,
     // `1` salto, e não a cadeia inteira: confiar em tudo faz o Fastify aceitar como
     // origem a primeira entrada de `X-Forwarded-For`, que é escrita pelo
@@ -418,8 +429,12 @@ export async function construirServidor(
     não passa por aqui; no caminho local de desenvolvimento, deixar de cachear
     a foto por 60s é o lado seguro da troca.
   */
-  app.addHook("onSend", async (_req, resposta) => {
+  app.addHook("onSend", async (req, resposta) => {
     resposta.header("cache-control", "no-store");
+    // Toda resposta devolve o id da requisição, 2xx inclusive: o painel mostra
+    // como código de suporte no 5xx, e quem depura uma rota lenta o lê no
+    // sucesso. Sempre o `req.id` já validado, nunca eco do cabeçalho cru.
+    resposta.header("x-request-id", req.id);
   });
 
   await app.register(cors, {
@@ -441,6 +456,9 @@ export async function construirServidor(
       passa.
     */
     allowedHeaders: ["content-type", "authorization", "accept", "if-none-match"],
+    // Sem isto o navegador esconde `X-Request-Id` do JavaScript do painel, e o
+    // código de suporte só chegaria pelo corpo do 500, que o proxy pode trocar.
+    exposedHeaders: ["x-request-id"],
   });
 
   await app.register(rateLimit, {
@@ -572,6 +590,8 @@ export async function construirServidor(
     void resposta.code(404).send({ erro: "nao_encontrado", mensagem: "Rota não encontrada." });
   });
 
+  const reportador = reportadorInjetado ?? criarReportador({ log: app.log });
+
   /**
    * Um único lugar traduz erro em resposta.
    *
@@ -693,10 +713,18 @@ export async function construirServidor(
       });
     }
 
-    req.log.error({ err: erro }, "erro nao tratado");
+    reportador.reportar(erro, {
+      origem: "http",
+      requisicao: req.id,
+      metodo: req.method,
+      // O molde (`/ocorrencias/:id`), e não a barra de endereço, que leva
+      // identificador de ocorrência e query string.
+      ...(req.routeOptions?.url ? { rota: req.routeOptions.url } : {}),
+      status: 500,
+    });
     return resposta.code(500).send({
       erro: "erro_interno",
-      mensagem: "Erro inesperado. Informe o código abaixo ao suporte.",
+      mensagem: "Erro inesperado. Se precisar de ajuda, informe o código de suporte.",
       requisicao: req.id,
     });
   });

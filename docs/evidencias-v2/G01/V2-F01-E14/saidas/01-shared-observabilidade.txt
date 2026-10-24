@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/packages/shared
+
+ ✓ test/observabilidade.test.ts (9 tests) 2ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  18:31:04
+   Duration  327ms (transform 80ms, setup 0ms, collect 143ms, tests 2ms, environment 0ms, prepare 35ms)
+

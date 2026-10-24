@@ -25,6 +25,12 @@ import {
 import {
   CHAVE_DA_ELIMINACAO, agendarEliminacoes, type EliminacoesAgendadas,
 } from "./eliminacao/relogio.js";
+import {
+  CHAVE_DO_ALERTA_DE_COTA, agendarAlertaDeCota, type AlertaDeCotaAgendado,
+} from "./armazenamento/alerta-de-cota.js";
+import { lerAmbienteDeObservabilidade } from "./observabilidade/ambiente.js";
+import { instalarCapturaDeProcesso } from "./observabilidade/captura-de-processo.js";
+import { criarReportador, type NivelDoRegistro } from "./observabilidade/reportador.js";
 
 const config = carregarConfig();
 
@@ -153,6 +159,31 @@ const app = await construirServidor({
   ...(notificador ? { notificador } : {}),
   ...(push ? { push } : {}),
 });
+
+/*
+  OBSERVABILIDADE (V2-F01-E14). Erro que escapa de toda rota e de toda rotina
+  passa pelo mesmo reportador do 500 e só então derruba o processo (comportamento
+  do Node, preservado). O destino externo de erros NÃO existe ainda: depende do
+  CP-06 (ferramenta e residência do dado). Com `ERROS_DSN` definido o processo
+  avisa, uma vez, que o DSN está sendo ignorado, para ninguém achar que o erro
+  já chega a um terceiro. O DSN nunca é registrado.
+*/
+const ambienteDeObservabilidade = lerAmbienteDeObservabilidade();
+instalarCapturaDeProcesso(criarReportador({ log: app.log }));
+for (const aviso of ambienteDeObservabilidade.avisos) app.log.warn(aviso);
+if (ambienteDeObservabilidade.errosDsn) {
+  app.log.warn(
+    "ERROS_DSN esta definido, mas o envio de erros a uma ferramenta externa so entra depois do CP-06: por ora o erro so vai para o log",
+  );
+}
+
+/**
+ * Como as rotinas agendadas falam com o log: o nível que a rotina pede, `info`
+ * quando ela não pede. Falha chega como `error`.
+ */
+const registrarDaRotina = (
+  evento: Record<string, unknown>, mensagem: string, nivel: NivelDoRegistro = "info",
+): void => { app.log[nivel](evento, mensagem); };
 
 /**
  * De quanto em quanto tempo a varredura de avisos roda POR RELÓGIO.
@@ -311,7 +342,7 @@ const minimizacao: MinimizacaoAgendada = agendarMinimizacao(
     trava: config.DATABASE_URL
       ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DA_MINIMIZACAO)
       : travaDeProcesso(),
-    registrar: (evento, mensagem) => app.log.info(evento, mensagem),
+    registrar: registrarDaRotina,
   },
   INTERVALO_DA_MINIMIZACAO_MS,
 );
@@ -374,7 +405,7 @@ const resumo: ResumoAgendado = agendarResumo(
       ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DO_RESUMO)
       : travaDeProcesso(),
     frescorMinutos: FRESCOR_DO_RESUMO_MINUTOS,
-    registrar: (evento, mensagem) => app.log.info(evento, mensagem),
+    registrar: registrarDaRotina,
   },
   INTERVALO_DO_RESUMO_MS,
 );
@@ -425,7 +456,7 @@ if (config.VARREDURA_DE_ORFAOS_ATIVA === "sim") {
       trava: config.DATABASE_URL
         ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DA_VARREDURA_DE_ORFAOS)
         : travaDeProcesso(),
-      registrar: (evento, mensagem) => app.log.info(evento, mensagem),
+      registrar: registrarDaRotina,
     },
     INTERVALO_DA_VARREDURA_DE_ORFAOS_MS,
   );
@@ -493,6 +524,34 @@ const eliminacoes: EliminacoesAgendadas = agendarEliminacoes(
   INTERVALO_DA_ELIMINACAO_MS,
 );
 
+/**
+ * De quanto em quanto tempo o bucket é medido contra a cota. Um dia: a medição
+ * lista o balde inteiro (chamada cobrada), e a cota é um limite que se
+ * aproxima em semanas, não em minutos.
+ */
+const INTERVALO_DO_ALERTA_DE_COTA_MS = 24 * 60 * 60_000;
+
+/*
+  O ALERTA DE ARMAZENAMENTO só sobe com `S3_COTA_BYTES` válido. Sem a cota não há
+  como dizer "80% de quê", e inventar um número seria pior que não alertar. A
+  medição lista o bucket pelo mesmo `armazenamento` da API: com o armazenamento
+  em memória do desenvolvimento ela mede a memória e não alarma ninguém.
+*/
+let alertaDeCota: AlertaDeCotaAgendado | null = null;
+if (ambienteDeObservabilidade.cotaDeArmazenamentoBytes !== null) {
+  alertaDeCota = agendarAlertaDeCota(
+    {
+      armazenamento,
+      cotaBytes: ambienteDeObservabilidade.cotaDeArmazenamentoBytes,
+      trava: config.DATABASE_URL
+        ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DO_ALERTA_DE_COTA)
+        : travaDeProcesso(),
+      registrar: registrarDaRotina,
+    },
+    INTERVALO_DO_ALERTA_DE_COTA_MS,
+  );
+}
+
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -508,6 +567,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
       await resumo.parar();
       await varreduraDeOrfaos?.parar();
       await eliminacoes.parar();
+      await alertaDeCota?.parar();
       await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);

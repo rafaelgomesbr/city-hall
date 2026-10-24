@@ -1,5 +1,6 @@
 import type { Banco } from "../banco/tipos.js";
 import type { Trava } from "../push/trava.js";
+import type { NivelDoRegistro } from "../observabilidade/reportador.js";
 
 /**
  * A varredura que executa a minimização por prazo.
@@ -70,7 +71,13 @@ export type DependenciasDaMinimizacao = {
   banco: Banco;
   trava: Trava;
   teto?: number;
-  registrar?: (evento: Record<string, unknown>, mensagem: string) => void;
+  /**
+   * Para onde vai o que a rotina tem a dizer. `nivel` ausente é `info`; FALHA
+   * sai sempre como `error` (V2-F01-E14), porque é o nível em que o alerta do
+   * destino de logs dispara. Rotina que falha em `info` só é vista por quem
+   * abre o log de propósito.
+   */
+  registrar?: (evento: Record<string, unknown>, mensagem: string, nivel?: NivelDoRegistro) => void;
 };
 
 type LinhaMinimizada = {
@@ -158,6 +165,7 @@ export function agendarMinimizacao(
         registrar(
           { erro: erro instanceof Error ? erro.message : String(erro) },
           "minimizacao por prazo falhou inteira",
+          "error",
         );
       })
       .finally(() => { emAndamento = false; });

@@ -54,15 +54,54 @@ function guardarTokens(tokens: Tokens | null): void {
   }
 }
 
+/** UUID, o único formato que a API usa para o id da requisição. */
+const FORMATO_DE_CODIGO_DE_SUPORTE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * O id que a API deu à requisição, lido do cabeçalho `X-Request-Id` (a API o
+ * expõe no CORS) e, se o cabeçalho não chegou, do corpo do 500.
+ *
+ * Só vale UUID: o que aparece na tela como "código de suporte" não pode ser
+ * texto qualquer que um proxy ou uma página de erro do provedor tenha posto ali.
+ * `?.` porque o painel também roda contra respostas de teste sem `headers`.
+ */
+function codigoDeSuporteDaResposta(
+  resposta: { headers?: { get(nome: string): string | null } } | undefined,
+  corpo: Record<string, unknown> = {},
+): string | null {
+  const candidatos = [resposta?.headers?.get("x-request-id"), corpo["requisicao"]];
+  for (const candidato of candidatos) {
+    if (typeof candidato === "string" && FORMATO_DE_CODIGO_DE_SUPORTE.test(candidato)) {
+      return candidato.toLowerCase();
+    }
+  }
+  return null;
+}
+
 export class ErroDaApi extends Error {
   readonly status: number;
   readonly codigo: string;
   readonly campos: Array<{ campo: string; mensagem: string }>;
+  /**
+   * O código de suporte (id da requisição), ou `null`. A mensagem já o carrega
+   * nos 5xx; este campo existe para quem monta a tela por conta própria e para
+   * o registro de erros globais.
+   */
+  readonly requisicao: string | null;
 
-  constructor(status: number, corpo: Record<string, unknown>) {
-    super(String(corpo["mensagem"] ?? "Não foi possível concluir a operação."));
+  constructor(status: number, corpo: Record<string, unknown>, requisicao: string | null = null) {
+    const frase = String(corpo["mensagem"] ?? "Não foi possível concluir a operação.");
+    const codigoDeSuporte = codigoDeSuporteDaResposta(undefined, { requisicao: requisicao ?? corpo["requisicao"] });
+    /*
+      Nos 5xx a frase ganha o código de suporte. Todas as telas mostram
+      `erro.message`, então é aqui, num lugar só, que o código chega à pessoa:
+      nenhum 4xx o leva, porque 4xx é a pessoa corrigindo algo e o código a
+      assustaria à toa.
+    */
+    super(status >= 500 && codigoDeSuporte ? `${frase} Código de suporte: ${codigoDeSuporte}.` : frase);
     this.name = "ErroDaApi";
     this.status = status;
+    this.requisicao = codigoDeSuporte;
     this.codigo = String(corpo["erro"] ?? "erro");
     this.campos = Array.isArray(corpo["campos"])
       ? (corpo["campos"] as Array<{ campo: string; mensagem: string }>)
@@ -321,7 +360,7 @@ async function chamar<T>(
     guardarTokens(null);
     ouvinteDeExpiracao?.(motivo);
   }
-  if (!resposta.ok) throw new ErroDaApi(resposta.status, corpo);
+  if (!resposta.ok) throw new ErroDaApi(resposta.status, corpo, codigoDeSuporteDaResposta(resposta));
   return corpo as T;
 }
 
@@ -898,7 +937,7 @@ export async function abrirDocumento(
     }), true);
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}));
-    throw new ErroDaApi(resposta.status, corpo);
+    throw new ErroDaApi(resposta.status, corpo, codigoDeSuporteDaResposta(resposta));
   }
   return URL.createObjectURL(await resposta.blob());
 }
@@ -1065,7 +1104,9 @@ export async function baixarCsvDeOcorrencias(
       headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
     }), true);
   if (!resposta.ok) {
-    throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
+    throw new ErroDaApi(
+      resposta.status, await resposta.json().catch(() => ({})), codigoDeSuporteDaResposta(resposta),
+    );
   }
   return {
     url: URL.createObjectURL(await resposta.blob()),
@@ -1296,7 +1337,9 @@ export async function abrirOficio(_s: Sessao, id: string): Promise<string> {
       headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
     }), true);
   if (!resposta.ok) {
-    throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
+    throw new ErroDaApi(
+      resposta.status, await resposta.json().catch(() => ({})), codigoDeSuporteDaResposta(resposta),
+    );
   }
   return URL.createObjectURL(await resposta.blob());
 }

@@ -39,6 +39,7 @@ inventadas, e enquanto houver um `[[ ]]` o documento não vai para o ar.
 | [RESTORE-DO-BANCO.md](RESTORE-DO-BANCO.md) | O roteiro de restore do banco, provado a frio e repetido pelo CI (a Parte 6 de `COLOCAR-DE-PE.md` é o registro histórico) |
 | [LIGAR-O-EMAIL.md](LIGAR-O-EMAIL.md) | Ligar o e-mail de recuperação de senha e de ofício: conta, domínio e variáveis |
 | [ARMAZENAMENTO.md](ARMAZENAMENTO.md) | O teto de armazenamento por município e a varredura de objeto órfão, com os comandos do operador |
+| [OBSERVABILIDADE.md](OBSERVABILIDADE.md) | O código de suporte, o erro centralizado, as rotinas em nível `error`, o alerta de armazenamento do bucket e o monitor de `/saude` |
 | [POLITICA-DE-TESTE-VERMELHO.md](POLITICA-DE-TESTE-VERMELHO.md) | Quem escreve código: o que fazer com teste vermelho e teste pulado (T42) |
 | [apresentacao/](apresentacao/README.md) | A apresentação de 15/09/2026 (HTML e PDF): retrato do que estava feito naquele dia, e não a fonte do estado de hoje |
 
