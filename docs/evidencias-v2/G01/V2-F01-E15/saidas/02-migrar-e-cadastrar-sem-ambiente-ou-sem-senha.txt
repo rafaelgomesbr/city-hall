@@ -1,0 +1,78 @@
+$ node scripts/migrar-producao.mjs
+
+Falta dizer em qual ambiente agir: --ambiente hml|prod.
+
+Não há ambiente padrão, de propósito: escolher por omissão é como se mexe no
+banco errado. Acrescente a opção ao mesmo comando, por exemplo:
+
+  --ambiente prod
+
+[saida 2]
+
+$ node scripts/migrar-producao.mjs --ambiente hml
+
+O ambiente hml ainda não tem banco declarado em scripts/ambientes.json (identidadeDoBanco vazia).
+O banco de HML nasce na V2-F01-E11. Quando existir, preencha identidadeDoBanco, bancoHost e
+bancoPorta no ambientes.json.
+
+[saida 2]
+
+$ node scripts/migrar-producao.mjs --ambiente prod --aplicar
+Ambiente: prod
+Banco: postgresql://postgres.bppklrxxwjshxvkvwirw@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full
+
+Nenhuma cópia do banco de PROD nos últimos 30 minutos em /nonexistent-home-para-o-teste/dc360-copias/prod.
+
+Migração é irreversível, e o único restore testado é sobre cópia tirada antes.
+Tire a cópia e aplique em seguida:
+
+  node scripts/copiar-producao.mjs --ambiente prod
+  node scripts/migrar-producao.mjs --ambiente prod --aplicar
+
+Para aplicar SEM cópia, escreva --sem-copia junto de --aplicar. Isso fica
+registrado na conclusão, e é decisão sua.
+[saida 2]
+
+$ node scripts/cadastrar-prefeitura.mjs --municipio Serra Alta
+
+Falta dizer em qual ambiente agir: --ambiente hml|prod.
+
+Não há ambiente padrão, de propósito: escolher por omissão é como se mexe no
+banco errado. Acrescente a opção ao mesmo comando, por exemplo:
+
+  --ambiente prod
+
+[saida 2]
+
+$ node scripts/cadastrar-prefeitura.mjs --ambiente prod --municipio Serra Alta
+
+Falta informação para cadastrar a prefeitura:
+
+  --uf
+      sigla do estado, duas letras, ex.: --uf MG
+  --nome
+      nome de quem vai ser o primeiro administrador, ex.: --nome "Rita Lopes"
+  --matricula
+      matrícula funcional dessa pessoa, ex.: --matricula SA-1
+  --email
+      email dela, ex.: --email rita@serraalta.mg.gov.br
+  --operador
+      SEU nome, de quem está cadastrando, ex.: --operador "Rafael Gomes"
+
+Exemplo completo:
+
+  node scripts/cadastrar-prefeitura.mjs --ambiente prod \
+    --municipio "Serra Alta" --uf MG \
+    --nome "Rita Lopes" --matricula SA-1 \
+    --email rita@serraalta.mg.gov.br \
+    --operador "Rafael Gomes"
+
+O órgão sai como Coordenadoria Municipal de Proteção e Defesa Civil de
+<município>, e dá para trocar com --orgao "outro nome".
+
+--operador é o SEU nome, e é obrigatório porque o município nasce com
+uma linha na trilha dele dizendo quem o criou. É a única resposta que
+ele tem para "quem criou isto".
+
+[saida 1]
+

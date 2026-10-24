@@ -171,7 +171,7 @@ risco conhecido e declarado em `docs/COLOCAR-DE-PE.md`.
    manda para HML: `AMBIENTE_DC360 = "hml"`, a identidade do banco de HML, o
    domínio do painel de HML, `MARCA_DAGUA` preenchida e `PUSH_ATIVO` desligado.
 2. Preencher em `scripts/ambientes.json`: `arquivos` (já estão), `appsNoFly`,
-   `identidadeDoBanco` e `dominio` de HML.
+   `identidadeDoBanco`, `bancoHost`, `bancoPorta` (que os roteiros `*-producao` leem) e `dominio` de HML.
 3. Gravar os segredos de HML, DISTINTOS dos de PROD (outra `DATABASE_URL`, outro
    `JWT_SEGREDO`, outra chave de armazenamento).
 4. `node scripts/conferir-ambiente.mjs` (repositório) e depois

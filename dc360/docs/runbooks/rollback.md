@@ -180,9 +180,10 @@ atualizado.
 - Migração só entra em produção se for **aditiva ou compatível** com a versão da API
   que está no ar. É por isso que voltar a API (seção 1) é seguro: o esquema novo
   tem coluna a mais, e a API antiga a ignora.
-- O roteiro `scripts/migrar-producao.mjs --aplicar` **recusa** aplicar sem uma cópia
-  feita por `scripts/copiar-producao.mjs` nos últimos trinta minutos. A cópia é o
-  ponto de volta. (A V2-F01-E15 torna estes roteiros multiplataforma.)
+- O roteiro `scripts/migrar-producao.mjs --ambiente prod --aplicar` **recusa** aplicar
+  sem uma cópia feita por `scripts/copiar-producao.mjs --ambiente prod` nos últimos
+  trinta minutos. A cópia é o ponto de volta. (Os roteiros rodam em Windows, Linux
+  e macOS desde a V2-F01-E15.)
 - O desfazer de migração escrito pela V2-F01-E18 serve **fora de produção**
   (desenvolvimento e HML). Em produção ele não é usado.
 

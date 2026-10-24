@@ -23,14 +23,18 @@
       "arquivos": { "api": "fly.hml.toml", "console": "fly.console.hml.toml" },
       "appsNoFly": { "api": null, "console": null },
       "identidadeDoBanco": null,
+      "bancoHost": null,
+      "bancoPorta": null,
       "dominio": null,
-      "pendente": "Os dois fly*.toml, os apps do Fly, o projeto de banco (identidade) e o painel (dominio) sao da V2-F01-E11 e da V2-F01-E10. Ao nascerem, preencher aqui."
+      "pendente": "Os dois fly*.toml, os apps do Fly, o projeto de banco (identidade, bancoHost e bancoPorta, que os roteiros de producao.mjs leem) e o painel (dominio) sao da V2-F01-E11 e da V2-F01-E10. Ao nascerem, preencher aqui."
     },
     "prod": {
       "descricao": "Producao: os municipios de verdade.",
       "arquivos": { "api": "fly.toml", "console": "fly.console.toml" },
       "appsNoFly": { "api": "defesa-civil", "console": "defesa-civil-console" },
       "identidadeDoBanco": "bppklrxxwjshxvkvwirw",
+      "bancoHost": "aws-0-sa-east-1.pooler.supabase.com",
+      "bancoPorta": 5432,
       "dominio": "dc360-painel-web.vercel.app"
     }
   },

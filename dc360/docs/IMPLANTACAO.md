@@ -243,9 +243,9 @@ município; a 039 cria `console_codigos_de_recuperacao` e as três funções da
 recuperação de senha. Sem elas a partida diz, pelo nome, o que falta.
 
 ```bash
-node scripts/migrar-producao.mjs            # só confere, não aplica
-node scripts/copiar-producao.mjs            # a cópia, antes de aplicar (seção 8)
-node scripts/migrar-producao.mjs --aplicar  # só se faltar alguma; recusa sem cópia recente
+node scripts/migrar-producao.mjs --ambiente prod            # só confere, não aplica
+node scripts/copiar-producao.mjs --ambiente prod            # a cópia, antes de aplicar (seção 8)
+node scripts/migrar-producao.mjs --ambiente prod --aplicar  # só se faltar alguma; recusa sem cópia recente
 ```
 
 **Passo 2. Criar o papel de login** (seção 6.2), com o papel de setup.
@@ -508,7 +508,7 @@ feito com o binário do Xcode, informe o ambiente em que eles estavam ao migrar,
 para as linhas existentes receberem o valor certo:
 
 ```bash
-APNS_AMBIENTE=teste node scripts/migrar-producao.mjs --aplicar
+APNS_AMBIENTE=teste node scripts/migrar-producao.mjs --ambiente prod --aplicar
 ```
 
 Sem a variável, as linhas existentes ficam `producao`. Vale pouco na prática,
@@ -576,8 +576,22 @@ agregados e sem ficha). O que cada motivo significa:
 
 Vale para toda migração de banco depois do primeiro município no ar, e vale
 para a API e para o console, porque os dois recusam subir com esquema atrasado.
-Tudo a partir de `dc360/`, com a senha do banco no chaveiro do Mac (a mensagem
-de ajuda de `scripts/migrar-producao.mjs` ensina a guardar).
+Tudo a partir de `dc360/`, em Windows, Linux ou macOS, e **sempre com
+`--ambiente hml|prod`**: sem a opção os roteiros recusam, porque não há ambiente
+padrão (escolher por omissão é como se migra o banco errado). Cada roteiro mostra o
+banco (a URL sem a senha) antes de agir. O projeto, o host e a porta de cada ambiente
+vêm de `scripts/ambientes.json`; HML só passa a ter banco declarado na V2-F01-E11, e
+até lá `--ambiente hml` recusa dizendo isso.
+
+A senha do banco é **de cada ambiente** (a de HML não abre PROD, e a de PROD não abre
+HML) e vem, nesta ordem, de: a variável de ambiente da sessão
+(`DC360_SENHA_BANCO_PROD` ou `DC360_SENHA_BANCO_HML`), o chaveiro do sistema (macOS:
+item `senha-do-banco-dc360`, e `-hml` para HML; Linux: `secret-tool`, se instalado) ou
+uma pergunta sem eco no terminal. O Windows não tem comando embutido para ler uma
+credencial genérica, então lá vale a variável ou a pergunta. Nunca pela linha de
+comando, e nunca impressa. Quando nada serve, a mensagem diz, em português e para o
+seu sistema, como guardar. Num pipeline (a E12 chama o mesmo `copiar` antes de migrar
+HML) a senha vai na variável, vinda do segredo do pipeline.
 
 ### 8.1 A regra que vem antes do comando: só migração aditiva ou compatível
 
@@ -601,7 +615,7 @@ leitura de gente, na revisão da migração.
 **Passo 1. Conferir o que falta**, sem escrever nada:
 
 ```bash
-node scripts/migrar-producao.mjs
+node scripts/migrar-producao.mjs --ambiente prod
 ```
 
 **Passo 2. Tirar a cópia.** Desde 15/09/2026 o passo 3 **recusa** sem uma cópia
@@ -611,25 +625,29 @@ feita nos últimos trinta minutos, porque o restore testado deste projeto
 irreversível sem cópia é aposta.
 
 ```bash
-node scripts/copiar-producao.mjs --conferir   # diz o que falta na máquina, sem tocar no banco
-node scripts/copiar-producao.mjs              # tira a cópia
+node scripts/copiar-producao.mjs --ambiente prod --conferir   # diz o que falta na máquina, sem tocar no banco
+node scripts/copiar-producao.mjs --ambiente prod              # tira a cópia
 ```
 
 O que o roteiro faz, e o que ele cobra:
 
 - precisa de `pg_dump` da mesma versão maior do servidor ou mais novo (o
-  servidor é 17.x). Sem ele, a saída diz o que instalar (`brew install libpq` e
-  o `PATH`); com um mais velho, recusa. A versão do servidor é lida antes de
-  pedir o dump, e o cliente é conferido contra ela;
-- grava em `~/dc360-copias/<data>.dump`, com permissão 0600, em
-  `pg_dump --format=custom --schema=public`, o formato do restore de 09/09/2026.
-  **Atenção:** o roteiro vigente (`RESTORE-DO-BANCO.md`, passo 3) exige também
-  `--extension=pg_trgm` desde a migração 041, porque sem a opção o
-  `pg_restore --exit-on-error` para no índice de busca (`gin_trgm_ops`), e o
-  `copiar-producao.mjs` ainda não a passa. Nenhuma etapa do roteiro contém esse conserto (a V2-F01-E15, de dump antes de
-  migração, não o cita), então ele não tem dono hoje; até alguém abrir a
-  pendência, restaurar uma cópia dele exige antes criar a extensão no destino,
-  o que o roteiro de restore não ensaiou;
+  servidor é 17.x). Procura, nesta ordem, a variável `DC360_PG_DUMP` (caminho
+  completo), o PATH e os lugares padrão do sistema (Homebrew no macOS; PGDG,
+  `/usr/pgsql-NN` e Linuxbrew no Linux; `C:\Program Files\PostgreSQL\NN\bin`
+  no Windows). Sem ele, a saída diz o que instalar **naquele sistema**; com um
+  mais velho, recusa. A versão do servidor é lida antes de pedir o dump, e o
+  cliente é conferido contra ela;
+- grava em `~/dc360-copias/<ambiente>/<data>.dump` (uma subpasta por ambiente:
+  **a cópia de HML nunca vale como cópia de PROD** para o passo 3), em
+  `pg_dump --format=custom --schema=public --extension=pg_trgm`. A extensão é
+  obrigatória desde a migração 041: sem ela o `pg_restore --exit-on-error` para
+  no índice de busca (`gin_trgm_ops`; `RESTORE-DO-BANCO.md`, passo 3). Antes da
+  V2-F01-E15 o roteiro não a passava, e uma cópia tirada por ele **não
+  restaurava** além da 041; se existir cópia antiga, não confie nela;
+- restringe o arquivo ao seu usuário: 0600 no macOS e no Linux (pasta 0700); no
+  Windows, ACL por `icacls` (sem herança, controle total só ao usuário), e se a
+  ACL não puder ser aplicada o roteiro **recusa gravar** e apaga o que gravou;
 - **recusa** gravar dentro do repositório, em pasta sincronizada com nuvem de
   arquivos (iCloud, Dropbox, Google Drive, OneDrive) e na Área de Trabalho. O
   dump traz dado real de cidadão: endereço, coordenada, nome e contato do
@@ -640,7 +658,7 @@ O que o roteiro faz, e o que ele cobra:
 **Passo 3. Aplicar**, dentro dos trinta minutos:
 
 ```bash
-node scripts/migrar-producao.mjs --aplicar
+node scripts/migrar-producao.mjs --ambiente prod --aplicar
 ```
 
 A conclusão nomeia a cópia usada como ponto de volta e a idade dela. Sem cópia
@@ -664,8 +682,10 @@ psql "postgresql://postgres.bppklrxxwjshxvkvwirw:SENHA@aws-0-sa-east-1.pooler.su
   -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurecer.sql
 ```
 
-(com a senha do chaveiro: `security find-generic-password -a dc360 -s senha-do-banco-dc360 -w`,
-e nunca colada no histórico). O que confere que deu certo é esta consulta
+(com a senha do chaveiro no macOS: `security find-generic-password -a dc360 -s senha-do-banco-dc360 -w`;
+em Linux e Windows, a mesma senha que o roteiro usa, de `DC360_SENHA_BANCO_PROD`, e em
+qualquer sistema nunca colada no histórico; a senha precisa ser codificada para caber na
+URL, como `montarUrl` faz, ou passada pela variável `PGPASSWORD`). O que confere que deu certo é esta consulta
 voltar **vazia**:
 
 ```sql
@@ -686,7 +706,7 @@ Vercel publica o painel sozinha a cada push, e o painel novo não pode chegar
 antes da API nova.
 
 **Passo 6. Apagar a cópia** quando a migração tiver sido conferida no ar
-(`rm ~/dc360-copias/<data>.dump`). Cópia velha é dado pessoal sem finalidade.
+(`rm ~/dc360-copias/<ambiente>/<data>.dump`; no Windows, `Remove-Item` no mesmo caminho). Cópia velha é dado pessoal sem finalidade.
 
 ### 8.3 O que fica declarado como NÃO coberto
 
@@ -695,6 +715,11 @@ antes da API nova.
   para restaurar. O procedimento de restore é o de `RESTORE-DO-BANCO.md`
   (a Parte 6 do `COLOCAR-DE-PE.md` é o registro histórico), e a periodicidade
   dele continua por definir (`docs/INDISPONIBILIDADE.md`, 3.4).
+- **Os três sistemas foram provados por teste de unidade, não por execução.**
+  A escolha do `pg_dump`, a ACL do Windows, a senha por sistema e o `--ambiente`
+  são testados com o sistema passado por parâmetro. Rodar o `copiar` de verdade
+  no Windows e no Linux (nomes e tamanhos do dump em
+  `docs/evidencias-v2/G01/V2-F01-E15/`) é validação humana pendente.
 - **O endurecimento não roda sozinho depois da migração.** Ele é um passo do
   roteiro, e roteiro se pula; o que não deixa passar despercebido é a consulta
   do passo 4, que a pessoa precisa rodar. Automatizar exige a credencial de

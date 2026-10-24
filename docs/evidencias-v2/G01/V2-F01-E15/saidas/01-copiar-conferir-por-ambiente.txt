@@ -1,0 +1,43 @@
+$ node scripts/copiar-producao.mjs --conferir
+
+Falta dizer em qual ambiente agir: --ambiente hml|prod.
+
+Não há ambiente padrão, de propósito: escolher por omissão é como se mexe no
+banco errado. Acrescente a opção ao mesmo comando, por exemplo:
+
+  --ambiente prod
+
+[saida 2]
+
+$ node scripts/copiar-producao.mjs --ambiente dev --conferir
+
+Ambiente "dev" não serve para este roteiro. Use --ambiente hml ou prod.
+(dev é a sua máquina: não há banco remoto para copiar nem migrar.)
+
+[saida 2]
+
+$ node scripts/copiar-producao.mjs --ambiente hml --conferir
+
+O ambiente hml ainda não tem banco declarado em scripts/ambientes.json (identidadeDoBanco vazia).
+O banco de HML nasce na V2-F01-E11. Quando existir, preencha identidadeDoBanco, bancoHost e
+bancoPorta no ambientes.json.
+
+[saida 2]
+
+$ node scripts/copiar-producao.mjs --ambiente prod --conferir
+Ambiente: prod
+Banco: postgresql://postgres.bppklrxxwjshxvkvwirw@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full
+Pasta de cópias: /nonexistent-home-para-o-teste/dc360-copias/prod
+pg_dump: não encontrado
+Última cópia: nenhuma
+
+Não achei um pg_dump que sirva. Instale o cliente do Postgres (17 ou mais novo) e ponha no PATH:
+
+  brew install libpq
+  export PATH="$(brew --prefix libpq)/bin:$PATH"
+  pg_dump --version      # tem que responder 17.x ou mais
+
+O servidor é PostgreSQL 17 (docs/COLOCAR-DE-PE.md, Parte 6), e um pg_dump mais
+velho que o servidor recusa, e recusa certo.
+[saida 1]
+

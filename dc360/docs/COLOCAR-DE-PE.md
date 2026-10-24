@@ -414,6 +414,13 @@ ter o app no seu iPhone via TestFlight neste fim de semana.
 > seguida hoje, para no restore: faltam o papel `dc360_console` (migração 023)
 > e a extensão `pg_trgm` no dump (migração 041). Ela continua valendo pelo que
 > ensina sobre a origem Supabase (papéis do provedor e `sslmode`).
+>
+> **Para tirar a cópia de hoje, não use os comandos desta parte.** O caminho é
+> `node scripts/copiar-producao.mjs --ambiente prod` (V2-F01-E15): ele funciona
+> em Windows, Linux e macOS, passa `--extension=pg_trgm`, lê a senha da variável
+> `DC360_SENHA_BANCO_PROD`, do chaveiro ou de uma pergunta sem eco (nunca da
+> linha de comando) e grava em `~/dc360-copias/prod/` só para o seu usuário. Ver
+> `docs/IMPLANTACAO.md`, seção 8.
 
 O levantamento técnico fixa que **backup só existe depois de um restore
 testado**. Até agora isso nunca tinha sido feito neste projeto: existia a

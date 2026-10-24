@@ -1,8 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-import { COFRE, CONTA, HOST, montarUrl } from "./migrar-producao.mjs";
+import {
+  COFRE, CONTA, HOST, decidirSobreACopia, mensagemDeRecusaSemCopia, montarUrl,
+} from "./migrar-producao.mjs";
+import { ajudaDaSenha, perfilDoAmbiente } from "./producao.mjs";
 
 /**
  * A MONTAGEM DA URL, que é a parte que erra em silêncio.
@@ -104,11 +108,69 @@ test("o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina",
     pessoa guarda a senha num lugar e o roteiro procura no outro, e a mensagem
     de erro diz exatamente o comando que ela acabou de rodar.
   */
-  /* A leitura do chaveiro mora em `producao.mjs` desde 15/09/2026, compartilhada
-     com `copiar-producao.mjs`; a mensagem de ajuda está lá. */
-  const fonte = readFileSync(new URL("./producao.mjs", import.meta.url), "utf8");
-  assert.match(fonte, new RegExp(`add-generic-password -a \\$\\{CONTA\\}`));
-  assert.match(fonte, new RegExp(`-s \\$\\{COFRE\\}`));
+  /* A leitura da senha mora em `producao.mjs`, compartilhada com os outros
+     roteiros; a mensagem de ajuda é gerada lá, por ambiente (V2-F01-E15). */
+  const perfil = perfilDoAmbiente("prod");
+  assert.equal(perfil.conta, CONTA);
+  assert.equal(perfil.cofre, COFRE);
+  const ajuda = ajudaDaSenha({ plataforma: "darwin", perfil });
+  assert.ok(ajuda.includes(`add-generic-password -a ${CONTA} -s ${COFRE} -w`));
   assert.equal(typeof CONTA, "string");
   assert.equal(typeof COFRE, "string");
 });
+
+/* =====================================================================
+ * V2-F01-E15: o migrador por ambiente.
+ * ===================================================================== */
+
+test("a recusa sem copia nomeia o ambiente e manda tirar a copia DESSE ambiente", () => {
+  const decisao = decidirSobreACopia({ argv: ["x", "--aplicar"], ambiente: "hml", procurar: () => null });
+  assert.equal(decisao.situacao, "recusado");
+  assert.match(decisao.pasta, /hml$/);
+  const msg = mensagemDeRecusaSemCopia(decisao, "hml");
+  assert.match(msg, /banco de HML/);
+  assert.match(msg, /copiar-producao\.mjs --ambiente hml/);
+  assert.match(msg, /migrar-producao\.mjs --ambiente hml --aplicar/);
+});
+
+test("o migrador procura a copia na pasta do proprio ambiente", () => {
+  const pastas = [];
+  for (const ambiente of ["hml", "prod"]) {
+    decidirSobreACopia({ argv: ["x", "--aplicar"], ambiente, procurar: ({ pasta }) => { pastas.push(pasta); return null; } });
+  }
+  assert.match(pastas[0], /hml$/);
+  assert.match(pastas[1], /prod$/);
+  assert.notEqual(pastas[0], pastas[1]);
+});
+
+test("sem --ambiente o migrador recusa antes de ler senha ou tocar em banco, com codigo 2", () => {
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL("./migrar-producao.mjs", import.meta.url))], {
+    encoding: "utf8",
+    env: { PATH: process.env.PATH ?? "" },
+  });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /Falta dizer em qual ambiente agir: --ambiente hml\|prod/);
+  assert.doesNotMatch(r.stdout + r.stderr, /postgresql:\/\//, "nao chegou a montar URL");
+});
+
+test("com --ambiente hml e o banco de HML ainda nao declarado, recusa dizendo por que, sem cair no de PROD", () => {
+  const r = spawnSync(
+    process.execPath,
+    [fileURLToPath(new URL("./migrar-producao.mjs", import.meta.url)), "--ambiente", "hml"],
+    { encoding: "utf8", env: { PATH: process.env.PATH ?? "", DC360_SENHA_BANCO_PROD: "so-vale-para-prod" } },
+  );
+  /* Enquanto o ambientes.json de HML estiver vazio (E11); se um dia for preenchido, este caso passa a ser outro. */
+  if (perfilFoiDeclarado("hml")) return;
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /ambiente hml ainda não tem banco declarado/);
+  assert.doesNotMatch(r.stdout + r.stderr, /bppklrxxwjshxvkvwirw/);
+});
+
+function perfilFoiDeclarado(ambiente) {
+  try {
+    perfilDoAmbiente(ambiente);
+    return true;
+  } catch {
+    return false;
+  }
+}
