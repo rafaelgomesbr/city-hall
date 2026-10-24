@@ -618,6 +618,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-6": { total: 17, falhas: 0 },
   // V2-F00-E09, correção 6b: `correcao-6-da-e09.test.ts` ganha 7 casos (o ajuste do Tab roda na hora, numa tarefa logo depois e no quadro seguinte; o foco que vem do toque ou do clique não é ajustado; a conta do Tab pelas bordas reais, para o que cabe e para o que é mais alto que a faixa; o teto do email em qualquer largura; a paginação que quebra em linhas; o texto de exemplo curto do filtro de Ocorrências). Dois casos da correção 6 e um da correção 4 trocaram a asserção no lugar (a altura de 340 px, a conta do Tab e o teto do email em qualquer largura). Nenhuma falha nova.
   "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
+  // V2-F00-E09, correção 7: `correcao-7-da-e09.test.ts` é novo, com 14 casos (a conta que rola o painel da janela até o foco inicial, para baixo, para cima, quando já está à vista e quando o controle é mais alto que o painel; o Modal que a usa depois de abrir no topo e que a refaz quando o conteúdo muda depois de aberto; o ajuste que leva a confirmação das sessões à faixa livre entre o topo e a barra do pé, com o foco e sem ele; Minha conta que o chama quando a confirmação aparece e quando a lista relida chega; e a seção 14 do layout-estreito). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o focus() do Modal nunca rola). Nenhuma falha nova.
+  "V2-F00-E09-correcao-7": { total: 14, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -939,13 +941,20 @@ export const PASSOS = [
     rolagem horizontal a 320 px de todas as telas logadas nos dois temas, mais o
     texto de exemplo do filtro de Ocorrencias e o cadastro do agente (4). 287 no
     Chromium e no Firefox, 286 no WebKit.
+
+    Correcao 7 da E09 (2026-10-24): de 287 para 325 (mais 38), secao 14: a frase
+    de confirmacao de "Encerrar minhas outras sessoes" inteira entre o topo fixo
+    e a barra do pe em sete tamanhos, por clique, toque e teclado (21), e o foco
+    inicial de "Cancelar" a vista dentro da janela de confirmacao em Usuarios
+    ("Redefinir senha" e "Encerrar sessoes", 7 tamanhos, 14) e em Minha conta
+    (3). 325 no Chromium e no Firefox, 324 no WebKit.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 287   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 325   Falhou: 0"] },
   },
 ];
 

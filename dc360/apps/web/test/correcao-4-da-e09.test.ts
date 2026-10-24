@@ -86,7 +86,7 @@ describe("Defeito 2: com janela aberta o aviso passageiro espera", () => {
     const modal = fonte("componentes", "Modal.tsx");
     expect(modal).toContain("const liberarAvisos = registrarModalAberto();");
     // A liberação mora na limpeza do mesmo efeito que abriu a janela.
-    expect(modal).toMatch(/return \(\) => \{\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
+    expect(modal).toMatch(/return \(\) => \{\s+observador\?\.disconnect\(\);\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
   });
 
   it("o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada", () => {
@@ -197,7 +197,8 @@ describe("Revisão 4: um email de parte comprida não empurra a coluna Ação", 
 describe("Revisão 5: a janela abre no topo", () => {
   it("o foco inicial não rola o painel, e o painel começa em zero", () => {
     const modal = fonte("componentes", "Modal.tsx");
-    expect(modal).toContain("alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });");
+    // Desde a correção 7 o focus() nunca rola (quem pediu o foco inicial rola o painel pela conta de `rolagemParaVerNoPainel`).
+    expect(modal).toContain("alvo?.focus({ preventScroll: true });");
     expect(modal).toContain("if (painel.current) painel.current.scrollTop = 0;");
     // Primeiro controle fora da parte visível (o botão do pé): o foco vai ao painel.
     expect(modal).toContain("focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current)");

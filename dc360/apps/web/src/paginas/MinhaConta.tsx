@@ -18,6 +18,7 @@ import {
 } from "./sessoes-regras";
 import { useTitulo } from "../seo/titulo";
 import { focarPrimeiroInvalido } from "../componentes/foco";
+import { manterNaFaixaDasBordas } from "../componentes/usar-bordas-fixas";
 import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
 import { erroDaSenhaAtual } from "./senha-provisoria-regras";
 
@@ -282,6 +283,22 @@ function MinhasOutrasSessoes() {
   useEffect(() => {
     if (sucesso) confirmacao.current?.focus();
   }, [sucesso]);
+
+  /*
+    A CONFIRMAÇÃO TEM DE FICAR À VISTA, e não só focada (WCAG 2.4.11; achado 1 da
+    rodada 8 da V2-F00-E09, correção 7). O foco por código não leva o elemento
+    à vista no WebKit depois que a lista relida encolhe a página: a frase
+    ficava atrás do topo fixo ou acima da janela (de 10..94 com o topo até 129,
+    a 360x640, a -136..-52 a 320x568) para quem encerrou por toque ou clique. O
+    ajuste do Tab não cobre este caso, porque ele ignora o foco que chega até
+    800 ms depois de um toque. Aqui o ajuste é explícito, no instante da
+    confirmação e de novo quando a lista chega (`sessoes`): é a leitura que
+    encolhe a página, e o motor corrige a rolagem por baixo dela.
+  */
+  useEffect(() => {
+    if (!sucesso || !confirmacao.current) return;
+    return manterNaFaixaDasBordas(confirmacao.current);
+  }, [sucesso, sessoes]);
 
   const carregar = useCallback((): (() => void) => {
     let cancelado = false;

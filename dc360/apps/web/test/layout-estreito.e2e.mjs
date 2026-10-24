@@ -997,8 +997,8 @@ console.log("\n== 13. O campo focado depois do erro fica inteiro entre o topo fi
   640x450 de CSS com dois pixels de tela por pixel de CSS; o de 400 por cento
   de uma tela de 1280x1024 é 320x256.
 */
-async function contextoDeFoco(largura, altura, dpr = 1) {
-  const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr });
+async function contextoDeFoco(largura, altura, dpr = 1, toque = false) {
+  const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr, hasTouch: toque });
   const pg = await ctx.newPage();
   pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
   pg.on("console", (m) => {
@@ -1410,6 +1410,140 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
          f.cabe, `(texto ${f.texto.toFixed(1)} px mais ${f.reservaDoX} do "x", área ${f.area.toFixed(1)} px)`);
     }
     await c320.close();
+  }
+}
+
+console.log("\n== 14. A confirmação das sessões e o foco da janela de confirmação ficam à vista (V2-F00-E09, correção 7) ==");
+/*
+  A rodada 8 da validação (sobre 60cbc2f) reprovou por duas coisas da mesma
+  classe do foco fora da vista, que as seções 7 e 2 não mediam porque a 390x900
+  a página nem rola e a janela cabe:
+
+  1. No WebKit, depois de confirmar "Encerrar minhas outras sessões" por clique
+     ou toque, a frase "A outra sessão foi encerrada. Esta continua aberta.",
+     que recebe o foco, ficava atrás do topo fixo ou acima da janela (10..94 com
+     o topo até 129 a 360x640; -136..-52 a 320x568). Pelo teclado passava.
+  2. A janela de `ConfirmarAcao` abria com o foco em "Cancelar", mas, quando o
+     painel rola (zoom de 300 e 400 por cento, celular deitado), o botão ficava
+     150 a 190 px abaixo da borda da janela, em Chromium e Firefox: título,
+     texto, nenhum botão e nenhum anel de foco (WCAG 2.4.7 e 2.4.11).
+
+  A medida é a do portão visual: o retângulo do elemento focado, inteiro, dentro
+  da faixa livre da página (entre o topo fixo e a barra do pé) no caso 1, e
+  dentro da parte visível do painel da janela no caso 2, sempre com o ponto do
+  meio sem nada por cima (`elementFromPoint`).
+*/
+{
+  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  let n = 0;
+  async function contaComOutrasSessoes() {
+    n++;
+    const email = `sete.${n}.${sufixo}@serraalta.exemplo.gov.br`;
+    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+      corpo: { nome: `Sessões Sete ${n}`, matricula: `S7-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+    if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} da seção 14 não foi criada (${r.status})`);
+    // Duas sessões a mais, abertas por outro "aparelho": é o que dá o que encerrar.
+    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
+    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
+    return email;
+  }
+  const botaoDeEncerrar = (pg) => pg.getByRole("button", { name: "Encerrar minhas outras sessões" });
+
+  // A) A frase de confirmação, inteira entre o topo fixo e a barra do pé, por clique, toque e teclado.
+  for (const [l, a, d] of [[360, 640, 1], [390, 664, 1], [375, 667, 1], [375, 553, 1], [320, 568, 1], [640, 450, 2], [1024, 600, 1]]) {
+    for (const via of ["clique", "toque", "teclado"]) {
+      const email = await contaComOutrasSessoes();
+      const { ctx, pg } = await contextoDeFoco(l, a, d, via === "toque");
+      await entrar(email, SENHA_DO_TESTE, pg);
+      await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+      await pg.waitForTimeout(400);
+      const botao = botaoDeEncerrar(pg);
+      await botao.scrollIntoViewIfNeeded();
+      if (via === "teclado") { await botao.focus(); await pg.keyboard.press("Enter"); }
+      else if (via === "toque") await botao.tap();
+      else await botao.click();
+      const janela = pg.getByRole("dialog");
+      await janela.waitFor({ timeout: 10_000 });
+      const confirmar = janela.getByRole("button", { name: /^Encerrar (a outra sessão|as outras \d+ sessões)$/ });
+      if (via === "teclado") { await confirmar.focus(); await pg.keyboard.press("Enter"); }
+      else if (via === "toque") await confirmar.tap();
+      else await confirmar.click();
+      await pg.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
+      await botao.waitFor({ state: "detached", timeout: 20_000 });
+      await pg.waitForTimeout(1200);
+      const m = await pg.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || !el.classList.contains("aviso--sucesso")) return { ok: false, txt: `o foco não está na confirmação (${el?.tagName})` };
+        const r = el.getBoundingClientRect();
+        const elTopo = document.querySelector(".topo");
+        const topo = elTopo && ["sticky", "fixed"].includes(getComputedStyle(elTopo).position) ? elTopo.getBoundingClientRect().bottom : 0;
+        const barra = document.querySelector(".lateral");
+        const rb = barra?.getBoundingClientRect();
+        const pe = barra && getComputedStyle(barra).position === "sticky" && rb.top > innerHeight / 2 ? rb.top : innerHeight;
+        const meio = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), r.top + r.height / 2);
+        const livre = meio === el || el.contains(meio);
+        return { ok: r.top >= topo - 0.5 && r.bottom <= pe + 0.5 && livre, txt: `a frase em ${Math.round(r.top)}..${Math.round(r.bottom)}, topo até ${Math.round(topo)}, pé desde ${Math.round(pe)}, sem nada por cima: ${livre}` };
+      });
+      ok(`Minha conta a ${tamanho(l, a, d)}, depois de encerrar as outras sessões por ${via}: a frase de confirmação, que tem o foco, fica inteira à vista`,
+         m.ok, `(${m.txt})`);
+      await ctx.close();
+    }
+  }
+
+  // B) O foco inicial da janela de confirmação (o "Cancelar") fica dentro da parte visível do painel, sem rolagem horizontal.
+  async function focoDaJanelaAVista(pg) {
+    return pg.evaluate(() => {
+      const painel = document.querySelector(".modal__painel");
+      const el = document.activeElement;
+      if (!painel || !el || !painel.contains(el)) return { ok: false, txt: "o foco não está dentro da janela" };
+      const p = painel.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const topoUtil = p.top + painel.clientTop, baseUtil = topoUtil + painel.clientHeight;
+      const meio = document.elementFromPoint(r.left + r.width / 2, Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
+      const livre = meio === el || el.contains(meio);
+      const cs = getComputedStyle(el);
+      const anel = cs.boxShadow !== "none" || (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0);
+      const inteiro = r.top >= topoUtil - 0.5 && r.bottom <= baseUtil + 0.5;
+      const semRolagemLateral = !(document.documentElement.scrollWidth > innerWidth + 1) && !(painel.scrollWidth > painel.clientWidth + 1);
+      return {
+        ok: inteiro && livre && anel && semRolagemLateral,
+        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}`,
+      };
+    });
+  }
+  const TAMANHOS_DA_JANELA = [[320, 256, 1], [320, 450, 1], [390, 450, 1], [640, 300, 1], [568, 320, 1], [640, 450, 2], [1280, 720, 1]];
+  for (const [l, a, d] of TAMANHOS_DA_JANELA) {
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+    await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+    for (const nome of ["Redefinir senha", "Encerrar sessões"]) {
+      const gatilho = pg.getByRole("button", { name: nome, exact: true }).first();
+      await gatilho.focus();
+      await pg.keyboard.press("Enter");
+      await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
+      await pg.waitForTimeout(500);
+      const m = await focoDaJanelaAVista(pg);
+      ok(`Usuários a ${tamanho(l, a, d)}, a janela "${nome}" abre com o foco em "Cancelar" à vista dentro da janela`,
+         m.ok && /Cancelar/.test(m.txt), `(${m.txt})`);
+      await pg.keyboard.press("Escape");
+      await pg.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
+    }
+    await ctx.close();
+  }
+  for (const [l, a, d] of [[320, 256, 1], [568, 320, 1], [640, 300, 1]]) {
+    const email = await contaComOutrasSessoes();
+    const { ctx, pg } = await contextoDeFoco(l, a, d);
+    await entrar(email, SENHA_DO_TESTE, pg);
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.waitForTimeout(400);
+    await botaoDeEncerrar(pg).focus();
+    await pg.keyboard.press("Enter");
+    await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(500);
+    const m = await focoDaJanelaAVista(pg);
+    ok(`Minha conta a ${tamanho(l, a, d)}, a janela "Encerrar minhas outras sessões" abre com o foco em "Cancelar" à vista dentro da janela`,
+       m.ok && /Cancelar/.test(m.txt), `(${m.txt})`);
+    await ctx.close();
   }
 }
 
