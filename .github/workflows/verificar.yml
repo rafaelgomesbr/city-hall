@@ -1105,6 +1105,24 @@ jobs:
             exit 1
           fi
 
+      # A disputa da trava de migração da V2-F01-E18: dois `pg.Client` de verdade
+      # contra o mesmo banco, em Postgres real. O PGlite tem uma conexão só e não
+      # reproduz a disputa, então os 3 casos de Postgres real são pulados fora do
+      # CI. Pulado aqui é vermelho: sem a checagem de "skipped" a prova de que
+      # só um migrador roda por vez nunca rodaria. O superusuário serve só para o
+      # teste criar e apagar o próprio banco descartável.
+      - name: Disputa da trava de migração, em Postgres real
+        env:
+          DC360_POSTGRES_DE_PROVA: postgres://postgres:postgres@localhost:5432/postgres
+        run: |
+          npx vitest run --root db test/trava-de-migracao.test.ts 2>&1 | tee "$RUNNER_TEMP/artefatos/10-trava-de-migracao.txt"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then exit "$status"; fi
+          if grep -Eq "Tests .*skipped" "$RUNNER_TEMP/artefatos/10-trava-de-migracao.txt"; then
+            echo "o bloco de Postgres real foi pulado: a prova da trava nao rodou"
+            exit 1
+          fi
+
       - name: Redigir segredo dos artefatos
         if: ${{ always() }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
