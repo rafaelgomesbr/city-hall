@@ -1,0 +1,23 @@
+✔ a pasta tem os runbooks da etapa e a etapa NÃO cria o rollback.md (0.821333ms)
+✔ cada runbook tem as seções que a etapa exige (1.402917ms)
+✔ todo comando citado existe: scripts, opções, npm run, fly, eas e gh (3.665041ms)
+✔ todo arquivo citado existe, salvo os que a lista nomeia (0.668875ms)
+✔ toda etapa citada como dependência existe no roadmap da F01 (0.632375ms)
+✔ os pontos que dependem de etapa futura estão marcados como tal (0.464875ms)
+✔ os runbooks apontam para o rollback.md sem copiá-lo (0.188833ms)
+✔ nenhum runbook traz valor de segredo (0.745583ms)
+✔ nenhum runbook usa travessão (0.232917ms)
+✔ o procedimento de rotação nomeia os dois passos e o que não gira (0.174292ms)
+✔ a matriz de acesso cobre as contas da etapa e diz quem revoga (0.234458ms)
+✔ morde: script, opção e subcomando inexistentes reprovam (0.386958ms)
+✔ morde: subcomando de fly, eas e gh fora da lista reprova (0.109375ms)
+✔ morde: arquivo inexistente e etapa inventada reprovam (0.116ms)
+✔ morde: valor de segredo no texto reprova (0.089625ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 53.135292
