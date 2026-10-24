@@ -16,7 +16,7 @@
       "distribution": "internal",
       "channel": "homologacao",
       "android": { "buildType": "apk" },
-      "env": { "DC360_API_URL": "https://api-homologacao.exemplo.gov.br" }
+      "env": { "DC360_API_URL": "https://defesa-civil-hml.fly.dev" }
     },
     "producao": {
       "extends": "base",

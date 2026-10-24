@@ -55,11 +55,19 @@ na Play Store com esse endereço não fala com servidor nenhum: no aparelho o
 sintoma é "sem conexão" com o sinal cheio, e a correção exige nova submissão e
 nova revisão.
 
-**`homologacao` continua apontando para um endereço que não existe**
-(`api-homologacao.exemplo.gov.br`), e isso é deliberado: não há ambiente de
-homologação de pé. O perfil é inutilizável hoje, e apontá-lo para produção
-seria pior, porque um build interno de teste passaria a escrever no banco das
-prefeituras. Quando o ambiente existir, o endereço entra aqui.
+**`homologacao` aponta para a API de homologação**, desde a V2-F01-E13:
+
+```json
+"homologacao": { "env": { "DC360_API_URL": "https://defesa-civil-hml.fly.dev" } }
+```
+
+O endereço é o do app `defesa-civil-hml` de `fly.hml.toml`, e o teste
+`scripts/perfis-do-eas.test.mjs` reprova se o perfil voltar a um endereço de
+exemplo ou, pior, à URL de produção (um build interno de teste passaria a
+escrever no banco das prefeituras). O app do Fly e o banco de HML só existem
+depois do CP-05: até lá o perfil tem o endereço certo, mas não há servidor
+atendendo. O build de HML também exige o cliente Android de HML no Firebase
+(seção 2).
 
 ### 2. Os identificadores
 
@@ -69,6 +77,16 @@ Estão em `app.config.ts`:
 ios.bundleIdentifier  com.solerte.dc360.campo
 android.package       com.solerte.dc360.campo
 ```
+
+O perfil `homologacao` usa o mesmo identificador com o sufixo `.hml`
+(`com.solerte.dc360.campo.hml`), o nome "DC360 HML" e o esquema `dc360-hml`, para
+os dois aplicativos coexistirem no aparelho sem um sobrescrever o outro. Tudo
+deriva de UMA constante em `app.config.ts` (`IDENTIFICADOR_BASE`), cujo valor
+final é decisão do CP-04. Para o HML funcionar, três coisas fora do repositório
+acompanham o sufixo: o App ID `com.solerte.dc360.campo.hml` no portal da Apple
+(com push, para o `apns-topic`), o cliente Android `com.solerte.dc360.campo.hml`
+no Firebase (e no `google-services.json`) e a chave do Google Maps restrita ao
+novo identificador. Tabela completa em `docs/AMBIENTES.md`, seção 12.
 
 **São definitivos.** Depois de publicar, trocar significa outro aplicativo, sem
 herdar instalações nem avaliações. Se o produto for vendido sob a marca de cada

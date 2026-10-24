@@ -1,0 +1,12 @@
+> node scripts/lint.mjs
+
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo
+
+OK: lint-teto.json confere com as baselines (431 supressões).
+
+OK: 769 arquivo(s) de código conferidos; 664 na baseline (só desce).

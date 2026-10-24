@@ -99,7 +99,12 @@ describe("o fly.hml.toml configura uma API de HML que parte", () => {
     }
     expect(HML["IDENTIDADE_DO_BANCO"]).not.toBe(PROD["IDENTIDADE_DO_BANCO"]);
     expect(HML["DOMINIO_DO_AMBIENTE"]).not.toBe(PROD["DOMINIO_DO_AMBIENTE"]);
-    expect(HML["APNS_BUNDLE"]).toBeUndefined();
+    // O identificador do aplicativo de HML (não é segredo) é declarado desde a
+    // V2-F01-E13, e TEM de ser outro: o de PROD no app de HML ou o de HML no de PROD
+    // enviaria o push ao aplicativo errado. `scripts/perfis-do-eas.test.mjs` prende o
+    // valor ao perfil do EAS; aqui só se prova que não é o de PROD.
+    expect(HML["APNS_BUNDLE"]).not.toBe(PROD["APNS_BUNDLE"]);
+    expect(HML["APNS_AMBIENTE"]).toBe("teste");
   });
 
   it("o app do Fly de HML não é o de PROD", () => {

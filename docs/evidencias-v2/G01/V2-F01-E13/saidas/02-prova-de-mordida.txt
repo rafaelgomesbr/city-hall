@@ -1,0 +1,41 @@
+== Mordida 1: homologacao apontando para a URL de PROD
+✖ o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo (0.990541ms)
+✖ a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML (0.154125ms)
+ℹ pass 15
+ℹ fail 2
+✖ failing tests:
+✖ o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo (0.990541ms)
+✖ a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML (0.154125ms)
+
+== Mordida 2: bundle de HML igual ao de PROD (sufixo vazio no app.config.ts)
+✖ com EAS_BUILD_PROFILE=homologacao o app.config.ts resolve o bundle, o pacote e o nome de HML (0.498584ms)
+✖ o bundle de HML é diferente do de PROD e do de desenvolvimento: os aplicativos coexistem no aparelho (0.085334ms)
+✖ APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic) (0.681333ms)
+ℹ pass 14
+ℹ fail 3
+✖ failing tests:
+✖ com EAS_BUILD_PROFILE=homologacao o app.config.ts resolve o bundle, o pacote e o nome de HML (0.498584ms)
+✖ o bundle de HML é diferente do de PROD e do de desenvolvimento: os aplicativos coexistem no aparelho (0.085334ms)
+✖ APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic) (0.681333ms)
+
+== Mordida 3: endereco de exemplo de volta
+✖ o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo (0.966167ms)
+✖ a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML (0.150459ms)
+✖ nenhum endereço de exemplo sobrou em eas.json (0.348208ms)
+ℹ pass 14
+ℹ fail 3
+✖ failing tests:
+✖ o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo (0.966167ms)
+✖ a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML (0.150459ms)
+✖ nenhum endereço de exemplo sobrou em eas.json (0.348208ms)
+
+== Mordida 4: APNS_BUNDLE do fly.hml.toml diferente do bundle de HML
+✖ APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic) (0.99625ms)
+ℹ pass 16
+ℹ fail 1
+✖ failing tests:
+✖ APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic) (0.99625ms)
+
+== Restaurado
+ℹ pass 17
+ℹ fail 0

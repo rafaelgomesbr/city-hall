@@ -158,6 +158,52 @@ const CHAVE_DO_MAPA_ANDROID = process.env["DC360_MAPS_CHAVE_ANDROID"]?.trim() ||
 const PERFIL_DE_PRODUCAO = process.env["EAS_BUILD_PROFILE"] === "producao";
 
 /**
+ * IDENTIDADE DO APLICATIVO POR PERFIL (V2-F01-E13).
+ *
+ * O problema: este arquivo fixava `com.solerte.dc360.campo` para todo perfil.
+ * Um build interno de homologação instalado num aparelho que já tem o de
+ * produção SOBRESCREVERIA o de produção (mesmo identificador = mesmo
+ * aplicativo), e o agente passaria a gravar ocorrência de teste no banco da
+ * prefeitura sem perceber. Com identificadores distintos os dois coexistem no
+ * mesmo aparelho, cada um com o seu ícone, o seu nome e o seu servidor.
+ *
+ * UMA constante só guarda o identificador-base, e é dela que tudo deriva:
+ * o bundle do iOS, o pacote do Android, o `APNS_BUNDLE` de `fly.toml` (PROD) e
+ * o de `fly.hml.toml` (HML, a mesma base mais o sufixo). O teste
+ * `scripts/perfis-do-eas.test.mjs` confere os quatro lugares.
+ *
+ * VALOR PROVISÓRIO: o identificador definitivo, a conta Apple, a conta Google
+ * Play e a conta Expo dependem do CP-04 (razão social e domínio). Quando o
+ * CP-04 fechar, troque SÓ esta constante (e o `APNS_BUNDLE` de `fly.toml`, o
+ * `google-services.json` e o App ID no portal da Apple, que o teste cobra).
+ * Ver `LOJAS.md`, seção 2.
+ */
+const IDENTIFICADOR_BASE = "com.solerte.dc360.campo";
+
+/** O que distingue o build de homologação do de produção no aparelho. */
+const SUFIXO_DE_HOMOLOGACAO = ".hml";
+
+/**
+ * O perfil `homologacao` de `eas.json`, lido de `EAS_BUILD_PROFILE`. Fora do
+ * EAS a variável não existe, e o resultado é a identidade de sempre; quem quer
+ * ver a de HML localmente roda `EAS_BUILD_PROFILE=homologacao npx expo config`.
+ */
+const PERFIL_DE_HOMOLOGACAO = process.env["EAS_BUILD_PROFILE"] === "homologacao";
+
+const IDENTIFICADOR_DO_APLICATIVO = PERFIL_DE_HOMOLOGACAO
+  ? `${IDENTIFICADOR_BASE}${SUFIXO_DE_HOMOLOGACAO}`
+  : IDENTIFICADOR_BASE;
+
+/**
+ * Nome sob o ícone. Em HML ele diz que é HML: quem tem os dois instalados
+ * precisa saber, pelo ícone, em qual está digitando.
+ */
+const NOME_DO_APLICATIVO = PERFIL_DE_HOMOLOGACAO ? "DC360 HML" : "Defesa Civil 360";
+
+/** O esquema de link também é por aplicativo: dois com `dc360://` brigariam. */
+const ESQUEMA_DO_APLICATIVO = PERFIL_DE_HOMOLOGACAO ? "dc360-hml" : "dc360";
+
+/**
  * A TELA DE ABERTURA, agora com os dois temas.
  *
  * O defeito, visto no aparelho: `backgroundColor` era `#101519` e mais nada.
@@ -193,9 +239,9 @@ const ABERTURA = {
 } as const;
 
 const config: ExpoConfig = {
-  name: "Defesa Civil 360",
+  name: NOME_DO_APLICATIVO,
   slug: "dc360-campo",
-  scheme: "dc360",
+  scheme: ESQUEMA_DO_APLICATIVO,
   version: VERSAO,
   orientation: "portrait",
   userInterfaceStyle: "automatic",
@@ -225,7 +271,7 @@ const config: ExpoConfig = {
   ios: {
     // Identificador definitivo. Trocar depois de publicar significa outro
     // aplicativo na loja, sem herdar avaliações nem instalações.
-    bundleIdentifier: "com.solerte.dc360.campo",
+    bundleIdentifier: IDENTIFICADOR_DO_APLICATIVO,
     buildNumber: String(BUILD),
     supportsTablet: true,
     // O agente trabalha na rua, quase sempre em pé, com uma mão. Deitado não
@@ -310,7 +356,7 @@ const config: ExpoConfig = {
   },
 
   android: {
-    package: "com.solerte.dc360.campo",
+    package: IDENTIFICADOR_DO_APLICATIVO,
 
     /*
       Arquivo do Firebase, exigido pelo FCM para a notificação chegar no
