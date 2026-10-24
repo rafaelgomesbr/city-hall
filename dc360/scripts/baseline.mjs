@@ -681,6 +681,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     contagem. Nenhuma falha nem pulo novos.
   */
   "V2-F01-E09": { total: 60, falhas: 0, puladas: 0 },
+  // V2-F01-E14: `request-id.test.ts` (13), `reportador-de-erros.test.ts` (17), `rotinas-em-nivel-error.test.ts` (8) e `alerta-de-armazenamento.test.ts` (11).
+  "V2-F01-E14": { total: 49, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -723,6 +725,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E24-correcao-3": { total: 38, falhas: 0 },
   // V2-F00-E19, correção 10: `mensagens-em-portugues.test.ts` ganha 1 caso (o `uuidSchema` do Zod 4 aceita o v4 e o nulo e recusa o 8-4-4-4-12 que não é UUID, com a frase em português). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
   "V2-F00-E19-correcao-10": { total: 1, falhas: 0 },
+  // V2-F01-E14: `packages/shared/test/observabilidade.test.ts` (9 casos: a máscara de dado pessoal que poupa o código de suporte).
+  "V2-F01-E14": { total: 9, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -766,6 +770,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
   // V2-F00-E09, correção 7: `correcao-7-da-e09.test.ts` é novo, com 14 casos (a conta que rola o painel da janela até o foco inicial, para baixo, para cima, quando já está à vista e quando o controle é mais alto que o painel; o Modal que a usa depois de abrir no topo e que a refaz quando o conteúdo muda depois de aberto; o ajuste que leva a confirmação das sessões à faixa livre entre o topo e a barra do pé, com o foco e sem ele; Minha conta que o chama quando a confirmação aparece e quando a lista relida chega; e a seção 14 do layout-estreito). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o focus() do Modal nunca rola). Nenhuma falha nova.
   "V2-F00-E09-correcao-7": { total: 14, falhas: 0 },
+  // V2-F01-E14: `apps/web/test/codigo-de-suporte.test.ts` (13 casos: o código de suporte nos 5xx e os erros globais do painel).
+  "V2-F01-E14": { total: 13, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -927,7 +933,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 330, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 334, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

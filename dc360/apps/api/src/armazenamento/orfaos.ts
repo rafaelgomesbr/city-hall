@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Banco, Consulta } from "../banco/tipos.js";
 import type { Armazenamento, ObjetoListado } from "./tipos.js";
+import type { NivelDoRegistro } from "../observabilidade/reportador.js";
 
 /**
  * A varredura de objeto órfão.
@@ -144,7 +145,13 @@ export type DependenciasDaVarredura = {
   trava?: Trava;
   janelaDias?: number;
   agora?: () => Date;
-  registrar?: (evento: Record<string, unknown>, mensagem: string) => void;
+  /**
+   * Para onde vai o que a rotina tem a dizer. `nivel` ausente é `info`; FALHA
+   * sai sempre como `error` (V2-F01-E14), porque é o nível em que o alerta do
+   * destino de logs dispara. Rotina que falha em `info` só é vista por quem
+   * abre o log de propósito.
+   */
+  registrar?: (evento: Record<string, unknown>, mensagem: string, nivel?: NivelDoRegistro) => void;
 };
 
 type LinhaDeEvidencia = {
@@ -307,6 +314,10 @@ export async function varrerOrfaos(
         falhas: resumo.falhas.length,
       },
       "varredura de objeto orfao concluida",
+      // Rodada que terminou com falha (listagem parcial, município que não
+      // conferiu) não é rotina: é o caso em que a lista de candidatos não é
+      // completa, e quem decide apagar com base nela precisa saber.
+      resumo.falhas.length > 0 ? "error" : "info",
     );
   } finally {
     // `finally` pela mesma razão da minimização: uma exceção com a trava presa
@@ -463,7 +474,13 @@ export type DependenciasDoDescarte = {
   operador: string;
   /** Por que, em uma frase. Vai para a linha e não se altera. */
   motivo: string;
-  registrar?: (evento: Record<string, unknown>, mensagem: string) => void;
+  /**
+   * Para onde vai o que a rotina tem a dizer. `nivel` ausente é `info`; FALHA
+   * sai sempre como `error` (V2-F01-E14), porque é o nível em que o alerta do
+   * destino de logs dispara. Rotina que falha em `info` só é vista por quem
+   * abre o log de propósito.
+   */
+  registrar?: (evento: Record<string, unknown>, mensagem: string, nivel?: NivelDoRegistro) => void;
 };
 
 /**
@@ -590,6 +607,7 @@ export async function descartarOrfaos(
       falhas: resultado.falhas.length,
     },
     "descarte de objeto orfao executado",
+    resultado.falhas.length > 0 ? "error" : "info",
   );
 
   return resultado;
@@ -630,6 +648,7 @@ export function agendarVarreduraDeOrfaos(
         registrar(
           { erro: erro instanceof Error ? erro.message : String(erro) },
           "varredura de objeto orfao falhou inteira",
+          "error",
         );
       })
       .finally(() => { emAndamento = false; });

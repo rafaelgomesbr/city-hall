@@ -1,0 +1,4 @@
+   × minimização por prazo > falha inteira do relógio sai em error, com a mensagem do erro 14ms
+   × X-Request-Id na API > negativo: id com quebra de linha ou de 200 caracteres é descartado e substituído 7ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 35 passed (37)

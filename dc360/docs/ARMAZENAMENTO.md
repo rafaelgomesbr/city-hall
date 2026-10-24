@@ -279,6 +279,13 @@ dito em voz alta: município que não tem nenhum objeto no balde não aparece em
 prefixo nenhum, então as reservas velhas dele só são soltas pelo comando do
 operador, que traz a lista completa.
 
+### O alerta do bucket inteiro (cota)
+
+Diferente do teto por município, `S3_COTA_BYTES` é a cota do **bucket** contratada
+com o provedor. Com ela definida, a API mede o bucket uma vez por dia e escreve
+em nível `error` quando ele passa de 80%. O desenho, o que a linha leva e o que
+falta para ela acordar alguém estão em `OBSERVABILIDADE.md`, seção 4.
+
 ---
 
 ## O que NÃO foi feito

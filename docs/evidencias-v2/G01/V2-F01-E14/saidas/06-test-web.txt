@@ -1,0 +1,374 @@
+
+> @dc360/web@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web
+
+ ❯ test/seo.test.ts (27 tests | 1 failed) 54ms
+   ✓ index.html diz quem é > cumpre cada exigência de título, ícone, manifesto e prévia de link 4ms
+   ✓ index.html diz quem é > o portão morde: o index.html de antes reprova em quase tudo 1ms
+   ✓ index.html diz quem é > o portão morde: og:image relativa reprova mesmo com a tag presente 1ms
+   ✓ index.html diz quem é > og:url e og:image apontam para a mesma origem: é uma constante só 0ms
+   ✓ index.html diz quem é > as duas cores de theme-color são --ds-bg de cada tema, copiadas de tokens.css 0ms
+   ✓ index.html diz quem é > nenhum texto voltado para fora tem travessão 0ms
+   ✓ manifest.webmanifest > existe, é JSON e cumpre cada campo, inclusive o ícone mascarável 1ms
+   ✓ manifest.webmanifest > o portão morde: sem o ícone mascarável, reprova só por ele 0ms
+   ✓ manifest.webmanifest > todo ícone que o manifesto lista existe em public/ 0ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > icone-192.png tem 192x192 no cabeçalho IHDR 0ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > icone-512.png tem 512x512 no cabeçalho IHDR 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > icone-mascaravel-512.png tem 512x512 no cabeçalho IHDR 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > apple-touch-icon.png tem 180x180 no cabeçalho IHDR 0ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > og.png tem exatamente o que og:image:width e og:image:height prometem 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > favicon.ico traz os quadros de 16, 32 e 48, cada um do tamanho que declara 0ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > os SVG de origem existem e as cores neles carregam o nome do token ao lado 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > os SVG de origem são XML bem formado: um só `--` em comentário e o navegador recusa o arquivo inteiro 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > o verificador de XML morde: `--` em comentário, comentário terminando em `-`, tag aberta e `&` solto 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > o leitor de PNG morde: cabeçalho com outro tamanho reprova, e o que não é PNG também 1ms
+   ✓ os arquivos de marca existem no tamanho que o HTML e o manifesto declaram > os ícones não são o mesmo PNG renomeado 0ms
+   ✓ o que um buscador pode guardar > robots.txt permite a raiz 1ms
+   ✓ o que um buscador pode guardar > as rotas públicas são exatamente as que ficam fora de <Protegida> em App.tsx 1ms
+   ✓ o que um buscador pode guardar > marcarComoInterna coloca a meta noindex, não duplica, e tira ao voltar para a rota pública 1ms
+   ✓ título por tela > compõe 'Tela · Defesa Civil 360', e só o produto quando não há tela 0ms
+   ✓ título por tela > toda tela que App.tsx roteia pede o próprio título com useTitulo 9ms
+   ✓ título por tela > TrocaDeTela passa pelo mesmo formato e marca as telas internas 0ms
+   × vercel.json > dá cache longo a cada arquivo de marca 23ms
+     → /icone-192.png: max-age curto demais (): expected 0 to be greater than or equal to 2592000
+ ✓ test/qr.test.ts (11 tests) 506ms
+stderr | test/oficio-so-para-quem-consulta.test.ts > Ofício no modo de demonstração segue a mesma regra da API
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114890)
+    at callback (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114798)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113275)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131429)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/quem-esta-em-campo.test.ts > Quem está em campo, no modo de demonstração
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114890)
+    at callback (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114798)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113275)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131429)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/semente-e-confirmacoes.test.ts > A linha do tempo da semente conta a história na ordem
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114890)
+    at callback (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114798)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113275)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131429)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/devolucao.test.ts > A devolução na demonstração, contra o banco
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114890)
+    at callback (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114798)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113275)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131429)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/tipo-a-classificar.test.ts > O modo de demonstração se comporta como o servidor
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114890)
+    at callback (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114798)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113275)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131429)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/busca-nos-dois-modos.test.ts > A lista filtrada por texto, nos dois modos
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114890)
+    at callback (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:114798)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:113275)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/release/postgres.js:9:131429)
+    at file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/[4m@electric-sql/pglite[24m/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+ ✓ test/portoes-de-componente.test.ts (11 tests) 1372ms
+   ✓ Portões de componente > o protocolo recém gerado chega à tela, e não só ao aviso que some  717ms
+ ✓ test/pico-lista-e-mapa.test.ts (17 tests) 886ms
+   ✓ O prazo mostra a data, e nao so a contagem regressiva > existe um componente que diz QUANDO vence  739ms
+ ✓ test/oficio-so-para-quem-consulta.test.ts (4 tests) 7865ms
+ ✓ test/mapa-e-coordenada.test.ts (31 tests) 425ms
+ ✓ test/tipo-a-classificar.test.ts (19 tests) 8129ms
+ ✓ test/quem-esta-em-campo.test.ts (4 tests) 8200ms
+ ✓ test/devolucao.test.ts (40 tests) 8219ms
+ ✓ test/semente-e-confirmacoes.test.ts (5 tests) 8357ms
+ ✓ test/busca-nos-dois-modos.test.ts (12 tests) 8034ms
+ ✓ test/design-system.test.ts (12 tests) 223ms
+ ✓ test/busca-registros.test.ts (14 tests) 108ms
+ ✓ test/oficio.test.ts (13 tests) 59ms
+ ✓ test/glifos-de-severidade.test.ts (21 tests) 57ms
+ ✓ test/ler-fonte.test.ts (7 tests) 17ms
+ ✓ test/orgaos.test.ts (15 tests) 8ms
+ ✓ test/recuperar-senha-e-sessao.test.ts (3 tests) 9ms
+ ✓ test/busca-global.test.ts (33 tests) 41ms
+ ✓ test/acessibilidade.test.ts (21 tests) 189ms
+ ✓ test/correcao-4-da-e09.test.ts (19 tests) 7ms
+ ✓ test/lista-sem-o-que-so-o-dossie-entrega.test.ts (4 tests) 16ms
+ ✓ test/correcao-6-da-e09.test.ts (24 tests) 13ms
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > mostra protocolo, tipo, data e situação, e leva ao outro chamado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at div
+    at section
+    at Cartao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/comuns.tsx:373:19)
+    at CartaoVerTambem (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Ocorrencia.tsx:1347:28)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > o estado vazio diz o que foi procurado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > consulta que falhou não vira lista vazia
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at div
+    at section
+    at Cartao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/comuns.tsx:373:19)
+    at CartaoVerTambem (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Ocorrencia.tsx:1347:28)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/ocorrencia-ver-tambem.test.ts (9 tests) 46ms
+ ✓ test/sessoes-e-senha-temporaria.test.ts (18 tests) 7ms
+ ✓ test/trilha-detalhe.test.ts (15 tests) 89ms
+ ✓ test/busca-pontuador.test.ts (20 tests) 24ms
+ ✓ test/pacote-de-saida.test.ts (7 tests) 69ms
+stderr | test/sino.test.ts > O painel desenhado > cada aviso leva à ocorrência dele
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/Sino.tsx:22:3)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > o não lido é dito com palavra, e não só com a faixa colorida
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/Sino.tsx:22:3)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/Sino.tsx:22:3)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > o estado vazio diz o que apareceria ali
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > quando o sino conta mais do que a lista mostra, ele diz isso
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/Sino.tsx:22:3)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > a falha da consulta não apaga a lista que já estava na tela
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/componentes/Sino.tsx:22:3)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/sino.test.ts (28 tests) 116ms
+stderr | test/sessao-e-entrada.test.ts > A tela de entrada > diz que a sessão expirou quando chegou aqui por isso, e não diz nada quando não
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+
+stderr | test/sessao-e-entrada.test.ts > A tela de entrada > diz a frase certa para cada motivo, com ícone e texto, e só a de conta desativada manda procurar a coordenação
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/paginas/Entrar.tsx:31:38)
+    at Router (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web/src/estado/sessao.tsx:15:27)
+
+ ✓ test/sessao-e-entrada.test.ts (31 tests) 78ms
+ ✓ test/formularios.test.ts (9 tests) 6ms
+ ✓ test/campo.test.ts (12 tests) 7ms
+ ✓ test/link-encurtado.test.ts (20 tests) 46ms
+ ✓ test/correcao-7-da-e09.test.ts (14 tests) 7ms
+ ✓ test/recuperar-senha.test.ts (47 tests) 18ms
+ ✓ test/ocorrencia-encerramento.test.ts (13 tests) 19ms
+ ✓ test/correcao-5-da-e09.test.ts (11 tests) 11ms
+ ✓ test/modal.test.ts (30 tests) 7ms
+ ✓ test/duplicidade-sem-rede.test.ts (3 tests) 6ms
+ ✓ test/modo-de-demonstracao.test.ts (6 tests) 3ms
+ ✓ test/coordenada-corrigida.test.ts (12 tests) 13ms
+ ✓ test/foco.test.ts (15 tests) 6ms
+ ✓ test/toast.test.ts (17 tests) 52ms
+ ✓ test/codigo-de-suporte.test.ts (13 tests) 67ms
+ ✓ test/paridade-dos-modos.test.ts (10 tests) 5ms
+ ✓ test/seguranca-da-conta.test.ts (8 tests) 29ms
+ ✓ test/minha-conta-estreita.test.ts (6 tests) 5ms
+ ✓ test/usuarios-regras.test.ts (5 tests) 5ms
+ ✓ test/senha-provisoria.test.ts (4 tests) 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/seo.test.ts > vercel.json > dá cache longo a cada arquivo de marca
+AssertionError: /icone-192.png: max-age curto demais (): expected 0 to be greater than or equal to 2592000
+ ❯ test/seo.test.ts:546:69
+    544|       const cache = regra!.headers.find((h) => h.key.toLowerCase() ===…
+    545|       const maxAge = Number(/max-age=(\d+)/.exec(cache)?.[1] ?? 0);
+    546|       expect(maxAge, `${arquivo}: max-age curto demais (${cache})`).to…
+       |                                                                     ^
+    547|     }
+    548|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 48 passed (49)
+      Tests  1 failed | 749 passed (750)
+   Start at  18:28:12
+   Duration  14.32s (transform 3.47s, setup 0ms, collect 27.31s, tests 53.54s, environment 6ms, prepare 5.64s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web
+npm error workspace @dc360/web@0.1.0
+npm error location /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a3176663defaa487b/dc360/apps/web
+npm error command failed
+npm error command sh -c vitest run

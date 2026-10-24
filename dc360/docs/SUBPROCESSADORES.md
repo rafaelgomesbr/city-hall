@@ -44,6 +44,8 @@ qualquer fonte vinda de rede. A linha da Vercel voltou a ser verdadeira.
 
 | Empresa | Para quê | Quando |
 | --- | --- | --- |
+| **Ferramenta de erro centralizado** (a decidir no CP-06, V2-F01-E14) | Receber o erro inesperado da API e do painel, com o filtro de `OBSERVABILIDADE.md` seção 2: sem corpo, cabeçalho, cookie, barra de endereço, IP nem usuário, e com e-mail, CPF, telefone, coordenada e token mascarados | Só depois da decisão de ferramenta e de onde o dado mora (CP-06). **Aviso de 30 dias aos municípios antes de ligar.** Hoje nada sai: o erro vai só para o log |
+| **Monitor externo de `/saude`** (a contratar, V2-F01-E14) | Pedir `/saude` a cada minuto e avisar o dono se a API cair | Quando o dono criar a conta. A rota é pública e traz só contagens, versão e commit: nenhum dado de município ou de pessoa |
 | **Resend** (escolhido, ainda não ligado) | Recuperação de senha e ofício com endereço de uso único. O cliente já fala o contrato publicado dele (`docs/LIGAR-O-EMAIL.md`), e o processo sobe com `EMAIL_ATIVO=nao` | Quando `EMAIL_ATIVO=sim` entrar em produção. Nesse dia esta linha sobe para a tabela nominal, com o que ele alcança (endereço de email do servidor público e o texto do ofício) e onde ficam os servidores |
 
 ---
