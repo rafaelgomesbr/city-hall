@@ -20,11 +20,19 @@ import { agendarVarreduraDeOrfaos, varrerOrfaos } from "../src/armazenamento/orf
  * senão o alerta passa a gritar o tempo todo e a equipe aprende a ignorá-lo.
  */
 
-type Linha = { evento: Record<string, unknown>; mensagem: string; nivel: NivelDoRegistro | undefined };
+type Linha = {
+  evento: Record<string, unknown>;
+  mensagem: string;
+  nivel: NivelDoRegistro | undefined;
+};
 
 function coletor() {
   const linhas: Linha[] = [];
-  const registrar = (evento: Record<string, unknown>, mensagem: string, nivel?: NivelDoRegistro) => {
+  const registrar = (
+    evento: Record<string, unknown>,
+    mensagem: string,
+    nivel?: NivelDoRegistro,
+  ) => {
     linhas.push({ evento, mensagem, nivel });
   };
   return { linhas, registrar };
@@ -38,7 +46,9 @@ const travaLivre: Trava = {
 
 function bancoComSemTenant(
   semTenant: <T>(f: (c: Consulta) => Promise<T>) => Promise<T>,
-  comTenant: Banco["comTenant"] = async () => { throw new Error("comTenant não esperado"); },
+  comTenant: Banco["comTenant"] = async () => {
+    throw new Error("comTenant não esperado");
+  },
 ): Banco {
   return { semTenant, comTenant, encerrar: async () => undefined } as Banco;
 }
@@ -52,12 +62,16 @@ async function esperarAte(condicao: () => boolean, limiteMs = 2000): Promise<voi
   }
 }
 
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("minimização por prazo", () => {
   it("falha inteira do relógio sai em error, com a mensagem do erro", async () => {
     const { linhas, registrar } = coletor();
-    const banco = bancoComSemTenant(async () => { throw new Error("conexão recusada"); });
+    const banco = bancoComSemTenant(async () => {
+      throw new Error("conexão recusada");
+    });
     const agendada = agendarMinimizacao({ banco, trava: travaLivre, registrar }, 5);
     await esperarAte(() => linhas.length > 0);
     await agendada.parar();
@@ -70,9 +84,13 @@ describe("minimização por prazo", () => {
 
   it("rodada que minimizou algo NÃO sobe para error", async () => {
     const { linhas, registrar } = coletor();
-    const banco = bancoComSemTenant(async (f) => f({
-      query: async () => ({ rows: [{ municipio: "m", ocorrencia: "o", campos_removidos: ["nome", "telefone"] }] }),
-    } as Consulta));
+    const banco = bancoComSemTenant(async (f) =>
+      f({
+        query: async () => ({
+          rows: [{ municipio: "m", ocorrencia: "o", campos_removidos: ["nome", "telefone"] }],
+        }),
+      } as Consulta),
+    );
     const resumo = await minimizarPorPrazo({ banco, trava: travaLivre, registrar });
     expect(resumo).toMatchObject({ ocorrencias: 1, campos: 2 });
     expect(linhas).toHaveLength(1);
@@ -84,7 +102,12 @@ describe("escrita do resumo dos municípios", () => {
   it("município que não conseguiu escrever sai em error, e os outros seguem", async () => {
     const { linhas, registrar } = coletor();
     const banco = bancoComSemTenant(
-      async (f) => f({ query: async () => ({ rows: [{ municipios_a_resumir: "org-a" }, { municipios_a_resumir: "org-b" }] }) } as Consulta),
+      async (f) =>
+        f({
+          query: async () => ({
+            rows: [{ municipios_a_resumir: "org-a" }, { municipios_a_resumir: "org-b" }],
+          }),
+        } as Consulta),
       async (organizacaoId, f) => {
         if (organizacaoId === "org-a") throw new Error("conexão derrubada");
         return f({ query: async () => ({ rows: [{}] }) } as Consulta);
@@ -92,7 +115,9 @@ describe("escrita do resumo dos municípios", () => {
     );
     const r = await resumirMunicipios({ banco, trava: travaLivre, frescorMinutos: 10, registrar });
     expect(r).toMatchObject({ municipios: 1, falhas: 1 });
-    const falha = linhas.find((l) => l.mensagem === "municipio nao conseguiu escrever o proprio resumo");
+    const falha = linhas.find(
+      (l) => l.mensagem === "municipio nao conseguiu escrever o proprio resumo",
+    );
     expect(falha?.nivel).toBe("error");
     // Só o identificador da organização, nunca o nome do município.
     expect(Object.keys(falha!.evento).sort()).toEqual(["erro", "organizacao"]);
@@ -100,17 +125,26 @@ describe("escrita do resumo dos municípios", () => {
 
   it("falha inteira da rodada sai em error", async () => {
     const { linhas, registrar } = coletor();
-    const banco = bancoComSemTenant(async () => { throw new Error("banco fora"); });
-    const agendada = agendarResumo({ banco, trava: travaLivre, frescorMinutos: 10, registrar }, 60_000);
+    const banco = bancoComSemTenant(async () => {
+      throw new Error("banco fora");
+    });
+    const agendada = agendarResumo(
+      { banco, trava: travaLivre, frescorMinutos: 10, registrar },
+      60_000,
+    );
     await esperarAte(() => linhas.length > 0);
     await agendada.parar();
-    expect(linhas[0]).toMatchObject({ mensagem: "escrita do resumo dos municipios falhou inteira", nivel: "error" });
+    expect(linhas[0]).toMatchObject({
+      mensagem: "escrita do resumo dos municipios falhou inteira",
+      nivel: "error",
+    });
   });
 
   it("rodada sem falha NÃO sobe para error", async () => {
     const { linhas, registrar } = coletor();
     const banco = bancoComSemTenant(
-      async (f) => f({ query: async () => ({ rows: [{ municipios_a_resumir: "org-a" }] }) } as Consulta),
+      async (f) =>
+        f({ query: async () => ({ rows: [{ municipios_a_resumir: "org-a" }] }) } as Consulta),
       async (_org, f) => f({ query: async () => ({ rows: [{}] }) } as Consulta),
     );
     await resumirMunicipios({ banco, trava: travaLivre, frescorMinutos: 10, registrar });
@@ -120,7 +154,9 @@ describe("escrita do resumo dos municípios", () => {
 });
 
 describe("varredura de objeto órfão", () => {
-  const bancoSemUso = bancoComSemTenant(async () => { throw new Error("não deveria consultar"); });
+  const bancoSemUso = bancoComSemTenant(async () => {
+    throw new Error("não deveria consultar");
+  });
 
   function armazenamentoCom(listar: Armazenamento["listar"]): Armazenamento {
     return { listar } as Armazenamento;
@@ -128,7 +164,11 @@ describe("varredura de objeto órfão", () => {
 
   it("rodada com listagem falha termina em error: a lista tem buraco", async () => {
     const { linhas, registrar } = coletor();
-    const armazenamento = armazenamentoCom(async () => ({ objetos: [], continuacao: null, falha: "bucket indisponível" }));
+    const armazenamento = armazenamentoCom(async () => ({
+      objetos: [],
+      continuacao: null,
+      falha: "bucket indisponível",
+    }));
     const r = await varrerOrfaos({ banco: bancoSemUso, armazenamento, municipios: [], registrar });
     expect(r.falhas).toHaveLength(1);
     const final = linhas.find((l) => l.mensagem === "varredura de objeto orfao concluida");
@@ -146,11 +186,16 @@ describe("varredura de objeto órfão", () => {
 
   it("falha inteira do relógio sai em error", async () => {
     const { linhas, registrar } = coletor();
-    const armazenamento = armazenamentoCom(async () => { throw new Error("rede caiu"); });
+    const armazenamento = armazenamentoCom(async () => {
+      throw new Error("rede caiu");
+    });
     const agendada = agendarVarreduraDeOrfaos(
-      { banco: bancoSemUso, armazenamento, trava: travaLivre, registrar }, 5,
+      { banco: bancoSemUso, armazenamento, trava: travaLivre, registrar },
+      5,
     );
-    await esperarAte(() => linhas.some((l) => l.mensagem === "varredura de objeto orfao falhou inteira"));
+    await esperarAte(() =>
+      linhas.some((l) => l.mensagem === "varredura de objeto orfao falhou inteira"),
+    );
     await agendada.parar();
     const falha = linhas.find((l) => l.mensagem === "varredura de objeto orfao falhou inteira");
     expect(falha?.nivel).toBe("error");

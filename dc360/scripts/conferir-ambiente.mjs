@@ -149,7 +149,8 @@ export function validarMatriz(matriz) {
         }
       }
       if (v.valores !== undefined) {
-        if (v.onde === "segredo") p(`${onde}: variável de SEGREDO não pode ter valor fixo na matriz`);
+        if (v.onde === "segredo")
+          p(`${onde}: variável de SEGREDO não pode ter valor fixo na matriz`);
         for (const [amb, valor] of Object.entries(v.valores)) {
           if (!AMBIENTES.includes(amb)) p(`${onde}: valores.${amb} não é um ambiente`);
           if (typeof valor !== "string") p(`${onde}: valores.${amb} precisa ser texto`);
@@ -159,29 +160,48 @@ export function validarMatriz(matriz) {
       if ((v.identidade || v.dominio) && v.onde !== "env") {
         p(`${onde}: identidade e domínio moram no [env], não nos segredos`);
       }
-      if (v.dev === "obrigatoria") p(`${onde}: nada é obrigatório em dev (o repositório precisa rodar recém-clonado)`);
+      if (v.dev === "obrigatoria")
+        p(`${onde}: nada é obrigatório em dev (o repositório precisa rodar recém-clonado)`);
     }
   }
 
   const { hml, prod } = matriz.ambientes ?? {};
-  for (const [nome, amb] of [["hml", hml], ["prod", prod]]) {
+  for (const [nome, amb] of [
+    ["hml", hml],
+    ["prod", prod],
+  ]) {
     if (!amb) continue;
     if (amb.identidadeDoBanco != null && !IDENTIDADE.test(amb.identidadeDoBanco)) {
-      p(`ambientes.${nome}.identidadeDoBanco fora do formato (3 a 63 letras, números, hífen ou sublinhado, sem ponto)`);
+      p(
+        `ambientes.${nome}.identidadeDoBanco fora do formato (3 a 63 letras, números, hífen ou sublinhado, sem ponto)`,
+      );
     }
     if (amb.dominio != null) {
       if (!DOMINIO.test(amb.dominio)) p(`ambientes.${nome}.dominio fora do formato de domínio`);
       if (DOMINIOS_COMPARTILHADOS.includes(amb.dominio)) {
-        p(`ambientes.${nome}.dominio é um domínio compartilhado do provedor: use o nome inteiro do projeto`);
+        p(
+          `ambientes.${nome}.dominio é um domínio compartilhado do provedor: use o nome inteiro do projeto`,
+        );
       }
     }
   }
   if (hml && prod) {
-    if (hml.identidadeDoBanco != null && hml.identidadeDoBanco.toLowerCase() === prod.identidadeDoBanco?.toLowerCase()) {
-      p("HML e PROD declaram a MESMA identidade de banco: a trava de ambiente cruzado não separaria nada");
+    if (
+      hml.identidadeDoBanco != null &&
+      hml.identidadeDoBanco.toLowerCase() === prod.identidadeDoBanco?.toLowerCase()
+    ) {
+      p(
+        "HML e PROD declaram a MESMA identidade de banco: a trava de ambiente cruzado não separaria nada",
+      );
     }
-    if (hml.dominio != null && prod.dominio != null && dominiosSeCruzam(hml.dominio, prod.dominio)) {
-      p("HML e PROD declaram domínios iguais ou um dentro do outro: o CORS de um aceitaria o painel do outro");
+    if (
+      hml.dominio != null &&
+      prod.dominio != null &&
+      dominiosSeCruzam(hml.dominio, prod.dominio)
+    ) {
+      p(
+        "HML e PROD declaram domínios iguais ou um dentro do outro: o CORS de um aceitaria o painel do outro",
+      );
     }
   }
   return problemas;
@@ -258,10 +278,12 @@ export function conferirRepositorio({ raiz = RAIZ_DO_PRODUTO, matriz = lerMatriz
     const lidas = variaveisDoEsquema(ler(raiz, CONFIG_DO_APP[app]));
     const naMatriz = new Set(matriz.apps[app].variaveis.map((v) => v.nome));
     for (const nome of [...lidas].sort()) {
-      if (!naMatriz.has(nome)) p(`${app}: ${nome} é lida por ${CONFIG_DO_APP[app]} e não está na matriz`);
+      if (!naMatriz.has(nome))
+        p(`${app}: ${nome} é lida por ${CONFIG_DO_APP[app]} e não está na matriz`);
     }
     for (const nome of [...naMatriz].sort()) {
-      if (!lidas.has(nome)) p(`${app}: ${nome} está na matriz e ${CONFIG_DO_APP[app]} não a lê mais`);
+      if (!lidas.has(nome))
+        p(`${app}: ${nome} está na matriz e ${CONFIG_DO_APP[app]} não a lê mais`);
     }
   }
 
@@ -273,7 +295,8 @@ export function conferirRepositorio({ raiz = RAIZ_DO_PRODUTO, matriz = lerMatriz
       const arquivo = dados.arquivos[app];
       if (!existsSync(join(raiz, arquivo))) {
         if (amb === "prod") p(`${arquivo} (PROD, ${app}) não existe`);
-        else if (dados.identidadeDoBanco != null) p(`${arquivo} (HML, ${app}) não existe, mas a matriz já declara a identidade de HML`);
+        else if (dados.identidadeDoBanco != null)
+          p(`${arquivo} (HML, ${app}) não existe, mas a matriz já declara a identidade de HML`);
         else avisos.push(`${arquivo} (HML, ${app}) ainda não existe: nasce na V2-F01-E11`);
         continue;
       }
@@ -295,8 +318,15 @@ export function conferirRepositorio({ raiz = RAIZ_DO_PRODUTO, matriz = lerMatriz
         if (declarada && esperado !== undefined && env[v.nome] !== esperado) {
           p(`${arquivo}: ${v.nome} deveria valer "${esperado}" em ${amb.toUpperCase()}`);
         }
-        if (declarada && v.identidade && dados.identidadeDoBanco != null && env[v.nome] !== dados.identidadeDoBanco) {
-          p(`${arquivo}: ${v.nome} não é a identidade de banco que a matriz declara para ${amb.toUpperCase()}`);
+        if (
+          declarada &&
+          v.identidade &&
+          dados.identidadeDoBanco != null &&
+          env[v.nome] !== dados.identidadeDoBanco
+        ) {
+          p(
+            `${arquivo}: ${v.nome} não é a identidade de banco que a matriz declara para ${amb.toUpperCase()}`,
+          );
         }
         if (declarada && v.dominio && dados.dominio != null && env[v.nome] !== dados.dominio) {
           p(`${arquivo}: ${v.nome} não é o domínio que a matriz declara para ${amb.toUpperCase()}`);
@@ -305,7 +335,8 @@ export function conferirRepositorio({ raiz = RAIZ_DO_PRODUTO, matriz = lerMatriz
       for (const nome of Object.keys(env)) {
         const v = porNome.get(nome);
         if (!v) p(`${arquivo}: [env] declara ${nome}, que a matriz não conhece`);
-        else if (v.onde === "segredo") p(`${arquivo}: [env] declara ${nome}, que é SEGREDO e não pode estar no repositório`);
+        else if (v.onde === "segredo")
+          p(`${arquivo}: [env] declara ${nome}, que é SEGREDO e não pode estar no repositório`);
       }
     }
   }
@@ -326,17 +357,23 @@ export function conferirRepositorio({ raiz = RAIZ_DO_PRODUTO, matriz = lerMatriz
   // 4. Versões: Node 22 e Postgres 17 em todo lugar que as declara.
   const nvmrc = ler(raiz, ".nvmrc").trim();
   if (!existsSync(join(raiz, ".node-version"))) p(".node-version não existe");
-  else if (ler(raiz, ".node-version").trim() !== nvmrc) p(`.node-version e .nvmrc divergem (${ler(raiz, ".node-version").trim()} e ${nvmrc})`);
+  else if (ler(raiz, ".node-version").trim() !== nvmrc)
+    p(`.node-version e .nvmrc divergem (${ler(raiz, ".node-version").trim()} e ${nvmrc})`);
   if (nvmrc !== "22") p(`.nvmrc deveria dizer 22 (diz ${nvmrc})`);
   const engines = JSON.parse(ler(raiz, "package.json")).engines?.node;
-  if (engines !== ">=22 <23") p(`package.json engines.node deveria ser ">=22 <23" (é ${JSON.stringify(engines)})`);
+  if (engines !== ">=22 <23")
+    p(`package.json engines.node deveria ser ">=22 <23" (é ${JSON.stringify(engines)})`);
   for (const dockerfile of ["Dockerfile", "Dockerfile.console"]) {
-    if (!/^FROM node:22[\s-]/m.test(ler(raiz, dockerfile))) p(`${dockerfile}: a imagem base deveria ser node:22`);
+    if (!/^FROM node:22[\s-]/m.test(ler(raiz, dockerfile)))
+      p(`${dockerfile}: a imagem base deveria ser node:22`);
   }
-  const imagens = [...ler(raiz, "compose.yaml").matchAll(/^\s*image:\s*(\S*postgis\S*)\s*$/gm)].map((m) => m[1]);
+  const imagens = [...ler(raiz, "compose.yaml").matchAll(/^\s*image:\s*(\S*postgis\S*)\s*$/gm)].map(
+    (m) => m[1],
+  );
   if (imagens.length === 0) p("compose.yaml: nenhuma imagem de Postgres/PostGIS encontrada");
   for (const imagem of imagens) {
-    if (!/^postgis\/postgis:17-/.test(imagem)) p(`compose.yaml: ${imagem} deveria ser Postgres 17 (a produção roda 17.6)`);
+    if (!/^postgis\/postgis:17-/.test(imagem))
+      p(`compose.yaml: ${imagem} deveria ser Postgres 17 (a produção roda 17.6)`);
   }
 
   return { problemas, avisos };
@@ -415,7 +452,9 @@ export function reprovou(resultado) {
 
 /** Linhas para imprimir. Só NOMES e frases, nunca valor. */
 export function formatarComparacao({ app, ambiente, nomes, resultado }) {
-  const linhas = [`${app} em ${ambiente.toUpperCase()}: ${nomes.length} nome(s) de segredo lido(s) (só nomes)`];
+  const linhas = [
+    `${app} em ${ambiente.toUpperCase()}: ${nomes.length} nome(s) de segredo lido(s) (só nomes)`,
+  ];
   const grupos = [
     ["faltando", "FALTA  segredo obrigatório ausente"],
     ["proibidos", "SOBRA  segredo proibido neste ambiente"],
@@ -441,14 +480,23 @@ export function lerArgumentos(argv) {
   for (const k of Object.keys(saida)) {
     if (!conhecidos.has(k)) return { erro: `opção desconhecida: --${k}` };
   }
-  const quer = saida.ambiente !== undefined || saida.app !== undefined || saida.fly !== undefined || saida.lista !== undefined;
+  const quer =
+    saida.ambiente !== undefined ||
+    saida.app !== undefined ||
+    saida.fly !== undefined ||
+    saida.lista !== undefined;
   if (quer) {
-    if (!["hml", "prod"].includes(saida.ambiente)) return { erro: "--ambiente precisa ser hml ou prod" };
+    if (!["hml", "prod"].includes(saida.ambiente))
+      return { erro: "--ambiente precisa ser hml ou prod" };
     if (!APPS.includes(saida.app)) return { erro: `--app precisa ser ${APPS.join(" ou ")}` };
-    if (saida.fly !== undefined && (saida.fly === true || !/^[a-z0-9][a-z0-9-]*$/.test(saida.fly))) {
+    if (
+      saida.fly !== undefined &&
+      (saida.fly === true || !/^[a-z0-9][a-z0-9-]*$/.test(saida.fly))
+    ) {
       return { erro: "--fly precisa ser o nome do app no Fly" };
     }
-    if (saida.lista === true) return { erro: "--lista precisa de um arquivo, ou - para a entrada padrão" };
+    if (saida.lista === true)
+      return { erro: "--lista precisa de um arquivo, ou - para a entrada padrão" };
   }
   return { ...saida, comparar: quer };
 }
@@ -457,7 +505,9 @@ function principal() {
   const args = lerArgumentos(process.argv.slice(2));
   if (args.erro) {
     console.error(`conferir-ambiente: ${args.erro}`);
-    console.error("uso: node scripts/conferir-ambiente.mjs [--ambiente=hml|prod --app=api|console [--fly=NOME] [--lista=ARQUIVO|-]]");
+    console.error(
+      "uso: node scripts/conferir-ambiente.mjs [--ambiente=hml|prod --app=api|console [--fly=NOME] [--lista=ARQUIVO|-]]",
+    );
     process.exit(2);
   }
   let matriz;
@@ -486,13 +536,20 @@ function principal() {
   } else {
     const nomeNoFly = args.fly ?? matriz.ambientes[args.ambiente].appsNoFly[args.app];
     if (!nomeNoFly) {
-      console.error(`conferir-ambiente: a matriz ainda não tem o app de ${args.app} em ${args.ambiente.toUpperCase()}; passe --fly=NOME`);
+      console.error(
+        `conferir-ambiente: a matriz ainda não tem o app de ${args.app} em ${args.ambiente.toUpperCase()}; passe --fly=NOME`,
+      );
       process.exit(2);
     }
     try {
-      bruto = execFileSync("fly", ["secrets", "list", "-a", nomeNoFly, "--json"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+      bruto = execFileSync("fly", ["secrets", "list", "-a", nomeNoFly, "--json"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
     } catch (erro) {
-      console.error(`conferir-ambiente: o comando \`fly secrets list -a ${nomeNoFly} --json\` falhou (${erro.code ?? "sem código"}). Entre com \`fly auth login\` ou use --lista=ARQUIVO.`);
+      console.error(
+        `conferir-ambiente: o comando \`fly secrets list -a ${nomeNoFly} --json\` falhou (${erro.code ?? "sem código"}). Entre com \`fly auth login\` ou use --lista=ARQUIVO.`,
+      );
       process.exit(2);
     }
   }
@@ -504,7 +561,13 @@ function principal() {
     process.exit(2);
   }
   const resultado = compararNomes({ matriz, app: args.app, ambiente: args.ambiente, nomes });
-  for (const linha of formatarComparacao({ app: args.app, ambiente: args.ambiente, nomes, resultado })) console.log(linha);
+  for (const linha of formatarComparacao({
+    app: args.app,
+    ambiente: args.ambiente,
+    nomes,
+    resultado,
+  }))
+    console.log(linha);
   if (reprovou(resultado)) process.exit(1);
 }
 

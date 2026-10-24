@@ -21,8 +21,10 @@ const RAIZ = join(AQUI, "..", "..", "..");
 
 const CHAVE = randomBytes(32).toString("base64");
 
-const URL_DE_PROD = "postgres://dc360_console_login.refprodxxxxxxxx:senha-de-prod@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
-const URL_DE_HML = "postgres://dc360_console_login.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
+const URL_DE_PROD =
+  "postgres://dc360_console_login.refprodxxxxxxxx:senha-de-prod@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
+const URL_DE_HML =
+  "postgres://dc360_console_login.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
 
 function prod(alteracoes: Record<string, string> = {}): NodeJS.ProcessEnv {
   return {
@@ -70,19 +72,22 @@ describe("positivos: prod e hml válidos partem", () => {
   });
 
   it("dev não exige identidade, mesmo com um banco de verdade", () => {
-    expect(() => carregarConfig({
-      NODE_ENV: "development",
-      CONSOLE_JWT_SEGREDO: randomBytes(32).toString("base64url"),
-      CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-      CONSOLE_DATABASE_URL: URL_DE_PROD,
-    } as NodeJS.ProcessEnv)).not.toThrow();
+    expect(() =>
+      carregarConfig({
+        NODE_ENV: "development",
+        CONSOLE_JWT_SEGREDO: randomBytes(32).toString("base64url"),
+        CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
+        CONSOLE_DATABASE_URL: URL_DE_PROD,
+      } as NodeJS.ProcessEnv),
+    ).not.toThrow();
   });
 });
 
 describe("negativos: a declaração do ambiente", () => {
   it("produção sem AMBIENTE_DC360 recusa", () => {
-    expect(() => carregarConfig(sem(prod(), "AMBIENTE_DC360")))
-      .toThrow(/AMBIENTE_DC360 é obrigatória com NODE_ENV=production/);
+    expect(() => carregarConfig(sem(prod(), "AMBIENTE_DC360"))).toThrow(
+      /AMBIENTE_DC360 é obrigatória com NODE_ENV=production/,
+    );
   });
 
   it("AMBIENTE_DC360 vazia conta como ausente", () => {
@@ -90,56 +95,78 @@ describe("negativos: a declaração do ambiente", () => {
   });
 
   it("valor desconhecido recusa em vez de cair em dev", () => {
-    expect(() => carregarConfig(prod({ AMBIENTE_DC360: "producao" })))
-      .toThrow(/não é um ambiente conhecido/);
+    expect(() => carregarConfig(prod({ AMBIENTE_DC360: "producao" }))).toThrow(
+      /não é um ambiente conhecido/,
+    );
   });
 
   it("dev com NODE_ENV=production recusa", () => {
-    expect(() => carregarConfig(prod({ AMBIENTE_DC360: "dev" })))
-      .toThrow(/dev não combina com NODE_ENV=production/);
+    expect(() => carregarConfig(prod({ AMBIENTE_DC360: "dev" }))).toThrow(
+      /dev não combina com NODE_ENV=production/,
+    );
   });
 
   it("prod fora de produção recusa", () => {
-    expect(() => carregarConfig(prod({ NODE_ENV: "development" })))
-      .toThrow(/prod exige NODE_ENV=production/);
+    expect(() => carregarConfig(prod({ NODE_ENV: "development" }))).toThrow(
+      /prod exige NODE_ENV=production/,
+    );
   });
 });
 
 describe("negativos: a trava de ambiente cruzado do banco", () => {
   it("console de HML com a CONSOLE_DATABASE_URL de PROD recusa a partida", () => {
-    expect(() => carregarConfig(hml({ CONSOLE_DATABASE_URL: URL_DE_PROD })))
-      .toThrow(/CONSOLE_DATABASE_URL não é do banco de HML/);
+    expect(() => carregarConfig(hml({ CONSOLE_DATABASE_URL: URL_DE_PROD }))).toThrow(
+      /CONSOLE_DATABASE_URL não é do banco de HML/,
+    );
   });
 
   it("console de PROD com a URL de HML recusa (nos dois sentidos)", () => {
-    expect(() => carregarConfig(prod({ CONSOLE_DATABASE_URL: URL_DE_HML })))
-      .toThrow(/CONSOLE_DATABASE_URL não é do banco de PROD/);
+    expect(() => carregarConfig(prod({ CONSOLE_DATABASE_URL: URL_DE_HML }))).toThrow(
+      /CONSOLE_DATABASE_URL não é do banco de PROD/,
+    );
   });
 
   it("a mensagem não repete a URL, a senha nem a identidade do outro banco", () => {
     let mensagem = "";
-    try { carregarConfig(hml({ CONSOLE_DATABASE_URL: URL_DE_PROD })); } catch (e) { mensagem = (e as Error).message; }
+    try {
+      carregarConfig(hml({ CONSOLE_DATABASE_URL: URL_DE_PROD }));
+    } catch (e) {
+      mensagem = (e as Error).message;
+    }
     expect(mensagem).not.toContain("senha-de-prod");
     expect(mensagem).not.toContain("refprodxxxxxxxx");
   });
 
   it("compara por segmento: um trecho dentro de outro nome NÃO conta", () => {
-    expect(() => carregarConfig(hml({
-      CONSOLE_DATABASE_URL: "postgres://dc360_console_login.xrefhmlxxxxxxxxxx:s@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
-    }))).toThrow(/não é do banco de HML/);
+    expect(() =>
+      carregarConfig(
+        hml({
+          CONSOLE_DATABASE_URL:
+            "postgres://dc360_console_login.xrefhmlxxxxxxxxxx:s@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
+        }),
+      ),
+    ).toThrow(/não é do banco de HML/);
   });
 
   it("sem CONSOLE_IDENTIDADE_DO_BANCO recusa em hml e em prod", () => {
-    expect(() => carregarConfig(sem(hml(), "CONSOLE_IDENTIDADE_DO_BANCO")))
-      .toThrow(/CONSOLE_IDENTIDADE_DO_BANCO é obrigatória em HML/);
-    expect(() => carregarConfig(sem(prod(), "CONSOLE_IDENTIDADE_DO_BANCO")))
-      .toThrow(/CONSOLE_IDENTIDADE_DO_BANCO é obrigatória em PROD/);
+    expect(() => carregarConfig(sem(hml(), "CONSOLE_IDENTIDADE_DO_BANCO"))).toThrow(
+      /CONSOLE_IDENTIDADE_DO_BANCO é obrigatória em HML/,
+    );
+    expect(() => carregarConfig(sem(prod(), "CONSOLE_IDENTIDADE_DO_BANCO"))).toThrow(
+      /CONSOLE_IDENTIDADE_DO_BANCO é obrigatória em PROD/,
+    );
   });
 
   it("identidade vazia conta como ausente; com ponto ou curta demais recusa", () => {
-    expect(() => carregarConfig(prod({ CONSOLE_IDENTIDADE_DO_BANCO: "" }))).toThrow(/obrigatória em PROD/);
-    expect(() => carregarConfig(prod({ CONSOLE_IDENTIDADE_DO_BANCO: "a.b" }))).toThrow(/CONSOLE_IDENTIDADE_DO_BANCO/);
-    expect(() => carregarConfig(prod({ CONSOLE_IDENTIDADE_DO_BANCO: "ab" }))).toThrow(/CONSOLE_IDENTIDADE_DO_BANCO/);
+    expect(() => carregarConfig(prod({ CONSOLE_IDENTIDADE_DO_BANCO: "" }))).toThrow(
+      /obrigatória em PROD/,
+    );
+    expect(() => carregarConfig(prod({ CONSOLE_IDENTIDADE_DO_BANCO: "a.b" }))).toThrow(
+      /CONSOLE_IDENTIDADE_DO_BANCO/,
+    );
+    expect(() => carregarConfig(prod({ CONSOLE_IDENTIDADE_DO_BANCO: "ab" }))).toThrow(
+      /CONSOLE_IDENTIDADE_DO_BANCO/,
+    );
   });
 });
 
@@ -160,7 +187,10 @@ describe("o que o fly.console.toml declara parte, com segredos de mentira", () =
     let dentro = false;
     for (const linha of texto.split(/\r?\n/)) {
       const t = linha.trim();
-      if (t.startsWith("[")) { dentro = t === "[env]"; continue; }
+      if (t.startsWith("[")) {
+        dentro = t === "[env]";
+        continue;
+      }
       if (!dentro || t === "" || t.startsWith("#")) continue;
       const m = /^([A-Z][A-Z0-9_]*)\s*=\s*"(.*)"\s*(?:#.*)?$/.exec(t);
       if (m) saida[m[1]!] = m[2]!;
@@ -185,17 +215,23 @@ describe("o que o fly.console.toml declara parte, com segredos de mentira", () =
 
   it("com o [env] do fly.console.toml e segredos coerentes, o console sobe", () => {
     const env = envDoToml("fly.console.toml");
-    expect(carregarConfig(segredos(env, env["CONSOLE_IDENTIDADE_DO_BANCO"]!)).ambiente).toBe("prod");
+    expect(carregarConfig(segredos(env, env["CONSOLE_IDENTIDADE_DO_BANCO"]!)).ambiente).toBe(
+      "prod",
+    );
   });
 
   it("com o [env] do fly.console.toml e o banco de OUTRO ambiente, o console NÃO sobe", () => {
     const env = envDoToml("fly.console.toml");
-    expect(() => carregarConfig(segredos(env, "outroprojetoxxxxx"))).toThrow(/não é do banco de PROD/);
+    expect(() => carregarConfig(segredos(env, "outroprojetoxxxxx"))).toThrow(
+      /não é do banco de PROD/,
+    );
   });
 
   it("com o [env] do fly.console.toml e sem AMBIENTE_DC360, o console NÃO sobe", () => {
     const env = envDoToml("fly.console.toml");
     delete env["AMBIENTE_DC360"];
-    expect(() => carregarConfig(segredos(env, "refprodxxxxxxxx"))).toThrow(/AMBIENTE_DC360 é obrigatória/);
+    expect(() => carregarConfig(segredos(env, "refprodxxxxxxxx"))).toThrow(
+      /AMBIENTE_DC360 é obrigatória/,
+    );
   });
 });

@@ -5,7 +5,10 @@ import type { Banco } from "../src/banco/tipos.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { ehIdDeRequisicao, idDeRequisicaoRecebido } from "../src/observabilidade/id-de-requisicao.js";
+import {
+  ehIdDeRequisicao,
+  idDeRequisicaoRecebido,
+} from "../src/observabilidade/id-de-requisicao.js";
 import type { ContextoDoErro, ReportadorDeErros } from "../src/observabilidade/reportador.js";
 
 /**
@@ -34,11 +37,25 @@ describe("idDeRequisicaoRecebido (a regra pura)", () => {
 
   it("negativo: descarta tudo o que não é UUID, inclusive o que carrega quebra de linha", () => {
     const hostis: unknown[] = [
-      undefined, null, "", " ", "abc", "x".repeat(200), `${ID_DO_CLIENTE}\n`,
-      `${ID_DO_CLIENTE}\r\nx-falso: 1`, `\n${ID_DO_CLIENTE}`, ` ${ID_DO_CLIENTE}`,
-      `${ID_DO_CLIENTE}, ${ID_DO_CLIENTE}`, `${ID_DO_CLIENTE}x`, ID_DO_CLIENTE.replaceAll("-", ""),
-      "{\"level\":60,\"msg\":\"registro falso\"}", "<script>alert(1)</script>",
-      [ID_DO_CLIENTE], [ID_DO_CLIENTE, ID_DO_CLIENTE], 12345, {},
+      undefined,
+      null,
+      "",
+      " ",
+      "abc",
+      "x".repeat(200),
+      `${ID_DO_CLIENTE}\n`,
+      `${ID_DO_CLIENTE}\r\nx-falso: 1`,
+      `\n${ID_DO_CLIENTE}`,
+      ` ${ID_DO_CLIENTE}`,
+      `${ID_DO_CLIENTE}, ${ID_DO_CLIENTE}`,
+      `${ID_DO_CLIENTE}x`,
+      ID_DO_CLIENTE.replaceAll("-", ""),
+      '{"level":60,"msg":"registro falso"}',
+      "<script>alert(1)</script>",
+      [ID_DO_CLIENTE],
+      [ID_DO_CLIENTE, ID_DO_CLIENTE],
+      12345,
+      {},
     ];
     for (const hostil of hostis) {
       expect(idDeRequisicaoRecebido(hostil), JSON.stringify(hostil)).toBeNull();
@@ -50,7 +67,11 @@ describe("X-Request-Id na API", () => {
   let mem: BancoEmMemoria;
   let app: FastifyInstance;
   let linhas: string[] = [];
-  const coletor = { write: (linha: string) => { linhas.push(linha); } };
+  const coletor = {
+    write: (linha: string) => {
+      linhas.push(linha);
+    },
+  };
 
   beforeAll(async () => {
     mem = await bancoEmMemoria({ semear: false });
@@ -83,7 +104,9 @@ describe("X-Request-Id na API", () => {
 
   it("com um UUID válido, a API o adota e o devolve", async () => {
     const r = await app.inject({
-      method: "GET", url: "/saude", headers: { "x-request-id": ID_DO_CLIENTE },
+      method: "GET",
+      url: "/saude",
+      headers: { "x-request-id": ID_DO_CLIENTE },
     });
     expect(r.headers["x-request-id"]).toBe(ID_DO_CLIENTE);
   });
@@ -99,14 +122,16 @@ describe("X-Request-Id na API", () => {
   it("negativo: id com quebra de linha ou de 200 caracteres é descartado e substituído", async () => {
     const hostis = [
       `${ID_DO_CLIENTE}\nX-Falso: 1`,
-      "falso\n{\"level\":60,\"msg\":\"registro forjado\"}",
+      'falso\n{"level":60,"msg":"registro forjado"}',
       "x".repeat(200),
       "nao-e-uuid",
     ];
     for (const hostil of hostis) {
       linhas = [];
       const r = await app.inject({
-        method: "GET", url: "/saude", headers: { "x-request-id": hostil },
+        method: "GET",
+        url: "/saude",
+        headers: { "x-request-id": hostil },
       });
       const devolvido = r.headers["x-request-id"];
       expect(devolvido, JSON.stringify(hostil)).toMatch(UUID);
@@ -131,15 +156,21 @@ describe("X-Request-Id na API", () => {
 
   it("o navegador pode ler o cabeçalho: ele está em access-control-expose-headers", async () => {
     const r = await app.inject({
-      method: "GET", url: "/saude", headers: { origin: ORIGEM_DO_PAINEL },
+      method: "GET",
+      url: "/saude",
+      headers: { origin: ORIGEM_DO_PAINEL },
     });
-    expect(String(r.headers["access-control-expose-headers"]).toLowerCase()).toContain("x-request-id");
+    expect(String(r.headers["access-control-expose-headers"]).toLowerCase()).toContain(
+      "x-request-id",
+    );
     expect(r.headers["x-request-id"]).toMatch(UUID);
   });
 
   it("negativo: origem fora da lista continua sem liberação de CORS", async () => {
     const r = await app.inject({
-      method: "GET", url: "/saude", headers: { origin: "http://painel-falso.exemplo" },
+      method: "GET",
+      url: "/saude",
+      headers: { origin: "http://painel-falso.exemplo" },
     });
     // O `expose-headers` sai igual, e é inofensivo: sem `allow-origin` o navegador
     // recusa a resposta inteira, e o cabeçalho nunca chega a quem não é o painel.
@@ -152,20 +183,28 @@ describe("o 500 e o banco fora do ar", () => {
   let app: FastifyInstance;
   let linhas: string[] = [];
   const eventos: Array<{ erro: unknown; contexto: ContextoDoErro }> = [];
-  const coletor = { write: (linha: string) => { linhas.push(linha); } };
-  const reportador: ReportadorDeErros = {
-    reportar: (erro, contexto) => { eventos.push({ erro, contexto }); },
+  const coletor = {
+    write: (linha: string) => {
+      linhas.push(linha);
+    },
   };
-  const TOKEN_DE_OUTRO_MUNICIPIO = "eyJhbGciOiJIUzI1NiJ9.eyJvcmciOiJvdXRybyJ9.assinatura-secreta-do-token";
+  const reportador: ReportadorDeErros = {
+    reportar: (erro, contexto) => {
+      eventos.push({ erro, contexto });
+    },
+  };
+  const TOKEN_DE_OUTRO_MUNICIPIO =
+    "eyJhbGciOiJIUzI1NiJ9.eyJvcmciOiJvdXRybyJ9.assinatura-secreta-do-token";
   const EMAIL_DE_OUTRO_MUNICIPIO = "servidora.de.outro.municipio@prefeitura-vizinha.gov.br";
 
   beforeAll(async () => {
     mem = await bancoEmMemoria({ semear: false });
     // Banco que cai: toda consulta lança um erro cuja mensagem carrega dado
     // pessoal, como a de um driver que ecoa o valor que violou uma restrição.
-    const falha = () => Promise.reject(
-      new Error(`falha para ${EMAIL_DE_OUTRO_MUNICIPIO} com Bearer ${TOKEN_DE_OUTRO_MUNICIPIO}`),
-    );
+    const falha = () =>
+      Promise.reject(
+        new Error(`falha para ${EMAIL_DE_OUTRO_MUNICIPIO} com Bearer ${TOKEN_DE_OUTRO_MUNICIPIO}`),
+      );
     const bancoQueCai: Banco = {
       ...mem.banco,
       semTenant: falha,
@@ -189,7 +228,11 @@ describe("o 500 e o banco fora do ar", () => {
   });
 
   it("negativo: banco fora do ar dá 503 em /saude, com o id na resposta e sem detalhe do erro", async () => {
-    const r = await app.inject({ method: "GET", url: "/saude", headers: { "x-request-id": ID_DO_CLIENTE } });
+    const r = await app.inject({
+      method: "GET",
+      url: "/saude",
+      headers: { "x-request-id": ID_DO_CLIENTE },
+    });
     expect(r.statusCode).toBe(503);
     expect(r.headers["x-request-id"]).toBe(ID_DO_CLIENTE);
     expect(r.body).not.toContain("prefeitura-vizinha");
@@ -199,7 +242,8 @@ describe("o 500 e o banco fora do ar", () => {
   it("o 500 repete o id no corpo e no cabeçalho, e o log sai em nível error com o mesmo id", async () => {
     linhas = [];
     const r = await app.inject({
-      method: "POST", url: "/auth/entrar",
+      method: "POST",
+      url: "/auth/entrar",
       payload: { email: "agente@prefeitura.gov.br", senha: "uma-senha-qualquer" },
       headers: { "x-request-id": ID_DO_CLIENTE },
     });
@@ -221,9 +265,13 @@ describe("o 500 e o banco fora do ar", () => {
   it("autorização e isolamento: nem o log nem o evento carregam o token, o e-mail ou a barra de endereço", async () => {
     linhas = [];
     const r = await app.inject({
-      method: "POST", url: "/auth/entrar?token=segredo-na-query&email=quem@ninguem.org",
+      method: "POST",
+      url: "/auth/entrar?token=segredo-na-query&email=quem@ninguem.org",
       payload: { email: "agente@prefeitura.gov.br", senha: "outra-senha-qualquer" },
-      headers: { authorization: `Bearer ${TOKEN_DE_OUTRO_MUNICIPIO}`, cookie: "sid=cookie-secreto" },
+      headers: {
+        authorization: `Bearer ${TOKEN_DE_OUTRO_MUNICIPIO}`,
+        cookie: "sid=cookie-secreto",
+      },
     });
     expect(r.statusCode).toBe(500);
     const tudo = linhas.join("\n");
@@ -253,7 +301,8 @@ describe("o 500 e o banco fora do ar", () => {
     await alvo.ready();
     eventos.length = 0;
     await alvo.inject({
-      method: "POST", url: "/auth/entrar?x=1",
+      method: "POST",
+      url: "/auth/entrar?x=1",
       payload: { email: "a@b.org", senha: "senha-qualquer-aqui" },
     });
     await alvo.close();

@@ -98,10 +98,10 @@ export function resolverAmbiente(
   if (!texto) {
     if (emProducao) {
       throw new Error(
-        `${nome} é obrigatória com NODE_ENV=production e não veio. Defina hml ou prod `
-        + "(está no [env] do fly.toml do app). Sem ela o processo não sabe em que "
-        + "ambiente está, e as travas contra configuração cruzada, como um HML "
-        + "apontado para o banco de PROD, não têm como valer.",
+        `${nome} é obrigatória com NODE_ENV=production e não veio. Defina hml ou prod ` +
+          "(está no [env] do fly.toml do app). Sem ela o processo não sabe em que " +
+          "ambiente está, e as travas contra configuração cruzada, como um HML " +
+          "apontado para o banco de PROD, não têm como valer.",
       );
     }
     return "dev";
@@ -109,23 +109,23 @@ export function resolverAmbiente(
 
   if (!(AMBIENTES as readonly string[]).includes(texto)) {
     throw new Error(
-      `${nome}=${texto} não é um ambiente conhecido. Os valores aceitos são `
-      + `${AMBIENTES.join(", ")}, em minúsculas e sem acento.`,
+      `${nome}=${texto} não é um ambiente conhecido. Os valores aceitos são ` +
+        `${AMBIENTES.join(", ")}, em minúsculas e sem acento.`,
     );
   }
   const ambiente = texto as AmbienteDc360;
 
   if (emProducao && ambiente === "dev") {
     throw new Error(
-      `${nome}=dev não combina com NODE_ENV=production. Um processo de produção `
-      + "que se declara máquina de desenvolvimento desligaria as travas de ambiente. "
-      + "Use hml ou prod.",
+      `${nome}=dev não combina com NODE_ENV=production. Um processo de produção ` +
+        "que se declara máquina de desenvolvimento desligaria as travas de ambiente. " +
+        "Use hml ou prod.",
     );
   }
   if (!emProducao && ambiente === "prod") {
     throw new Error(
-      `${nome}=prod exige NODE_ENV=production. O ambiente de produção não pode `
-      + "rodar sem as recusas de produção.",
+      `${nome}=prod exige NODE_ENV=production. O ambiente de produção não pode ` +
+        "rodar sem as recusas de produção.",
     );
   }
   return ambiente;
@@ -178,13 +178,17 @@ export function hostNoDominio(host: string, dominio: string): boolean {
  */
 export function problemaNoDominio(dominio: string): string | null {
   if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(dominio)) {
-    return "precisa ser só o nome do domínio, em minúsculas, como "
-      + "`painel-hml.vercel.app`: sem https://, sem porta, sem barra, sem curinga";
+    return (
+      "precisa ser só o nome do domínio, em minúsculas, como " +
+      "`painel-hml.vercel.app`: sem https://, sem porta, sem barra, sem curinga"
+    );
   }
   if (DOMINIOS_COMPARTILHADOS.includes(dominio)) {
-    return `${dominio} é um domínio que o provedor reparte com outros clientes: `
-      + "uma trava que aceita o domínio de todo mundo não separa nenhum ambiente. "
-      + "Use o nome inteiro do projeto, por exemplo `meu-painel.vercel.app`";
+    return (
+      `${dominio} é um domínio que o provedor reparte com outros clientes: ` +
+      "uma trava que aceita o domínio de todo mundo não separa nenhum ambiente. " +
+      "Use o nome inteiro do projeto, por exemplo `meu-painel.vercel.app`"
+    );
   }
   return null;
 }
@@ -213,10 +217,12 @@ export function problemaNaOrigem(origem: string): string | null {
     return `ORIGENS_PERMITIDAS só aceita https em produção (${origem})`;
   }
   if (analisada.origin !== origem) {
-    return "ORIGENS_PERMITIDAS precisa listar só esquema e host, em minúsculas, "
-      + "como `https://painel.exemplo.com.br`: sem barra final, sem caminho, sem "
-      + `consulta e sem usuário (${origem}). O navegador manda a origem sem nada `
-      + "disso, a API compara o texto inteiro, e uma entrada diferente nunca casa";
+    return (
+      "ORIGENS_PERMITIDAS precisa listar só esquema e host, em minúsculas, " +
+      "como `https://painel.exemplo.com.br`: sem barra final, sem caminho, sem " +
+      `consulta e sem usuário (${origem}). O navegador manda a origem sem nada ` +
+      "disso, a API compara o texto inteiro, e uma entrada diferente nunca casa"
+    );
   }
   return null;
 }

@@ -325,9 +325,6 @@
   "scripts/excecoes-de-seguranca.test.mjs": {
     "no-regex-spaces": {
       "count": 3
-    },
-    "no-sparse-arrays": {
-      "count": 1
     }
   },
   "scripts/politica-de-segredos.test.mjs": {

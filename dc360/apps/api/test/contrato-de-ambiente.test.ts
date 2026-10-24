@@ -23,8 +23,10 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..", "..");
 
 /** A identidade do banco de PROD e a de HML: referências diferentes do provedor. */
-const URL_DE_PROD = "postgres://dc360_api.refprodxxxxxxxx:senha-de-prod@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
-const URL_DE_HML = "postgres://dc360_api.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
+const URL_DE_PROD =
+  "postgres://dc360_api.refprodxxxxxxxx:senha-de-prod@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
+const URL_DE_HML =
+  "postgres://dc360_api.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
 
 /** PROD completo e coerente: cada caso estraga uma linha. */
 function prod(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
@@ -86,7 +88,9 @@ describe("positivos: prod e hml válidos partem", () => {
   });
 
   it("hml parte, com a lista de e-mails de teste normalizada", () => {
-    const c = carregarConfig(hml({ EMAIL_DOMINIOS_DE_TESTE: " Teste.Exemplo.com.br , outro.exemplo.com.br," }));
+    const c = carregarConfig(
+      hml({ EMAIL_DOMINIOS_DE_TESTE: " Teste.Exemplo.com.br , outro.exemplo.com.br," }),
+    );
     expect(c.ambiente).toBe("hml");
     expect(c.dominiosDeEmailDeTeste).toEqual(["teste.exemplo.com.br", "outro.exemplo.com.br"]);
   });
@@ -101,16 +105,21 @@ describe("positivos: prod e hml válidos partem", () => {
   });
 
   it("dev não exige identidade nem domínio, mesmo com um banco de verdade", () => {
-    expect(() => carregarConfig({
-      NODE_ENV: "development",
-      DATABASE_URL: URL_DE_PROD,
-    } as NodeJS.ProcessEnv)).not.toThrow();
+    expect(() =>
+      carregarConfig({
+        NODE_ENV: "development",
+        DATABASE_URL: URL_DE_PROD,
+      } as NodeJS.ProcessEnv),
+    ).not.toThrow();
   });
 
   it("dois painéis do mesmo ambiente passam, inclusive um subdomínio", () => {
-    const c = carregarConfig(prod({
-      ORIGENS_PERMITIDAS: "https://painel-prod.exemplo.com.br,https://m.painel-prod.exemplo.com.br",
-    }));
+    const c = carregarConfig(
+      prod({
+        ORIGENS_PERMITIDAS:
+          "https://painel-prod.exemplo.com.br,https://m.painel-prod.exemplo.com.br",
+      }),
+    );
     expect(c.origens).toHaveLength(2);
   });
 });
@@ -118,7 +127,9 @@ describe("positivos: prod e hml válidos partem", () => {
 describe("negativos: a declaração do ambiente", () => {
   it("produção sem AMBIENTE_DC360 recusa, e diz o que fazer", () => {
     const env = sem(prod(), "AMBIENTE_DC360");
-    expect(() => carregarConfig(env)).toThrow(/AMBIENTE_DC360 é obrigatória com NODE_ENV=production/);
+    expect(() => carregarConfig(env)).toThrow(
+      /AMBIENTE_DC360 é obrigatória com NODE_ENV=production/,
+    );
     expect(() => carregarConfig(env)).toThrow(/hml ou prod/);
   });
 
@@ -128,19 +139,22 @@ describe("negativos: a declaração do ambiente", () => {
 
   it("valor desconhecido recusa com a lista dos aceitos, em vez de cair em dev", () => {
     for (const errado of ["producao", "PROD", "homologacao", "staging"]) {
-      expect(() => carregarConfig(prod({ AMBIENTE_DC360: errado })), errado)
-        .toThrow(/não é um ambiente conhecido[\s\S]*dev, hml, prod/);
+      expect(() => carregarConfig(prod({ AMBIENTE_DC360: errado })), errado).toThrow(
+        /não é um ambiente conhecido[\s\S]*dev, hml, prod/,
+      );
     }
   });
 
   it("dev com NODE_ENV=production recusa: não se declara máquina de desenvolvimento em produção", () => {
-    expect(() => carregarConfig(prod({ AMBIENTE_DC360: "dev" })))
-      .toThrow(/dev não combina com NODE_ENV=production/);
+    expect(() => carregarConfig(prod({ AMBIENTE_DC360: "dev" }))).toThrow(
+      /dev não combina com NODE_ENV=production/,
+    );
   });
 
   it("prod sem NODE_ENV=production recusa", () => {
-    expect(() => carregarConfig({ NODE_ENV: "development", AMBIENTE_DC360: "prod" } as NodeJS.ProcessEnv))
-      .toThrow(/prod exige NODE_ENV=production/);
+    expect(() =>
+      carregarConfig({ NODE_ENV: "development", AMBIENTE_DC360: "prod" } as NodeJS.ProcessEnv),
+    ).toThrow(/prod exige NODE_ENV=production/);
   });
 
   it("fora de produção, hml pode ser ensaiado na máquina de quem desenvolve", () => {
@@ -150,33 +164,49 @@ describe("negativos: a declaração do ambiente", () => {
 
 describe("negativos: a trava de ambiente cruzado do banco", () => {
   it("HML com a DATABASE_URL de PROD recusa a partida", () => {
-    expect(() => carregarConfig(hml({ DATABASE_URL: URL_DE_PROD })))
-      .toThrow(/DATABASE_URL não é do banco de HML/);
+    expect(() => carregarConfig(hml({ DATABASE_URL: URL_DE_PROD }))).toThrow(
+      /DATABASE_URL não é do banco de HML/,
+    );
   });
 
   it("PROD com a DATABASE_URL de HML também recusa (a trava vale nos dois sentidos)", () => {
-    expect(() => carregarConfig(prod({ DATABASE_URL: URL_DE_HML })))
-      .toThrow(/DATABASE_URL não é do banco de PROD/);
+    expect(() => carregarConfig(prod({ DATABASE_URL: URL_DE_HML }))).toThrow(
+      /DATABASE_URL não é do banco de PROD/,
+    );
   });
 
   it("a mensagem da trava não repete a URL nem a senha", () => {
     let mensagem = "";
-    try { carregarConfig(hml({ DATABASE_URL: URL_DE_PROD })); } catch (e) { mensagem = (e as Error).message; }
+    try {
+      carregarConfig(hml({ DATABASE_URL: URL_DE_PROD }));
+    } catch (e) {
+      mensagem = (e as Error).message;
+    }
     expect(mensagem).not.toContain("senha-de-prod");
     expect(mensagem).not.toContain("refprodxxxxxxxx");
     expect(mensagem).toContain("refhmlxxxxxxxxx");
   });
 
   it("a identidade pode estar no host em vez do usuário", () => {
-    expect(() => carregarConfig(hml({
-      DATABASE_URL: "postgres://dc360_api:senha@db.refhmlxxxxxxxxx.supabase.co:5432/postgres?sslmode=verify-full",
-    }))).not.toThrow();
+    expect(() =>
+      carregarConfig(
+        hml({
+          DATABASE_URL:
+            "postgres://dc360_api:senha@db.refhmlxxxxxxxxx.supabase.co:5432/postgres?sslmode=verify-full",
+        }),
+      ),
+    ).not.toThrow();
   });
 
   it("compara por segmento: um trecho dentro de outro nome NÃO conta", () => {
-    expect(() => carregarConfig(hml({
-      DATABASE_URL: "postgres://dc360_api.xrefhmlxxxxxxxxxx:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
-    }))).toThrow(/não é do banco de HML/);
+    expect(() =>
+      carregarConfig(
+        hml({
+          DATABASE_URL:
+            "postgres://dc360_api.xrefhmlxxxxxxxxxx:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
+        }),
+      ),
+    ).toThrow(/não é do banco de HML/);
   });
 
   it("a caixa das letras não derruba a partida certa", () => {
@@ -184,30 +214,38 @@ describe("negativos: a trava de ambiente cruzado do banco", () => {
   });
 
   it("hml e prod sem IDENTIDADE_DO_BANCO recusam", () => {
-    expect(() => carregarConfig(sem(hml(), "IDENTIDADE_DO_BANCO")))
-      .toThrow(/IDENTIDADE_DO_BANCO é obrigatória em HML/);
-    expect(() => carregarConfig(sem(prod(), "IDENTIDADE_DO_BANCO")))
-      .toThrow(/IDENTIDADE_DO_BANCO é obrigatória em PROD/);
+    expect(() => carregarConfig(sem(hml(), "IDENTIDADE_DO_BANCO"))).toThrow(
+      /IDENTIDADE_DO_BANCO é obrigatória em HML/,
+    );
+    expect(() => carregarConfig(sem(prod(), "IDENTIDADE_DO_BANCO"))).toThrow(
+      /IDENTIDADE_DO_BANCO é obrigatória em PROD/,
+    );
   });
 
   it("identidade com ponto ou curta demais recusa na validação do esquema", () => {
-    expect(() => carregarConfig(hml({ IDENTIDADE_DO_BANCO: "a.b" }))).toThrow(/IDENTIDADE_DO_BANCO/);
+    expect(() => carregarConfig(hml({ IDENTIDADE_DO_BANCO: "a.b" }))).toThrow(
+      /IDENTIDADE_DO_BANCO/,
+    );
     expect(() => carregarConfig(hml({ IDENTIDADE_DO_BANCO: "ab" }))).toThrow(/IDENTIDADE_DO_BANCO/);
   });
 });
 
 describe("negativos: o domínio do ambiente (painel e CORS)", () => {
   it("sem DOMINIO_DO_AMBIENTE recusa em hml e prod", () => {
-    expect(() => carregarConfig(sem(hml(), "DOMINIO_DO_AMBIENTE")))
-      .toThrow(/DOMINIO_DO_AMBIENTE é obrigatório em HML/);
-    expect(() => carregarConfig(sem(prod(), "DOMINIO_DO_AMBIENTE")))
-      .toThrow(/DOMINIO_DO_AMBIENTE é obrigatório em PROD/);
+    expect(() => carregarConfig(sem(hml(), "DOMINIO_DO_AMBIENTE"))).toThrow(
+      /DOMINIO_DO_AMBIENTE é obrigatório em HML/,
+    );
+    expect(() => carregarConfig(sem(prod(), "DOMINIO_DO_AMBIENTE"))).toThrow(
+      /DOMINIO_DO_AMBIENTE é obrigatório em PROD/,
+    );
   });
 
   it("domínio compartilhado do provedor recusa: um sufixo que é de todo mundo não separa ambiente", () => {
     for (const compartilhado of ["vercel.app", "fly.dev", "supabase.co", "com.br"]) {
-      expect(() => carregarConfig(hml({ DOMINIO_DO_AMBIENTE: compartilhado })), compartilhado)
-        .toThrow(/DOMINIO_DO_AMBIENTE[\s\S]*reparte com outros clientes/);
+      expect(
+        () => carregarConfig(hml({ DOMINIO_DO_AMBIENTE: compartilhado })),
+        compartilhado,
+      ).toThrow(/DOMINIO_DO_AMBIENTE[\s\S]*reparte com outros clientes/);
     }
   });
 
@@ -220,33 +258,48 @@ describe("negativos: o domínio do ambiente (painel e CORS)", () => {
       "localhost",
     ];
     for (const ruim of ruins) {
-      expect(() => carregarConfig(hml({ DOMINIO_DO_AMBIENTE: ruim })), ruim)
-        .toThrow(/DOMINIO_DO_AMBIENTE precisa ser só o nome do domínio/);
+      expect(() => carregarConfig(hml({ DOMINIO_DO_AMBIENTE: ruim })), ruim).toThrow(
+        /DOMINIO_DO_AMBIENTE precisa ser só o nome do domínio/,
+      );
     }
   });
 
   it("URL_PAINEL de outro ambiente recusa", () => {
-    expect(() => carregarConfig(hml({ URL_PAINEL: "https://painel-prod.exemplo.com.br" })))
-      .toThrow(/URL_PAINEL .* não é do domínio de HML/);
+    expect(() => carregarConfig(hml({ URL_PAINEL: "https://painel-prod.exemplo.com.br" }))).toThrow(
+      /URL_PAINEL .* não é do domínio de HML/,
+    );
   });
 
   it("ORIGENS_PERMITIDAS com a origem de PROD em HML recusa: é o que ligaria um ambiente ao outro", () => {
-    expect(() => carregarConfig(hml({
-      ORIGENS_PERMITIDAS: "https://painel-hml.exemplo.com.br,https://painel-prod.exemplo.com.br",
-    }))).toThrow(/ORIGENS_PERMITIDAS lista https:\/\/painel-prod\.exemplo\.com\.br, que não é do domínio de HML/);
+    expect(() =>
+      carregarConfig(
+        hml({
+          ORIGENS_PERMITIDAS:
+            "https://painel-hml.exemplo.com.br,https://painel-prod.exemplo.com.br",
+        }),
+      ),
+    ).toThrow(
+      /ORIGENS_PERMITIDAS lista https:\/\/painel-prod\.exemplo\.com\.br, que não é do domínio de HML/,
+    );
   });
 
   it("o MESMO valor de ORIGENS_PERMITIDAS não vale nos dois ambientes", () => {
     const origens = "https://painel-hml.exemplo.com.br";
     expect(() => carregarConfig(hml({ ORIGENS_PERMITIDAS: origens }))).not.toThrow();
-    expect(() => carregarConfig(prod({ ORIGENS_PERMITIDAS: origens }))).toThrow(/não é do domínio de PROD/);
+    expect(() => carregarConfig(prod({ ORIGENS_PERMITIDAS: origens }))).toThrow(
+      /não é do domínio de PROD/,
+    );
   });
 
   it("um host que apenas TERMINA com o texto do domínio não é do domínio", () => {
-    expect(() => carregarConfig(hml({
-      URL_PAINEL: "https://evil-painel-hml.exemplo.com.br",
-      ORIGENS_PERMITIDAS: "https://evil-painel-hml.exemplo.com.br",
-    }))).toThrow(/não é do domínio de HML/);
+    expect(() =>
+      carregarConfig(
+        hml({
+          URL_PAINEL: "https://evil-painel-hml.exemplo.com.br",
+          ORIGENS_PERMITIDAS: "https://evil-painel-hml.exemplo.com.br",
+        }),
+      ),
+    ).toThrow(/não é do domínio de HML/);
   });
 });
 
@@ -265,7 +318,11 @@ describe("negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela
     ["caminho", "https://painel-prod.exemplo.com.br/app", /sem barra final, sem caminho/],
     ["consulta", "https://painel-prod.exemplo.com.br?x=1", /sem barra final, sem caminho/],
     ["usuário na URL", "https://u:p@painel-prod.exemplo.com.br", /sem barra final, sem caminho/],
-    ["porta padrão escrita", "https://painel-prod.exemplo.com.br:443", /sem barra final, sem caminho/],
+    [
+      "porta padrão escrita",
+      "https://painel-prod.exemplo.com.br:443",
+      /sem barra final, sem caminho/,
+    ],
     ["host em maiúsculas", "https://PAINEL-PROD.exemplo.com.br", /sem barra final, sem caminho/],
     ["texto que não é URL", "painel-prod.exemplo.com.br", /não é uma URL/],
     ["lista vazia", " , ", /está vazia/],
@@ -277,21 +334,31 @@ describe("negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela
   }
 
   it("porta diferente da padrão passa quando escrita", () => {
-    expect(() => carregarConfig(prod({ ORIGENS_PERMITIDAS: "https://painel-prod.exemplo.com.br:8443" })))
-      .not.toThrow();
+    expect(() =>
+      carregarConfig(prod({ ORIGENS_PERMITIDAS: "https://painel-prod.exemplo.com.br:8443" })),
+    ).not.toThrow();
   });
 
   it("espaços ao redor das vírgulas continuam sendo tolerados", () => {
-    expect(() => carregarConfig(prod({
-      ORIGENS_PERMITIDAS: "https://painel-prod.exemplo.com.br , https://m.painel-prod.exemplo.com.br",
-    }))).not.toThrow();
+    expect(() =>
+      carregarConfig(
+        prod({
+          ORIGENS_PERMITIDAS:
+            "https://painel-prod.exemplo.com.br , https://m.painel-prod.exemplo.com.br",
+        }),
+      ),
+    ).not.toThrow();
   });
 });
 
 describe("negativos: as regras de HML", () => {
   it("MARCA_DAGUA vazia em HML recusa, mesmo sendo ato legítimo em outros ambientes", () => {
-    expect(() => carregarConfig(hml({ MARCA_DAGUA: "" }))).toThrow(/MARCA_DAGUA não pode estar vazia em HML/);
-    expect(() => carregarConfig(hml({ MARCA_DAGUA: "   " }))).toThrow(/MARCA_DAGUA não pode estar vazia em HML/);
+    expect(() => carregarConfig(hml({ MARCA_DAGUA: "" }))).toThrow(
+      /MARCA_DAGUA não pode estar vazia em HML/,
+    );
+    expect(() => carregarConfig(hml({ MARCA_DAGUA: "   " }))).toThrow(
+      /MARCA_DAGUA não pode estar vazia em HML/,
+    );
     // Em PROD o ato continua sendo do operador (decisão antiga, intacta).
     expect(() => carregarConfig(prod({ MARCA_DAGUA: "" }))).not.toThrow();
   });
@@ -301,8 +368,9 @@ describe("negativos: as regras de HML", () => {
   });
 
   it("e-mail ligado em HML sem EMAIL_DOMINIOS_DE_TESTE recusa", () => {
-    expect(() => carregarConfig(sem(hml(EMAIL_LIGADO), "EMAIL_DOMINIOS_DE_TESTE")))
-      .toThrow(/ligado em HML sem EMAIL_DOMINIOS_DE_TESTE/);
+    expect(() => carregarConfig(sem(hml(EMAIL_LIGADO), "EMAIL_DOMINIOS_DE_TESTE"))).toThrow(
+      /ligado em HML sem EMAIL_DOMINIOS_DE_TESTE/,
+    );
   });
 
   it("e-mail desligado em HML dispensa a lista", () => {
@@ -310,8 +378,9 @@ describe("negativos: as regras de HML", () => {
   });
 
   it("EMAIL_DOMINIOS_DE_TESTE em PROD recusa: o filtro engoliria e-mail de verdade", () => {
-    expect(() => carregarConfig(prod({ EMAIL_DOMINIOS_DE_TESTE: "teste.exemplo.com.br" })))
-      .toThrow(/EMAIL_DOMINIOS_DE_TESTE não pode existir em PROD/);
+    expect(() => carregarConfig(prod({ EMAIL_DOMINIOS_DE_TESTE: "teste.exemplo.com.br" }))).toThrow(
+      /EMAIL_DOMINIOS_DE_TESTE não pode existir em PROD/,
+    );
   });
 });
 
@@ -339,7 +408,10 @@ describe("o que o fly.toml de PROD declara parte, com segredos de mentira", () =
     let dentro = false;
     for (const linha of texto.split(/\r?\n/)) {
       const t = linha.trim();
-      if (t.startsWith("[")) { dentro = t === "[env]"; continue; }
+      if (t.startsWith("[")) {
+        dentro = t === "[env]";
+        continue;
+      }
       if (!dentro || t === "" || t.startsWith("#")) continue;
       const m = /^([A-Z][A-Z0-9_]*)\s*=\s*"(.*)"\s*(?:#.*)?$/.exec(t);
       if (m) saida[m[1]!] = m[2]!;
@@ -379,12 +451,16 @@ describe("o que o fly.toml de PROD declara parte, com segredos de mentira", () =
 
   it("com o [env] do fly.toml e o banco de OUTRO ambiente, a produção NÃO sobe", () => {
     const env = envDoToml("fly.toml");
-    expect(() => carregarConfig(segredos(env, "outroprojetoxxxxx"))).toThrow(/não é do banco de PROD/);
+    expect(() => carregarConfig(segredos(env, "outroprojetoxxxxx"))).toThrow(
+      /não é do banco de PROD/,
+    );
   });
 
   it("com o [env] do fly.toml e sem o AMBIENTE_DC360, a produção NÃO sobe", () => {
     const env = envDoToml("fly.toml");
     delete env["AMBIENTE_DC360"];
-    expect(() => carregarConfig(segredos(env, "refprodxxxxxxxx"))).toThrow(/AMBIENTE_DC360 é obrigatória/);
+    expect(() => carregarConfig(segredos(env, "refprodxxxxxxxx"))).toThrow(
+      /AMBIENTE_DC360 é obrigatória/,
+    );
   });
 });

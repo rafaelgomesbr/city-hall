@@ -227,7 +227,7 @@ test("o workflow de SAST fixa a versão e não deixa código sair do runner", ()
 /** Os passos do job, cada um com o texto do bloco (sem comentários). */
 function passosDoWorkflow() {
   const w = workflowSemComentarios();
-  return w.split(/^      - /m).slice(1).map((bloco) => ({ nome: (bloco.match(/name:\s*(.+)/) ?? [, ""])[1].trim(), bloco }));
+  return w.split(/^      - /m).slice(1).map((bloco) => ({ nome: (bloco.match(/name:\s*(.+)/) ?? [undefined, ""])[1].trim(), bloco }));
 }
 
 test("o registro (p/...) só roda num passo de relatório que nunca reprova; o que bloqueia é só regra própria", () => {
@@ -472,7 +472,7 @@ function textoDoJob(arquivo, id) {
 }
 
 function passosDoJob(texto) {
-  return texto.split(/^ {6}- /m).slice(1).map((b) => ({ nome: (b.match(/name:\s*(.+)/) ?? [, ""])[1].trim(), bloco: b }));
+  return texto.split(/^ {6}- /m).slice(1).map((b) => ({ nome: (b.match(/name:\s*(.+)/) ?? [undefined, ""])[1].trim(), bloco: b }));
 }
 
 // Um caso só, com o laço dentro: o `baseline.mjs` conta os `test(` do texto.

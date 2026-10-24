@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as http from "../src/dados/http";
 import {
-  descreverErroDoPainel, instalarErrosGlobais, reportadorDeConsole,
-  type AlvoDeErrosGlobais, type RegistroDeErroDoPainel,
+  descreverErroDoPainel,
+  instalarErrosGlobais,
+  reportadorDeConsole,
+  type AlvoDeErrosGlobais,
+  type RegistroDeErroDoPainel,
 } from "../src/observabilidade";
 
 /**
@@ -19,25 +22,38 @@ const ID = "3f2b8c1e-5a47-4d0e-9b61-7c2d4e8f1a90";
 function armazenamento(): Storage {
   const dados = new Map<string, string>();
   return {
-    get length() { return dados.size; },
+    get length() {
+      return dados.size;
+    },
     clear: () => dados.clear(),
     getItem: (k: string) => dados.get(k) ?? null,
     key: (i: number) => [...dados.keys()][i] ?? null,
-    removeItem: (k: string) => { dados.delete(k); },
-    setItem: (k: string, v: string) => { dados.set(k, v); },
+    removeItem: (k: string) => {
+      dados.delete(k);
+    },
+    setItem: (k: string, v: string) => {
+      dados.set(k, v);
+    },
   } as Storage;
 }
 
-function resposta(status: number, corpo: unknown, cabecalhos: Record<string, string> = {}): Response {
+function resposta(
+  status: number,
+  corpo: unknown,
+  cabecalhos: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(corpo), {
-    status, headers: { "content-type": "application/json", ...cabecalhos },
+    status,
+    headers: { "content-type": "application/json", ...cabecalhos },
   });
 }
 
 describe("ErroDaApi e o código de suporte", () => {
   it("5xx com o id no corpo: a mensagem termina com o código", () => {
     const erro = new http.ErroDaApi(500, {
-      erro: "erro_interno", mensagem: "Erro inesperado. Se precisar de ajuda, informe o código de suporte.", requisicao: ID,
+      erro: "erro_interno",
+      mensagem: "Erro inesperado. Se precisar de ajuda, informe o código de suporte.",
+      requisicao: ID,
     });
     expect(erro.requisicao).toBe(ID);
     expect(erro.message).toBe(
@@ -51,14 +67,18 @@ describe("ErroDaApi e o código de suporte", () => {
   });
 
   it("negativo: 4xx não mostra o código, mas o guarda", () => {
-    const erro = new http.ErroDaApi(422, { erro: "dados_invalidos", mensagem: "Corrija os campos." }, ID);
+    const erro = new http.ErroDaApi(
+      422,
+      { erro: "dados_invalidos", mensagem: "Corrija os campos." },
+      ID,
+    );
     expect(erro.message).toBe("Corrija os campos.");
     expect(erro.requisicao).toBe(ID);
   });
 
   it("negativo: o que não é UUID nunca vira código de suporte na tela", () => {
     for (const hostil of ["<script>alert(1)</script>", "x".repeat(200), "abc", `${ID}\nX: 1`, ""]) {
-      const erro = new http.ErroDaApi(500, { mensagem: "Falha." , requisicao: hostil });
+      const erro = new http.ErroDaApi(500, { mensagem: "Falha.", requisicao: hostil });
       expect(erro.requisicao, JSON.stringify(hostil)).toBeNull();
       expect(erro.message).toBe("Falha.");
       const doCabecalho = new http.ErroDaApi(500, { mensagem: "Falha." }, hostil);
@@ -81,26 +101,49 @@ describe("a chamada HTTP lê X-Request-Id da resposta", () => {
   });
 
   it("500 com o cabeçalho: o erro lançado leva o código na mensagem", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => resposta(
-      500, { erro: "erro_interno", mensagem: "Erro inesperado." }, { "x-request-id": ID },
-    )));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        resposta(
+          500,
+          { erro: "erro_interno", mensagem: "Erro inesperado." },
+          { "x-request-id": ID },
+        ),
+      ),
+    );
     await expect(http.indicadores({} as never)).rejects.toMatchObject({
-      status: 500, requisicao: ID, message: `Erro inesperado. Código de suporte: ${ID}.`,
+      status: 500,
+      requisicao: ID,
+      message: `Erro inesperado. Código de suporte: ${ID}.`,
     });
   });
 
   it("500 sem cabeçalho e com o id no corpo: o código vem do corpo", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => resposta(
-      500, { erro: "erro_interno", mensagem: "Erro inesperado.", requisicao: ID },
-    )));
-    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 500, requisicao: ID });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        resposta(500, { erro: "erro_interno", mensagem: "Erro inesperado.", requisicao: ID }),
+      ),
+    );
+    await expect(http.indicadores({} as never)).rejects.toMatchObject({
+      status: 500,
+      requisicao: ID,
+    });
   });
 
   it("resposta de teste sem `headers` não quebra a leitura", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      ok: false, status: 500, json: async () => ({ erro: "erro_interno", mensagem: "Falha." }),
-    })));
-    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 500, requisicao: null });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => ({ erro: "erro_interno", mensagem: "Falha." }),
+      })),
+    );
+    await expect(http.indicadores({} as never)).rejects.toMatchObject({
+      status: 500,
+      requisicao: null,
+    });
   });
 });
 
@@ -108,7 +151,9 @@ describe("erros globais do painel", () => {
   function alvoFalso() {
     const ouvintes: Record<string, (evento: never) => void> = {};
     const alvo = {
-      addEventListener: (tipo: string, f: (evento: never) => void) => { ouvintes[tipo] = f; },
+      addEventListener: (tipo: string, f: (evento: never) => void) => {
+        ouvintes[tipo] = f;
+      },
     } as unknown as AlvoDeErrosGlobais;
     return { alvo, ouvintes };
   }
@@ -116,7 +161,11 @@ describe("erros globais do painel", () => {
   it("instala os dois ouvintes e manda cada erro para o reportador, com a origem certa", () => {
     const { alvo, ouvintes } = alvoFalso();
     const recebidos: Array<{ erro: unknown; origem: string }> = [];
-    instalarErrosGlobais(alvo, { reportar: (erro, origem) => { recebidos.push({ erro, origem }); } });
+    instalarErrosGlobais(alvo, {
+      reportar: (erro, origem) => {
+        recebidos.push({ erro, origem });
+      },
+    });
     expect(Object.keys(ouvintes).sort()).toEqual(["error", "unhandledrejection"]);
 
     const lancado = new Error("estourou");
@@ -131,13 +180,21 @@ describe("erros globais do painel", () => {
   it("erro de script de outra origem (sem objeto) cai na mensagem", () => {
     const { alvo, ouvintes } = alvoFalso();
     const recebidos: unknown[] = [];
-    instalarErrosGlobais(alvo, { reportar: (erro) => { recebidos.push(erro); } });
+    instalarErrosGlobais(alvo, {
+      reportar: (erro) => {
+        recebidos.push(erro);
+      },
+    });
     ouvintes["error"]!({ error: null, message: "Script error." } as never);
     expect(recebidos).toEqual(["Script error."]);
   });
 
   it("o registro leva tipo, mensagem mascarada e código de suporte, e nada de pilha", () => {
-    const erro = new http.ErroDaApi(500, { mensagem: "Falha ao salvar para maria@prefeitura.gov.br (11) 98888-7777." }, ID);
+    const erro = new http.ErroDaApi(
+      500,
+      { mensagem: "Falha ao salvar para maria@prefeitura.gov.br (11) 98888-7777." },
+      ID,
+    );
     const registro = descreverErroDoPainel(erro, "promessa");
     expect(registro).toEqual<RegistroDeErroDoPainel>({
       origem: "promessa",
@@ -156,7 +213,11 @@ describe("erros globais do painel", () => {
 
   it("reportadorDeConsole escreve uma única chamada console.error, sem rede", () => {
     const chamadas: unknown[][] = [];
-    const reportador = reportadorDeConsole({ error: (...a: unknown[]) => { chamadas.push(a); } });
+    const reportador = reportadorDeConsole({
+      error: (...a: unknown[]) => {
+        chamadas.push(a);
+      },
+    });
     const rede = vi.fn();
     vi.stubGlobal("fetch", rede);
     reportador.reportar(new Error("x com a@b.org"), "janela");

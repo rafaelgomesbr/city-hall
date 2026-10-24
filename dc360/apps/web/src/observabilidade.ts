@@ -30,7 +30,8 @@ export interface ReportadorDoPainel {
 
 /** Descreve o que foi lançado sem confiar no formato: pode ser qualquer valor. */
 export function descreverErroDoPainel(
-  erro: unknown, origem: OrigemDoErroDoPainel,
+  erro: unknown,
+  origem: OrigemDoErroDoPainel,
 ): RegistroDeErroDoPainel {
   if (erro instanceof Error) {
     const requisicao = (erro as { requisicao?: unknown }).requisicao;
@@ -49,9 +50,7 @@ export function descreverErroDoPainel(
   };
 }
 
-export function reportadorDeConsole(
-  saida: Pick<Console, "error"> = console,
-): ReportadorDoPainel {
+export function reportadorDeConsole(saida: Pick<Console, "error"> = console): ReportadorDoPainel {
   return {
     reportar(erro, origem) {
       saida.error("[painel] erro não tratado", descreverErroDoPainel(erro, origem));
@@ -62,11 +61,15 @@ export function reportadorDeConsole(
 /** O pedaço da janela que o registro usa; o teste passa um duplo. */
 export interface AlvoDeErrosGlobais {
   addEventListener(tipo: "error", ouvinte: (evento: ErrorEvent) => void): void;
-  addEventListener(tipo: "unhandledrejection", ouvinte: (evento: PromiseRejectionEvent) => void): void;
+  addEventListener(
+    tipo: "unhandledrejection",
+    ouvinte: (evento: PromiseRejectionEvent) => void,
+  ): void;
 }
 
 export function instalarErrosGlobais(
-  alvo: AlvoDeErrosGlobais, reportador: ReportadorDoPainel = reportadorDeConsole(),
+  alvo: AlvoDeErrosGlobais,
+  reportador: ReportadorDoPainel = reportadorDeConsole(),
 ): void {
   alvo.addEventListener("error", (evento) => {
     // `evento.error` é o objeto lançado; quando o navegador esconde (script de

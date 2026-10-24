@@ -53,7 +53,9 @@ export type EventoDeErro = Record<string, unknown>;
  */
 function erroMascarado(erro: unknown): Error {
   if (!(erro instanceof Error)) {
-    return new Error(mascararDadoPessoal(typeof erro === "string" ? erro : "valor lançado que não é um Error"));
+    return new Error(
+      mascararDadoPessoal(typeof erro === "string" ? erro : "valor lançado que não é um Error"),
+    );
   }
   const copia = new Error(mascararDadoPessoal(erro.message));
   copia.name = erro.name;
@@ -80,11 +82,22 @@ export function montarEvento(erro: unknown, contexto: ContextoDoErro): EventoDeE
     level: "error",
     message: seguro.message,
     exception: {
-      values: [{ type: seguro.name, value: seguro.message, ...(seguro.stack ? { stacktrace: seguro.stack } : {}) }],
+      values: [
+        {
+          type: seguro.name,
+          value: seguro.message,
+          ...(seguro.stack ? { stacktrace: seguro.stack } : {}),
+        },
+      ],
     },
     tags: etiquetas,
     ...(contexto.metodo || contexto.rota
-      ? { request: { ...(contexto.metodo ? { method: contexto.metodo } : {}), ...(contexto.rota ? { route: contexto.rota } : {}) } }
+      ? {
+          request: {
+            ...(contexto.metodo ? { method: contexto.metodo } : {}),
+            ...(contexto.rota ? { route: contexto.rota } : {}),
+          },
+        }
       : {}),
   };
 }
@@ -95,9 +108,13 @@ export function montarEvento(erro: unknown, contexto: ContextoDoErro): EventoDeE
  * O destino externo NUNCA derruba quem reporta: erro dentro do `enviar` é
  * engolido com uma linha de log. Reportar o erro não pode produzir outro.
  */
-export function criarReportador(
-  { log, enviar }: { log: RegistroDeErro; enviar?: (evento: EventoDeErro) => void },
-): ReportadorDeErros {
+export function criarReportador({
+  log,
+  enviar,
+}: {
+  log: RegistroDeErro;
+  enviar?: (evento: EventoDeErro) => void;
+}): ReportadorDeErros {
   return {
     reportar(erro, contexto) {
       const { origem, requisicao, metodo, rota, status, rotina } = contexto;

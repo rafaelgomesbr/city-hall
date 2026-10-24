@@ -63,8 +63,9 @@ describe("soParaDominiosDeTeste", () => {
   it("recusa um domínio fora da lista, SEM chamar o provedor", async () => {
     const { notificador, enviadas } = gravador();
     const limitado = soParaDominiosDeTeste(notificador, ["teste.exemplo.com.br"]);
-    await expect(limitado.enviar(para("cidadao@gmail.com")))
-      .rejects.toThrow(/domínio gmail\.com não está em EMAIL_DOMINIOS_DE_TESTE/);
+    await expect(limitado.enviar(para("cidadao@gmail.com"))).rejects.toThrow(
+      /domínio gmail\.com não está em EMAIL_DOMINIOS_DE_TESTE/,
+    );
     expect(enviadas).toHaveLength(0);
   });
 
@@ -72,7 +73,11 @@ describe("soParaDominiosDeTeste", () => {
     const { notificador } = gravador();
     const limitado = soParaDominiosDeTeste(notificador, ["teste.exemplo.com.br"]);
     let mensagem = "";
-    try { await limitado.enviar(para("maria.da.silva@gmail.com")); } catch (e) { mensagem = (e as Error).message; }
+    try {
+      await limitado.enviar(para("maria.da.silva@gmail.com"));
+    } catch (e) {
+      mensagem = (e as Error).message;
+    }
     expect(mensagem).not.toContain("maria");
     expect(mensagem).not.toContain("@");
   });
@@ -81,8 +86,12 @@ describe("soParaDominiosDeTeste", () => {
     const { notificador, enviadas } = gravador();
     const limitado = soParaDominiosDeTeste(notificador, ["teste.exemplo.com.br"]);
     await expect(limitado.enviar(para("x@exemplo.com.br"))).rejects.toThrow(/não está em/);
-    await expect(limitado.enviar(para("x@outro.teste.exemplo.com.br"))).rejects.toThrow(/não está em/);
-    await expect(limitado.enviar(para("x@teste.exemplo.com.br.evil.com"))).rejects.toThrow(/não está em/);
+    await expect(limitado.enviar(para("x@outro.teste.exemplo.com.br"))).rejects.toThrow(
+      /não está em/,
+    );
+    await expect(limitado.enviar(para("x@teste.exemplo.com.br.evil.com"))).rejects.toThrow(
+      /não está em/,
+    );
     expect(enviadas).toHaveLength(0);
   });
 
@@ -101,8 +110,15 @@ describe("soParaDominiosDeTeste", () => {
 
 describe("a partida liga o filtro", () => {
   it("index.ts embrulha o notificador com a lista da configuração", () => {
-    const fonte = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "src", "index.ts"), "utf8");
-    expect(fonte).toMatch(/import \{ soParaDominiosDeTeste \} from "\.\/auth\/dominios-de-teste\.js"/);
-    expect(fonte).toMatch(/soParaDominiosDeTeste\(notificadorBase, config\.dominiosDeEmailDeTeste\)/);
+    const fonte = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "src", "index.ts"),
+      "utf8",
+    );
+    expect(fonte).toMatch(
+      /import \{ soParaDominiosDeTeste \} from "\.\/auth\/dominios-de-teste\.js"/,
+    );
+    expect(fonte).toMatch(
+      /soParaDominiosDeTeste\(notificadorBase, config\.dominiosDeEmailDeTeste\)/,
+    );
   });
 });

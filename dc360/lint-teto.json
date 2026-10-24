@@ -1,8 +1,8 @@
 {
   "versao": 1,
-  "total": 432,
+  "total": 431,
   "porProjeto": {
-    "monorepo": 140,
+    "monorepo": 139,
     "campo": 292
   },
   "porRegra": {
@@ -19,7 +19,6 @@
     "no-loss-of-precision": 7,
     "no-regex-spaces": 20,
     "no-script-url": 1,
-    "no-sparse-arrays": 1,
     "no-unused-vars": 2,
     "no-useless-escape": 4,
     "no-var": 1,

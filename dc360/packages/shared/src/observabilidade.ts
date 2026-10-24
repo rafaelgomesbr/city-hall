@@ -25,7 +25,8 @@ const CPF = /(?<![\d.])\d{3}\.\d{3}\.\d{3}-\d{2}(?!\d)/g;
   mascarar de mais (um instante em milissegundos tem 13 dígitos e casa), e
   mascarar de mais é o lado seguro desta função.
 */
-const TELEFONE = /(?<![\d.])(?:\+?\d{2}[\s.-]?)?(?:\(\d{2}\)|\d{2})[\s.-]?9?\d{4}[\s.-]?\d{4}(?!\d)/g;
+const TELEFONE =
+  /(?<![\d.])(?:\+?\d{2}[\s.-]?)?(?:\(\d{2}\)|\d{2})[\s.-]?9?\d{4}[\s.-]?\d{4}(?!\d)/g;
 /*
   Coordenada: número decimal com quatro casas ou mais (cerca de 11 m de
   precisão). Abaixo disso o número não localiza uma casa.

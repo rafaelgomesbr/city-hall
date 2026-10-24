@@ -35,7 +35,10 @@ export function lerAmbienteDeObservabilidade(
     // Só inteiro positivo em dígitos: `1e12`, `10GB` e `-5` são engano de quem
     // configurou, e o alerta calculado sobre um número errado é pior que nenhum.
     if (/^[1-9]\d{0,15}$/.test(bruto)) cota = Number(bruto);
-    else avisos.push("S3_COTA_BYTES precisa ser um número inteiro de bytes, maior que zero: o alerta de armazenamento ficou desligado.");
+    else
+      avisos.push(
+        "S3_COTA_BYTES precisa ser um número inteiro de bytes, maior que zero: o alerta de armazenamento ficou desligado.",
+      );
   }
 
   return { errosDsn: dsn === "" ? null : dsn, cotaDeArmazenamentoBytes: cota, avisos };

@@ -20,10 +20,29 @@ import { mascararDadoPessoal } from "@dc360/shared";
 
 /** Chaves que não saem em profundidade nenhuma, qualquer que seja o valor. */
 const CHAVES_PROIBIDAS = new Set([
-  "authorization", "proxy-authorization", "cookie", "cookies", "set-cookie",
-  "x-api-key", "headers", "query", "query_string", "querystring", "body", "data",
-  "ip_address", "ip", "remoteaddress", "user", "vars",
-  "senha", "password", "token", "renovacao", "segredo", "secret",
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+  "cookies",
+  "set-cookie",
+  "x-api-key",
+  "headers",
+  "query",
+  "query_string",
+  "querystring",
+  "body",
+  "data",
+  "ip_address",
+  "ip",
+  "remoteaddress",
+  "user",
+  "vars",
+  "senha",
+  "password",
+  "token",
+  "renovacao",
+  "segredo",
+  "secret",
 ]);
 
 const PROFUNDIDADE_MAXIMA = 10;
@@ -46,15 +65,19 @@ function limpar(valor: unknown, profundidade: number, visto: WeakSet<object>): u
  * Devolve uma CÓPIA filtrada do evento; o original não é tocado (ele ainda serve
  * ao log local).
  */
-export function filtrarEventoParaTerceiros(evento: Record<string, unknown>): Record<string, unknown> {
+export function filtrarEventoParaTerceiros(
+  evento: Record<string, unknown>,
+): Record<string, unknown> {
   const { request, ...resto } = evento;
   const filtrado = limpar(resto, 0, new WeakSet()) as Record<string, unknown>;
   if (request && typeof request === "object") {
     const bruto = request as Record<string, unknown>;
     const reconstruido: Record<string, unknown> = {};
     // Só o que é do produto e não da pessoa: o verbo e o molde (`/ocorrencias/:id`).
-    if (typeof bruto["method"] === "string") reconstruido["method"] = mascararDadoPessoal(bruto["method"]);
-    if (typeof bruto["route"] === "string") reconstruido["route"] = mascararDadoPessoal(bruto["route"]);
+    if (typeof bruto["method"] === "string")
+      reconstruido["method"] = mascararDadoPessoal(bruto["method"]);
+    if (typeof bruto["route"] === "string")
+      reconstruido["route"] = mascararDadoPessoal(bruto["route"]);
     filtrado["request"] = reconstruido;
   }
   return filtrado;

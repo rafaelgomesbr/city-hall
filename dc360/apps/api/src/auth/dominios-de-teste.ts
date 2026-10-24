@@ -10,7 +10,10 @@ import type { Mensagem, Notificador } from "./notificador.js";
 export function dominioDoEmail(endereco: string): string | null {
   const i = endereco.lastIndexOf("@");
   if (i < 0) return null;
-  const dominio = endereco.slice(i + 1).trim().toLowerCase();
+  const dominio = endereco
+    .slice(i + 1)
+    .trim()
+    .toLowerCase();
   return dominio === "" ? null : dominio;
 }
 
@@ -48,9 +51,9 @@ export function soParaDominiosDeTeste(
       const dominio = dominioDoEmail(mensagem.para);
       if (dominio === null || !permitidos.has(dominio)) {
         throw new Error(
-          `Envio recusado: o domínio ${dominio ?? "(ilegível)"} não está em `
-          + "EMAIL_DOMINIOS_DE_TESTE. Este ambiente é de homologação e só envia "
-          + "e-mail aos domínios de teste.",
+          `Envio recusado: o domínio ${dominio ?? "(ilegível)"} não está em ` +
+            "EMAIL_DOMINIOS_DE_TESTE. Este ambiente é de homologação e só envia " +
+            "e-mail aos domínios de teste.",
         );
       }
       return notificador.enviar(mensagem);

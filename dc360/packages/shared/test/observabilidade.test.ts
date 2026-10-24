@@ -14,14 +14,20 @@ const ID = "3f2b8c1e-5a47-4d0e-9b61-7c2d4e8f1a90";
 
 describe("mascararDadoPessoal", () => {
   it("troca e-mail por marcador", () => {
-    const saida = mascararDadoPessoal("falha ao gravar maria.souza@prefeitura-serra.gov.br na tabela");
+    const saida = mascararDadoPessoal(
+      "falha ao gravar maria.souza@prefeitura-serra.gov.br na tabela",
+    );
     expect(saida).toBe("falha ao gravar [email] na tabela");
   });
 
   it("troca telefone brasileiro em várias grafias", () => {
     for (const telefone of [
-      "(11) 91234-5678", "11 91234-5678", "11912345678", "+55 11 91234-5678",
-      "(21) 3456-7890", "5511912345678",
+      "(11) 91234-5678",
+      "11 91234-5678",
+      "11912345678",
+      "+55 11 91234-5678",
+      "(21) 3456-7890",
+      "5511912345678",
     ]) {
       const saida = mascararDadoPessoal(`contato ${telefone} sem retorno`);
       expect(saida, telefone).toBe("contato [telefone] sem retorno");
@@ -33,19 +39,27 @@ describe("mascararDadoPessoal", () => {
   });
 
   it("troca coordenada de quatro casas ou mais, em qualquer sinal", () => {
-    expect(mascararDadoPessoal("ponto -22.9068, -43.1729 fora")).toBe("ponto [coordenada], [coordenada] fora");
-    expect(mascararDadoPessoal("lat 23.55052 lng 46.633309")).toBe("lat [coordenada] lng [coordenada]");
+    expect(mascararDadoPessoal("ponto -22.9068, -43.1729 fora")).toBe(
+      "ponto [coordenada], [coordenada] fora",
+    );
+    expect(mascararDadoPessoal("lat 23.55052 lng 46.633309")).toBe(
+      "lat [coordenada] lng [coordenada]",
+    );
   });
 
   it("troca token de portador e JWT solto", () => {
     const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.assinaturaDoToken123";
-    expect(mascararDadoPessoal(`cabecalho Bearer ${jwt} recusado`)).toBe("cabecalho Bearer [token] recusado");
+    expect(mascararDadoPessoal(`cabecalho Bearer ${jwt} recusado`)).toBe(
+      "cabecalho Bearer [token] recusado",
+    );
     expect(mascararDadoPessoal(`jwt ${jwt} solto`)).toBe("jwt [token] solto");
   });
 
   it("poupa o UUID, que é o código de suporte, mesmo com dígitos que parecem telefone", () => {
     const comDigitos = "12345678-1234-4234-9234-123456789012";
-    expect(mascararDadoPessoal(`requisicao ${ID} e ${comDigitos}`)).toBe(`requisicao ${ID} e ${comDigitos}`);
+    expect(mascararDadoPessoal(`requisicao ${ID} e ${comDigitos}`)).toBe(
+      `requisicao ${ID} e ${comDigitos}`,
+    );
   });
 
   it("mascara o que está ao lado do UUID, no mesmo texto", () => {

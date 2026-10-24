@@ -59,7 +59,11 @@ export async function conferirCotaDeArmazenamento(
   const registrar = dep.registrar ?? (() => {});
   const limiar = dep.limiar ?? LIMIAR_DO_ALERTA_DE_COTA;
   const resumo: ResumoDoAlertaDeCota = {
-    travado: false, objetos: 0, bytes: 0, fracao: null, situacao: "medicao_falhou",
+    travado: false,
+    objetos: 0,
+    bytes: 0,
+    fracao: null,
+    situacao: "medicao_falhou",
   };
 
   if (dep.trava && !(await dep.trava.tentar())) {
@@ -156,7 +160,9 @@ export function agendarAlertaDeCota(
     }
   }
 
-  const relogio = setInterval(() => { void rodada(); }, intervaloMs);
+  const relogio = setInterval(() => {
+    void rodada();
+  }, intervaloMs);
   relogio.unref();
   void rodada();
 
