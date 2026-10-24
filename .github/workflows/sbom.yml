@@ -1,0 +1,215 @@
+# SBOM CycloneDX por release (V2-F01-E19).
+#
+# Cada tag `vX.Y.Z` (plataforma) e `campo-vX.Y.Z` (aplicativo de campo) gera
+# QUATRO inventários de software no padrão CycloneDX (aberto, da OWASP) e os
+# anexa ao Release da tag, com o SHA-256 de cada um:
+#
+#   sbom-<tag>-npm-plataforma.cdx.json   dependências de produção do monorepo
+#   sbom-<tag>-npm-campo.cdx.json        dependências de produção do aplicativo
+#   sbom-<tag>-imagem-api.cdx.json       pacotes do sistema e do npm DENTRO da imagem da API
+#   sbom-<tag>-imagem-console.cdx.json   o mesmo, para a imagem do console
+#   SHA256SUMS.txt                       o SHA-256 dos quatro
+#
+# Por que quatro e por que dos dois lados: o SBOM do lockfile diz o que o
+# projeto PEDIU; o da imagem diz o que foi MESMO empacotado (Chromium, bibliotecas
+# do Debian, a base). Uma CVE aparece em qualquer dos dois.
+#
+# Como cada um é gerado:
+#
+# - npm: `@cyclonedx/cyclonedx-npm` em versão fixa, sobre o lockfile
+#   (`--package-lock-only`), só produção (`--omit dev`), sem timestamp nem número
+#   de série (`--output-reproducible`): o mesmo lockfile dá o mesmo arquivo, e o
+#   SHA-256 muda só quando a árvore muda. `--ignore-npm-errors` é necessário no
+#   aplicativo de campo: o `npm ls` reclama que os pacotes irmãos
+#   (`@dc360/shared`, `@dc360/campo`) não têm `node_modules` próprio, por serem
+#   `file:` fora da pasta. As dependências deles (zod, por exemplo) estão no
+#   lockfile do aplicativo e entram no SBOM (conferido na evidência da etapa).
+#   `--ignore-scripts`: o gerador e as dependências dele não rodam script de
+#   instalação.
+# - imagem: o MESMO Trivy da varredura (V2-F01-E20), versão fixa e SHA-256
+#   conferido por `scripts/varrer-imagem.sh instalar`, lendo a imagem recém
+#   construída com os mesmos `Dockerfile` e argumentos do job `imagens`.
+#
+# Quem escreve no repositório:
+#
+# - TODOS os jobs que geram leem o repositório e nada mais (`contents: read` no
+#   topo, igual aos outros workflows). Nenhum recebe segredo.
+# - `contents: write` existe em UM job só, o `publicar`, que roda apenas em tag
+#   (`if: github.ref_type == 'tag'`) e NÃO faz checkout: só baixa os artefatos e
+#   chama `gh`. O teste `scripts/sbom.test.mjs` trava isso: escrita em qualquer
+#   outro job, ou o `publicar` sem a condição de tag, reprova.
+# - `workflow_dispatch` (rodada manual) gera os quatro SBOM e os guarda como
+#   artefatos do run, sem publicar nada.
+#
+# O repositório é PÚBLICO e o SBOM lista versões de dependência. Por isso o
+# Release é criado como RASCUNHO quando ainda não existe (ver
+# `scripts/publicar-sbom.sh`): fica visível só a quem tem acesso de escrita até
+# uma pessoa publicar. Publicar o Release é decisão do Rafael (pendência humana).
+#
+# Fora do escopo (E19): varredura de vulnerabilidade da imagem (E20) e
+# assinatura do SBOM (F25).
+name: SBOM
+
+on:
+  push:
+    tags: ["v*", "campo-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cada tag publica uma vez; uma tag nunca cancela outra.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Versão fixa do gerador npm. Subir é um PR próprio, com o SBOM de antes e de
+  # depois comparados. 6.0.1 foi publicada em 2026-08-11.
+  CYCLONEDX_NPM_VERSAO: "6.0.1"
+
+jobs:
+  sbom-npm:
+    name: SBOM das dependências npm (${{ matrix.arvore }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arvore: plataforma
+            pasta: dc360
+            minimo: "30"
+          - arvore: campo
+            pasta: dc360/apps/campo
+            minimo: "100"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Gerar o SBOM CycloneDX do lockfile
+        env:
+          ARVORE: ${{ matrix.arvore }}
+          PASTA: ${{ matrix.pasta }}
+          REF_NOME: ${{ github.ref_name }}
+        run: |
+          rotulo="${REF_NOME//\//-}"
+          mkdir -p "$RUNNER_TEMP/sbom"
+          arquivo="$RUNNER_TEMP/sbom/sbom-${rotulo}-npm-${ARVORE}.cdx.json"
+          cd "$PASTA"
+          npm exec --yes --ignore-scripts --package="@cyclonedx/cyclonedx-npm@${CYCLONEDX_NPM_VERSAO}" -- \
+            cyclonedx-npm --package-lock-only --ignore-npm-errors --omit dev \
+              --spec-version 1.6 --output-format JSON --output-reproducible \
+              --output-file "$arquivo"
+          cd "$GITHUB_WORKSPACE"
+          node dc360/scripts/conferir-sbom.mjs "$arquivo" "--minimo=${{ matrix.minimo }}"
+
+      - name: Publicar o SBOM como artefato do run
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sbom-npm-${{ matrix.arvore }}
+          path: ${{ runner.temp }}/sbom
+          retention-days: 30
+          if-no-files-found: error
+
+  sbom-imagem:
+    name: SBOM da imagem (${{ matrix.imagem }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - imagem: api
+            dockerfile: Dockerfile
+          - imagem: console
+            dockerfile: Dockerfile.console
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # A versão e o commit entram na imagem como no job `imagens` do
+      # verificar.yml, para o SBOM descrever a MESMA imagem que o CI exercita.
+      - name: Construir a imagem
+        env:
+          IMAGEM: ${{ matrix.imagem }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: |
+          versao=$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')
+          if [ -z "$versao" ]; then echo "versao vazia"; exit 1; fi
+          docker build --progress=plain -f "$DOCKERFILE" -t "dc360-${IMAGEM}:sbom" \
+            --build-arg DC360_VERSAO="$versao" \
+            --build-arg DC360_COMMIT="$GITHUB_SHA" .
+
+      - name: Instalar o Trivy (versão fixa, SHA-256 conferido)
+        run: |
+          trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
+          echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
+
+      - name: Gerar o SBOM CycloneDX da imagem
+        env:
+          IMAGEM: ${{ matrix.imagem }}
+          REF_NOME: ${{ github.ref_name }}
+          TRIVY_SKIP_VERSION_CHECK: "true"
+          TRIVY_DISABLE_TELEMETRY: "true"
+        run: |
+          rotulo="${REF_NOME//\//-}"
+          mkdir -p "$RUNNER_TEMP/sbom"
+          arquivo="$RUNNER_TEMP/sbom/sbom-${rotulo}-imagem-${IMAGEM}.cdx.json"
+          "$TRIVY_BIN" image --no-progress --format cyclonedx --output "$arquivo" "dc360-${IMAGEM}:sbom"
+          node scripts/conferir-sbom.mjs "$arquivo" --minimo=10
+
+      - name: Publicar o SBOM como artefato do run
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sbom-imagem-${{ matrix.imagem }}
+          path: ${{ runner.temp }}/sbom
+          retention-days: 30
+          if-no-files-found: error
+
+  # O ÚNICO job com escrita. Só em tag. Anexa ao Release os quatro SBOM e o
+  # SHA256SUMS.txt. O checkout é esparso (só `dc360/scripts`, de onde vêm o
+  # script de publicação e o conferidor de SBOM) e sem credencial gravada.
+  publicar:
+    name: Anexar os SBOM ao Release
+    if: ${{ github.ref_type == 'tag' }}
+    needs: [sbom-npm, sbom-imagem]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # Checkout só de `dc360/scripts`: o script de publicação e o conferidor de
+      # SBOM vêm da tag que está sendo publicada, não de um artefato.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          sparse-checkout: dc360/scripts
+          sparse-checkout-cone-mode: true
+
+      - name: Baixar os quatro SBOM
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: sbom-*
+          path: ${{ runner.temp }}/sbom
+          merge-multiple: true
+
+      - name: Conferir, somar e anexar ao Release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -l "$RUNNER_TEMP/sbom"
+          bash dc360/scripts/publicar-sbom.sh "$TAG" "$RUNNER_TEMP/sbom"

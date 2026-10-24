@@ -1,0 +1,11 @@
+# Prova: a familia proibida (AGPL, GPL, SSPL) deixa de ser reconhecida e os testes quebram
+# mutação em scripts/licencas.mjs
+#   de:   if (base === f || base.startsWith(`${f}-`)) return "proibida";
+#   para: if (false) return "proibida";
+# código de saída do teste: 1
+✖ expressões SPDX: OR escolhe a melhor, AND fica com a pior, WITH vale pela base, + e caixa não enganam (1.268542ms)
+✖ fixture com AGPL: reprova com a política decidida e só avisa com a proposta (0.717042ms)
+ℹ tests 15
+ℹ pass 13
+ℹ fail 2
+✖ failing tests:

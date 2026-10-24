@@ -1,0 +1,27 @@
+{
+  "descricao": "Licenças das dependências de produção (V2-F01-E19). A LISTA É UMA PROPOSTA: o CP-43 (Rafael com o jurídico) está aberto. Enquanto decisao.status for \"proposta\", `node scripts/licencas.mjs` só avisa. Para valer: trocar decisao por {\"checkpoint\": \"CP-43\", \"status\": \"decidida\", \"decidida_por\": \"<nome>\", \"decidida_em\": \"AAAA-MM-DD\"}, revisar as listas e resolver os avisos que a conferência mostra (licença fora das duas listas reprova, e a saída é listá-la em permitidas, em proibidas ou numa exceção com motivo, dono e prazo).",
+  "decisao": {
+    "checkpoint": "CP-43",
+    "status": "proposta"
+  },
+  "permitidas": [
+    "MIT",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "0BSD",
+    "CC0-1.0",
+    "OFL-1.1"
+  ],
+  "proibidas": ["AGPL", "GPL", "SSPL"],
+  "excecoes": [
+    {
+      "pacote": "exit",
+      "versao": "0.1.2",
+      "motivo": "O package.json do pacote declara a licença no formato antigo `licenses: [{type: MIT}]`, que o package-lock.json não copia; a licença real é MIT (conferido no registro do npm em 2026-10-24). Entra pelo jest do aplicativo de campo (@jest/core, create-jest).",
+      "dono": "Rafael",
+      "ate": "2027-01-05"
+    }
+  ]
+}

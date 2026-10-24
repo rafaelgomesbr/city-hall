@@ -1,0 +1,10 @@
+# Prova: o job publicar perde a condicao de tag e o teste quebra
+# mutação em ../.github/workflows/sbom.yml
+#   de:   if: ${{ github.ref_type == 'tag' }}
+#   para: if: ${{ always() }}
+# código de saída do teste: 1
+✖ sbom.yml: escrita só no job publicar, só contents, só em tag; o topo e os jobs que geram só leem (0.656959ms)
+ℹ tests 11
+ℹ pass 10
+ℹ fail 1
+✖ failing tests:

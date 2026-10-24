@@ -1,0 +1,34 @@
+✔ o estado real do repositório passa: os dois lockfiles lidos, sem defeito na política, a exceção nomeada em uso (7.651208ms)
+✔ a política versionada tem as listas propostas pelo roadmap e não decide nada pelo Rafael (0.1975ms)
+✔ componentesDeProducao: ignora dev, link, workspace e a raiz; deduplica; mantém devOptional (0.261459ms)
+✔ normalizarLicenca: texto, objeto antigo {type}, lista antiga e ausência (0.074ms)
+✔ expressões SPDX: OR escolhe a melhor, AND fica com a pior, WITH vale pela base, + e caixa não enganam (0.135292ms)
+✔ expressão ilegível ou ausente: sem licença ou não classificada, nunca permitida (0.1315ms)
+✔ fixture com AGPL: reprova com a política decidida e só avisa com a proposta (0.163542ms)
+✔ componente sem licença reprova com a política decidida (e UNLICENSED também) (0.109375ms)
+✔ licença fora das duas listas reprova com a política decidida (nega por padrão) e a exceção nomeada a libera (0.1595ms)
+✔ exceção vencida reprova, nos dois estados da política, e o componente volta a ser achado (0.194458ms)
+✔ exceção sem motivo, sem dono, sem data, com prazo longo demais ou sem versão: defeito da política (0.172292ms)
+✔ exceção desnecessária (a licença já é permitida) e política mal formada também são defeito (0.157959ms)
+✔ lockfile sem componente algum não passa por verde (não leu nada) (0.063667ms)
+✔ linha de comando: repositório real sai 0; AGPL com política decidida sai 1; proposta sai 0; arquivo ilegível sai 2 (227.364042ms)
+✔ o job produto do verificar.yml roda a conferência de licenças, sem continue-on-error e sem escrita (1.13175ms)
+✔ conferir-sbom: um CycloneDX com componentes passa; vazio, formato errado e componente sem nome reprovam (0.884375ms)
+✔ conferir-sbom: o código de saída que o CI lê (0 em ordem, 1 reprovado, 2 arquivo ilegível ou uso errado) (206.820667ms)
+✔ publicar-sbom.sh: com os quatro SBOM e sem Release, cria RASCUNHO e anexa os quatro mais o SHA256SUMS.txt com --clobber (311.4815ms)
+✔ publicar-sbom.sh: Release que já existe não é recriado, só recebe os arquivos (283.829292ms)
+✔ publicar-sbom.sh: faltando um dos quatro, ou um deles vazio, não publica NADA (SBOM pela metade parece completo) (254.013417ms)
+✔ publicar-sbom.sh: tag fora do padrão e uso errado saem 2 sem chamar o gh (16.638625ms)
+✔ sbom.yml: dispara em tag v* e campo-v* e em rodada manual, e nada mais (0.160667ms)
+✔ sbom.yml: escrita só no job publicar, só contents, só em tag; o topo e os jobs que geram só leem (0.386916ms)
+✔ sbom.yml: os dois lockfiles e as duas imagens estão na matriz, o gerador npm tem versão exata e lê só o lockfile de produção (0.141542ms)
+✔ sbom.yml: nome de tag e de ramo entram nos comandos por variável de ambiente, nunca interpolados no script (0.190791ms)
+✔ sbom.yml: o job publicar não grava credencial no checkout e só traz dc360/scripts (0.086541ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1122.530375

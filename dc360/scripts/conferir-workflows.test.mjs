@@ -257,9 +257,15 @@ test("todo workflow: permissions mínimas, timeout, ações por SHA, runner com 
   assert.deepEqual(problemas, {});
 });
 
-test("nenhum workflow declara escrita em permissions, nem de job", () => {
+// Única escrita permitida em todo o repositório (V2-F01-E19): o job `publicar`
+// do `sbom.yml` anexa o SBOM ao Release da tag, com `contents: write`. As travas
+// finas dele (só em tag, só nesse job, só `contents`) estão em `sbom.test.mjs`.
+const ESCRITA_PERMITIDA = { "sbom.yml": 1 };
+
+test("nenhum workflow declara escrita em permissions, nem de job (a única exceção é o job publicar do sbom.yml)", () => {
   for (const [nome, texto] of Object.entries(workflows)) {
-    assert.doesNotMatch(semComentarios(texto), /^\s*[\w-]+:\s*write\s*$/m, `${nome}: permissão de escrita`);
+    const escritas = semComentarios(texto).match(/^\s*[\w-]+:\s*write\s*$/gm) ?? [];
+    assert.equal(escritas.length, ESCRITA_PERMITIDA[nome] ?? 0, `${nome}: permissão de escrita`);
   }
 });
 

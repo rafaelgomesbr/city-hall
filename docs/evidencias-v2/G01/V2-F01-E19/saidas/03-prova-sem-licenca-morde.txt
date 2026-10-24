@@ -1,0 +1,13 @@
+# Prova: componente sem licenca passa a ser permitido e os testes quebram
+# mutação em scripts/licencas.mjs
+#   de:   MARCADORES_DE_AUSENCIA.test(t)) return "sem_licenca";
+#   para: MARCADORES_DE_AUSENCIA.test(t)) return "permitida";
+# código de saída do teste: 1
+✖ o estado real do repositório passa: os dois lockfiles lidos, sem defeito na política, a exceção nomeada em uso (30.701167ms)
+✖ expressão ilegível ou ausente: sem licença ou não classificada, nunca permitida (0.516ms)
+✖ componente sem licença reprova com a política decidida (e UNLICENSED também) (0.222875ms)
+✖ linha de comando: repositório real sai 0; AGPL com política decidida sai 1; proposta sai 0; arquivo ilegível sai 2 (72.4095ms)
+ℹ tests 15
+ℹ pass 11
+ℹ fail 4
+✖ failing tests:

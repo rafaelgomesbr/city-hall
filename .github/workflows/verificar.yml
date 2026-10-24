@@ -234,6 +234,18 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: npm run conferir:numeros 2>&1 | tee "$RUNNER_TEMP/artefatos/07-conferir-numeros.txt"
 
+      # Licenças das dependências de produção (V2-F01-E19), lidas dos dois
+      # lockfiles e comparadas com `politica-de-licencas.json`. Enquanto o CP-43
+      # (a lista, decidida por Rafael com o jurídico) estiver aberto, a política é
+      # uma PROPOSTA e este passo só AVISA (anotação no run e a lista no artefato).
+      # Defeito do próprio arquivo de política, exceção vencida e lockfile ilegível
+      # reprovam desde já. Quando `decisao.status` virar "decidida", licença
+      # proibida, sem licença ou fora da lista reprova o PR. Sem `npm ci`: lê só
+      # o lockfile. O SBOM por release mora em `sbom.yml`.
+      - name: Licenças das dependências de produção (CP-43 aberto, só avisa)
+        if: ${{ !cancelled() }}
+        run: node scripts/licencas.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/07b-licencas.txt"
+
       - name: Redigir segredo dos artefatos
         if: ${{ always() }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"

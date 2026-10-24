@@ -1,0 +1,10 @@
+# Prova: excecao vencida passa a valer e os testes quebram
+# mutação em scripts/licencas.mjs
+#   de:   if (problemasDaExcecao(excecao, hoje).length === 0) {
+#   para: if (true) {
+# código de saída do teste: 1
+✖ exceção vencida reprova, nos dois estados da política, e o componente volta a ser achado (5.514125ms)
+ℹ tests 15
+ℹ pass 14
+ℹ fail 1
+✖ failing tests:
