@@ -4,6 +4,11 @@
   "buildCommand": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo && npm run build --workspace @dc360/web",
   "outputDirectory": "apps/web/dist",
   "framework": null,
+  "git": {
+    "deploymentEnabled": {
+      "master": false
+    }
+  },
   "build": {
     "env": {
       "VITE_API_URL": "https://defesa-civil.fly.dev",

@@ -39,9 +39,11 @@ A resposta traz `"versao": "0.1.0"` e `"commit": "<sha>"`. `desconhecida` e
 (veja o aviso abaixo). Imagens construídas antes da V2-F01-E08 nem têm os dois
 campos.
 
-**Aviso, enquanto a V2-F01-E12 (deploy por promoção) não existe:** o `fly deploy`
-de hoje não passa os argumentos de build sozinho. Para a imagem sair carimbada, o
-deploy manual é:
+**Aviso sobre o deploy manual:** desde a V2-F01-E12 os workflows
+(`deploy-hml.yml` e `promover-producao.yml`) constroem a imagem com os argumentos
+de build e implantam por digest, então a imagem sai carimbada. Já o `fly deploy`
+manual, de emergência, não passa os argumentos de build sozinho. Para a imagem
+sair carimbada, o deploy manual é:
 
 ```
 cd dc360
@@ -114,9 +116,12 @@ deploy anterior de volta para produção.
 Dois cuidados:
 
 1. Depois de um *Instant Rollback* a Vercel pode deixar de promover sozinha os
-   próximos pushes na `master` para o domínio de produção, até alguém promover um
-   deploy à mão. Confirme isso no painel da Vercel e promova o deploy corrigido
-   quando ele existir; não confie em que o `git push` volta a publicar.
+   próximos pushes do ramo `producao` (o que o `promover-producao.yml` move, desde a
+   V2-F01-E12) para o domínio de produção, até alguém promover um deploy à mão.
+   Confirme isso no painel da Vercel e promova o deploy corrigido quando ele
+   existir; não confie em que a próxima promoção volta a publicar. O caminho que
+   não depende do painel da Vercel é promover de novo a tag anterior pelo
+   workflow: ele move o ramo `producao` de volta para aquele commit.
 2. O painel antigo fala com a API **de hoje**. O endereço da API (`VITE_API_URL`) é
    gravado no build (`vercel.json`), então o painel antigo e a API nova precisam
    continuar se entendendo. Se a entrega ruim mudou o contrato entre os dois, volte

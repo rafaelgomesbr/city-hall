@@ -775,8 +775,9 @@ Tudo de `dc360/`, e SEMPRE com `-c` ou `-a` do app de HML.
    `psql "$DATABASE_URL_SETUP" -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurecer.sql`
    e rodar a consulta de conferência da seção 8.2, passo 4: ela volta VAZIA.
 7. **Semear** (seção 9.3).
-8. Implantar: `fly deploy -c fly.hml.toml` e `fly deploy -c fly.console.hml.toml`.
-   `/saude` tem de dar 200 nos dois.
+8. Implantar: a partir da V2-F01-E12 quem implanta HML é o `deploy-hml.yml`
+   (seção 10), no merge seguinte na `master`; não se usa `fly deploy` à mão em
+   HML. `/saude` tem de dar 200 nos dois, com `versao` e `commit` do merge.
 
 ### 9.3 Semear HML com dados sintéticos e senhas sorteadas
 
@@ -820,3 +821,98 @@ recrie o banco de HML.
 - O ensaio da migration em HML e o `--conferir` contra o banco real de HML são
   da execução do roteiro acima, pelo Rafael.
 - Push (E13) e observabilidade (E14) de HML.
+
+## 10. Deploy automatizado: HML por merge, PROD por promoção (V2-F01-E12)
+
+Dois workflows são o caminho normal de implantação. O passo a passo de quem
+opera está em `docs/runbooks/deploy.md`; esta seção diz o que o repositório
+traz, o que o dono cria fora dele e como ensaiar.
+
+### 10.1 O que o repositório traz
+
+- `.github/workflows/deploy-hml.yml`: dispara quando o `Verificar` de um push na
+  `master` termina verde (gatilho `workflow_run`; PR e fork nunca disparam).
+  Constrói as imagens da API e do console UMA vez, com `DC360_VERSAO` e
+  `DC360_COMMIT` como argumento de build, e publica no GHCR. Depois, no ambiente
+  `homologacao`: tira a cópia do banco de HML, aplica as migrations, copia as
+  imagens para o registro do Fly de HML (o digest é preservado), implanta a API e
+  o console por digest e confere `/saude` com a `versao` e o `commit` esperados.
+  Move o ramo `homologacao` (de onde a Vercel publica o painel de HML) e, só
+  então, põe o selo `hml-ok-<sha>` nas duas imagens.
+- `.github/workflows/promover-producao.yml`: só `workflow_dispatch`, a partir da
+  `master`, com `tag`, `sha`, `confirmacao` (`PROMOVER vX.Y.Z`) e
+  `migracao_confirmada`. Recusa SHA sem o selo de HML. No ambiente `producao`
+  copia as MESMAS imagens para o registro de PROD, implanta API e console por
+  digest, confere `/saude` depois de cada um e só então move o ramo `producao`.
+  A migration de PROD segue manual (ADR 0008).
+- `dc360/scripts/conferir-saude-remota.mjs`: a conferência de `/saude` que os dois
+  usam.
+- `dc360/vercel.json`: `git.deploymentEnabled.master = false`. A Vercel deixa de
+  publicar a `master`. O painel sai dos ramos `producao` e `homologacao`.
+
+A forma dos dois workflows é prova de teste (`scripts/conferir-workflows.test.mjs`).
+A execução contra o Fly de verdade NÃO foi feita: depende de HML (CP-05) e do que
+está abaixo.
+
+### 10.2 O que o dono cria, fora do repositório
+
+Nesta ordem. Nenhum valor de segredo entra no repositório nem em conversa.
+
+1. **Ambientes do GitHub** (Settings > Environments):
+   - `homologacao`: sem revisor; "Deployment branches" restrito à `master`.
+   - `producao`: **revisor obrigatório** (o dono), "Deployment branches"
+     restrito à `master`. Com uma pessoa só, "Prevent self-review" não pode ser
+     ligado; liga com a segunda pessoa (CP-07).
+2. **Tokens de deploy do Fly**, um por app, criados com
+   `fly tokens create deploy -a <app>` e colados direto no segredo do ambiente
+   (não ficam em arquivo nem em histórico de terminal):
+   - ambiente `homologacao`: `FLY_TOKEN_API` (app `defesa-civil-hml`),
+     `FLY_TOKEN_CONSOLE` (app `defesa-civil-console-hml`) e
+     `DC360_SENHA_BANCO_HML` (senha do papel de setup do banco de HML, dado
+     sintético);
+   - ambiente `producao`: `FLY_TOKEN_API` (app `defesa-civil`) e
+     `FLY_TOKEN_CONSOLE` (app `defesa-civil-console`). Nada de senha de banco.
+   O token de um app não implanta em outro: é a segunda trava, depois do
+   ambiente.
+3. **Vercel**: no projeto `dc360-painel-web`, trocar o ramo de produção de
+   `master` para `producao` (Settings > Git). Para o painel de HML, criar um
+   segundo projeto sobre o mesmo repositório, com Root Directory `dc360`, ramo de
+   produção `homologacao` e a variável `VITE_API_URL` da API de HML. **Antes de
+   criar o projeto de HML, fechar a exceção da E10**: enquanto o `vercel.json`
+   fixar a URL de PROD em `build.env`, o painel de HML falaria com a API de
+   PROD (ver `docs/VERCEL-PAINEL.md`, "Tirar a URL de PROD do `vercel.json`").
+4. **Ruleset dos ramos `producao` e `homologacao`** (recomendado): bloquear
+   exclusão e push de pessoas; só o workflow move. Não está versionado em
+   `.github/rulesets/` porque o bypass do GitHub Actions depende da conta.
+5. **Pacotes no GHCR**: o primeiro run cria `dc360-api` e `dc360-console` como
+   privados, ligados ao repositório pelo rótulo `org.opencontainers.image.source`.
+   Conferir em Packages que o acesso de Actions do repositório está como
+   "Write" (senão a publicação recusa).
+
+### 10.3 Ensaio (pendente, do dono, depois do CP-05)
+
+1. Abrir um PR de prova, passar o `Verificar`, fazer o merge. Conferir que o
+   `Implantar HML` rodou, que `https://defesa-civil-hml.fly.dev/saude` mostra a
+   `versao` e o `commit` do merge e que o painel de HML abriu do ramo
+   `homologacao`.
+2. Abrir um PR com o `Verificar` vermelho e confirmar que o `Implantar HML` NÃO
+   roda.
+3. Criar a tag no commit do passo 1 e rodar `Promover para PROD`. Conferir a
+   recusa com um SHA sem selo, e depois a promoção de verdade: `/saude` de PROD
+   com a mesma `versao` e o mesmo `commit` de HML, e os digests do resumo do run
+   iguais aos de HML.
+4. Ensaiar o rollback: promover a tag anterior, ou seguir
+   `docs/runbooks/rollback.md`. Anotar o tempo de troca que o resumo do run
+   mostra.
+
+### 10.4 O que fica declarado como NÃO coberto
+
+- Nenhum dos dois workflows foi executado. Premissas a confirmar no primeiro run:
+  que o token de deploy de um app do Fly faz `docker login registry.fly.io -u x`
+  e aceita o `docker buildx imagetools create`; que `flyctl deploy --image ...@sha256`
+  aceita a imagem copiada; que o push de ramo por `GITHUB_TOKEN` aciona o
+  webhook da Vercel (o GitHub só suprime workflows, não integrações).
+- O painel (Vercel) não é conferido pelo workflow: o `/saude` cobre API e
+  console. O painel tem de ser aberto à mão (o resumo do run lembra).
+- Migration de PROD automática, feature flags e blue-green: fora do escopo.
+- Deploy do aplicativo de campo (V2-F14-E11) e do portal (V2-F11-E03).

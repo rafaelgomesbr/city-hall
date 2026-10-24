@@ -45,11 +45,11 @@ dia da concessão e escrito na ficha de concessão (abaixo).
 | --- | --- | --- | --- | --- | --- |
 | GitHub, repositório `rafaelgomesbr/city-hall` | Código, ruleset da `master`, CI, `CODEOWNERS` | Rafael (dono) | Papel com escrita (aprova PR; com o CP-07 o ruleset passa de 0 para 1 aprovação), nunca administrador, nunca contornar o ruleset | Obrigatório na conta | Dono |
 | Fly, apps `defesa-civil` e `defesa-civil-console` (PROD) | API e console, `fly secrets` | Rafael | **Nenhum acesso rotineiro.** Recuperação por cofre | Obrigatório | Dono |
-| Fly, apps de HML | API e console de teste | (não existem) | Acesso completo aos apps de HML, token de deploy restrito ao app de HML; depende de V2-F01-E11 e V2-F01-E12 | Obrigatório | Dono |
+| Fly, apps de HML | API e console de teste | (não existem) | Acesso completo aos apps de HML; o token de deploy de cada app (API e console) vive só como segredo do ambiente `homologacao` do GitHub (V2-F01-E12); os apps dependem de V2-F01-E11 | Obrigatório | Dono |
 | Supabase, projeto de PROD | Banco e armazenamento de fotos | Rafael | **Nenhum acesso rotineiro.** Recuperação por cofre | Obrigatório | Dono |
 | Supabase, projeto de HML | Banco e bucket de teste | (não existe) | Acesso completo ao projeto de HML; depende de V2-F01-E11 | Obrigatório | Dono |
 | Vercel, projeto `dc360-painel-web` (PROD) | Painel web | Rafael | Só leitura (ver implantações e logs), sem alterar variável nem promover | Obrigatório | Dono |
-| Vercel, painel de HML | Painel de teste | (não existe) | Membro com poder de implantar o painel de HML; depende de V2-F01-E11 e V2-F01-E12 | Obrigatório | Dono |
+| Vercel, painel de HML | Painel de teste | (não existe) | Membro com poder de implantar o painel de HML (a Vercel publica o ramo `homologacao`, que o `deploy-hml.yml` move); depende de V2-F01-E11 | Obrigatório | Dono |
 | Domínio e DNS | Nomes da API e do painel | (domínio próprio ainda não definido, CP-04) | Recuperação por cofre. Nenhuma alteração rotineira | Obrigatório | Dono |
 | Monitor externo de `/saude` | Alerta de queda | (não existe; depende de V2-F01-E14 e F21-E06) | Destinatário do alerta, com acesso de leitura | Obrigatório | Dono |
 | E-mail transacional (Resend) | Recuperação de senha e ofício por e-mail | Desligado em PROD; ligar é CP-19 | Nenhum até o e-mail ser ligado; depois, leitura do painel de entregas | Obrigatório | Dono |
@@ -77,7 +77,7 @@ Os nomes vêm de `fly.toml`, `fly.console.toml`, `apps/api/src/config.ts` e
 | EAS | `EAS_PROJECT_ID` (identificador); arquivo local `apps/campo/segredos/play-console.json` (chave de serviço, **fora do git**) |
 | Chaveiro do Mac do dono | item `senha-do-banco-dc360` (conta `dc360`): senha do papel de setup do banco |
 | Portal da Apple | arquivo `AuthKey_<ID>.p8` da chave APNs (entregue uma vez) |
-| Segredos de CI do GitHub Actions | nenhum hoje. Tokens de deploy por ambiente dependem de V2-F01-E12 |
+| Segredos de CI do GitHub Actions | só nos ambientes do GitHub, nunca no repositório (V2-F01-E12). Ambiente `homologacao`: `FLY_TOKEN_API` e `FLY_TOKEN_CONSOLE` (tokens de deploy dos apps de HML) e `DC360_SENHA_BANCO_HML`. Ambiente `producao`: `FLY_TOKEN_API` e `FLY_TOKEN_CONSOLE` (tokens de deploy dos apps de PROD), com revisor obrigatório e restrito ao ramo `master`. A senha de dono do banco de PROD NÃO entra em CI (ADR 0008). Os tokens ainda não existem: criação é do dono |
 
 A matriz de variáveis por ambiente (HML x PROD) e o comparador de nomes contra
 `fly secrets list` dependem de V2-F01-E09.
@@ -176,7 +176,9 @@ Para tirar a segunda pessoa, ou um acesso de teste:
 
 - Quem é a segunda pessoa, a alternativa escolhida e o cofre: CP-07.
 - HML (contas e acesso de teste): depende de V2-F01-E11.
-- Token de deploy por ambiente e a promoção para PROD: depende de V2-F01-E12.
+- Criar os ambientes `homologacao` e `producao` do GitHub e os tokens de deploy
+  por app (`fly tokens create deploy -a <app>`, um por app): pendência do dono,
+  depois do CP-05. Rotação e revogação desses tokens: `rotacao-de-segredo.md`.
 - Destino de erro e canal de alerta: depende de V2-F01-E14 e do CP-06; plantão
   e canal: F21-E06.
 - Domínio e DNS da produção: CP-04.

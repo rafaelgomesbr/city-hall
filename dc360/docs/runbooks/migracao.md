@@ -22,8 +22,8 @@
   validação humana pendente.
 - **HML só tem banco declarado depois da V2-F01-E11.** Até lá `--ambiente hml`
   recusa dizendo isso; o passo "Ensaio em HML" abaixo (`npm run migrar` direto)
-  continua sendo o caminho. O dump antes da migração no pipeline de HML depende de
-  V2-F01-E12 (ela chama o mesmo `copiar-producao.mjs --ambiente hml`).
+  continua sendo o caminho. O dump antes da migração no pipeline de HML é feito pelo
+  `deploy-hml.yml` (V2-F01-E12), que chama o mesmo `copiar-producao.mjs --ambiente hml`.
 - **Uma migração de cada vez por banco (V2-F01-E18).** O aplicador toma uma
   trava de sessão do Postgres (`pg_try_advisory_lock`) antes de ler o registro e a
   larga no fim, sucesso ou erro. Quem chega com a trava ocupada espera até 60 s e,
@@ -222,6 +222,8 @@ Nunca `UPDATE` ou `DELETE` à mão em produção com a credencial de dono para
 ## O que este runbook ainda não cobre
 
 - HML para ensaiar: depende de V2-F01-E11.
-- Dump e migração automáticos no pipeline de HML: depende de V2-F01-E12.
+- Dump e migração de HML no pipeline: feitos pelo `deploy-hml.yml` (V2-F01-E12),
+  ainda não executados (dependem do ambiente de HML). A de PROD continua manual,
+  de propósito (ADR 0008).
 - A prova da trava com dois migradores de verdade (dois `pg.Client` contra Postgres real) roda no job `implantavel`, que precisa chamar `db/test/trava-de-migracao.test.ts` com `DC360_POSTGRES_DE_PROVA` (ver `db/PENDENCIAS.md`, item 7).
 - Restore testado a cada migração: F22-E03 e F22-E04.

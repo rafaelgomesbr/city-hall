@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a131a70583215ca56/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 4005ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  442ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  1149ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1690ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  647ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  19:50:51
+   Duration  4.92s (transform 209ms, setup 0ms, collect 303ms, tests 4.01s, environment 0ms, prepare 86ms)
+

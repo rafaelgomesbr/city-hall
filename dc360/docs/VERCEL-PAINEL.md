@@ -179,3 +179,42 @@ certificados do domínio, SPF, DKIM e DMARC (F15-E14), e o `og:url` e
 `og:image` de `apps/web/index.html` (que `test/seo.test.ts` exige iguais ao
 endereço do painel). Nada disso é feito antes da decisão; até lá o ambiente de
 HML usa os endereços do provedor e o `conferir-dominio` vale sobre eles.
+
+## Emenda de 24/10/2026 (V2-F01-E12): o painel sai de um ramo que só o workflow move
+
+### O que mudou
+
+Antes, a Vercel publicava o painel de PROD a cada push na `master`, sem esperar o
+CI e sem esperar a API. Agora:
+
+- `dc360/vercel.json` traz `git.deploymentEnabled.master = false`: a Vercel deixa
+  de publicar a `master` (qualquer projeto ligado a este repositório). PR continua
+  gerando preview.
+- O painel de PROD sai do ramo **`producao`**, que só o workflow
+  `promover-producao.yml` move, depois de a API e o console estarem no ar com a
+  versão certa. O painel de HML sai do ramo **`homologacao`**, movido pelo
+  `deploy-hml.yml` pelo mesmo motivo. Fluxo completo em
+  `docs/runbooks/deploy.md` e `docs/IMPLANTACAO.md`, seção 10.
+
+### O que o Rafael faz na Vercel (fora do repositório)
+
+1. Projeto `dc360-painel-web`: Settings > Git > Production Branch trocar de
+   `master` para `producao`. Enquanto não trocar, o painel de PROD não é
+   publicado por commit nenhum (a `master` está desligada e o ramo `producao`
+   ainda não é o de produção). É o lado seguro, mas é preciso trocar antes da
+   primeira promoção.
+2. Painel de HML: um segundo projeto sobre o mesmo repositório, Root Directory
+   `dc360`, Production Branch `homologacao`, com a variável `VITE_API_URL` da API
+   de HML no ambiente Production. **Só depois de fechar a exceção da E10** (seção
+   acima): o `build.env` do `vercel.json` vale para os dois projetos e fixa a API
+   de PROD, que sobrepõe a variável do projeto.
+3. Conferir, no primeiro push de ramo feito pelo workflow, que a Vercel dispara o
+   deploy (o push é feito com o token do próprio workflow, que não aciona outros
+   workflows, mas aciona a integração da Vercel).
+
+### Voltar atrás no painel
+
+Promover de novo uma tag anterior pelo `promover-producao.yml` move o ramo
+`producao` de volta, e a Vercel publica aquele commit. O *Instant Rollback* da
+Vercel continua existindo (`docs/runbooks/rollback.md`, seção 2), mas depois dele
+o domínio pode deixar de acompanhar o ramo até alguém promover à mão.

@@ -4,7 +4,8 @@
 - **Estado:** NÃO EXECUTADO. Este é o roteiro para o Rafael indicar a pessoa e
   conduzir o ensaio. O ensaio só pode acontecer depois de duas coisas que ainda
   não existem: a decisão do CP-07 (quem é a pessoa e qual alternativa vale) e o
-  ambiente de homologação (depende de V2-F01-E11 e de V2-F01-E12).
+  ambiente de homologação (depende de V2-F01-E11; o caminho de deploy dele já
+  existe, V2-F01-E12, mas não foi executado).
 - **Para que serve:** provar que alguém que **não escreveu o sistema** implanta,
   reverte, migra e gira um segredo em HML usando **só o texto**, e registrar
   onde o texto falhou. O texto que falha é corrigido; o ensaio é repetido nos
@@ -34,7 +35,7 @@
 | Acesso mínimo concedido conforme `acesso-e-segredos.md` e ficha de concessão preenchida | PENDENTE (depende do CP-07) |
 | MFA ligado em todas as contas da pessoa | PENDENTE |
 | Ambiente de HML de pé (apps Fly, banco, bucket) | PENDENTE: depende de V2-F01-E11 |
-| Deploy de HML pelo caminho que existir | PENDENTE: depende de V2-F01-E12 |
+| Deploy de HML pelo `deploy-hml.yml` (merge na `master`) | PENDENTE: o workflow existe (V2-F01-E12), falta o ambiente de HML e o ambiente `homologacao` do GitHub com os tokens (dono) |
 | `rollback.md` existe e foi lido pelo Rafael | PENDENTE: depende de V2-F01-E08 |
 | Dois commits distintos para implantar e reverter (um "bom", um "defeituoso de propósito", este só em HML) | A preparar |
 | Cofre decidido e item de teste dentro dele (sem segredo real de PROD) | PENDENTE (CP-07) |

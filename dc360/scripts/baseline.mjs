@@ -247,8 +247,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     a regra "todo comando do script `verificar` aparece em algum `run:`" (com
     `node scripts/auditar.mjs` valendo por `npm run auditar`), a proibição de
     `npm audit` que decide e os casos negativos dela.
+    V2-F01-E12 acrescenta 20 casos ao MESMO arquivo (44 no total): as regras dos
+    dois workflows de implantação (`deploy-hml.yml` e `promover-producao.yml`:
+    gatilho, ambiente protegido, token por app, imagem por digest, migration de
+    HML antes da API, `/saude` com versão e commit, selo de HML, escritas de job
+    nomeadas) e os casos negativos que estragam o workflow real de cada jeito.
   */
-  "V2-F01-E02": 24,
+  "V2-F01-E02": 44,
   /*
     V2-F01-E10: `scripts/conferir-dominio.test.mjs` é novo, com 20 casos (os
     julgamentos puros de TLS, redirecionamento, HSTS, cabeçalhos do painel e
@@ -256,10 +261,18 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `pedir` contra um servidor HTTP local e o comando com código de saída 2).
     `scripts/vercel-json.test.mjs` é novo, com 9 (o `vercel.json` real sem URL
     de API além da exceção declarada, os cabeçalhos de segurança, e os casos
-    sintéticos que provam que a regra morde).
+    sintéticos que provam que a regra morde). V2-F01-E12 acrescenta 2 casos ao
+    `vercel-json.test.mjs` (11 no total): a `master` deixa de ser publicada.
   */
   "V2-F01-E10": 20,
-  "V2-F01-E10-vercel-json": 9,
+  "V2-F01-E10-vercel-json": 11,
+  /*
+    V2-F01-E12: `scripts/conferir-saude-remota.test.mjs` é novo, com 7 casos. É a
+    régua que os workflows de deploy usam depois de cada `flyctl deploy`: o commit
+    e a versão carimbados no build têm de aparecer em `/saude` (a imagem trocou de
+    verdade), com tentativas, sem rede nem relógio reais.
+  */
+  "V2-F01-E12": 7,
   /*
     V2-F01-E16: `scripts/runbooks.test.mjs` é novo, com 15 casos. Prende os
     runbooks de `docs/runbooks/` ao que o repositório tem: as seções que a etapa
@@ -368,6 +381,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E02": "conferir-workflows.test.mjs",
   "V2-F01-E10": "conferir-dominio.test.mjs",
   "V2-F01-E10-vercel-json": "vercel-json.test.mjs",
+  "V2-F01-E12": "conferir-saude-remota.test.mjs",
   "V2-F01-E16": "runbooks.test.mjs",
   "V2-F01-E08": "smoke-das-imagens.test.mjs",
   "V2-F01-E09": "conferir-ambiente.test.mjs",
