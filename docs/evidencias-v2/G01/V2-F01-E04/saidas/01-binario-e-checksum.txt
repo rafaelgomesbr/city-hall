@@ -1,0 +1,17 @@
+# gitleaks usado nas provas locais (darwin arm64)
+8.30.1
+
+# SHA-256 do tarball baixado do release oficial v8.30.1
+b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5  gitleaks_8.30.1_darwin_arm64.tar.gz
+551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks_8.30.1_linux_x64.tar.gz
+
+# linhas correspondentes em gitleaks_8.30.1_checksums.txt (publicado no mesmo release)
+b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5  gitleaks_8.30.1_darwin_arm64.tar.gz
+551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks_8.30.1_linux_x64.tar.gz
+
+# conferencia (shasum --check contra o arquivo oficial, so as duas linhas usadas)
+gitleaks_8.30.1_darwin_arm64.tar.gz: OK
+gitleaks_8.30.1_linux_x64.tar.gz: OK
+
+# valor escrito no workflow (GITLEAKS_SHA256)
+          echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${arquivo}" | sha256sum --check --strict

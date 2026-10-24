@@ -1,0 +1,32 @@
+# 4a. hook com gitleaks instalado e arquivo limpo em stage: o commit passa
+12:35PM INF 0 commits scanned.
+12:35PM INF scanned ~6038 bytes (6.04 KB) in 98.1ms
+12:35PM INF no leaks found
+[master (root-commit) aec7aa1] commit limpo
+ 2 files changed, 109 insertions(+)
+ create mode 100644 .gitleaks.toml
+ create mode 100644 src/ok.txt
+codigo do commit: 0
+
+# 4b. hook com gitleaks instalado e token sintetico em stage: o commit e barrado
+Finding:     const t = "REDACTED";
+Secret:      REDACTED
+RuleID:      github-pat
+Entropy:     4.853056
+File:        src/segredo.ts
+Line:        1
+Fingerprint: src/segredo.ts:github-pat:1
+
+12:35PM INF 0 commits scanned.
+12:35PM INF scanned ~54 bytes (54 bytes) in 97.4ms
+12:35PM WRN leaks found: 1
+codigo do commit: 1
+commits no repositorio (esperado 1, o limpo): 1
+
+# 4c. hook SEM gitleaks no PATH: so avisa, o commit segue
+AVISO (pre-commit): gitleaks não está instalado, a varredura de segredos local foi PULADA.
+  O CI (workflow Segredos) ainda barra segredo no PR. Para instalar: https://github.com/gitleaks/gitleaks#installing
+[master 3de4a04] commit sem gitleaks instalado
+ 1 file changed, 1 insertion(+)
+ create mode 100644 src/segredo.ts
+codigo do commit: 0

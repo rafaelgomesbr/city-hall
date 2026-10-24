@@ -1,0 +1,108 @@
+# Configuração do gitleaks (V2-F01-E04).
+#
+# Parte das regras padrão da versão fixada no workflow `segredos.yml` e só
+# acrescenta exceções ESTREITAS. Cada exceção diz o que é o falso positivo e
+# por que ele não é segredo. Regras de manutenção:
+#
+# - Exceção por caminho aponta UM arquivo, escrito por inteiro (âncoras ^ e $,
+#   pontos escapados), e vale para UMA regra (`targetRules`). Diretório inteiro
+#   ou curinga de pasta é proibido: `dc360/scripts/politica-de-segredos.test.mjs`
+#   reprova se o arquivo não existir mais ou se o padrão não for um arquivo.
+# - Exceção por conteúdo casa com a LINHA e vale para uma regra, nunca para
+#   todas. Só existe quando o mesmo texto inofensivo reaparece em evidência
+#   nova de toda etapa (lista de migrações, rótulo de rodada de carga).
+# - Segredo real achado no histórico não entra aqui: é rotacionado
+#   (`dc360/scripts/rotacionar-segredo.mjs` para o JWT_SEGREDO) e, só depois,
+#   o achado é tratado. Esta lista nunca absolve um segredo vivo.
+# - O relatório do gitleaks roda sempre com `--redact`.
+
+title = "Defesa Civil 360: varredura de segredos"
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# 1. Fixtures de teste e configuração de cliente (código versionado)
+# ---------------------------------------------------------------------------
+
+[[allowlists]]
+description = "Chave PEM FALSA (corpo 'MIGHAgEA', 8 caracteres) em teste de push: serve para provar que a mensagem de erro não vaza o conteúdo da credencial. Não assina nada."
+condition = "AND"
+targetRules = ["private-key"]
+paths = ['''^dc360/apps/api/test/push-segredo\.test\.ts$''']
+
+[[allowlists]]
+description = "google-services.json do aplicativo de campo: configuração de CLIENTE do Firebase (a chave AIza do cliente é pública por desenho e vai dentro do aplicativo). A conta de serviço, esta sim secreta, é barrada pelo .gitignore (*firebase-adminsdk*.json)."
+condition = "AND"
+targetRules = ["gcp-api-key", "generic-api-key"]
+paths = ['''^dc360/apps/campo/google-services\.json$''']
+
+[[allowlists]]
+description = "JWT sintético montado à mão no teste do redator de evidência: o teste prova que o redator esconde o token. Assinatura inventada, sem emissor real."
+condition = "AND"
+targetRules = ["jwt"]
+paths = ['''^dc360/scripts/baseline\.test\.mjs$''']
+
+[[allowlists]]
+description = "JWT sintético montado à mão no teste do conferidor de evidência (texto e PNG falso): o teste prova que o conferidor recusa token em evidência. Assinatura inventada."
+condition = "AND"
+targetRules = ["jwt"]
+paths = ['''^scripts/roadmap/conferir-evidencia\.test\.mjs$''']
+
+[[allowlists]]
+description = "Texto 'token: abc123def456' escrito de propósito no teste do conferidor do relatório visual, para provar que ele acusa o padrão. Valor inventado."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^scripts/roadmap/relatorio-visual\.test\.mjs$''']
+
+# ---------------------------------------------------------------------------
+# 2. Evidência da G00 (arquivos congelados): saída de teste e sonda
+# ---------------------------------------------------------------------------
+
+[[allowlists]]
+description = "Sonda da E10 gravada antes do conserto: o log de erro traz um link de convite com 'token=' gerado pela própria sonda contra banco de teste em memória (usuários fictícios). Não é credencial de ambiente nenhum. Pendência humana: Rafael confirma na leitura do relatório."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/evidencias-v2/G00/V2-F00-E10/saidas/02-sonda-antes-do-conserto-api\.txt$''']
+
+[[allowlists]]
+description = "Sonda da E12: 'idempotency_key = ...' é o nome de uma coluna e uma chave de idempotência de teste ('coleta-f1-assinatura'), não um segredo."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/evidencias-v2/G00/V2-F00-E12/correcao-3/sonda/sonda\.mts$''']
+
+[[allowlists]]
+description = "Relatório de segurança da E12: a frase 'API real: `e12-cruzado.test.ts`' foi lida como chave porque contém 'API' e nomes de arquivo de teste."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/evidencias-v2/G00/V2-F00-E12/validacao/4b96ea7/seguranca-aplicacao\.md$''']
+
+[[allowlists]]
+description = "Sonda da E22 (correção 3): lista de pastas base ('dc360/apps/api', ...) que o detector de entropia leu como chave."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/evidencias-v2/G00/V2-F00-E22/correcao-3/sondas/referencias-a-arquivo\.mjs$''']
+
+[[allowlists]]
+description = "Sonda da E22 (correção 4): a mesma lista de pastas base da correção 3."
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^docs/evidencias-v2/G00/V2-F00-E22/correcao-4/sondas/referencias-a-arquivo\.mjs$''']
+
+# ---------------------------------------------------------------------------
+# 3. Texto inofensivo que reaparece em evidência nova (exceção por conteúdo)
+# ---------------------------------------------------------------------------
+
+[[allowlists]]
+description = "Nome da migração 046 ('046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql') dentro da lista de migrações aplicadas que toda saída de 'migrar' imprime. As palavras 'senha' e 'token' no nome fazem o detector de entropia tratar a linha como chave. A linha só é perdoada na regra generic-api-key e só se citar esse nome de arquivo."
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = ['''046_senha_provisoria_e_o_dono_do_token_diz_por_que\.sql''']
+
+[[allowlists]]
+description = "Rótulo de rodada da sonda de carga da E03 ('===== rodada da API 3: ins02-api-3.txt ====='): 'API' seguido de nome de arquivo foi lido como chave. A linha só é perdoada na regra generic-api-key e só se tiver exatamente esse formato."
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = ['''^\s*===== rodada da API \d+: ins02-api-\d+\.txt =====\s*$''']

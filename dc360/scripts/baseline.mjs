@@ -187,6 +187,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
   */
   "V2-F00-E21-correcao-3": 8,
+  /*
+    V2-F01-E04: `scripts/politica-de-segredos.test.mjs` é novo, com 19 casos
+    (a allowlist do `.gitleaks.toml` só com arquivo existente, razão e regra-alvo,
+    e as reprovações de caminho órfão, pasta, curinga e regex ampla; o hook de
+    pre-commit que avisa sem gitleaks e barra quando ele acusa; o workflow com
+    histórico completo, `--redact`, permissão mínima, binário fixado por SHA-256 e
+    ações fixadas por SHA; e o script `preparar`).
+  */
+  "V2-F01-E04": 19,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -196,6 +205,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
   "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
+  "V2-F01-E04": "politica-de-segredos.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

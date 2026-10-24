@@ -1,0 +1,11 @@
+# 3c. copia do arquivo real, com o PEM falso, no caminho da allowlist (dc360/apps/api/test/push-segredo.test.ts): esperado codigo 0
+12:35PM INF 1 commits scanned.
+12:35PM INF scanned ~9521 bytes (9.52 KB) in 114ms
+12:35PM INF no leaks found
+codigo de saida: 0
+
+# 3d. o MESMO conteudo num arquivo vizinho da mesma pasta (outro-teste.test.ts): esperado codigo 1
+12:35PM INF 2 commits scanned.
+12:35PM INF scanned ~13010 bytes (13.01 KB) in 118ms
+12:35PM WRN leaks found: 1
+codigo de saida: 1
