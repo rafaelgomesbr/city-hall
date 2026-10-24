@@ -1,0 +1,34 @@
+# Relatório dos pacotes do registro (passo que nunca reprova o job)
+# comando: semgrep scan --metrics=off --config p/typescript --config p/nodejs --config p/react --config p/jwt dc360
+# código de saída do semgrep: 0 (o passo do CI tem continue-on-error e || true)
+# resumo: 1 achado(s) do registro (informativo), 1 erro(s) de análise
+
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 460 files tracked by git with 84 Code rules:
+                                                                                                                        
+  Language   Rules   Files          Origin      Rules                                                                   
+ ──────────────────────────        ───────────────────                                                                  
+  ts            74     288          Community      84                                                                   
+  js            68      30                                                                                              
+                                                                                                                        
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 1 (1 blocking)
+ • Rules run: 74
+ • Targets scanned: 318
+ • Parsed lines: ~99.9%
+ • Scan skipped: 
+   ◦ Files larger than  files 1.0 MB: 1
+   ◦ Files matching .semgrepignore patterns: 415
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+Ran 74 rules on 318 files: 1 finding.
+

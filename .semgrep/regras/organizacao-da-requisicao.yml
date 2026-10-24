@@ -1,0 +1,78 @@
+# Regra número um do produto, na versão estática (CLAUDE.md, "dc360/"): na API a
+# organização vem do token verificado e de mais lugar nenhum. Nunca de cabeçalho,
+# de parâmetro de rota, de query string ou do corpo da requisição.
+#
+# O teste dinâmico continua sendo `npm run test:isolamento` (CA-06); esta regra
+# é a armadilha que pega o erro na revisão do PR, antes de o teste ter a chance
+# de não cobrir a rota nova (portal, cidadão).
+#
+# Duas regras:
+#   1. acesso direto: `req.body.organizacaoId`, `req.query.organizacao_id`,
+#      `req.headers["x-organizacao-id"]`, `const { organizacaoId } = req.body`;
+#   2. fluxo: qualquer valor que nasce em `body`, `params`, `query` ou
+#      `headers` e chega no primeiro argumento de `comTenant(...)`, que é o que
+#      vira o `SET LOCAL` da organização. Pega o caso em que a leitura passa por
+#      `schema.parse(req.body)` e por uma variável antes de chegar lá.
+rules:
+  - id: dc360-organizacao-lida-da-requisicao
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      A organização é lida de body, params, query ou cabeçalho da requisição.
+      Na API ela vem SOMENTE da identidade do token verificado
+      (`exigirAutenticacao`). Recurso de outro município responde 404.
+    metadata:
+      categoria: isolamento-entre-municipios
+      regra: "CLAUDE.md, dc360/: a organização vem do token e de mais lugar nenhum"
+    paths:
+      include:
+        - "**/dc360/apps/api/src/"
+        - "**/.semgrep/test/"
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.$FONTE.$CAMPO
+              - pattern: $REQ.$FONTE[$CAMPO]
+              - pattern: |
+                  const { ..., $CAMPO, ... } = $REQ.$FONTE
+              - pattern: |
+                  const { ..., $CAMPO: $LOCAL, ... } = $REQ.$FONTE
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: ^(req|request)$
+          - metavariable-regex:
+              metavariable: $FONTE
+              regex: ^(body|params|query|headers)$
+          - metavariable-regex:
+              metavariable: $CAMPO
+              regex: (?i)^["'`]?(x-)?(organiza[cç][aã]o|org|tenant)[-_]?(id)?["'`]?$
+
+  - id: dc360-organizacao-da-requisicao-chega-no-tenant
+    mode: taint
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Um valor vindo de body, params, query ou cabeçalho chega ao primeiro
+      argumento de `comTenant`, que vira o `SET LOCAL` da organização. A
+      organização sai da identidade do token verificado, nunca da requisição.
+    metadata:
+      categoria: isolamento-entre-municipios
+      regra: "CLAUDE.md, dc360/: a organização vem do token e de mais lugar nenhum"
+    paths:
+      include:
+        - "**/dc360/apps/api/src/"
+        - "**/.semgrep/test/"
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.body
+              - pattern: $REQ.params
+              - pattern: $REQ.query
+              - pattern: $REQ.headers
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: ^(req|request)$
+    pattern-sinks:
+      - patterns:
+          - pattern: $BANCO.comTenant($ORG, ...)
+          - focus-metavariable: $ORG

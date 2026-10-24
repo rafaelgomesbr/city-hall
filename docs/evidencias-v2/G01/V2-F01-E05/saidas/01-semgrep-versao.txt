@@ -1,0 +1,5 @@
+# Versão do Semgrep CE usada na etapa (a mesma do workflow)
+# comando: semgrep --version --disable-version-check
+# código de saída: 0
+
+1.136.0

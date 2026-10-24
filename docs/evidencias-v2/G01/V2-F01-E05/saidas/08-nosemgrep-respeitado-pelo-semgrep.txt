@@ -1,0 +1,28 @@
+# Semgrep respeita o nosemgrep com motivo, dono e data na linha (esperado: só 'outraRegra' e 'semSupressao' aparecem)
+# comando: semgrep scan --config .semgrep/regras --metrics=off --disable-version-check --json --output <scratchpad>/evid-nosem.json .semgrep/test/zz-nosem.ts
+# código de saída: 0
+
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 4 Code rules:
+  Scanning 1 file with 4 ts rules.
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 2 (2 blocking)
+ • Rules run: 4
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • No ignore information available
+Ran 4 rules on 1 file: 2 findings.
+
+## Achados que o Semgrep manteve
+achado em .semgrep/test/zz-nosem.ts:10 (dc360-sql-por-interpolacao)
+achado em .semgrep/test/zz-nosem.ts:13 (dc360-sql-por-interpolacao)
+(linhas 3 e 7 suprimidas; 10 e 13 mantidas)

@@ -1,0 +1,11 @@
+# PR de prova: a baseline reprova o achado novo (código 1)
+# comando: node dc360/scripts/sast-baseline.mjs conferir semgrep-prova.json
+# código de saída: 1
+
+Semgrep: 35 achado(s); 33 na baseline triada; 2 novo(s).
+  NOVO ERROR: dc360-organizacao-lida-da-requisicao em dc360/apps/api/src/rotas/orgaos.ts:294
+    const organizacaoId = req.body.organizacaoId;
+  NOVO ERROR: dc360-organizacao-da-requisicao-chega-no-tenant em dc360/apps/api/src/rotas/orgaos.ts:295
+    return banco.comTenant(organizacaoId, async () => 1);
+Reprovado. Achado novo se corrige no código; se for falso positivo, entra na baseline com classe, motivo, dono e prazo (ou recebe `nosemgrep` com motivo, dono e prazo). Ver dc360/README.md.
+

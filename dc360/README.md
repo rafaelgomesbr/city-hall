@@ -2013,6 +2013,68 @@ git config --unset core.hooksPath  # para desligar
 Sem o gitleaks instalado o hook apenas avisa e deixa o commit seguir. Atenção: o
 `core.hooksPath` é configuração do repositório inteiro, e vale também para os
 worktrees dele.
+### Análise estática (SAST) e política de exceção
+
+`.github/workflows/sast.yml` roda o Semgrep CE (versão fixa, `--metrics=off`, sem
+login nem token: nenhum código sai do runner) a cada push em `main`, `master` ou
+`v2/**` e a cada pull request. O job se chama `SAST (Semgrep)` e esse nome é
+contrato com o ruleset do GitHub. Primeiro ele roda `semgrep --test` nas regras
+próprias; só então varre `dc360/` com elas; por fim `dc360/scripts/sast-baseline.mjs`
+compara o resultado com a baseline triada e **reprova só o achado novo de
+severidade ERROR** das regras próprias.
+
+O que roda, tudo versionado em `.semgrep/`:
+
+- `regras/`: quatro regras próprias (em três arquivos), todas ERROR, que protegem a regra número um.
+  (1) a organização lida de `body`, `params`, `query` ou cabeçalho em
+  `apps/api/src` (acesso direto e fluxo até `comTenant`); (2) SQL montado por
+  interpolação ou concatenação e entregue a `query(`; (3) o cabeçalho
+  `Authorization` (ou todos os cabeçalhos) indo para log. Cada regra tem casos
+  positivos (`ruleid`) e negativos (`ok`) em `test/`, rodados por `semgrep --test`.
+- Pacotes do registro (TypeScript, Node, React e JWT): o repositório é PÚBLICO, e
+  as regras do registro são da Semgrep Rules License v1.0 (uso interno, sem
+  redistribuição), então NENHUMA cópia delas mora aqui. Um passo à parte do job
+  baixa `p/typescript`, `p/nodejs`, `p/react` e `p/jwt` na hora (uso, não
+  redistribuição), roda como RELATÓRIO e nunca reprova: o registro muda sem aviso
+  e quebraria o CI por culpa dele, não do código. A saída vai no artefato
+  `sast-<sha>` (`04-registro-relatorio.json` e `.txt`) para a revisão humana.
+  O que bloqueia é só o que é autoria do projeto: as regras de `regras/`.
+- `baseline.json`: os achados que já existiam quando o SAST entrou, **lidos um a
+  um por uma pessoa**, cada um com classe (`falso-positivo`, `aceito` ou
+  `defeito`), motivo, dono e prazo. `defeito` real aponta para `V2-F25-E01`, não
+  some em silêncio. A impressão digital do achado é regra, arquivo, primeira
+  linha do trecho e ordem entre iguais, sem número de linha: inserir código acima
+  não reabre o achado, editar a primeira linha da consulta sim.
+
+**Política de exceção.** Achado novo se corrige no código. Se for falso positivo,
+há dois caminhos, e os dois exigem motivo, dono e prazo:
+
+1. `nosemgrep` no código, na mesma linha ou na linha de comentário logo acima:
+   `// nosemgrep: <id-da-regra> -- motivo: <texto>; dono: <nome>; ate: AAAA-MM-DD`.
+   O id da regra é obrigatório (supressão cega é proibida), o motivo tem pelo
+   menos vinte caracteres e o prazo não passa de um ano.
+2. Uma entrada nova na baseline (`node dc360/scripts/sast-baseline.mjs propor
+   saida-do-semgrep.json` mostra as candidatas), com a classe e o motivo lidos
+   por quem triou.
+
+Exceção vencida reprova: `scripts/excecoes-de-seguranca.test.mjs` entra em
+`npm run test:scripts` e olha todo `nosemgrep` do repositório e toda linha da
+baseline contra a data de hoje. Renovar é decisão, com motivo novo; não é
+trocar a data. Para rodar na máquina, instale o Semgrep CE na mesma versão do
+workflow (`pipx install semgrep==1.136.0`) e, na raiz do repositório:
+
+```
+semgrep --test --metrics=off --config .semgrep/regras .semgrep/test
+semgrep scan --metrics=off --config .semgrep/regras --json --output semgrep.json dc360
+node dc360/scripts/sast-baseline.mjs conferir semgrep.json
+# opcional, só relatório (baixa o registro; nunca reprova):
+semgrep scan --metrics=off --config p/typescript --config p/nodejs --config p/react --config p/jwt dc360
+```
+
+O SAST não substitui o teste dinâmico de isolamento (`npm run test:isolamento`,
+CA-06): a regra (1) é a versão estática dele, que pega o erro na revisão do PR,
+antes de o teste ter a chance de não cobrir a rota nova. Ficam de fora desta
+etapa: CodeQL, DAST, scan de contêiner e SBOM.
 
 ## O que falta, e por quê
 

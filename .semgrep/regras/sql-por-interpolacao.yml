@@ -1,0 +1,40 @@
+# SQL montado por interpolação ou concatenação e entregue a `query(`. O Postgres
+# recebe valores por parâmetro (`$1`, `$2`), nunca por texto colado na consulta:
+# interpolar abre injeção de SQL e, nesta base, injeção de SQL ao lado de RLS é a
+# forma mais curta de atravessar a fronteira entre municípios.
+#
+# Pega o literal direto em `query(` e o que passa por variável antes. Quando a
+# parte interpolada é de fato constante (nome de coluna de uma lista fechada), a
+# saída é `nosemgrep` com motivo, dono e prazo (ver `dc360/README.md`, política
+# de exceção de SAST), e não relaxar a regra.
+rules:
+  - id: dc360-sql-por-interpolacao
+    mode: taint
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Texto SQL montado por interpolação (`${...}`) ou concatenação chega a
+      `query(`. Use parâmetros (`$1`, `$2`) e passe os valores no segundo
+      argumento.
+    metadata:
+      categoria: injecao-de-sql
+    paths:
+      include:
+        - "**/dc360/apps/api/src/"
+        - "**/.semgrep/test/"
+    pattern-sources:
+      - pattern: |
+          `...${$V}...`
+      - pattern: '"..." + $X'
+      - pattern: '$X + "..."'
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $C.query($SQL, ...)
+              - pattern: $C.query<$T>($SQL, ...)
+              # O analisador de TypeScript do Semgrep não casa `c.query<T>(...)`
+              # quando a chamada vem depois de `await`, que é o jeito normal de
+              # chamar no repositório (conferido na etapa V2-F01-E05: sem esta
+              # linha, as consultas de contagem das listas passavam batido).
+              - pattern: await $C.query<$T>($SQL, ...)
+          - focus-metavariable: $SQL
