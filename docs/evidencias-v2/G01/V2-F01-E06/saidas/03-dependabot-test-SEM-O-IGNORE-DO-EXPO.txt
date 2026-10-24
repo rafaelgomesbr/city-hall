@@ -1,0 +1,116 @@
+✔ os quatro ecossistemas pedidos existem, com as pastas certas, todos semanais (0.917458ms)
+✔ as pastas do Dependabot existem de verdade e têm o arquivo que ele lê (2.974917ms)
+✖ NEGATIVO: major e minor de expo, react-native, reanimated e worklets estão ignorados no aplicativo, e patch não (1.002208ms)
+✔ NEGATIVO: o ignore do Expo cobre também a família atrelada ao SDK (0.085292ms)
+✖ NEGATIVO (o teste morde): config sem o ignore do Expo, ou que ignora patch, é reprovada (0.718459ms)
+✔ patch da família do Expo sobe só em grupo, e o grupo contém os quatro nomeados (0.155541ms)
+✔ docker: major do node ignorado (subir o Node é decisão de plataforma) (0.141791ms)
+✔ sem auto-merge em lugar nenhum e todo bloco tem cooldown (1.227834ms)
+✔ auditoria semanal: agenda semanal, disparo manual e nenhum gatilho de PR (0.197959ms)
+✔ auditoria semanal: regras do CI (permissões mínimas, timeout, runner fixo, ações por SHA) (0.315416ms)
+✔ auditoria semanal: roda o portão do CP-03 pelo node e não mascara a falha (0.071125ms)
+✔ DEPENDENCIAS.md existe, cita o CP-03, os quatro pacotes e marca os prazos como proposta (0.724ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 10
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 57.638125
+
+✖ failing tests:
+
+test at scripts/dependabot.test.mjs:88:1
+✖ NEGATIVO: major e minor de expo, react-native, reanimated e worklets estão ignorados no aplicativo, e patch não (1.002208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'expo: major não está ignorado',
+  +   'expo: minor não está ignorado'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a831970c698b6d6b0/dc360/scripts/dependabot.test.mjs:89:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'expo: major não está ignorado', 'expo: minor não está ignorado' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/dependabot.test.mjs:100:1
+✖ NEGATIVO (o teste morde): config sem o ignore do Expo, ou que ignora patch, é reprovada (0.718459ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  '# Atualização de dependências por PR pequeno (V2-F01-E06).\n' +
+    '#\n' +
+    '# A política que este arquivo executa está escrita em `dc360/docs/DEPENDENCIAS.md`:\n' +
+    '# leia lá o porquê de cada trava. Em uma frase: tudo chega como PR, o PR passa\n' +
+    '# pelos mesmos checks obrigatórios de qualquer outro (ruleset da E01), e NADA é\n' +
+    '# mesclado sozinho (não há auto-merge, nem aqui nem em workflow). PR de\n' +
+    '# dependência é vetor de cadeia de suprimentos: alguém lê antes de aceitar.\n' +
+    '#\n' +
+    '# Quatro frentes, todas semanais (segunda-feira de manhã em Brasília):\n' +
+    '#   1. npm em /dc360            (raiz do monorepo: api, console, web, db, pacotes)\n' +
+    '#   2. npm em /dc360/apps/campo (aplicativo Expo; fica fora de `workspaces`)\n' +
+    '#   3. github-actions em /      (mantém os SHAs fixados pela E02)\n' +
+    '#   4. docker em /dc360         (imagens base dos Dockerfiles)\n' +
+    '#\n' +
+    '# O que o Dependabot NÃO faz aqui, de propósito: subir o SDK do Expo (ver a\n' +
+    '# frente 2), subir o Node para outra versão major (frente 4) e tratar advisory\n' +
+    '# já aceita no CP-03 (isso é do portão `npm run auditar`, não deste arquivo).\n' +
+    '# `cooldown` atrasa versão recém-publicada, que é quando a maior parte dos\n' +
+    '# pacotes sequestrados é detectada e retirada; atualização de SEGURANÇA ignora o\n' +
+    '# cooldown, por desenho do Dependabot.\n' +
+    '#\n' +
+    '# Para mudar o que está abaixo, mude também `dc360/docs/DEPENDENCIAS.md` e rode\n' +
+    '# `node --test scripts/dependabot.test.mjs` em `dc360`: o teste prende as travas.\n' +
+    'version: 2\n' +
+    '\n' +
+    'updates:\n' +
+    '  # 1. Raiz do monorepo.\n' +
+    '  - package-ecosystem: "npm"\n' +
+    '    directory: "/dc360"\n' +
+    '    schedule:\n' +
+    '      interval: "weekly"\n' +
+    '      day: "monday"\n' +
+    '      time: "06:00"\n' +
+    '      timezone: "America/Sao_Paulo"\n' +
+    '    open-pull-requests-limit: 5\n' +
+    '    cooldown:\n' +
+    '      default-days: 7\n' +
+    '    commit-message:\n' +
+    '      prefix: "dependencias"\n' +
+    '    groups:\n' +
+    '      # Ferramenta de desenvolvimento (teste, tipos, build) sobe junta enquanto\n' +
+    '      # for patch ou minor: não chega a produção, e um PR só por semana basta.\n' +
+    '      # Major de qualquer pacote, e qualquer coisa de runtime, vêm em PR próprio.\n' +
+    '      ferramentas-de-desenvolvimento:\n' +
+    '        dependency-type: "development"\n' +
+    '        update-types: ["minor", "patch"]\n' +
+  ...
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a831970c698b6d6b0/dc360/scripts/dependabot.test.mjs:110:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '# Atualização de dependências por PR pequeno (V2-F01-E06).\n#\n# A política que este arquivo executa está escrita em `dc360/docs/DEPENDENCIAS.md`:\n# leia lá o porquê de cada trava. Em uma frase: tudo chega como PR, o PR passa\n# pelos mesmos checks obrigatórios de qualquer outro (ruleset da E01), e NADA é\n# mesclado sozinho (não há auto-merge, nem aqui nem em workflow). PR de\n# dependência é vetor de cadeia de suprimentos: alguém lê antes de aceitar.\n#\n# Quatro frentes, todas semanais (segunda-feira de manhã em Brasília):\n#   1. npm em /dc360            (raiz do monorepo: api, console, web, db, pacotes)\n#   2. npm em /dc360/apps/campo (aplicativo Expo; fica fora de `workspaces`)\n#   3. github-actions em /      (mantém os SHAs fixados pela E02)\n#   4. docker em /dc360         (imagens base dos Dockerfiles)\n#\n# O que o Dependabot NÃO faz aqui, de propósito: subir o SDK do Expo (ver a\n# frente 2), subir o Node para outra versão major (frente 4) e tratar advisory\n# já aceita no CP-03 (isso é do portão `npm run auditar`, não deste arquivo).\n# `cooldown` atrasa versão recém-publicada, que é quando a maior parte dos\n# pacotes sequestrados é detectada e retirada; atualização de SEGURANÇA ignora o\n# cooldown, por desenho do Dependabot.\n#\n# Para mudar o que está abaixo, mude também `dc360/docs/DEPENDENCIAS.md` e rode\n# `node --test scripts/dependabot.test.mjs` em `dc360`: o teste prende as travas.\nversion: 2\n\nupdates:\n  # 1. Raiz do monorepo.\n  - package-ecosystem: "npm"\n    directory: "/dc360"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 5\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias"\n    groups:\n      # Ferramenta de desenvolvimento (teste, tipos, build) sobe junta enquanto\n      # for patch ou minor: não chega a produção, e um PR só por semana basta.\n      # Major de qualquer pacote, e qualquer coisa de runtime, vêm em PR próprio.\n      ferramentas-de-desenvolvimento:\n        dependency-type: "development"\n        update-types: ["minor", "patch"]\n\n  # 2. Aplicativo de campo (Expo).\n  #\n  # O SDK do Expo é um conjunto: `expo`, `react-native`, `react`, os pacotes\n  # `expo-*` e os módulos nativos (reanimated, worklets, maps, svg, screens...)\n  # só funcionam juntos, nas versões que o SDK declara. Subir um deles sozinho\n  # reembaralha a árvore (já aconteceu: mistura de SDK 57 e 58, ver CP-03) e\n  # troca o binário nativo. Por isso, aqui:\n  #   - major e minor de toda a família ficam IGNORADOS: subir o SDK é decisão\n  #     humana, por inteiro, com `npx expo install --fix` e novo binário;\n  #   - patch da família sobe só em GRUPO, num PR único (`expo-sdk-patch`);\n  #   - o que não é da família (jest, testing library, tipos) segue o fluxo normal.\n  - package-ecosystem: "npm"\n    directory: "/dc360/apps/campo"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 3\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias(campo)"\n    ignore:\n      # Os quatro que a etapa nomeia.\n      - dependency-name: "react-native"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-native-reanimated"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-native-worklets"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      # O resto da família, que anda atrelado ao SDK.\n      - dependency-name: "expo-*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "@expo/*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-native-*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "@react-native/*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "jest-expo"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-dom"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n    groups:\n      expo-sdk-patch:\n        patterns:\n          - "expo"\n          - "expo-*"\n          - "@expo/*"\n          - "react-native"\n          - "react-native-*"\n          - "@react-native/*"\n          - "jest-expo"\n          - "react"\n          - "react-dom"\n        update-types: ["patch"]\n      ferramentas-de-desenvolvimento:\n        dependency-type: "development"\n        update-types: ["minor", "patch"]\n        exclude-patterns:\n          - "jest-expo"\n          - "@react-native/*"\n\n  # 3. Ações do GitHub. A E02 fixa cada `uses:` por SHA completo com a versão em\n  # comentário; o Dependabot sabe ler esse formato e atualiza o SHA e o\n  # comentário juntos. Tudo num PR por semana (minor e patch); major é PR próprio.\n  - package-ecosystem: "github-actions"\n    directory: "/"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 3\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias(ci)"\n    groups:\n      acoes-do-github:\n        patterns: ["*"]\n        update-types: ["minor", "patch"]\n\n  # 4. Imagens base dos Dockerfiles (`Dockerfile` e `Dockerfile.console`).\n  # Node é runtime de produção: major novo (22 para 24, por exemplo) é decisão\n  # de plataforma, com ADR e teste completo, e não PR automático. Minor e patch\n  # da série 22 (inclusive o rebuild de segurança do Debian) entram normalmente.\n  # A imagem do Postgres/PostGIS em `compose.yaml` fica de fora: trocar a versão\n  # do banco exige plano de migração, não um PR de rotina.\n  - package-ecosystem: "docker"\n    directory: "/dc360"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 3\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias(docker)"\n    ignore:\n      - dependency-name: "node"\n        update-types: ["version-update:semver-major"]\n',
+    expected: '# Atualização de dependências por PR pequeno (V2-F01-E06).\n#\n# A política que este arquivo executa está escrita em `dc360/docs/DEPENDENCIAS.md`:\n# leia lá o porquê de cada trava. Em uma frase: tudo chega como PR, o PR passa\n# pelos mesmos checks obrigatórios de qualquer outro (ruleset da E01), e NADA é\n# mesclado sozinho (não há auto-merge, nem aqui nem em workflow). PR de\n# dependência é vetor de cadeia de suprimentos: alguém lê antes de aceitar.\n#\n# Quatro frentes, todas semanais (segunda-feira de manhã em Brasília):\n#   1. npm em /dc360            (raiz do monorepo: api, console, web, db, pacotes)\n#   2. npm em /dc360/apps/campo (aplicativo Expo; fica fora de `workspaces`)\n#   3. github-actions em /      (mantém os SHAs fixados pela E02)\n#   4. docker em /dc360         (imagens base dos Dockerfiles)\n#\n# O que o Dependabot NÃO faz aqui, de propósito: subir o SDK do Expo (ver a\n# frente 2), subir o Node para outra versão major (frente 4) e tratar advisory\n# já aceita no CP-03 (isso é do portão `npm run auditar`, não deste arquivo).\n# `cooldown` atrasa versão recém-publicada, que é quando a maior parte dos\n# pacotes sequestrados é detectada e retirada; atualização de SEGURANÇA ignora o\n# cooldown, por desenho do Dependabot.\n#\n# Para mudar o que está abaixo, mude também `dc360/docs/DEPENDENCIAS.md` e rode\n# `node --test scripts/dependabot.test.mjs` em `dc360`: o teste prende as travas.\nversion: 2\n\nupdates:\n  # 1. Raiz do monorepo.\n  - package-ecosystem: "npm"\n    directory: "/dc360"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 5\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias"\n    groups:\n      # Ferramenta de desenvolvimento (teste, tipos, build) sobe junta enquanto\n      # for patch ou minor: não chega a produção, e um PR só por semana basta.\n      # Major de qualquer pacote, e qualquer coisa de runtime, vêm em PR próprio.\n      ferramentas-de-desenvolvimento:\n        dependency-type: "development"\n        update-types: ["minor", "patch"]\n\n  # 2. Aplicativo de campo (Expo).\n  #\n  # O SDK do Expo é um conjunto: `expo`, `react-native`, `react`, os pacotes\n  # `expo-*` e os módulos nativos (reanimated, worklets, maps, svg, screens...)\n  # só funcionam juntos, nas versões que o SDK declara. Subir um deles sozinho\n  # reembaralha a árvore (já aconteceu: mistura de SDK 57 e 58, ver CP-03) e\n  # troca o binário nativo. Por isso, aqui:\n  #   - major e minor de toda a família ficam IGNORADOS: subir o SDK é decisão\n  #     humana, por inteiro, com `npx expo install --fix` e novo binário;\n  #   - patch da família sobe só em GRUPO, num PR único (`expo-sdk-patch`);\n  #   - o que não é da família (jest, testing library, tipos) segue o fluxo normal.\n  - package-ecosystem: "npm"\n    directory: "/dc360/apps/campo"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 3\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias(campo)"\n    ignore:\n      # Os quatro que a etapa nomeia.\n      - dependency-name: "react-native"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-native-reanimated"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-native-worklets"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      # O resto da família, que anda atrelado ao SDK.\n      - dependency-name: "expo-*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "@expo/*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-native-*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "@react-native/*"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "jest-expo"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n      - dependency-name: "react-dom"\n        update-types: ["version-update:semver-major", "version-update:semver-minor"]\n    groups:\n      expo-sdk-patch:\n        patterns:\n          - "expo"\n          - "expo-*"\n          - "@expo/*"\n          - "react-native"\n          - "react-native-*"\n          - "@react-native/*"\n          - "jest-expo"\n          - "react"\n          - "react-dom"\n        update-types: ["patch"]\n      ferramentas-de-desenvolvimento:\n        dependency-type: "development"\n        update-types: ["minor", "patch"]\n        exclude-patterns:\n          - "jest-expo"\n          - "@react-native/*"\n\n  # 3. Ações do GitHub. A E02 fixa cada `uses:` por SHA completo com a versão em\n  # comentário; o Dependabot sabe ler esse formato e atualiza o SHA e o\n  # comentário juntos. Tudo num PR por semana (minor e patch); major é PR próprio.\n  - package-ecosystem: "github-actions"\n    directory: "/"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 3\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias(ci)"\n    groups:\n      acoes-do-github:\n        patterns: ["*"]\n        update-types: ["minor", "patch"]\n\n  # 4. Imagens base dos Dockerfiles (`Dockerfile` e `Dockerfile.console`).\n  # Node é runtime de produção: major novo (22 para 24, por exemplo) é decisão\n  # de plataforma, com ADR e teste completo, e não PR automático. Minor e patch\n  # da série 22 (inclusive o rebuild de segurança do Debian) entram normalmente.\n  # A imagem do Postgres/PostGIS em `compose.yaml` fica de fora: trocar a versão\n  # do banco exige plano de migração, não um PR de rotina.\n  - package-ecosystem: "docker"\n    directory: "/dc360"\n    schedule:\n      interval: "weekly"\n      day: "monday"\n      time: "06:00"\n      timezone: "America/Sao_Paulo"\n    open-pull-requests-limit: 3\n    cooldown:\n      default-days: 7\n    commit-message:\n      prefix: "dependencias(docker)"\n    ignore:\n      - dependency-name: "node"\n        update-types: ["version-update:semver-major"]\n',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+codigo 1

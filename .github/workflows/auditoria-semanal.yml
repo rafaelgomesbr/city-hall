@@ -1,0 +1,87 @@
+# Auditoria semanal de dependências (V2-F01-E06).
+#
+# Por que existe: o portão `auditar` já roda em todo push e pull_request (job
+# `dependencias` de verificar.yml), mas advisory nova nasce num dia sem commit.
+# Sem agenda, o repositório parado ficaria "verde" por semanas com uma
+# vulnerabilidade de runtime publicada. Este workflow pergunta ao registro, uma
+# vez por semana, e fica vermelho (e avisa por e-mail) quando a resposta mudou.
+#
+# O que ele roda é EXATAMENTE a política do CP-03 (alternativa B), a mesma de
+# `npm run auditar`: dependência de runtime vulnerável reprova, na raiz e no
+# aplicativo de campo; ferramenta de desenvolvimento aparece sem reprovar;
+# exceção só nomeada, com motivo, dono e prazo (`scripts/auditar-excecoes.mjs`).
+# Chamado por `node`, e não por `npm run`, como no CI, para que nenhuma
+# configuração do npm decida se o portão roda. Código de saída 2 quer dizer "não
+# consegui auditar" (registro fora do ar): também fica vermelho, nunca verde.
+#
+# Não corrige nada, não abre PR, não faz merge: quem corrige é um PR comum
+# (muitas vezes o do Dependabot) que passa pelos checks obrigatórios.
+#
+# ATENÇÃO: `schedule` só dispara a partir do ramo padrão. Enquanto este arquivo
+# estiver só em `v2/f01`, a agenda não roda; `workflow_dispatch` serve para
+# provar o workflow antes disso.
+name: Auditoria semanal
+
+on:
+  schedule:
+    # Segunda-feira, 07:17 UTC (04:17 em Brasília). Minuto "quebrado" de
+    # propósito: o topo da hora é a fila mais cheia do GitHub, e o `verificar`
+    # já usa 09:00 UTC.
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+# Só lê o código. Nada de escrita, nada de token com poder.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  auditar:
+    name: Auditoria semanal de dependências (auditar)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Contexto do run
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      # Mesma guarda do job `dependencias` do verificar.yml: um `.npmrc`
+      # versionado poderia fazer o npm não auditar nada e sair 0.
+      - name: Nenhum .npmrc versionado no repositório
+        working-directory: .
+        run: |
+          versionados="$(git ls-files -- '.npmrc' '**/.npmrc')"
+          if [ -n "$versionados" ]; then echo "::error::.npmrc versionado: $versionados"; exit 1; fi
+          echo "nenhum .npmrc versionado"
+
+      - name: Política de dependências (node scripts/auditar.mjs)
+        run: node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: auditoria-semanal-${{ github.run_id }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
