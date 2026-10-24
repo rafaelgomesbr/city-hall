@@ -1,0 +1,23 @@
+✔ o leitor de workflows acha os jobs que a regra precisa (senão os casos abaixo não provam nada) (0.43825ms)
+✔ o ruleset real da master não tem problema nenhum (0.346625ms)
+✔ cada check obrigatório é o nome de exibição de um job que roda em todo pull request (0.071958ms)
+✔ sem exceção para ninguém, nem para administrador (0.054583ms)
+✔ o merge é só por squash e a master não aceita force-push nem exclusão (0.102416ms)
+✔ negativo: ruleset com exceção, check inventado, 2 métodos de merge e sem os checks novos é reprovado (0.160791ms)
+✔ negativo: ruleset sem force-push bloqueado e sem alvo na master é reprovado (0.094416ms)
+✔ o CODEOWNERS nomeia as migrações, a autenticação da API e o .github, e os caminhos existem (0.396583ms)
+✔ o modelo de PR traz o checklist de auto-aprovação (gates locais, migração aditiva, rollback, evidência) (0.247333ms)
+✔ o CLAUDE.md manda a master por PR e o texto novo não tem travessão (0.298417ms)
+✔ o ruleset dos ramos de implantação bloqueia criação, push direto, exclusão e force-push, com exceção só para o Actions (0.132666ms)
+✔ os ramos do ruleset são os que os workflows de fato movem, e a master fica de fora (1.326583ms)
+✔ o IMPLANTACAO.md diz que importar o ruleset dos ramos é condição da primeira promoção (0.790083ms)
+✔ negativo: ruleset dos ramos sem uma das regras, com pessoa no bypass, ou mirando só um ramo, reprova (0.196792ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48.243958
+saida 0

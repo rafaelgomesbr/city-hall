@@ -49,6 +49,15 @@ Saídas em `saidas/`: o arquivo de teste (01), a suíte `test:scripts` com
 `CI=true` (02), os portões de lint, teto, formato e números (03) e a sintaxe de
 bash dos blocos `run` (04).
 
+## Segundo item da mesma revisão: ruleset dos ramos de implantação
+
+`.github/rulesets/ramos-de-implantacao.json` passa a existir (ramos `producao` e
+`homologacao`: sem criação, push direto, exclusão nem force-push, exceção só
+para o app do Actions, `integration_id` 15368), e `IMPLANTACAO.md` diz que
+importá-lo é condição da primeira promoção. A evidência completa está em
+`docs/evidencias-v2/G01/V2-F01-E01/correcao-revisao-1/`; aqui fica a saída do
+teste em `saidas/05-ruleset-ramos.txt`.
+
 ## Limites declarados
 
 - Nada disto foi executado no GitHub: não há como rodar `gh attestation verify`

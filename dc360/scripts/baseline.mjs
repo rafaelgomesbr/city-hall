@@ -232,8 +232,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     check que existem de verdade nos workflows e rodam em todo pull request, e
     confere o CODEOWNERS e o modelo de PR. Dois casos são a prova de que o
     teste morde: rulesets sintéticos estragados reprovam.
+    A correção da revisão 1 da F01 acrescenta 4 casos ao MESMO arquivo (14 no
+    total): o ruleset dos ramos `producao` e `homologacao`
+    (`.github/rulesets/ramos-de-implantacao.json`, exceção só para o app do
+    Actions), o vínculo dele com os ramos que os workflows movem, a frase do
+    `IMPLANTACAO.md` que faz da importação condição da primeira promoção e o
+    caso negativo.
   */
-  "V2-F01-E01": 10,
+  "V2-F01-E01": 14,
   /*
     V2-F01-E02 e V2-F01-E03: `scripts/conferir-workflows.test.mjs` é novo, com 24
     casos (15 da E02 e 9 da E03; é um arquivo só, por isso uma linha só). Aplica
