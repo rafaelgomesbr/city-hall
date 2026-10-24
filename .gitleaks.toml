@@ -55,6 +55,24 @@ condition = "AND"
 targetRules = ["generic-api-key"]
 paths = ['''^scripts/roadmap/relatorio-visual\.test\.mjs$''']
 
+[[allowlists]]
+description = "JWT sintético montado à mão no teste do identificador de requisição (V2-F01-E14): o teste prova que o token de outro município não aparece nem no log nem na resposta. Cabeçalho e carga em base64 de texto inventado, assinatura escrita por extenso ('assinatura-secreta-do-token'), sem chave nem emissor reais. Token sintético de teste, sem segredo real."
+condition = "AND"
+targetRules = ["jwt"]
+paths = ['''^dc360/apps/api/test/request-id\.test\.ts$''']
+
+[[allowlists]]
+description = "JWT sintético montado à mão no teste da observabilidade compartilhada (V2-F01-E14): o teste prova que o mascarador de dado pessoal troca o token por marcador. Assinatura inventada ('assinaturaDoToken123'), sem emissor real. Token sintético de teste, sem segredo real."
+condition = "AND"
+targetRules = ["jwt"]
+paths = ['''^dc360/packages/shared/test/observabilidade\.test\.ts$''']
+
+[[allowlists]]
+description = "JWT sintético montado à mão no teste do reportador de erros (V2-F01-E14): o teste prova que o token não sai no evento enviado ao serviço de erros. Assinatura inventada ('assinaturaDoToken123'), sem emissor real. Token sintético de teste, sem segredo real."
+condition = "AND"
+targetRules = ["jwt"]
+paths = ['''^dc360/apps/api/test/reportador-de-erros\.test\.ts$''']
+
 # ---------------------------------------------------------------------------
 # 2. Evidência da G00 (arquivos congelados): saída de teste e sonda
 # ---------------------------------------------------------------------------

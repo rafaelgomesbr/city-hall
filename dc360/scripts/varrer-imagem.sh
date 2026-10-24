@@ -10,7 +10,8 @@
 #   instalar <destino>
 #       Baixa o Trivy NA VERSÃO FIXA abaixo, confere o SHA-256 do tarball do
 #       release (como o gitleaks da E04) e instala o binário em <destino>.
-#       Imprime o caminho do binário. Reprova se o checksum não bate.
+#       Imprime no stdout SÓ o caminho do binário (uma linha); todo o resto vai
+#       para o stderr. Reprova se o checksum não bate.
 #   varrer <trivy> <saida> <nome> <fonte...>
 #       Varre uma imagem e grava <saida>/<nome>.json, .sarif e .txt. <fonte> é o
 #       que o `trivy image` entende: `dc360-api:ci` ou `--input arquivo.tar`.
@@ -62,10 +63,13 @@ instalar() {
     --output "$destino/$arquivo" \
     "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSAO}/${arquivo}"
   # No runner (Linux) é o `sha256sum`; o `shasum` é só para quem roda na máquina de um Mac.
+  # O "<arquivo>: OK" da conferência vai para o stderr: o stdout é só o caminho do
+  # binário, porque o workflow o grava em $GITHUB_ENV (`TRIVY_BIN=$(...)`) e o
+  # GitHub recusa valor de várias linhas ("Invalid format").
   if command -v sha256sum > /dev/null 2>&1; then
-    echo "${TRIVY_SHA256}  ${destino}/${arquivo}" | sha256sum --check --strict
+    echo "${TRIVY_SHA256}  ${destino}/${arquivo}" | sha256sum --check --strict >&2
   else
-    echo "${TRIVY_SHA256}  ${destino}/${arquivo}" | shasum -a 256 --check
+    echo "${TRIVY_SHA256}  ${destino}/${arquivo}" | shasum -a 256 --check >&2
   fi
   tar -xzf "$destino/$arquivo" -C "$destino" trivy
   rm -f "$destino/$arquivo"
