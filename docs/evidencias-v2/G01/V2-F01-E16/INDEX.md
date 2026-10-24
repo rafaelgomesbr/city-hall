@@ -2,7 +2,7 @@
 
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | 30a1c2fcf57b5197ebbc3997b64ef0a4c2fef48949159739bd1e6d19fb2ad015 |
+| RESUMO.md | 329d4b17f296bb245d8d2cf871253471e7791aa5fdebe59aa5b09496499a24f3 |
 | saidas/01-runbooks-test.txt | 43de2a358c15dc21b6e25a79946394f6f6b2db57c8e5bcf3ffac534c70e1bf08 |
 | saidas/02-test-scripts.txt | 6db0f13735a75471b09edb2eb94a35aa6647e78ec97761612279fa3f0f10ac37 |
 | saidas/03-regras-de-conteudo.txt | 924f983408e9590d408f8d78f90c2d7a61bd375b2e4097cd2aa560e051597bf1 |
