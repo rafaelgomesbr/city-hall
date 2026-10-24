@@ -1,0 +1,7 @@
+(stderr do segundo migrador, depois de esperar 60 s; exit 3)
+
+Outra migração está em andamento neste banco: esperei 60 s e a trava não foi liberada. Duas migrações ao mesmo tempo disputariam a mesma versão, então esta parou sem alterar nada.
+
+O que fazer: espere a outra terminar e rode de novo (o que já foi aplicado é ignorado). A trava solta sozinha quando a conexão da outra migração fecha, mesmo que o processo dela tenha morrido. Se a mensagem se repete e você tem certeza de que ninguém está migrando, procure a sessão que a segura em `pg_locks` (locktype = 'advisory').
+
+A trava só vale na conexão direta (porta 5432), nunca no pooler.

@@ -21,6 +21,13 @@ import { createHash } from "node:crypto";
  *    significa que o banco de lá e o da sua máquina divergiram em silêncio, e
  *    seguir em frente esconderia isso até o dia em que uma consulta falha sem
  *    explicação.
+ * 5. **Uma de cada vez por banco.** Quem migra toma uma trava de sessão do
+ *    Postgres (`pg_try_advisory_lock`) antes de ler o registro e só a larga
+ *    no fim. Duas execuções simultâneas (dois deploys, um deploy e um
+ *    `npm run migrar` à mão) disputariam a mesma versão: as duas leriam "falta
+ *    a 052", as duas tentariam criar o mesmo objeto, e uma morreria no meio
+ *    com um erro que não explica a causa. Com a trava, a segunda espera e,
+ *    quando a primeira termina, já encontra tudo aplicado.
  */
 
 export type Migracao = {
@@ -54,7 +61,122 @@ export class HistoricoAlterado extends Error {
   }
 }
 
+/**
+ * Código de saída do processo quando outra migração segura o banco. É o 3 do
+ * roteiro de deploy: 1 é falha da migração, 2 é uso errado da linha de comando.
+ */
+export const CODIGO_DE_SAIDA_MIGRACAO_EM_ANDAMENTO = 3;
+
+/** Quanto o migrador espera por outra migração em andamento, antes de desistir. */
+export const ESPERA_PELA_TRAVA_MS = 60_000;
+const INTERVALO_ENTRE_TENTATIVAS_MS = 1_000;
+
+/**
+ * Chave da trava, a mesma para todo migrador deste produto. O número é fixo e
+ * arbitrário: só precisa ser igual em todo processo que migra e não colidir
+ * com outra trava de sessão do banco (o produto não usa nenhuma outra).
+ */
+export const CHAVE_DA_TRAVA_DE_MIGRACAO = 36_036_001;
+
+export class MigracaoEmAndamento extends Error {
+  readonly codigoDeSaida = CODIGO_DE_SAIDA_MIGRACAO_EM_ANDAMENTO;
+  constructor(readonly esperouMs: number) {
+    super(
+      `Outra migração está em andamento neste banco: esperei ${Math.round(esperouMs / 1000)} s ` +
+      "e a trava não foi liberada. Duas migrações ao mesmo tempo disputariam a mesma " +
+      "versão, então esta parou sem alterar nada.\n\n" +
+      "O que fazer: espere a outra terminar e rode de novo (o que já foi aplicado é " +
+      "ignorado). A trava solta sozinha quando a conexão da outra migração fecha, " +
+      "mesmo que o processo dela tenha morrido. Se a mensagem se repete e você tem " +
+      "certeza de que ninguém está migrando, procure a sessão que a segura em " +
+      "`pg_locks` (locktype = 'advisory').\n\n" +
+      "A trava só vale na conexão direta (porta 5432), nunca no pooler.",
+    );
+    this.name = "MigracaoEmAndamento";
+  }
+}
+
+export type OpcoesDaTrava = {
+  /** Quanto esperar pela trava. Padrão: 60 s. */
+  esperaMs?: number;
+  /** Intervalo entre tentativas. Padrão: 1 s. */
+  intervaloMs?: number;
+  /** Espera de verdade; os testes trocam por uma que não dorme. */
+  dormir?: (ms: number) => Promise<void>;
+};
+
+const dormirDeVerdade = (ms: number): Promise<void> =>
+  new Promise((resolver) => setTimeout(resolver, ms));
+
+/**
+ * Toma a trava de migração do banco e devolve a função que a larga.
+ *
+ * `pg_try_advisory_lock` (e não `pg_advisory_lock`) de propósito: a versão
+ * que bloqueia esperaria para sempre atrás de uma migração travada, sem
+ * mensagem. Aqui o migrador tenta, espera um pouco, tenta de novo, e depois do
+ * prazo diz em português quem está no caminho. Sem esperar nada (`esperaMs: 0`)
+ * é uma tentativa só.
+ *
+ * Trava de SESSÃO: vale enquanto a conexão viver, atravessa o `BEGIN` e o
+ * `COMMIT` de cada migração, e o Postgres a solta sozinho se a conexão cair.
+ * Por isso exige conexão direta: num pooler em modo transação cada comando
+ * pode sair por uma conexão diferente, e a trava ficaria presa em uma que
+ * ninguém mais usa.
+ */
+export async function tomarTravaDeMigracao(
+  bd: ExecutorSql,
+  opcoes: OpcoesDaTrava & { registrar?: (mensagem: string) => void } = {},
+): Promise<() => Promise<void>> {
+  const esperaMs = opcoes.esperaMs ?? ESPERA_PELA_TRAVA_MS;
+  const intervaloMs = Math.max(1, opcoes.intervaloMs ?? INTERVALO_ENTRE_TENTATIVAS_MS);
+  const dormir = opcoes.dormir ?? dormirDeVerdade;
+  const tentativas = Math.floor(Math.max(0, esperaMs) / intervaloMs) + 1;
+
+  for (let n = 1; n <= tentativas; n++) {
+    const r = await bd.query<{ obtida: boolean }>(
+      "SELECT pg_try_advisory_lock($1::bigint) AS obtida",
+      [CHAVE_DA_TRAVA_DE_MIGRACAO],
+    );
+    if (r.rows[0]?.obtida === true) {
+      return async () => {
+        // Se a conexão já caiu, o Postgres soltou a trava junto: nada a fazer.
+        await bd
+          .query("SELECT pg_advisory_unlock($1::bigint)", [CHAVE_DA_TRAVA_DE_MIGRACAO])
+          .catch(() => undefined);
+      };
+    }
+    if (n === 1) opcoes.registrar?.("outra migração está em andamento; esperando a trava");
+    if (n < tentativas) await dormir(intervaloMs);
+  }
+  throw new MigracaoEmAndamento(esperaMs);
+}
+
+/**
+ * Por que a trava não vale nesta URL, ou `null` quando vale. A porta 6543 é a
+ * do pooler em modo transação (a que o `docs/AMBIENTES.md` já recusa para a
+ * API): migrar por ela deixaria a trava solta ou presa.
+ */
+export function motivoParaNaoTravar(url: string | undefined): string | null {
+  const texto = url?.trim();
+  if (!texto) return null;
+  try {
+    if (new URL(texto).port === "6543") {
+      return (
+        "A DATABASE_URL aponta para a porta 6543 (pooler em modo transação). A trava que " +
+        "impede duas migrações simultâneas é de sessão e não funciona nesse caminho. " +
+        "Migre pela conexão direta, porta 5432."
+      );
+    }
+  } catch {
+    return null; // URL que não dá para analisar falha ao conectar, com a mensagem do driver.
+  }
+  return null;
+}
+
 const TABELA = "schema_migracoes";
+
+/** O nome da tabela de controle, para quem precisa ler o registro (`desfazer.ts`). */
+export const TABELA_DE_MIGRACOES = TABELA;
 
 function impressao(sql: string): string {
   /*
@@ -137,10 +259,29 @@ async function garantirTabela(bd: ExecutorSql): Promise<void> {
 export async function aplicarMigracoes(
   bd: ExecutorSql,
   migracoes: readonly Migracao[],
-  opcoes: { registrar?: (mensagem: string) => void } = {},
+  opcoes: { registrar?: (mensagem: string) => void; trava?: OpcoesDaTrava } = {},
 ): Promise<ResultadoMigracao> {
   const registrar = opcoes.registrar ?? (() => undefined);
 
+  /*
+    A trava vem ANTES de tudo, inclusive de criar a tabela de controle: dois
+    migradores num banco novo disputariam o próprio CREATE TABLE. E vale
+    para qualquer papel (advisory lock não pede privilégio), então o papel
+    errado ainda chega à mensagem de `garantirTabela`.
+  */
+  const soltar = await tomarTravaDeMigracao(bd, { ...opcoes.trava, registrar });
+  try {
+    return await aplicarComTrava(bd, migracoes, registrar);
+  } finally {
+    await soltar();
+  }
+}
+
+async function aplicarComTrava(
+  bd: ExecutorSql,
+  migracoes: readonly Migracao[],
+  registrar: (mensagem: string) => void,
+): Promise<ResultadoMigracao> {
   await garantirTabela(bd);
 
   const jaAplicadas = new Map<string, string>();

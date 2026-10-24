@@ -899,6 +899,17 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     `npm run test:espacial` e a prova deles é o job `implantavel` do CI.
   */
   "V2-F01-E21": { total: 8, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E18: três arquivos novos em `db/test/`. `migracoes-regras.test.ts`
+    (19 casos: a regra de migração reversível, positivos e negativos),
+    `desfazer-migracao.test.ts` (18: o desfazer da última, o ciclo que deixa o
+    esquema idêntico, a recusa em PROD e o `cli.ts` de verdade) e
+    `trava-de-migracao.test.ts` (15: 12 em PGlite sobre a trava e 3 em Postgres
+    real, com dois `pg.Client`). Os 3 de Postgres real são pulados por ambiente
+    sem `DC360_POSTGRES_DE_PROVA` (o `describe.skipIf` fica fora da lista do
+    vitest), então: 52 no `vitest run`, 49 na lista, 3 pulados. Nenhuma falha.
+  */
+  "V2-F01-E18": { total: 52, falhas: 0, puladas: 3 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

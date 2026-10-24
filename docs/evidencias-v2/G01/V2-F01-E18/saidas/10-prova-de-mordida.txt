@@ -1,0 +1,18 @@
+   × a decisão, em PGlite > a trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle 529ms
+   × a decisão, em PGlite > trava ocupada: espera, tenta de novo e aplica quando a outra termina 395ms
+   × a decisão, em PGlite > trava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado 326ms
+   × a decisão, em PGlite > com esperaMs 0 é uma tentativa só 359ms
+   × a decisão, em PGlite > avisa uma vez, no registro, que está esperando 431ms
+   × em PRODUÇÃO: recusa antes de tocar no banco > AMBIENTE_DC360=prod 588ms
+   × em PRODUÇÃO: recusa antes de tocar no banco > NODE_ENV=production, mesmo sem AMBIENTE_DC360 380ms
+   × em PRODUÇÃO: recusa antes de tocar no banco > URL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha 310ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/desfazer-migracao.test.ts > em PRODUÇÃO: recusa antes de tocar no banco > AMBIENTE_DC360=prod
+ FAIL  test/desfazer-migracao.test.ts > em PRODUÇÃO: recusa antes de tocar no banco > NODE_ENV=production, mesmo sem AMBIENTE_DC360
+ FAIL  test/desfazer-migracao.test.ts > em PRODUÇÃO: recusa antes de tocar no banco > URL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha
+ FAIL  test/trava-de-migracao.test.ts > a decisão, em PGlite > a trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle
+ FAIL  test/trava-de-migracao.test.ts > a decisão, em PGlite > trava ocupada: espera, tenta de novo e aplica quando a outra termina
+ FAIL  test/trava-de-migracao.test.ts > a decisão, em PGlite > trava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado
+ FAIL  test/trava-de-migracao.test.ts > a decisão, em PGlite > com esperaMs 0 é uma tentativa só
+ FAIL  test/trava-de-migracao.test.ts > a decisão, em PGlite > avisa uma vez, no registro, que está esperando
+      Tests  8 failed | 22 passed | 3 skipped (33)

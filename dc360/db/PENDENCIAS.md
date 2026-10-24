@@ -92,6 +92,32 @@ A tela existe (`apps/console/src/pagina.ts`) e não tem campo de busca por
 protocolo: o comentário do topo do arquivo registra que pergunta sobre nome,
 endereço ou protocolo é do município e se faz no painel dele.
 
+## 7. Trava de migração e regra de migração reversível (V2-F01-E18; feito, com um fio solto no CI)
+
+Feito: `aplicarMigracoes` toma `pg_try_advisory_lock` de sessão (chave
+`CHAVE_DA_TRAVA_DE_MIGRACAO`), espera até 60 s e, sem obtê-la, falha com
+`MigracaoEmAndamento` (código de saída 3); larga a trava no `finally`.
+`npm run migrar` recusa a porta 6543 (pooler) antes de conectar. A regra de
+migração reversível está em `src/regras-de-migracao.ts` e é cobrada por
+`test/migracoes-regras.test.ts` na suíte do banco. `npm run migrar -- --desfazer`
+desfaz só a última e se recusa em produção (`src/desfazer.ts`).
+
+**Aberto (fio solto no CI):** a prova com dois `pg.Client` de verdade está em
+`test/trava-de-migracao.test.ts`, no bloco que só roda com
+`DC360_POSTGRES_DE_PROVA` (URL de um Postgres descartável onde se possa criar
+banco). Localmente e no job de testes comum o bloco é pulado por ambiente (o
+PGlite tem uma conexão só). O job `implantavel` de `verificar.yml` precisa de um
+passo, no padrão do passo "Corrida de renovação contra encerramento, em Postgres
+real", que rode `npx vitest run --root db test/trava-de-migracao.test.ts` com essa
+variável e reprove se o bloco for pulado. Alterar o workflow não era desta etapa
+de código; está registrado como pendência para o orquestrador.
+
+**Decisão ajustada:** o plano pedia a regra "depois da 046" com 46 migrações
+isentas. Quando a etapa foi implementada já existiam 51 (047 a 051), e escrever a
+volta de migração já aplicada em produção seria inventar uma volta que ninguém
+provou. Ficaram isentas as 51, por lista escrita por extenso. A primeira migração
+a obedecer a regra é a 052.
+
 ## O que está garantido hoje, para não ser refeito
 
 - Nenhum papel além do papel de aplicação e do dono tem privilégio em tabela de
