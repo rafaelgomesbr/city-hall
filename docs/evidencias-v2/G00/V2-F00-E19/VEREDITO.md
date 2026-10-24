@@ -7,6 +7,7 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 5 | 2026-10-20 | 4ce0433 | 766bc0a | INTERROMPIDA, sem veredito (relatórios parciais em validacao/4ce0433/ quando houver) | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -14,6 +15,85 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 8 (2026-10-24, SHA 60cbc2f)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-24. Rodada 8 RETOMADA: a primeira tentativa (2026-10-20) foi interrompida pelo reinício do Mac depois do primeiro validador; o relatório de QA da E05 sobre `60cbc2f`, do mesmo SHA, foi preservado em `bc3c535` e aproveitado; os demais validadores rodaram nesta sessão. Candidato `60cbc2f` (correção 7 da F00); HEAD durante a validação `bc3c535`, que só difere em `STATUS.md`, `ESTADO-ATUAL.md` e `validacao/60cbc2f/qa.md` da E05 (lista permitida; `conferir-evidencia` confirmou). Política: D-31 (seção 19 de `28`): validação POR DIFERENÇA (item 4), achado só reprova pelas condições (a), (b) ou (c) do item 1, modelo de ameaça da E05 e da E19 no item 2, CI como prova padrão (item 5), Sonnet como validador padrão e Opus em Segurança e Red-team da E05 e na consolidação (item 6). O que mudou desde a rodada 7: `git diff fd17ff4..60cbc2f` (guarda de códigos de erro da API e do console, catálogo do shared, foco e bordas fixas do painel, `app.css`, ofício, `auditar.mjs` e `auditar-excecoes.mjs`, `ambiente-hostil.mjs`, três testes do aplicativo de campo, `baseline.mjs` (só totais), README, COLOCAR-DE-PE, LEIA-ME do campo e `verificar.yml` com os jobs `windows` e `plataformas`). Validadores em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, com o prompt de `prompt-do-validador.md` preenchido: o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` das correções (as seções antes de `## Justificativa`, extraídas pelo gatekeeper), a evidência, os relatórios da rodada 7 como pista, as decisões e o run do CI. Ambiente: Mac, Node 24.15.0 (o CI e o `.nvmrc` usam 22; os validadores da E05 baixaram o Node 22.23.3 para o scratchpad), PostgreSQL local, Chromium, Firefox e WebKit do Playwright; sem aparelho, sem emulador e sem Windows local.
+
+Veredito da rodada: **FAIL**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-sonnet-5-5 | FAIL | media | E1, E2 | E1, E2 |  | validacao/60cbc2f/qa.md |
+| Infra e CI | engenharia-entrega (general-purpose) | claude-sonnet-5-5 | FAIL | media | E1 | E1, E2 |  | validacao/60cbc2f/engenharia-entrega.md |
+
+### Motivo do veredito
+
+- O defeito da rodada 7 está CONSERTADO, concordante nas duas dimensões: com `package-lock=false` num `.npmrc` o `auditar` sai 1 (npm 11 e npm 10.9.2); desfeito o `--package-lock=true` numa cópia, o npm real volta a dar "Runtime limpo" com código 0 e 3 testes ficam vermelhos (72 de 75). O CI agora recusa `.npmrc` versionado, chama o `auditar` por `node` e roda o portão em Windows; o shrinkwrap é recusado pelo próprio `auditar`. Nenhum falso vermelho no uso legítimo.
+- QA FAIL e Infra e CI FAIL, CONCORDANTES, por um motivo NOVO e externo, que o próprio portão acusa: HOJE (2026-10-24) o `auditar` sobre o lockfile deste SHA sai **1**, "REPROVADO: 1 high, 1 moderate, 1 low em dependência de runtime" (o gatekeeper reproduziu na árvore real: código 1). São advisories publicadas DEPOIS do run verde de 2026-10-21: `fast-uri` (GHSA-w74x-v6f9-j3xg, GHSA-xhq7-xmqj-769h, GHSA-wjr9-j795-jxcr, GHSA-333x-w4r6-6crp, 23/10, corrigidas na faixa), `fastify` 5.12.5 (GHSA-389g-gv7q-r4x8, baixa, 22/10, corrigida em 5.12.6) e `zod` 3.25.76 (GHSA-mrhx-c7xc-m3w5, alta, atualizada em 23/10 com faixa `< 4.6.6`; a descrição fala do zod 4 e a correção é salto de major, possível falso positivo de faixa). No aplicativo, o portão sai **2** porque as exceções aceitas `braces` (GHSA-vfj7-8cjw-p6xm) e `sprintf-js` (GHSA-hp3w-g68c-fv3c) foram retiradas (withdrawn) do registro, e o `zod` aparece como nova. O `expo-doctor` dá 20 de 21 hoje (patches de 21 e 22/10; o CI pula essa checagem por desenho).
+- Classificação D-31: (a), a DoD pede zero runtime vulnerável e `auditar` verde nas duas árvores; e (c), item 7 da seção 7 (dependência de execução com vulnerabilidade conhecida; exceção só pela política do CP-03, nunca por aceite avulso). Não é a mesma classe das rodadas 6 e 7 (falso verde do portão): aqui o portão fez o que devia e o vermelho é verdadeiro. Por isso o item 3 da D-31 não se aplica à E19.
+- Conserto (sessão de implementador): `npm audit fix` na raiz para `fast-uri` e `fastify`; decisão sobre o `zod` (subir para o 4 com a correção, ou exceção pela política do CP-03, que hoje não prevê exceção de runtime); apagar as exceções retiradas `braces` e `sprintf-js`; `npx expo install --check`; CI completo verde e rodada 9 da E19 (QA e Infra e CI).
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 118974893692, Node 22.23.3 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 118974893833; `test:scripts` 353 (349 aprovados, 4 pulados de iOS), números batem |
+| Fluxo ponta a ponta no navegador | success | QA, UX | job 118974893838 |
+| Aplicativo de campo | success | QA, Testes | job 118974893844; `expo-doctor` com a checagem de versões pulada por desenho |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 118974893889 |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 118974893919; verde em 2026-10-21; HOJE o `auditar` sai 1 sobre o mesmo lockfile (ver E19) |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 118974893942 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | QA, Infra e CI | job 118974893948 |
+| A API sobe contra Postgres real | success | QA, Banco | job 118974893974 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | QA, Infra e CI | job 118974894002, PowerShell 5.1 e Git Bash |
+| Pacote da demonstração | success | QA | job 118974894032 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 118974894086 |
+
+Run 39524190207 (workflow "Verificar", push com `[ci completo]`, criado em 2026-10-21T00:55Z) sobre `c680f8d`, registro do candidato: o diff `60cbc2f..c680f8d` só toca `STATUS.md` e `ESTADO-ATUAL.md`, então vale como run do candidato. Lido pela API pública sem token; os validadores leram os logs com `gh` e o token tirado de `git credential fill`, sem imprimi-lo.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-E19 --sha 60cbc2f`: sem falha (INDEX.md SHA-256 a SHA-256, lista permitida, regras commitadas, segredos, travessão). `node dc360/scripts/conferir-indices-de-evidencia.mjs`: 89 INDEX.md, 4793 arquivos conferidos byte a byte, OK.
+- Regressão base do gatekeeper no SHA (Mac, Node 24.15.0): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0. O kit completo indicado por `impacto.mjs fd17ff4..60cbc2f` (a guarda da API não tem regra no mapa) é o do CI completo deste SHA, 12 de 12 verdes (D-31, item 5).
+- Formato: os relatórios desta rodada conferidos à mão pelo gatekeeper (cabeçalho com os 14 campos, `sha_validado` 60cbc2f, `rodada` 8, as nove seções na ordem, "Tentativas de reprovar" e "Não verificado" preenchidas); todos conferem.
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/60cbc2f/`; mutações e sondas foram feitas em cópias do SHA (`git archive`) no scratchpad.
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Decidir o `zod` 3.25.76 (GHSA-mrhx-c7xc-m3w5, alta, correção só no salto para o 4): subir de major ou criar na política do CP-03 a exceção de runtime para advisory cuja faixa não alcança o código usado | Rafael | decisão de política (CP-03); o item 7 da seção 7 não admite aceite avulso |
+
+Todas as pendências humanas da fase estão também em `docs/roadmap-v2/pendencias-humanas.md` (as novas desta rodada entram lá no próximo commit de implementador, porque o arquivo está fora da lista permitida do registro).
+
+### Achados para corrigir antes de crescer (não decidem esta etapa)
+
+- Dívida (QA achado 1, Infra e CI achado 3; classificação do gatekeeper pelo item 2 da D-31): a marca `dev` do `package-lock.json` é a fronteira que o portão usa entre runtime e desenvolvimento; com `dev: true` posto à mão num `fast-uri` 3.0.1 de runtime, o `auditar` sai 0. O portão confia no lockfile versionado (item 2), e a marca errada exige lockfile editado à mão ou corrompido dentro do repositório, então vira dívida e não reprova. Há conflito de FATO entre validadores, sem efeito no veredito: o QA da E19 viu o `npm ci --omit=dev` instalar o pacote marcado, em npm 11 (Node 24); o QA da E22 mostrou que o npm 10.9.9 do `node:22-bookworm-slim` do Dockerfile não o instala. A frase de `dc360/README.md:1686-1689` vale para a imagem e não diz que depende do npm 10. Conserto sugerido: calcular o runtime pelo grafo de `package.json` e não pela marca; dono E19, antes do G01. Registrar em `dividas.md` no próximo commit de implementador. Se Rafael ler o item 2 de outro modo, este achado sobe para bloqueante pelo item 7.
+- Dívida (QA achado 4, Infra e CI achado 2): o critério "`expo-doctor` 21 de 21 sem pular a checagem de versões" não tem prova de CI, porque o job `aplicativo` pula a checagem por desenho; a prova local é perecível.
+- Anotado (QA): qualquer chave comum no `~/.npmrc` da máquina (por exemplo `save-exact=true`) faz o `npm run auditar` sair 2; fora do modelo de ameaça, vale uma linha no README de como diagnosticar.
+- Anotado (Infra e CI): aviso `sem dono e prazo: vite` (desenvolvimento) no log do job.
+- Consequência para as outras etapas: a linha de base da E01 (passo 14, `npm run auditar` com código 0) sairia com código 3 se repetida hoje, e três frases do README e do COLOCAR-DE-PE tratam o `auditar` como verde; as duas coisas se resolvem com o conserto desta etapa.
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| gate crítico G00 (seção 12 de `28`) e D-31 item 6 | consolidação em Opus; validadores em Sonnet, salvo Segurança e Red-team da E05 em Opus | feito |
+| item 7 da seção 7 de `28` | Rafael (decisão do `zod`) e sessão de implementador (o resto) | registrado; sem risco aceito |
+
+### Métricas da rodada
+
+Validadores desta etapa: 2 (QA cerca de 17 minutos, Infra e CI cerca de 7 minutos, Sonnet). Achados: 1 bloqueia (comum às duas dimensões), 2 dívidas, 3 anotados. Dimensões herdadas: nenhuma.
 
 ## Rodada 7 (2026-10-20, SHA fd17ff4)
 

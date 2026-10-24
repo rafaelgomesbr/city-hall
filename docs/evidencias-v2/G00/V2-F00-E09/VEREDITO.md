@@ -7,6 +7,7 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 5 | 2026-10-20 | 4ce0433 | 766bc0a | INTERROMPIDA, sem veredito (relatórios parciais em validacao/4ce0433/ quando houver) | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -14,6 +15,90 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 8 (2026-10-24, SHA 60cbc2f)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-24. Rodada 8 RETOMADA: a primeira tentativa (2026-10-20) foi interrompida pelo reinício do Mac depois do primeiro validador; o relatório de QA da E05 sobre `60cbc2f`, do mesmo SHA, foi preservado em `bc3c535` e aproveitado; os demais validadores rodaram nesta sessão. Candidato `60cbc2f` (correção 7 da F00); HEAD durante a validação `bc3c535`, que só difere em `STATUS.md`, `ESTADO-ATUAL.md` e `validacao/60cbc2f/qa.md` da E05 (lista permitida; `conferir-evidencia` confirmou). Política: D-31 (seção 19 de `28`): validação POR DIFERENÇA (item 4), achado só reprova pelas condições (a), (b) ou (c) do item 1, modelo de ameaça da E05 e da E19 no item 2, CI como prova padrão (item 5), Sonnet como validador padrão e Opus em Segurança e Red-team da E05 e na consolidação (item 6). O que mudou desde a rodada 7: `git diff fd17ff4..60cbc2f` (guarda de códigos de erro da API e do console, catálogo do shared, foco e bordas fixas do painel, `app.css`, ofício, `auditar.mjs` e `auditar-excecoes.mjs`, `ambiente-hostil.mjs`, três testes do aplicativo de campo, `baseline.mjs` (só totais), README, COLOCAR-DE-PE, LEIA-ME do campo e `verificar.yml` com os jobs `windows` e `plataformas`). Validadores em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, com o prompt de `prompt-do-validador.md` preenchido: o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` das correções (as seções antes de `## Justificativa`, extraídas pelo gatekeeper), a evidência, os relatórios da rodada 7 como pista, as decisões e o run do CI. Ambiente: Mac, Node 24.15.0 (o CI e o `.nvmrc` usam 22; os validadores da E05 baixaram o Node 22.23.3 para o scratchpad), PostgreSQL local, Chromium, Firefox e WebKit do Playwright; sem aparelho, sem emulador e sem Windows local.
+
+Veredito da rodada: **FAIL**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| UX | ux (general-purpose) | claude-sonnet-5-5 | FAIL | media | E2, E3a | E2, E3a |  | validacao/60cbc2f/ux.md |
+| Acessibilidade | acessibilidade (general-purpose) | claude-sonnet-5-5 | FAIL | media | E1, E2 | E1, E2 |  | validacao/60cbc2f/acessibilidade.md |
+| QA | qa (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 | não rodada nesta rodada (D-31 item 4: só a dimensão que reprovou); vale o PASS de fd17ff4 até a próxima rodada, que tem de rodá-la de novo porque o código da etapa mudou | validacao/fd17ff4/qa.md |
+| Red-team | red-team (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 | idem | validacao/fd17ff4/red-team.md |
+| LGPD | privacidade-lgpd (general-purpose) | claude-sonnet-5-5 | PASS | alta | E1, E3a | E1, E2, E3a | herdado de 1ed0b71, sem impacto | validacao/1ed0b71/privacidade-lgpd.md |
+
+### Motivo do veredito
+
+- Os defeitos da rodada 7 estão CONSERTADOS, medidos de forma independente pelas duas dimensões nos três motores, com o retângulo do campo, do rótulo e da frase de erro contra o topo fixo e a barra do pé: foco depois da senha errada em Minha conta (UX 252 de 252, A11y 198 de 198), Nova ocorrência (UX 122 de 126, A11y 102 medidas; as falhas são a H35), Tab (4529 e 14 331 paradas, nada escondido), ofício "Tentativa N para email" (216 de 216) e nenhuma rolagem lateral (260 telas no UX, 510 medidas na A11y). As sondas mordem: o painel de `fd17ff4` reprova nas mesmas medições.
+- UX FAIL e Acessibilidade FAIL, CONCORDANTES (a A11y mediu primeiro e depois confirmou o achado do UX com medição própria), pelo achado comum: no WebKit, depois de confirmar "Encerrar minhas outras sessões" em Minha conta pelo toque ou clique, a frase "A outra sessão foi encerrada. Esta continua aberta." recebe o foco (`MinhaConta.tsx:283`) mas fica sob o topo fixo ou acima da janela (360x640, 390x664, 375x667, 375x553, 320x568, 640x450); a pessoa vê só "Esta é a única sessão aberta na sua conta". Chromium e Firefox passam; pelo teclado o WebKit passa (24 de 24). WCAG 2.4.11 e portão visual da seção 0 de `19` ("escondido atrás de outro elemento") sobre tela e frase que a etapa construiu. Classificação D-31: (a) e (b), alcançável com tela comum de celular no Safari. Não é regressão da correção 6 (igual em `fd17ff4`, que a rodada 7 só mediu por qual elemento tinha o foco, não pela posição), mas é defeito da própria etapa, não anterior a ela, então não vira dívida.
+- Acessibilidade FAIL, segundo motivo, só dela: a janela de `ConfirmarAcao` (Redefinir senha e Encerrar sessões em Usuários, Encerrar minhas outras sessões em Minha conta) abre com o foco em "Cancelar" fora da parte visível da janela quando a janela rola por dentro: a 320x256 (zoom de 400 por cento), 568x320 e zoom de 300 por cento, em Chromium e Firefox, o foco fica 150 a 190 px abaixo da borda; a causa medida é `painel.scrollTop = 0` no `Modal`. WCAG 2.4.7 e 2.4.11; classificação (a) pelo critério de zoom de 400 por cento e (b). O UX não mediu esse caminho; não há conflito (dimensões diferentes, nenhum PASS contrário sobre o mesmo critério), por isso não houve arbitragem.
+- Limite da prova, declarado pelos dois: é o WebKit do Playwright no macOS, não o Safari de um iPhone; a confiança é média por isso. O fail-closed vale: o defeito foi reproduzido e o portão visual é critério escrito.
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 118974893692, Node 22.23.3 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 118974893833; `test:scripts` 353 (349 aprovados, 4 pulados de iOS), números batem |
+| Fluxo ponta a ponta no navegador | success | QA, UX | job 118974893838 |
+| Aplicativo de campo | success | QA, Testes | job 118974893844; `expo-doctor` com a checagem de versões pulada por desenho |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 118974893889 |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 118974893919; verde em 2026-10-21; HOJE o `auditar` sai 1 sobre o mesmo lockfile (ver E19) |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 118974893942 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | QA, Infra e CI | job 118974893948 |
+| A API sobe contra Postgres real | success | QA, Banco | job 118974893974 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | QA, Infra e CI | job 118974894002, PowerShell 5.1 e Git Bash |
+| Pacote da demonstração | success | QA | job 118974894032 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 118974894086 |
+
+Run 39524190207 (workflow "Verificar", push com `[ci completo]`, criado em 2026-10-21T00:55Z) sobre `c680f8d`, registro do candidato: o diff `60cbc2f..c680f8d` só toca `STATUS.md` e `ESTADO-ATUAL.md`, então vale como run do candidato. Lido pela API pública sem token; os validadores leram os logs com `gh` e o token tirado de `git credential fill`, sem imprimi-lo.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-E09 --sha 60cbc2f`: uma FALHA de segredo, falso positivo conhecido (`correcao-6/sondas/api.sh:5` e `correcao-6b/sondas/api.sh:5`, o `JWT_SEGREDO` de teste do roteiro local, já explicado na linha da E09 do STATUS); nenhuma outra falha. `node dc360/scripts/conferir-indices-de-evidencia.mjs`: 89 INDEX.md, 4793 arquivos conferidos byte a byte, OK.
+- Regressão base do gatekeeper no SHA (Mac, Node 24.15.0): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0. O kit completo indicado por `impacto.mjs fd17ff4..60cbc2f` (a guarda da API não tem regra no mapa) é o do CI completo deste SHA, 12 de 12 verdes (D-31, item 5).
+- Formato: os relatórios desta rodada conferidos à mão pelo gatekeeper (cabeçalho com os 14 campos, `sha_validado` 60cbc2f, `rodada` 8, as nove seções na ordem, "Tentativas de reprovar" e "Não verificado" preenchidas); todos conferem.
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/60cbc2f/`; mutações e sondas foram feitas em cópias do SHA (`git archive`) no scratchpad.
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| D-31 item 3: a E09 reprovou pela mesma classe de defeito (foco ou confirmação encoberta ou fora da vista) nas rodadas 7 e 8 (e a rodada 6 foi foco perdido em BODY). A rodada 9 da E09 não é automática: decidir em uma linha entre consertar mais uma vez (os dois achados acima) ou aceitar com o modelo de ameaça documentado (a classe não cai na seção 7) | Rafael | decisão de produto exigida pela D-31, item 3 |
+| H35: confirmar 340 px ou voltar para 360 px. Número medido pelos dois validadores para a decisão: com 340 px a frase de erro do Relato fica sob a barra do pé de 341 a cerca de 390 px de altura (Android deitado de 640x360); 360 px cobre 341 a 360; só cerca de 400 px cobre tudo, ao custo de a navegação do pé rolar no Android deitado | Rafael | decisão de desenho |
+| Safari de iPhone real e VoiceOver no fluxo de Minha conta | Rafael | aparelho físico e leitor de tela |
+
+Todas as pendências humanas da fase estão também em `docs/roadmap-v2/pendencias-humanas.md` (as novas desta rodada entram lá no próximo commit de implementador, porque o arquivo está fora da lista permitida do registro).
+
+### Achados para corrigir antes de crescer (não decidem esta etapa)
+
+- Anotado e confirmado pelas duas dimensões (dívida, corrige junto): no WebKit, ao fechar a janela por Cancelar, Esc ou "Já anotei a senha" depois de abrir por clique, o foco vai ao `<main>` e não ao botão (o Safari não foca botão no clique); a DoD pede "foco devolvido ao botão" e vale em Chromium e Firefox e pelo teclado no WebKit. Conserto provável: guardar o botão pelo `currentTarget` do clique.
+- Anotado (A11y, dívida): na tabela de Usuários os botões "Redefinir senha" e "Encerrar sessões" (nascidos na etapa) e "Corrigir" e "Desativar" repetem o mesmo nome acessível em cada linha.
+- Anotado (A11y, fora da etapa): `target-size` no pino do mapa a 320 px em `/mapa`.
+- Anotado (UX): a guarda de 800 ms do ponteiro de `useFocoForaDasBordas` não foi a causa do achado; fica o risco registrado pela correção 6b; a 640 px o topo passa para duas linhas (141 px).
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| gate crítico G00 (seção 12 de `28`) e D-31 item 6 | consolidação em Opus; validadores em Sonnet, salvo Segurança e Red-team da E05 em Opus | feito |
+| D-31 item 3 (segunda reprovação pela mesma classe) | Rafael, em `pendencias-humanas.md` | registrado; a rodada 9 da E09 espera a decisão |
+| 6 (vereditos opostos na mesma dimensão) | arbitragem em Opus | não acionado: UX e A11y concordam no achado comum |
+
+### Métricas da rodada
+
+Validadores desta etapa: 2 (UX cerca de 56 minutos, A11y cerca de 59 minutos, Sonnet). Achados: 2 bloqueiam (1 comum às duas dimensões, 1 só da A11y), 4 anotados ou dívidas, H35 medida. Capturas em `validacao/60cbc2f/capturas/` (36 arquivos, UX e `a11y-`). Gatilhos visuais: "escondido atrás de outro elemento" e "zoom de 400 por cento".
 
 ## Rodada 7 (2026-10-20, SHA fd17ff4)
 

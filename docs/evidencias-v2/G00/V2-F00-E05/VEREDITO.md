@@ -1,12 +1,13 @@
 # VEREDITO de V2-F00-E05
 
-Situação atual: REPROVADA
+Situação atual: VALIDADA COM PENDÊNCIA HUMANA
 Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 ## Rodadas
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | PASS | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 5 | 2026-10-20 | 4ce0433 | 766bc0a | INTERROMPIDA, sem veredito (relatórios parciais em validacao/4ce0433/ quando houver) | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -14,6 +15,89 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | BLOCKED | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 8 (2026-10-24, SHA 60cbc2f)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-24. Rodada 8 RETOMADA: a primeira tentativa (2026-10-20) foi interrompida pelo reinício do Mac depois do primeiro validador; o relatório de QA da E05 sobre `60cbc2f`, do mesmo SHA, foi preservado em `bc3c535` e aproveitado; os demais validadores rodaram nesta sessão. Candidato `60cbc2f` (correção 7 da F00); HEAD durante a validação `bc3c535`, que só difere em `STATUS.md`, `ESTADO-ATUAL.md` e `validacao/60cbc2f/qa.md` da E05 (lista permitida; `conferir-evidencia` confirmou). Política: D-31 (seção 19 de `28`): validação POR DIFERENÇA (item 4), achado só reprova pelas condições (a), (b) ou (c) do item 1, modelo de ameaça da E05 e da E19 no item 2, CI como prova padrão (item 5), Sonnet como validador padrão e Opus em Segurança e Red-team da E05 e na consolidação (item 6). O que mudou desde a rodada 7: `git diff fd17ff4..60cbc2f` (guarda de códigos de erro da API e do console, catálogo do shared, foco e bordas fixas do painel, `app.css`, ofício, `auditar.mjs` e `auditar-excecoes.mjs`, `ambiente-hostil.mjs`, três testes do aplicativo de campo, `baseline.mjs` (só totais), README, COLOCAR-DE-PE, LEIA-ME do campo e `verificar.yml` com os jobs `windows` e `plataformas`). Validadores em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, com o prompt de `prompt-do-validador.md` preenchido: o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` das correções (as seções antes de `## Justificativa`, extraídas pelo gatekeeper), a evidência, os relatórios da rodada 7 como pista, as decisões e o run do CI. Ambiente: Mac, Node 24.15.0 (o CI e o `.nvmrc` usam 22; os validadores da E05 baixaram o Node 22.23.3 para o scratchpad), PostgreSQL local, Chromium, Firefox e WebKit do Playwright; sem aparelho, sem emulador e sem Windows local.
+
+Veredito da rodada: **PASS**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-sonnet-5-5 | PASS | alta | E1, E2 | E1, E2 |  | validacao/60cbc2f/qa.md (gravado na primeira tentativa da rodada, preservado em `bc3c535`) |
+| Segurança | seguranca-aplicacao (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 |  | validacao/60cbc2f/seguranca-aplicacao.md |
+| Red-team | red-team (general-purpose) | claude-opus-5-5 | PASS | media | E1, E2 | E1, E2 |  | validacao/60cbc2f/red-team.md |
+| Banco | banco-de-dados (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 | herdado de 1ed0b71, sem impacto | validacao/1ed0b71/banco-de-dados.md |
+| UX | ux (general-purpose) | claude-opus-5-5 | PASS | alta | E2, E3a | E2, E3a | herdado de fd17ff4: as telas da E05 não mudaram; o E2E da seção 23 está verde no job 118974893838 | validacao/fd17ff4/ux.md |
+| Acessibilidade | acessibilidade (general-purpose) | claude-opus-5-5 | PASS | media | E1, E2 | E1, E2 | herdado de fd17ff4, idem | validacao/fd17ff4/acessibilidade.md |
+
+### Motivo do veredito
+
+- QA PASS (Sonnet, alta), Segurança PASS (Opus, alta) e Red-team PASS (Opus, média), concordantes e independentes, por HTTP real e socket cru, na API e no console, nos modos de teste e de produção, em Node 22.23.3 e 24.15.0. O defeito da rodada 7 está consertado: com `content-length` menor ou maior que o corpo em stream, `Response` e `ReadableStream`, com 403 forjado dentro e segundo pedido em pipeline, 0 escaparam e 0 dessincronizaram (64 variantes no QA); o trailer com código fora do catálogo não derruba mais o processo; o 1xx como resposta final vira desvio (500) com o pedido seguinte sincronizado; Early Hints com CR ou LF são recusadas igual em Node 22 e 24.
+- As sondas mordem: a mesma sonda contra a guarda de `fd17ff4` escapa e dessincroniza (QA em 12 variantes, Red-team pelas Early Hints em Node 22) e as mutações que desfazem as correções 6, 7 e 7b deixam os testes novos vermelhos.
+- Segurança e Red-team: `/auth/entrar` não distingue conta desativada (corpo e cabeçalhos idênticos); recurso de outro município responde 404 idêntico ao inexistente, nunca 403 (170 rotas, 8 identidades, 2040 pedidos por execução, zero código fora do contrato, zero 500); 300 conexões derrubadas sem queda do processo.
+- Nenhum achado cumpre (a), (b) ou (c) do item 1 da D-31. A DV-01 (valor de cabeçalho com `toString` mutável) segue dívida pelo item 2 (exige código hostil dentro da rota) e nenhum validador achou caminho de cliente externo até ela.
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 118974893692, Node 22.23.3 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 118974893833; `test:scripts` 353 (349 aprovados, 4 pulados de iOS), números batem |
+| Fluxo ponta a ponta no navegador | success | QA, UX | job 118974893838 |
+| Aplicativo de campo | success | QA, Testes | job 118974893844; `expo-doctor` com a checagem de versões pulada por desenho |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 118974893889 |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 118974893919; verde em 2026-10-21; HOJE o `auditar` sai 1 sobre o mesmo lockfile (ver E19) |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 118974893942 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | QA, Infra e CI | job 118974893948 |
+| A API sobe contra Postgres real | success | QA, Banco | job 118974893974 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | QA, Infra e CI | job 118974894002, PowerShell 5.1 e Git Bash |
+| Pacote da demonstração | success | QA | job 118974894032 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 118974894086 |
+
+Run 39524190207 (workflow "Verificar", push com `[ci completo]`, criado em 2026-10-21T00:55Z) sobre `c680f8d`, registro do candidato: o diff `60cbc2f..c680f8d` só toca `STATUS.md` e `ESTADO-ATUAL.md`, então vale como run do candidato. Lido pela API pública sem token; os validadores leram os logs com `gh` e o token tirado de `git credential fill`, sem imprimi-lo.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-E05 --sha 60cbc2f`: sem falha (INDEX.md SHA-256 a SHA-256, lista permitida, regras commitadas, segredos, travessão). `node dc360/scripts/conferir-indices-de-evidencia.mjs`: 89 INDEX.md, 4793 arquivos conferidos byte a byte, OK.
+- Regressão base do gatekeeper no SHA (Mac, Node 24.15.0): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0. O kit completo indicado por `impacto.mjs fd17ff4..60cbc2f` (a guarda da API não tem regra no mapa) é o do CI completo deste SHA, 12 de 12 verdes (D-31, item 5).
+- Formato: os relatórios desta rodada conferidos à mão pelo gatekeeper (cabeçalho com os 14 campos, `sha_validado` 60cbc2f, `rodada` 8, as nove seções na ordem, "Tentativas de reprovar" e "Não verificado" preenchidas); todos conferem.
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/60cbc2f/`; mutações e sondas foram feitas em cópias do SHA (`git archive`) no scratchpad.
+
+### Substituições de validação humana
+
+| Critério original ("Validação humana" da etapa) | Prova que o substituiu | Motivo |
+| --- | --- | --- |
+| nenhuma | n/a | n/a |
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Leitor de tela nas três frases | Rafael ou avaliação externa (CP-32) | o agente não substitui VoiceOver nem NVDA |
+| Aprovar as três frases da tela de entrada e as do console (capturas em `validacao/fd17ff4/capturas/`, telas sem mudança desde então) | Rafael | texto de produto, fluxo de erro crítico e tela pública |
+
+Todas as pendências humanas da fase estão também em `docs/roadmap-v2/pendencias-humanas.md` (as novas desta rodada entram lá no próximo commit de implementador, porque o arquivo está fora da lista permitida do registro).
+
+### Achados para corrigir antes de crescer (não decidem esta etapa)
+
+- Dívida (QA da E05 e QA da E22, concordantes): o README (seção da API) e o cabeçalho de `packages/shared/src/codigos-de-erro.ts` não escrevem o modelo de ameaça da guarda (item 2 da D-31) nem citam a DV-01. Não é promessa falsa alcançável: para os valores comuns a frase vale. Dono sugerido: V2-F02-E03, com a DV-01, ou uma linha no README agora. Registrar em `dividas.md` no próximo commit de implementador.
+- Dívida (Segurança): `chavesErro` (regex `CHAVE_JSON`, `apps/api/src/guarda-de-codigos-de-erro.ts` perto da linha 177, e a cópia do console perto da linha 84) custa tempo quadrático no tamanho do corpo: um 403 de 60 KB de aspas escapadas bloqueia o laço de eventos por cerca de 1,1 s. Não é (b): nenhum corpo 401 ou 403 do produto carrega texto do cliente (todas as mensagens são fixas). Vira item de `dividas.md`, dono V2-F02-E03, antes de qualquer rota que ecoe texto do pedido numa recusa.
+- Anotado (Segurança): a renovação com token de renovação já revogado da própria conta responde 403 `conta_desativada`; revela um bit a quem tem credencial emitida àquela conta, por desenho da correção 1. Token desconhecido segue 401 `sessao_encerrada`.
+- Anotado (QA): `Response` com status 200 depois de `reply.code(403)` sai 200 (não é resposta de acesso).
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| gate crítico G00 (seção 12 de `28`) e D-31 item 6 | consolidação em Opus; validadores em Sonnet, salvo Segurança e Red-team da E05 em Opus | feito |
+| nenhum | n/a | n/a |
+
+### Métricas da rodada
+
+Validadores desta etapa: 3 (QA na primeira tentativa, Segurança e Red-team nesta sessão; cerca de 17, 8 e 7 minutos para Segurança e Red-team). Achados: 0 bloqueiam, 2 dívidas novas, 2 anotados. Dimensões herdadas: Banco, UX e Acessibilidade. Gatilhos visuais: nenhum.
 
 ## Rodada 7 (2026-10-20, SHA fd17ff4)
 
