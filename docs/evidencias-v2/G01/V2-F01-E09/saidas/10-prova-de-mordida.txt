@@ -1,0 +1,53 @@
+# Prova de mordida da E09: cada trava removida do fonte faz testes novos reprovarem; restaurada, voltam a passar.
+
+## 1. Trava de identidade do banco removida (a DATABASE_URL de PROD passa em HML)
+Test Files  1 failed (1)
+Tests  5 failed | 45 passed (50)
+FAIL  test/contrato-de-ambiente.test.ts > negativos: a trava de ambiente cruzado do banco > HML com a DATABASE_URL de PROD recusa a partida
+FAIL  test/contrato-de-ambiente.test.ts > negativos: a trava de ambiente cruzado do banco > PROD com a DATABASE_URL de HML também recusa (a trava vale nos dois sentidos)
+FAIL  test/contrato-de-ambiente.test.ts > negativos: a trava de ambiente cruzado do banco > a mensagem da trava não repete a URL nem a senha
+FAIL  test/contrato-de-ambiente.test.ts > negativos: a trava de ambiente cruzado do banco > compara por segmento: um trecho dentro de outro nome NÃO conta
+FAIL  test/contrato-de-ambiente.test.ts > o que o fly.toml de PROD declara parte, com segredos de mentira > com o [env] do fly.toml e o banco de OUTRO ambiente, a produção NÃO sobe
+
+## 2. AMBIENTE_DC360 deixa de ser obrigatória em produção
+Test Files  1 failed (1)
+Tests  3 failed | 47 passed (50)
+FAIL  test/contrato-de-ambiente.test.ts > negativos: a declaração do ambiente > produção sem AMBIENTE_DC360 recusa, e diz o que fazer
+FAIL  test/contrato-de-ambiente.test.ts > negativos: a declaração do ambiente > AMBIENTE_DC360 vazia conta como ausente, e em produção recusa
+FAIL  test/contrato-de-ambiente.test.ts > o que o fly.toml de PROD declara parte, com segredos de mentira > com o [env] do fly.toml e sem o AMBIENTE_DC360, a produção NÃO sobe
+
+## 3. Endurecimento das origens removido (http, barra final e caminho passam)
+Test Files  1 failed (1)
+Tests  8 failed | 42 passed (50)
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa http em vez de https
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa barra final
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa caminho
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa consulta
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa usuário na URL
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa porta padrão escrita
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa host em maiúsculas
+FAIL  test/contrato-de-ambiente.test.ts > negativos: ORIGENS_PERMITIDAS em produção (endurecimento pedido pela F01-E10) > recusa texto que não é URL
+
+## 4. Sufixo de domínio nunca recusa (URL_PAINEL e origens de outro ambiente passam)
+Test Files  1 failed (1)
+Tests  4 failed | 46 passed (50)
+FAIL  test/contrato-de-ambiente.test.ts > negativos: o domínio do ambiente (painel e CORS) > URL_PAINEL de outro ambiente recusa
+FAIL  test/contrato-de-ambiente.test.ts > negativos: o domínio do ambiente (painel e CORS) > ORIGENS_PERMITIDAS com a origem de PROD em HML recusa: é o que ligaria um ambiente ao outro
+FAIL  test/contrato-de-ambiente.test.ts > negativos: o domínio do ambiente (painel e CORS) > o MESMO valor de ORIGENS_PERMITIDAS não vale nos dois ambientes
+FAIL  test/contrato-de-ambiente.test.ts > negativos: o domínio do ambiente (painel e CORS) > um host que apenas TERMINA com o texto do domínio não é do domínio
+
+## 5. MARCA_DAGUA vazia deixa de ser recusada em HML
+Test Files  1 failed (1)
+Tests  1 failed | 49 passed (50)
+FAIL  test/contrato-de-ambiente.test.ts > negativos: as regras de HML > MARCA_DAGUA vazia em HML recusa, mesmo sendo ato legítimo em outros ambientes
+
+## 6. Filtro de e-mail de HML deixa passar tudo
+Test Files  1 failed (1)
+Tests  3 failed | 7 passed (10)
+FAIL  test/dominios-de-teste.test.ts > soParaDominiosDeTeste > recusa um domínio fora da lista, SEM chamar o provedor
+FAIL  test/dominios-de-teste.test.ts > soParaDominiosDeTeste > compara por igualdade exata: nem o domínio pai nem um subdomínio passam
+FAIL  test/dominios-de-teste.test.ts > soParaDominiosDeTeste > endereço sem domínio legível é recusado
+
+## Restaurado: os mesmos arquivos de teste, sem mutação
+Test Files  2 passed (2)
+Tests  60 passed (60)

@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  identidadeConstaNaUrlDoBanco,
+  resolverAmbiente,
+  type AmbienteDc360,
+} from "../../api/src/ambiente.js";
 import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "../../api/src/banco/tls.js";
 
 /**
@@ -25,6 +30,32 @@ import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "../../api/src/b
 
 const ESQUEMA = z.object({
   NODE_ENV: z.string().default("development"),
+
+  /**
+   * Em que ambiente este console está: `dev`, `hml` ou `prod`.
+   *
+   * SEM o prefixo `CONSOLE_`, e a exceção é deliberada: o prefixo existe para
+   * que dois processos não compartilhem SEGREDO por acidente, e esta variável
+   * não é segredo, é um rótulo (como `NODE_ENV`). O nome é o mesmo da API para
+   * o conferidor e o runbook falarem de uma coisa só. Obrigatória em produção;
+   * a regra inteira está em `resolverAmbiente` (`api/src/ambiente.ts`).
+   */
+  AMBIENTE_DC360: z.string().optional().transform((v) => (v?.trim() ? v : undefined)),
+
+  /**
+   * Uma palavra que o usuário ou o host da `CONSOLE_DATABASE_URL` precisa
+   * conter (no Supabase, a referência do projeto). Obrigatória em `hml` e
+   * `prod`. Com prefixo, ao contrário do rótulo acima, porque descreve a
+   * conexão do console e não a da API: são papéis diferentes no mesmo banco.
+   * Não é secreta; mora no `[env]` do `fly.console.toml`.
+   */
+  CONSOLE_IDENTIDADE_DO_BANCO: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : undefined))
+    .pipe(z.string().regex(/^[a-z0-9][a-z0-9_-]{2,62}$/i, {
+      message: "precisa ter de 3 a 63 letras, números, hífen ou sublinhado, sem ponto",
+    }).optional()),
 
   CONSOLE_PORT: z.coerce.number().int().positive().default(3344),
 
@@ -120,7 +151,10 @@ const ESQUEMA = z.object({
   CONSOLE_BANCO_LOCAL: z.string().optional(),
 });
 
-export type Config = z.infer<typeof ESQUEMA>;
+export type Config = z.infer<typeof ESQUEMA> & {
+  /** O ambiente já conferido: `dev` fora de produção quando nada foi declarado. */
+  ambiente: AmbienteDc360;
+};
 
 /**
  * Os endereços que só a própria máquina alcança.
@@ -151,8 +185,11 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     throw new Error(`Configuração do console inválida:\n  ${problemas}`);
   }
 
-  const config = resultado.data;
-  const producao = config.NODE_ENV === "production";
+  const dados = resultado.data;
+  const producao = dados.NODE_ENV === "production";
+  // O ambiente primeiro, como na API: é a declaração que as outras travas leem.
+  const ondeEstou = resolverAmbiente(dados.AMBIENTE_DC360, dados.NODE_ENV);
+  const config: Config = { ...dados, ambiente: ondeEstou };
 
   if (producao && !config.CONSOLE_DATABASE_URL) {
     throw new Error(
@@ -196,6 +233,36 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
       + "nenhuma linha de erro apontando para a causa. Use CONSOLE_HOST=0.0.0.0, "
       + "que é o que `fly.console.toml` declara.",
     );
+  }
+
+  /*
+    A trava de ambiente cruzado. Um console de HML com a credencial do console
+    de PROD mostraria os números de todos os municípios na tela de homologação,
+    e a equipe de teste passaria a mexer na base de verdade sem perceber. A
+    identidade é uma palavra do usuário ou do host da URL (no Supabase, a
+    referência do projeto) e mora no `[env]`, não secreta. A mensagem não repete
+    a URL: a senha está nela.
+  */
+  if (ondeEstou !== "dev") {
+    const rotulo = ondeEstou.toUpperCase();
+    if (!config.CONSOLE_IDENTIDADE_DO_BANCO) {
+      throw new Error(
+        `CONSOLE_IDENTIDADE_DO_BANCO é obrigatória em ${rotulo}. É a palavra (no Supabase, a `
+        + "referência do projeto) que o usuário ou o host da CONSOLE_DATABASE_URL precisa "
+        + "conter. Está no [env] do fly.console.toml.",
+      );
+    }
+    if (
+      config.CONSOLE_DATABASE_URL
+      && !identidadeConstaNaUrlDoBanco(config.CONSOLE_DATABASE_URL, config.CONSOLE_IDENTIDADE_DO_BANCO)
+    ) {
+      throw new Error(
+        `A CONSOLE_DATABASE_URL não é do banco de ${rotulo}: a identidade esperada `
+        + `(CONSOLE_IDENTIDADE_DO_BANCO=${config.CONSOLE_IDENTIDADE_DO_BANCO}) não consta no `
+        + "usuário nem no host dela. O caso típico é a credencial de outro ambiente colada "
+        + "neste app. Confira o segredo com `fly secrets list` (só os nomes) e regrave a URL certa.",
+      );
+    }
   }
 
   return config;

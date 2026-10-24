@@ -1,4 +1,13 @@
 import { z } from "zod";
+import {
+  hostNoDominio,
+  identidadeConstaNaUrlDoBanco,
+  listaDeDominios,
+  problemaNaOrigem,
+  problemaNoDominio,
+  resolverAmbiente,
+  type AmbienteDc360,
+} from "./ambiente.js";
 import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "./banco/tls.js";
 
 /**
@@ -28,6 +37,51 @@ const esquema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
   HOST: z.string().default("127.0.0.1"),
+
+  /**
+   * Em que ambiente este processo está: `dev`, `hml` ou `prod`.
+   *
+   * Obrigatória com `NODE_ENV=production` (o piloto roda assim, e um HML também
+   * rodaria). Ausente fora de produção vale `dev`. A validação de verdade, em
+   * português, está em `resolverAmbiente` (`ambiente.ts`): aqui é só texto, para
+   * que um valor errado como `producao` receba uma mensagem que diz o que
+   * fazer, e não a do esquema. Não é secreta e mora no `[env]` do `fly.toml`.
+   */
+  AMBIENTE_DC360: vazioEhAusente(z.string().optional()),
+
+  /**
+   * Uma palavra que o USUÁRIO ou o HOST da `DATABASE_URL` precisa conter: no
+   * Supabase, a referência do projeto (`dc360_api.<ref>` ou `db.<ref>.supabase.co`).
+   *
+   * É a trava de ambiente cruzado: um HML com a URL do banco de PROD colada não
+   * tem a identidade do HML nela, e a partida recusa. Obrigatória em `hml` e
+   * `prod`. NÃO é secreta (a referência aparece em qualquer URL de painel) e
+   * mora no `[env]`, para o conferidor provar no repositório que HML e PROD
+   * declaram identidades diferentes.
+   */
+  IDENTIDADE_DO_BANCO: vazioEhAusente(z.string().regex(/^[a-z0-9][a-z0-9_-]{2,62}$/i, {
+    message: "precisa ter de 3 a 63 letras, números, hífen ou sublinhado, sem ponto",
+  }).optional()),
+
+  /**
+   * O domínio sob o qual ficam o painel e as origens CORS DESTE ambiente, como
+   * `dc360-painel-web.vercel.app`. `URL_PAINEL` e cada item de
+   * `ORIGENS_PERMITIDAS` precisam ser esse host ou ficar embaixo dele. Obrigatória
+   * em `hml` e `prod`. Não pode ser um domínio compartilhado do provedor
+   * (`vercel.app` sozinho aceitaria o painel de qualquer um).
+   */
+  DOMINIO_DO_AMBIENTE: vazioEhAusente(z.string().optional()),
+
+  /**
+   * Os domínios de e-mail que a HOMOLOGAÇÃO pode alcançar, separados por vírgula.
+   *
+   * Em `hml` com `EMAIL_ATIVO=sim` é obrigatória, e o envio para qualquer outro
+   * domínio é recusado (`auth/dominios-de-teste.ts`): homologação tem dado
+   * sintético, e uma mensagem de teste não pode chegar a uma pessoa real nem ao
+   * órgão de verdade. Em `prod` é proibida (um filtro de teste em produção
+   * engoliria e-mail de verdade em silêncio). Em `dev` é livre.
+   */
+  EMAIL_DOMINIOS_DE_TESTE: vazioEhAusente(z.string().optional()),
 
   /** Ausente em desenvolvimento e em teste: aí o banco sobe em WebAssembly. */
   DATABASE_URL: vazioEhAusente(z.string().url().optional()),
@@ -454,6 +508,13 @@ export type Config = z.infer<typeof esquema> & {
    */
   jwtSegredos: readonly [Uint8Array, ...Uint8Array[]];
   origens: string[];
+  /** O ambiente já conferido: `dev` fora de produção quando nada foi declarado. */
+  ambiente: AmbienteDc360;
+  /**
+   * Os domínios de e-mail permitidos em homologação, em minúsculas. Vazia
+   * quando não há filtro: aí o envio não é limitado por domínio.
+   */
+  dominiosDeEmailDeTeste: string[];
 };
 
 /**
@@ -556,6 +617,14 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     throw new Error(`Configuração inválida: ${problemas}`);
   }
   const c = analisado.data;
+
+  /*
+    O ambiente primeiro: é a declaração que todas as outras travas leem.
+    Em produção sem `AMBIENTE_DC360` (ou com `dev`) a partida para aqui, antes
+    de qualquer outra recusa, porque as demais mensagens pressupõem que o
+    processo sabe onde está.
+  */
+  const ondeEstou = resolverAmbiente(c.AMBIENTE_DC360, c.NODE_ENV);
 
   /*
     Push ligado exige credencial de verdade, e a checagem vale em TODO
@@ -795,7 +864,26 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
         throw new Error(`${nome} precisa ser https em produção (${valor})`);
       }
     }
+
+    /*
+      As origens CORS, uma a uma, com o formato que o navegador manda.
+
+      O `@fastify/cors` compara o texto do cabeçalho `Origin` com a lista, letra
+      por letra. Curinga era a única recusa até a V2-F01-E09; `http://`, barra
+      final e caminho passavam, e o resultado é um painel que não fala com a API
+      sem uma linha de erro no servidor. Ver `problemaNaOrigem` (`ambiente.ts`).
+    */
+    const origensBrutas = c.ORIGENS_PERMITIDAS.split(",").map((o) => o.trim()).filter(Boolean);
+    if (origensBrutas.length === 0) {
+      throw new Error("ORIGENS_PERMITIDAS está vazia em produção: nenhum painel conseguiria falar com a API");
+    }
+    for (const origem of origensBrutas) {
+      const problema = problemaNaOrigem(origem);
+      if (problema) throw new Error(problema);
+    }
   }
+
+  conferirContratoDoAmbiente(c, ondeEstou);
 
   // Fora de produção, um segredo efêmero por processo: reiniciar invalida os
   // tokens, que é o comportamento correto para um ambiente descartável.
@@ -810,5 +898,117 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     ...c,
     jwtSegredos: [assina!, ...aceitos],
     origens: c.ORIGENS_PERMITIDAS.split(",").map((o) => o.trim()).filter(Boolean),
+    ambiente: ondeEstou,
+    dominiosDeEmailDeTeste: listaDeDominios(c.EMAIL_DOMINIOS_DE_TESTE),
   };
+}
+
+/**
+ * A trava de ambiente cruzado e as regras próprias de cada ambiente.
+ *
+ * Roda depois das recusas de produção de propósito: o problema mais específico
+ * (HTTPS, localhost, certificado) vem na frente, e esta é a rede que pega o que
+ * passa por todas elas e mesmo assim está no lugar errado, como uma configuração
+ * de PROD colada num app de HML. Cada mensagem diz o que está incoerente e o que
+ * fazer, e nenhuma repete a URL do banco, que traz a senha.
+ */
+function conferirContratoDoAmbiente(
+  c: z.infer<typeof esquema>,
+  ambiente: AmbienteDc360,
+): void {
+  const dominiosDeTeste = listaDeDominios(c.EMAIL_DOMINIOS_DE_TESTE);
+
+  if (ambiente === "prod" && dominiosDeTeste.length > 0) {
+    throw new Error(
+      "EMAIL_DOMINIOS_DE_TESTE não pode existir em PROD: ela é o filtro da homologação, "
+      + "e em produção engoliria em silêncio o e-mail dirigido a pessoa e órgão de verdade. "
+      + "Apague a variável deste app.",
+    );
+  }
+
+  if (ambiente === "dev") return;
+
+  /*
+    A partir daqui o processo se declarou HML ou PROD, e declarar é aceitar o
+    contrato inteiro.
+  */
+  const rotulo = ambiente.toUpperCase();
+
+  if (!c.IDENTIDADE_DO_BANCO) {
+    throw new Error(
+      `IDENTIDADE_DO_BANCO é obrigatória em ${rotulo}. É a palavra (no Supabase, a referência `
+      + "do projeto) que o usuário ou o host da DATABASE_URL precisa conter; sem ela a partida "
+      + "não tem como saber que o banco é o deste ambiente. Está no [env] do fly.toml.",
+    );
+  }
+  if (c.DATABASE_URL && !identidadeConstaNaUrlDoBanco(c.DATABASE_URL, c.IDENTIDADE_DO_BANCO)) {
+    throw new Error(
+      `A DATABASE_URL não é do banco de ${rotulo}: a identidade esperada `
+      + `(IDENTIDADE_DO_BANCO=${c.IDENTIDADE_DO_BANCO}) não consta no usuário nem no host dela. `
+      + "O caso típico é a credencial de outro ambiente colada neste app, e por isso a partida "
+      + "recusa em vez de subir contra a base errada. Confira o segredo com `fly secrets list` "
+      + "(só os nomes) e regrave a URL certa.",
+    );
+  }
+
+  if (!c.DOMINIO_DO_AMBIENTE) {
+    throw new Error(
+      `DOMINIO_DO_AMBIENTE é obrigatório em ${rotulo}. É o domínio do painel deste ambiente: `
+      + "URL_PAINEL e ORIGENS_PERMITIDAS precisam ficar embaixo dele. Está no [env] do fly.toml.",
+    );
+  }
+  const problemaDoDominio = problemaNoDominio(c.DOMINIO_DO_AMBIENTE);
+  if (problemaDoDominio) {
+    throw new Error(`DOMINIO_DO_AMBIENTE ${problemaDoDominio}.`);
+  }
+  const dominio = c.DOMINIO_DO_AMBIENTE;
+
+  let hostDoPainel: string;
+  try {
+    hostDoPainel = new URL(c.URL_PAINEL).hostname;
+  } catch {
+    hostDoPainel = "";
+  }
+  if (!hostNoDominio(hostDoPainel, dominio)) {
+    throw new Error(
+      `URL_PAINEL (${c.URL_PAINEL}) não é do domínio de ${rotulo} (${dominio}). `
+      + "O link de redefinição de senha de um ambiente não pode apontar para o painel de outro.",
+    );
+  }
+  for (const origem of c.ORIGENS_PERMITIDAS.split(",").map((o) => o.trim()).filter(Boolean)) {
+    let host = "";
+    try {
+      host = new URL(origem).hostname;
+    } catch {
+      // Origem que nem é URL cai na recusa abaixo, com o valor na mensagem.
+    }
+    if (!hostNoDominio(host, dominio)) {
+      throw new Error(
+        `ORIGENS_PERMITIDAS lista ${origem}, que não é do domínio de ${rotulo} (${dominio}). `
+        + "Uma origem de outro ambiente liga os dois: o painel de lá passaria a ler esta API "
+        + "com a sessão de quem estiver logado nos dois.",
+      );
+    }
+  }
+
+  if (ambiente === "hml") {
+    /*
+      MARCA_DAGUA vazia é ato deliberado fora daqui (ver o comentário do campo),
+      e em homologação é exatamente o ato que não pode acontecer: o laudo de
+      teste sairia indistinguível de um laudo verdadeiro.
+    */
+    if (c.MARCA_DAGUA.trim() === "") {
+      throw new Error(
+        "MARCA_DAGUA não pode estar vazia em HML: todo documento de homologação precisa sair "
+        + "carimbado, senão um laudo de teste é indistinguível de um verdadeiro.",
+      );
+    }
+    if (c.EMAIL_ATIVO === "sim" && dominiosDeTeste.length === 0) {
+      throw new Error(
+        "O envio de e-mail está ligado em HML sem EMAIL_DOMINIOS_DE_TESTE. Liste os domínios de "
+        + "teste que podem receber mensagem (separados por vírgula): sem a lista, uma mensagem "
+        + "de homologação poderia chegar a uma pessoa ou a um órgão de verdade.",
+      );
+    }
+  }
 }

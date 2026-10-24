@@ -282,6 +282,17 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `implantavel` no Postgres 17, o check no ruleset e o `rollback.md`.
   */
   "V2-F01-E08": 15,
+  /*
+    V2-F01-E09: `scripts/conferir-ambiente.test.mjs` é novo, com 42 casos (a
+    matriz `ambientes.json` bem formada e cobrindo exatamente o que cada
+    `config.ts` lê; a lista de domínios compartilhados igual à do código; o
+    repositório sintético estragado de cada jeito, com o controle intacto: toml
+    de PROD sem `AMBIENTE_DC360`, segredo no `[env]`, HML com a identidade e o
+    domínio de PROD, Node e Postgres divergentes; os nomes de `fly secrets list`
+    contra a coluna do ambiente, incluindo o segredo exclusivo de PROD no app de
+    HML; e o comando com código de saída 0, 1 e 2, sem nunca imprimir valor).
+  */
+  "V2-F01-E09": 42,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -302,6 +313,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E10-vercel-json": "vercel-json.test.mjs",
   "V2-F01-E16": "runbooks.test.mjs",
   "V2-F01-E08": "smoke-das-imagens.test.mjs",
+  "V2-F01-E09": "conferir-ambiente.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -652,6 +664,23 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     numero do proprio passo (teste-console). Nenhuma falha nem pulo.
   */
   "V2-F01-E08": { total: 7, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E09: dois arquivos novos na API. `apps/api/test/contrato-de-ambiente.test.ts`
+    (50 casos: prod e hml válidos partem; produção sem `AMBIENTE_DC360`, `dev`
+    ou valor desconhecido recusam; a DATABASE_URL de PROD em HML (e a de HML em
+    PROD) recusa sem repetir a URL; identidade por segmento; domínio do
+    ambiente, compartilhado e mal formado; URL_PAINEL e ORIGENS_PERMITIDAS de
+    outro ambiente; o endurecimento das origens (http, barra final, caminho,
+    consulta, usuário, porta padrão, maiúsculas, lista vazia); MARCA_DAGUA vazia
+    e e-mail sem lista de teste em HML; o filtro de teste proibido em PROD; o
+    esquema sem variável de organização; e o `[env]` do `fly.toml` de verdade
+    subindo com segredos de mentira) e `apps/api/test/dominios-de-teste.test.ts`
+    (10 casos do filtro de e-mail de HML e da ligação em `index.ts`). Os helpers
+    de `config.test.ts`, `banco-tls.test.ts`, `log.test.ts` e
+    `recuperacao-em-producao.test.ts` ganharam as três declarações, sem mudar a
+    contagem. Nenhuma falha nem pulo novos.
+  */
+  "V2-F01-E09": { total: 60, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -898,7 +927,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 310, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 330, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

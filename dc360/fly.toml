@@ -53,11 +53,34 @@ kill_timeout = 30
 #                        fly secrets set DATABASE_URL='postgres://dc360_api:SENHA@HOST:5432/postgres?sslmode=verify-full'
 #   JWT_SEGREDO        >= 32 bytes
 #   URL_PUBLICA        https, sem localhost
-#   URL_PAINEL         https, sem localhost
-#   ORIGENS_PERMITIDAS https, sem curinga
+#   URL_PAINEL         https, sem localhost, e sob DOMINIO_DO_AMBIENTE
+#   ORIGENS_PERMITIDAS https, sem curinga, sem barra final nem caminho (o
+#                      navegador manda a origem sem isso e a comparação é
+#                      pelo texto inteiro), cada uma sob DOMINIO_DO_AMBIENTE
 #   S3_ENDPOINT S3_BALDE S3_CHAVE_ID S3_CHAVE_SECRETA
 [env]
   NODE_ENV = "production"
+  # O CONTRATO DE AMBIENTE (V2-F01-E09). As três linhas abaixo NÃO são segredo,
+  # e a partida RECUSA subir sem elas (apps/api/src/config.ts). Matriz inteira em
+  # scripts/ambientes.json, explicação em docs/AMBIENTES.md.
+  #
+  # AMBIENTE_DC360 diz a este processo onde ele está. IDENTIDADE_DO_BANCO é a
+  # referência do projeto do banco de PROD: o usuário ou o host da DATABASE_URL
+  # precisa contê-la, senão a partida recusa (é o que impede um app de HML de
+  # subir com a credencial de PROD, e o contrário). DOMINIO_DO_AMBIENTE é o
+  # painel de PROD: URL_PAINEL e cada item de ORIGENS_PERMITIDAS ficam embaixo
+  # dele. Quando o domínio próprio chegar (CP-04), muda aqui E nos segredos, no
+  # mesmo deploy.
+  #
+  # ANTES do primeiro deploy com estas linhas: conferir que a DATABASE_URL do
+  # Fly traz esta referência (`fly ssh console -a defesa-civil -C 'sh -c "echo
+  # $DATABASE_URL | grep -c bppklrxxwjshxvkvwirw"'` deve imprimir 1, sem
+  # imprimir a URL) e que URL_PAINEL e ORIGENS_PERMITIDAS são o endereço abaixo.
+  # Se a conferência falhar, o deploy novo NÃO sobe e o release anterior segue
+  # atendendo, mas é um deploy perdido.
+  AMBIENTE_DC360 = "prod"
+  IDENTIDADE_DO_BANCO = "bppklrxxwjshxvkvwirw"
+  DOMINIO_DO_AMBIENTE = "dc360-painel-web.vercel.app"
   # 0.0.0.0 porque num contêiner a porta publicada não atende em 127.0.0.1,
   # e o healthcheck mentiria que está de pé.
   HOST = "0.0.0.0"

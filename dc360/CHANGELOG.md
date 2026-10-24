@@ -19,7 +19,12 @@ reprova versão sem a sua seção. Este arquivo é escrito à mão: o script con
 
 ## Não lançado
 
-Nada ainda.
+- **Contrato de ambiente (V2-F01-E09).** A API e o console passam a exigir `AMBIENTE_DC360` (`dev`, `hml` ou
+  `prod`) em produção, e em HML e PROD recusam subir quando a URL do banco não traz a identidade do ambiente, ou
+  quando `URL_PAINEL` e `ORIGENS_PERMITIDAS` não ficam sob `DOMINIO_DO_AMBIENTE`. `ORIGENS_PERMITIDAS` em produção
+  só aceita `https://host` exato. Contrato incompatível: os `[env]` de `fly.toml` e `fly.console.toml` ganharam as
+  variáveis novas no mesmo commit, e quem faz deploy precisa conferir os segredos antes (`docs/AMBIENTES.md`). Node 22
+  fixado (`.node-version`, `engines`) e Postgres 17 no `compose.yaml`.
 
 ## plataforma 0.1.0 - 2026-10-24
 

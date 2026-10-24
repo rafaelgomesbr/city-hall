@@ -70,6 +70,15 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
       por quem estava esperando o email.
     */
     EMAIL_REMETENTE: "defesacivil@municipio.exemplo.gov.br",
+    /*
+      O contrato de ambiente (V2-F01-E09): as três declarações NÃO secretas que
+      o `[env]` do fly.toml carrega. A identidade é um segmento do usuário ou do
+      host de DATABASE_URL (`banco.interno` acima), e o domínio é o do painel.
+      Os casos do contrato em si estão em `contrato-de-ambiente.test.ts`.
+    */
+    AMBIENTE_DC360: "prod",
+    IDENTIDADE_DO_BANCO: "dc360",
+    DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;
 }
@@ -165,6 +174,7 @@ describe("Configuração de produção", () => {
     // A porta de sessão do mesmo pooler continua passando: a recusa é da porta, não do host.
     expect(() => carregarConfig(producao({
       DATABASE_URL: "postgres://dc360_api:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
+      IDENTIDADE_DO_BANCO: "dc360_api",
     }))).not.toThrow();
 
     // E a mensagem não repete a senha: ela é a única parte da URL que não pode ir para o log.

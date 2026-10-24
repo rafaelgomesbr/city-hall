@@ -321,6 +321,10 @@ describe("O notificador de log", () => {
       S3_BALDE: "dc360",
       S3_CHAVE_ID: "chave",
       S3_CHAVE_SECRETA: "segredo",
+      // O contrato de ambiente (V2-F01-E09): as três declarações não secretas.
+      AMBIENTE_DC360: "prod",
+      IDENTIDADE_DO_BANCO: "localhost",
+      DOMINIO_DO_AMBIENTE: "exemplo.gov.br",
     } as unknown as NodeJS.ProcessEnv;
 
     expect(

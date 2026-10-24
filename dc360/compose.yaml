@@ -9,6 +9,14 @@
 # `docker build` e as sobe contra um Postgres 17 de serviço, sem passar pelo
 # compose. Este arquivo continua sem prova de execução.
 #
+# POSTGRES 17 (V2-F01-E09): a produção roda 17.6, e o compose rodava 16. Um
+# comportamento que muda entre as duas majors só aparecia depois do deploy. A
+# imagem é `postgis/postgis:17-3.5` (PostGIS 3.5 sobre Postgres 17). Trocar a
+# tag NÃO foi executado aqui: esta máquina não tem Docker, então a subida do
+# compose com a imagem nova continua sem registro de execução.
+# Construir e subir uma vez antes do primeiro deploy continua sendo
+# obrigatório.
+#
 # ESTE COMPOSE É PARA DESENVOLVER E PARA CONFERIR QUE A IMAGEM SOBE, não para
 # produção. Produção usa Postgres gerenciado (com backup e PITR) e um proxy
 # reverso terminando TLS na frente da API. Ver o README, seção Implantação.
@@ -21,7 +29,7 @@
 # =====================================================================
 services:
   banco:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:17-3.5
     environment:
       POSTGRES_DB: dc360
       # O usuário inicial do POSTGRES_USER é superusuário: é o papel de SETUP
@@ -51,7 +59,7 @@ services:
   # depois do migrar (o papel dc360_app nasce lá) e antes da API. Idempotente:
   # subir de novo não falha se o papel já existir.
   papeis:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:17-3.5
     entrypoint: ["bash", "-c"]
     command:
       - |
@@ -75,6 +83,9 @@ services:
       # config.ts recusa produção sem HTTPS e sem armazenamento. Produção sobe
       # em PaaS gerenciada, não aqui.
       NODE_ENV: development
+      # O contrato de ambiente (V2-F01-E09): esta é a máquina de quem
+      # desenvolve. HML e PROD não sobem por aqui.
+      AMBIENTE_DC360: dev
       # 0.0.0.0, senão a API escuta só o loopback DENTRO do contêiner e a porta
       # publicada não atende ninguém, com o healthcheck mentindo que está de pé.
       HOST: 0.0.0.0

@@ -1,0 +1,108 @@
+{
+  "versao": 1,
+  "leia": "Matriz de variaveis por ambiente (V2-F01-E09). Guarda NOMES, valores nao secretos fixos e a regra de cada ambiente. NUNCA guarda segredo. Explicacao em docs/AMBIENTES.md. Quem confere: scripts/conferir-ambiente.mjs (nomes de fly secrets list contra esta matriz) e scripts/conferir-ambiente.test.mjs (repositorio contra esta matriz).",
+  "estados": {
+    "obrigatoria": "tem de existir neste ambiente (segredo no Fly, ou linha no [env] do fly*.toml)",
+    "opcional": "pode existir; o codigo tem padrao ou so a exige em certas combinacoes",
+    "proibida": "NAO pode existir neste ambiente; se existir, o conferidor reprova"
+  },
+  "onde": {
+    "env": "linha do [env] do fly*.toml, versionada, nao secreta",
+    "segredo": "fly secrets (cifrado), nunca no repositorio"
+  },
+  "ambientes": {
+    "dev": {
+      "descricao": "A maquina de quem desenvolve. Sem Fly, sem segredo de verdade, banco local ou PGlite.",
+      "arquivos": { "api": null, "console": null },
+      "appsNoFly": { "api": null, "console": null },
+      "identidadeDoBanco": null,
+      "dominio": null
+    },
+    "hml": {
+      "descricao": "Homologacao: dado sintetico, marca d'agua ligada, e-mail so a dominios de teste. Nasce na V2-F01-E11 (CP-05).",
+      "arquivos": { "api": "fly.hml.toml", "console": "fly.console.hml.toml" },
+      "appsNoFly": { "api": null, "console": null },
+      "identidadeDoBanco": null,
+      "dominio": null,
+      "pendente": "Os dois fly*.toml, os apps do Fly, o projeto de banco (identidade) e o painel (dominio) sao da V2-F01-E11 e da V2-F01-E10. Ao nascerem, preencher aqui."
+    },
+    "prod": {
+      "descricao": "Producao: os municipios de verdade.",
+      "arquivos": { "api": "fly.toml", "console": "fly.console.toml" },
+      "appsNoFly": { "api": "defesa-civil", "console": "defesa-civil-console" },
+      "identidadeDoBanco": "bppklrxxwjshxvkvwirw",
+      "dominio": "dc360-painel-web.vercel.app"
+    }
+  },
+  "apps": {
+    "api": {
+      "descricao": "apps/api, config em apps/api/src/config.ts",
+      "variaveis": [
+        { "nome": "NODE_ENV", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "production", "prod": "production" } },
+        { "nome": "PORT", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "HOST", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "0.0.0.0", "prod": "0.0.0.0" } },
+        { "nome": "AMBIENTE_DC360", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "hml", "prod": "prod" } },
+        { "nome": "IDENTIDADE_DO_BANCO", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "identidade": true },
+        { "nome": "DOMINIO_DO_AMBIENTE", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "dominio": true },
+        { "nome": "EMAIL_DOMINIOS_DE_TESTE", "onde": "env", "prod": "proibida" },
+        { "nome": "DATABASE_URL", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "MARCA_DAGUA", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "NOTIFICADOR_URL", "onde": "segredo" },
+        { "nome": "NOTIFICADOR_CHAVE", "onde": "segredo" },
+        { "nome": "NOTIFICADOR_ARQUIVO", "onde": "env", "hml": "proibida", "prod": "proibida" },
+        { "nome": "RECUPERACAO_ATIVA", "onde": "env", "prod": "obrigatoria", "valores": { "prod": "nao" } },
+        { "nome": "EMAIL_ATIVO", "onde": "env" },
+        { "nome": "EMAIL_REMETENTE", "onde": "env" },
+        { "nome": "OFICIO_LINK_HORAS", "onde": "env" },
+        { "nome": "OFICIO_MAX_ENVIOS", "onde": "env" },
+        { "nome": "JWT_SEGREDO", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "PUSH_ATIVO", "onde": "env", "valores": { "hml": "nao" } },
+        { "nome": "VARREDURA_DE_ORFAOS_ATIVA", "onde": "env" },
+        { "nome": "PUSH_JANELA_MINUTOS", "onde": "env" },
+        { "nome": "APNS_KEY_ID", "onde": "segredo", "hml": "proibida" },
+        { "nome": "APNS_TEAM_ID", "onde": "segredo", "hml": "proibida" },
+        { "nome": "APNS_CHAVE", "onde": "segredo", "hml": "proibida" },
+        { "nome": "APNS_BUNDLE", "onde": "env", "prod": "obrigatoria" },
+        { "nome": "APNS_AMBIENTE", "onde": "env", "prod": "obrigatoria", "valores": { "prod": "producao" } },
+        { "nome": "FCM_CONTA_SERVICO", "onde": "segredo", "hml": "proibida" },
+        { "nome": "SEGUNDO_FATOR_ATIVO", "onde": "env" },
+        { "nome": "SEGUNDO_FATOR_CHAVE", "onde": "segredo" },
+        { "nome": "SEGUNDO_FATOR_MAX_FALHAS", "onde": "env" },
+        { "nome": "SEGUNDO_FATOR_BLOQUEIO_MINUTOS", "onde": "env" },
+        { "nome": "PROXY_DE_BORDA", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "fly", "prod": "fly" } },
+        { "nome": "ORIGENS_PERMITIDAS", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "ACESSO_MINUTOS", "onde": "env" },
+        { "nome": "RENOVACAO_DIAS", "onde": "env" },
+        { "nome": "MAX_FALHAS_LOGIN", "onde": "env" },
+        { "nome": "BLOQUEIO_MINUTOS", "onde": "env" },
+        { "nome": "LOGIN_POR_IP", "onde": "env" },
+        { "nome": "S3_ENDPOINT", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "S3_BALDE", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "S3_REGIAO", "onde": "env", "prod": "obrigatoria" },
+        { "nome": "S3_CHAVE_ID", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "S3_CHAVE_SECRETA", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "URL_PUBLICA", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "URL_PAINEL", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "RECUPERACAO_MINUTOS", "onde": "env" },
+        { "nome": "RECUPERACAO_POR_EMAIL_HORA", "onde": "env" },
+        { "nome": "MAPS_KEY", "onde": "segredo", "nota": "chave de navegador, nao e segredo de verdade (restrita por referenciador), mas hoje mora nos segredos do Fly" },
+        { "nome": "ROUTES_KEY", "onde": "segredo" }
+      ]
+    },
+    "console": {
+      "descricao": "apps/console, config em apps/console/src/config.ts. Prefixo CONSOLE_ nos segredos (ADR 0008).",
+      "variaveis": [
+        { "nome": "NODE_ENV", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "production", "prod": "production" } },
+        { "nome": "AMBIENTE_DC360", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "hml", "prod": "prod" } },
+        { "nome": "CONSOLE_IDENTIDADE_DO_BANCO", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "identidade": true },
+        { "nome": "CONSOLE_PORT", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "CONSOLE_HOST", "onde": "env", "hml": "obrigatoria", "prod": "obrigatoria", "valores": { "hml": "0.0.0.0", "prod": "0.0.0.0" } },
+        { "nome": "CONSOLE_JWT_SEGREDO", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "CONSOLE_SEGUNDO_FATOR_CHAVE", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "CONSOLE_OPERADORES", "onde": "segredo", "nota": "semente do dono, lida uma vez; depois do primeiro deploy sai da configuracao" },
+        { "nome": "CONSOLE_DATABASE_URL", "onde": "segredo", "hml": "obrigatoria", "prod": "obrigatoria" },
+        { "nome": "CONSOLE_BANCO_LOCAL", "onde": "env", "hml": "proibida", "prod": "proibida" }
+      ]
+    }
+  }
+}

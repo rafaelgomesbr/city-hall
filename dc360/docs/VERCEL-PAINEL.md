@@ -70,6 +70,13 @@ fly secrets set -a defesa-civil \
   ORIGENS_PERMITIDAS='https://ENDERECO-REAL'
 ```
 
+Desde a V2-F01-E09 isso não basta: o `[env]` do `fly.toml` declara
+`DOMINIO_DO_AMBIENTE` (hoje `dc360-painel-web.vercel.app`), e a API recusa subir
+quando `URL_PAINEL` ou `ORIGENS_PERMITIDAS` não ficam embaixo dele. Mudou o
+endereço do painel, muda também `DOMINIO_DO_AMBIENTE` no `fly.toml` e o
+`dominio` de PROD em `scripts/ambientes.json`, no mesmo deploy. Ver
+`docs/AMBIENTES.md`.
+
 ## 5. Quando o domínio próprio for comprado
 
 Ver `docs/COLOCAR-DE-PE.md`. Em resumo: aponta o domínio para a Vercel (painel)

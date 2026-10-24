@@ -30,6 +30,11 @@ const cofre = abrirCofre(CHAVE_DO_COFRE);
 function ambienteDeProducao(alteracoes: Record<string, string> = {}): Record<string, string> {
   return {
     NODE_ENV: "production",
+    // O contrato de ambiente (V2-F01-E09). A identidade é um segmento do host
+    // da URL abaixo (`db.exemplo.com`). Os casos do contrato estão em
+    // `contrato-de-ambiente.test.ts`.
+    AMBIENTE_DC360: "prod",
+    CONSOLE_IDENTIDADE_DO_BANCO: "exemplo",
     CONSOLE_HOST: "0.0.0.0",
     CONSOLE_JWT_SEGREDO: randomBytes(32).toString("base64url"),
     CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE_DO_COFRE,
