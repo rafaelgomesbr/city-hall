@@ -23,7 +23,17 @@ const CAMPO = join(DC360, "apps", "campo");
 const API = join(DC360, "apps", "api", "src", "config.ts");
 const WEB = join(DC360, "apps", "web", "src", "componentes", "Estrutura.tsx");
 const SCRIPT = join(DC360, "scripts", "lint.mjs");
-const TELA_DO_CAMPO = join(CAMPO, "src", "ui", "avatar.tsx");
+// O nome tem de bater letra por letra com o do disco: o macOS e o Windows não
+// distinguem maiúscula, o Linux do CI distingue ("was not found by the project service").
+const TELA_DO_CAMPO = join(CAMPO, "src", "ui", "Avatar.tsx");
+
+// Com `CI=true` o typescript-estree entra em "execução única" e, nos arquivos
+// tipados por `project` (os scripts .mjs), lê o texto DO DISCO em vez do texto
+// que o teste entrega ao `lintText`. O resultado era "nenhum achado" só no CI,
+// com o código sintético ignorado. Desligar a inferência faz o teste medir o
+// texto sintético em qualquer ambiente. Só o teste muda: o `eslint` de verdade
+// lê do disco e não é afetado.
+process.env.TSESTREE_SINGLE_RUN = "false";
 
 async function regras(cwd, texto, filePath) {
   const eslint = new ESLint({ cwd });
