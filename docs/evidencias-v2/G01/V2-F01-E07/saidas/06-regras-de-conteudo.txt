@@ -1,0 +1,13 @@
+$ npx vitest run --root packages/shared test/regras-de-conteudo.test.ts
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-ae190872853e0a819/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 538ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  12:35:17
+   Duration  761ms (transform 30ms, setup 0ms, collect 32ms, tests 538ms, environment 0ms, prepare 39ms)
+
+codigo=0
+

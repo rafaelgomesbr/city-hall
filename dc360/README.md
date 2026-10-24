@@ -1985,6 +1985,48 @@ portão, no executor embutido do node. Eles cobrem a regra (quando falhar,
 quando pular, como contar) e também a fiação, que é onde o defeito estava: a
 regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 
+## Versões, tags e changelog
+
+Cada versão em produção precisa ter número, tag e changelog, para que dê para dizer
+qual commit está no ar (V2-F01-E07). O produto tem **duas linhas de versão**, cada uma
+com a sua tag:
+
+| Linha | O que cobre | Onde o número mora | Tag |
+| --- | --- | --- | --- |
+| plataforma | API, painel, console do fornecedor, banco e pacotes compartilhados | `package.json` da raiz, igual em todo workspace e em `package-lock.json` | `vX.Y.Z` |
+| campo | Aplicativo do agente | `VERSAO` de `apps/campo/app.config.ts`, com `apps/campo/package.json` e o lockfile do aplicativo acompanhando | `campo-vX.Y.Z` |
+
+Antes da G28 a major é 0 (`0.y.z`). Migration ou contrato incompatível sobe o `y` e
+zera o `z`; correção sobe o `z`. A 1.0.0 é decisão do Rafael na G28, e o script a
+recusa. O `BUILD` do aplicativo é outra coisa: segue do EAS e não é tocado.
+
+O `CHANGELOG.md` desta pasta é escrito à mão, em português, uma seção por versão e por
+linha (`## plataforma 0.1.0 - 2026-10-24`), com a mais nova primeiro. Versão sem seção
+reprova. O que ainda não saiu fica em "Não lançado".
+
+`scripts/versao.mjs` cuida do número, sem script novo no `package.json`:
+
+```bash
+node scripts/versao.mjs conferir                    # todos os arquivos de cada linha no mesmo número, e a seção no CHANGELOG
+node scripts/versao.mjs mostrar                     # imprime a versão de cada linha
+node scripts/versao.mjs subir plataforma y          # 0.1.3 -> 0.2.0 em TODOS os workspaces e no lockfile (z para correção)
+node scripts/versao.mjs subir campo 0.2.0           # também aceita o número explícito, desde que maior
+node scripts/versao.mjs conferir-tag v0.2.0         # só valida o NOME e se bate com os arquivos
+```
+
+Subir a versão e escrever a seção do CHANGELOG andam juntos: `subir` troca os números e
+avisa que falta a seção, e `conferir` reprova até ela existir. Editar um `package.json`
+à mão, em um workspace só, também reprova. `versao.test.mjs` roda em `npm run test:scripts`,
+inclusive `conferir` contra esta árvore, e é isso que segura as versões iguais no CI.
+
+**O script nunca cria tag.** Tag é ato do dono do repositório (e, quando a E12 existir,
+do workflow de promoção). Regras: a primeira tag (`v0.1.0` e `campo-v0.1.0`) vem depois
+da E01 e nunca de forma retroativa, no commit que tem aquele número; tag não se atualiza
+nem se apaga (um ruleset do GitHub para `v*` e `campo-v*` faz isso valer, e ligá-lo é ação
+no GitHub, fora do repositório); o Release do GitHub leva as notas da seção do changelog, e
+a E19 anexa o SBOM. Ficam fora desta etapa a versão em `/saude` (E08), a atualização do
+aplicativo sem loja (CP-24) e a promoção (E12).
+
 ## O que falta, e por quê
 
 - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em

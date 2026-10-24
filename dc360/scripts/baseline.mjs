@@ -187,6 +187,12 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
   */
   "V2-F00-E21-correcao-3": 8,
+  /*
+    V2-F01-E07: `scripts/versao.test.mjs` é novo, com 32 casos (SemVer e próxima
+    versão, os positivos e negativos do conferidor de versões e de CHANGELOG, o
+    nome de tag, e o comando com código de saída e a árvore real).
+  */
+  "V2-F01-E07": 32,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -196,6 +202,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
   "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
+  "V2-F01-E07": "versao.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

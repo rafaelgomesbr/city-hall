@@ -1,0 +1,53 @@
+$ node --test scripts/versao.test.mjs
+▶ SemVer e próxima versão
+  ✔ aceita só X.Y.Z estrito e rejeita zero à esquerda, sufixo e falta de parte (0.657709ms)
+  ✔ y zera o z, z só soma, e uma versão explícita maior é aceita (0.099916ms)
+  ✔ recusa a 1.0.0 (decisão da G28), versão igual, versão menor e formato ruim (0.206042ms)
+  ✔ monta o nome da tag de cada linha (0.068375ms)
+✔ SemVer e próxima versão (1.468667ms)
+▶ conferir (positivos)
+  ✔ árvore com tudo no mesmo número e seção no CHANGELOG passa (2.746375ms)
+  ✔ as duas linhas podem estar em números diferentes (1.918833ms)
+  ✔ subir plataforma leva TODOS os workspaces e o lockfile ao mesmo número (2.189333ms)
+  ✔ subir campo muda VERSAO, o package.json e o lockfile do app, e não toca o BUILD (1.709125ms)
+  ✔ depois de subir e de escrever a seção, conferir fecha; sem a seção, reprova (2.368959ms)
+  ✔ lê as seções do CHANGELOG e ignora o 'Não lançado' (0.103042ms)
+✔ conferir (positivos) (11.19925ms)
+▶ conferir (negativos)
+  ✔ bump em UM workspace só reprova e nomeia quem está fora (1.398458ms)
+  ✔ package-lock defasado reprova (1.314792ms)
+  ✔ aplicativo: VERSAO diferente do package.json do app reprova (1.264375ms)
+  ✔ aplicativo sem a linha VERSAO reprova em vez de passar calado (1.263459ms)
+  ✔ versão sem seção no CHANGELOG reprova, para cada linha (1.185417ms)
+  ✔ CHANGELOG ausente reprova (1.257792ms)
+  ✔ seção com data inventada, vazia, repetida ou fora de ordem reprova (6.155292ms)
+  ✔ major diferente de 0 nos arquivos reprova (1.0.0 antes da G28) (1.356459ms)
+  ✔ subir recusa 1.0.0, versão que não cresce, linha desconhecida, e não grava nada (2.204334ms)
+  ✔ subir recusa uma linha que já está dividida, em vez de espalhar o erro (1.469209ms)
+  ✔ subir recusa reescrever JSON que não está no formato do npm, sem gravar nada pela metade (1.402625ms)
+✔ conferir (negativos) (20.418875ms)
+▶ nome de tag
+  ✔ aceita vX.Y.Z e campo-vX.Y.Z que batem com os arquivos (1.738833ms)
+  ✔ tag v1 reprova, e também v1.0.0, v0.1, V0.1.0, sufixo, vazia e prefixo errado (0.989833ms)
+  ✔ tag de versão que os arquivos não têm reprova (tag vai no commit que tem o número) (1.39825ms)
+  ✔ tag que já existe reprova: tag não se atualiza nem se move (1.420291ms)
+  ✔ tag de versão sem seção no CHANGELOG reprova (1.165417ms)
+✔ nome de tag (6.786ms)
+▶ como comando e na árvore real
+  ✔ conferir na árvore REAL passa: é isto que segura as versões iguais no CI (4.921291ms)
+  ✔ o repositório não ficou com versão que o ramo não pode ter: major 0 e a tag da versão atual é um nome válido (5.555125ms)
+  ✔ sai 0 quando está certo, 1 quando um workspace destoa, 2 no uso errado (113.741042ms)
+  ✔ conferir-tag v1 sai 1 pelo comando, e subir pelo comando escreve nos arquivos (74.041583ms)
+  ✔ principal devolve o código sem encerrar o processo (12.955292ms)
+  ✔ o script não cria tag: não há chamada que escreva tag no código (0.189375ms)
+✔ como comando e na árvore real (211.530208ms)
+ℹ tests 32
+ℹ suites 5
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 328.672167
+codigo=0
+

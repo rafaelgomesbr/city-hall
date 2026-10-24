@@ -1,0 +1,28 @@
+# 1) um workspace so em 0.1.1
+$ node scripts/versao.mjs conferir
+ERRO: plataforma: workspace packages/shared está em 0.1.1, mas package.json da raiz está em 0.1.0 (a linha tem UM número só; use "node scripts/versao.mjs subir plataforma ..." em vez de editar à mão)
+codigo=1
+
+# 2) restaurado
+$ node scripts/versao.mjs conferir
+Versões conferidas: plataforma 0.1.0, campo 0.1.0, ambas com seção no CHANGELOG.
+codigo=0
+
+# 3) nomes de tag invalidos
+$ node scripts/versao.mjs conferir-tag v1
+ERRO: tag "v1": "1" não é SemVer estrito (X.Y.Z, sem zero à esquerda, sem sufixo)
+codigo=1
+
+$ node scripts/versao.mjs conferir-tag v1.0.0
+ERRO: tag "v1.0.0": "1.0.0" tem major 1: antes da G28 a major é 0 (a 1.0.0 é decisão do Rafael, não um bump)
+codigo=1
+
+$ node scripts/versao.mjs conferir-tag v0.9.0
+ERRO: a tag v0.9.0 é da versão 0.9.0, mas os arquivos da linha plataforma dizem 0.1.0: a tag é posta no commit que TEM aquele número
+codigo=1
+
+# 4) subir para 1.0.0 recusado
+$ node scripts/versao.mjs subir plataforma 1.0.0
+ERRO: "1.0.0" tem major 1: antes da G28 a major é 0 (a 1.0.0 é decisão do Rafael, não um bump)
+codigo=1
+
