@@ -1,0 +1,4 @@
+ocorrencias da chave de prova nos relatorios (tem de ser 0):
+saida/segredo.json:0
+saida/segredo.sarif:0
+saida/segredo.txt:0

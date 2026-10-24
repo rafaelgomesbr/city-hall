@@ -114,6 +114,54 @@ export function analisarArquivo(texto, hoje) {
   return violacoes;
 }
 
+/**
+ * Exceções da varredura de imagens (Trivy), arquivo `.trivyignore` da raiz
+ * (V2-F01-E20). Uma linha por achado, no formato
+ *
+ *   <ID> exp:AAAA-MM-DD # motivo: <texto>; dono: <nome>
+ *
+ * É o formato nativo do Trivy (ID, `exp:` e comentário depois de `#`, que ele
+ * ignora): o Trivy deixa de ignorar a linha NO DIA do `exp:` (a data é o
+ * primeiro dia sem exceção, conferido na etapa), e este
+ * leitor confere o resto, que ele não confere: motivo de verdade, dono, prazo
+ * obrigatório e no máximo um ano, e nenhum ID repetido. Linha de comentário
+ * inteira (`#`) e linha em branco são livres. Qualquer outra coisa reprova, em
+ * vez de ser ignorada em silêncio.
+ */
+const LINHA_TRIVYIGNORE = /^([A-Za-z0-9][A-Za-z0-9._-]*)(?:[ \t]+exp:(\S+))?[ \t]*(?:#[ \t]*(.*))?$/;
+
+export function analisarTrivyignore(texto, hoje) {
+  const violacoes = [];
+  const vistos = new Map();
+  texto.split(/\r?\n/).forEach((bruta, i) => {
+    const linha = bruta.trim();
+    if (linha === "" || linha.startsWith("#")) return;
+    const n = i + 1;
+    const achou = LINHA_TRIVYIGNORE.exec(linha);
+    if (!achou) {
+      violacoes.push({
+        linha: n,
+        problema: "linha fora do formato: use `<ID> exp:AAAA-MM-DD # motivo: ...; dono: ...`",
+      });
+      return;
+    }
+    const [, id, exp, comentario = ""] = achou;
+    if (vistos.has(id)) {
+      violacoes.push({ linha: n, problema: `${id} repetido (primeira vez na linha ${vistos.get(id)})` });
+    } else {
+      vistos.set(id, n);
+    }
+    const { motivo, dono } = lerCamposDaExcecao(comentario);
+    const problemas = problemasDaExcecao({ motivo, dono, ate: exp }, hoje)
+      .map((p) => p.replace("(ate: AAAA-MM-DD)", "(exp:AAAA-MM-DD)"));
+    // Conferido contra o Trivy 0.75.0: o `exp:` é EXCLUSIVO. No dia da data ele já
+    // não ignora o achado, então a linha "vence hoje" já está sem efeito no scan.
+    if (exp === hoje) problemas.push(`o Trivy deixa de ignorar a partir do próprio dia ${exp} (exp: é exclusivo): renove ou apague`);
+    for (const p of problemas) violacoes.push({ linha: n, problema: `${id}: ${p}` });
+  });
+  return violacoes;
+}
+
 const EXTENSOES = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".yml", ".yaml"]);
 const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", ".expo", "build", "coverage"]);
 /** Arquivos que citam o marcador de propósito (esta política e o teste dela). */

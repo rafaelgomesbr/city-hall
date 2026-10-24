@@ -1,0 +1,32 @@
+### exceções de prova (ig-prova): uma vigente com motivo, uma VENCIDA em 2026-10-01, duas vigentes sem motivo
+CVE-2020-8203 exp:2026-12-15 # motivo: prova; dono: Rafael
+CVE-2021-23337 exp:2026-10-01 # vencida
+CVE-2026-4800 exp:2026-12-15
+NSWG-ECO-516
+### esperado: so a vencida (CVE-2021-23337) volta a reprovar
+2026-10-24T18:08:58-03:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-24T18:08:58-03:00	INFO	[secret] Secret scanning is enabled
+2026-10-24T18:08:58-03:00	INFO	[secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2026-10-24T18:08:58-03:00	INFO	[secret] Please see https://trivy.dev/docs/v0.75/guide/scanner/secret#recommendation for faster secret detection
+2026-10-24T18:08:58-03:00	INFO	Number of language-specific files	num=1
+2026-10-24T18:08:58-03:00	INFO	[node-pkg] Detecting vulnerabilities...
+2026-10-24T18:08:58-03:00	WARN	[report] No enabled scanners found. Summary table will not be displayed.
+2026-10-24T18:08:58-03:00	INFO	Table result includes only package filenames. Use '--format json' option to get the full path to the package file.
+
+Node.js (node-pkg)
+==================
+Total: 1 (HIGH: 1, CRITICAL: 0)
+
+┌───────────────────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────┬───────────────────────────────────────────────┐
+│        Library        │ Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                     Title                     │
+├───────────────────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────┼───────────────────────────────────────────────┤
+│ lodash (package.json) │ CVE-2021-23337 │ HIGH     │ fixed  │ 4.17.15           │ 4.17.21       │ nodejs-lodash: command injection via template │
+│                       │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2021-23337    │
+└───────────────────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────┴───────────────────────────────────────────────┘
+codigo de saida do varrer-imagem.sh: 1
+
+### o exp: do Trivy é EXCLUSIVO (hoje = 2026-10-24 UTC): exp de hoje NAO ignora, exp de amanha ignora
+CVE-2020-8203 exp:2026-10-24
+CVE-2021-23337 exp:2026-10-25
+CVE-2020-8203
+CVE-2026-4800

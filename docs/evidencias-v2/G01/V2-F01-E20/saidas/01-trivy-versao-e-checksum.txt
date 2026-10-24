@@ -1,0 +1,16 @@
+# release trivy_0.75.0_checksums.txt (linha do Linux-64bit.tar.gz, a que o CI baixa)
+c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  trivy_0.75.0_Linux-64bit.tar.gz
+# SHA-256 do tarball baixado do release por esta etapa
+c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  t.tgz
+# o que esta em varrer-imagem.sh
+42:TRIVY_VERSAO="0.75.0"
+45:TRIVY_SHA256="c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+# o macOS-ARM64 usado nas provas locais, conferido contra o mesmo checksums.txt
+4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568  trivy_0.75.0_macOS-ARM64.tar.gz
+4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568  m.tgz
+Version: 0.75.0
+Vulnerability DB:
+  Version: 2
+  UpdatedAt: 2026-10-24 19:09:13.779511838 +0000 UTC
+  NextUpdate: 2026-10-25 19:09:13.779511598 +0000 UTC
+  DownloadedAt: 2026-10-24 20:59:12.484781 +0000 UTC

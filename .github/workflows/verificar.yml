@@ -1051,14 +1051,25 @@ jobs:
     #      e confere `/saude` 200 com `versao` e `commit` iguais aos do build;
     #   4. `chromium --version` dentro da imagem da API (sem ele o PDF do laudo
     #      responde 503 em produção) e usuário não root nas duas;
-    #   5. sobe o console com o papel `dc360_console_login`, e confere o `/saude`.
+    #   5. sobe o console com o papel `dc360_console_login`, e confere o `/saude`;
+    #   6. (V2-F01-E20) varre as duas imagens com o Trivy, logo depois da
+    #      construção: CRITICAL ou HIGH com correção publicada, ou segredo que
+    #      entrou por `COPY`, reprova o job. Binário de versão fixa com SHA-256
+    #      conferido (`scripts/varrer-imagem.sh`, a mesma lógica da varredura
+    #      semanal de `auditoria-semanal.yml`). A única porta de exceção é o
+    #      `.trivyignore` da raiz, com ID, motivo, dono e prazo por linha, e o
+    #      teste de `excecoes-de-seguranca.test.mjs` reprova a que venceu.
+    #      O relatório sai em SARIF e em tabela no artefato (`trivy/`). O SARIF
+    #      NÃO é enviado ao code scanning: isso pede `security-events: write` no
+    #      job, e nenhum workflow deste repositório tem escrita (regra de
+    #      `conferir-workflows.test.mjs`). Decidir isso é do Rafael.
     #
     # As conferências moram em `scripts/smoke-das-imagens.mjs`, com teste que
     # prova que root, falta de Chromium e versão trocada reprovam.
     #
     # NÃO recebe segredo nenhum: todos os valores abaixo são descartáveis e só
-    # existem neste runner. Não publica a imagem em registro (isso é a E12), não
-    # varre vulnerabilidade (E20) nem gera SBOM (E19).
+    # existem neste runner. Não publica a imagem em registro (isso é a E12) nem
+    # gera SBOM (E19).
     name: Imagens Docker (API e console)
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -1121,6 +1132,28 @@ jobs:
             --build-arg DC360_VERSAO="$DC360_VERSAO" \
             --build-arg DC360_COMMIT="$DC360_COMMIT" . 2>&1 | tee "$RUNNER_TEMP/artefatos/04-build-console.txt"
           docker image ls --filter 'reference=dc360-*:ci' --format '{{.Repository}}:{{.Tag}} {{.Size}}' 2>&1 | tee "$RUNNER_TEMP/artefatos/05-tamanho-das-imagens.txt"
+
+      # V2-F01-E20. O Trivy NÃO recebe segredo: só baixa o banco de
+      # vulnerabilidades (espelho público) e lê a imagem local. Os dois scans
+      # rodam sempre, para o artefato trazer os dois relatórios, e o passo
+      # reprova se QUALQUER um achou algo (ou se o Trivy não conseguiu varrer:
+      # código 2, que nunca vira verde).
+      - name: Instalar o Trivy (versão fixa, SHA-256 conferido)
+        run: |
+          trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
+          echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
+
+      - name: Varrer as duas imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
+        run: |
+          mkdir -p "$RUNNER_TEMP/artefatos/trivy"
+          falhou=0
+          for par in "api:dc360-api:ci" "console:dc360-console:ci"; do
+            nome="${par%%:*}"
+            imagem="${par#*:}"
+            echo "=== $imagem"
+            bash scripts/varrer-imagem.sh varrer "$TRIVY_BIN" "$RUNNER_TEMP/artefatos/trivy" "$nome" "$imagem" || falhou=1
+          done
+          exit "$falhou"
 
       - name: Usuário não root nas duas imagens
         run: |
