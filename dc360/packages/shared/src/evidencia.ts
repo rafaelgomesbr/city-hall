@@ -94,13 +94,14 @@ export const pedidoDeEvidenciaSchema = z.object({
     .min(1, "Informe o nome do arquivo.")
     .max(200, "O nome do arquivo passa de 200 caracteres."),
   tipoConteudo: z.enum(TIPOS_ACEITOS, {
-    errorMap: () => ({
-      message: "Tipo de arquivo não aceito: só entram JPEG, PNG, WebP e HEIC.",
-    }),
+    error: "Tipo de arquivo não aceito: só entram JPEG, PNG, WebP e HEIC.",
   }),
   tamanhoBytes: z.number({
-    invalid_type_error: "O tamanho do arquivo precisa ser um número de bytes.",
-    required_error: "O tamanho do arquivo não foi informado.",
+    /* Zod 4: uma função só, no lugar de `invalid_type_error` e `required_error`.
+       Ausente é uma frase; presente e não numérico é outra. */
+    error: (problema) => problema.input === undefined
+      ? "O tamanho do arquivo não foi informado."
+      : "O tamanho do arquivo precisa ser um número de bytes.",
   })
     .int("O tamanho do arquivo precisa ser um número inteiro de bytes.")
     /*

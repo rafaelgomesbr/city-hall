@@ -142,6 +142,24 @@ test("riscos aceitos vigentes saem de RISCO-ACEITO.md, e o encerrado fica de for
   }
 });
 
+test("rascunho de risco aceito (Quem aceitou vazio, sem Status) não é listado como vigente", () => {
+  const copia = copiarFixture();
+  try {
+    // Formato real do rascunho do gatekeeper (E21): encerrado só em texto livre, sem linha "Status:".
+    escrever(copia.raiz, "docs/evidencias-v2/G00/V2-F00-E01/RISCO-ACEITO.md", "# RISCO ACEITO em V2-F00-E01\n\nRASCUNHO do gatekeeper. NÃO ACEITO.\n\n- Critério: três casos em Windows\n- Validade: até o GATE G00\n- Quem aceitou: (vazio) em (vazio)\n\n## Encerramento na rodada 8, SEM ACEITE\n");
+    escrever(copia.raiz, "docs/evidencias-v2/G00/V2-F00-E02/RISCO-ACEITO.md", "# RISCO ACEITO em V2-F00-E02 (RASCUNHO, NÃO aceito)\n\n- Critério: outro\n- Validade: até a rodada 4\n- Quem aceitou: (vazio; só Rafael pode aceitar critério técnico)\n");
+    let t = gerarEstado(copia.raiz);
+    assert.match(t, /Riscos aceitos vigentes \(0\)/);
+    assert.ok(!t.includes("três casos em Windows"));
+    // Assinado de verdade volta a valer.
+    escrever(copia.raiz, "docs/evidencias-v2/G00/V2-F00-E01/RISCO-ACEITO.md", "- Critério: três casos em Windows\n- Validade: até o GATE G00\n- Quem aceitou: Rafael em 2026-10-25\n");
+    t = gerarEstado(copia.raiz);
+    assert.match(t, /Riscos aceitos vigentes \(1\)\n- V2-F00-E01: três casos em Windows/);
+  } finally {
+    copia.limpar();
+  }
+});
+
 test("o estado respeita o limite de 60 linhas mesmo com muita coisa", () => {
   const copia = copiarFixture();
   try {

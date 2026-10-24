@@ -21,7 +21,7 @@ import { AMBIENTES_APNS } from "../push/envio.js";
 
 const registroSchema = z.object({
   plataforma: z.enum(["ios", "android"], {
-    errorMap: () => ({ message: "Plataforma precisa ser ios ou android" }),
+    error: "Plataforma precisa ser ios ou android",
   }),
   /**
    * O teto acompanha o do banco. A ficha da Apple tem 64 caracteres
@@ -39,7 +39,7 @@ const registroSchema = z.object({
    * varredor revogaria o aparelho de quem está em campo.
    */
   ambiente: z.enum(AMBIENTES_APNS, {
-    errorMap: () => ({ message: "Ambiente precisa ser producao ou teste" }),
+    error: "Ambiente precisa ser producao ou teste",
   }).optional(),
 });
 

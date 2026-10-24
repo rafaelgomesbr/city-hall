@@ -1,0 +1,50 @@
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o 'Cancelar' 150 a 190 px abaixo da borda faz o painel rolar até mostrá-lo, com respiro emb
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle já à vista, com folga dos dois lados, não faz o painel rolar 0ms
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle encostado na borda de baixo (dentro do respiro) rola só o que falta, sem passar do
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle acima da parte visível rola para cima (valor negativo) 0ms
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle mais alto que o painel não cabe: o começo dele vai ao começo do painel 0ms
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o respiro encolhe quando a folga é pouca (painel de 50 px, botão de 44) 0ms
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o conteúdo que muda depois de aberta (a contagem de sessões que chega) refaz a conta enquan
+ × test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o Modal usa a conta depois de abrir no topo, só quando um foco inicial foi pedido, e já não
+ × test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > a frase atrás do topo (10..94 contra 129) é puxada para a faixa livre 1ms
+ × test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > a frase já à vista não rola nada 0ms
+ × test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > manter na faixa age enquanto o foco está no elemento, e não puxa de volta quem já seguiu adiant
+ × test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > Minha conta chama o ajuste quando a confirmação aparece E quando a lista relida chega (é ela qu
+ × test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > o ajuste do Tab usa o mesmo miolo (uma conta só para as duas coisas) 1ms
+ ✓ test/correcao-7-da-e09.test.ts > A prova no navegador existe > a seção 14 do layout-estreito mede a confirmação das sessões por clique, toque e teclado e o foco da janela de confirmação 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 1: a frase da senha atual errada nomeia o campo da tela > em Minha conta fala da senha que a pessoa usa hoje, e na tela da provisória fala da provisória 1ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 1: a frase da senha atual errada nomeia o campo da tela > os nomes dos campos nas frases são os nomes que a tela dá a eles 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 1: a frase da senha atual errada nomeia o campo da tela > toda frase tem acento onde o português pede e diz o que fazer 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 1: a frase da senha atual errada nomeia o campo da tela > só o código `credenciais` é reconhecido: outro erro segue com a frase do servidor 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 1: a frase da senha atual errada nomeia o campo da tela > as duas telas usam a função, e põem a frase no campo da senha atual (não no aviso de cima) 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 2: com janela aberta o aviso passageiro espera > o contador sobe e desce, e o desfazer só vale uma vez 0ms
+ × test/correcao-4-da-e09.test.ts > Defeito 2: com janela aberta o aviso passageiro espera > a janela se registra ao abrir e se solta ao fechar 3ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 2: com janela aberta o aviso passageiro espera > o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 3: o email quebra só depois do @ e dos pontos > os pedaços, juntos, dão o email de volta, sem perder nem acrescentar caractere 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 3: o email quebra só depois do @ e dos pontos > todo pedaço, menos o último, termina em @ ou em ponto, e o fim do endereço anda junto 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 3: o email quebra só depois do @ e dos pontos > o componente põe <wbr> entre os pedaços e nenhum caractere a mais 2ms
+ ✓ test/correcao-4-da-e09.test.ts > Defeito 3: o email quebra só depois do @ e dos pontos > a coluna Pessoa usa o componente e a regra de CSS que desliga a quebra em qualquer lugar 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Revisão 1: o ícone do erro de campo não encolhe > o svg do `.campo__erro` não é espremido pelo texto (flex-shrink: 0) 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Revisão 2: confirmação e erro não ficam juntos na troca de senha > o envio limpa a confirmação anterior antes de gravar 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Revisão 3: depois de enviar o foco não cai em BODY > Minha conta leva o foco ao campo inválido, ao erro e à confirmação 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Revisão 3: depois de enviar o foco não cai em BODY > a tela da senha provisória leva o foco ao campo inválido ou à mensagem focável 0ms
+ ✓ test/correcao-4-da-e09.test.ts > Revisão 4: um email de parte comprida não empurra a coluna Ação > a linha do email tem teto (desde a correção 6b, em qualquer largura) e quebra a palavra só se ela não couber 0ms
+ × test/correcao-4-da-e09.test.ts > Revisão 5: a janela abre no topo > o foco inicial não rola o painel, e o painel começa em zero 6ms
+ ✓ test/correcao-4-da-e09.test.ts > Revisão 6: a lista de órgãos usa a mesma regra de email e de telefone > o email do órgão quebra pelo EmailQuebravel e o telefone nunca é partido 0ms
+ FAIL  test/correcao-4-da-e09.test.ts > Defeito 2: com janela aberta o aviso passageiro espera > a janela se registra ao abrir e se solta ao fechar
+ FAIL  test/correcao-4-da-e09.test.ts > Revisão 5: a janela abre no topo > o foco inicial não rola o painel, e o painel começa em zero
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o 'Cancelar' 150 a 190 px abaixo da borda faz o painel rolar até mostrá-lo, com respiro
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle já à vista, com folga dos dois lados, não faz o painel rolar
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle encostado na borda de baixo (dentro do respiro) rola só o que falta, sem passa
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle acima da parte visível rola para cima (valor negativo)
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > controle mais alto que o painel não cabe: o começo dele vai ao começo do painel
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o respiro encolhe quando a folga é pouca (painel de 50 px, botão de 44)
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o conteúdo que muda depois de aberta (a contagem de sessões que chega) refaz a conta en
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de acessibilidade 1: o foco inicial da janela de confirmação fica à vista no painel > o Modal usa a conta depois de abrir no topo, só quando um foco inicial foi pedido, e já
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > a frase atrás do topo (10..94 contra 129) é puxada para a faixa livre
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > a frase já à vista não rola nada
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > manter na faixa age enquanto o foco está no elemento, e não puxa de volta quem já seguiu ad
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > Minha conta chama o ajuste quando a confirmação aparece E quando a lista relida chega (é el
+ FAIL  test/correcao-7-da-e09.test.ts > Achado de UX 1 e de acessibilidade 2: a confirmação das sessões fica à vista no WebKit > o ajuste do Tab usa o mesmo miolo (uma conta só para as duas coisas)
+ Test Files  2 failed (2)
+      Tests  15 failed | 18 passed (33)

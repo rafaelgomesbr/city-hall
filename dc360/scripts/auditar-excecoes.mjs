@@ -62,12 +62,6 @@ export const ACEITAS_NO_APLICATIVO = {
       + "expande glob em execução. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO, comCorrecao: true,
   },
-  braces: {
-    advisories: { "GHSA-vfj7-8cjw-p6xm": "high" },
-    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
-      + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
-    dono: DONO, ate: PRAZO,
-  },
   "node-forge": {
     advisories: { "GHSA-86w9-cpqp-85rv": "high" },
     motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
@@ -82,10 +76,21 @@ export const ACEITAS_NO_APLICATIVO = {
       + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO, comCorrecao: true,
   },
-  "sprintf-js": {
-    advisories: { "GHSA-hp3w-g68c-fv3c": "moderate" },
-    motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
-      + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
+  /*
+    O `zod` DO PRODUTO subiu para a linha 4 (correção 10 da E19) e não é
+    aceito aqui: esta exceção cobre SÓ a cópia da linha 3 que o `@expo/cli`
+    carrega por dentro (`^3.25.76`, inclusive na versão mais nova do CLI), e por
+    isso vale apenas para o caminho `node_modules/expo/node_modules/`. Se o
+    `zod` de nível superior do aplicativo (o de `@dc360/shared`) voltar a uma
+    versão vulnerável, o caminho é outro e o portão reprova.
+  */
+  zod: {
+    advisories: { "GHSA-mrhx-c7xc-m3w5": "high" },
+    somenteEm: ["node_modules/expo/node_modules/"],
+    motivo: FERRAMENTA_DO_EXPO + "É a cópia do `zod` 3 que o `@expo/cli` usa na máquina de "
+      + "build; a falha é consumo de memória ao validar coleções enormes de entrada "
+      + "hostil, e o telefone não carrega o CLI. O `@expo/cli` pede `zod@^3.25.76` mesmo na versão mais nova (58.1.15), então não há "
+      + "correção pela árvore. " + SEM_FIX_SEGURO,
     dono: DONO, ate: PRAZO,
   },
 };
@@ -160,6 +165,13 @@ export function problemasDasExcecoes(aceitas, hoje, { exigirAdvisories = false }
         }
       }
     }
+    if (e?.somenteEm !== undefined) {
+      const caminhos = e.somenteEm;
+      if (!Array.isArray(caminhos) || caminhos.length === 0
+        || caminhos.some((c) => typeof c !== "string" || !c.startsWith("node_modules/") || !c.endsWith("/"))) {
+        problemas.push(`${nome}: \`somenteEm\` inválido (esperado uma lista de prefixos "node_modules/.../" com barra no fim)`);
+      }
+    }
     if (!preenchido(e?.motivo)) problemas.push(`${nome}: exceção sem motivo escrito`);
     if (!preenchido(e?.dono)) problemas.push(`${nome}: exceção sem dono`);
     if (e?.ate === undefined || e?.ate === null || e?.ate === "") {
@@ -218,7 +230,11 @@ export function advisoriesProprias(entrada) {
 export function advisoriesNaoAceitas(vulnerabilidades, aceitas) {
   const novas = new Map();
   for (const [pacote, entrada] of Object.entries(vulnerabilidades ?? {})) {
-    const aceitasDoPacote = new Set(aceitasDe(aceitas, pacote).keys());
+    /* Exceção com `somenteEm` vale só para as cópias naquele caminho: se o
+       pacote também aparece em outro lugar (a cópia do próprio projeto), nada
+       dele é aceito, e a advisory sai como nova. */
+    const aceitasDoPacote = foraDoCaminho(aceitas, pacote, entrada)
+      ? new Set() : new Set(aceitasDe(aceitas, pacote).keys());
     for (const origem of advisoriesProprias(entrada)) {
       const id = idDaAdvisory(origem) ?? "(sem id)";
       if (aceitasDoPacote.has(id) || novas.has(`${pacote} ${id}`)) continue;
@@ -228,6 +244,20 @@ export function advisoriesNaoAceitas(vulnerabilidades, aceitas) {
     }
   }
   return [...novas.values()];
+}
+
+/**
+ * Verdade quando a exceção do pacote tem `somenteEm` e alguma cópia vulnerável
+ * (`nodes` da entrada do relatório) está FORA desses prefixos. Sem `nodes` no
+ * relatório, não há como provar o caminho, e a exceção não vale.
+ */
+function foraDoCaminho(aceitas, pacote, entrada) {
+  if (!Object.hasOwn(aceitas, pacote)) return false;
+  const prefixos = aceitas[pacote].somenteEm;
+  if (prefixos === undefined) return false;
+  const nos = Array.isArray(entrada?.nodes) ? entrada.nodes : [];
+  if (nos.length === 0) return true;
+  return nos.some((no) => !prefixos.some((prefixo) => String(no).startsWith(prefixo)));
 }
 
 /** As gravidades do `npm audit`, da menor para a maior. */

@@ -1,0 +1,6 @@
+FALHA sessoes 360x640 clique {"aviso":{"top":10,"bottom":94,"cima":129,"baixo":561,"inteiro":false,"aVista":false},"foco":"aviso aviso--sucesso"}
+FALHA sessoes 320x568 clique {"aviso":{"top":-136,"bottom":-52,"cima":129,"baixo":489,"inteiro":false,"aVista":false},"foco":"aviso aviso--sucesso"}
+OK    janela /usuarios 320x256 {"foco":"button.botao.botao--secundario \"Cancelar\"","dentro":true,"inteiro":true,"aVista":true,"painel":"20..236","el":"166..210","scrollTop":242,"paginaRola":false,"painelRola":false,"anel":true,"eOPainel":false}
+OK    janela /usuarios 568x320 {"foco":"button.botao.botao--secundario \"Cancelar\"","dentro":true,"inteiro":true,"aVista":true,"painel":"26..294","el":"249..293","scrollTop":38,"paginaRola":false,"painelRola":false,"anel":true,"eOPainel":false}
+
+webkit: 2 de 4 aprovadas

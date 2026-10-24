@@ -46,6 +46,7 @@ import {
   localizarEtapa,
   normalizar,
   primeiraFrase,
+  riscoAceitoVigente,
   secoesDoStatus,
   celulasDaLinha,
   temPendenciaHumana,
@@ -464,7 +465,7 @@ export function coletar({ raiz = RAIZ, desde, ate, fase: faseForcada, hoje = hoj
 
   // Riscos aceitos e gates reabertos.
   const riscosAceitos = [...evidencias.etapas.entries()]
-    .filter(([, v]) => v.riscoAceito && !v.riscoAceito.encerrado)
+    .filter(([, v]) => riscoAceitoVigente(v.riscoAceito))
     .map(([id, v]) => ({
       etapa: id,
       criterio: v.riscoAceito.criterio,

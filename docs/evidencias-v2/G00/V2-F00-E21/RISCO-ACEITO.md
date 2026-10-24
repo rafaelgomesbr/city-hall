@@ -25,3 +25,7 @@ RASCUNHO preparado pelo gatekeeper da rodada 6 (2026-10-20). NÃO ACEITO. Só va
 - Validade: até o GATE G00 (reavaliado nele)
 - Quem aceitou: (vazio) em (vazio)
 - O BLOCKED original continua em VEREDITO.md, rodadas 6 e 7.
+
+## Encerramento na rodada 8 (2026-10-24, SHA `60cbc2f`), SEM ACEITE
+
+O bloqueio foi removido e revalidado, sem aceite: o job `plataformas` do CI (run 39524190207 sobre `c680f8d`) provou os três casos sob a condição hostil real em windows-latest (118974894002) e em ubuntu-latest (118974893948), e QA e Infra e CI deram PASS (`VEREDITO.md`, rodada 8). Este rascunho fica encerrado e não vale. Os BLOCKED originais continuam em `VEREDITO.md`, rodadas 6 e 7.

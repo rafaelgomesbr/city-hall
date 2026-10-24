@@ -270,7 +270,9 @@ test("lerVeredito: campo, tabela e fail-closed", () => {
 
 test("lerRiscoAceito lê critério, validade e quem aceitou", () => {
   const r = lerRiscoAceito("# Risco\n- **Critério:** pentest externo\n- **Validade:** G05\n- **Quem aceitou:** Rafael\n");
-  assert.deepEqual(r, { criterio: "pentest externo", validade: "G05", aceitoPor: "Rafael", encerrado: false });
+  assert.deepEqual(r, { criterio: "pentest externo", validade: "G05", aceitoPor: "Rafael", encerrado: false, aceito: true });
+  assert.equal(lerRiscoAceito("- Quem aceitou: (vazio) em (vazio)\n").aceito, false);
+  assert.equal(lerRiscoAceito("- Critério: x\n").aceito, false);
   assert.equal(lerRiscoAceito("- Status: EXPIRADO").encerrado, true);
 });
 

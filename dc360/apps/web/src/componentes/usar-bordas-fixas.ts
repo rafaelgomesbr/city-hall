@@ -166,22 +166,55 @@ export function focoDoPonteiro(agora: number, ultimoPonteiro: number | null): bo
  * bordas (o topo, a barra do pé, o "Pular para o conteúdo"), o `<main>` que
  * recebe o foco do "Pular" e a janela de diálogo, que tem a própria rolagem.
  */
+/**
+ * Leva um elemento para a faixa livre da página: inteiro entre a borda de baixo
+ * do topo fixo e a de cima da barra do pé. É o miolo do ajuste do Tab, solto
+ * aqui para quem move o foco POR CÓDIGO depois de uma ação de ponteiro, onde o
+ * `focusin` não ajusta (ver `JANELA_DO_PONTEIRO_MS`) e o motor nem sempre rola.
+ *
+ * O caso que obrigou a soltá-lo (V2-F00-E09, correção 7, achado 1 da rodada 8):
+ * no WebKit, depois de confirmar "Encerrar minhas outras sessões" por clique ou
+ * toque, a frase de sucesso recebe o foco, mas o WebKit não a leva à vista
+ * quando a lista de sessões, relida logo depois, encolhe a página e a rolagem
+ * é corrigida por baixo. A frase ficava atrás do topo ou acima da janela (de
+ * 10..94 com o topo até 129, a 360x640, a -136..-52 a 320x568). Chromium e
+ * Firefox rolavam por conta própria.
+ */
+export function levarAFaixaDasBordas(alvo: HTMLElement): void {
+  const topo = document.querySelector<HTMLElement>(".topo");
+  const barra = document.querySelector<HTMLElement>(".lateral");
+  const faixaDe = topo && topoPreso(getComputedStyle(topo)) ? topo.getBoundingClientRect().bottom : 0;
+  const faixaAte = barra && barraPresaNoPe(getComputedStyle(barra))
+    ? barra.getBoundingClientRect().top : window.innerHeight;
+  alvo.scrollIntoView({ block: "nearest", inline: "nearest" });
+  const caixa = alvo.getBoundingClientRect();
+  const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
+  const desvio = deslocamentoParaAFaixa({ topo: caixa.top, altura: caixa.height, faixaDe, faixaAte, respiro });
+  if (desvio !== 0) window.scrollBy(0, desvio);
+}
+
+/**
+ * Mantém o elemento na faixa livre enquanto ele tem o foco, em três passadas
+ * (na hora, numa tarefa logo depois e no quadro seguinte), pelo mesmo motivo do
+ * Tab: cada motor rola e relê o layout no seu tempo. Devolve a função que
+ * cancela as passadas pendentes. Só age enquanto o foco continua no elemento:
+ * a pessoa que já seguiu adiante não é puxada de volta.
+ */
+export function manterNaFaixaDasBordas(alvo: HTMLElement): () => void {
+  const passada = () => { if (alvo.isConnected && document.activeElement === alvo) levarAFaixaDasBordas(alvo); };
+  passada();
+  const tarefa = setTimeout(passada, 0);
+  const quadro = requestAnimationFrame(passada);
+  return () => { clearTimeout(tarefa); cancelAnimationFrame(quadro); };
+}
+
 export function useFocoForaDasBordas(desenhada: boolean): void {
   useEffect(() => {
     if (!desenhada) return;
     const ajustar = (alvo: HTMLElement) => {
       if (document.activeElement !== alvo) return;
       if (alvo.closest(".topo, .lateral, .pular-para-conteudo, [role=\"dialog\"]") || alvo.id === "conteudo") return;
-      const topo = document.querySelector<HTMLElement>(".topo");
-      const barra = document.querySelector<HTMLElement>(".lateral");
-      const faixaDe = topo && topoPreso(getComputedStyle(topo)) ? topo.getBoundingClientRect().bottom : 0;
-      const faixaAte = barra && barraPresaNoPe(getComputedStyle(barra))
-        ? barra.getBoundingClientRect().top : window.innerHeight;
-      alvo.scrollIntoView({ block: "nearest", inline: "nearest" });
-      const caixa = alvo.getBoundingClientRect();
-      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
-      const desvio = deslocamentoParaAFaixa({ topo: caixa.top, altura: caixa.height, faixaDe, faixaAte, respiro });
-      if (desvio !== 0) window.scrollBy(0, desvio);
+      levarAFaixaDasBordas(alvo);
     };
     let ultimoPonteiro: number | null = null;
     const aoApontar = () => { ultimoPonteiro = performance.now(); };
