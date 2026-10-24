@@ -75,9 +75,15 @@ kill_timeout = 30
   # docs/AMBIENTES.md: `EMAIL_ATIVO=sim` EXIGE `EMAIL_DOMINIOS_DE_TESTE`.
   RECUPERACAO_ATIVA = "nao"
   EMAIL_ATIVO = "nao"
-  # Push desligado em HML até a E13 (perfil EAS de HML) e os segredos de push
-  # PRÓPRIOS de HML. Os de PROD são proibidos neste app.
+  # Push desligado em HML até existirem os segredos de push PRÓPRIOS de HML
+  # (F14-E05). Os de PROD são proibidos neste app. A identidade do aplicativo de
+  # HML já está declarada (V2-F01-E13): APNS_BUNDLE é o `apns-topic` e TEM de ser
+  # o bundle do perfil `homologacao` de apps/campo/app.config.ts (o de PROD mais
+  # `.hml`); APNS_AMBIENTE é `teste` porque o build interno fala com a APNs de
+  # sandbox. `scripts/perfis-do-eas.test.mjs` confere os dois.
   PUSH_ATIVO = "nao"
+  APNS_BUNDLE = "com.solerte.dc360.campo.hml"
+  APNS_AMBIENTE = "teste"
 
 [http_service]
   internal_port = 3333

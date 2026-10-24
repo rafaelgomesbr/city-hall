@@ -1,0 +1,27 @@
+# PENDENTE (humano): criar o cliente Android com.solerte.dc360.campo.hml no Firebase e acrescentá-lo ao google-services.json antes do primeiro build de HML (V2-F01-E13, CP-04).
+✔ os dois toml declaram o nome do app do Fly, e são nomes diferentes (0.52075ms)
+✔ o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo (0.466125ms)
+✔ a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML (0.071334ms)
+✔ nenhum endereço de exemplo sobrou em eas.json (0.186083ms)
+✔ com EAS_BUILD_PROFILE=homologacao o app.config.ts resolve o bundle, o pacote e o nome de HML (0.065041ms)
+✔ o bundle de HML é diferente do de PROD e do de desenvolvimento: os aplicativos coexistem no aparelho (0.050208ms)
+✔ produção, desenvolvimento e fora do EAS mantêm o identificador de sempre (0.070792ms)
+✔ APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic) (0.697083ms)
+✔ APNS_AMBIENTE de HML é teste, o mesmo vocabulário do pushAmbiente do binário de HML (0.092542ms)
+✔ o HML segue sem push ligado nem segredo de push de PROD no toml (0.352334ms)
+✔ o google-services.json mantém o cliente de PROD e não traz pacote desconhecido (0.856958ms)
+✔ negativo: HML apontando para a URL de PROD reprova (0.324916ms)
+✔ negativo: endereço de exemplo em qualquer perfil reprova (0.105959ms)
+✔ negativo: perfil de desenvolvimento com a URL de PROD reprova (0.101833ms)
+✔ negativo: producao com a URL errada, HML fora de internal e canal repetido reprovam (0.087041ms)
+✔ negativo: um app.config.ts que dá o mesmo bundle a todo perfil reprova no teste de coexistência (58.423375ms)
+✔ negativo: o app do fly.hml.toml sai do texto, e toml sem app devolve null (0.081625ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 372.052125
+exit 0

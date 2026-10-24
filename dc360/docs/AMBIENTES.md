@@ -233,9 +233,9 @@ deploy perdido. Conferir antes, SEM imprimir a URL:
   Fly e quem o gravou conhecem.
 - Não substitui o isolamento entre municípios nem o `exigirPermissao`: um
   ambiente certo com um token errado continua sendo coisa do token.
-- Não cria app, banco, bucket nem domínio de HML (CP-05 e E10), nem perfil de
-  build do aplicativo de campo (E13). O aplicativo de campo não carrega
-  `AMBIENTE_DC360`: o ambiente dele é o endereço da API compilado no binário.
+- Não cria app, banco, bucket nem domínio de HML (CP-05 e E10). O aplicativo de
+  campo não carrega `AMBIENTE_DC360`: o ambiente dele é o endereço da API
+  compilado no binário e o identificador do aplicativo (seção 12).
 - Não habilita o PostGIS em PROD nem em HML (E22); o do CI e do `compose.yaml` é da E21.
 
 ## 10. Rollback
@@ -264,3 +264,40 @@ A guarda é fail-closed: URL que não dá para analisar recusa. A identidade de 
 que ela protege (`db/src/guarda-da-semente.ts`) é a mesma de
 `ambientes.prod.identidadeDoBanco`, e `db/test/guarda-da-semente.test.ts` reprova
 se as duas divergirem. Se o projeto de banco de PROD mudar, mudar as duas.
+
+## 12. O aplicativo de campo por ambiente (V2-F01-E13)
+
+O binário do aplicativo carrega o seu ambiente de dois jeitos, e os dois vêm do
+perfil de build do EAS (`apps/campo/eas.json`): o endereço da API (`DC360_API_URL`)
+e o identificador do aplicativo (`app.config.ts`, que lê `EAS_BUILD_PROFILE`). Os
+dois aplicativos instalam lado a lado no mesmo aparelho, porque o de HML tem outro
+identificador, outro nome sob o ícone e outro esquema de link.
+
+| Perfil | Identificador (iOS e Android) | Nome sob o ícone | Esquema | API | Distribuição | Canal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `desenvolvimento` | `com.solerte.dc360.campo` | Defesa Civil 360 | `dc360` | `http://localhost:3333` | interna, com cliente de desenvolvimento | `desenvolvimento` |
+| `homologacao` | `com.solerte.dc360.campo.hml` | DC360 HML | `dc360-hml` | `https://defesa-civil-hml.fly.dev` | interna (APK no Android) | `homologacao` |
+| `producao` | `com.solerte.dc360.campo` | Defesa Civil 360 | `dc360` | `https://defesa-civil.fly.dev` | loja | `producao` |
+
+- O identificador-base é UMA constante (`IDENTIFICADOR_BASE`, em `app.config.ts`).
+  O valor `com.solerte.dc360.campo` é PROVISÓRIO: o definitivo, a conta Apple, a
+  conta Google Play e a conta Expo dependem do CP-04. Ao trocá-lo, o HML acompanha
+  sozinho (é a base mais `.hml`), mas é preciso trocar junto o `APNS_BUNDLE` de
+  `fly.toml`, o App ID no portal da Apple e o cliente do Firebase.
+- A URL de HML é `https://<app>.fly.dev` do `app` de `fly.hml.toml` (a mesma regra
+  do endereço de PROD). O domínio próprio de HML ainda é marcador até o CP-05; a
+  URL do perfil não inventa nenhum. Quando o CP-05 mudar o nome do app, mudam
+  juntos `fly.hml.toml`, `ambientes.json` e `eas.json`, e o teste reprova se um
+  ficar para trás.
+- `APNS_BUNDLE` de `fly.hml.toml` é o bundle de HML (é o `apns-topic`) e
+  `APNS_AMBIENTE` é `teste`: o build interno fala com a APNs de sandbox. O push
+  continua desligado em HML (`PUSH_ATIVO=nao`) até F14-E05.
+- Quem confere é `scripts/perfis-do-eas.test.mjs`, que roda o `app.config.ts`
+  de verdade com cada perfil: bundle de HML diferente do de PROD, só `producao`
+  com a URL de PROD, zero endereço de exemplo, `APNS_BUNDLE` igual ao bundle de
+  HML.
+- Antes do primeiro build de HML: criar o cliente Android
+  `com.solerte.dc360.campo.hml` no Firebase e acrescentá-lo ao
+  `google-services.json` (um arquivo com os dois clientes). Sem isso o Gradle para
+  com "No matching client found for package name". A conta e o console são do
+  dono (CP-04), então isto é pendência humana. Ver `apps/campo/LOJAS.md`.

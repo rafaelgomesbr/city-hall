@@ -339,6 +339,17 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   */
   "V2-F01-E19": 15,
   "V2-F01-E19-sbom": 11,
+  /*
+    V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 17 casos (o
+    `app.config.ts` resolvido de verdade por perfil: bundle, pacote, nome e
+    esquema de HML distintos dos de PROD; PROD e desenvolvimento inalterados; a
+    URL de HML do `eas.json` vinda do `fly.hml.toml` e do `ambientes.json`; só
+    `producao` com a URL de PROD; zero endereço de exemplo; `APNS_BUNDLE` e
+    `APNS_AMBIENTE` dos dois toml; o `google-services.json`; e os negativos que
+    provam que o teste reprova HML na URL de PROD, endereço de exemplo, canal
+    repetido e o bundle igual ao de PROD).
+  */
+  "V2-F01-E13": 17,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -366,6 +377,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E15": "producao.test.mjs",
   "V2-F01-E19": "licencas.test.mjs",
   "V2-F01-E19-sbom": "sbom.test.mjs",
+  "V2-F01-E13": "perfis-do-eas.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
