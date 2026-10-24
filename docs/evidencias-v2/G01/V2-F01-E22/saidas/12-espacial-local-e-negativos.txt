@@ -1,0 +1,110 @@
+== sem servidor, local: pula com aviso ==
+
+> dc360@0.1.0 test:espacial
+> npm run test:espacial --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test:espacial
+> vitest run --config vitest.espacial.config.ts
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a579562cbfd30e151/dc360/db
+
+stderr | test/postgis-provedor.espacial.test.ts > PostGIS no provedor: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa
+Testes espaciais PULADOS: DC360_POSTGRES_DE_PROVA não está definida. Para rodar de verdade: suba um Postgres com PostGIS (docker compose up banco, ou a imagem postgis/postgis:17-3.5) e aponte DC360_POSTGRES_DE_PROVA para um superusuário dele, depois npm run test:espacial.
+
+ ✓ test/postgis-provedor.espacial.test.ts (15 tests | 14 skipped) 2ms
+stderr | test/postgis-disponivel.espacial.test.ts > PostGIS em Postgres real: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa
+Testes espaciais PULADOS: DC360_POSTGRES_DE_PROVA não está definida. Para rodar de verdade: suba um Postgres com PostGIS (docker compose up banco, ou a imagem postgis/postgis:17-3.5) e aponte DC360_POSTGRES_DE_PROVA para um superusuário dele, depois npm run test:espacial.
+
+ ✓ test/postgis-disponivel.espacial.test.ts (11 tests | 10 skipped) 1ms
+
+ Test Files  2 passed (2)
+      Tests  2 passed | 24 skipped (26)
+   Start at  20:01:46
+   Duration  654ms (transform 85ms, setup 0ms, collect 243ms, tests 3ms, environment 0ms, prepare 162ms)
+
+codigo 0
+== sem servidor, DC360_EXIGE_POSTGIS=1: reprova ==
+
+> dc360@0.1.0 test:espacial
+> npm run test:espacial --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test:espacial
+> vitest run --config vitest.espacial.config.ts
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a579562cbfd30e151/dc360/db
+
+ ❯ test/postgis-provedor.espacial.test.ts (15 tests | 1 failed | 14 skipped) 6ms
+   × PostGIS no provedor: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa 5ms
+     → DC360_EXIGE_POSTGIS=1 e DC360_POSTGRES_DE_PROVA não está definida. No CI isto reprova de propósito: pular aqui esconderia que a prova espacial não rodou.
+   ↓ PostGIS no provedor, em Postgres real > 1. o papel de aplicação recebe permission denied em CREATE EXTENSION
+   ↓ PostGIS no provedor, em Postgres real > 2. o setup instala no schema extensions e responde postgis_version()
+   ↓ PostGIS no provedor, em Postgres real > 2b. instalar de novo é idempotente
+   ↓ PostGIS no provedor, em Postgres real > 3. sem endurecer, a premissa do defeito vale e a conferência reprova
+   ↓ PostGIS no provedor, em Postgres real > 4. o endurecimento fecha tudo sem aviso de falta de permissão, e a conferência passa
+   ↓ PostGIS no provedor, em Postgres real > 4b. rodar o endurecimento de novo não muda nada (idempotente)
+   ↓ PostGIS no provedor, em Postgres real > 4c. em PROD, com a extensão instalada e endurecida, a conferência também passa
+   ↓ PostGIS no provedor, em Postgres real > 5. dc360_app consulta spatial_ref_sys e mede distância em metros
+   ↓ PostGIS no provedor, em Postgres real > 5b. os papéis do provedor recebem permission denied na tabela e nas funções
+   ↓ PostGIS no provedor, em Postgres real > 5c. o papel de aplicação continua sem poder criar extensão
+   ↓ PostGIS no provedor, em Postgres real > 6. anon com SELECT em spatial_ref_sys (o PR de prova) aparece na conferência
+   ↓ PostGIS no provedor, em Postgres real > 6b. sem USAGE no schema, dc360_app perde o acesso e a conferência reprova
+   ↓ PostGIS no provedor, em Postgres real > 6c. extensão fora do schema esperado reprova
+   ↓ PostGIS no provedor, em Postgres real > 7. a saída da conferência nunca traz o usuário nem a senha da URL
+ ❯ test/postgis-disponivel.espacial.test.ts (11 tests | 1 failed | 10 skipped) 6ms
+   × PostGIS em Postgres real: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa 5ms
+     → DC360_EXIGE_POSTGIS=1 e DC360_POSTGRES_DE_PROVA não está definida. No CI isto reprova de propósito: pular aqui esconderia que a prova espacial não rodou.
+   ↓ PostGIS em Postgres real > a extensão está instalada e é a série 3 do PostGIS
+   ↓ PostGIS em Postgres real > spatial_ref_sys traz o SRID 4326 e a aplicação (sem ser superusuário) o lê
+   ↓ PostGIS em Postgres real > ST_Contains: o ponto dentro do polígono é contido, o de fora não
+   ↓ PostGIS em Postgres real > ST_DWithin em geography mede em metros
+   ↓ PostGIS em Postgres real > a tabela de prova tem RLS ativada e forçada
+   ↓ PostGIS em Postgres real > controle: sem RLS (superusuário) o ponto do outro município ESTÁ no raio da busca
+   ↓ PostGIS em Postgres real > isolamento: a busca espacial do município A não devolve a geometria do B
+   ↓ PostGIS em Postgres real > isolamento: o município B só enxerga a própria geometria, mesmo a 51 m das do A
+   ↓ PostGIS em Postgres real > isolamento: sem organização na transação, nenhuma geometria aparece
+   ↓ PostGIS em Postgres real > isolamento: a aplicação não grava geometria em nome de outro município
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/postgis-disponivel.espacial.test.ts > PostGIS em Postgres real: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa
+Error: DC360_EXIGE_POSTGIS=1 e DC360_POSTGRES_DE_PROVA não está definida. No CI isto reprova de propósito: pular aqui esconderia que a prova espacial não rodou.
+ ❯ test/postgis-disponivel.espacial.test.ts:49:44
+     47| describe("PostGIS em Postgres real: o ambiente tem o que a execução ex…
+     48|   it("reprova se o CI exige PostGIS e o servidor não o oferece; local,…
+     49|     if (decisao.acao === "reprovar") throw new Error(decisao.motivo);
+       |                                            ^
+     50|     if (decisao.acao === "pular") console.warn(decisao.aviso);
+     51|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/postgis-provedor.espacial.test.ts > PostGIS no provedor: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa
+Error: DC360_EXIGE_POSTGIS=1 e DC360_POSTGRES_DE_PROVA não está definida. No CI isto reprova de propósito: pular aqui esconderia que a prova espacial não rodou.
+ ❯ test/postgis-provedor.espacial.test.ts:69:44
+     67| describe("PostGIS no provedor: o ambiente tem o que a execução exige",…
+     68|   it("reprova se o CI exige PostGIS e o servidor não o oferece; local,…
+     69|     if (decisao.acao === "reprovar") throw new Error(decisao.motivo);
+       |                                            ^
+     70|     if (decisao.acao === "pular") console.warn(decisao.aviso);
+     71|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 24 skipped (26)
+   Start at  20:01:47
+   Duration  402ms (transform 170ms, setup 0ms, collect 262ms, tests 12ms, environment 3ms, prepare 94ms)
+
+npm error Lifecycle script `test:espacial` failed with error:
+npm error code 1
+npm error path /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a579562cbfd30e151/dc360/db
+npm error workspace @dc360/db@0.1.0
+npm error location /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a579562cbfd30e151/dc360/db
+npm error command failed
+npm error command sh -c vitest run --config vitest.espacial.config.ts
+codigo 1

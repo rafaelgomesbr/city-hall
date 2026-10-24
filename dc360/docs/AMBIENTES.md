@@ -163,7 +163,7 @@ serve: `--lista=ARQUIVO`, ou `--lista=-` pela entrada padrão.
 | Postgres de PROD | 17.6 | Supabase |
 | Postgres do `compose.yaml` | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5@sha256:01a6a70e...`) | `compose.yaml` (`banco` e `papeis`) |
 | Postgres do CI | 17 com PostGIS 3.5, a mesma imagem e o mesmo digest do `compose.yaml` | `.github/workflows/verificar.yml` (jobs `implantavel` e `imagens`; V2-F01-E08 e E21) |
-| PostGIS | 3.5, na imagem acima | só nessa imagem: o PGlite não o traz, e a extensão em PROD e em HML é da V2-F01-E22 |
+| PostGIS | 3.5, na imagem acima | CI e `compose.yaml` (PGlite não o traz). HML e PROD: ver a tabela da seção "PostGIS no provedor" |
 | PGlite | Postgres 16 em WebAssembly | testes de unidade e painel local |
 
 A diferença de major entre o PGlite (16) e o 17.6 de PROD é um risco conhecido e
@@ -189,7 +189,66 @@ declarado em `docs/COLOCAR-DE-PE.md`. O CI e o `compose.yaml` já estão no majo
   `DC360_POSTGRES_DE_PROVA=postgres://dc360_setup:senha-local-de-desenvolvimento@localhost:5432/dc360 npm run test:espacial`.
   O teste cria um banco e um papel descartáveis (`prova_e21_<sorteio>`) e os apaga.
 - **Não faz.** Não cria migração com PostGIS nem modelo espacial (F32), e não
-  habilita a extensão no provedor nem no HML (E22).
+  habilita a extensão no provedor nem no HML (E22, a seção seguinte).
+
+### PostGIS no provedor e no HML (V2-F01-E22, decisão D-16)
+
+O que está no repositório (a etapa prepara e confere; rodar no provedor é do
+Rafael, CP-44):
+
+| Peça | O que faz |
+| --- | --- |
+| `db/provedores/postgis.sql` | `CREATE SCHEMA IF NOT EXISTS extensions` e `CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions`, e imprime `postgis_version()`. Papel de **setup**, nunca o de aplicação. Só em HML: em PROD a extensão nasce na migration da F32 |
+| bloco "PostGIS" de `db/provedores/supabase-endurecer.sql` | Se a extensão existe: revoga tudo de `PUBLIC`, `anon`, `authenticated` e `service_role` nos objetos DA EXTENSÃO (achados por dependência, não por schema), e dá a `dc360_app` USAGE no schema, SELECT em `spatial_ref_sys` e EXECUTE nas funções. Sem a extensão, não faz nada |
+| `node scripts/conferir-ambiente.mjs --extensoes` | Confere, só leitura, que a extensão está disponível, instalada em `extensions` (nunca `public`), que ninguém do provedor a alcança e que `dc360_app` enxerga o mínimo |
+
+Por que revogar de `PUBLIC` e não só dos três papéis: o script da extensão
+concede SELECT a `PUBLIC` e o Postgres concede EXECUTE nas funções a `PUBLIC`
+por padrão, e `anon` herda de `PUBLIC`. Revogar só de `anon` não fecharia nada.
+O USAGE do schema `extensions` para os três papéis NÃO é revogado: o Supabase
+depende dele para outras extensões.
+
+**Como rodar em HML** (depois da E11 e com o papel de setup):
+
+```bash
+psql "$DATABASE_URL_SETUP" -v ON_ERROR_STOP=1 -f db/provedores/postgis.sql
+psql "$DATABASE_URL_SETUP" -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurecer.sql
+DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes
+```
+
+**Em PROD**, só a pergunta de disponibilidade (não cria nada):
+`DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes --ambiente=prod`.
+A URL vem da variável de ambiente, nunca de argumento, e a saída só traz nomes
+de papel, de objeto e contagens (nunca a URL, o usuário ou a senha). Sem banco,
+`--fatos=ARQUIVO` avalia fatos já coletados.
+
+**Versão do PostGIS por ambiente** (preencher quando o ambiente existir):
+
+| Ambiente | Versão | Como foi obtida |
+| --- | --- | --- |
+| CI e `compose.yaml` | 3.5 (imagem por digest) | `postgis_lib_version()` no teste espacial |
+| HML | A PREENCHER (CP-44) | saída de `postgis.sql` em HML |
+| PROD | não instalada até a F32 | `--extensoes --ambiente=prod` informa a versão disponível |
+
+**Rollback em HML:** `DROP EXTENSION postgis;` (sem `CASCADE`).
+
+**Prova no repositório.** O SQL é exercitado em Postgres real no job
+`implantavel`, por `db/test/postgis-provedor.espacial.test.ts` (`test:espacial`):
+o papel de aplicação recebe `permission denied` em `CREATE EXTENSION`; sem
+endurecer, a conferência reprova; endurecido, passa e é idempotente; `dc360_app`
+consulta e mede distância; `anon`, `authenticated` e `service_role` recebem
+`permission denied`; `GRANT SELECT` a `anon` e a perda do USAGE reprovam. Sem
+Docker, `db/test/endurecer-extensao.test.ts` e o último caso de
+`scripts/conferir-extensoes.test.mjs` provam a mesma mecânica no PGlite, com
+`pg_trgm` no lugar do PostGIS.
+
+**O que a F32 herda.** O PostGIS em `extensions` não fica no `search_path`:
+funções e operadores da extensão precisam ser chamados qualificados
+(`extensions.ST_DWithin(...)`) ou o papel ganhar `extensions` no `search_path`.
+Decidir isso é da F32, junto com a migration que cria a extensão em PROD.
+Atualizar a extensão (`ALTER EXTENSION postgis UPDATE`) cria funções novas com
+EXECUTE para `PUBLIC`: rodar `supabase-endurecer.sql` de novo depois (é
+idempotente).
 
 ## 7. Criar um ambiente novo (HML: os arquivos são da E11, o ambiente é do CP-05)
 
@@ -236,7 +295,8 @@ deploy perdido. Conferir antes, SEM imprimir a URL:
 - Não cria app, banco, bucket nem domínio de HML (CP-05 e E10). O aplicativo de
   campo não carrega `AMBIENTE_DC360`: o ambiente dele é o endereço da API
   compilado no binário e o identificador do aplicativo (seção 12).
-- Não habilita o PostGIS em PROD nem em HML (E22); o do CI e do `compose.yaml` é da E21.
+- Não habilita o PostGIS em PROD nem em HML: a E22 entrega o SQL e a conferência, e
+  rodá-los no provedor é do CP-44. O do CI e do `compose.yaml` é da E21.
 
 ## 10. Rollback
 

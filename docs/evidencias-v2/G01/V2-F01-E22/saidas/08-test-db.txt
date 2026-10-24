@@ -1,0 +1,65 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a579562cbfd30e151/dc360/db
+
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 7053ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts (12 tests) 7343ms
+ ✓ test/carga.test.ts (15 tests) 7929ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 11218ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > executar antes do prazo nao faz nada  342ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > tabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar  606ms
+   ✓ Armadilha 1: com o dono sem BYPASSRLS, a funcao estoura em vez de apagar pela metade > a funcao de eliminar ESTOURA nomeando a tabela, e nenhuma linha sai  542ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 13508ms
+   ✓ Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' > isolamento: a tolerância a erro não atravessa o município > a busca de A nunca devolve linha de B, mesmo com texto idêntico nos dois  300ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 6552ms
+ ✓ test/familia-da-sessao.test.ts (12 tests) 7066ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts (6 tests) 5799ms
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 5859ms
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 5ms
+ ✓ test/postgis-decisao.test.ts (8 tests) 3ms
+ ✓ test/guarda-da-semente.test.ts (18 tests) 6877ms
+   ✓ o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)  6425ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 14055ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  4584ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  3311ms
+ ✓ test/endurecer-extensao.test.ts (9 tests) 6532ms
+   ✓ sem a extensão instalada > o arquivo inteiro roda num Postgres comum, sem os papéis do provedor  1370ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 3879ms
+ ✓ test/migrar.test.ts (17 tests) 27564ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  5576ms
+   ✓ Aplicação > rodar de novo não faz nada  2148ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  3216ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  2984ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  2989ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  3518ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  1619ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  743ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  536ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  540ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  520ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  490ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  823ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  749ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  372ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  358ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  381ms
+ ✓ test/isolamento.test.ts (137 tests) 46306ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id  742ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  410ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  7136ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  4975ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  23770ms
+
+ Test Files  17 passed (17)
+      Tests  380 passed | 3 skipped (383)
+   Start at  19:59:53
+   Duration  47.12s (transform 1.28s, setup 0ms, collect 3.98s, tests 177.55s, environment 3ms, prepare 2.27s)
+
+codigo 0

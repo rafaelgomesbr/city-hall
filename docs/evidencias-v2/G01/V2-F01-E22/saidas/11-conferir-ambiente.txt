@@ -1,0 +1,2 @@
+conferir-ambiente: o repositório bate com scripts/ambientes.json
+codigo 0
