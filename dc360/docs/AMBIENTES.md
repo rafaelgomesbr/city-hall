@@ -27,10 +27,13 @@ município) nunca vem de configuração, vem sempre do token já verificado.
 | `hml` | Homologação: ensaia migration e funcionalidade antes de PROD | Apps próprios no Fly, banco próprio (V2-F01-E11, depende do CP-05) | Sintéticos; marca d'água ligada; e-mail só a domínios de teste |
 | `prod` | Os municípios de verdade | `defesa-civil` e `defesa-civil-console` no Fly | Reais |
 
-HML ainda não existe: os apps, o banco e o painel dele nascem na E11 (e o
-domínio na E10). Até lá a coluna de HML da matriz é o contrato que a E11 vai
-cumprir, e `conferir-ambiente` avisa (sem reprovar) que os `fly.hml.toml` e
-`fly.console.hml.toml` ainda não existem.
+Os arquivos de HML existem desde a E11 (`fly.hml.toml` e `fly.console.hml.toml`),
+mas o ambiente de verdade, não: os apps do Fly, o banco, o bucket e o painel
+dependem do CP-05 (e o domínio da E10). Por isso a identidade do banco e o
+domínio de HML nos dois toml são MARCADORES (`a-definir-no-cp-05` e
+`painel-hml.a-definir.invalid`) que nenhuma URL contém: a partida recusa até
+alguém trocá-los (roteiro em `docs/IMPLANTACAO.md`, seção 9). `conferir-ambiente`
+passa sem aviso, porque os arquivos existem e batem com a matriz.
 
 ## 3. As variáveis do contrato
 
@@ -165,18 +168,22 @@ serve: `--lista=ARQUIVO`, ou `--lista=-` pela entrada padrão.
 A diferença entre as majors 16 e 17 do CI e do PGlite contra o 17.6 de PROD é um
 risco conhecido e declarado em `docs/COLOCAR-DE-PE.md`.
 
-## 7. Criar um ambiente novo (HML, na E11)
+## 7. Criar um ambiente novo (HML: os arquivos são da E11, o ambiente é do CP-05)
 
-1. Criar o `fly.hml.toml` e o `fly.console.hml.toml` com o `[env]` que a matriz
-   manda para HML: `AMBIENTE_DC360 = "hml"`, a identidade do banco de HML, o
-   domínio do painel de HML, `MARCA_DAGUA` preenchida e `PUSH_ATIVO` desligado.
-2. Preencher em `scripts/ambientes.json`: `arquivos` (já estão), `appsNoFly`,
-   `identidadeDoBanco`, `bancoHost`, `bancoPorta` (que os roteiros `*-producao` leem) e `dominio` de HML.
+1. Os `fly.hml.toml` e `fly.console.hml.toml` já trazem o `[env]` que a matriz
+   manda para HML: `AMBIENTE_DC360 = "hml"`, `MARCA_DAGUA` preenchida e
+   `PUSH_ATIVO` desligado. Trocar neles os dois marcadores (identidade do banco
+   de HML e domínio do painel de HML) pelos valores reais.
+2. Preencher em `scripts/ambientes.json`: `appsNoFly`, `identidadeDoBanco`,
+   `bancoHost`, `bancoPorta` (que os roteiros `*-producao` leem) e `dominio` de
+   HML, no mesmo commit da troca dos marcadores.
 3. Gravar os segredos de HML, DISTINTOS dos de PROD (outra `DATABASE_URL`, outro
    `JWT_SEGREDO`, outra chave de armazenamento).
 4. `node scripts/conferir-ambiente.mjs` (repositório) e depois
    `node scripts/conferir-ambiente.mjs --ambiente=hml --app=api` (segredos).
 5. Subir. Se a partida recusar, a mensagem diz o que está incoerente.
+6. Semear com `apps/api/src/semear-homologacao.ts` (senhas sorteadas), e NUNCA
+   com `--semear` (ver a seção 11 e `docs/IMPLANTACAO.md`, seção 9).
 
 ## 8. Antes do primeiro deploy de PROD com estas variáveis
 
@@ -203,7 +210,7 @@ deploy perdido. Conferir antes, SEM imprimir a URL:
   Fly e quem o gravou conhecem.
 - Não substitui o isolamento entre municípios nem o `exigirPermissao`: um
   ambiente certo com um token errado continua sendo coisa do token.
-- Não cria app, banco, bucket nem domínio de HML (E11 e E10), nem perfil de
+- Não cria app, banco, bucket nem domínio de HML (CP-05 e E10), nem perfil de
   build do aplicativo de campo (E13). O aplicativo de campo não carrega
   `AMBIENTE_DC360`: o ambiente dele é o endereço da API compilado no binário.
 - Não troca o Postgres do CI (E08).
@@ -214,3 +221,23 @@ Reverter o commit que trouxe o contrato e as linhas do `[env]` dos dois
 `fly*.toml`. Sem as linhas e sem o código novo, a partida volta a se comportar
 como antes. Reverter só as linhas do `[env]` sem reverter o código derruba a
 partida (a variável é obrigatória em produção).
+
+## 11. A semente de HML e a guarda do `--semear` (V2-F01-E11)
+
+A semente de desenvolvimento (`db/seeds/desenvolvimento.sql`) dá a toda conta a
+senha `defesa-civil-2026`, que está no repositório. Antes da E11, o `--semear` do
+migrador só recusava com `NODE_ENV=production` no processo: com a `DATABASE_URL`
+de PROD copiada para o terminal e essa variável ausente, ele semearia contas de
+coordenador com senha pública na base dos municípios.
+
+| Comando | Banco | Resultado |
+| --- | --- | --- |
+| `npm run migrar -- --semear` | sem `DATABASE_URL` (efêmero) ou na própria máquina | semeia (desenvolvimento) |
+| `npm run migrar -- --semear` | `NODE_ENV=production`, `AMBIENTE_DC360` `prod` ou `hml`, identidade de PROD na URL, qualquer host que não seja a própria máquina ou serviço do Docker | RECUSA com código 1, ANTES de conectar e de migrar |
+| `npx tsx src/semear-homologacao.ts` (em `apps/api`) | `AMBIENTE_DC360=hml`, identidade de HML na URL, banco sem município nenhum | semeia com senha sorteada por conta, impressa uma vez |
+| o mesmo | qualquer outra combinação, ou banco com município real | RECUSA antes de escrever |
+
+A guarda é fail-closed: URL que não dá para analisar recusa. A identidade de PROD
+que ela protege (`db/src/guarda-da-semente.ts`) é a mesma de
+`ambientes.prod.identidadeDoBanco`, e `db/test/guarda-da-semente.test.ts` reprova
+se as duas divergirem. Se o projeto de banco de PROD mudar, mudar as duas.

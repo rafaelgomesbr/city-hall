@@ -724,3 +724,99 @@ antes da API nova.
   roteiro, e roteiro se pula; o que não deixa passar despercebido é a consulta
   do passo 4, que a pessoa precisa rodar. Automatizar exige a credencial de
   dono dentro de um processo, que é o que a ADR 0008 recusa.
+
+## 9. Homologação (HML)
+
+HML é o ambiente onde cada migration e cada funcionalidade são ensaiadas antes de
+produção, com dado SINTÉTICO. O contrato dele (variáveis, travas, o que a partida
+recusa) está em `docs/AMBIENTES.md`; esta seção é o roteiro de criar e semear.
+
+**O que o repositório já traz (V2-F01-E11):** `fly.hml.toml` (API) e
+`fly.console.hml.toml` (console), `db/seeds/homologacao.sql`,
+`apps/api/src/semear-homologacao.ts` e a guarda do `--semear` em `db/src/cli.ts`.
+**O que depende da contratação (CP-05) e é feito pelo Rafael, fora do
+repositório:** os dois apps do Fly, o projeto de banco Postgres 17, o bucket, o
+domínio de teste de e-mail e o painel de HML (E10).
+
+### 9.1 Os dois marcadores que o CP-05 troca
+
+Os dois `fly*.toml` de HML nascem com `IDENTIDADE_DO_BANCO` (e
+`CONSOLE_IDENTIDADE_DO_BANCO`) iguais a `a-definir-no-cp-05`, e a API com
+`DOMINIO_DO_AMBIENTE` igual a `painel-hml.a-definir.invalid`. São marcadores,
+não valores: nenhuma URL de banco os contém, então a partida RECUSA subir até
+alguém trocá-los. É o lado seguro: um HML sem identidade nunca sobe contra o
+banco de PROD. Trocar nos dois arquivos E em `scripts/ambientes.json`
+(`ambientes.hml.identidadeDoBanco`, `dominio`, `appsNoFly`), no mesmo commit.
+
+### 9.2 Roteiro de criação (depois do CP-05)
+
+Tudo de `dc360/`, e SEMPRE com `-c` ou `-a` do app de HML.
+
+1. Criar os apps: `fly apps create defesa-civil-hml` e
+   `fly apps create defesa-civil-console-hml` (os nomes estão nos toml; se o Fly
+   recusar por já existirem, trocar nos toml e na matriz).
+2. Criar o projeto de banco de HML (Postgres 17, projeto próprio, NUNCA o de
+   PROD). Anotar a referência do projeto: é a identidade. Se o CA do provedor de
+   HML for diferente de `db/provedores/supabase-prod-ca-2021.crt`, guardar o dele
+   e passá-lo na URL com `sslrootcert=` (o migrador e o semeador respeitam o que
+   vier escrito; sem ele, usam o de PROD).
+3. Criar os papéis (setup, `dc360_app`, `dc360_api` e o login do console), como
+   nas seções 6.2 e 8 e no README.
+4. Gravar os segredos de HML, todos DISTINTOS dos de PROD (nomes na matriz, valores
+   nunca no repositório). Conferir só os nomes:
+   `node scripts/conferir-ambiente.mjs --ambiente=hml --app=api --fly=defesa-civil-hml`
+   e o mesmo para o console (`--app=console --fly=defesa-civil-console-hml`).
+5. **Migrar do zero** com o papel de setup, e conferir:
+   `DATABASE_URL=<setup de HML> npm run migrar` e depois
+   `DATABASE_URL=<setup de HML> npm run migrar -- --conferir` (deve dizer
+   "Esquema em dia"). Rodar o migrar de novo tem de dizer "Nada a fazer"
+   (idempotente).
+6. **Endurecer o Supabase** de HML:
+   `psql "$DATABASE_URL_SETUP" -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurecer.sql`
+   e rodar a consulta de conferência da seção 8.2, passo 4: ela volta VAZIA.
+7. **Semear** (seção 9.3).
+8. Implantar: `fly deploy -c fly.hml.toml` e `fly deploy -c fly.console.hml.toml`.
+   `/saude` tem de dar 200 nos dois.
+
+### 9.3 Semear HML com dados sintéticos e senhas sorteadas
+
+NUNCA com `npm run migrar -- --semear`: a semente de desenvolvimento dá a toda
+conta a senha `defesa-civil-2026`, que está no repositório. O `--semear` agora
+recusa, antes de conectar, qualquer banco que não seja descartável (a própria
+máquina), qualquer `AMBIENTE_DC360` prod ou hml, e qualquer URL com a identidade
+de PROD.
+
+A semente de HML é outra:
+
+```bash
+cd apps/api
+AMBIENTE_DC360=hml IDENTIDADE_DO_BANCO=<referência do banco de HML> \
+  DATABASE_URL='<url de setup de HML>' npx tsx src/semear-homologacao.ts
+```
+
+Ela carrega `db/seeds/homologacao.sql` (sem hash nenhum, as contas nascem
+trancadas), sorteia uma senha por conta e grava o hash NA MESMA transação, e
+imprime a lista UMA vez. Copie a lista para o cofre de HML na hora: ela não
+aparece de novo. Recusa, antes de escrever, quando: `AMBIENTE_DC360` não é
+`hml`; a identidade falta, é a de PROD ou não consta na URL; o banco já tem
+qualquer município (real, ou a própria semente já aplicada). Para recomeçar,
+recrie o banco de HML.
+
+### 9.4 Prova de que está certo
+
+- Entrar pelo e-mail de uma conta de Serra Alta com a senha sorteada: entra.
+- A senha `defesa-civil-2026` em qualquer conta de HML: recusada.
+- Com a conta de Serra Alta, pedir pela API uma ocorrência de Vale Fundo
+  (`22222222-2222-4222-8222-0000000000c1`): 404.
+- Gerar um laudo e ver a marca d'água "AMBIENTE DE HOMOLOGAÇÃO".
+- Ensaiar uma migration nova aqui ANTES de rodar `scripts/migrar-producao.mjs`.
+
+### 9.5 O que fica declarado como NÃO coberto
+
+- Os dois apps, o banco, o bucket e o e-mail de teste de HML ainda não existem
+  (CP-05). Nada disso foi provado no ar: o que está provado é o repositório (a
+  partida recusa o que não combina, a semente roda no Postgres em WebAssembly
+  com as migrações e a RLS de verdade).
+- O ensaio da migration em HML e o `--conferir` contra o banco real de HML são
+  da execução do roteiro acima, pelo Rafael.
+- Push (E13) e observabilidade (E14) de HML.

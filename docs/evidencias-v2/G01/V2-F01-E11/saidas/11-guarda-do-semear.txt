@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 <repo>/dc360/db
+
+ ✓ test/guarda-da-semente.test.ts (18 tests) 1317ms
+   ✓ o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)  1065ms
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  19:00:36
+   Duration  1.58s (transform 27ms, setup 0ms, collect 31ms, tests 1.32s, environment 0ms, prepare 75ms)
+

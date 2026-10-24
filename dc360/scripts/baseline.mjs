@@ -721,6 +721,25 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F01-E09": { total: 60, falhas: 0, puladas: 0 },
   // V2-F01-E14: `request-id.test.ts` (13), `reportador-de-erros.test.ts` (17), `rotinas-em-nivel-error.test.ts` (8) e `alerta-de-armazenamento.test.ts` (11).
   "V2-F01-E14": { total: 49, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E11: dois arquivos novos na API. `apps/api/test/semear-homologacao.test.ts`
+    (22 casos: o sorteio da senha; o SQL de HML sem hash, sem a senha pública e só
+    com e-mail em example.org e telefone do bloco 90000; as recusas do ambiente
+    (fora de `hml`, sem URL ou identidade, identidade de PROD declarada ou na
+    URL, URL de outro banco, o marcador do `fly.hml.toml`); a semente de verdade
+    no Postgres em WebAssembly, com login pela senha sorteada, a senha pública
+    recusada em toda conta, a conta de Serra Alta recebendo 404 num recurso de
+    Vale Fundo, semear de novo recusando sem trocar senha; banco com município
+    real recusando sem escrever; falha no meio desfazendo tudo; e o comando de
+    verdade recusando antes de conectar) e `apps/api/test/fly-hml.test.ts`
+    (9 casos: a API configurada como o `fly.hml.toml` manda parte em HML com a
+    marca d'água e o push desligado, e NÃO parte com a `DATABASE_URL` de PROD,
+    com o marcador de identidade, com origem ou painel de PROD ou sem marca
+    d'água). O console ganha 4 casos (`apps/console/test/fly-hml.test.ts`, o
+    mesmo para o `fly.console.hml.toml`), que estão no número do próprio passo
+    (teste-console, +4: de 330 para 334 com a E11 sozinha, e 338 junto com os 4 da E14). Nenhuma falha nem pulo novos.
+  */
+  "V2-F01-E11": { total: 31, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -835,6 +854,16 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     `FOR SHARE` só no login, DC367 e DC369 mantidos). Soma 18, de 327 para 345.
   */
   "V2-F00-E07-correcao-2": { total: 18, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E11: `db/test/guarda-da-semente.test.ts` é novo, com 18 casos (a
+    guarda do `--semear`: banco efêmero, loopback e serviço do Docker semeiam;
+    URL de PROD pelo usuário, pelo host, em maiúsculas e pelo túnel local,
+    `NODE_ENV=production`, `AMBIENTE_DC360` prod ou hml, banco de HML hospedado,
+    URL ilegível e host público recusam sem repetir a senha; a identidade de PROD
+    da guarda é a da matriz; e o `cli.ts` de verdade sai com código 1 antes de
+    conectar, e ainda semeia o banco efêmero). Nenhuma falha nem pulo novos.
+  */
+  "V2-F01-E11": { total: 18, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
@@ -971,7 +1000,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 334, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 338, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

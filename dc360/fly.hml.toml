@@ -1,0 +1,103 @@
+# =====================================================================
+# Implantação da API do DC360 em HOMOLOGAÇÃO (HML) no Fly (V2-F01-E11).
+#
+# HML é o ambiente onde cada migration e cada funcionalidade são ensaiadas
+# ANTES de produção, com dado SINTÉTICO. Este arquivo é o espelho do `fly.toml`
+# (PROD) com o que muda por contrato: ver `docs/AMBIENTES.md` e a matriz em
+# `scripts/ambientes.json`. Quem o confere é `scripts/conferir-ambiente.mjs`.
+#
+# O deploy roda daqui, SEMPRE com `-c`, senão o `fly` pega o `fly.toml` de PROD
+# e implanta em cima da produção:
+#   cd dc360 && fly deploy -c fly.hml.toml
+#
+# ESTE ARQUIVO NASCEU ANTES DO AMBIENTE EXISTIR. O app do Fly, o projeto de
+# banco, o bucket, o painel e o e-mail de teste dependem da contratação do
+# CP-05 e são feitos pelo Rafael (roteiro em docs/IMPLANTACAO.md, seção de
+# homologação). Por isso duas linhas do [env] abaixo são MARCADORES que ainda
+# não apontam para nada de verdade, e isso é de propósito:
+#
+#   IDENTIDADE_DO_BANCO  a referência do projeto de banco de HML, que ainda não
+#                        existe. O marcador não consta em nenhuma DATABASE_URL,
+#                        então a partida RECUSA subir até alguém trocá-lo pela
+#                        referência real. Fecha para o lado seguro: um HML sem
+#                        identidade nunca sobe contra o banco de PROD.
+#   DOMINIO_DO_AMBIENTE  o domínio do painel de HML. `.invalid` é reservado
+#                        (RFC 2606) e ninguém consegue registrá-lo, então o
+#                        marcador não pode virar a origem permitida de um
+#                        painel de terceiro.
+#
+# Ao criar o ambiente: trocar as duas linhas aqui, em `fly.console.hml.toml`
+# (CONSOLE_IDENTIDADE_DO_BANCO) e em `scripts/ambientes.json`
+# (ambientes.hml.identidadeDoBanco, dominio e appsNoFly), no MESMO commit.
+# O teste `scripts/ambiente-hml.test.mjs` reprova se ficarem divergentes.
+#
+# O que HML NUNCA carrega (a matriz reprova): segredo de push de PROD (APNS_*,
+# FCM_CONTA_SERVICO), a DATABASE_URL, o JWT_SEGREDO ou o bucket de PROD, e a
+# identidade ou o domínio de PROD. Todo segredo de HML é DISTINTO do de PROD.
+# =====================================================================
+
+app = "defesa-civil-hml"
+primary_region = "gru"
+
+# Como no `fly.toml` de PROD: o encerramento tem de caber o Chromium do PDF.
+kill_timeout = 30
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Só o que NÃO é segredo. O resto entra por `fly secrets set` no app de HML.
+#
+# SEGREDOS de HML (nomes na matriz; valores NUNCA aqui):
+#   DATABASE_URL       papel dc360_api do banco de HML, com `?sslmode=verify-full`.
+#                      A CA do provedor de HML pode ser diferente da de
+#                      `db/provedores/supabase-prod-ca-2021.crt`: conferir antes.
+#   JWT_SEGREDO        >= 32 bytes, DIFERENTE do de PROD
+#   URL_PUBLICA        https, sem localhost
+#   URL_PAINEL         https, sob DOMINIO_DO_AMBIENTE
+#   ORIGENS_PERMITIDAS https, sem curinga, sob DOMINIO_DO_AMBIENTE
+#   S3_ENDPOINT S3_BALDE S3_CHAVE_ID S3_CHAVE_SECRETA   bucket PRÓPRIO de HML
+[env]
+  NODE_ENV = "production"
+  # O CONTRATO DE AMBIENTE (V2-F01-E09). Ver os marcadores no cabeçalho.
+  AMBIENTE_DC360 = "hml"
+  IDENTIDADE_DO_BANCO = "a-definir-no-cp-05"
+  DOMINIO_DO_AMBIENTE = "painel-hml.a-definir.invalid"
+  HOST = "0.0.0.0"
+  PORT = "3333"
+  # Toda página e todo laudo de HML sai carimbado. A partida RECUSA o valor
+  # vazio em HML (apps/api/src/config.ts): um laudo de teste não pode ser
+  # confundido com um verdadeiro.
+  MARCA_DAGUA = "AMBIENTE DE HOMOLOGAÇÃO"
+  # O mesmo Fly de PROD, então a mesma declaração de quem põe `Fly-Client-IP`.
+  PROXY_DE_BORDA = "fly"
+  # Sem provedor de e-mail em HML até existir o domínio de teste (E10/CP-05): a
+  # tela manda procurar quem administra o município. Para ligar o e-mail, ver
+  # docs/AMBIENTES.md: `EMAIL_ATIVO=sim` EXIGE `EMAIL_DOMINIOS_DE_TESTE`.
+  RECUPERACAO_ATIVA = "nao"
+  EMAIL_ATIVO = "nao"
+  # Push desligado em HML até a E13 (perfil EAS de HML) e os segredos de push
+  # PRÓPRIOS de HML. Os de PROD são proibidos neste app.
+  PUSH_ATIVO = "nao"
+
+[http_service]
+  internal_port = 3333
+  force_https = true
+  # HML pode dormir: não atende ocorrência de verdade, e a máquina parada não
+  # custa. A primeira chamada depois de um período parado espera a partida (ela
+  # confere o esquema no banco antes de atender). PROD NÃO faz isto.
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/saude"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 1 GB pelo mesmo motivo de PROD: o Chromium do PDF mora na imagem.
+  memory = "1gb"

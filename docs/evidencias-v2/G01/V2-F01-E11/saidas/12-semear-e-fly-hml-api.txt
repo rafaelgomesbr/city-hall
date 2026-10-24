@@ -1,0 +1,16 @@
+
+ RUN  v3.2.7 <repo>/dc360/apps/api
+
+ ✓ test/fly-hml.test.ts (9 tests) 9ms
+ ✓ test/semear-homologacao.test.ts (22 tests) 7240ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > `defesa-civil-2026` NÃO loga em HML, em nenhuma conta (negativo)  1762ms
+   ✓ as recusas que dependem do banco > banco com município REAL recusa e não escreve nada  521ms
+   ✓ as recusas que dependem do banco > banco com município real E sintético também recusa como real  492ms
+   ✓ as recusas que dependem do banco > falha no meio desfaz TUDO: nenhuma conta sem senha, nenhum município  514ms
+   ✓ as recusas que dependem do banco > fora de HML recusa sem tocar no banco, mesmo vazio  497ms
+
+ Test Files  2 passed (2)
+      Tests  31 passed (31)
+   Start at  19:00:38
+   Duration  8.06s (transform 293ms, setup 290ms, collect 486ms, tests 7.25s, environment 0ms, prepare 88ms)
+

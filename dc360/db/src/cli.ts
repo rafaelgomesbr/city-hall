@@ -1,18 +1,33 @@
 import { aplicarMigracoes, migracoesPendentes, type ExecutorSql } from "./migrar.js";
 import { urlComAncoraDeConfianca } from "./conexao.js";
 import { carregarMigracoes, carregarSemente } from "./carregar.js";
+import { motivoParaNaoSemear } from "./guarda-da-semente.js";
 
 /**
  * Aplicador de migrações pela linha de comando.
  *
  *   npm run migrar               aplica o que falta
  *   npm run migrar -- --conferir só diz o que falta, sem aplicar
- *   npm run migrar -- --semear   aplica e semeia (nunca em produção)
+ *   npm run migrar -- --semear   aplica e semeia (só em banco descartável)
  *
  * `--conferir` existe para o contêiner poder recusar subir com esquema
  * atrasado, em vez de servir requisição contra um banco que não tem a coluna
  * que o código espera.
  */
+/*
+  A guarda do --semear roda ANTES de qualquer conexão e de qualquer migração: o
+  pedido errado não deve nem tocar no banco que não podia semear. Ela olha para
+  onde a conexão vai (host e identidade da DATABASE_URL), e não só para uma
+  variável que o operador precisa lembrar de definir. Ver guarda-da-semente.ts.
+*/
+if (process.argv.includes("--semear")) {
+  const motivo = motivoParaNaoSemear({ url: process.env["DATABASE_URL"], env: process.env });
+  if (motivo) {
+    console.error(motivo);
+    process.exit(1);
+  }
+}
+
 async function conectar(): Promise<{ bd: ExecutorSql; encerrar: () => Promise<void> }> {
   const url = process.env["DATABASE_URL"];
 
@@ -97,11 +112,8 @@ try {
     );
 
     if (process.argv.includes("--semear")) {
-      if (process.env["NODE_ENV"] === "production") {
-        // A semente traz senha conhecida e dados fictícios. Em produção ela
-        // seria uma porta aberta com nome e sobrenome.
-        throw new Error("--semear não é permitido com NODE_ENV=production");
-      }
+      // A recusa já foi decidida no começo do arquivo (guarda-da-semente.ts):
+      // a semente traz senha conhecida e dados fictícios.
       await bd.exec(carregarSemente());
       console.log("Semeado com os dois municípios fictícios.");
     }

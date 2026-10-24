@@ -102,13 +102,10 @@ test("a matriz real é bem formada", () => {
   assert.deepEqual(validarMatriz(MATRIZ), []);
 });
 
-test("o repositório real bate com a matriz, e HML só avisa que ainda não existe", () => {
+test("o repositório real bate com a matriz, e desde a E11 HML existe e passa sem aviso", () => {
   const { problemas, avisos } = conferirRepositorio();
   assert.deepEqual(problemas, []);
-  assert.ok(
-    avisos.every((a) => /HML/.test(a) && /E11/.test(a)),
-    avisos.join("\n"),
-  );
+  assert.deepEqual(avisos, [], "fly.hml.toml e fly.console.hml.toml nasceram na V2-F01-E11");
 });
 
 test("a lista de domínios compartilhados é a MESMA do código da API", () => {
