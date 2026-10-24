@@ -690,7 +690,21 @@ export function lerRiscoAceito(texto) {
     validade: campo("validade"),
     aceitoPor: campo("(?:quem aceitou|aceito por)"),
     encerrado: /^\s*(?:[-*]\s*)?\**status\**\s*:\s*\**\s*(expirado|revogado|encerrado)/im.test(normalizar(texto)),
+    // Rascunho do gatekeeper deixa "Quem aceitou" vazio: "(vazio) em (vazio)" ou "(vazio; só Rafael ...)".
+    aceito: pessoaAceitou(campo("(?:quem aceitou|aceito por)")),
   };
+}
+
+/** Falso para o campo "Quem aceitou" em branco ou com marcador de rascunho ("(vazio)", "n/a", "pendente", "-"). */
+function pessoaAceitou(valor) {
+  const v = valor.trim();
+  if (v === "") return false;
+  return !/^(?:\(?\s*(?:vazi[oa]|em branco|pendente|nenhum[a]?|n\/a)\b|[-_–]+$)/i.test(v);
+}
+
+/** Risco aceito que vale: assinado por alguém e não encerrado, expirado nem revogado. Rascunho não vale. */
+export function riscoAceitoVigente(r) {
+  return Boolean(r) && r.aceito === true && r.encerrado === false;
 }
 
 /** O que existe na pasta de evidência de uma etapa, só o primeiro nível. */

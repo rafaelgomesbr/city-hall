@@ -28,9 +28,8 @@
   F00-E01, F00-E05, F00-E06, F00-E08, F00-E10, F00-E11, F00-E13, F00-E14, F00-E15, F00-E16, F00-E18,
   F00-E21, F00-E22, F00-E24, F00-E25
 
-## Riscos aceitos vigentes (1)
-- V2-F00-E21: DoD: os três casos verdes em Windows E Linux; Infra e CI:...; validade: até o GATE G00 (reavaliado...
-- A validade não é calculada aqui (depende da data, que este arquivo não usa): confira nos arquivos.
+## Riscos aceitos vigentes (0)
+- nenhum RISCO-ACEITO.md em docs/evidencias-v2/
 
 ## Gates REABERTOS (0)
 - nenhum

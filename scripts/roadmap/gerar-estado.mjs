@@ -54,6 +54,7 @@ import {
   lerStatus,
   localizarEtapa,
   normalizar,
+  riscoAceitoVigente,
   temPendenciaHumana,
   varrerEvidencias,
 } from "./roadmap.mjs";
@@ -224,7 +225,7 @@ export function gerarEstado(raiz = RAIZ) {
   }
   L.push("");
 
-  const riscos = [...evidencias.etapas.entries()].filter(([, v]) => v.riscoAceito && !v.riscoAceito.encerrado);
+  const riscos = [...evidencias.etapas.entries()].filter(([, v]) => riscoAceitoVigente(v.riscoAceito));
   L.push(`## Riscos aceitos vigentes (${riscos.length})`);
   if (riscos.length === 0) L.push("- nenhum RISCO-ACEITO.md em docs/evidencias-v2/");
   else {
