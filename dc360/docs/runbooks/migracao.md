@@ -22,8 +22,8 @@
   validação humana pendente.
 - **HML só tem banco declarado depois da V2-F01-E11.** Até lá `--ambiente hml`
   recusa dizendo isso; o passo "Ensaio em HML" abaixo (`npm run migrar` direto)
-  continua sendo o caminho. O dump antes da migração no pipeline de HML depende de
-  V2-F01-E12 (ela chama o mesmo `copiar-producao.mjs --ambiente hml`).
+  continua sendo o caminho. O dump antes da migração no pipeline de HML é feito pelo
+  `deploy-hml.yml` (V2-F01-E12), que chama o mesmo `copiar-producao.mjs --ambiente hml`.
 - **A trava contra migração concorrente e a regra de migração reversível**
   dependem de V2-F01-E18. Hoje a única proteção é cada arquivo rodar na própria
   transação e o aplicador recusar histórico reescrito (`db/src/migrar.ts`).
@@ -207,6 +207,8 @@ Nunca `UPDATE` ou `DELETE` à mão em produção com a credencial de dono para
 ## O que este runbook ainda não cobre
 
 - HML para ensaiar: depende de V2-F01-E11.
-- Dump e migração automáticos no pipeline de HML: depende de V2-F01-E12.
+- Dump e migração de HML no pipeline: feitos pelo `deploy-hml.yml` (V2-F01-E12),
+  ainda não executados (dependem do ambiente de HML). A de PROD continua manual,
+  de propósito (ADR 0008).
 - Trava de migração concorrente e migração reversível: depende de V2-F01-E18.
 - Restore testado a cada migração: F22-E03 e F22-E04.

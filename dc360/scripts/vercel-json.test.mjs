@@ -117,6 +117,12 @@ test("o vercel.json real traz os cabeçalhos de segurança do painel", () => {
   assert.deepEqual(problemasDeCabecalhos(real), []);
 });
 
+test("o vercel.json real não publica a master: o painel de PROD sai do ramo producao (V2-F01-E12)", () => {
+  // Sem isto a Vercel publicava o painel a cada push na master, sem esperar o CI
+  // nem a API. Os ramos `producao` e `homologacao` não podem ser desligados aqui.
+  assert.deepEqual(real.git?.deploymentEnabled, { master: false });
+});
+
 test("o vercel.json real mantém o que o build do painel exige", () => {
   assert.equal(real.outputDirectory, "apps/web/dist");
   assert.match(real.installCommand, /npm ci/);
@@ -145,6 +151,14 @@ test("morde: VITE_API_URL em env de topo (runtime) reprova mesmo com a exceção
   const problemas = problemasDaUrlDaApi({ env: { VITE_API_URL: LITERAL_ENQUANTO_O_PAINEL_NAO_FOI_CONFERIDO } });
   assert.equal(problemas.length, 1);
   assert.match(problemas[0], /em env/);
+});
+
+test("morde: a regra de não publicar a master não aceita o campo ausente nem ligado", () => {
+  const regraDaMaster = (config) => config.git?.deploymentEnabled?.master === false;
+  assert.equal(regraDaMaster(real), true);
+  assert.equal(regraDaMaster({ ...real, git: undefined }), false);
+  assert.equal(regraDaMaster({ ...real, git: { deploymentEnabled: { master: true } } }), false);
+  assert.equal(regraDaMaster({ ...real, git: { deploymentEnabled: {} } }), false);
 });
 
 test("morde: cabeçalho de segurança removido ou enfraquecido reprova", () => {

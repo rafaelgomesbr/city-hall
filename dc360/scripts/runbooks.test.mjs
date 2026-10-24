@@ -68,9 +68,10 @@ export const SECOES = {
 export const FLY_CONHECIDOS = new Set([
   "deploy", "status", "logs", "releases", "auth whoami", "apps create", "machine restart",
   "secrets list", "secrets import", "secrets set", "secrets unset",
+  "tokens", // `fly tokens create deploy` (V2-F01-E12: um token de deploy por app)
 ]);
 export const EAS_CONHECIDOS = new Set(["build", "submit", "login", "init"]);
-export const GH_CONHECIDOS = new Set(["run list"]);
+export const GH_CONHECIDOS = new Set(["run list", "workflow run"]);
 export const VERSAO_SUBCOMANDOS = new Set(["conferir", "mostrar", "subir", "conferir-tag"]);
 
 /** Caminhos citados que ainda não existem ou nunca existirão no git. */
@@ -238,11 +239,11 @@ test("toda etapa citada como dependência existe no roadmap da F01", () => {
 
 test("os pontos que dependem de etapa futura estão marcados como tal", () => {
   const marcas = {
-    "deploy.md": ["V2-F01-E08", "V2-F01-E11", "V2-F01-E12"],
-    "migracao.md": ["V2-F01-E11", "V2-F01-E12", "V2-F01-E18"],
+    "deploy.md": ["V2-F01-E08", "V2-F01-E11"],
+    "migracao.md": ["V2-F01-E11", "V2-F01-E18"],
     "rotacao-de-segredo.md": ["V2-F01-E11"],
-    "acesso-e-segredos.md": ["V2-F01-E11", "V2-F01-E12"],
-    "ensaio-da-segunda-pessoa.md": ["V2-F01-E08", "V2-F01-E11", "V2-F01-E12"],
+    "acesso-e-segredos.md": ["V2-F01-E11"],
+    "ensaio-da-segunda-pessoa.md": ["V2-F01-E08", "V2-F01-E11"],
   };
   for (const [nome, etapas] of Object.entries(marcas)) {
     const texto = lerRunbook(nome);

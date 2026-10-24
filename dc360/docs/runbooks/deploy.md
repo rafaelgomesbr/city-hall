@@ -1,35 +1,41 @@
 # Runbook: implantar (deploy)
 
-- **Versão:** 1, de 2026-10-24 (V2-F01-E16, rascunho).
+- **Versão:** 2, de 2026-10-24 (V2-F01-E16, rascunho; a V2-F01-E12 acrescentou
+  o caminho por workflow).
 - **Quem executa:** hoje, o dono (Rafael). A segunda pessoa executa em HML no
   ensaio (`ensaio-da-segunda-pessoa.md`); em PROD só depois do CP-07 e só pelo
-  caminho que a V2-F01-E12 criar.
+  workflow `promover-producao.yml` (V2-F01-E12).
 - **Quando usar:** toda entrega de código para um ambiente que está no ar.
 - **Fontes deste texto:** `fly.toml`, `fly.console.toml`, `vercel.json`,
   `apps/campo/eas.json`, `docs/IMPLANTACAO.md` (seções 6, 7 e 8),
   `docs/VERCEL-PAINEL.md`, `docs/COLOCAR-DE-PE.md`.
 
-## O que existe hoje, e o que ainda não
+## O que existe, e o que ainda depende de uma pessoa
 
-Hoje só existe PROD, e a implantação é feita **à mão, da máquina do dono**:
+O repositório traz DOIS workflows de implantação (V2-F01-E12). Eles são o caminho
+normal; o `fly deploy` da máquina do dono (seção "Caminho manual de emergência")
+fica para quando o GitHub estiver fora do ar ou um workflow estiver quebrado.
 
-| Peça | Onde roda | Como é implantada hoje |
+| Peça | HML | PROD |
 | --- | --- | --- |
-| API | Fly, app `defesa-civil` | `fly deploy -a defesa-civil`, de `dc360/` |
-| Console do fornecedor | Fly, app `defesa-civil-console` | `fly deploy -c fly.console.toml --ha=false`, de `dc360/` |
-| Painel web | Vercel, projeto `dc360-painel-web` | A Vercel publica sozinha a cada entrada na `master` |
-| Aplicativo de campo | Lojas, por EAS | `eas build` e `eas submit`, de `apps/campo/` |
+| API (Fly) | `deploy-hml.yml`, sozinho, a cada push na `master` com o `Verificar` verde | `promover-producao.yml`, só por `workflow_dispatch` |
+| Console do fornecedor (Fly) | idem, no mesmo workflow | idem, no mesmo workflow |
+| Painel web (Vercel) | ramo `homologacao`, movido pelo `deploy-hml.yml` | ramo `producao`, movido pelo `promover-producao.yml` |
+| Migration | automática, com cópia do banco antes (E15) | **manual**, da máquina do dono (`migracao.md`) |
+| Aplicativo de campo (EAS) | `eas build` e `eas submit`, de `apps/campo/` (a V2-F14-E11 automatiza) | idem |
 
-Três coisas deste quadro mudam quando outras etapas chegarem, e o texto abaixo
-diz o que fazer ANTES delas:
+Três coisas deste quadro dependem de uma pessoa, fora do repositório, e até lá os
+workflows não rodam de verdade:
 
-- **HML (app Fly, banco e bucket de teste):** depende de V2-F01-E11. Enquanto
-  não existir, não há onde ensaiar este runbook antes de PROD, e o primeiro
-  ensaio por uma segunda pessoa fica bloqueado.
-- **Deploy de HML por merge e promoção manual de PROD por tag:** depende de
-  V2-F01-E12. Quando existir, os passos 3 a 6 abaixo deixam de ser comando
-  digitado e passam a ser o workflow; as pré-condições e a verificação
-  continuam valendo.
+- **HML (apps do Fly, banco e bucket de teste):** depende de V2-F01-E11 e do
+  CP-05. Sem eles, `deploy-hml.yml` falha na conferência (a partida de HML
+  recusa subir com os marcadores de `fly.hml.toml`, de propósito).
+- **Os ambientes `homologacao` e `producao` do GitHub e os tokens de deploy:**
+  criados pelo dono (lista e roteiro em `docs/IMPLANTACAO.md`, seção 10).
+- **O ramo `producao` da Vercel:** o projeto `dc360-painel-web` precisa ter o
+  ramo de produção trocado de `master` para `producao`. O `vercel.json` já manda
+  a Vercel ignorar a `master`; sem a troca, o painel de PROD simplesmente não é
+  publicado (falha para o lado seguro).
 - **`/saude` com `versao` e `commit`:** depende de V2-F01-E08. Hoje o `/saude`
   da API devolve `status`, `banco`, `ultimaMigracao`, `eliminacoes` e `push`,
   e nada diz qual commit está no ar. Até a E08, anote o número do release do
@@ -57,9 +63,9 @@ Todas precisam ser verdadeiras. Se uma não for, pare.
    ```
    Se a entrega for uma versão nova, `node scripts/versao.mjs subir plataforma y`
    (ou `z`) e a seção do `CHANGELOG.md` entram no PR, antes. Tag é ato do dono
-   (o script nunca cria): o nome se confere com
-   `node scripts/versao.mjs conferir-tag v<X.Y.Z>`. A promoção automática por
-   tag depende de V2-F01-E12.
+   (nem o script nem os workflows a criam): o nome se confere com
+   `node scripts/versao.mjs conferir-tag v<X.Y.Z>`, e a promoção para PROD exige
+   essa tag apontando para o SHA que passou por HML.
 4. **Migração pendente?** Veja o que falta, sem escrever nada:
    ```bash
    node scripts/migrar-producao.mjs --ambiente prod
@@ -78,7 +84,49 @@ Todas precisam ser verdadeiras. Se uma não for, pare.
 
 ## Passos
 
-Tudo a partir de `dc360/`.
+### Caminho normal: HML por merge, PROD por promoção
+
+1. **Merge do PR na `master`.** O `Verificar` roda; quando termina verde, o
+   `deploy-hml.yml` dispara sozinho (gatilho `workflow_run`, só para push na
+   `master`). Ele constrói as duas imagens uma vez, ensaia a migration em HML
+   (com cópia antes), implanta API e console por digest, confere `/saude` com a
+   `versao` e o `commit` do merge, move o ramo `homologacao` (painel de HML) e,
+   só no fim, põe o selo `hml-ok` nas imagens. Acompanhe em GitHub > Actions >
+   "Implantar HML". Verde, HML está na versão do merge. Vermelho, nada vai a
+   PROD: leia o log do passo que falhou. CI vermelho nunca dispara o deploy.
+2. **Ensaie em HML** o que a entrega muda (`docs/IMPLANTACAO.md`, seção 9.4).
+3. **Crie a tag no commit aprovado** (ato do dono):
+   ```bash
+   git tag -a v0.1.0 <sha do commit aprovado em HML> -m "plataforma 0.1.0"
+   git push origin v0.1.0
+   ```
+4. **Aplique a migration de PROD, se houver**, ANTES de promover:
+   `node scripts/migrar-producao.mjs --ambiente prod --aplicar`, com a cópia
+   recente que o roteiro exige (`migracao.md`). A credencial de dono do banco de
+   PROD nunca entra em CI (ADR 0008). Se você esquecer, o deploy da API falha
+   sozinho: a partida recusa subir contra esquema atrasado e o release anterior
+   segue atendendo.
+5. **Promova.** GitHub > Actions > "Promover para PROD" > Run workflow, no ramo
+   `master`, com `tag`, `sha`, `confirmacao` (`PROMOVER v0.1.0`) e
+   `migracao_confirmada` marcada. Pela linha de comando:
+   ```bash
+   gh workflow run promover-producao.yml --ref master \
+     -f tag=v0.1.0 -f sha=<sha completo> -f confirmacao="PROMOVER v0.1.0" -f migracao_confirmada=true
+   ```
+   O job `validar` recusa o pedido se a tag não apontar para o SHA, se o SHA não
+   estiver na `master`, se a confirmação não bater ou se as imagens não tiverem o
+   selo de HML. Depois o ambiente `producao` espera a aprovação do revisor.
+   Aprovado, o job copia as MESMAS imagens (por digest) para o registro de PROD,
+   implanta a API e confere `/saude`, depois o console e `/saude`, e só então
+   move o ramo `producao`. Se o `/saude` não ficar verde, o job para ali.
+6. **Confirme de fora** (seção "Verificação") e, no resumo do run, o tempo de
+   troca e os digests.
+
+### Caminho manual de emergência
+
+Só quando o workflow não puder ser usado. Tudo a partir de `dc360/`, e todo
+`fly deploy` leva `-a` e a imagem carimbada (ver `rollback.md`). HML não tem
+caminho manual: lá o `deploy-hml.yml` é o único.
 
 ### 1. Anotar o ponto de volta
 
@@ -129,15 +177,16 @@ arquivo (`fly secrets import`), nunca por `fly secrets set` com aspas; ver
 
 ### 6. Painel web
 
-Hoje o painel é publicado pela Vercel quando o PR entra na `master`. Por isso
-**a entrada na `master` é o último passo**, depois de API e console conferidos:
-o painel novo não pode chegar antes da API nova. Com o ruleset da `master`,
-isso é o merge do PR por squash (push direto está bloqueado).
+Desde a V2-F01-E12 o painel de PROD não é mais publicado na entrada na `master`:
+o `vercel.json` manda a Vercel ignorar esse ramo, e o painel sai do ramo
+`producao`, que só o `promover-producao.yml` move (depois de API e console
+conferidos: o painel novo não pode chegar antes da API nova). No caminho manual,
+mova o ramo à mão, no fim, com `git push --force origin <sha>:refs/heads/producao`
+(o ramo só tem esse uso).
 
 Conferir que a Vercel concluiu: `https://vercel.com` > projeto
-`dc360-painel-web` > Deployments (o último precisa estar `Ready`). O painel de
-PROD passar a usar um ramo `producao` atualizado só pela promoção depende de
-V2-F01-E12.
+`dc360-painel-web` > Deployments (o último precisa estar `Ready` e vir do ramo
+`producao`).
 
 ### 7. Aplicativo de campo (só quando a entrega o tocou)
 
@@ -200,17 +249,22 @@ Depende de V2-F01-E08 (`versao` e `commit` no `/saude`).
 ## Voltar atrás (rollback)
 
 Não corrija em produção sob pressão. Volte ao release anterior:
-**`rollback.md`** (escrito pela V2-F01-E08; depende de V2-F01-E08 para existir
-no repositório). Se o problema for o esquema do banco, não é rollback de
-imagem: siga a seção de volta de `migracao.md`.
+**`rollback.md`** (escrito pela V2-F01-E08). Há dois jeitos: (1) promover de novo
+uma tag anterior pelo `promover-producao.yml` (as imagens e os selos ficam no
+GHCR; ele volta API, console e painel juntos), ou (2) `fly deploy --image` com a
+imagem da release anterior, como o `rollback.md` descreve, que é o mais rápido
+para a API. Se o problema for o esquema do banco, não é rollback de imagem: siga
+a seção de volta de `migracao.md`.
 
 Regra que vale aqui e em `docs/INDISPONIBILIDADE.md` (3.3): nunca `UPDATE` na
 produção com a credencial de dono para contornar defeito.
 
 ## O que este runbook ainda não cobre
 
-- Ensaio em HML: depende de V2-F01-E11.
-- Deploy de HML por merge e promoção de PROD por tag: depende de V2-F01-E12.
+- Ensaio em HML: depende de V2-F01-E11 (os apps de HML existirem, CP-05).
+- Ensaio de uma promoção e de um rollback pelo workflow: pendente, do dono
+  (nunca foram executados contra o Fly de verdade; o repositório prova só a
+  forma dos workflows, em `scripts/conferir-workflows.test.mjs`).
 - Versão e commit no `/saude`: depende de V2-F01-E08.
 - Matriz de variáveis por ambiente: depende de V2-F01-E09.
 - Perfil EAS de HML: depende de V2-F01-E13.
