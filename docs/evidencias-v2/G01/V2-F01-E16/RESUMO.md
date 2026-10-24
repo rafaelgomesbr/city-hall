@@ -50,7 +50,7 @@ código, STATUS, ESTADO-ATUAL, pendencias-humanas e dividas.
   o conferidor de índices reprovava, como deve) (`saidas/02-test-scripts.txt`).
 - `packages/shared/test/regras-de-conteudo.test.ts`: 10 de 10
   (`saidas/03-regras-de-conteudo.txt`). A primeira rodada reprovou porque o teste novo
-  trazia o caractere de travessão literal; virou escape `—`, como o portão pede.
+  trazia o caractere de travessão literal; virou escape (a descrição U+2014, sem o caractere), como o portão pede.
 - `npm run conferir:numeros`: "Todos os números da documentação batem"
   (`saidas/04-conferir-numeros.txt`). O total de 5550 não muda: o conferidor não conta
   `scripts/` no total do README.
