@@ -97,6 +97,11 @@ const CONSTRUTORES_DE_ERRO = new Set([
 ]);
 const PROPRIEDADES_DE_TEXTO = new Set([
   "mensagem", "message", "detalhe", "titulo", "rotulo", "aviso",
+  /* Zod 4 (E19, correção 10): a frase própria de um esquema vai em `error`
+     (`z.enum([...], { error: "..." })`), no lugar do `errorMap` e do
+     `invalid_type_error` do Zod 3. Sem esta linha a varredura deixaria de
+     enxergar essas frases. */
+  "error",
 ]);
 const METODOS_DO_ZOD = new Set([
   "min", "max", "length", "regex", "refine", "superRefine", "email", "url", "uuid",
