@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **5783 testes somando o aplicativo** (contagem estática de `npm run
+- **5791 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -351,7 +351,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, lint, formatação, 5783 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, lint, formatação, 5791 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -815,7 +815,7 @@ Cinco versões diferentes de Postgres e de Node aparecem neste projeto, e confun
 | --- | --- | --- |
 | Node | 22 (`dc360/.nvmrc` e `dc360/.node-version`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` pede `>=22 <23` (V2-F01-E09); o npm só avisa quando a versão não bate |
 | PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
-| Postgres do CI | 17 (`postgres:17`) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações e roda a API contra banco real; o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
+| Postgres do CI | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5` fixado por digest, V2-F01-E21) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações, roda a API contra banco real e roda o `test:espacial` (PostGIS em Postgres real); o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
 | Postgres do `compose.yaml` | 17 (`postgis/postgis:17-3.5`, V2-F01-E09) | O ambiente local com PostGIS, igual em major ao de produção. A subida do compose com a imagem nova não tem registro de execução |
 | Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
 

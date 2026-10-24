@@ -948,8 +948,14 @@ jobs:
     services:
       postgres:
         # O major de produção (17.6): o CI deixou de provar a partida contra um
-        # major mais velho que o que roda (V2-F01-E08). PostGIS entra com a E21.
-        image: postgres:17
+        # major mais velho que o que roda (V2-F01-E08). Com PostGIS 3.5 desde a
+        # V2-F01-E21 (decisão D-16): a imagem é a mesma do `compose.yaml`, FIXADA
+        # POR DIGEST do índice multiarquitetura do registro, conferido em
+        # 2026-10-24 para a tag 17-3.5. Imagem de comunidade: o digest fixo impede
+        # que uma tag movida entre no CI sem revisão, e a E20 a varre. Subir a
+        # versão é trocar tag e digest juntos, aqui, no job `imagens` e no
+        # `compose.yaml` (o `smoke-das-imagens.test.mjs` cobra os três).
+        image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -1067,6 +1073,26 @@ jobs:
             exit 1
           fi
 
+      # O smoke espacial da V2-F01-E21: `ST_Contains`, `ST_DWithin` e a RLS
+      # forçada sobre uma coluna `geography`, em Postgres real com PostGIS. O
+      # PGlite não traz a extensão, então só aqui isto é provado.
+      # `DC360_EXIGE_POSTGIS=1` faz faltar servidor ou extensão REPROVAR (local,
+      # o teste pula com aviso), e a checagem de "skipped" abaixo cobre o resto:
+      # pulado aqui é vermelho. O superusuário serve só para o teste criar e
+      # apagar o próprio banco e papel descartáveis (`prova_e21_<sorteio>`).
+      - name: Smoke espacial, em Postgres real com PostGIS
+        env:
+          DC360_POSTGRES_DE_PROVA: postgres://postgres:postgres@localhost:5432/postgres
+          DC360_EXIGE_POSTGIS: "1"
+        run: |
+          npm run test:espacial 2>&1 | tee "$RUNNER_TEMP/artefatos/09-test-espacial.txt"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then exit "$status"; fi
+          if grep -Eq "Tests .*skipped" "$RUNNER_TEMP/artefatos/09-test-espacial.txt"; then
+            echo "o smoke espacial foi pulado: a prova de PostGIS nao rodou"
+            exit 1
+          fi
+
       - name: Redigir segredo dos artefatos
         if: ${{ always() }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
@@ -1126,7 +1152,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        # Mesma imagem do `implantavel` (PostGIS 17 por digest, V2-F01-E21), para
+        # a imagem da API ser provada contra o banco que a F32 vai exigir.
+        image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]

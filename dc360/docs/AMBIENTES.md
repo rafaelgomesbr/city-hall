@@ -161,12 +161,35 @@ serve: `--lista=ARQUIVO`, ou `--lista=-` pela entrada padrão.
 | --- | --- | --- |
 | Node | 22 | `.nvmrc`, `.node-version`, `engines` (`>=22 <23`), `Dockerfile`, `Dockerfile.console`, CI |
 | Postgres de PROD | 17.6 | Supabase |
-| Postgres do `compose.yaml` | 17 (`postgis/postgis:17-3.5`) | `compose.yaml` |
-| Postgres do CI | 16 | `.github/workflows/verificar.yml` (a troca é da V2-F01-E08) |
+| Postgres do `compose.yaml` | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5@sha256:01a6a70e...`) | `compose.yaml` (`banco` e `papeis`) |
+| Postgres do CI | 17 com PostGIS 3.5, a mesma imagem e o mesmo digest do `compose.yaml` | `.github/workflows/verificar.yml` (jobs `implantavel` e `imagens`; V2-F01-E08 e E21) |
+| PostGIS | 3.5, na imagem acima | só nessa imagem: o PGlite não o traz, e a extensão em PROD e em HML é da V2-F01-E22 |
 | PGlite | Postgres 16 em WebAssembly | testes de unidade e painel local |
 
-A diferença entre as majors 16 e 17 do CI e do PGlite contra o 17.6 de PROD é um
-risco conhecido e declarado em `docs/COLOCAR-DE-PE.md`.
+A diferença de major entre o PGlite (16) e o 17.6 de PROD é um risco conhecido e
+declarado em `docs/COLOCAR-DE-PE.md`. O CI e o `compose.yaml` já estão no major 17.
+
+### PostGIS no CI e no ambiente local (V2-F01-E21)
+
+- **Imagem por digest.** `postgis/postgis:17-3.5@sha256:01a6a70e...` (o digest
+  inteiro está no `compose.yaml`) é o índice multiarquitetura da tag, conferido
+  no registro em 2026-10-24. É imagem de comunidade: o digest fixo impede que uma
+  tag movida entre sem revisão. Subir a versão é trocar tag e digest juntos no
+  `compose.yaml` e nos jobs `implantavel` e `imagens`; o
+  `scripts/smoke-das-imagens.test.mjs` reprova se os três divergirem.
+- **O que roda onde.** A suíte comum (`npm test`) segue no PGlite e não precisa de
+  Docker. Os testes `*.espacial.test.ts` (`db/test/`) só rodam em Postgres real
+  com PostGIS, pela suíte `db/vitest.espacial.config.ts`, com `npm run test:espacial`.
+- **No CI.** O job `implantavel` roda `test:espacial` com `DC360_EXIGE_POSTGIS=1`:
+  faltar servidor, variável ou extensão reprova, e "pulado" também. É a prova de
+  `ST_Contains`, `ST_DWithin` e de uma tabela com `geography` sob RLS forçada que
+  não devolve a geometria de outro município.
+- **Local.** Sem `DC360_POSTGRES_DE_PROVA`, o teste pula com aviso que diz como
+  rodar. Para rodar de verdade: `docker compose up banco` e, em outro terminal,
+  `DC360_POSTGRES_DE_PROVA=postgres://dc360_setup:senha-local-de-desenvolvimento@localhost:5432/dc360 npm run test:espacial`.
+  O teste cria um banco e um papel descartáveis (`prova_e21_<sorteio>`) e os apaga.
+- **Não faz.** Não cria migração com PostGIS nem modelo espacial (F32), e não
+  habilita a extensão no provedor nem no HML (E22).
 
 ## 7. Criar um ambiente novo (HML: os arquivos são da E11, o ambiente é do CP-05)
 
@@ -213,7 +236,7 @@ deploy perdido. Conferir antes, SEM imprimir a URL:
 - Não cria app, banco, bucket nem domínio de HML (CP-05 e E10), nem perfil de
   build do aplicativo de campo (E13). O aplicativo de campo não carrega
   `AMBIENTE_DC360`: o ambiente dele é o endereço da API compilado no binário.
-- Não troca o Postgres do CI (E08).
+- Não habilita o PostGIS em PROD nem em HML (E22); o do CI e do `compose.yaml` é da E21.
 
 ## 10. Rollback
 

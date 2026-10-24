@@ -25,6 +25,9 @@ import {
 const RAIZ = new URL("../../", import.meta.url);
 const ler = (relativo) => readFileSync(new URL(relativo, RAIZ), "utf8");
 const IMAGEM = "dc360-api:ci";
+const IMAGEM_POSTGIS =
+  "postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6";
+const POSTGIS_17_POR_DIGEST = IMAGEM_POSTGIS.replace(/[./]/g, "\\$&");
 const VERSAO = "0.1.0";
 const COMMIT = "f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c";
 
@@ -190,7 +193,7 @@ test("o job `imagens` existe, sem segredo, sem permissão extra, com Postgres 17
   assert.match(job.texto, /^ {4}name: Imagens Docker \(API e console\)$/m);
   assert.match(job.texto, /^ {4}runs-on: ubuntu-24\.04$/m);
   assert.match(job.texto, /^ {4}timeout-minutes: \d+$/m);
-  assert.match(job.texto, /^ {8}image: postgres:17$/m);
+  assert.match(job.texto, new RegExp(`^ {8}image: ${POSTGIS_17_POR_DIGEST}$`, "m"));
   assert.doesNotMatch(job.texto, /\bsecrets\./, "o job não recebe segredo");
   assert.doesNotMatch(job.texto, /^ {4}permissions:/m, "o job usa só o contents: read do topo");
   assert.doesNotMatch(job.texto, /docker (push|login)|registry\.fly\.io|FLY_API_TOKEN/, "o job não publica imagem");
@@ -226,8 +229,35 @@ test("o nome do job `imagens` é check obrigatório da master", () => {
 
 test("o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16", () => {
   const implantavel = jobsDe(workflow).find((j) => j.id === "implantavel");
-  assert.match(implantavel.texto, /^ {8}image: postgres:17$/m);
+  assert.match(implantavel.texto, new RegExp(`^ {8}image: ${POSTGIS_17_POR_DIGEST}$`, "m"));
   assert.doesNotMatch(semComentarios(workflow), /image: postgres:16/);
+});
+
+test("PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta", () => {
+  const compose = ler("dc360/compose.yaml");
+  const imagensDoCompose = [...compose.matchAll(/^\s*image:\s*(\S+)\s*$/gm)].map((m) => m[1]);
+  assert.deepEqual(imagensDoCompose, [IMAGEM_POSTGIS, IMAGEM_POSTGIS], "banco e papeis");
+  const doWorkflow = [...semComentarios(workflow).matchAll(/^\s*image:\s*(\S+)\s*$/gm)].map((m) => m[1]);
+  assert.deepEqual(doWorkflow, [IMAGEM_POSTGIS, IMAGEM_POSTGIS], "implantavel e imagens");
+  assert.match(IMAGEM_POSTGIS, /^postgis\/postgis:17-[\d.]+@sha256:[0-9a-f]{64}$/);
+});
+
+test("o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado", () => {
+  const implantavel = jobsDe(workflow).find((j) => j.id === "implantavel");
+  assert.match(implantavel.texto, /^ {10}DC360_EXIGE_POSTGIS: "1"$/m);
+  assert.match(implantavel.texto, /^ {10}DC360_POSTGRES_DE_PROVA: postgres:\/\/postgres:postgres@localhost:5432\/postgres$/m);
+  assert.ok(implantavel.texto.includes("npm run test:espacial"), "falta o test:espacial");
+  assert.ok(implantavel.texto.includes('grep -Eq "Tests .*skipped"'), "pulado tem de reprovar");
+});
+
+test("test:espacial existe na raiz e no db, e o npm test comum não roda os espaciais", () => {
+  const raiz = JSON.parse(ler("dc360/package.json"));
+  const db = JSON.parse(ler("dc360/db/package.json"));
+  assert.equal(raiz.scripts["test:espacial"], "npm run test:espacial --workspace @dc360/db");
+  assert.equal(db.scripts["test:espacial"], "vitest run --config vitest.espacial.config.ts");
+  assert.ok(!raiz.scripts.verificar.includes("test:espacial"), "o verificar local não exige Docker");
+  assert.match(ler("dc360/db/vitest.config.ts"), /exclude:.*\*\*\/\*\.espacial\.test\.ts/);
+  assert.match(ler("dc360/db/vitest.espacial.config.ts"), /include: \["test\/\*\*\/\*\.espacial\.test\.ts"\]/);
 });
 
 test("rollback.md existe e cobre as cinco frentes com o comando de cada uma", () => {

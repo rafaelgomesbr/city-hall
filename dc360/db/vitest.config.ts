@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 /**
  * A suíte do banco precisa de teto de gancho maior que o padrão, e a razão
@@ -25,6 +25,9 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
+    // Os `*.espacial.test.ts` (V2-F01-E21) pedem Postgres real com PostGIS e
+    // têm a própria suíte: `vitest.espacial.config.ts`, `npm run test:espacial`.
+    exclude: [...configDefaults.exclude, "**/*.espacial.test.ts"],
     testTimeout: 30_000,
     hookTimeout: 120_000,
     poolOptions: {

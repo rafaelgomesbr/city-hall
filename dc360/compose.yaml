@@ -17,6 +17,13 @@
 # Construir e subir uma vez antes do primeiro deploy continua sendo
 # obrigatório.
 #
+# IMAGEM POR DIGEST (V2-F01-E21): `banco` e `papeis` usam a tag MAIS o digest do
+# índice multiarquitetura, conferido no registro em 2026-10-24. É imagem de
+# comunidade, e o digest impede que uma tag movida entre sem revisão. É o mesmo
+# digest do `implantavel` e do `imagens` em `verificar.yml`, onde o
+# `test:espacial` roda em Postgres real contra esta imagem. Subir a versão é
+# trocar tag e digest nos três lugares ao mesmo tempo.
+#
 # ESTE COMPOSE É PARA DESENVOLVER E PARA CONFERIR QUE A IMAGEM SOBE, não para
 # produção. Produção usa Postgres gerenciado (com backup e PITR) e um proxy
 # reverso terminando TLS na frente da API. Ver o README, seção Implantação.
@@ -29,7 +36,7 @@
 # =====================================================================
 services:
   banco:
-    image: postgis/postgis:17-3.5
+    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
     environment:
       POSTGRES_DB: dc360
       # O usuário inicial do POSTGRES_USER é superusuário: é o papel de SETUP
@@ -59,7 +66,7 @@ services:
   # depois do migrar (o papel dc360_app nasce lá) e antes da API. Idempotente:
   # subir de novo não falha se o papel já existir.
   papeis:
-    image: postgis/postgis:17-3.5
+    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
     entrypoint: ["bash", "-c"]
     command:
       - |
