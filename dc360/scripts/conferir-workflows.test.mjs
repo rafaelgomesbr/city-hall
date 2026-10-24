@@ -1,6 +1,6 @@
 /**
  * Regras de CI aplicadas a TODOS os workflows de `.github/workflows/`
- * (V2-F01-E02).
+ * (V2-F01-E02 e V2-F01-E03).
  *
  * Por que um teste e não só a revisão do PR: workflow é código que roda com o
  * token do repositório. Ação por tag móvel pode ser reescrita e rodar código
@@ -16,6 +16,13 @@
  *   3. toda `uses:` fixada por SHA de 40 caracteres, com a versão em comentário;
  *   4. nenhum `pull_request_target`;
  *   5. runner com versão (nunca `ubuntu-latest`).
+ *
+ * E a regra da E03, sobre o conjunto: todo comando do script `verificar` do
+ * `package.json` aparece em algum `run:` de algum workflow. Portão novo que
+ * fique só no `npm run verificar` local, sem ir para o CI, reprova aqui. O
+ * `auditar` pode aparecer como `npm run auditar` ou como `node
+ * scripts/auditar.mjs` (o CI chama o `node` de propósito: nenhuma configuração
+ * do npm decide se o portão roda).
  *
  * O repositório não tem biblioteca de YAML (e o CI não instala nada para a
  * raiz de `scripts/`), então a leitura é por texto, sobre o formato que os
@@ -33,6 +40,7 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = new URL("../../", import.meta.url);
 const PASTA = fileURLToPath(new URL(".github/workflows/", RAIZ));
+const lerRaiz = (relativo) => readFileSync(new URL(relativo, RAIZ), "utf8");
 
 /** Maior `timeout-minutes` aceito. O padrão do GitHub é 360; o maior job real (baseline) usa 120. */
 const TIMEOUT_MAXIMO = 120;
@@ -82,6 +90,28 @@ export function permissoesDoTopo(texto) {
     else break;
   }
   return bloco.join("\n");
+}
+
+/** Os comandos de todos os `run:` do workflow (inline e em bloco), sem as linhas de comentário. */
+export function comandosDosRuns(texto) {
+  const linhas = semComentarios(texto).split("\n");
+  const comandos = [];
+  for (let i = 0; i < linhas.length; i++) {
+    const m = /^(\s*)(?:-\s+)?run:\s*(.*)$/.exec(linhas[i]);
+    if (!m) continue;
+    const recuo = m[1].length;
+    const valor = m[2].trim();
+    if (/^[|>][+-]?\d*$/.test(valor)) {
+      for (let j = i + 1; j < linhas.length; j++) {
+        const l = linhas[j];
+        if (l.trim() !== "" && l.search(/\S/) <= recuo) break;
+        comandos.push(l.trim());
+      }
+    } else {
+      comandos.push(valor);
+    }
+  }
+  return comandos.filter(Boolean);
 }
 
 // ---------------------------------------------------------------------------
@@ -154,11 +184,63 @@ export function problemasDoWorkflow(texto) {
 }
 
 // ---------------------------------------------------------------------------
+// Regra da E03: o `verificar` inteiro roda no CI
+// ---------------------------------------------------------------------------
+
+const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Os comandos do script `verificar` (separados por `&&`), na ordem. */
+export function comandosDoVerificar(packageJson) {
+  const verificar = packageJson.scripts?.verificar;
+  if (typeof verificar !== "string") throw new Error("o package.json não tem o script `verificar`");
+  return verificar.split("&&").map((c) => c.trim()).filter(Boolean);
+}
+
+/**
+ * As formas aceitas de um comando aparecer num `run:`. `npm run X` vale também
+ * pelo corpo do script X quando ele é um comando simples (`node scripts/...`).
+ * `npm test` só vale literal: `npm run test --workspace X` roda um pedaço da suíte,
+ * e não ela.
+ */
+export function formasAceitas(comando, scripts) {
+  const formas = [comando];
+  const m = /^npm run ([\w:.-]+)$/.exec(comando);
+  if (m) {
+    const corpo = scripts[m[1]];
+    if (typeof corpo === "string" && !corpo.includes("&&")) formas.push(corpo.trim());
+  }
+  return formas;
+}
+
+/** Comandos do `verificar` que não aparecem em nenhum `run:` dos comandos dados. */
+export function comandosFaltando(packageJson, comandosDeRun) {
+  const texto = comandosDeRun.join("\n");
+  return comandosDoVerificar(packageJson).filter(
+    (comando) =>
+      !formasAceitas(comando, packageJson.scripts).some((forma) =>
+        // Fronteira depois: `npm run test` não pode casar com `npm run test:scripts`.
+        new RegExp(`(^|[\\s;&|(])${escapar(forma)}(?![\\w:.-])`, "m").test(texto),
+      ),
+  );
+}
+
+/**
+ * Os `npm audit` que DECIDEM: os que não terminam em `|| true` ou que usam
+ * `--audit-level`. A política de dependências é `scripts/auditar.mjs` (CP-03);
+ * o `npm audit --json ... || true` do job `dependencias` só guarda o relatório
+ * bruto como evidência.
+ */
+export function auditoriasQueDecidem(comandosDeRun) {
+  return comandosDeRun.filter((c) => /\bnpm audit\b/.test(c) && (!/\|\|\s*true\b/.test(c) || /--audit-level/.test(c)));
+}
+
+// ---------------------------------------------------------------------------
 // Workflows reais
 // ---------------------------------------------------------------------------
 
 const arquivos = readdirSync(PASTA).filter((n) => /\.ya?ml$/.test(n)).sort();
 const workflows = Object.fromEntries(arquivos.map((n) => [n, readFileSync(PASTA + n, "utf8")]));
+const pacote = JSON.parse(lerRaiz("dc360/package.json"));
 
 test("a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia)", () => {
   for (const esperado of ["verificar.yml", "demonstracao.yml", "sast.yml", "segredos.yml", "auditoria-semanal.yml"]) {
@@ -224,6 +306,45 @@ test("o job aplicativo guarda o cache de npm dos DOIS lockfiles", () => {
   assert.match(job.texto, /cache-dependency-path:\s*\|\n\s+dc360\/package-lock\.json\n\s+dc360\/apps\/campo\/package-lock\.json/);
 });
 
+// ----- E03 -----
+
+const comandos = Object.values(workflows).flatMap(comandosDosRuns);
+
+test("todo comando do script `verificar` aparece em algum run: de algum workflow", () => {
+  assert.deepEqual(comandosFaltando(pacote, comandos), []);
+});
+
+test("o script `verificar` ainda tem os seis comandos conhecidos (um comando novo exige este teste ciente)", () => {
+  assert.deepEqual(comandosDoVerificar(pacote), [
+    "npm run typecheck",
+    "npm test",
+    "npm run test:scripts",
+    "npm run test:campo",
+    "npm run auditar",
+    "npm run conferir:numeros",
+  ]);
+});
+
+test("o auditar roda pelo node no job dependencias, e o único `npm audit` cru é evidência que não decide", () => {
+  const job = jobsDe(workflows["verificar.yml"]).find((j) => j.id === "dependencias");
+  assert.ok(job);
+  assert.ok(comandosDosRuns(job.texto).some((c) => /node scripts\/auditar\.mjs/.test(c)));
+  for (const [nome, texto] of Object.entries(workflows)) {
+    assert.deepEqual(auditoriasQueDecidem(comandosDosRuns(texto)), [], `${nome}: \`npm audit\` que decide no lugar do auditar`);
+  }
+});
+
+test("o test:scripts roda com as duas árvores instaladas (a do aplicativo antes) e o test:campo no job aplicativo", () => {
+  const verificar = workflows["verificar.yml"];
+  const produto = jobsDe(verificar).find((j) => j.id === "produto");
+  const iApp = produto.texto.indexOf("id: instalar_app");
+  const iScripts = produto.texto.indexOf("npm run test:scripts");
+  assert.ok(iApp > 0 && iScripts > iApp, "produto: npm ci do aplicativo antes do test:scripts");
+  const app = jobsDe(verificar).find((j) => j.id === "aplicativo");
+  assert.match(app.texto, /npm run test:campo/);
+  assert.doesNotMatch(app.texto, /npm audit/, "o aplicativo não tem mais `npm audit` próprio");
+});
+
 // ---------------------------------------------------------------------------
 // Casos negativos: o teste morde
 // ---------------------------------------------------------------------------
@@ -284,4 +405,56 @@ test("negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem run
   assert.match(problemasDeRunner(matriz).join("\n"), /ubuntu-latest/);
   assert.match(problemasDeRunner(BOM.replace("    runs-on: ubuntu-24.04\n", "")).join("\n"), /sem runs-on/);
   assert.deepEqual(problemasDeRunner(BOM.replace("ubuntu-24.04", "windows-latest")), []);
+});
+
+test("negativo: tirar `npm run auditar` do workflow reprova (mas `node scripts/auditar.mjs` basta)", () => {
+  const sem = comandos.filter((c) => !/auditar/.test(c));
+  assert.deepEqual(comandosFaltando(pacote, sem), ["npm run auditar"]);
+  assert.deepEqual(comandosFaltando(pacote, [...sem, "npm run auditar 2>&1 | tee x.txt"]), []);
+  assert.deepEqual(comandosFaltando(pacote, [...sem, "node scripts/auditar.mjs 2>&1 | tee x.txt"]), []);
+});
+
+test("negativo: tirar qualquer outro comando do verificar reprova, e `npm run test:scripts` não vale por `npm test`", () => {
+  for (const alvo of ["npm run typecheck", "npm run test:scripts", "npm run test:campo", "npm run conferir:numeros"]) {
+    const sem = comandos.filter((c) => !c.includes(alvo));
+    assert.ok(comandosFaltando(pacote, sem).includes(alvo), `${alvo}: a falta devia ser notada`);
+  }
+  // `npm test` não pode ser satisfeito por `npm run test:scripts`.
+  const soScripts = comandos.filter((c) => !/(^|\s)npm test(\s|$)/.test(c));
+  assert.ok(comandosFaltando(pacote, soScripts).includes("npm test"));
+});
+
+test("negativo: `npm audit` que decide reprova, o de evidência com `|| true` não", () => {
+  assert.deepEqual(auditoriasQueDecidem(["npm audit --audit-level=low"]), ["npm audit --audit-level=low"]);
+  assert.deepEqual(auditoriasQueDecidem(["npm audit --json > a.json"]), ["npm audit --json > a.json"]);
+  assert.deepEqual(auditoriasQueDecidem(["npm audit --json > a.json || true"]), []);
+  assert.deepEqual(auditoriasQueDecidem(["npm audit --audit-level=low || true"]), ["npm audit --audit-level=low || true"]);
+});
+
+test("negativo: comando que só aparece em comentário ou em name: não conta como run:", () => {
+  const yml = `jobs:
+  um:
+    steps:
+      # npm run auditar
+      - name: npm run auditar
+        run: echo nada
+`;
+  assert.deepEqual(comandosDosRuns(yml), ["echo nada"]);
+  assert.deepEqual(comandosFaltando({ scripts: { verificar: "npm run auditar", auditar: "node scripts/auditar.mjs" } }, comandosDosRuns(yml)), ["npm run auditar"]);
+});
+
+test("o leitor de run: entende bloco, inline e para no recuo certo", () => {
+  const yml = `jobs:
+  um:
+    steps:
+      - run: npm ci
+      - name: bloco
+        run: |
+          npm run typecheck
+          { npm run build; } 2>&1
+
+      - name: depois
+        run: echo fim
+`;
+  assert.deepEqual(comandosDosRuns(yml), ["npm ci", "npm run typecheck", "{ npm run build; } 2>&1", "echo fim"]);
 });

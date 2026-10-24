@@ -1,0 +1,8 @@
+PASS src/ui/mapa/plano-esquematico.test.tsx
+PASS src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx (6.817 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        7.83 s, estimated 118 s
+Ran all test suites matching /src\/ui\/mapa\/plano-esquematico.test.tsx|src\/__tests__\/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx/i.

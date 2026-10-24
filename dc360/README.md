@@ -1976,7 +1976,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração (`demonstracao.yml`) | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores. Só roda quando muda `mockup/**`, `scripts/**`, os três documentos que vão dentro do zip ou o `package-lock.json` (o Playwright vem dele); mudança só no produto não o dispara |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
-| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
+| Aplicativo de campo | `npm run test:campo` (TypeScript, os testes do aplicativo e a conferência de que o jest executou os casos que a leitura do código conta; é o que substituiu o `typecheck` e o `npm test` avulsos do job), árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
 **Regras que todo workflow de `.github/workflows/` cumpre** (V2-F01-E02), conferidas
 por `scripts/conferir-workflows.test.mjs`, que roda no `npm run test:scripts`:
@@ -1990,6 +1990,18 @@ candidato nunca são cancelados. Os navegadores do Playwright vêm de cache
 (`~/.cache/ms-playwright`, chave presa ao `package-lock.json`). Workflow novo que
 quebrar uma regra reprova esse teste, e os nomes dos quatro jobs exigidos pelo
 ruleset da `master` também ficam presos nele.
+
+**O CI roda tudo o que o `npm run verificar` roda** (V2-F01-E03). O mesmo teste lê
+o script `verificar` do `package.json` e reprova se algum dos seus comandos
+(`typecheck`, `npm test`, `test:scripts`, `test:campo`, `auditar`,
+`conferir:numeros`) não aparecer em nenhum `run:` de nenhum workflow; portão novo
+que fique só local reprova. O `auditar` pode aparecer como `npm run auditar` ou
+como `node scripts/auditar.mjs` (o CI usa o `node` de propósito). Um `npm audit`
+que decide o resultado, ou que usa `--audit-level`, também reprova; o único que
+resta é o que guarda o relatório bruto como evidência, com `|| true`.
+`test:scripts` roda no job `produto` com as duas árvores instaladas (o teste do
+mapa do aplicativo lê `apps/campo/node_modules`) e `test:campo` no job
+`aplicativo`.
 
 O CA-06 roda separado e antes da suíte inteira de propósito (o TypeScript
 estrito vem antes dele no job): isolamento entre municípios é a regra número

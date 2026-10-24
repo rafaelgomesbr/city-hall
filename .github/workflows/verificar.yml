@@ -63,6 +63,8 @@
 #   `~/.cache/ms-playwright` (ação `actions/cache`, chave presa ao lockfile).
 # - O job do protótipo (`demonstracao`) mora em `demonstracao.yml`, com filtro de
 #   caminho, e não roda quando só o produto muda.
+# - Todo comando do script `verificar` do `package.json` aparece em algum `run:`
+#   de algum workflow (V2-F01-E03). Portão novo que fique só local reprova o teste.
 
 name: Verificar
 
@@ -520,28 +522,22 @@ jobs:
         id: instalar_app
         run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci-campo.txt"
 
-      - name: TypeScript estrito
-        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
-        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/03-typecheck.txt"
-
-      # O aplicativo passou a ter teste. Antes deste passo, o job media só
-      # higiene de dependência: TypeScript limpo, Expo saudável e audit em
-      # zero. Nenhuma das três enxerga comportamento, e a corrida de renovação
-      # que derrubava a sessão do agente no meio do campo passava nas três.
-      - name: Testes do aplicativo
-        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
-        run: npm test 2>&1 | tee "$RUNNER_TEMP/artefatos/04-jest.txt"
-
-      # O comando da raiz que mede o aplicativo: tipos, jest e a conferência de
-      # que o jest executou exatamente os casos que a leitura do código conta.
-      # Repete o typecheck e o jest dos dois passos acima de propósito: aqui o
-      # que vale é o cruzamento das contagens e a regra de que a falta de
-      # dependência reprova em vez de pular. (Se o tempo do job pesar, este
-      # passo pode substituir aqueles dois.)
-      - name: Comando da raiz que mede o aplicativo (test:campo)
+      # O comando da raiz que mede o aplicativo (V2-F01-E03): typecheck, jest e a
+      # conferência de que o jest executou exatamente os casos que a leitura do
+      # código conta, com a regra de que a falta de dependência reprova em vez de
+      # pular. Substitui os passos `npm run typecheck` e `npm test` que rodavam
+      # aqui dentro do aplicativo: o `test:campo` já faz os dois, na mesma ordem,
+      # e ainda cruza as contagens. O aplicativo passou a ter teste porque antes
+      # o job media só higiene de dependência (TypeScript limpo, Expo saudável e
+      # audit em zero), e a corrida de renovação que derrubava a sessão do agente
+      # no meio do campo passava nas três.
+      #
+      # `test:scripts` (os portões e paridades que leem `apps/campo/node_modules`)
+      # roda no job `produto`, que instala as duas árvores.
+      - name: Tipos, testes e contagem do aplicativo (test:campo)
         if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
         working-directory: dc360
-        run: npm run test:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/05-test-campo.txt"
+        run: npm run test:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/03-test-campo.txt"
 
       # A ÁRVORE DE DEPENDÊNCIA PRECISA SER COERENTE.
       #
