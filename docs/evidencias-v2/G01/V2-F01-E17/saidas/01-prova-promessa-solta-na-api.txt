@@ -1,0 +1,11 @@
+### 1. Chamada assíncrona sem await em apps/api/src
+
+== ESLint: monorepo ==
+
+/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-ad9ca82e4f3b975a7/dc360/apps/api/src/prova-promessa-solta.ts
+  3:3  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+✖ 1 problem (1 error, 0 warnings)
+
+REPROVADO: monorepo (código 1)
+codigo=1

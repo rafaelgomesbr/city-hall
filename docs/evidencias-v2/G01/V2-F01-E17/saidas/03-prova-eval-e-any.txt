@@ -1,0 +1,12 @@
+### 3. eval e any explícito novos
+
+== ESLint: monorepo ==
+
+/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-ad9ca82e4f3b975a7/dc360/apps/api/src/prova-eval.ts
+  1:18  error  eval can be harmful                       no-eval
+  2:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 2 problems (2 errors, 0 warnings)
+
+REPROVADO: monorepo (código 1)
+codigo=1

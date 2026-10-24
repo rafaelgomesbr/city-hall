@@ -1,0 +1,23 @@
+### 4. O buraco que o ESLint sozinho deixa: regenerar a baseline com um defeito novo
+--- depois do --suppress-all, o lint passa (o buraco):
+
+== ESLint: monorepo ==
+OK: monorepo
+codigo=0
+--- o teto gravado não bate mais com a soma:
+REPROVADO (2):
+- lint-teto.json diz 432, as baselines somam 433: teto menor que a soma. O teto é exatamente a soma. Para baixar, corrija o achado, rode `npm run lint:podar` e `node scripts/lint-teto.mjs atualizar`.
+- regra @typescript-eslint/no-floating-promises: lint-teto.json diz 249, as baselines somam 250
+codigo=1
+--- o dono 'atualiza' o teto para fechar o conferir (recusado, pois subiu):
+RECUSADO: atualizar não sobe o teto.
+- o teto de lint subiu: 432 na base, 433 aqui. A baseline só desce.
+- regra @typescript-eslint/no-floating-promises subiu: 249 na base, 250 aqui
+codigo=1
+--- ele sobe o teto à mão. O conferir fecha, mas contra o ramo-base (HEAD) reprova:
+OK: lint-teto.json confere com as baselines (433 supressões).
+conferir codigo=0
+REPROVADO contra HEAD (2):
+- o teto de lint subiu: 432 na base, 433 aqui. A baseline só desce.
+- regra @typescript-eslint/no-floating-promises subiu: 249 na base, 250 aqui
+contra-base codigo=1

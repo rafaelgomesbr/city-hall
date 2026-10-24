@@ -1,0 +1,6 @@
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo

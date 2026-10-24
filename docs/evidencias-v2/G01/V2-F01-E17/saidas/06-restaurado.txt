@@ -1,0 +1,14 @@
+### 6. Depois de restaurar: tudo verde de novo
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo
+codigo=0
+OK: lint-teto.json confere com as baselines (432 supressões).
+codigo=0
+OK: nada subiu em relação a HEAD.
+codigo=0
+OK: 739 arquivo(s) de código conferidos; 664 na baseline (só desce).
+codigo=0

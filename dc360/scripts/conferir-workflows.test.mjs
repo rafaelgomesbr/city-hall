@@ -314,9 +314,13 @@ test("todo comando do script `verificar` aparece em algum run: de algum workflow
   assert.deepEqual(comandosFaltando(pacote, comandos), []);
 });
 
-test("o script `verificar` ainda tem os seis comandos conhecidos (um comando novo exige este teste ciente)", () => {
+test("o script `verificar` ainda tem os nove comandos conhecidos (um comando novo exige este teste ciente)", () => {
   assert.deepEqual(comandosDoVerificar(pacote), [
     "npm run typecheck",
+    // V2-F01-E17: lint, teto da baseline e formatação.
+    "npm run lint",
+    "npm run lint:teto",
+    "npm run formato:conferir",
     "npm test",
     "npm run test:scripts",
     "npm run test:campo",

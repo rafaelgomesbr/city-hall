@@ -293,6 +293,23 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     HML; e o comando com código de saída 0, 1 e 2, sem nunca imprimir valor).
   */
   "V2-F01-E09": 42,
+  /*
+    V2-F01-E17 (lint e formatação com baseline que só desce):
+    `scripts/lint-teto.test.mjs` é novo, com 20 casos (o teto é exatamente a
+    soma das duas baselines do ESLint, com folga ou a menos reprova; contra o
+    ramo-base nada sobe, nem o total, nem uma regra, nem regra nova, nem arquivo
+    novo na baseline de formatação; a leitura do ramo-base num repositório git
+    de verdade; e onde o `package.json` e o workflow chamam o lint),
+    `scripts/formato-conferir.test.mjs` é novo, com 8 (a comparação com a
+    baseline de formatação, o Prettier de verdade numa pasta temporária e a
+    baseline do repositório), e `scripts/lint-regras.test.mjs` é novo, com 10
+    (as regras mordem: promessa solta e `async` mal usado em `apps/api/src`,
+    hook com dependência faltando em `apps/web/src`, `eval`, `Function`, `any`
+    explícito, `setTimeout` com texto, e as mesmas duas no aplicativo de campo).
+  */
+  "V2-F01-E17": 20,
+  "V2-F01-E17-formato": 8,
+  "V2-F01-E17-regras": 10,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -314,6 +331,9 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E16": "runbooks.test.mjs",
   "V2-F01-E08": "smoke-das-imagens.test.mjs",
   "V2-F01-E09": "conferir-ambiente.test.mjs",
+  "V2-F01-E17": "lint-teto.test.mjs",
+  "V2-F01-E17-formato": "formato-conferir.test.mjs",
+  "V2-F01-E17-regras": "lint-regras.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

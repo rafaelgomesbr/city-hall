@@ -1,0 +1,12 @@
+# Commits de reformatação em massa, ignorados pelo `git blame` (V2-F01-E17).
+#
+# Cada linha é o SHA COMPLETO de um commit que só reformatou código (Prettier),
+# sem mudar comportamento, seguido de um comentário dizendo o que foi.
+#
+# Uso, uma vez por clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# O GitHub lê este arquivo sozinho na tela de blame.
+#
+# Hoje a lista está vazia de propósito: a E17 não reformatou nada. O PR que
+# reformar o repositório inteiro (o que esvazia `dc360/formato-baseline.json`)
+# acrescenta o SHA dele aqui, depois de mesclado.

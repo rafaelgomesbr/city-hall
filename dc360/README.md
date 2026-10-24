@@ -1299,14 +1299,16 @@ npm run test:isolamento         # o portão CA-06, rode este primeiro
 npm test                        # os demais testes de cada workspace
 npm run test:scripts            # portões de design e de acessibilidade do aplicativo, entre outros
 npm run test:campo              # tipos e testes do aplicativo de campo
+npm run lint                    # ESLint nos dois lados (monorepo e aplicativo), baseline que só desce
+npm run formato:conferir        # Prettier: o que já estava formatado continua, arquivo novo nasce formatado
 npm run auditar                 # dependência vulnerável em runtime
 npm run conferir:numeros        # os números que este README afirma contra a realidade
 npm run test:e2e                # painel no navegador (precisa de Chromium e Firefox do Playwright)
 npm run test:e2e:api            # painel contra a API
 ```
 
-`npm run verificar` encadeia typecheck, testes, `test:scripts`, `test:campo`,
-`auditar` e `conferir:numeros`. O CI roda esses passos em jobs separados
+`npm run verificar` encadeia typecheck, `lint`, `lint:teto`, `formato:conferir`,
+testes, `test:scripts`, `test:campo`, `auditar` e `conferir:numeros`. O CI roda esses passos em jobs separados
 (`test:scripts` e `conferir:numeros` no job de testes, o `auditar` no job
 `dependencias`, `test:campo` no job do aplicativo); a diferença é que o CI não
 roda o `verificar` inteiro de uma vez, e sim cada passo no seu job. O CI chama
@@ -1497,6 +1499,44 @@ acima, e `.only` nunca passa. O portão
 `scripts/portao-de-skip.test.mjs` aplica isso dentro de `npm run test:scripts`
 e imprime a contagem de skips por ambiente. A política inteira está em
 `docs/POLITICA-DE-TESTE-VERMELHO.md`.
+
+### Lint e formatação (V2-F01-E17)
+
+O código nasceu sem ESLint nem Prettier. Ligar a régua e corrigir tudo de uma
+vez geraria um diff que conflita com qualquer outra mudança, então os achados de
+hoje ficam numa **baseline que só desce**, e o portão reprova o que é novo.
+
+- **ESLint 9 com tipos** (`eslint.config.mjs`, regras em `eslint.base.mjs`):
+  `no-floating-promises`, `no-misused-promises`, `await-thenable`,
+  `react-hooks/exhaustive-deps`, `eval`, `new Function`, `any` explícito.
+  Tudo é `error`. O aplicativo de campo tem configuração e baseline próprias
+  (`apps/campo/eslint.config.mjs`), mas o ESLint e os plugins vêm da raiz: o
+  lockfile do Expo não ganha dependência de lint. `npm run lint` roda os dois
+  lados e reprova se `apps/campo/node_modules` não existir (sem ele o lint com
+  tipos não mede nada). `npm run lint:campo` roda só o aplicativo.
+- **Baseline do lint**: `eslint-suppressions.json` (monorepo) e
+  `apps/campo/eslint-suppressions.json` (aplicativo), gerados por
+  `eslint --suppress-all`. Achado novo reprova; supressão que já não é
+  necessária também reprova (rode `npm run lint:podar`). Quem corrige um achado
+  antigo tem de podar a baseline no mesmo PR.
+- **Teto**: `lint-teto.json` é exatamente a soma das duas baselines
+  (`npm run lint:teto`; folga ou falta reprova). Em pull request,
+  `node scripts/lint-teto.mjs contra-base <sha-da-base>` reprova se o total, a
+  contagem de uma regra, uma regra nova ou um arquivo na baseline de formatação
+  subiu em relação ao ramo-base. Isso fecha o buraco que o ESLint sozinho deixa:
+  regenerar a baseline com `--suppress-all` depois de introduzir um defeito.
+  Depois de baixar a baseline: `node scripts/lint-teto.mjs atualizar` (recusa
+  gravar se algo subiu).
+- **Prettier** (`.prettierrc.json`, `.prettierignore`): `npm run formato:conferir`
+  olha os arquivos versionados de código (`ts`, `tsx`, `js`, `mjs`, `cjs`,
+  `css`). O que já estava mal formatado quando a etapa ligou o portão está em
+  `formato-baseline.json` (só desce); todo o resto precisa estar formatado, e
+  arquivo novo nasce formatado (`node scripts/formato-conferir.mjs --formatar`
+  formata os que não estão na baseline). Formatar um arquivo da baseline obriga
+  a tirá-lo dela (`--podar`). Reformatar tudo é UM PR à parte, cujo commit
+  entra em `.git-blame-ignore-revs`.
+- Comando para o git ignorar esse commit no `blame`, uma vez por clone:
+  `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 ## Implantação
 

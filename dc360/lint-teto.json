@@ -1,0 +1,29 @@
+{
+  "versao": 1,
+  "total": 432,
+  "porProjeto": {
+    "monorepo": 140,
+    "campo": 292
+  },
+  "porRegra": {
+    "@typescript-eslint/no-base-to-string": 32,
+    "@typescript-eslint/no-explicit-any": 23,
+    "@typescript-eslint/no-floating-promises": 249,
+    "@typescript-eslint/no-misused-promises": 25,
+    "@typescript-eslint/no-require-imports": 36,
+    "@typescript-eslint/no-unused-vars": 5,
+    "@typescript-eslint/only-throw-error": 5,
+    "no-control-regex": 1,
+    "no-extend-native": 4,
+    "no-irregular-whitespace": 5,
+    "no-loss-of-precision": 7,
+    "no-regex-spaces": 20,
+    "no-script-url": 1,
+    "no-sparse-arrays": 1,
+    "no-unused-vars": 2,
+    "no-useless-escape": 4,
+    "no-var": 1,
+    "prefer-const": 6,
+    "react-hooks/exhaustive-deps": 5
+  }
+}

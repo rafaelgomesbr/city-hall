@@ -1,0 +1,1 @@
+OK: lint-teto.json confere com as baselines (432 supressões).

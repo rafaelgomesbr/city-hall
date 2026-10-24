@@ -351,7 +351,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 5730 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, lint, formatação, 5730 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

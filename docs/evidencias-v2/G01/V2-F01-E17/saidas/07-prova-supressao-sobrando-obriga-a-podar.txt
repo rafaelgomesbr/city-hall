@@ -1,0 +1,21 @@
+### 7. Corrigir um achado antigo: a baseline fica com supressão sobrando e reprova até podar
+--- simulação: a baseline registra 1 achado a mais do que o código tem (como depois de corrigir um)
+alterado: apps/api/src/documentos/folha.ts @typescript-eslint/no-base-to-string
+
+== ESLint: monorepo ==
+There are suppressions left that do not occur anymore. Consider re-running the command with `--prune-suppressions`.
+REPROVADO: monorepo (código 2)
+codigo=2
+--- npm run lint:podar remove o que sobra, e o lint volta a passar:
+
+== ESLint: monorepo ==
+OK: monorepo
+codigo=0
+
+== ESLint: monorepo ==
+OK: monorepo
+codigo=0
+--- a baseline podada voltou ao que era:
+idêntica à original
+OK: lint-teto.json confere com as baselines (432 supressões).
+codigo=0

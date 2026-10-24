@@ -176,6 +176,43 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/03-typecheck.txt"
 
+      # Lint (V2-F01-E17): ESLint 9 com tipos nos dois lados do produto (o
+      # monorepo e o aplicativo de campo, cada um com a sua baseline). Achado
+      # NOVO reprova (promessa solta, hook com dependência faltando, `eval`,
+      # `any` explícito); o antigo está em `eslint-suppressions.json`. Roda
+      # depois do `npm ci` das duas árvores: sem as dependências do aplicativo o
+      # lint com tipos não mede nada, e `scripts/lint.mjs` reprova nesse caso.
+      - name: Lint (ESLint, baseline que só desce)
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm run lint 2>&1 | tee "$RUNNER_TEMP/artefatos/03b-lint.txt"
+
+      # O teto: `lint-teto.json` é a soma exata das baselines. Em pull_request o
+      # ramo-base entra na conta, e nada pode subir em relação a ele (o total, a
+      # contagem de uma regra, arquivo novo na baseline de formatação). Isto
+      # pega quem regenera a baseline com `--suppress-all` depois de introduzir
+      # um defeito, que o ESLint sozinho deixaria passar.
+      - name: Teto da baseline de lint (só desce)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          {
+            npm run lint:teto
+            if [ -n "$BASE_SHA" ]; then
+              git fetch --no-tags --depth=1 origin "$BASE_SHA"
+              node scripts/lint-teto.mjs contra-base "$BASE_SHA"
+            else
+              echo "sem pull_request: a comparação com o ramo-base só roda em PR"
+            fi
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/03c-lint-teto.txt"
+
+      # Prettier (V2-F01-E17): arquivo que já estava formatado continua; arquivo
+      # novo nasce formatado; o que ficou de fora está em `formato-baseline.json`,
+      # que só desce. Reformatar tudo é um PR à parte.
+      - name: Formatação (Prettier, baseline que só desce)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run formato:conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/03d-formato.txt"
+
       # Primeiro e sozinho: isolamento entre municípios é a regra número um.
       - name: Portão de isolamento (CA-06)
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
@@ -538,6 +575,15 @@ jobs:
         if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
         working-directory: dc360
         run: npm run test:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/03-test-campo.txt"
+
+      # Lint do aplicativo (V2-F01-E17), com os tipos do `node_modules` dele e a
+      # baseline própria (`apps/campo/eslint-suppressions.json`). O ESLint e os
+      # plugins vêm da raiz `dc360/`, instalada no passo de cima; o lockfile do
+      # Expo não ganha dependência de lint.
+      - name: Lint do aplicativo (ESLint, baseline que só desce)
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        working-directory: dc360
+        run: npm run lint:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/03b-lint-campo.txt"
 
       # A ÁRVORE DE DEPENDÊNCIA PRECISA SER COERENTE.
       #
