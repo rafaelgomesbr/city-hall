@@ -42,12 +42,19 @@
  *   fly secrets list -a defesa-civil --json | node scripts/conferir-ambiente.mjs --ambiente=prod --app=api --lista=-
  *       ou `--lista=ARQUIVO`: lê a saída já guardada, sem chamar o `fly`.
  *
+ *   DATABASE_URL_SETUP=... node scripts/conferir-ambiente.mjs --extensoes [--ambiente=hml|prod]
+ *       (V2-F01-E22) confere o PostGIS no banco, SÓ LEITURA: o provedor oferece,
+ *       está no schema certo, nenhum papel do provedor o alcança e `dc360_app`
+ *       enxerga o mínimo. Em PROD, só a disponibilidade. Ver
+ *       `scripts/conferir-extensoes.mjs`.
+ *
  * Saída: 0 tudo confere; 1 alguma conferência falhou; 2 uso errado.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { executarExtensoes, lerArgumentosDeExtensoes } from "./conferir-extensoes.mjs";
 
 const AQUI = fileURLToPath(new URL(".", import.meta.url));
 export const RAIZ_DO_PRODUTO = resolve(AQUI, "..");
@@ -470,6 +477,7 @@ export function formatarComparacao({ app, ambiente, nomes, resultado }) {
 
 /** Lê os argumentos `--chave=valor`. Devolve `{ erro }` quando algo está errado. */
 export function lerArgumentos(argv) {
+  if (argv.includes("--extensoes")) return lerArgumentosDeExtensoes(argv);
   const saida = {};
   for (const a of argv) {
     const m = /^--([a-z-]+)(?:=(.*))?$/.exec(a);
@@ -501,15 +509,19 @@ export function lerArgumentos(argv) {
   return { ...saida, comparar: quer };
 }
 
-function principal() {
+async function principal() {
   const args = lerArgumentos(process.argv.slice(2));
   if (args.erro) {
     console.error(`conferir-ambiente: ${args.erro}`);
     console.error(
       "uso: node scripts/conferir-ambiente.mjs [--ambiente=hml|prod --app=api|console [--fly=NOME] [--lista=ARQUIVO|-]]",
     );
+    console.error(
+      "     node scripts/conferir-ambiente.mjs --extensoes [--ambiente=hml|prod] [--esquema=extensions] [--fatos=ARQUIVO|-]",
+    );
     process.exit(2);
   }
+  if (args.extensoes) process.exit(await executarExtensoes(args));
   let matriz;
   try {
     matriz = lerMatriz();
@@ -571,4 +583,4 @@ function principal() {
   if (reprovou(resultado)) process.exit(1);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) principal();
+if (process.argv[1] === fileURLToPath(import.meta.url)) await principal();

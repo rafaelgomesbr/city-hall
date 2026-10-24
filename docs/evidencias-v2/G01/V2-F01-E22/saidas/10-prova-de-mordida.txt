@@ -1,0 +1,33 @@
+Prova de mordida da V2-F01-E22: estragar o SQL ou a conferência derruba os casos esperados.
+Cada mutação foi feita com sed no arquivo real, os testes rodaram, e o arquivo foi restaurado de uma cópia.
+
+== Mutação 1: o endurecimento deixa de revogar de PUBLIC (REVOKE ALL ON %s FROM PUBLIC virou SELECT 1) ==
+npx vitest run test/endurecer-extensao.test.ts (db/)
+   x ... > depois: nenhum papel do provedor executa a função da extensão
+   x ... > rodar de novo não muda nada e não dá erro
+   (7 dos 9 casos seguem verdes; os 2 que dependem da revogação caem)
+
+== Mutação 2: o endurecimento deixa de dar USAGE no schema a dc360_app (GRANT USAGE ... virou SELECT 1) ==
+npx vitest run test/endurecer-extensao.test.ts (db/)
+   x ... > dc360_app executa a função da extensão e tem USAGE no schema
+   Tests  1 failed | 8 passed (9)
+
+== Mutação 3: a conferência ignora a exposição dos papéis do provedor (for (const e of fatos.exposicao ?? []) virou for (const e of [])) ==
+node --test scripts/conferir-extensoes.test.mjs
+   x PROD com a extensão já instalada confere o resto igual ao HML
+   x anon com SELECT em spatial_ref_sys aparece na conferência (o PR de prova)
+   x PUBLIC com EXECUTE nas funções reprova, e cada papel exposto é um problema
+   x coletarFatos com a extensão instalada passa os papéis do provedor e o schema reais
+   x o comando: fatos saudáveis saem com 0; anon exposto sai com 1 e nomeia o papel
+   pass 18 / fail 5
+
+== Restaurado ==
+node --test scripts/conferir-extensoes.test.mjs : pass 23 / fail 0
+npx vitest run test/endurecer-extensao.test.ts   : Tests 9 passed (9)
+
+== Achado durante a prova local ==
+A primeira execução das consultas no Postgres do PGlite falhou com
+"function acldefault(text, oid) does not exist": o primeiro argumento de
+acldefault é "char", não text. Corrigido com cast explícito ("char") em
+conferir-extensoes.mjs. Sem essa prova num Postgres de verdade, o erro só
+apareceria no job implantavel.

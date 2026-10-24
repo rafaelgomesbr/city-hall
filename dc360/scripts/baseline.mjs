@@ -339,6 +339,16 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   */
   "V2-F01-E19": 15,
   "V2-F01-E19-sbom": 11,
+  /*
+    V2-F01-E22 (PostGIS no provedor): `scripts/conferir-extensoes.test.mjs` é
+    novo, com 23 casos (a avaliação dos fatos: HML saudável, extensão ausente,
+    em `public` ou em outro schema, PUBLIC ou `anon` com privilégio, `dc360_app`
+    sem USAGE, SELECT ou EXECUTE, PROD só com a disponibilidade; as consultas
+    são só leitura; a coleta; os argumentos; o comando com código 0, 1 e 2 sem
+    nunca imprimir URL; e as consultas com o endurecimento num Postgres real do
+    PGlite, com `pg_trgm` no lugar do PostGIS).
+  */
+  "V2-F01-E22": 23,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -366,6 +376,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E15": "producao.test.mjs",
   "V2-F01-E19": "licencas.test.mjs",
   "V2-F01-E19-sbom": "sbom.test.mjs",
+  "V2-F01-E22": "conferir-extensoes.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -887,6 +898,16 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     `npm run test:espacial` e a prova deles é o job `implantavel` do CI.
   */
   "V2-F01-E21": { total: 8, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E22: `db/test/endurecer-extensao.test.ts` é novo, com 9 casos (o bloco
+    de extensão de `supabase-endurecer.sql` com `pg_trgm` no lugar do PostGIS:
+    acha os objetos pela dependência da extensão e não toca o que não é dela,
+    revoga de PUBLIC e dos três papéis do provedor, devolve o mínimo a
+    `dc360_app`, é idempotente, e o arquivo inteiro roda sem a extensão e sem os
+    papéis). O `postgis-provedor.espacial.test.ts` fica FORA desta conta, como
+    os demais `*.espacial.test.ts`: roda por `npm run test:espacial`.
+  */
+  "V2-F01-E22": { total: 9, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
