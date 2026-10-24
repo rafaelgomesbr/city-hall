@@ -1,0 +1,68 @@
+# npm audit report
+
+brace-expansion  <=1.1.20 || 4.0.0 - 5.0.11
+Severity: high
+brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service - https://github.com/advisories/GHSA-q2hr-2g5m-vwhr
+brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service - https://github.com/advisories/GHSA-q2hr-2g5m-vwhr
+brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion - https://github.com/advisories/GHSA-qhr7-859c-m2p7
+brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion - https://github.com/advisories/GHSA-qhr7-859c-m2p7
+brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion - https://github.com/advisories/GHSA-6j4f-fj2g-mc7p
+brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion - https://github.com/advisories/GHSA-6j4f-fj2g-mc7p
+fix available via `npm audit fix`
+node_modules/@jest/reporters/node_modules/brace-expansion
+node_modules/brace-expansion
+node_modules/jest-config/node_modules/brace-expansion
+node_modules/jest-runtime/node_modules/brace-expansion
+node_modules/test-exclude/node_modules/brace-expansion
+
+decode-uri-component  <=0.4.2
+Severity: moderate
+decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input - https://github.com/advisories/GHSA-vcc3-ghjq-m6fr
+fix available via `npm audit fix --force`
+Will install expo-router@58.0.26, which is a breaking change
+node_modules/decode-uri-component
+  query-string  5.0.0 - 9.4.1
+  Depends on vulnerable versions of decode-uri-component
+  node_modules/query-string
+    expo-router  1.2.2 - 3.1.2 || 5.2.0-canary-20250611-f0afe80 - 58.0.12
+    Depends on vulnerable versions of query-string
+    node_modules/expo-router
+
+node-forge  *
+Severity: high
+node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements - https://github.com/advisories/GHSA-86w9-cpqp-85rv
+fix available via `npm audit fix --force`
+Will install expo@44.0.6, which is a breaking change
+node_modules/node-forge
+  @expo/cli  <=0.0.0-canary-20231123-1b19f96-4 || >=0.0.1-canary-20231125-d600e44
+  Depends on vulnerable versions of @expo/code-signing-certificates
+  Depends on vulnerable versions of node-forge
+  Depends on vulnerable versions of zod
+  node_modules/expo/node_modules/@expo/cli
+    expo  >=45.0.0-beta.1
+    Depends on vulnerable versions of @expo/cli
+    node_modules/expo
+  @expo/code-signing-certificates  *
+  Depends on vulnerable versions of node-forge
+  node_modules/@expo/code-signing-certificates
+
+shell-quote  1.8.4 - 1.10.0
+Severity: critical
+shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token - https://github.com/advisories/GHSA-pqg4-j6r4-53mv
+fix available via `npm audit fix`
+node_modules/shell-quote
+
+zod  <4.6.6
+Severity: high
+Zod can exhaust memory while validating oversized constrained collections - https://github.com/advisories/GHSA-mrhx-c7xc-m3w5
+fix available via `npm audit fix --force`
+Will install expo@44.0.6, which is a breaking change
+node_modules/zod
+
+10 vulnerabilities (3 moderate, 6 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

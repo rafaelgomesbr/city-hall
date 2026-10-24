@@ -8,7 +8,7 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 224 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 723 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
@@ -1616,7 +1616,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3553 testes em seis pacotes
+npm test                    # 3554 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
 npm run test:api            # 1717 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
@@ -1631,10 +1631,15 @@ de campo (`npm run auditar`, que também roda no Windows; no CI, o job
 `windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
 o que sobra é só de desenvolvimento (`vitest` e `tinypool`, que pedem salto de
 versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
-dentro do Expo (`brace-expansion`, `braces`, `node-forge`, `shell-quote`,
-`sprintf-js` e `decode-uri-component`) estão em `ACEITAS_NO_APLICATIVO`, cada
-um com motivo, dono e prazo de 2027-01-05; depois do prazo o portão reprova até
-alguém reavaliar. O `npm audit fix` no aplicativo foi descartado porque
+dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,
+`decode-uri-component` e a cópia do `zod` 3 que o `@expo/cli` carrega) estão em
+`ACEITAS_NO_APLICATIVO`, cada um com motivo, dono e prazo de 2027-01-05; depois
+do prazo o portão reprova até alguém reavaliar. (`braces` e `sprintf-js` saíram
+da lista em 2026-10-24: o registro retirou as duas advisories.) A exceção do
+`zod` tem `somenteEm: ["node_modules/expo/node_modules/"]`: ela só vale para a
+cópia que o Expo carrega por dentro. O `zod` do próprio produto está na linha
+4 (4.6.7, corrige a GHSA-mrhx-c7xc-m3w5, que na linha 3 não tem correção) e, se
+voltasse a uma versão vulnerável, o portão reprovaria. O `npm audit fix` no aplicativo foi descartado porque
 reembaralha a árvore do Expo; a saída definitiva é subir o SDK por inteiro, o
 que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
 quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem

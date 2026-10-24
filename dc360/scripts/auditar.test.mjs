@@ -123,7 +123,7 @@ function relatorio(pacotes) {
   let total = 0;
   for (const [nome, valor] of Object.entries(pacotes)) {
     const opcoes = valor !== null && typeof valor === "object" ? valor : { fixAvailable: valor };
-    const { fixAvailable, ids = [ghsaDe(nome)], gravidade, nodes = [`node_modules/${nome}`] } = opcoes;
+    const { fixAvailable, ids = [ghsaDe(nome)], gravidade, nodes = [`${ACEITAS_NO_APLICATIVO[nome]?.somenteEm?.[0] ?? "node_modules/"}${nome}`] } = opcoes;
     vulnerabilities[nome] = {
       name: nome, severity: "high", fixAvailable, nodes,
       via: ids.map((id, i) => ({
@@ -456,7 +456,9 @@ describe("auditar.mjs", () => {
     const { codigo, saida } = rodar({ offline: true });
     assert.equal(codigo, 0, saida);
     assert.match(saida, /Desenvolvimento \(fica na máquina\): 3 vulnerabilidade/);
-    assert.match(saida, /Aplicativo de campo \(vai para o telefone\): 8 vulnerabilidade/);
+    /* Uma por advisory aceita: a conta sai da lista, para não envelhecer a cada exceção que cai (7 hoje). */
+    const nAceitas = Object.values(ACEITAS_NO_APLICATIVO).reduce((n, e) => n + Object.keys(e.advisories).length, 0);
+    assert.match(saida, new RegExp(`Aplicativo de campo \\(vai para o telefone\\): ${nAceitas} vulnerabilidade`));
   });
 
   it("sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {})", () => {
@@ -566,6 +568,34 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
       c: { via: [{ source: 4, url: urlDe("GHSA-aaaa-aaaa-aaaa"), severity: "low", title: "t" }] },
     };
     assert.deepEqual(advisoriesNaoAceitas(vulns, aceitas).map((n) => `${n.pacote} ${n.id}`), ["a GHSA-bbbb-bbbb-bbbb", "c GHSA-aaaa-aaaa-aaaa"]);
+  });
+
+  it("somenteEm: a exceção vale só para a cópia no caminho nomeado, e a cópia do projeto reprova (E19, correção 10)", () => {
+    const aceitas = { zod: { advisories: { "GHSA-mrhx-c7xc-m3w5": "high" }, somenteEm: ["node_modules/expo/node_modules/"] } };
+    const via = [{ source: 1, url: urlDe("GHSA-mrhx-c7xc-m3w5"), severity: "high", title: "memória" }];
+    const soDoExpo = { zod: { via, nodes: ["node_modules/expo/node_modules/zod"] } };
+    const dosDois = { zod: { via, nodes: ["node_modules/expo/node_modules/zod", "node_modules/zod"] } };
+    const doProjeto = { zod: { via, nodes: ["node_modules/zod"] } };
+    const semCaminho = { zod: { via } };
+    assert.deepEqual(advisoriesNaoAceitas(soDoExpo, aceitas), []);
+    for (const [rotulo, vulns] of [["as duas cópias", dosDois], ["só a do projeto", doProjeto], ["relatório sem nodes", semCaminho]]) {
+      assert.deepEqual(advisoriesNaoAceitas(vulns, aceitas).map((n) => `${n.pacote} ${n.id}`), ["zod GHSA-mrhx-c7xc-m3w5"], rotulo);
+    }
+    /* Sem `somenteEm` nada muda: a exceção antiga casa pelo pacote e pelo id. */
+    assert.deepEqual(advisoriesNaoAceitas(doProjeto, { zod: { advisories: { "GHSA-mrhx-c7xc-m3w5": "high" } } }), []);
+  });
+
+  it("problemasDasExcecoes recusa `somenteEm` malformado e a lista real do aplicativo o usa para o zod do Expo", () => {
+    const boa = { advisories: { "GHSA-aaaa-aaaa-aaaa": "high" }, motivo: "m", dono: "d", ate: "2099-01-01" };
+    assert.deepEqual(problemasDasExcecoes({ p: { ...boa, somenteEm: ["node_modules/expo/node_modules/"] } }, "2026-10-24", { exigirAdvisories: true }), []);
+    for (const ruim of [[], "node_modules/expo/", ["node_modules/expo"], ["/abs/"], [7]]) {
+      const p = problemasDasExcecoes({ p: { ...boa, somenteEm: ruim } }, "2026-10-24", { exigirAdvisories: true });
+      assert.equal(p.length, 1, JSON.stringify(ruim));
+      assert.match(p[0], /somenteEm/);
+    }
+    assert.deepEqual(ACEITAS_NO_APLICATIVO.zod.somenteEm, ["node_modules/expo/node_modules/"]);
+    assert.equal(Object.hasOwn(ACEITAS_NO_APLICATIVO, "braces"), false);
+    assert.equal(Object.hasOwn(ACEITAS_NO_APLICATIVO, "sprintf-js"), false);
   });
 
   it("defeitoDoControle só aceita o relatório com a advisory conhecida do pacote de controle", () => {

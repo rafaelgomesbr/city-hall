@@ -49,7 +49,7 @@ jest.mock("./api", () => ({
   entrar: jest.fn(async () => ({
     credenciais: { acesso: mockApoio.tokenDeAcesso(), renovacao: "r" + String(mockApoio.proxima()) },
     identidade: {
-      usuarioId: "11111111-1111-1111-1111-111111111111",
+      usuarioId: "11111111-1111-4111-8111-111111111111",
       nome: "Agente de teste",
       papel: "agente",
       organizacaoNome: "Defesa Civil de Teste",

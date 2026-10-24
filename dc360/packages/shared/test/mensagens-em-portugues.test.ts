@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   envelopeSincronizacaoSchema,
   pedidoDeEvidenciaSchema,
+  uuidSchema,
   vistoriaSchema,
 } from "../src/index.js";
 
@@ -30,7 +31,7 @@ import {
  */
 
 /** A primeira mensagem do primeiro problema, ou a lista inteira para o erro. */
-function mensagem(resultado: z.SafeParseReturnType<unknown, unknown>): string {
+function mensagem(resultado: z.ZodSafeParseResult<unknown>): string {
   if (resultado.success) throw new Error("esperava reprovação");
   return resultado.error.issues.map((i) => i.message).join(" | ");
 }
@@ -178,5 +179,33 @@ describe("o mapa de erros do pacote compartilhado fala português", () => {
       ordem: 0,
     });
     expect(mensagem(pedido)).not.toMatch(INGLES);
+  });
+});
+
+/*
+  Zod 4 (E19, correção 10): `.uuid()` passou a exigir um UUID de verdade (RFC
+  9562: dígito de versão de 1 a 8 e variante 8, 9, a ou b). O Zod 3 aceitava
+  qualquer 8-4-4-4-12 em hexadecimal. O `gen_random_uuid()` do banco e o
+  `randomUUID()` do aparelho sempre geraram v4, então nada real muda; o que
+  muda é que um identificador montado à mão, como o dublê de teste
+  `11111111-1111-1111-1111-111111111111`, é recusado com a frase em português.
+*/
+describe("uuidSchema na linha 4 do Zod", () => {
+  it("aceita o v4 de verdade e o nulo, e recusa o 8-4-4-4-12 que não é UUID", () => {
+    for (const ok of [
+      "11111111-1111-4111-8111-111111111111",
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "123e4567-e89b-12d3-a456-426614174000",
+      "00000000-0000-0000-0000-000000000000",
+    ]) expect(uuidSchema.safeParse(ok).success, ok).toBe(true);
+    for (const ruim of [
+      "11111111-1111-1111-1111-111111111111",
+      "chave-fixa",
+      "123e4567e89b12d3a456426614174000",
+    ]) {
+      const r = uuidSchema.safeParse(ruim);
+      expect(r.success, ruim).toBe(false);
+      expect(mensagem(r)).toBe("Não é um identificador válido (UUID)");
+    }
   });
 });

@@ -75,9 +75,10 @@ describe("A varredura de acentos morde", () => {
     const fonte = `
       resposta.code(422).send({ erro: "x", mensagem: "Informe a descricao da ocorrencia" });
       const esquema = z.string().min(1, "Informe o endereco");
+      const tipo = z.enum(["a", "b"], { error: "Informe o orgao" });
     `;
     const achados = varrerFonte("exemplo.ts", fonte, "mensagens");
-    expect(achados.map((a) => a.palavra).sort()).toEqual(["descricao", "endereco"]);
+    expect(achados.map((a) => a.palavra).sort()).toEqual(["descricao", "endereco", "orgao"]);
   });
 
   it("não acha o que a pessoa não lê: comentário, log, erro de desenvolvedor, código e SQL", () => {
