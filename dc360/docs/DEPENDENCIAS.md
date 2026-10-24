@@ -115,9 +115,48 @@ Também pode ser disparada à mão (`workflow_dispatch`). O GitHub só executa a
 agenda a partir do ramo padrão: antes do merge desta fase, só a execução manual
 vale.
 
+## Imagens de contêiner: a varredura do Trivy (V2-F01-E20)
+
+O `npm audit` só enxerga pacote do npm. A imagem de produção carrega também a
+base `node:22-bookworm-slim`, o Chromium do Debian (que gera o PDF do laudo) e o
+npm embutido na própria base. Por isso as duas imagens (API e console) são
+varridas com o Trivy:
+
+- **A cada pull request**, no job `imagens` do `verificar.yml`, logo depois de
+  construir as imagens;
+- **toda segunda-feira**, no segundo job de `auditoria-semanal.yml`, que constrói
+  as imagens do ramo padrão e as varre, porque CVE nasce em dia sem commit.
+
+A régua é a mesma nos dois lugares, e mora num script só
+(`dc360/scripts/varrer-imagem.sh`): CRITICAL ou HIGH **com correção publicada**
+(`--ignore-unfixed`) reprova, e segredo dentro da imagem (um `.env` ou uma chave
+que entrou por `COPY`) também. O Trivy é baixado numa versão fixa e o SHA-256 do
+pacote é conferido antes de extrair. Subir a versão é trocar `TRIVY_VERSAO` e
+`TRIVY_SHA256` juntos, com o hash do arquivo `checksums.txt` do release.
+
+**Como se trata um achado.** Primeiro se corrige: subir a base (o Dependabot
+propõe a troca de tag e digest) ou o pacote. Só quando não dá, se escreve uma
+exceção no `.trivyignore` da raiz, uma linha por identificador:
+
+```
+CVE-AAAA-NNNN exp:AAAA-MM-DD # motivo: <por que não dá agora>; dono: <quem responde>
+```
+
+Sem motivo, sem dono, sem prazo, com prazo de mais de 366 dias, vencida ou
+repetida, o teste `excecoes-de-seguranca.test.mjs` reprova (roda no
+`npm run test:scripts`). A data do `exp:` é o primeiro dia **sem** exceção: o
+próprio Trivy volta a reprovar nesse dia. Atenção: a exceção vale para o
+identificador na imagem inteira, não por caminho. Antes de renovar, confira na
+tabela do artefato (`trivy/api.txt`, `trivy/console.txt`) em que caminho o
+achado está.
+
+O relatório de cada imagem sai no artefato do run em tabela, JSON e SARIF. O
+SARIF não é enviado ao code scanning: isso pede `security-events: write` no job,
+e nenhum workflow deste repositório tem escrita. É decisão do Rafael.
+
 ## Fora desta etapa
 
-Renovate; inventário de componentes (SBOM) e licenças (E19); troca de SDK do
+Renovate; inventário de componentes (SBOM) e licenças (E19); lint de Dockerfile; DAST; troca de SDK do
 Expo; correção das advisories atuais (F00-E19); auto-merge.
 
 A imagem `postgis/postgis` do `compose.yaml` e a pasta `docs/relatorios-v2/site`

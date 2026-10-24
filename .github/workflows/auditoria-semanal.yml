@@ -17,6 +17,15 @@
 # Não corrige nada, não abre PR, não faz merge: quem corrige é um PR comum
 # (muitas vezes o do Dependabot) que passa pelos checks obrigatórios.
 #
+# SEGUNDO JOB, `imagens` (V2-F01-E20): a mesma pergunta para as imagens de
+# contêiner. CVE nasce sem commit, e a base `node:22-bookworm-slim` e o Chromium
+# do Debian acumulam achados que a auditoria de pacotes do npm não vê. O job constrói as duas
+# imagens do ramo padrão (a `master`, na agenda) e as varre com o Trivy pelo mesmo
+# script do PR (`dc360/scripts/varrer-imagem.sh`: versão fixa, SHA-256 conferido,
+# CRITICAL e HIGH com correção publicada, mais segredo na imagem), com a mesma e
+# única porta de exceção, o `.trivyignore` da raiz. Fica vermelho (e avisa por
+# e-mail) quando a resposta mudou; não corrige nada.
+#
 # ATENÇÃO: `schedule` só dispara a partir do ramo padrão. Enquanto este arquivo
 # estiver só em `v2/f01`, a agenda não roda; `workflow_dispatch` serve para
 # provar o workflow antes disso.
@@ -81,6 +90,66 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: auditoria-semanal-${{ github.run_id }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  imagens:
+    # As duas imagens de produção (`Dockerfile` da API e `Dockerfile.console`),
+    # construídas do zero e varridas. Sem Postgres e sem subir nada: a prova de
+    # que a imagem funciona é do job `imagens` do verificar.yml; aqui só se
+    # pergunta o que mudou no mundo desde o último commit.
+    name: Varredura semanal das imagens (Trivy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Contexto do run
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      # Sem argumentos de versão e commit: o carimbo do build não muda o que
+      # há dentro da imagem, que é o que se varre.
+      - name: Construir a imagem da API
+        run: docker build --progress=plain -f Dockerfile -t dc360-api:ci . 2>&1 | tee "$RUNNER_TEMP/artefatos/01-build-api.txt"
+
+      - name: Construir a imagem do console
+        run: docker build --progress=plain -f Dockerfile.console -t dc360-console:ci . 2>&1 | tee "$RUNNER_TEMP/artefatos/02-build-console.txt"
+
+      - name: Instalar o Trivy (versão fixa, SHA-256 conferido)
+        run: |
+          trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
+          echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
+
+      - name: Varrer as duas imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
+        run: |
+          mkdir -p "$RUNNER_TEMP/artefatos/trivy"
+          falhou=0
+          for par in "api:dc360-api:ci" "console:dc360-console:ci"; do
+            nome="${par%%:*}"
+            imagem="${par#*:}"
+            echo "=== $imagem"
+            bash scripts/varrer-imagem.sh varrer "$TRIVY_BIN" "$RUNNER_TEMP/artefatos/trivy" "$nome" "$imagem" || falhou=1
+          done
+          exit "$falhou"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: varredura-semanal-imagens-${{ github.run_id }}
           path: ${{ runner.temp }}/artefatos
           retention-days: 30
           overwrite: true
