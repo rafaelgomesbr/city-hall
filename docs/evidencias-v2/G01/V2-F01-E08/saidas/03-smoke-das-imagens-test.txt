@@ -1,0 +1,23 @@
+✔ a imagem boa passa nas três conferências de imagem, com o docker pelo ponto de entrada trocado (0.800792ms)
+✔ negativo: imagem sem USER node (root na configuração) reprova (0.078583ms)
+✔ negativo: processo com uid 0 reprova, mesmo se a configuração disser node (0.074917ms)
+✔ negativo: usuário que não é o node (mesmo sem ser root) reprova (0.07375ms)
+✔ negativo: imagem sem Chromium reprova, e Chromium que responde outra coisa também (0.146417ms)
+✔ a /saude da API e a do console passam quando versao e commit são os do build (0.088167ms)
+✔ negativo: /saude com versao ou commit diferentes do build, banco fora, ok falso ou lixo reprova (0.129542ms)
+✔ o comando devolve 0, 1 e 2 como o CI espera, e escreve o motivo da reprovação (0.173875ms)
+✔ os dois Dockerfiles têm a base fixada por digest, o mesmo digest, e o carimbo do build antes do USER node (0.785834ms)
+✔ o job `imagens` existe, sem segredo, sem permissão extra, com Postgres 17 e timeout (0.23725ms)
+✔ o job `imagens` constrói as duas imagens com os dois argumentos de build e roda as quatro conferências (0.132291ms)
+✔ o commit do build é o da ponta do PR, e não o do merge sintético (0.042875ms)
+✔ o nome do job `imagens` é check obrigatório da master (0.248959ms)
+✔ o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16 (0.541166ms)
+✔ rollback.md existe e cobre as cinco frentes com o comando de cada uma (0.385291ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.183167

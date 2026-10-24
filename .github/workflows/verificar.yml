@@ -901,7 +901,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        # O major de produção (17.6): o CI deixou de provar a partida contra um
+        # major mais velho que o que roda (V2-F01-E08). PostGIS entra com a E21.
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -1028,6 +1030,236 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: implantavel-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  imagens:
+    # As duas imagens de produção (`Dockerfile` da API e `Dockerfile.console`)
+    # construídas e exercitadas em TODO pull request (V2-F01-E08). Até aqui a
+    # imagem só era construída pelo `fly deploy`, na máquina do operador, e um
+    # Dockerfile quebrado era descoberto na hora do deploy. O `implantavel` acima
+    # prova que a API sobe no Node puro; este prova que a IMAGEM sobe.
+    #
+    # O que ele faz, na ordem:
+    #   1. `docker build` das duas, com a base fixada por digest no Dockerfile e
+    #      `DC360_VERSAO` / `DC360_COMMIT` como argumentos de build;
+    #   2. aplica as migrações A PARTIR DA IMAGEM da API, contra o Postgres 17 de
+    #      serviço (o mesmo major de produção), com o papel de setup;
+    #   3. sobe a API com `NODE_ENV=development` e o papel restrito de aplicação,
+    #      e confere `/saude` 200 com `versao` e `commit` iguais aos do build;
+    #   4. `chromium --version` dentro da imagem da API (sem ele o PDF do laudo
+    #      responde 503 em produção) e usuário não root nas duas;
+    #   5. sobe o console com o papel `dc360_console_login`, e confere o `/saude`.
+    #
+    # As conferências moram em `scripts/smoke-das-imagens.mjs`, com teste que
+    # prova que root, falta de Chromium e versão trocada reprovam.
+    #
+    # NÃO recebe segredo nenhum: todos os valores abaixo são descartáveis e só
+    # existem neste runner. Não publica a imagem em registro (isso é a E12), não
+    # varre vulnerabilidade (E20) nem gera SBOM (E19).
+    name: Imagens Docker (API e console)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      # A versão é a do `package.json` (a E07 garante que todo workspace e o
+      # CHANGELOG concordam, e `conferir` reprova se não). O commit é o da PONTA
+      # do ramo: em pull_request o SHA do run é o de um merge sintético, e é o
+      # candidato que o gatekeeper fixa.
+      - name: Versão e commit do build
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/versao.mjs conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/01-versao.txt"
+          versao=$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')
+          commit="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          if [ -z "$versao" ] || [ -z "$commit" ]; then
+            echo "versao ou commit vazios: versao='$versao' commit='$commit'"
+            exit 1
+          fi
+          echo "DC360_VERSAO=$versao" >> "$GITHUB_ENV"
+          echo "DC360_COMMIT=$commit" >> "$GITHUB_ENV"
+          echo "versao=$versao commit=$commit" | tee -a "$RUNNER_TEMP/artefatos/01-versao.txt"
+
+      # Os testes do smoke primeiro: se a régua estiver quebrada, o resto do job
+      # não prova nada.
+      - name: Testes das conferências do smoke
+        run: node --test scripts/smoke-das-imagens.test.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/02-teste-do-smoke.txt"
+
+      - name: Construir a imagem da API
+        run: |
+          docker build --progress=plain -f Dockerfile -t dc360-api:ci \
+            --build-arg DC360_VERSAO="$DC360_VERSAO" \
+            --build-arg DC360_COMMIT="$DC360_COMMIT" . 2>&1 | tee "$RUNNER_TEMP/artefatos/03-build-api.txt"
+
+      - name: Construir a imagem do console
+        run: |
+          docker build --progress=plain -f Dockerfile.console -t dc360-console:ci \
+            --build-arg DC360_VERSAO="$DC360_VERSAO" \
+            --build-arg DC360_COMMIT="$DC360_COMMIT" . 2>&1 | tee "$RUNNER_TEMP/artefatos/04-build-console.txt"
+          docker image ls --filter 'reference=dc360-*:ci' --format '{{.Repository}}:{{.Tag}} {{.Size}}' 2>&1 | tee "$RUNNER_TEMP/artefatos/05-tamanho-das-imagens.txt"
+
+      - name: Usuário não root nas duas imagens
+        run: |
+          {
+            node scripts/smoke-das-imagens.mjs usuario dc360-api:ci
+            node scripts/smoke-das-imagens.mjs usuario dc360-console:ci
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/06-usuario.txt"
+
+      - name: Chromium dentro da imagem da API
+        run: |
+          docker run --rm --entrypoint chromium dc360-api:ci --version 2>&1 | tee "$RUNNER_TEMP/artefatos/07-chromium.txt"
+          node scripts/smoke-das-imagens.mjs chromium dc360-api:ci 2>&1 | tee -a "$RUNNER_TEMP/artefatos/07-chromium.txt"
+
+      # Os papeis, como no job `implantavel`: setup (CREATEROLE + BYPASSRLS) cria e
+      # migra; a aplicacao e o console conectam com logins restritos, membros de
+      # dc360_app e dc360_console.
+      - name: Provisionar papéis e banco
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: |
+          {
+            psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE dc360;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_setup LOGIN PASSWORD 'setup' CREATEROLE BYPASSRLS NOSUPERUSER;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT CREATE ON DATABASE dc360 TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_console_login LOGIN PASSWORD 'console' NOSUPERUSER;"
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/08-provisionar.txt"
+
+      # A migração roda DENTRO da imagem da API (`db/dist` e `db/migrations`
+      # vêm nela): prova que a imagem carrega o que o deploy precisa. `--network
+      # host` porque o Postgres de serviço está publicado no localhost do runner.
+      - name: Migrar com a imagem da API
+        run: |
+          {
+            docker run --rm --network host \
+              -e DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 \
+              --entrypoint node dc360-api:ci db/dist/cli.js
+            echo "--- de novo, para provar a idempotencia ---"
+            docker run --rm --network host \
+              -e DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 \
+              --entrypoint node dc360-api:ci db/dist/cli.js --conferir
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/09-migrar.txt"
+
+      - name: Conceder a associação aos logins de aplicação e do console
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: |
+          {
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT dc360_console TO dc360_console_login WITH SET TRUE;"
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/10-conceder.txt"
+
+      # A API sobe DA IMAGEM, com o papel restrito, em desenvolvimento (a
+      # configuração de produção exige TLS verificado, porta 5432 de provedor e
+      # armazenamento S3, que não existem neste runner). `/saude` 200 e o
+      # carimbo do build conferido: é a mesma conta que o rollback faz de fora.
+      - name: A imagem da API sobe e responde /saude com a versão e o commit do build
+        run: |
+          docker run -d --name dc360-api --network host \
+            -e NODE_ENV=development -e HOST=127.0.0.1 -e PORT=3333 \
+            -e DATABASE_URL=postgres://dc360_api:api@localhost:5432/dc360 \
+            -e JWT_SEGREDO=segredo-de-ci-com-pelo-menos-trinta-e-dois-bytes \
+            dc360-api:ci
+          subiu=0
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3333/saude > "$RUNNER_TEMP/artefatos/11-saude-api.json"; then subiu=1; break; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' dc360-api)" != "true" ]; then break; fi
+            sleep 1
+          done
+          if [ "$subiu" != "1" ]; then
+            echo "a imagem da API nao respondeu /saude 200"
+            docker logs dc360-api 2>&1 | tail -n 60
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/artefatos/11-saude-api.json"; echo
+          node scripts/smoke-das-imagens.mjs saude-api "$RUNNER_TEMP/artefatos/11-saude-api.json" "$DC360_VERSAO" "$DC360_COMMIT" 2>&1 | tee "$RUNNER_TEMP/artefatos/12-saude-api-conferida.txt"
+          # O processo que está rodando, e não só a configuração da imagem.
+          echo "usuario do processo em execucao: $(docker exec dc360-api id -un)" | tee -a "$RUNNER_TEMP/artefatos/12-saude-api-conferida.txt"
+          [ "$(docker exec dc360-api id -u)" != "0" ]
+
+      # O console precisa de dono na tabela de operadores para subir. A semente
+      # sai do comando de provisionamento DA IMAGEM (que imprime também a senha e
+      # o segredo do TOTP, descartáveis; só a linha da variável é guardada, em
+      # memória, e nada disso vai para arquivo).
+      - name: A imagem do console sobe e responde /saude com a versão e o commit do build
+        run: |
+          chave=$(openssl rand -base64 32)
+          semente=$(docker run --rm -e CONSOLE_SEGUNDO_FATOR_CHAVE="$chave" \
+            --entrypoint node dc360-console:ci \
+            apps/console/dist/console/src/provisionar-operador.js --email dono@ci.exemplo.com 2>&1 \
+            | sed -n "s/^  CONSOLE_OPERADORES='\(.*\)'\$/\1/p")
+          if [ -z "$semente" ]; then
+            echo "o comando de provisionamento da imagem do console nao devolveu a semente do dono"
+            exit 1
+          fi
+          docker run -d --name dc360-console --network host \
+            -e NODE_ENV=development -e CONSOLE_HOST=127.0.0.1 -e CONSOLE_PORT=3344 \
+            -e CONSOLE_DATABASE_URL=postgres://dc360_console_login:console@localhost:5432/dc360 \
+            -e CONSOLE_JWT_SEGREDO=segredo-de-ci-do-console-com-mais-de-trinta-e-dois-bytes \
+            -e CONSOLE_SEGUNDO_FATOR_CHAVE="$chave" \
+            -e CONSOLE_OPERADORES="$semente" \
+            dc360-console:ci
+          subiu=0
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3344/saude > "$RUNNER_TEMP/artefatos/13-saude-console.json"; then subiu=1; break; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' dc360-console)" != "true" ]; then break; fi
+            sleep 1
+          done
+          if [ "$subiu" != "1" ]; then
+            echo "a imagem do console nao respondeu /saude 200"
+            docker logs dc360-console 2>&1 | tail -n 60
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/artefatos/13-saude-console.json"; echo
+          node scripts/smoke-das-imagens.mjs saude-console "$RUNNER_TEMP/artefatos/13-saude-console.json" "$DC360_VERSAO" "$DC360_COMMIT" 2>&1 | tee "$RUNNER_TEMP/artefatos/14-saude-console-conferida.txt"
+          [ "$(docker exec dc360-console id -u)" != "0" ]
+
+      - name: Guardar o log dos contêineres
+        if: ${{ always() }}
+        run: |
+          docker logs dc360-api > "$RUNNER_TEMP/artefatos/15-log-api.txt" 2>&1 || true
+          docker logs dc360-console > "$RUNNER_TEMP/artefatos/16-log-console.txt" 2>&1 || true
+          docker rm -f dc360-api dc360-console >/dev/null 2>&1 || true
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: imagens-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
           retention-days: 30
           overwrite: true

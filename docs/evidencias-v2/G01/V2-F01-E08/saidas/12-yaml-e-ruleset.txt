@@ -1,0 +1,30 @@
+$ ruby -ryaml: le verificar.yml e lista os passos do job imagens
+jobs (11): produto, dependencias, roadmap, navegador, aplicativo, windows, plataformas, implantavel, imagens, baseline, restore
+imagens: Imagens Docker (API e console) | runs-on ubuntu-24.04 | timeout 40 | servico postgres:17
+  1. actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+  2. Contexto do run
+  3. Versão e commit do build
+  4. Testes das conferências do smoke
+  5. Construir a imagem da API
+  6. Construir a imagem do console
+  7. Usuário não root nas duas imagens
+  8. Chromium dentro da imagem da API
+  9. Provisionar papéis e banco
+  10. Migrar com a imagem da API
+  11. Conceder a associação aos logins de aplicação e do console
+  12. A imagem da API sobe e responde /saude com a versão e o commit do build
+  13. A imagem do console sobe e responde /saude com a versão e o commit do build
+  14. Guardar o log dos contêineres
+  15. Redigir segredo dos artefatos
+  16. Publicar os artefatos
+bash -n nos blocos run: ok
+$ ruby -rjson: ruleset master.json
+  - Testes, tipos e scripts
+  - Dependências com vulnerabilidade conhecida (auditar)
+  - Ferramentas do roadmap e estado gerado
+  - Fluxo ponta a ponta no navegador
+  - Aplicativo de campo
+  - A API sobe contra Postgres real
+  - Imagens Docker (API e console)
+  - Varredura de segredos
+  - SAST (Semgrep)

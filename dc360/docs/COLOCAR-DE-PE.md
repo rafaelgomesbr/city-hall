@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **5550 testes somando o aplicativo** (contagem estática de `npm run
+- **5560 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -221,9 +221,11 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
   (`[build] dockerfile`) manda o `fly deploy` construí-lo, o próprio `Dockerfile`
   registra o 503 dos botões de PDF que a imagem deu em produção (sem o pacote `playwright`, que estava em `devDependencies`; o Chromium estava lá), e
   o `eas.json` aponta o perfil `producao` para `defesa-civil.fly.dev`. O que não
-  existe é prova no repositório: o CI não constrói a imagem (o job `implantavel`
-  sobe a API direto no Node contra um Postgres 16 real, sem contêiner) e não há
-  log de build arquivado. O `compose.yaml` nunca foi executado.
+  existe é prova da imagem fora do CI: o job `imagens` (V2-F01-E08) a constrói em
+  todo pull request e a sobe contra um Postgres 17 real (o `implantavel` sobe a
+  API direto no Node, sem contêiner), mas nenhuma rodada foi conferida por uma
+  pessoa. O `compose.yaml` nunca foi executado. O rollback está em
+  `docs/runbooks/rollback.md`.
   As três são equivalentes para rodar o contêiner, mas **não** para o endereço
   de origem: o `fly.toml` do repositório declara `PROXY_DE_BORDA = "fly"`, e
   levar essa linha para outra PaaS transforma o cabeçalho `Fly-Client-IP` num
@@ -349,7 +351,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 5550 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, 5560 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -806,7 +808,7 @@ Quatro versões diferentes de Postgres e de Node aparecem neste projeto, e confu
 | --- | --- | --- |
 | Node | 22 (`dc360/.nvmrc`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` aceita 20 ou mais, mas só a 22 está medida |
 | PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
-| Postgres do CI | 16 (`postgres:16`) no job `implantavel`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações e roda a API contra banco real; o segundo ensaia o restore (CA-08) em Linux |
+| Postgres do CI | 17 (`postgres:17`) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações e roda a API contra banco real; o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
 | Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
 
 Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.

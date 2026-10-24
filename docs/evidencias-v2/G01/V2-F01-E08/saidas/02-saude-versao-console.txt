@@ -1,0 +1,16 @@
+
+> @dc360/console@0.1.0 test
+> vitest run test/saude-versao.test.ts --reporter=verbose
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-af539510d0d4cbbaa/dc360/apps/console
+
+ ✓ test/saude-versao.test.ts > GET /saude do console > repete a versão e o commit que o build gravou 281ms
+ ✓ test/saude-versao.test.ts > GET /saude do console > sem as variáveis (fora de uma imagem) diz desconhecida, e segue 200 240ms
+ ✓ test/saude-versao.test.ts > GET /saude do console > negativo: valor fora do formato não é ecoado pela rota pública 240ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  17:50:50
+   Duration  1.85s (transform 121ms, setup 43ms, collect 162ms, tests 1.48s, environment 0ms, prepare 32ms)
+

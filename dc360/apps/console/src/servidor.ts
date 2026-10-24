@@ -28,6 +28,7 @@ import { CSS_DO_CONSOLE, JS_DO_CONSOLE, PAGINA_DO_CONSOLE } from "./pagina.js";
 import { FACES_DE_FONTE } from "./fontes.js";
 import { conferirSenha, derivarSenha, gerarSenhaTemporaria } from "../../api/src/auth/senha.js";
 import { gerarSegredoTotp, uriDeAtivacao } from "../../api/src/auth/totp.js";
+import { versaoDoBuild } from "../../api/src/versao-do-build.js";
 import { TextoLongoDemais, matrizQr } from "./qr.js";
 import {
   CODIGO_JA_CONSUMIDO, acharCodigo, candidatosPorEmail, codigosRestantes, consumirCodigo,
@@ -1354,9 +1355,12 @@ export async function construirConsole(
   /**
    * Sem autenticação, como o `/saude` da API, e pelo mesmo motivo: quem
    * pergunta é o balanceador, que não tem sessão. Ele responde apenas que o
-   * processo está de pé, e nenhum número de município nenhum.
+   * processo está de pé, e nenhum número de município nenhum. `versao` e `commit`
+   * são o carimbo da imagem (ver `apps/api/src/versao-do-build.ts`), os mesmos
+   * campos da `/saude` da API, e não são sensíveis.
    */
-  app.get("/saude", async () => ({ ok: true }));
+  const build = versaoDoBuild();
+  app.get("/saude", async () => ({ ok: true, versao: build.versao, commit: build.commit }));
 
   app.get("/", async (_req, resposta) =>
     resposta.type("text/html; charset=utf-8").send(PAGINA_DO_CONSOLE));

@@ -9,14 +9,20 @@
 # duas imagens e dois aplicativos, o console só tem acesso ao que foi escrito
 # no aplicativo do console.
 #
-# O QUE PROVA ESTA IMAGEM: nada que esteja no repositório. O que foi provado à
-# mão foi o `npm run build --workspace @dc360/console` fora de contêiner, que
-# é a etapa que os quatro pontos abaixo tornam possível dentro dele. A
-# integração contínua não constrói esta imagem (nem a da API): ela só é
-# construída por `fly deploy -c fly.console.toml` ou `docker build`, e nenhum
-# registro dessa construção está arquivado aqui. Construir a imagem uma vez
-# antes do primeiro deploy continua obrigatório; ver docs/IMPLANTACAO.md. O CI
-# que constrói imagem é a V2-F01-E08.
+# O QUE PROVA ESTA IMAGEM: o job `imagens` do `verificar.yml` (V2-F01-E08)
+# constrói esta imagem em todo pull request, a exercita contra um Postgres 17 de
+# serviço (a partida confere o esquema que o console usa, `/saude` 200 com
+# `versao` e `commit` iguais aos do build) e confere que o processo não é root.
+# O que o CI não faz: varrer vulnerabilidade (V2-F01-E20), gerar SBOM (E19) e
+# promovê-la (E12). Construir uma vez antes do primeiro deploy continua
+# obrigatório; ver docs/IMPLANTACAO.md.
+#
+# VERSÃO E COMMIT: `DC360_VERSAO` e `DC360_COMMIT`, argumentos de build, como na
+# imagem da API (ver o `Dockerfile`). Saem em `/saude`; sem eles, `desconhecida`.
+# No Fly: `fly deploy -c fly.console.toml --build-arg DC360_VERSAO=... --build-arg
+# DC360_COMMIT=...`.
+#
+# BASE POR DIGEST, a mesma da API, e o Dependabot sobe as duas em PR.
 #
 # QUATRO ESCOLHAS que valem explicação, e a primeira é a razão de este arquivo
 # existir em vez de reusar o `Dockerfile` da API:
@@ -55,7 +61,7 @@
 #    A imagem fica pequena, e a partida não depende de `db/migrations` estar
 #    sincronizado com o que rodou no banco.
 # =====================================================================
-FROM node:22-bookworm-slim AS base
+FROM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS base
 ENV NODE_ENV=production
 WORKDIR /app
 
@@ -121,6 +127,13 @@ COPY --from=dependencias /app/node_modules ./node_modules
 COPY db/provedores db/provedores
 COPY --from=construcao /app/apps/console/dist apps/console/dist
 COPY --from=construcao /app/apps/console/package.json apps/console/
+
+# O carimbo do build, depois de tudo o que é caro (ver o `Dockerfile` da API).
+# `/saude` lê as duas (apps/api/src/versao-do-build.ts).
+ARG DC360_VERSAO=desconhecida
+ARG DC360_COMMIT=desconhecido
+ENV DC360_VERSAO=$DC360_VERSAO \
+    DC360_COMMIT=$DC360_COMMIT
 
 # Processo sem privilégio: o usuário `node` já existe na imagem base.
 USER node

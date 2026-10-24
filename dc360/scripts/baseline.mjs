@@ -249,6 +249,16 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `npm audit` que decide e os casos negativos dela.
   */
   "V2-F01-E02": 24,
+  /*
+    V2-F01-E08: `scripts/smoke-das-imagens.test.mjs` é novo, com 15 casos. Prova a
+    régua do smoke das imagens Docker com um `docker` de mentira (a imagem boa
+    passa; root, falta de Chromium, usuário errado, versão ou commit trocados e
+    `/saude` fora do ar reprovam) e prende os arquivos: a base por digest e o
+    carimbo do build antes do `USER node` nos dois Dockerfiles, o job `imagens`
+    (sem segredo, com Postgres 17, as duas imagens e as conferências), o job
+    `implantavel` no Postgres 17, o check no ruleset e o `rollback.md`.
+  */
+  "V2-F01-E08": 15,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -265,6 +275,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E07": "versao.test.mjs",
   "V2-F01-E01": "ruleset-master.test.mjs",
   "V2-F01-E02": "conferir-workflows.test.mjs",
+  "V2-F01-E08": "smoke-das-imagens.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -606,6 +617,15 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     console (+3) está no número do próprio passo.
   */
   "V2-F00-E05-correcao-7b": { total: 2, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E08: `apps/api/test/saude-versao.test.ts` e novo, com 7 casos (a leitura
+    pura de `versao-do-build.ts`: a versao e o SHA do build, o SHA abreviado, a
+    ausencia fora de uma imagem e o formato que a rota publica nao aceita, mais
+    `GET /saude` repetindo o carimbo, dizendo `desconhecida` e nao ecoando valor
+    fora do formato). O console ganha 3 casos no mesmo assunto, que estao no
+    numero do proprio passo (teste-console). Nenhuma falha nem pulo.
+  */
+  "V2-F01-E08": { total: 7, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -848,7 +868,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 307, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 310, falhas: 0 } },
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

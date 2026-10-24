@@ -1,0 +1,10 @@
+# API compilada (apps/api/dist) sobre PGlite, NODE_ENV=development, com DC360_VERSAO=0.1.0 e DC360_COMMIT=f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c
+# NAO e a imagem Docker (sem Docker nesta maquina): e a mesma conta que o job imagens faz contra a imagem
+$ curl -s http://127.0.0.1:3399/saude
+{"status":"ok","banco":"ok","ultimaMigracao":"051_link_de_recuperacao_morre_com_a_credencial.sql","eliminacoes":{"agendadas":0,"vencidas":0},"push":null,"versao":"0.1.0","commit":"f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c"}
+$ node scripts/smoke-das-imagens.mjs saude-api saude.json 0.1.0 f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c
+ok: saude-api saude.json
+codigo de saida: 0
+$ node scripts/smoke-das-imagens.mjs saude-api saude.json 0.2.0 f14214f0b5a8c3d9e1a2b3c4d5e6f708192a3b4c   (versao trocada)
+REPROVADO: versao é "0.1.0" e o build passou "0.2.0"
+codigo de saida: 1

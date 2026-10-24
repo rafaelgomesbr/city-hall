@@ -1,0 +1,13 @@
+$ npm run test:api   (rodada completa; aqui o fim da saida)
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id com caixa misturada: 422 autodesativacao, e nada muda  1917ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  1443ms
+   ✓ A própria conta com o id escrito de outro jeito > o id de outra pessoa em maiúsculas continua valendo: a redefinição da Helena responde 200  1587ms
+ ✓ test/endereco-de-origem.test.ts (6 tests) 31822ms
+   ✓ O teto de login nao se contorna por cabecalho > sem borda declarada, trocar Fly-Client-IP nao ganha balde novo  10970ms
+   ✓ O teto de login nao se contorna por cabecalho > com a borda declarada, o cabecalho do edge volta a valer  14634ms
+
+ Test Files  107 passed (107)
+      Tests  1724 passed | 34 skipped (1758)
+   Start at  17:42:20
+   Duration  307.37s (transform 4.26s, setup 15.52s, collect 55.52s, tests 1968.05s, environment 25ms, prepare 12.64s)
+

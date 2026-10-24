@@ -1,0 +1,20 @@
+
+> @dc360/api@0.1.0 test
+> vitest run test/saude-versao.test.ts --reporter=verbose
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-af539510d0d4cbbaa/dc360/apps/api
+
+ ✓ test/saude-versao.test.ts > versaoDoBuild (a leitura pura) > devolve a versão SemVer e o SHA que o build gravou 1ms
+ ✓ test/saude-versao.test.ts > versaoDoBuild (a leitura pura) > aceita o SHA abreviado de sete caracteres 0ms
+ ✓ test/saude-versao.test.ts > versaoDoBuild (a leitura pura) > fora de uma imagem, sem as variáveis, diz que não sabe em vez de inventar 0ms
+ ✓ test/saude-versao.test.ts > versaoDoBuild (a leitura pura) > negativo: valor que não tem o formato não sai pela rota pública 0ms
+ ✓ test/saude-versao.test.ts > GET /saude devolve versao e commit > repete o que o build gravou, tal e qual 81ms
+ ✓ test/saude-versao.test.ts > GET /saude devolve versao e commit > sem as variáveis (fora de uma imagem) diz desconhecida, e a rota segue 200 11ms
+ ✓ test/saude-versao.test.ts > GET /saude devolve versao e commit > negativo: valor fora do formato não é ecoado pela rota pública 10ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  17:50:48
+   Duration  1.45s (transform 238ms, setup 88ms, collect 333ms, tests 849ms, environment 0ms, prepare 37ms)
+
