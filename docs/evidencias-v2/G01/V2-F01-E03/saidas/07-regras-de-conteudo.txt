@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a07790c71645da6f1/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 647ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  17:17:01
+   Duration  887ms (transform 71ms, setup 0ms, collect 69ms, tests 647ms, environment 0ms, prepare 41ms)
+

@@ -43,6 +43,28 @@
 # manual e na agenda (estes dois só valem quando este arquivo chegar ao ramo
 # padrão; ver o comentário de `on:`), e nunca em pull_request. Quem decide é a
 # linha `if:` de cada um.
+#
+# Regras de CI deste arquivo (V2-F01-E02), as mesmas dos outros workflows e todas
+# conferidas por `dc360/scripts/conferir-workflows.test.mjs`, que roda no
+# `npm run test:scripts`:
+#
+# - `permissions: contents: read` no topo; o `GITHUB_TOKEN` só lê. Escrita, se um
+#   dia precisar, é declarada no job que precisa, nunca no topo.
+# - `timeout-minutes` em todo job (acima do maior tempo verde recente, para a
+#   fila lenta do GitHub não reprovar sozinha, e longe o bastante do padrão de
+#   360 minutos para um travamento não comer a cota).
+# - `runs-on: ubuntu-24.04`, e não `ubuntu-latest`, que muda de versão sem aviso.
+#   O Windows segue em `windows-latest` de propósito: é o Windows do autor que a
+#   prova de ambiente (`plataformas`) quer reproduzir.
+# - Toda `uses:` fixada por SHA de 40 caracteres, com a versão em comentário. Quem
+#   sobe a versão é o Dependabot (frente github-actions), em PR.
+# - Nenhum `pull_request_target`.
+# - Cache: `setup-node` guarda o do npm; os navegadores do Playwright ficam em
+#   `~/.cache/ms-playwright` (ação `actions/cache`, chave presa ao lockfile).
+# - O job do protótipo (`demonstracao`) mora em `demonstracao.yml`, com filtro de
+#   caminho, e não roda quando só o produto muda.
+# - Todo comando do script `verificar` do `package.json` aparece em algum `run:`
+#   de algum workflow (V2-F01-E03). Portão novo que fique só local reprova o teste.
 
 name: Verificar
 
@@ -65,21 +87,24 @@ on:
 permissions:
   contents: read
 
-# Em main, master e pull_request, cancela a execução antiga do mesmo ramo:
-# revisar resultado de commit que já foi substituído é desperdício de fila.
+# Em pull_request, uma execução nova substitui a antiga do mesmo ramo: revisar
+# resultado de commit que já foi substituído é desperdício de fila.
 #
-# Em `v2/**` é o contrário, e por dois motivos. `cancel-in-progress` é falso. E o
-# grupo passa a incluir o SHA: sem isso o GitHub ainda descartaria o run PENDENTE
-# mais antigo quando dois pushes chegam seguidos (a regra de concorrência mantém
-# só um pendente por grupo), e um SHA candidato ficaria sem run.
+# Em push (master, main e `v2/**`) o contrário, e por dois motivos. Nada é
+# cancelado: a execução da master é o registro de que o que entrou passou, e cada
+# SHA candidato precisa do seu run completo. E o grupo inclui o SHA: sem isso o
+# GitHub ainda descartaria o run PENDENTE mais antigo quando dois pushes chegam
+# seguidos (a regra de concorrência mantém só um pendente por grupo), e um SHA
+# ficaria sem run. O mesmo padrão está em `sast.yml` e `demonstracao.yml`.
 concurrency:
-  group: ${{ github.workflow }}-${{ startsWith(github.ref, 'refs/heads/v2/') && github.sha || github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/heads/v2/') }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   produto:
     name: Testes, tipos e scripts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     defaults:
       run:
         # `bash` explícito liga o `pipefail`: sem ele, `comando | tee arquivo`
@@ -88,9 +113,9 @@ jobs:
         working-directory: dc360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -121,9 +146,27 @@ jobs:
       # O PDF do documento técnico é gerado pelo Chromium (a API e o console
       # testam isso). Numa imagem limpa ele não existe, e o teste do PDF devolve
       # 503 em vez de falhar por motivo claro.
+      #
+      # Os navegadores do Playwright ficam em `~/.cache/ms-playwright`. A chave
+      # inclui o lockfile (a versão do Playwright decide a revisão do navegador),
+      # então trocar a versão invalida o cache sozinho. No acerto só as
+      # bibliotecas de sistema do runner são instaladas (elas não moram no cache).
+      - name: Cache dos navegadores do Playwright
+        id: cache_playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('dc360/package-lock.json') }}
+
       - name: Instalar o Chromium (os testes de PDF precisam dele)
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
-        run: npx playwright install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-playwright-install.txt"
+        run: |
+          if [ "${{ steps.cache_playwright.outputs.cache-hit }}" = "true" ]; then
+            echo "navegador no cache; instalando só as bibliotecas de sistema"
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-playwright-install.txt"
 
       # Dai em diante cada passo roda mesmo que o anterior tenha falhado (desde
       # que a instalação tenha dado certo): o run de um SHA candidato deve
@@ -160,7 +203,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: produto-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -183,7 +226,7 @@ jobs:
     # Vermelho aqui é achado real (runtime vulnerável, exceção sem motivo, dono
     # ou prazo, ou prazo vencido). Não pôr `continue-on-error`.
     name: Dependências com vulnerabilidade conhecida (auditar)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
@@ -191,9 +234,9 @@ jobs:
         working-directory: dc360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
 
@@ -233,7 +276,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dependencias-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -250,18 +293,18 @@ jobs:
     # commits citados. Sem `npm ci`: as ferramentas não têm dependência; o
     # teste de PDF se pula sozinho quando não há Chromium.
     name: Ferramentas do roadmap e estado gerado
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
 
@@ -292,7 +335,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: roadmap-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -302,16 +345,17 @@ jobs:
 
   navegador:
     name: Fluxo ponta a ponta no navegador
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     defaults:
       run:
         shell: bash
         working-directory: dc360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -328,8 +372,23 @@ jobs:
       # Chromium é o motor do Chrome e do Edge; Firefox é o segundo motor que o
       # critério de aceite exige. `--with-deps` traz as bibliotecas de sistema
       # que faltam numa imagem limpa.
+      # Cache em `~/.cache/ms-playwright`, com a chave presa ao lockfile; no
+      # acerto só as bibliotecas de sistema são instaladas (ver o job `produto`).
+      - name: Cache dos navegadores do Playwright
+        id: cache_playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-firefox-webkit-${{ hashFiles('dc360/package-lock.json') }}
+
       - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium firefox webkit 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+        run: |
+          if [ "${{ steps.cache_playwright.outputs.cache-hit }}" = "true" ]; then
+            echo "navegadores no cache; instalando só as bibliotecas de sistema"
+            npx playwright install-deps chromium firefox webkit
+          else
+            npx playwright install --with-deps chromium firefox webkit
+          fi 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
 
       # O painel importa `@dc360/shared`, e a API do caminho de produção
       # importa também `@dc360/db`, os dois pelo `dist/`, que numa imagem limpa
@@ -419,7 +478,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: navegador-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -427,86 +486,19 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
-  demonstracao:
-    name: Pacote da demonstração
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: dc360/package-lock.json
-
-      - name: Contexto do run
-        env:
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
-
-      - name: Instalar dependências
-        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
-        working-directory: dc360
-
-      - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
-        working-directory: dc360
-
-      # O empacotador é PowerShell, que existe no runner do Ubuntu como `pwsh`.
-      - name: Montar o pacote
-        shell: pwsh
-        run: ./scripts/empacotar-demo.ps1 *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/artefatos/03-empacotar.txt"
-
-      # O SHA-256 do zip vai no artefato: o validador confere que o pacote
-      # extraído abaixo é o que foi montado.
-      - name: Extrair como o destinatário faz
-        id: extrair
-        run: |
-          mkdir -p /tmp/pacote
-          unzip -q dist/DefesaCivil360-demonstracao.zip -d /tmp/pacote
-          sha256sum dist/DefesaCivil360-demonstracao.zip | tee "$RUNNER_TEMP/artefatos/04-sha256-do-pacote.txt"
-
-      - name: Conferir o pacote extraído
-        run: node scripts/conferir-pacote.mjs /tmp/pacote 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conferir-pacote.txt"
-
-      - name: Roteiro de dez minutos, Chromium
-        run: node scripts/conferir-roteiro.mjs /tmp/pacote chromium 2>&1 | tee "$RUNNER_TEMP/artefatos/06-roteiro-chromium.txt"
-
-      # Roda mesmo se o Chromium falhar, para o run trazer os dois motores.
-      - name: Roteiro de dez minutos, Firefox
-        if: ${{ !cancelled() && steps.extrair.outcome == 'success' }}
-        run: node scripts/conferir-roteiro.mjs /tmp/pacote firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/07-roteiro-firefox.txt"
-
-      - name: Redigir segredo dos artefatos
-        if: ${{ always() }}
-        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
-
-      - name: Publicar os artefatos
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: demonstracao-${{ github.sha }}
-          path: ${{ runner.temp }}/artefatos
-          retention-days: 30
-          overwrite: true
-          if-no-files-found: error
-
   aplicativo:
     name: Aplicativo de campo
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         shell: bash
         working-directory: dc360/apps/campo
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -530,28 +522,22 @@ jobs:
         id: instalar_app
         run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci-campo.txt"
 
-      - name: TypeScript estrito
-        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
-        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/03-typecheck.txt"
-
-      # O aplicativo passou a ter teste. Antes deste passo, o job media só
-      # higiene de dependência: TypeScript limpo, Expo saudável e audit em
-      # zero. Nenhuma das três enxerga comportamento, e a corrida de renovação
-      # que derrubava a sessão do agente no meio do campo passava nas três.
-      - name: Testes do aplicativo
-        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
-        run: npm test 2>&1 | tee "$RUNNER_TEMP/artefatos/04-jest.txt"
-
-      # O comando da raiz que mede o aplicativo: tipos, jest e a conferência de
-      # que o jest executou exatamente os casos que a leitura do código conta.
-      # Repete o typecheck e o jest dos dois passos acima de propósito: aqui o
-      # que vale é o cruzamento das contagens e a regra de que a falta de
-      # dependência reprova em vez de pular. (Se o tempo do job pesar, este
-      # passo pode substituir aqueles dois.)
-      - name: Comando da raiz que mede o aplicativo (test:campo)
+      # O comando da raiz que mede o aplicativo (V2-F01-E03): typecheck, jest e a
+      # conferência de que o jest executou exatamente os casos que a leitura do
+      # código conta, com a regra de que a falta de dependência reprova em vez de
+      # pular. Substitui os passos `npm run typecheck` e `npm test` que rodavam
+      # aqui dentro do aplicativo: o `test:campo` já faz os dois, na mesma ordem,
+      # e ainda cruza as contagens. O aplicativo passou a ter teste porque antes
+      # o job media só higiene de dependência (TypeScript limpo, Expo saudável e
+      # audit em zero), e a corrida de renovação que derrubava a sessão do agente
+      # no meio do campo passava nas três.
+      #
+      # `test:scripts` (os portões e paridades que leem `apps/campo/node_modules`)
+      # roda no job `produto`, que instala as duas árvores.
+      - name: Tipos, testes e contagem do aplicativo (test:campo)
         if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
         working-directory: dc360
-        run: npm run test:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/05-test-campo.txt"
+        run: npm run test:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/03-test-campo.txt"
 
       # A ÁRVORE DE DEPENDÊNCIA PRECISA SER COERENTE.
       #
@@ -595,7 +581,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: aplicativo-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -617,9 +603,9 @@ jobs:
         working-directory: dc360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
 
@@ -663,7 +649,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: windows-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -713,7 +699,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sistema: [windows-latest, ubuntu-latest]
+        sistema: [windows-latest, ubuntu-24.04]
     runs-on: ${{ matrix.sistema }}
     timeout-minutes: 45
     defaults:
@@ -732,9 +718,9 @@ jobs:
           git config --show-origin --get-all core.autocrlf
           git config --global --get core.autocrlf | grep -qx true
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -890,7 +876,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: plataformas-${{ matrix.sistema }}-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -906,7 +892,8 @@ jobs:
     # permissao nunca e negada. Foi assim que "a API nao sobe contra Postgres
     # nenhum" sobreviveu a suite inteira ate a auditoria achar a mao.
     name: A API sobe contra Postgres real
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
@@ -923,8 +910,8 @@ jobs:
           --health-interval 5s --health-timeout 3s --health-retries 20
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -1038,7 +1025,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: implantavel-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -1087,7 +1074,7 @@ jobs:
     # o job mais longo.
     name: Linha de base (baseline.mjs) em Linux
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     defaults:
       run:
@@ -1095,9 +1082,9 @@ jobs:
         working-directory: dc360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -1118,8 +1105,23 @@ jobs:
       - name: Instalar dependências (só para o Playwright achar o instalador)
         run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci-previo.txt"
 
+      # Cache em `~/.cache/ms-playwright`, com a chave presa ao lockfile; no
+      # acerto só as bibliotecas de sistema são instaladas (ver o job `produto`).
+      - name: Cache dos navegadores do Playwright
+        id: cache_playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-firefox-${{ hashFiles('dc360/package-lock.json') }}
+
       - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+        run: |
+          if [ "${{ steps.cache_playwright.outputs.cache-hit }}" = "true" ]; then
+            echo "navegadores no cache; instalando só as bibliotecas de sistema"
+            npx playwright install-deps chromium firefox
+          else
+            npx playwright install --with-deps chromium firefox
+          fi 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
 
       - name: Roteiro da linha de base
         id: baseline
@@ -1176,7 +1178,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: baseline-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos
@@ -1206,7 +1208,7 @@ jobs:
     # Só com `[ci completo]`, à mão ou na agenda (ver o comentário do topo).
     name: Restore do banco, Postgres 17 (CA-08)
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     defaults:
       run:
@@ -1214,9 +1216,9 @@ jobs:
         working-directory: dc360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -1297,7 +1299,7 @@ jobs:
 
       - name: Publicar os artefatos
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: restore-${{ github.sha }}
           path: ${{ runner.temp }}/artefatos

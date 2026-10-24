@@ -1,0 +1,32 @@
+✔ a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia) (1.471375ms)
+✔ todo workflow: permissions mínimas, timeout, ações por SHA, runner com versão, sem pull_request_target (8.287167ms)
+✔ nenhum workflow declara escrita em permissions, nem de job (1.115541ms)
+✔ os nomes de exibição dos jobs do verificar.yml não mudaram (são contrato com o ruleset da master) (5.651959ms)
+✔ o job da demonstração mora em demonstracao.yml, com filtro de caminho, e saiu do verificar.yml (1.224541ms)
+✔ cancel-in-progress só em pull_request (a execução da master e a de um SHA candidato nunca são canceladas) (1.481959ms)
+✔ os navegadores do Playwright vêm de cache nos workflows que os instalam (0.5545ms)
+✔ o job aplicativo guarda o cache de npm dos DOIS lockfiles (0.591625ms)
+✔ todo comando do script `verificar` aparece em algum run: de algum workflow (1.048083ms)
+✔ o script `verificar` ainda tem os seis comandos conhecidos (um comando novo exige este teste ciente) (0.391417ms)
+✔ o auditar roda pelo node no job dependencias, e o único `npm audit` cru é evidência que não decide (1.272166ms)
+✔ o test:scripts roda com as duas árvores instaladas (a do aplicativo antes) e o test:campo no job aplicativo (1.22975ms)
+✔ negativo: o workflow sintético correto passa (a base dos outros casos) (0.103375ms)
+✔ negativo: uses por tag móvel reprova (0.328125ms)
+✔ negativo: SHA sem a versão em comentário reprova (0.093375ms)
+✔ negativo: job sem timeout-minutes reprova (0.07ms)
+✔ negativo: workflow sem permissions reprova, e com escrita no topo também (0.181708ms)
+✔ negativo: pull_request_target reprova, mas citado só em comentário não (0.203375ms)
+✔ negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem runs-on também (0.272292ms)
+✔ negativo: tirar `npm run auditar` do workflow reprova (mas `node scripts/auditar.mjs` basta) (0.545834ms)
+✔ negativo: tirar qualquer outro comando do verificar reprova, e `npm run test:scripts` não vale por `npm test` (11.966875ms)
+✔ negativo: `npm audit` que decide reprova, o de evidência com `|| true` não (0.376625ms)
+✔ negativo: comando que só aparece em comentário ou em name: não conta como run: (0.721958ms)
+✔ o leitor de run: entende bloco, inline e para no recuo certo (0.126542ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 286.777666

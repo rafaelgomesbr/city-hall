@@ -234,6 +234,21 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     teste morde: rulesets sintéticos estragados reprovam.
   */
   "V2-F01-E01": 10,
+  /*
+    V2-F01-E02 e V2-F01-E03: `scripts/conferir-workflows.test.mjs` é novo, com 24
+    casos (15 da E02 e 9 da E03; é um arquivo só, por isso uma linha só). Aplica
+    as regras de CI a TODOS os workflows de `.github/workflows/` (permissions de
+    topo sem escrita, `timeout-minutes` em todo job, `uses:` por SHA de 40
+    caracteres com a versão em comentário, nenhum `pull_request_target`, runner
+    com versão) e prende os nomes dos quatro jobs do ruleset, o job da
+    demonstração em arquivo próprio com filtro de caminho, `cancel-in-progress`
+    só em pull_request e o cache do Playwright. Os casos negativos estragam um
+    workflow sintético de cada jeito e provam que a regra morde. A E03 acrescenta
+    a regra "todo comando do script `verificar` aparece em algum `run:`" (com
+    `node scripts/auditar.mjs` valendo por `npm run auditar`), a proibição de
+    `npm audit` que decide e os casos negativos dela.
+  */
+  "V2-F01-E02": 24,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -249,6 +264,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E06": "dependabot.test.mjs",
   "V2-F01-E07": "versao.test.mjs",
   "V2-F01-E01": "ruleset-master.test.mjs",
+  "V2-F01-E02": "conferir-workflows.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

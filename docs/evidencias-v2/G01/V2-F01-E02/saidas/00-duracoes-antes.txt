@@ -1,0 +1,12 @@
+Testes, tipos e scripts                                                n=8 mediana=11.7 max=21.9
+Windows (auditar, test:scripts e conferir:numeros)                     n=2 mediana=4.0 max=4.0
+Fluxo ponta a ponta no navegador                                       n=8 mediana=12.1 max=28.6
+Aplicativo de campo                                                    n=8 mediana=2.9 max=4.4
+Linha de base (baseline.mjs) em Linux                                  n=4 mediana=23.9 max=28.1
+Dependências com vulnerabilidade conhecida (auditar)                   n=8 mediana=0.6 max=0.9
+Ferramentas do roadmap e estado gerado                                 n=8 mediana=0.4 max=0.8
+Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest   n=2 mediana=2.7 max=2.7
+A API sobe contra Postgres real                                        n=8 mediana=2.3 max=2.5
+Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest  n=2 mediana=4.5 max=4.5
+Pacote da demonstração                                                 n=8 mediana=2.4 max=2.6
+Restore do banco, Postgres 17 (CA-08)                                  n=4 mediana=1.0 max=1.2
