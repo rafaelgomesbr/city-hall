@@ -1,0 +1,13 @@
+OK    painel: TLS válido (dc360-painel-web.vercel.app): válido, vence em 33 dia(s)
+OK    painel: http redireciona para https (dc360-painel-web.vercel.app): 308 para https://dc360-painel-web.vercel.app
+OK    painel: HSTS (dc360-painel-web.vercel.app): max-age=63072000
+FALHA painel: cabeçalhos de segurança (dc360-painel-web.vercel.app): falta X-Content-Type-Options: nosniff; falta frame-ancestors (CSP) ou X-Frame-Options
+OK    api: TLS válido (defesa-civil.fly.dev): válido, vence em 85 dia(s)
+OK    api: http redireciona para https (defesa-civil.fly.dev): 301 para https://defesa-civil.fly.dev
+OK    api: HSTS (defesa-civil.fly.dev): max-age=15552000
+OK    api: CORS aceita só a origem do ambiente (https://dc360-painel-web.vercel.app): aceita exatamente https://dc360-painel-web.vercel.app
+OK    api: CORS nega https://origem-invalida.example: https://origem-invalida.example negada (status 204, sem access-control-allow-origin)
+OK    api: CORS nega https://dc360-painel-hml.vercel.app: https://dc360-painel-hml.vercel.app negada (status 204, sem access-control-allow-origin)
+
+1 conferência(s) falharam de 10.
+exit=1

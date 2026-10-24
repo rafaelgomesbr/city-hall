@@ -1,0 +1,37 @@
+✔ normalizarHost aceita host puro e https://host, em minúsculas (0.61125ms)
+✔ normalizarHost recusa http, curinga, porta, caminho, usuário, vazio e nome sem ponto (0.207084ms)
+✔ normalizarOrigem exige esquema://host e recusa caminho e curinga (0.122125ms)
+✔ lerArgumentos exige painel e api, aceita vários --negar e recusa o resto (0.483334ms)
+✔ certificado: válido passa; vencido, quase vencendo, não confiável e ilegível reprovam (0.143542ms)
+✔ redirecionamento: 301, 302, 307 e 308 para https do mesmo host passam; o resto reprova (0.121959ms)
+✔ HSTS: 180 dias ou mais passa; ausente, sem max-age e curto reprovam (0.14925ms)
+✔ cabeçalhos do painel: nosniff e frame-ancestors (CSP ou X-Frame-Options) passam; faltando um, reprova (0.152542ms)
+✔ preflight aceito: só a origem exata, com credenciais; curinga, outra origem, sem credencial e status de erro reprovam (0.109917ms)
+✔ preflight negado: qualquer access-control-allow-origin reprova, inclusive curinga e eco da origem (0.11025ms)
+✔ ambiente bem configurado: tudo passa e a origem de PROD e a inventada são negadas (0.489709ms)
+✔ CORS que ecoa qualquer origem (o defeito que liga PROD a HML) reprova a negação cruzada (0.57275ms)
+✔ CORS com curinga reprova a aceitação exata e as duas negações (0.222375ms)
+✔ CORS fechado demais (nega o próprio painel) reprova só a aceitação (0.151625ms)
+✔ certificado vencido, http sem redirecionamento e HSTS ausente reprovam nomeando o host (0.155041ms)
+✔ painel sem os cabeçalhos do vercel.json reprova só os cabeçalhos de segurança (0.20825ms)
+✔ queda de rede num host vira reprovação nomeada, sem esconder as outras conferências (0.209833ms)
+✔ --negar com a origem do próprio painel é erro de uso e reprova (0.109334ms)
+✔ pedir manda Origin num OPTIONS, não segue redirecionamento e devolve os cabeçalhos (18.635292ms)
+✔ como comando: argumentos faltando ou inválidos saem com código 2 e mostram o uso (119.345584ms)
+✔ o vercel.json real não tem URL de API além da exceção declarada (VITE_API_URL literal reprova) (0.730042ms)
+✔ estado de hoje: o literal de PROD ainda está em build.env e a exceção o cobre exatamente (0.12875ms)
+✔ o vercel.json real nunca carrega a URL de uma API de homologação nem de outro ambiente (0.189209ms)
+✔ o vercel.json real traz os cabeçalhos de segurança do painel (0.165708ms)
+✔ o vercel.json real mantém o que o build do painel exige (0.119375ms)
+✔ morde: sem exceção, qualquer VITE_API_URL literal em build.env reprova, inclusive o de PROD de hoje (0.07925ms)
+✔ morde: com a exceção ativa, a URL de HML ou uma URL nova de PROD reprovam (0.073666ms)
+✔ morde: VITE_API_URL em env de topo (runtime) reprova mesmo com a exceção ativa (0.058834ms)
+✔ morde: cabeçalho de segurança removido ou enfraquecido reprova (0.256791ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 201.868209
