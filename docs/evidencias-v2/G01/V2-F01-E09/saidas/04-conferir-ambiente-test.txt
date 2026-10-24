@@ -1,0 +1,51 @@
+✔ a matriz real é bem formada (1.287792ms)
+✔ o repositório real bate com a matriz, e HML só avisa que ainda não existe (5.956667ms)
+✔ a lista de domínios compartilhados é a MESMA do código da API (0.40725ms)
+✔ a matriz cobre exatamente o que cada config.ts lê (0.503792ms)
+✔ as quatro variáveis do contrato estão na matriz com a regra certa (0.121959ms)
+✔ nenhuma variável de segredo da matriz tem valor, e a organização não é configuração (0.179833ms)
+✔ estadoDe: ausente na matriz quer dizer opcional (0.066167ms)
+✔ validarMatriz reprova valor fixo em variável de segredo (0.222042ms)
+✔ validarMatriz reprova nome repetido, estado inventado e lugar inventado (0.182334ms)
+✔ validarMatriz reprova valor fixo que contradiz a proibição, e obrigatório em dev (0.209417ms)
+✔ validarMatriz reprova HML e PROD com a mesma identidade de banco (0.131667ms)
+✔ validarMatriz reprova domínios de HML e PROD iguais ou um dentro do outro (CORS cruzado) (0.321792ms)
+✔ validarMatriz reprova domínio compartilhado do provedor e domínio mal formado (0.353833ms)
+✔ validarMatriz reprova identidade ou domínio marcados como segredo (0.111042ms)
+✔ validarMatriz reprova matriz sem ambiente, sem app ou sem versão (0.120334ms)
+✔ o repositório sintético intacto passa (controle: sem ele os negativos provam nada) (4.783916ms)
+✔ toml de PROD sem AMBIENTE_DC360 reprova (4.431083ms)
+✔ toml de PROD com AMBIENTE_DC360 errado reprova (6.305167ms)
+✔ toml de PROD com a identidade de banco trocada reprova (4.45325ms)
+✔ toml com SEGREDO no [env] reprova (segredo no repositório) (3.844666ms)
+✔ toml de PROD com variável proibida ou desconhecida reprova (4.335583ms)
+✔ toml comentado não conta como declarado (4.310625ms)
+✔ toml do console sem a identidade reprova (4.12825ms)
+✔ HML com o toml carregando a identidade e o domínio de PROD reprova (HML ligado a PROD) (5.186792ms)
+✔ a matriz declarar a identidade de HML sem o toml de HML existir reprova (3.823417ms)
+✔ variável nova no config.ts sem linha na matriz reprova, e o inverso também (7.504417ms)
+✔ Node e Postgres: divergência entre os arquivos reprova (15.408ms)
+✔ lerEnvDoToml ignora comentário, outras seções e comentário depois do valor (0.095208ms)
+✔ lerEnvDoToml lê os dois tomls de PROD de verdade (0.137209ms)
+✔ lerNomesDeSegredos lê JSON e texto, e DESCARTA o valor e o resumo (0.455ms)
+✔ PROD com exatamente os segredos obrigatórios confere (0.165041ms)
+✔ segredo obrigatório faltando reprova, pelo nome (0.07975ms)
+✔ segredo exclusivo de PROD no app de HML reprova (0.08625ms)
+✔ o console de HML com um segredo da API reprova como desconhecido (ADR 0008: segredos separados) (0.042792ms)
+✔ nome que deveria estar no [env] e está nos segredos reprova (o segredo venceria a linha versionada) (0.04175ms)
+✔ nome do próprio Fly (FLY_*) não conta, e o erro de app ou ambiente é de uso (0.09025ms)
+✔ formatarComparacao imprime só nomes e frases, nunca valor (0.094375ms)
+✔ lerArgumentos: sem argumento confere o repositório; com ambiente, exige app (0.179542ms)
+✔ o comando: repositório confere com código 0 (37.500333ms)
+✔ o comando: PROD confere com a lista em arquivo e o valor NUNCA aparece na saída (32.243042ms)
+✔ o comando: a lista pela entrada padrão, com segredo de PROD no HML, sai com código 1 (31.913ms)
+✔ o comando: uso errado sai com código 2 (68.832917ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 316.203958
+codigo de saida: 0

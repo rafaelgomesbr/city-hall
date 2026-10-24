@@ -89,6 +89,21 @@ kill_timeout = 15
 # Só o que NÃO é segredo.
 [env]
   NODE_ENV = "production"
+  # O CONTRATO DE AMBIENTE (V2-F01-E09). As duas linhas abaixo NÃO são segredo, e
+  # a partida RECUSA subir sem elas (apps/console/src/config.ts). Matriz inteira
+  # em scripts/ambientes.json, explicação em docs/AMBIENTES.md.
+  #
+  # AMBIENTE_DC360 diz a este processo onde ele está. CONSOLE_IDENTIDADE_DO_BANCO
+  # é a referência do projeto do banco de PROD: o usuário ou o host da
+  # CONSOLE_DATABASE_URL precisa contê-la, senão a partida recusa. É o que impede
+  # um console de HML de subir com a credencial de PROD (e mostrar o número de
+  # todos os municípios na tela de homologação).
+  #
+  # ANTES do primeiro deploy com estas linhas: conferir que a CONSOLE_DATABASE_URL
+  # do Fly traz esta referência (o usuário é `dc360_console_login.<referência>`).
+  # Se não trouxer, o deploy novo NÃO sobe e o release anterior segue atendendo.
+  AMBIENTE_DC360 = "prod"
+  CONSOLE_IDENTIDADE_DO_BANCO = "bppklrxxwjshxvkvwirw"
   # 0.0.0.0 porque num contêiner a porta publicada não atende em 127.0.0.1, e o
   # sintoma é um aplicativo de pé que não responde, sem erro em lugar nenhum.
   # Desde 15/09/2026 a partida em produção RECUSA um endereço de loopback, para

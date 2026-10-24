@@ -266,6 +266,10 @@ describe("DATABASE_URL sem verificacao nao sobe", () => {
       S3_CHAVE_ID: "chave-de-acesso",
       S3_CHAVE_SECRETA: "segredo-de-acesso",
       RECUPERACAO_ATIVA: "nao",
+      // O contrato de ambiente (V2-F01-E09): as três declarações não secretas.
+      AMBIENTE_DC360: "prod",
+      IDENTIDADE_DO_BANCO: "projeto",
+      DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
       ...sobrescrever,
     } as NodeJS.ProcessEnv;
   }

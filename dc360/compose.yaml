@@ -5,7 +5,14 @@
 # da auditoria (NODE_ENV, HOST, papéis) e da partida provada À MÃO contra um
 # PostgreSQL 18 real, sem Docker, que é o que garante que a API sobe. A
 # integração contínua NÃO usa este arquivo nem constrói a imagem: o job
-# `implantavel` sobe a API direto no Node, contra um Postgres 16 de serviço.
+# `implantavel` sobe a API direto no Node, contra um Postgres 16 de serviço
+# (trocar isso por 17 é assunto da V2-F01-E08).
+#
+# POSTGRES 17 (V2-F01-E09): a produção roda 17.6, e o compose rodava 16. Um
+# comportamento que muda entre as duas majors só aparecia depois do deploy. A
+# imagem é `postgis/postgis:17-3.5` (PostGIS 3.5 sobre Postgres 17). Trocar a
+# tag NÃO foi executado aqui: esta máquina não tem Docker, então a subida do
+# compose com a imagem nova continua sem registro de execução.
 # Construir e subir uma vez antes do primeiro deploy continua sendo
 # obrigatório; o CI que constrói a imagem é a V2-F01-E08.
 #
@@ -21,7 +28,7 @@
 # =====================================================================
 services:
   banco:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:17-3.5
     environment:
       POSTGRES_DB: dc360
       # O usuário inicial do POSTGRES_USER é superusuário: é o papel de SETUP
@@ -51,7 +58,7 @@ services:
   # depois do migrar (o papel dc360_app nasce lá) e antes da API. Idempotente:
   # subir de novo não falha se o papel já existir.
   papeis:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:17-3.5
     entrypoint: ["bash", "-c"]
     command:
       - |
@@ -75,6 +82,9 @@ services:
       # config.ts recusa produção sem HTTPS e sem armazenamento. Produção sobe
       # em PaaS gerenciada, não aqui.
       NODE_ENV: development
+      # O contrato de ambiente (V2-F01-E09): esta é a máquina de quem
+      # desenvolve. HML e PROD não sobem por aqui.
+      AMBIENTE_DC360: dev
       # 0.0.0.0, senão a API escuta só o loopback DENTRO do contêiner e a porta
       # publicada não atende ninguém, com o healthcheck mentindo que está de pé.
       HOST: 0.0.0.0

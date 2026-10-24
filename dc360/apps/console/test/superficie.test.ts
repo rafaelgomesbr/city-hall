@@ -314,7 +314,7 @@ describe("A configuracao do console recusa o que nao pode subir", () => {
 
   it("em producao, sem banco o console nao sobe", () => {
     expect(() => carregarConfig({
-      ...BASE, NODE_ENV: "production",
+      ...BASE, NODE_ENV: "production", AMBIENTE_DC360: "prod", CONSOLE_IDENTIDADE_DO_BANCO: "exemplo",
     } as NodeJS.ProcessEnv)).toThrow(/CONSOLE_DATABASE_URL/);
   });
 

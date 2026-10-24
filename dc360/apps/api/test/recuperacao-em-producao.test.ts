@@ -38,6 +38,10 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
     URL_PUBLICA: "https://api.dc360.exemplo.br",
     URL_PAINEL: "https://painel.serraalta.mg.gov.br",
     RECUPERACAO_ATIVA: "nao",
+    // O contrato de ambiente (V2-F01-E09): as três declarações não secretas.
+    AMBIENTE_DC360: "prod",
+    IDENTIDADE_DO_BANCO: "dc360",
+    DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;
 }

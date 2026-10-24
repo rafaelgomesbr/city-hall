@@ -1,6 +1,7 @@
 import { carregarConfig } from "./config.js";
 import { bancoPostgres } from "./banco/postgres.js";
 import { construirServidor } from "./servidor.js";
+import { soParaDominiosDeTeste } from "./auth/dominios-de-teste.js";
 import { notificadorDeArquivo, notificadorHttp } from "./auth/notificador.js";
 import type { Banco } from "./banco/tipos.js";
 import { armazenamentoS3 } from "./armazenamento/s3.js";
@@ -118,7 +119,7 @@ const pdf = geradorPlaywright();
      fora de produção, porque `config.ts` recusa subir com recuperação ligada
      sem `EMAIL_ATIVO=sim`, e o envio de ofício recusa por conta própria.
 */
-const notificador = config.NOTIFICADOR_ARQUIVO
+const notificadorBase = config.NOTIFICADOR_ARQUIVO
   ? notificadorDeArquivo(config.NOTIFICADOR_ARQUIVO)
   : config.EMAIL_ATIVO === "sim"
     ? notificadorHttp({
@@ -131,6 +132,15 @@ const notificador = config.NOTIFICADOR_ARQUIVO
         remetente: config.EMAIL_REMETENTE!,
       })
     : undefined;
+
+/*
+  Em HML (`EMAIL_DOMINIOS_DE_TESTE`) o envio só alcança os domínios de teste,
+  qualquer que seja o canal acima. Sem a lista, `soParaDominiosDeTeste` devolve
+  o canal como está.
+*/
+const notificador = notificadorBase
+  ? soParaDominiosDeTeste(notificadorBase, config.dominiosDeEmailDeTeste)
+  : undefined;
 
 /*
   A VARREDURA DE PUSH E O SERVIDOR PRECISAM UM DO OUTRO, e a ordem é esta:

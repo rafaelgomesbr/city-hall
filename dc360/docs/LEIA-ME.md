@@ -35,6 +35,7 @@ inventadas, e enquanto houver um `[[ ]]` o documento não vai para o ar.
 | --- | --- |
 | [COLOCAR-DE-PE.md](COLOCAR-DE-PE.md) | Subir servidor, banco, domínio e o aplicativo |
 | [VERCEL-PAINEL.md](VERCEL-PAINEL.md) | Publicar o painel |
+| [AMBIENTES.md](AMBIENTES.md) | O contrato de DEV, HML e PROD: variáveis de cada ambiente, o que a partida recusa (HML apontado para o banco de PROD, por exemplo), a matriz `scripts/ambientes.json` e como conferir os segredos de um app no Fly |
 | [DICIONARIO-DE-DADOS.md](DICIONARIO-DE-DADOS.md) | O que cada tabela e cada coluna significam. Deve acompanhar a exportação de saída, mas o pacote gerado pela API ainda não o inclui: é entregue à parte |
 | [RESTORE-DO-BANCO.md](RESTORE-DO-BANCO.md) | O roteiro de restore do banco, provado a frio e repetido pelo CI (a Parte 6 de `COLOCAR-DE-PE.md` é o registro histórico) |
 | [LIGAR-O-EMAIL.md](LIGAR-O-EMAIL.md) | Ligar o e-mail de recuperação de senha e de ofício: conta, domínio e variáveis |

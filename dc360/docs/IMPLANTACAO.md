@@ -167,6 +167,14 @@ processos no mesmo aplicativo do Fly compartilhariam a mesma lista de segredos.
 
 Arquivos que mandam aqui: `dc360/Dockerfile.console` e `dc360/fly.console.toml`.
 
+Desde a V2-F01-E09 o `[env]` do `fly.console.toml` carrega também
+`AMBIENTE_DC360` e `CONSOLE_IDENTIDADE_DO_BANCO`, e a partida recusa subir sem
+elas: a `CONSOLE_DATABASE_URL` precisa trazer a identidade (a referência do
+projeto do banco) no usuário ou no host. A API tem as suas (`fly.toml`). A
+explicação, a lista do que a partida recusa e o conferidor dos segredos estão em
+`docs/AMBIENTES.md`; rode `node scripts/conferir-ambiente.mjs --ambiente=prod
+--app=console` antes do deploy.
+
 ### 6.1 A armadilha das aspas, antes de qualquer comando
 
 Esta é a única parte deste documento que precisa ser lida antes de ser
