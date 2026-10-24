@@ -1688,6 +1688,20 @@ para separar runtime de desenvolvimento (o `npm ci --omit=dev` do Dockerfile usa
 a mesma marca e não instala o pacote, então a imagem não leva a versão
 vulnerável; anotado na rodada 7).
 
+**Atualização de dependências e auditoria agendada (V2-F01-E06).** Dependência
+chega como PR pequeno: o `.github/dependabot.yml` abre PR toda segunda-feira em
+quatro frentes (npm na raiz, npm no aplicativo de campo, ações do GitHub e
+imagens do Docker), sempre com os checks obrigatórios e **sem auto-merge**. No
+aplicativo de campo, major e minor de `expo`, `react-native`,
+`react-native-reanimated`, `react-native-worklets` e do resto da família do SDK
+ficam ignorados, e o patch da família sobe só num PR em grupo: o SDK do Expo sobe
+por inteiro, à mão, ou não sobe. O `.github/workflows/auditoria-semanal.yml`
+roda `node scripts/auditar.mjs` toda segunda-feira (e sob demanda), para advisory
+nova não esperar um commit; a agenda só vale a partir do ramo padrão. Os prazos
+por gravidade e a regra de revisão estão em `docs/DEPENDENCIAS.md`; o que é
+decisão do CP-03 e o que é proposta ainda sem decisão (os dias) está marcado lá.
+`node --test scripts/dependabot.test.mjs` prende essas travas.
+
 ### O aplicativo de campo precisa de um comando próprio
 
 `apps/campo` fica fora do `workspaces` de propósito (o motivo está em "O que

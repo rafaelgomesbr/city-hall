@@ -208,6 +208,17 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   */
   "V2-F01-E05": 26,
   "V2-F01-E05-baseline": 10,
+  /*
+    V2-F01-E06: `scripts/dependabot.test.mjs` e novo, com 12 casos. Prende a
+    configuracao de atualizacao de dependencias (`.github/dependabot.yml`: os
+    quatro ecossistemas, semanais, major e minor da familia do Expo ignorados no
+    aplicativo, patch so em grupo, sem auto-merge, com cooldown), o workflow da
+    auditoria semanal (permissoes minimas, runner fixo, acoes por SHA, o portao
+    do CP-03 chamado pelo node, sem mascarar falha) e a pagina
+    `docs/DEPENDENCIAS.md`. Um caso e a prova de que o teste morde: uma
+    configuracao sintetica sem o `ignore` do Expo reprova.
+  */
+  "V2-F01-E06": 12,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -220,6 +231,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E04": "politica-de-segredos.test.mjs",
   "V2-F01-E05": "excecoes-de-seguranca.test.mjs",
   "V2-F01-E05-baseline": "sast-baseline.test.mjs",
+  "V2-F01-E06": "dependabot.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
