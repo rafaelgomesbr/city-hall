@@ -169,6 +169,29 @@ export function interditarFundo(irmaos: readonly ElementoInterditavel[]): () => 
 }
 
 /**
+ * Quanto o painel da janela rola (para baixo, positivo; para cima, negativo)
+ * para o controle ficar inteiro dentro da parte visível dele, com um respiro de
+ * cada lado quando cabe (o anel de foco é uma sombra de alguns pixels, e uma
+ * borda de painel que rola a corta). Zero quando já está. Controle mais alto
+ * que o painel não cabe: o começo dele vai ao começo do painel.
+ */
+export function rolagemParaVerNoPainel(a: {
+  painelTopo: number;
+  painelBase: number;
+  alvoTopo: number;
+  alvoBase: number;
+  respiro: number;
+}): number {
+  const altura = a.painelBase - a.painelTopo;
+  const alturaDoAlvo = a.alvoBase - a.alvoTopo;
+  if (alturaDoAlvo >= altura) return a.alvoTopo - a.painelTopo;
+  const respiro = Math.max(0, Math.min(a.respiro, (altura - alturaDoAlvo) / 2));
+  if (a.alvoTopo < a.painelTopo + respiro - 0.5) return a.alvoTopo - (a.painelTopo + respiro);
+  if (a.alvoBase > a.painelBase - respiro + 0.5) return a.alvoBase - (a.painelBase - respiro);
+  return 0;
+}
+
+/**
  * Clique fora fecha? Só quando o clique foi no fundo mesmo e a janela permite.
  *
  * A conferência de que o alvo é o próprio fundo não é firula: sem ela, soltar
@@ -415,10 +438,55 @@ export function Modal({
       return r.top >= p.top - 0.5 && r.bottom <= p.bottom + 0.5;
     };
     const alvo = focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current);
-    alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });
+    alvo?.focus({ preventScroll: true });
     if (painel.current) painel.current.scrollTop = 0;
+    /*
+      O foco inicial pedido (o "Cancelar" de `ConfirmarAcao`) TEM DE ESTAR À
+      VISTA dentro da janela (WCAG 2.4.7 e 2.4.11; achado 1 da acessibilidade na
+      rodada 8 da V2-F00-E09, correção 7). O `scrollTop = 0` de cima faz a janela
+      abrir no topo, e quando o painel rola (zoom de 300 e 400 por cento, celular
+      deitado) o botão fica 150 a 190 px abaixo da borda: a pessoa via o título
+      e o texto, nenhum botão e nenhum anel de foco, em Chromium e Firefox (o
+      WebKit rolava sozinho). Quem pediu um foco inicial pediu um CONTROLE, e
+      um controle fora da vista não é foco: o painel rola o mínimo para
+      mostrá-lo, com o respiro de sempre, e o título que sai por cima é lido
+      pelo leitor de tela na abertura (`aria-labelledby`). Sem foco pedido, o
+      caminho é o de antes (o foco vai ao painel, e a janela abre no topo).
+    */
+    const levarOFocoInicialAVista = () => {
+      const botao = focoInicial?.current;
+      const corpo = painel.current;
+      if (!botao || !corpo || document.activeElement !== botao) return;
+      const caixaDoPainel = corpo.getBoundingClientRect();
+      const caixaDoAlvo = botao.getBoundingClientRect();
+      const topoUtil = caixaDoPainel.top + corpo.clientTop;
+      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
+      corpo.scrollTop += rolagemParaVerNoPainel({
+        painelTopo: topoUtil, painelBase: topoUtil + corpo.clientHeight,
+        alvoTopo: caixaDoAlvo.top, alvoBase: caixaDoAlvo.bottom, respiro,
+      });
+    };
+    let observador: MutationObserver | null = null;
+    if (focoInicial?.current && alvo === focoInicial.current && painel.current) {
+      levarOFocoInicialAVista();
+      /*
+        O conteúdo da janela muda DEPOIS de aberta: "Encerrar sessões" abre com
+        "Conferindo quantas sessões estão abertas." e troca pela frase da
+        contagem (16 px mais alta a 320 px), "Redefinir senha" e as outras acrescentam o
+        erro do servidor. Cada mudança acima do botão o empurra para fora da
+        parte visível (a 320x256, de 178..222 para 194..238 numa janela que
+        vai até 234), e a medida única da abertura não vê. Enquanto o foco
+        continua no botão, o painel refaz a conta a cada mudança de conteúdo;
+        quem já passou para outro controle não é puxado de volta.
+      */
+      if (typeof MutationObserver === "function") {
+        observador = new MutationObserver(levarOFocoInicialAVista);
+        observador.observe(painel.current, { childList: true, subtree: true, characterData: true });
+      }
+    }
 
     return () => {
+      observador?.disconnect();
       restaurar();
       hospedeiro.remove();
       liberarAvisos();
