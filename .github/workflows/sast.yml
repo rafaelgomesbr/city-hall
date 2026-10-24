@@ -1,0 +1,112 @@
+# SAST do DC360 com Semgrep CE (V2-F01-E05).
+#
+# O que ele impõe, e por quê:
+#
+# - As regras próprias protegem o que o produto tem de mais caro. A organização
+#   nunca é lida da requisição (regra número um, isolamento entre municípios), SQL
+#   não é montado por interpolação e o cabeçalho Authorization não vai para log.
+#   Ficam em `.semgrep/regras/`, com casos positivos e negativos em
+#   `.semgrep/test/`, rodados por `semgrep --test` ANTES da varredura: regra que
+#   não passa no próprio teste não tem autoridade para reprovar um PR. SÃO AS
+#   ÚNICAS que bloqueiam, porque são autoria do projeto.
+# - Os pacotes do registro (TypeScript, Node, React e JWT) rodam só como RELATÓRIO,
+#   num passo com `continue-on-error`, baixados na hora (`--config p/...`). O
+#   repositório é público e essas regras são da Semgrep Rules License v1.0 (uso
+#   interno, sem redistribuição): nenhuma cópia delas mora aqui. E o registro muda
+#   sem aviso, o que quebraria o CI por culpa dele, não do código.
+# - Nenhum código sai do runner: versão fixa do Semgrep, `--metrics=off`, sem login,
+#   sem token (`SEMGREP_APP_TOKEN` não existe aqui e o teste de política reprova se
+#   aparecer). O passo do registro só BAIXA regras.
+# - Só achado NOVO de severidade ERROR reprova. Achado antigo mora na baseline
+#   triada (`.semgrep/baseline.json`), em que cada linha foi lida por uma pessoa e
+#   tem classe, motivo, dono e prazo; defeito real vira trabalho de V2-F25-E01.
+#   Quem decide é `dc360/scripts/sast-baseline.mjs`, e não o código de saída do
+#   Semgrep, que só falha se a própria análise quebrar.
+# - Exceção pontual é `nosemgrep: <regra> -- motivo: ...; dono: ...; ate: AAAA-MM-DD`,
+#   e vencida reprova (`dc360/scripts/excecoes-de-seguranca.test.mjs`, que roda no
+#   job `produto` do verificar.yml por `npm run test:scripts`).
+#
+# O nome do job é contrato com o ruleset do GitHub (check obrigatório): quem
+# renomeia precisa atualizar a regra do ruleset.
+name: SAST
+
+on:
+  push:
+    branches: [main, master, "v2/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Em pull_request, uma execução nova substitui a antiga do mesmo ramo. Em push cada
+# SHA tem a sua, e nenhuma é cancelada: o gatekeeper lê o run do SHA candidato.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Versão fixa. Subir a versão é um PR próprio, com a baseline refeita.
+      SEMGREP_VERSION: "1.136.0"
+      SEMGREP_SEND_METRICS: "off"
+      SEMGREP_ENABLE_VERSION_CHECK: "0"
+      PYTHONWARNINGS: "ignore"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Instalar o Semgrep CE na versão fixa
+        run: |
+          python -m pip install --disable-pip-version-check "semgrep==${SEMGREP_VERSION}"
+          semgrep --version
+
+      - name: Regras próprias passam nos próprios testes
+        run: |
+          mkdir -p sast-artefatos
+          set -o pipefail
+          semgrep --test --metrics=off --disable-version-check \
+            --config .semgrep/regras .semgrep/test 2>&1 | tee sast-artefatos/01-semgrep-test.txt
+
+      - name: Varredura do produto
+        run: |
+          set -o pipefail
+          semgrep scan --metrics=off --disable-version-check \
+            --config .semgrep/regras \
+            --json --output sast-artefatos/semgrep.json \
+            dc360 2>&1 | tee sast-artefatos/02-semgrep-scan.txt
+
+      - name: Achado novo reprova, achado antigo fica na baseline triada
+        run: |
+          set -o pipefail
+          node dc360/scripts/sast-baseline.mjs conferir sast-artefatos/semgrep.json 2>&1 \
+            | tee sast-artefatos/03-baseline.txt
+
+      # SÓ RELATÓRIO: nunca reprova (continue-on-error e `|| true`). O registro
+      # é baixado na hora e muda sem aviso; o resultado é para a revisão humana.
+      - name: Relatório dos pacotes do registro (não reprova)
+        if: always()
+        continue-on-error: true
+        run: |
+          semgrep scan --metrics=off --disable-version-check \
+            --config p/typescript --config p/nodejs --config p/react --config p/jwt \
+            --json --output sast-artefatos/04-registro-relatorio.json \
+            dc360 > sast-artefatos/04-registro-relatorio.txt 2>&1 || true
+
+      - name: Publicar a saída
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sast-${{ github.sha }}
+          path: sast-artefatos/
+          retention-days: 30
+          if-no-files-found: warn

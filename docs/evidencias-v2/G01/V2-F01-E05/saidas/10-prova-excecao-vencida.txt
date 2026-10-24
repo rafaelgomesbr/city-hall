@@ -1,0 +1,66 @@
+# Prova: Exceção vencida (ate: 2026-01-01) reprova o excecoes-de-seguranca
+# comando: node --test scripts/excecoes-de-seguranca.test.mjs  (em <raiz>/dc360)
+# código de saída: 1
+
+✔ exceção completa e vigente é aceita (1.617875ms)
+✔ o marcador na linha de comentário acima do código também vale (0.595959ms)
+✔ vários ids de regra na mesma exceção são aceitos (0.082583ms)
+✔ sem motivo reprova (0.122292ms)
+✔ motivo de uma palavra reprova: não explica nada (0.079625ms)
+✔ sem dono reprova (0.054708ms)
+✔ sem data reprova (0.054958ms)
+✔ data mal formada ou impossível reprova (0.097ms)
+✔ exceção vencida reprova, e a data vale até o fim do próprio dia (0.088917ms)
+✔ prazo maior que um ano reprova: exceção não é decisão permanente (0.102459ms)
+✔ supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data (0.069166ms)
+✔ a linha do problema é a do marcador (0.06175ms)
+✔ a palavra solta em prosa, sem comentário, não é marcador (0.046709ms)
+✔ lerDataIso só aceita data de calendário (0.064292ms)
+✔ problemasDaExcecao vale também para entrada fora de comentário (a baseline) (0.063208ms)
+✖ todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente (38.948208ms)
+✔ a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada (0.257209ms)
+✔ a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho (0.112167ms)
+✔ nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição) (0.244375ms)
+✔ toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/ (0.399334ms)
+✔ as regras próprias reprovam em ERROR (é o que o portão do PR lê) (0.163875ms)
+✔ o workflow de SAST fixa a versão e não deixa código sair do runner (0.202708ms)
+✔ o registro (p/...) só roda num passo de relatório que nunca reprova; o que bloqueia é só regra própria (0.278458ms)
+✔ o workflow de SAST roda semgrep --test antes da varredura e a baseline decide (0.06575ms)
+✔ o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA (0.231416ms)
+✔ o ruleset exige o nome de exibição do job de SAST, então o nome é contrato (0.057208ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 25
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89.75325
+
+✖ failing tests:
+
+test at scripts/excecoes-de-seguranca.test.mjs:136:1
+✖ todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente (38.948208ms)
+  AssertionError [ERR_ASSERTION]: exceção de SAST fora da política (motivo, dono e prazo vigente): corrija a linha ou renove com decisão
+  + actual - expected
+  
+  + [
+  +   'dc360/apps/api/src/rotas/orgaos.ts:293 exceção vencida em 2026-01-01'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file://<raiz>/dc360/scripts/excecoes-de-seguranca.test.mjs:138:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'dc360/apps/api/src/rotas/orgaos.ts:293 exceção vencida em 2026-01-01' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+

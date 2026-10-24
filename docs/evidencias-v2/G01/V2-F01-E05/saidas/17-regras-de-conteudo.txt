@@ -1,0 +1,14 @@
+# Portão de conteúdo (idioma, travessão, taxonomia)
+# comando (em dc360/): npx vitest run packages/shared/test/regras-de-conteudo.test.ts --root packages/shared (equivalente)
+# código de saída: 0
+
+
+ RUN  v3.2.7 <raiz>/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 725ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  12:52:47
+   Duration  953ms (transform 56ms, setup 0ms, collect 55ms, tests 725ms, environment 0ms, prepare 37ms)
+

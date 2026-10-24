@@ -187,6 +187,18 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
   */
   "V2-F00-E21-correcao-3": 8,
+  /*
+    V2-F01-E05 (SAST com Semgrep CE): `scripts/excecoes-de-seguranca.test.mjs` é
+    novo, com 26 casos (a política de exceção `nosemgrep` com motivo, dono e
+    prazo, a baseline triada, a ausência de cópia das regras do registro (o
+    repositório é público), o teste das regras próprias e as travas do workflow
+    `sast.yml`, entre elas a de que o registro só roda num passo de relatório
+    que nunca reprova), e
+    `scripts/sast-baseline.test.mjs` é novo, com 10 (a comparação com a baseline
+    triada e a linha de comando).
+  */
+  "V2-F01-E05": 26,
+  "V2-F01-E05-baseline": 10,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -196,6 +208,8 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
   "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
+  "V2-F01-E05": "excecoes-de-seguranca.test.mjs",
+  "V2-F01-E05-baseline": "sast-baseline.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

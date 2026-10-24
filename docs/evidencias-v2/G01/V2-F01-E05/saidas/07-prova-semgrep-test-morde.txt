@@ -1,0 +1,12 @@
+# Regra enfraquecida de propósito (body fora da lista): semgrep --test reprova
+# comando: semgrep --test --metrics=off --disable-version-check --config .semgrep/regras .semgrep/test
+# código de saída: 1
+
+3/4: 1 unit tests did not pass:
+--------------------------------------------------------------------------------
+	✖ dc360-organizacao-lida-da-requisicao
+	missed lines: [41, 21, 15], incorrect lines: []
+	test file path: <raiz>/.semgrep/test/organizacao-da-requisicao.ts
+
+
+No tests for fixes found.

@@ -1,0 +1,20 @@
+# Fora do alcance do SAST (V2-F01-E05). O que é excluído e por quê:
+#
+# - `mockup/`: protótipo descartável da Fase 0, sem produto nem dado real.
+# - `docs/`, `relatorio/`: texto e evidência, não código que roda.
+# - `.semgrep/test/`: casos POSITIVOS de propósito (código inseguro escrito para
+#   as regras acertarem). Eles são verificados por `semgrep --test`, que lê o
+#   diretório sem passar por este arquivo; na varredura normal geram só ruído.
+# - Testes automatizados: usam SQL por template e segredos de mentira à vontade;
+#   o que protege o produto está no código que é entregue.
+mockup/
+docs/
+relatorio/
+.semgrep/test/
+**/node_modules/
+**/dist/
+**/*.test.ts
+**/*.test.tsx
+**/*.test.mjs
+**/test/
+**/e2e/

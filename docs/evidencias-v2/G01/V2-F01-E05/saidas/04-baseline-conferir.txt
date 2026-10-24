@@ -1,0 +1,7 @@
+# Comparação com a baseline triada: nenhum ERROR novo
+# comando: node dc360/scripts/sast-baseline.mjs conferir semgrep.json
+# código de saída: 0
+
+Semgrep: 33 achado(s); 33 na baseline triada; 0 novo(s).
+Aprovado: nenhum achado ERROR novo.
+

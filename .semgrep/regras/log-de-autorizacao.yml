@@ -1,0 +1,42 @@
+# Cabeçalho `Authorization` (token de acesso, Bearer) nunca vai para log. O
+# servidor redige `req.headers.authorization` por configuração do logger
+# (`CAMINHOS_REDIGIDOS` em `apps/api/src/servidor.ts`); esta regra pega o código
+# que passa por fora dessa redação, escrevendo o valor direto em `console` ou
+# `log`, ou logando os cabeçalhos inteiros (que carregam o `authorization`).
+rules:
+  - id: dc360-log-de-authorization
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      O cabeçalho Authorization (ou todos os cabeçalhos) vai para um log. O
+      token de acesso não pode aparecer em log, nem redigido por esquecimento.
+    metadata:
+      categoria: vazamento-de-credencial-em-log
+    paths:
+      include:
+        - "**/dc360/apps/api/src/"
+        - "**/.semgrep/test/"
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $LOG.$M(..., $REQ.headers.authorization, ...)
+          - pattern: |
+              $LOG.$M(..., $REQ.headers["authorization"], ...)
+          - pattern: |
+              $LOG.$M(..., $REQ.headers, ...)
+          - pattern: |
+              $LOG.$M(..., { ..., $K: $REQ.headers.authorization, ... }, ...)
+          - pattern: |
+              $LOG.$M(..., { ..., $K: $REQ.headers["authorization"], ... }, ...)
+          - pattern: |
+              $LOG.$M(..., { ..., headers: $REQ.headers, ... }, ...)
+          - pattern: |
+              $LOG.$M(..., { ..., ...$REQ.headers, ... }, ...)
+          - pattern: |
+              $LOG.$M(..., `...${$REQ.headers.authorization}...`, ...)
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(log|trace|debug|info|warn|error|fatal)$
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: ^(req|request)$

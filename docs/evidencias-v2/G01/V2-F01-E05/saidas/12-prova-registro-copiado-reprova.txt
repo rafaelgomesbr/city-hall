@@ -1,0 +1,62 @@
+# Prova: uma cópia de regras do registro dentro de .semgrep/registro reprova o excecoes-de-seguranca (repositório público)
+# comando: node --test scripts/excecoes-de-seguranca.test.mjs  (em <raiz>/dc360)
+# código de saída: 1
+
+✔ exceção completa e vigente é aceita (1.632958ms)
+✔ o marcador na linha de comentário acima do código também vale (0.612834ms)
+✔ vários ids de regra na mesma exceção são aceitos (0.075ms)
+✔ sem motivo reprova (0.137666ms)
+✔ motivo de uma palavra reprova: não explica nada (0.083959ms)
+✔ sem dono reprova (0.061042ms)
+✔ sem data reprova (0.055959ms)
+✔ data mal formada ou impossível reprova (0.09975ms)
+✔ exceção vencida reprova, e a data vale até o fim do próprio dia (0.099042ms)
+✔ prazo maior que um ano reprova: exceção não é decisão permanente (0.105042ms)
+✔ supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data (0.068833ms)
+✔ a linha do problema é a do marcador (0.059958ms)
+✔ a palavra solta em prosa, sem comentário, não é marcador (0.045125ms)
+✔ lerDataIso só aceita data de calendário (0.064459ms)
+✔ problemasDaExcecao vale também para entrada fora de comentário (a baseline) (0.06675ms)
+✔ todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente (38.842125ms)
+✔ a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada (0.279292ms)
+✔ a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho (0.128584ms)
+✖ nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição) (0.444708ms)
+✔ toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/ (0.449208ms)
+✔ as regras próprias reprovam em ERROR (é o que o portão do PR lê) (0.165541ms)
+✔ o workflow de SAST fixa a versão e não deixa código sair do runner (0.211583ms)
+✔ o registro (p/...) só roda num passo de relatório que nunca reprova; o que bloqueia é só regra própria (0.274334ms)
+✔ o workflow de SAST roda semgrep --test antes da varredura e a baseline decide (0.0655ms)
+✔ o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA (0.235875ms)
+✔ o ruleset exige o nome de exibição do job de SAST, então o nome é contrato (0.058417ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 25
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88.84975
+
+✖ failing tests:
+
+test at scripts/excecoes-de-seguranca.test.mjs:164:1
+✖ nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição) (0.444708ms)
+  AssertionError [ERR_ASSERTION]: .semgrep/registro/ não pode existir
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file://<raiz>/dc360/scripts/excecoes-de-seguranca.test.mjs:165:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+

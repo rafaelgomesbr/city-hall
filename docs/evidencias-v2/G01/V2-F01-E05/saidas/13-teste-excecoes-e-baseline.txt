@@ -1,0 +1,48 @@
+# Os dois testes novos desta etapa
+# comando (em dc360/): node --test scripts/excecoes-de-seguranca.test.mjs scripts/sast-baseline.test.mjs
+# código de saída: 0
+
+✔ exceção completa e vigente é aceita (1.715959ms)
+✔ o marcador na linha de comentário acima do código também vale (0.626791ms)
+✔ vários ids de regra na mesma exceção são aceitos (0.100167ms)
+✔ sem motivo reprova (0.148292ms)
+✔ motivo de uma palavra reprova: não explica nada (0.092375ms)
+✔ sem dono reprova (0.060334ms)
+✔ sem data reprova (0.059083ms)
+✔ data mal formada ou impossível reprova (0.103625ms)
+✔ exceção vencida reprova, e a data vale até o fim do próprio dia (0.0875ms)
+✔ prazo maior que um ano reprova: exceção não é decisão permanente (0.103917ms)
+✔ supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data (0.071041ms)
+✔ a linha do problema é a do marcador (0.047625ms)
+✔ a palavra solta em prosa, sem comentário, não é marcador (0.043958ms)
+✔ lerDataIso só aceita data de calendário (0.061916ms)
+✔ problemasDaExcecao vale também para entrada fora de comentário (a baseline) (0.060625ms)
+✔ todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente (47.028916ms)
+✔ a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada (0.304167ms)
+✔ a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho (0.144875ms)
+✔ nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição) (0.256625ms)
+✔ toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/ (0.45475ms)
+✔ as regras próprias reprovam em ERROR (é o que o portão do PR lê) (0.185542ms)
+✔ o workflow de SAST fixa a versão e não deixa código sair do runner (0.228958ms)
+✔ o registro (p/...) só roda num passo de relatório que nunca reprova; o que bloqueia é só regra própria (0.313458ms)
+✔ o workflow de SAST roda semgrep --test antes da varredura e a baseline decide (0.07275ms)
+✔ o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA (0.24775ms)
+✔ o ruleset exige o nome de exibição do job de SAST, então o nome é contrato (0.062ms)
+✔ o id da regra perde o prefixo do caminho da configuração (0.428083ms)
+✔ achados iguais em linhas diferentes têm impressão própria (a ordem entre eles), e a linha não entra nela (7.617375ms)
+✔ a mesma regra vinda de dois pacotes entra uma vez só (0.269583ms)
+✔ achado que já está na baseline não é novo; linha que andou também não (0.26625ms)
+✔ achado NOVO (outro texto, outro arquivo ou segunda ocorrência) fica de fora da baseline (0.225583ms)
+✔ entrada da baseline que o Semgrep já não encontra é listada como obsoleta (0.102625ms)
+✔ CLI: varredura sem nenhum achado aprova (e avisa as entradas obsoletas) (33.931083ms)
+✔ CLI: achado ERROR novo reprova com código 1 e diz onde (31.273542ms)
+✔ CLI: achado novo de severidade WARNING avisa e não reprova (31.104166ms)
+✔ CLI: análise com erro do Semgrep reprova (sem leitura confiável não há aprovação) (28.611084ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 178.725209

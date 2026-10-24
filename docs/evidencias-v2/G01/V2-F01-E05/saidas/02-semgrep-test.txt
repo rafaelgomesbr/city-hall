@@ -1,0 +1,7 @@
+# semgrep --test das regras próprias
+# comando: semgrep --test --metrics=off --config .semgrep/regras .semgrep/test
+# código de saída: 0
+
+4/4: ✓ All tests passed
+No tests for fixes found.
+

@@ -1,0 +1,66 @@
+# Prova: Supressão cega, sem id de regra, reprova o excecoes-de-seguranca
+# comando: node --test scripts/excecoes-de-seguranca.test.mjs  (em <raiz>/dc360)
+# código de saída: 1
+
+✔ exceção completa e vigente é aceita (1.669458ms)
+✔ o marcador na linha de comentário acima do código também vale (0.599416ms)
+✔ vários ids de regra na mesma exceção são aceitos (0.100542ms)
+✔ sem motivo reprova (0.120583ms)
+✔ motivo de uma palavra reprova: não explica nada (0.08ms)
+✔ sem dono reprova (0.056167ms)
+✔ sem data reprova (0.056834ms)
+✔ data mal formada ou impossível reprova (0.095334ms)
+✔ exceção vencida reprova, e a data vale até o fim do próprio dia (0.095958ms)
+✔ prazo maior que um ano reprova: exceção não é decisão permanente (0.111708ms)
+✔ supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data (0.06825ms)
+✔ a linha do problema é a do marcador (0.06025ms)
+✔ a palavra solta em prosa, sem comentário, não é marcador (0.047083ms)
+✔ lerDataIso só aceita data de calendário (0.063417ms)
+✔ problemasDaExcecao vale também para entrada fora de comentário (a baseline) (0.062333ms)
+✖ todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente (39.084792ms)
+✔ a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada (0.274042ms)
+✔ a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho (0.114791ms)
+✔ nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição) (0.240375ms)
+✔ toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/ (0.399958ms)
+✔ as regras próprias reprovam em ERROR (é o que o portão do PR lê) (0.164291ms)
+✔ o workflow de SAST fixa a versão e não deixa código sair do runner (0.200958ms)
+✔ o registro (p/...) só roda num passo de relatório que nunca reprova; o que bloqueia é só regra própria (0.281709ms)
+✔ o workflow de SAST roda semgrep --test antes da varredura e a baseline decide (0.067417ms)
+✔ o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA (0.230333ms)
+✔ o ruleset exige o nome de exibição do job de SAST, então o nome é contrato (0.05775ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 25
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 90.979375
+
+✖ failing tests:
+
+test at scripts/excecoes-de-seguranca.test.mjs:136:1
+✖ todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente (39.084792ms)
+  AssertionError [ERR_ASSERTION]: exceção de SAST fora da política (motivo, dono e prazo vigente): corrija a linha ou renove com decisão
+  + actual - expected
+  
+  + [
+  +   'dc360/apps/api/src/rotas/orgaos.ts:293 nosemgrep sem id de regra (supressão cega proibida): use `nosemgrep: <id-da-regra>`'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file://<raiz>/dc360/scripts/excecoes-de-seguranca.test.mjs:138:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'dc360/apps/api/src/rotas/orgaos.ts:293 nosemgrep sem id de regra (supressão cega proibida): use `nosemgrep: <id-da-regra>`' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
