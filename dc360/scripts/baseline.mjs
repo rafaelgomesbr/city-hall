@@ -43,8 +43,8 @@
  *    trazer um JWT de teste dentro de uma asserção. JWT, `Bearer`, `Basic`,
  *    URL com usuário e senha e a pasta pessoal do usuário viram marcadores
  *    antes de qualquer gravação, e o travessão também (a regra de conteúdo do
- *    repositório reprova o caractere em `docs/`, onde a evidência mora). A varredura automática de segredo só chega
- *    com a F01-E04; até lá este filtro e a leitura humana são a defesa.
+ *    repositório reprova o caractere em `docs/`, onde a evidência mora). A varredura automática de segredo (gitleaks)
+ *    chegou com a F01-E04; este filtro continua como primeira defesa.
  *
  * 4. `--so-listar` imprime os comandos sem executar nada e sem criar pasta,
  *    para quem quer conferir o roteiro antes de gastar uma hora de máquina.

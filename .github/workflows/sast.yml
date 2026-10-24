@@ -63,11 +63,13 @@ jobs:
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version: "3.12"
+          # 3.11: o semgrep 1.136.0 importa pkg_resources (via opentelemetry), que o
+          # setuptools novo, instalado sozinho no 3.12, já não traz.
+          python-version: "3.11"
 
       - name: Instalar o Semgrep CE na versão fixa
         run: |
-          python -m pip install --disable-pip-version-check "semgrep==${SEMGREP_VERSION}"
+          python -m pip install --disable-pip-version-check "semgrep==${SEMGREP_VERSION}" "setuptools<81"
           semgrep --version
 
       - name: Regras próprias passam nos próprios testes

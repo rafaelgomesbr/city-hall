@@ -23,15 +23,15 @@ name: Segredos
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, "v2/**"]
   pull_request:
   workflow_dispatch:
 
-# Cancela execução antiga do mesmo ramo: revisar resultado de commit que já
-# foi substituído é desperdício de fila.
+# Em pull_request, uma execução nova substitui a antiga do mesmo ramo. Em push cada
+# SHA tem a sua, e nenhuma é cancelada: o gatekeeper lê o run do SHA candidato.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
