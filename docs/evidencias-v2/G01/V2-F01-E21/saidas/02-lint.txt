@@ -1,0 +1,4 @@
+
+== ESLint: monorepo ==
+OK: monorepo
+codigo 0

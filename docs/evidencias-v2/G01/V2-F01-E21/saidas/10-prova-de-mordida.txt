@@ -1,0 +1,27 @@
+## controle (intacto)
+ℹ pass 18
+ℹ fail 0
+## 1. implantavel volta a postgres:17 simples
+✖ o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16 (1.369417ms)
+✖ PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta (0.831625ms)
+ℹ pass 16
+ℹ fail 2
+✖ failing tests:
+✖ o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16 (1.369417ms)
+## 2. compose perde o digest de um dos servicos
+✖ PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta (0.802792ms)
+ℹ pass 17
+ℹ fail 1
+✖ failing tests:
+✖ PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta (0.802792ms)
+## 3. implantavel deixa de exigir PostGIS
+✖ o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado (2.670333ms)
+ℹ pass 17
+ℹ fail 1
+✖ failing tests:
+✖ o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado (2.670333ms)
+## 4. restaurado
+ℹ pass 18
+ℹ fail 0
+ M .github/workflows/verificar.yml
+ M dc360/compose.yaml

@@ -21,6 +21,7 @@
     "build": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo && npm run build --workspace @dc360/web && npm run build --workspace @dc360/api && npm run build --workspace @dc360/console",
     "test": "npm run build:shared && npm run test --workspaces --if-present",
     "test:isolamento": "npm run test --workspace @dc360/db",
+    "test:espacial": "npm run test:espacial --workspace @dc360/db",
     "test:api": "npm run test --workspace @dc360/api",
     "test:e2e": "npm run test:e2e --workspace @dc360/web",
     "test:campo": "node scripts/testar-campo.mjs",

@@ -281,7 +281,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     (sem segredo, com Postgres 17, as duas imagens e as conferências), o job
     `implantavel` no Postgres 17, o check no ruleset e o `rollback.md`.
   */
-  "V2-F01-E08": 15,
+  "V2-F01-E08": 18, // 15 na E08; a V2-F01-E21 acrescentou 3 no mesmo arquivo (PostGIS 17 por digest igual no compose e nos dois jobs, o `test:espacial` obrigatório no `implantavel` e os scripts/configs que o separam do `npm test`)
   /*
     V2-F01-E09: `scripts/conferir-ambiente.test.mjs` é novo, com 42 casos (a
     matriz `ambientes.json` bem formada e cobrindo exatamente o que cada
@@ -817,6 +817,15 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     `FOR SHARE` só no login, DC367 e DC369 mantidos). Soma 18, de 327 para 345.
   */
   "V2-F00-E07-correcao-2": { total: 18, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E21: `db/test/postgis-decisao.test.ts` é novo, com 8 casos (a regra
+    que decide se o teste espacial roda, pula com aviso ou reprova: exigindo
+    PostGIS, servidor sem a extensão, sem URL ou fora do ar reprova; sem exigir,
+    pula). Os `*.espacial.test.ts` ficam FORA desta conta: não entram em
+    `npm run test:isolamento` (o `vitest.config.ts` os exclui), rodam por
+    `npm run test:espacial` e a prova deles é o job `implantavel` do CI.
+  */
+  "V2-F01-E21": { total: 8, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

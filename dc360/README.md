@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 233 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 353 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 750 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1833 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
@@ -1296,6 +1296,7 @@ npm ci                          # raiz
 (cd apps/campo && npm ci)       # aplicativo de campo, árvore própria
 npm run typecheck               # compila shared, db e campo antes de checar os tipos
 npm run test:isolamento         # o portão CA-06, rode este primeiro
+npm run test:espacial           # PostGIS em Postgres real (só com DC360_POSTGRES_DE_PROVA; sem ele pula com aviso)
 npm test                        # os demais testes de cada workspace
 npm run test:scripts            # portões de design e de acessibilidade do aplicativo, entre outros
 npm run test:campo              # tipos e testes do aplicativo de campo
@@ -1658,8 +1659,8 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3733 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+npm test                    # 3741 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 353 testes do banco
 npm run test:api            # 1833 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
@@ -2023,7 +2024,7 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 | Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`node scripts/auditar.mjs`, o mesmo portão do `npm run auditar`, política do CP-03, ver "Como testar") |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração (`demonstracao.yml`) | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores. Só roda quando muda `mockup/**`, `scripts/**`, os três documentos que vão dentro do zip ou o `package-lock.json` (o Playwright vem dele); mudança só no produto não o dispara |
-| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção) |
+| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção), agora com PostGIS 3.5 por digest, e o `npm run test:espacial` (`ST_Contains`, `ST_DWithin` e RLS forçada sobre `geography`) com `DC360_EXIGE_POSTGIS=1` |
 | Imagens Docker (API e console) | `docker build` das duas imagens de produção com a base fixada por digest e `DC360_VERSAO` / `DC360_COMMIT` como argumentos de build; migração aplicada A PARTIR da imagem da API; a API e o console sobem da imagem, como `node`, e `/saude` responde 200 com `versao` e `commit` iguais aos do build; `chromium --version` dentro da imagem da API (sem ele o PDF do laudo é 503). As conferências são `scripts/smoke-das-imagens.mjs`, e o teste prova que root, falta de Chromium e versão trocada reprovam. Não recebe segredo e não publica imagem (E12); scan é a E20 e SBOM a E19 |
 | Aplicativo de campo | `npm run test:campo` (TypeScript, os testes do aplicativo e a conferência de que o jest executou os casos que a leitura do código conta; é o que substituiu o `typecheck` e o `npm test` avulsos do job), árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
@@ -2318,6 +2319,9 @@ rollback de cada frente (Fly, Vercel, EAS e banco) estão em
   é só configuração.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
+  A infraestrutura de teste já existe (V2-F01-E21): o `compose.yaml` e o CI usam
+  `postgis/postgis:17-3.5` por digest, e `npm run test:espacial` prova a extensão
+  em Postgres real (`docs/AMBIENTES.md`, seção "PostGIS no CI e no ambiente local").
 - **Desligar o segundo fator de OUTRA pessoa.** Hoje cada um cuida do próprio:
   quem administra redefine senha de terceiro, mas não desliga a verificação em
   duas etapas de ninguém. Para quem perdeu o telefone, a saída são os códigos

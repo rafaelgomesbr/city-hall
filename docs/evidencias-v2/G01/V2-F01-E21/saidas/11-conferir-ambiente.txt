@@ -1,0 +1,3 @@
+aviso: fly.hml.toml (HML, api) ainda não existe: nasce na V2-F01-E11
+aviso: fly.console.hml.toml (HML, console) ainda não existe: nasce na V2-F01-E11
+conferir-ambiente: o repositório bate com scripts/ambientes.json

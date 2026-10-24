@@ -1,0 +1,13 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-adc638b9856097784/dc360
+
+ ✓ packages/shared/test/regras-de-conteudo.test.ts (10 tests) 1391ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  513ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  525ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  19:10:10
+   Duration  1.85s (transform 109ms, setup 0ms, collect 123ms, tests 1.39s, environment 0ms, prepare 59ms)
+
+codigo 0
