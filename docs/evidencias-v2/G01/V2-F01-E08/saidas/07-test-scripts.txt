@@ -1,0 +1,5 @@
+$ node --test <todos os scripts/*.test.mjs menos conferir-indices-de-evidencia.test.mjs>
+ℹ tests 465
+ℹ pass 461
+ℹ fail 0
+ℹ skipped 4

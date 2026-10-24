@@ -4,10 +4,10 @@
 # NUNCA FOI EXECUTADO E NADA NO REPOSITÓRIO O PROVA. As correções abaixo vêm
 # da auditoria (NODE_ENV, HOST, papéis) e da partida provada À MÃO contra um
 # PostgreSQL 18 real, sem Docker, que é o que garante que a API sobe. A
-# integração contínua NÃO usa este arquivo nem constrói a imagem: o job
-# `implantavel` sobe a API direto no Node, contra um Postgres 16 de serviço.
-# Construir e subir uma vez antes do primeiro deploy continua sendo
-# obrigatório; o CI que constrói a imagem é a V2-F01-E08.
+# integração contínua NÃO usa este arquivo: o job `implantavel` sobe a API
+# direto no Node, e o job `imagens` (V2-F01-E08) constrói as duas imagens com
+# `docker build` e as sobe contra um Postgres 17 de serviço, sem passar pelo
+# compose. Este arquivo continua sem prova de execução.
 #
 # ESTE COMPOSE É PARA DESENVOLVER E PARA CONFERIR QUE A IMAGEM SOBE, não para
 # produção. Produção usa Postgres gerenciado (com backup e PITR) e um proxy

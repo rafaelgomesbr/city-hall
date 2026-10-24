@@ -1,0 +1,2 @@
+$ npm run typecheck   (api, console, web, db; so os codigos de saida)
+codigo de saida: 0

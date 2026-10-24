@@ -11,10 +11,10 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 224 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 737 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1724 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 307 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 310 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -1616,9 +1616,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3568 testes em seis pacotes
+npm test                    # 3578 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
-npm run test:api            # 1717 testes da API
+npm run test:api            # 1724 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -1967,7 +1967,8 @@ o `plataformas`, com os três casos de ambiente da E21 em Windows e em Linux (ve
 "O que prova Windows", na primeira seção "Como testar"); o da linha de base em Linux
 (`baseline.mjs`), o do restore do banco e o de ferramentas do roadmap, que
 também confere os `INDEX.md` da evidência com
-`scripts/conferir-indices-de-evidencia.mjs`: dez ao todo no `verificar.yml`, onze execuções por
+`scripts/conferir-indices-de-evidencia.mjs`, e o das imagens Docker (`imagens`, V2-F01-E08): onze ao
+todo no `verificar.yml`, doze execuções por
 causa da matriz do `plataformas`; os
 dois longos, linha de base e restore, hoje só rodam em push cujo commit traga
 `[ci completo]`: o disparo manual e a agenda de segunda-feira estão escritos no
@@ -1980,7 +1981,8 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
 | Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`node scripts/auditar.mjs`, o mesmo portão do `npm run auditar`, política do CP-03, ver "Como testar") |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração (`demonstracao.yml`) | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores. Só roda quando muda `mockup/**`, `scripts/**`, os três documentos que vão dentro do zip ou o `package-lock.json` (o Playwright vem dele); mudança só no produto não o dispara |
-| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
+| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação, no Node puro e contra o Postgres 17 de serviço (o major de produção) |
+| Imagens Docker (API e console) | `docker build` das duas imagens de produção com a base fixada por digest e `DC360_VERSAO` / `DC360_COMMIT` como argumentos de build; migração aplicada A PARTIR da imagem da API; a API e o console sobem da imagem, como `node`, e `/saude` responde 200 com `versao` e `commit` iguais aos do build; `chromium --version` dentro da imagem da API (sem ele o PDF do laudo é 503). As conferências são `scripts/smoke-das-imagens.mjs`, e o teste prova que root, falta de Chromium e versão trocada reprovam. Não recebe segredo e não publica imagem (E12); scan é a E20 e SBOM a E19 |
 | Aplicativo de campo | `npm run test:campo` (TypeScript, os testes do aplicativo e a conferência de que o jest executou os casos que a leitura do código conta; é o que substituiu o `typecheck` e o `npm test` avulsos do job), árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
 **Regras que todo workflow de `.github/workflows/` cumpre** (V2-F01-E02), conferidas
@@ -2138,7 +2140,7 @@ New ruleset, Import a ruleset. Ela exige:
 Os checks são: `Testes, tipos e scripts`, `Dependências com vulnerabilidade conhecida
 (auditar)`, `Ferramentas do roadmap e estado gerado`, `Fluxo ponta a ponta no
 navegador`, `Aplicativo de campo`, `A API sobe contra
-Postgres real` (todos de `verificar.yml`), `Varredura de segredos` (`segredos.yml`)
+Postgres real`, `Imagens Docker (API e console)` (todos de `verificar.yml`), `Varredura de segredos` (`segredos.yml`)
 e `SAST (Semgrep)` (`sast.yml`). Os nomes são contrato: o job `baseline`, o
 `restore`, o `windows` e o `plataformas` não estão na lista (os dois primeiros
 nem rodam em pull request; os outros dois são decisão do Rafael), e o `Pacote da
@@ -2192,8 +2194,21 @@ do workflow de promoção). Regras: a primeira tag (`v0.1.0` e `campo-v0.1.0`) v
 da E01 e nunca de forma retroativa, no commit que tem aquele número; tag não se atualiza
 nem se apaga (um ruleset do GitHub para `v*` e `campo-v*` faz isso valer, e ligá-lo é ação
 no GitHub, fora do repositório); o Release do GitHub leva as notas da seção do changelog, e
-a E19 anexa o SBOM. Ficam fora desta etapa a versão em `/saude` (E08), a atualização do
+a E19 anexa o SBOM. Ficam fora desta etapa a atualização do
 aplicativo sem loja (CP-24) e a promoção (E12).
+
+### Versão e commit em `/saude`, e o rollback
+
+`GET /saude`, da API e do console, devolve `versao` e `commit` da imagem que está de
+pé (V2-F01-E08). Os dois valores são **argumentos de build** da imagem
+(`DC360_VERSAO`, que o job `imagens` lê de `node scripts/versao.mjs mostrar`, e
+`DC360_COMMIT`, o SHA de quem construiu); o `Dockerfile` e o `Dockerfile.console` os
+gravam como variáveis de ambiente e `apps/api/src/versao-do-build.ts` os repete,
+validando o formato (a rota é pública). Sem os argumentos a imagem constrói e diz
+`desconhecida` / `desconhecido`; fora de uma imagem (`npm run dev`, os testes) também.
+Hoje o `fly deploy` não passa os argumentos sozinho: a receita do deploy manual e o
+rollback de cada frente (Fly, Vercel, EAS e banco) estão em
+`docs/runbooks/rollback.md`, ainda **não ensaiado** (o ensaio é da E16).
 
 ## O que falta, e por quê
 

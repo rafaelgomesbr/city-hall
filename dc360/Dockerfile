@@ -1,16 +1,30 @@
 # =====================================================================
 # Imagem da API.
 #
-# O QUE PROVA ESTA IMAGEM: nada que esteja no repositório. A integração
-# contínua NÃO constrói a imagem (o `verificar.yml` não tem `docker build`): o
-# job `implantavel` sobe a API direto no Node, contra um Postgres 16 real, e é
-# isso que prova que o produto sobe, não a imagem. A partida contra Postgres
-# real também foi provada À MÃO, contra um PostgreSQL 18 nativo, sem contêiner.
-# Esta é a imagem de produção: `fly.toml` (`[build] dockerfile`) manda o
-# `fly deploy` construí-la no construtor do Fly, e foi assim que o servidor
-# em `defesa-civil.fly.dev` (o `eas.json` aponta para ele) subiu. Fora do Fly
-# só `docker build` a constrói, e nenhum log de construção está arquivado
-# aqui. O CI que constrói a imagem é a V2-F01-E08.
+# O QUE PROVA ESTA IMAGEM: o job `imagens` do `verificar.yml` (V2-F01-E08)
+# constrói esta imagem em todo pull request, com `docker build` (a base é fixada
+# por digest, ver abaixo), e a exercita contra um Postgres 17 de serviço, com
+# `NODE_ENV=development`: aplica as migrações a partir da própria imagem, sobe
+# a API, confere `/saude` 200 com `versao` e `commit` iguais aos do build,
+# confere que o Chromium roda (`chromium --version`) e que o processo não é root.
+# O job `implantavel` continua provando a partida no Node puro. Esta é a imagem
+# de produção: `fly.toml` (`[build] dockerfile`) manda o `fly deploy` construí-la
+# no construtor do Fly, e foi assim que o servidor em `defesa-civil.fly.dev` (o
+# `eas.json` aponta para ele) subiu. O que o CI NÃO faz com ela: varrer
+# vulnerabilidade (V2-F01-E20), gerar SBOM (E19) e promovê-la (E12).
+#
+# VERSÃO E COMMIT: `DC360_VERSAO` e `DC360_COMMIT` são argumentos de build que
+# viram variáveis de ambiente da imagem e saem em `/saude`. Sem eles a imagem
+# constrói e diz `desconhecida`. Quem constrói passa:
+#   docker build \
+#     --build-arg DC360_VERSAO="$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')" \
+#     --build-arg DC360_COMMIT="$(git rev-parse HEAD)" .
+# (no Fly: `fly deploy --build-arg DC360_VERSAO=... --build-arg DC360_COMMIT=...`;
+# receita e rollback em docs/runbooks/rollback.md).
+#
+# BASE POR DIGEST: `node:22-bookworm-slim@sha256:...` não muda debaixo de nós. O
+# digest é o do índice multiplataforma de 2026-10-24. Quem sobe a base é o
+# Dependabot (frente docker de /dc360, em PR), que troca tag e digest juntos.
 #
 # Quatro escolhas que valem explicação:
 #
@@ -38,7 +52,7 @@
 #    imagem (`COPY db/provedores`). Sem ele, a API não conecta: a conexão
 #    passou a ser verificada, e verificar sem âncora é não conectar.
 # =====================================================================
-FROM node:22-bookworm-slim AS base
+FROM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS base
 ENV NODE_ENV=production
 # Nenhuma etapa baixa navegador: o Chromium da imagem final é o do Debian,
 # instalado uma vez na etapa `runtime`.
@@ -96,6 +110,14 @@ COPY db/migrations db/migrations
 COPY db/provedores db/provedores
 COPY --from=construcao /app/apps/api/dist apps/api/dist
 COPY --from=construcao /app/apps/api/package.json apps/api/
+
+# O carimbo do build, DEPOIS de tudo o que é caro: mudar o commit invalida só
+# estas linhas, e não a instalação de dependências nem a compilação. `/saude`
+# lê as duas (apps/api/src/versao-do-build.ts).
+ARG DC360_VERSAO=desconhecida
+ARG DC360_COMMIT=desconhecido
+ENV DC360_VERSAO=$DC360_VERSAO \
+    DC360_COMMIT=$DC360_COMMIT
 
 # Processo sem privilégio: o usuário `node` já existe na imagem base.
 USER node

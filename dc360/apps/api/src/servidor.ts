@@ -9,6 +9,7 @@ import {
 } from "./guarda-de-codigos-de-erro.js";
 import type { ZodError } from "zod";
 import type { Config } from "./config.js";
+import { versaoDoBuild } from "./versao-do-build.js";
 import type { Banco } from "./banco/tipos.js";
 import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
@@ -710,7 +711,12 @@ export async function construirServidor(
    * que responde aqui já nasceu com o esquema em dia. O 503 sai só quando a
    * consulta ao banco falha. Junto vão `eliminacoes` e `push`, sem nome de município nem de pessoa (contagens, e
    * o instante da última rodada do push).
+   *
+   * `versao` e `commit` dizem qual imagem está de pé (carimbo do build, ver
+   * `versao-do-build.ts`): é com eles que o rollback confere, de fora, que a
+   * versão certa voltou. Não são sensíveis, e valem `desconhecida` fora de imagem.
    */
+  const build = versaoDoBuild();
   app.get("/saude", async (req, resposta) => {
     let ultimaMigracao: string | null;
     try {
@@ -776,7 +782,10 @@ export async function construirServidor(
         })
       : null;
 
-    return { status: "ok", banco: "ok", ultimaMigracao, eliminacoes, push: push_ };
+    return {
+      status: "ok", banco: "ok", ultimaMigracao, eliminacoes, push: push_,
+      versao: build.versao, commit: build.commit,
+    };
   });
 
   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });
