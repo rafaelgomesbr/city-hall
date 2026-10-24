@@ -206,7 +206,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `scripts/sast-baseline.test.mjs` é novo, com 10 (a comparação com a baseline
     triada e a linha de comando).
   */
-  "V2-F01-E05": 42, // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam)
+  "V2-F01-E05": 44, // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
   "V2-F01-E05-baseline": 10,
   /*
     V2-F01-E06: `scripts/dependabot.test.mjs` e novo, com 12 casos. Prende a

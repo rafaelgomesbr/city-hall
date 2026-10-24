@@ -19,6 +19,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -460,6 +461,77 @@ echo "conteudo adulterado" > "$saida"
   } finally {
     rmSync(pasta, { recursive: true, force: true });
   }
+});
+
+/**
+ * Roda `varrer-imagem.sh instalar` de verdade, com um curl de mentira que entrega
+ * um tarball sintético (contém um `trivy` de mentira) e o SHA-256 desse tarball no
+ * lugar do fixado. Tudo o mais é o script real. `adulterar` troca o texto do script
+ * antes de rodar (usado para provar que a conferência morde).
+ */
+function instalarComTarballDeMentira(adulterar = (t) => t) {
+  const pasta = mkdtempSync(join(tmpdir(), "dc360-instalar-ok-"));
+  try {
+    const fonte = join(pasta, "fonte");
+    mkdirSync(fonte);
+    writeFileSync(join(fonte, "trivy"), '#!/usr/bin/env bash\necho "Version: 0.75.0"\n');
+    chmodSync(join(fonte, "trivy"), 0o755);
+    const tarball = join(pasta, "trivy.tar.gz");
+    const t = spawnSync("tar", ["-czf", tarball, "-C", fonte, "trivy"], { encoding: "utf8" });
+    assert.equal(t.status, 0, `tar de apoio falhou: ${t.stderr}`);
+    const sha = createHash("sha256").update(readFileSync(tarball)).digest("hex");
+
+    const bin = join(pasta, "bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "curl"), `#!/usr/bin/env bash
+saida=""
+prev=""
+for a in "$@"; do
+  if [ "$prev" = "--output" ]; then saida="$a"; fi
+  prev="$a"
+done
+cp "${tarball}" "$saida"
+`);
+    chmodSync(join(bin, "curl"), 0o755);
+    if (process.platform === "darwin") {
+      // O `sha256sum` do macOS não tem `--strict` (o do runner Linux, que é onde o script roda, tem).
+      writeFileSync(join(bin, "sha256sum"), '#!/usr/bin/env bash\nexec shasum -a 256 --check\n');
+      chmodSync(join(bin, "sha256sum"), 0o755);
+    }
+
+    const original = lerTexto(SCRIPT_TRIVY);
+    const comSha = original.replace(/^TRIVY_SHA256="[0-9a-f]{64}"$/m, `TRIVY_SHA256="${sha}"`);
+    assert.notEqual(comSha, original, "a linha do TRIVY_SHA256 tem de existir para o teste trocá-la");
+    const pastaScript = join(pasta, "x", "y");
+    mkdirSync(pastaScript, { recursive: true });
+    const script = join(pastaScript, "varrer-imagem.sh");
+    writeFileSync(script, adulterar(comSha));
+
+    const destino = join(pasta, "destino");
+    const r = spawnSync("bash", [script, "instalar", destino], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
+    return { status: r.status, stdout: r.stdout, stderr: r.stderr, destino };
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+}
+
+test("varrer-imagem.sh instalar: o stdout é UMA linha, só o caminho do binário (o workflow o grava em $GITHUB_ENV)", { skip: WINDOWS && "script em bash" }, () => {
+  const r = instalarComTarballDeMentira();
+  assert.equal(r.status, 0, `instalar deveria dar certo: ${r.stderr}`);
+  const linhas = r.stdout.split("\n").filter((l) => l !== "");
+  assert.equal(linhas.length, 1, `stdout com mais de uma linha (o GitHub recusa como "Invalid format"): ${JSON.stringify(r.stdout)}`);
+  assert.equal(linhas[0], join(r.destino, "trivy"), "a única linha é o caminho do binário");
+  assert.match(r.stderr, /OK/, "a confirmação do checksum e a versão continuam visíveis, no stderr");
+});
+
+test("varrer-imagem.sh instalar: a trava do stdout morde (sem o redirecionamento da conferência, o teste reprova)", { skip: WINDOWS && "script em bash" }, () => {
+  const sem = instalarComTarballDeMentira((t) => t.replace(/(--check(?: --strict)?) >&2/g, "$1"));
+  assert.equal(sem.status, 0);
+  const linhas = sem.stdout.split("\n").filter((l) => l !== "");
+  assert.ok(linhas.length > 1, `o script adulterado tinha de poluir o stdout, e saiu: ${JSON.stringify(sem.stdout)}`);
 });
 
 /** O texto de um job de um workflow (sem as linhas de comentário), do `  <id>:` ao próximo job. */
