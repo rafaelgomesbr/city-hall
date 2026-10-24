@@ -1,0 +1,23 @@
+Comandos de verdade, de dentro de dc360/db, em 2026-10-24. A senha da URL e fictícia.
+
+$ DATABASE_URL=postgres://dc360_setup.<identidade de PROD>:***@127.0.0.1:1/postgres npx tsx src/cli.ts --semear
+--semear recusou a DATABASE_URL: ela traz a identidade de um banco de PRODUÇÃO (ou do banco declarado em IDENTIDADE_DO_BANCO). A semente de desenvolvimento dá a toda conta uma senha conhecida, e nunca entra num banco de verdade.
+saida=1
+(porta 1 da própria máquina: não houve tentativa de conexão, a recusa veio antes; sem NODE_ENV=production, que era a única guarda de antes)
+
+$ AMBIENTE_DC360=hml npx tsx src/cli.ts --semear
+--semear não é permitido com AMBIENTE_DC360=hml: a semente de desenvolvimento dá a toda conta uma senha conhecida. Em homologação use a semente própria, que sorteia a senha de cada conta: `cd apps/api && npx tsx src/semear-homologacao.ts`.
+saida=1
+
+$ (sem DATABASE_URL, banco efêmero) npx tsx src/cli.ts --semear
+Aplicadas: 001_base.sql ... 051_link_de_recuperacao_morre_com_a_credencial.sql
+Semeado com os dois municípios fictícios.
+
+$ npx tsx src/semear-homologacao.ts (de dc360/apps/api)
+sem AMBIENTE_DC360=hml:
+A semente de homologação só roda com AMBIENTE_DC360=hml (veio vazio). Ela troca a senha de todas as contas, e em qualquer outro ambiente isso seria destruir o acesso de quem usa o sistema, ou plantar contas de teste.
+saida=1
+
+com AMBIENTE_DC360=hml mas a URL com a identidade de PROD:
+A DATABASE_URL traz a identidade de um banco de PRODUÇÃO. A semente de homologação troca a senha de todas as contas: aqui, seria derrubar o acesso dos municípios. Recusando.
+saida=1

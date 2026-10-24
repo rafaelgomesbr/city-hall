@@ -1,0 +1,61 @@
+# =====================================================================
+# Implantação do CONSOLE DO FORNECEDOR em HOMOLOGAÇÃO (HML) no Fly
+# (V2-F01-E11).
+#
+# Aplicativo PRÓPRIO, separado do app da API de HML e do console de PROD, pela
+# mesma razão do `fly.console.toml` (ADR 0008): outro processo, outros
+# segredos, outra conexão. O console de HML só alcança o banco de HML.
+#
+# O deploy roda daqui, SEMPRE com `-c`, senão o `fly` pega o `fly.toml` de PROD:
+#   cd dc360 && fly deploy -c fly.console.hml.toml
+#
+# ESTE ARQUIVO NASCEU ANTES DO AMBIENTE EXISTIR (CP-05). CONSOLE_IDENTIDADE_DO_BANCO
+# é um MARCADOR que não consta em nenhuma URL de banco: a partida RECUSA subir
+# até alguém trocá-lo pela referência do projeto de banco de HML. Fecha para o
+# lado seguro (um console de HML nunca sobe com a credencial de PROD e nunca
+# mostra o número de todos os municípios na tela de homologação). A troca é feita
+# junto com `fly.hml.toml` e `scripts/ambientes.json`, no mesmo commit.
+#
+# SEGREDOS de HML, por arquivo (`fly secrets import -a defesa-civil-console-hml`,
+# NUNCA `fly secrets set` com aspas; a razão está no `fly.console.toml`), todos
+# DISTINTOS dos de PROD:
+#   CONSOLE_DATABASE_URL, CONSOLE_JWT_SEGREDO, CONSOLE_SEGUNDO_FATOR_CHAVE
+#   (e CONSOLE_OPERADORES só no primeiro deploy)
+# =====================================================================
+
+app = "defesa-civil-console-hml"
+primary_region = "gru"
+
+kill_timeout = 15
+
+[build]
+  dockerfile = "Dockerfile.console"
+
+# Só o que NÃO é segredo.
+[env]
+  NODE_ENV = "production"
+  AMBIENTE_DC360 = "hml"
+  CONSOLE_IDENTIDADE_DO_BANCO = "a-definir-no-cp-05"
+  CONSOLE_HOST = "0.0.0.0"
+  CONSOLE_PORT = "3344"
+
+[http_service]
+  internal_port = 3344
+  force_https = true
+  # HML pode dormir (ver o `fly.hml.toml`). O console de PROD não.
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  # `/saude` do console só diz que o PROCESSO está de pé (ver o `fly.console.toml`).
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/saude"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

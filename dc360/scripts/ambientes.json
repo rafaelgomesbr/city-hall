@@ -19,12 +19,12 @@
       "dominio": null
     },
     "hml": {
-      "descricao": "Homologacao: dado sintetico, marca d'agua ligada, e-mail so a dominios de teste. Nasce na V2-F01-E11 (CP-05).",
+      "descricao": "Homologacao: dado sintetico, marca d'agua ligada, e-mail so a dominios de teste. Os dois fly*.toml nasceram na V2-F01-E11; o ambiente de verdade depende do CP-05.",
       "arquivos": { "api": "fly.hml.toml", "console": "fly.console.hml.toml" },
       "appsNoFly": { "api": null, "console": null },
       "identidadeDoBanco": null,
       "dominio": null,
-      "pendente": "Os dois fly*.toml, os apps do Fly, o projeto de banco (identidade) e o painel (dominio) sao da V2-F01-E11 e da V2-F01-E10. Ao nascerem, preencher aqui."
+      "pendente": "Os dois fly*.toml existem (V2-F01-E11), mas IDENTIDADE_DO_BANCO e DOMINIO_DO_AMBIENTE neles sao MARCADORES (a-definir-no-cp-05 e .invalid) que fazem a partida recusar. Quando o CP-05 criar os apps do Fly e o projeto de banco, e a V2-F01-E10 o painel, trocar os marcadores nos dois toml E preencher aqui identidadeDoBanco, dominio e appsNoFly, no mesmo commit."
     },
     "prod": {
       "descricao": "Producao: os municipios de verdade.",
