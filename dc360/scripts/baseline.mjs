@@ -225,6 +225,17 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     nome de tag, e o comando com código de saída e a árvore real).
   */
   "V2-F01-E07": 32,
+  /*
+    V2-F01-E02: `scripts/conferir-workflows.test.mjs` é novo, com 15 casos. Aplica
+    as regras de CI a TODOS os workflows de `.github/workflows/` (permissions de
+    topo sem escrita, `timeout-minutes` em todo job, `uses:` por SHA de 40
+    caracteres com a versão em comentário, nenhum `pull_request_target`, runner
+    com versão) e prende os nomes dos quatro jobs do ruleset, o job da
+    demonstração em arquivo próprio com filtro de caminho, `cancel-in-progress`
+    só em pull_request e o cache do Playwright. Os casos negativos estragam um
+    workflow sintético de cada jeito e provam que a regra morde.
+  */
+  "V2-F01-E02": 15,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -239,6 +250,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E05-baseline": "sast-baseline.test.mjs",
   "V2-F01-E06": "dependabot.test.mjs",
   "V2-F01-E07": "versao.test.mjs",
+  "V2-F01-E02": "conferir-workflows.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

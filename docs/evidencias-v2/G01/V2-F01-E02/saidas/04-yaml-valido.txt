@@ -1,0 +1,13 @@
+../../../../../.github/workflows/verificar.yml: gatilhos=push,pull_request,workflow_dispatch,schedule
+  produto: runs-on=ubuntu-24.04 timeout=30
+  dependencias: runs-on=ubuntu-24.04 timeout=15
+  roadmap: runs-on=ubuntu-24.04 timeout=10
+  navegador: runs-on=ubuntu-24.04 timeout=35
+  aplicativo: runs-on=ubuntu-24.04 timeout=15
+  windows: runs-on=windows-latest timeout=40
+  plataformas: runs-on=${{ matrix.sistema }} timeout=45
+  implantavel: runs-on=ubuntu-24.04 timeout=10
+  baseline: runs-on=ubuntu-24.04 timeout=120
+  restore: runs-on=ubuntu-24.04 timeout=40
+../../../../../.github/workflows/demonstracao.yml: gatilhos=push,pull_request,workflow_dispatch
+  demonstracao: runs-on=ubuntu-24.04 timeout=10

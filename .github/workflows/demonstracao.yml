@@ -1,0 +1,142 @@
+# Pacote da demonstração (o protótipo `mockup/`), V2-F01-E02.
+#
+# Este job morava no `verificar.yml` e rodava em todo push, mesmo quando só o
+# produto (`dc360/`) mudava. Como o protótipo é descartável e só muda de vez em
+# quando, ele ganhou arquivo próprio e um filtro de caminho: só roda quando muda
+# o que entra no pacote, o empacotador e os conferidores, ou este arquivo.
+#
+# O que o filtro cobre (a lista de `scripts/empacotar-demo.ps1`):
+#   - `mockup/**`                        o protótipo inteiro;
+#   - `scripts/**`                       o empacotador e os dois conferidores;
+#   - `docs/APRESENTACAO.md`, `docs/ROTEIRO_DEMO.md`, `docs/ROTEIRO_VIDEO.md`,
+#     que vão dentro do zip;
+#   - `dc360/package-lock.json`          o Playwright que o roteiro usa vem de lá.
+#
+# Não é check obrigatório do ruleset da `master` (são os quatro jobs do
+# `verificar.yml`): por isso o filtro de caminho é seguro, já que um check
+# obrigatório que não roda deixaria o PR esperando para sempre.
+#
+# Regras de CI (conferidas por `dc360/scripts/conferir-workflows.test.mjs`):
+# `permissions` mínimas, `timeout-minutes` em todo job, runner com versão, toda
+# ação fixada por SHA completo com a versão em comentário, nada de
+# `pull_request_target`.
+
+name: Demonstração
+
+on:
+  push:
+    branches: [main, master, "v2/**"]
+    paths:
+      - "mockup/**"
+      - "scripts/**"
+      - "docs/APRESENTACAO.md"
+      - "docs/ROTEIRO_DEMO.md"
+      - "docs/ROTEIRO_VIDEO.md"
+      - "dc360/package-lock.json"
+      - ".github/workflows/demonstracao.yml"
+  pull_request:
+    paths:
+      - "mockup/**"
+      - "scripts/**"
+      - "docs/APRESENTACAO.md"
+      - "docs/ROTEIRO_DEMO.md"
+      - "docs/ROTEIRO_VIDEO.md"
+      - "dc360/package-lock.json"
+      - ".github/workflows/demonstracao.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Em pull_request, uma execução nova substitui a antiga do mesmo ramo. Em push cada
+# SHA tem a sua, e nenhuma é cancelada: o gatekeeper lê o run do SHA candidato.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  demonstracao:
+    name: Pacote da demonstração
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/package-lock.json
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      - name: Instalar dependências
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
+        working-directory: dc360
+
+      # Os navegadores do Playwright ficam em `~/.cache/ms-playwright`. A chave
+      # inclui o lockfile (a versão do Playwright decide a revisão do navegador),
+      # então trocar a versão invalida o cache sozinho. No acerto só as
+      # bibliotecas de sistema do runner são instaladas (elas não moram no cache).
+      - name: Cache dos navegadores do Playwright
+        id: cache_playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-firefox-${{ hashFiles('dc360/package-lock.json') }}
+
+      - name: Instalar navegadores
+        run: |
+          if [ "${{ steps.cache_playwright.outputs.cache-hit }}" = "true" ]; then
+            echo "navegadores no cache; instalando só as bibliotecas de sistema"
+            npx playwright install-deps chromium firefox
+          else
+            npx playwright install --with-deps chromium firefox
+          fi 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+        working-directory: dc360
+
+      # O empacotador é PowerShell, que existe no runner do Ubuntu como `pwsh`.
+      - name: Montar o pacote
+        shell: pwsh
+        run: ./scripts/empacotar-demo.ps1 *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/artefatos/03-empacotar.txt"
+
+      # O SHA-256 do zip vai no artefato: o validador confere que o pacote
+      # extraído abaixo é o que foi montado.
+      - name: Extrair como o destinatário faz
+        id: extrair
+        run: |
+          mkdir -p /tmp/pacote
+          unzip -q dist/DefesaCivil360-demonstracao.zip -d /tmp/pacote
+          sha256sum dist/DefesaCivil360-demonstracao.zip | tee "$RUNNER_TEMP/artefatos/04-sha256-do-pacote.txt"
+
+      - name: Conferir o pacote extraído
+        run: node scripts/conferir-pacote.mjs /tmp/pacote 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conferir-pacote.txt"
+
+      - name: Roteiro de dez minutos, Chromium
+        run: node scripts/conferir-roteiro.mjs /tmp/pacote chromium 2>&1 | tee "$RUNNER_TEMP/artefatos/06-roteiro-chromium.txt"
+
+      # Roda mesmo se o Chromium falhar, para o run trazer os dois motores.
+      - name: Roteiro de dez minutos, Firefox
+        if: ${{ !cancelled() && steps.extrair.outcome == 'success' }}
+        run: node scripts/conferir-roteiro.mjs /tmp/pacote firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/07-roteiro-firefox.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: demonstracao-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error

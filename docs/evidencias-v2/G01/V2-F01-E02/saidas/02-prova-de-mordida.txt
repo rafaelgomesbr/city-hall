@@ -1,0 +1,9 @@
+reprovou    (saída 1, 1 caso(s) vermelho(s)): uses por tag (checkout@v4)
+reprovou    (saída 1, 1 caso(s) vermelho(s)): job sem timeout-minutes (navegador)
+reprovou    (saída 1, 1 caso(s) vermelho(s)): sem permissions no topo
+reprovou    (saída 1, 1 caso(s) vermelho(s)): com pull_request_target
+reprovou    (saída 1, 1 caso(s) vermelho(s)): ubuntu-latest no job produto
+NÃO REPROVOU (saída 0, 0 caso(s) vermelho(s)): sem o auditar (node scripts/auditar.mjs)
+NÃO REPROVOU (saída 0, 0 caso(s) vermelho(s)): sem o test:campo
+NÃO REPROVOU (saída 0, 0 caso(s) vermelho(s)): sem o test:scripts
+restaurado: saída 0

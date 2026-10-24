@@ -1,0 +1,23 @@
+✔ a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia) (0.486166ms)
+✔ todo workflow: permissions mínimas, timeout, ações por SHA, runner com versão, sem pull_request_target (3.644584ms)
+✔ nenhum workflow declara escrita em permissions, nem de job (0.386208ms)
+✔ os nomes de exibição dos jobs do verificar.yml não mudaram (são contrato com o ruleset da master) (0.474167ms)
+✔ o job da demonstração mora em demonstracao.yml, com filtro de caminho, e saiu do verificar.yml (0.492875ms)
+✔ cancel-in-progress só em pull_request (a execução da master e a de um SHA candidato nunca são canceladas) (0.23875ms)
+✔ os navegadores do Playwright vêm de cache nos workflows que os instalam (0.241625ms)
+✔ o job aplicativo guarda o cache de npm dos DOIS lockfiles (0.405167ms)
+✔ negativo: o workflow sintético correto passa (a base dos outros casos) (0.113375ms)
+✔ negativo: uses por tag móvel reprova (0.185584ms)
+✔ negativo: SHA sem a versão em comentário reprova (0.061083ms)
+✔ negativo: job sem timeout-minutes reprova (0.065709ms)
+✔ negativo: workflow sem permissions reprova, e com escrita no topo também (0.078583ms)
+✔ negativo: pull_request_target reprova, mas citado só em comentário não (0.057833ms)
+✔ negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem runs-on também (0.072042ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 70.571958
