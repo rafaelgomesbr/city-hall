@@ -249,6 +249,17 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `npm audit` que decide e os casos negativos dela.
   */
   "V2-F01-E02": 24,
+  /*
+    V2-F01-E10: `scripts/conferir-dominio.test.mjs` é novo, com 20 casos (os
+    julgamentos puros de TLS, redirecionamento, HSTS, cabeçalhos do painel e
+    preflight de CORS aceito e negado, a orquestração com a rede substituída, o
+    `pedir` contra um servidor HTTP local e o comando com código de saída 2).
+    `scripts/vercel-json.test.mjs` é novo, com 9 (o `vercel.json` real sem URL
+    de API além da exceção declarada, os cabeçalhos de segurança, e os casos
+    sintéticos que provam que a regra morde).
+  */
+  "V2-F01-E10": 20,
+  "V2-F01-E10-vercel-json": 9,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -265,6 +276,8 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E07": "versao.test.mjs",
   "V2-F01-E01": "ruleset-master.test.mjs",
   "V2-F01-E02": "conferir-workflows.test.mjs",
+  "V2-F01-E10": "conferir-dominio.test.mjs",
+  "V2-F01-E10-vercel-json": "vercel-json.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

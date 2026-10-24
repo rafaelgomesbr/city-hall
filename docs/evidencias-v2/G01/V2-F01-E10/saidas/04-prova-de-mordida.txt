@@ -1,0 +1,88 @@
+✖ o vercel.json real não tem URL de API além da exceção declarada (VITE_API_URL literal reprova) (1.121584ms)
+✖ estado de hoje: o literal de PROD ainda está em build.env e a exceção o cobre exatamente (0.642667ms)
+✖ o vercel.json real nunca carrega a URL de uma API de homologação nem de outro ambiente (0.173833ms)
+✔ o vercel.json real traz os cabeçalhos de segurança do painel (0.180417ms)
+✔ o vercel.json real mantém o que o build do painel exige (0.111708ms)
+✔ morde: sem exceção, qualquer VITE_API_URL literal em build.env reprova, inclusive o de PROD de hoje (0.075709ms)
+✔ morde: com a exceção ativa, a URL de HML ou uma URL nova de PROD reprovam (0.072375ms)
+✔ morde: VITE_API_URL em env de topo (runtime) reprova mesmo com a exceção ativa (0.052791ms)
+✔ morde: cabeçalho de segurança removido ou enfraquecido reprova (0.249625ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 6
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44.587833
+
+✖ failing tests:
+
+test at scripts/vercel-json.test.mjs:94:1
+✖ o vercel.json real não tem URL de API além da exceção declarada (VITE_API_URL literal reprova) (1.121584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'VITE_API_URL literal em build.env ("https://api-hml.exemplo.com.br"): a URL de cada ambiente vem da variável do projeto Vercel, nunca do vercel.json'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file://<repo>/dc360/scripts/vercel-json.test.mjs:95:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'VITE_API_URL literal em build.env ("https://api-hml.exemplo.com.br"): a URL de cada ambiente vem da variável do projeto Vercel, nunca do vercel.json' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/vercel-json.test.mjs:98:1
+✖ estado de hoje: o literal de PROD ainda está em build.env e a exceção o cobre exatamente (0.642667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      {
+        onde: 'build.env',
+  +     valor: 'https://api-hml.exemplo.com.br'
+  -     valor: 'https://defesa-civil.fly.dev'
+      }
+    ]
+  
+      at TestContext.<anonymous> (file://<repo>/dc360/scripts/vercel-json.test.mjs:102:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { onde: 'build.env', valor: 'https://api-hml.exemplo.com.br' } ],
+    expected: [ { onde: 'build.env', valor: 'https://defesa-civil.fly.dev' } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/vercel-json.test.mjs:105:1
+✖ o vercel.json real nunca carrega a URL de uma API de homologação nem de outro ambiente (0.173833ms)
+  AssertionError [ERR_ASSERTION]: URL inesperada no vercel.json: https://api-hml.exemplo.com.br
+      at TestContext.<anonymous> (file://<repo>/dc360/scripts/vercel-json.test.mjs:109:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

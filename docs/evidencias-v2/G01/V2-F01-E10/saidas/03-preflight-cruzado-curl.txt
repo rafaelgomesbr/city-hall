@@ -1,0 +1,24 @@
+Preflight CORS contra a API de PROD (https://defesa-civil.fly.dev/saude), colhido em 2026-10-24 com curl.
+HML ainda não existe (E11), então o cruzamento "origem de HML contra a API de PROD" é provado com o
+endereço que o painel de HML terá no provedor (dc360-painel-hml.vercel.app, hipotético): qualquer origem
+fora de ORIGENS_PERMITIDAS recebe o mesmo tratamento.
+Comando: curl -s -i -X OPTIONS -H "Origin: <origem>" -H "Access-Control-Request-Method: GET" https://defesa-civil.fly.dev/saude
+
+### Origin: https://dc360-painel-web.vercel.app   (o painel de PROD: ACEITA, origem exata)
+HTTP/2 204
+vary: Origin
+access-control-allow-origin: https://dc360-painel-web.vercel.app
+access-control-allow-credentials: true
+access-control-allow-methods: GET, POST, PUT, PATCH, DELETE
+access-control-allow-headers: content-type, authorization, accept
+
+### Origin: https://dc360-painel-hml.vercel.app   (origem de outro ambiente: NEGADA, sem access-control-allow-origin)
+HTTP/2 204
+vary: Origin
+access-control-allow-credentials: true
+access-control-allow-methods: GET, POST, PUT, PATCH, DELETE
+access-control-allow-headers: content-type, authorization, accept
+
+Leitura: sem access-control-allow-origin o navegador reprova o preflight e não envia a requisição de
+verdade. O access-control-allow-credentials que sobra na resposta negada é inofensivo sem a origem
+permitida; fica registrado como observação para a E09 (não é defeito alcançável).
