@@ -40,7 +40,8 @@ function envDoToml(arquivo: string): Record<string, string> {
 const HML = envDoToml("fly.console.hml.toml");
 const PROD = envDoToml("fly.console.toml");
 
-const URL_DE_HML = "postgres://dc360_console_login.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
+const URL_DE_HML =
+  "postgres://dc360_console_login.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
 const URL_DE_PROD = `postgres://dc360_console_login.${PROD["CONSOLE_IDENTIDADE_DO_BANCO"]}:senha-de-prod@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full`;
 
 const SEGREDOS_DE_HML = {
@@ -66,7 +67,12 @@ describe("o fly.console.hml.toml configura um console de HML que parte", () => {
   });
 
   it("não carrega segredo nenhum nem a identidade de PROD", () => {
-    for (const segredo of ["CONSOLE_DATABASE_URL", "CONSOLE_JWT_SEGREDO", "CONSOLE_SEGUNDO_FATOR_CHAVE", "CONSOLE_OPERADORES"]) {
+    for (const segredo of [
+      "CONSOLE_DATABASE_URL",
+      "CONSOLE_JWT_SEGREDO",
+      "CONSOLE_SEGUNDO_FATOR_CHAVE",
+      "CONSOLE_OPERADORES",
+    ]) {
       expect(HML[segredo], segredo).toBeUndefined();
     }
     expect(HML["CONSOLE_IDENTIDADE_DO_BANCO"]).not.toBe(PROD["CONSOLE_IDENTIDADE_DO_BANCO"]);

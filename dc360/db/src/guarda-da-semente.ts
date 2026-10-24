@@ -74,19 +74,25 @@ function hostEhDescartavel(hostname: string): boolean {
  */
 export function motivoParaNaoSemear({ url, env }: EntradaDaGuarda): string | null {
   if (env["NODE_ENV"] === "production") {
-    return "--semear não é permitido com NODE_ENV=production. A semente de desenvolvimento "
-      + "traz uma senha conhecida (está no repositório).";
+    return (
+      "--semear não é permitido com NODE_ENV=production. A semente de desenvolvimento " +
+      "traz uma senha conhecida (está no repositório)."
+    );
   }
 
   const ambiente = env["AMBIENTE_DC360"]?.trim();
   if (ambiente === "prod") {
-    return "--semear não é permitido com AMBIENTE_DC360=prod. A semente de desenvolvimento "
-      + "traz uma senha conhecida e dados fictícios, e em produção seria uma porta aberta.";
+    return (
+      "--semear não é permitido com AMBIENTE_DC360=prod. A semente de desenvolvimento " +
+      "traz uma senha conhecida e dados fictícios, e em produção seria uma porta aberta."
+    );
   }
   if (ambiente === "hml") {
-    return "--semear não é permitido com AMBIENTE_DC360=hml: a semente de desenvolvimento dá a "
-      + "toda conta uma senha conhecida. Em homologação use a semente própria, que sorteia a "
-      + "senha de cada conta: `cd apps/api && npx tsx src/semear-homologacao.ts`.";
+    return (
+      "--semear não é permitido com AMBIENTE_DC360=hml: a semente de desenvolvimento dá a " +
+      "toda conta uma senha conhecida. Em homologação use a semente própria, que sorteia a " +
+      "senha de cada conta: `cd apps/api && npx tsx src/semear-homologacao.ts`."
+    );
   }
 
   const textoDaUrl = url?.trim();
@@ -96,8 +102,10 @@ export function motivoParaNaoSemear({ url, env }: EntradaDaGuarda): string | nul
   try {
     analisada = new URL(textoDaUrl);
   } catch {
-    return "--semear recusou a DATABASE_URL porque ela não é uma URL que dê para analisar, e sem "
-      + "analisá-la não há como saber se o banco é descartável.";
+    return (
+      "--semear recusou a DATABASE_URL porque ela não é uma URL que dê para analisar, e sem " +
+      "analisá-la não há como saber se o banco é descartável."
+    );
   }
 
   // Além das identidades de PROD conhecidas, a que o próprio processo declara
@@ -111,16 +119,20 @@ export function motivoParaNaoSemear({ url, env }: EntradaDaGuarda): string | nul
     .map((i) => i.toLowerCase());
   const segmentos = segmentosDaUrl(analisada);
   if (identidadesProtegidas.some((i) => segmentos.includes(i))) {
-    return "--semear recusou a DATABASE_URL: ela traz a identidade de um banco de PRODUÇÃO "
-      + "(ou do banco declarado em IDENTIDADE_DO_BANCO). A semente de desenvolvimento dá "
-      + "a toda conta uma senha conhecida, e nunca entra num banco de verdade.";
+    return (
+      "--semear recusou a DATABASE_URL: ela traz a identidade de um banco de PRODUÇÃO " +
+      "(ou do banco declarado em IDENTIDADE_DO_BANCO). A semente de desenvolvimento dá " +
+      "a toda conta uma senha conhecida, e nunca entra num banco de verdade."
+    );
   }
 
   if (!hostEhDescartavel(analisada.hostname)) {
-    return "--semear só semeia banco descartável: o host da DATABASE_URL precisa ser a própria "
-      + "máquina (localhost, 127.0.0.1) ou um serviço do Docker. Banco hospedado, de HML ou de "
-      + "qualquer outro ambiente, recusa. Em homologação use a semente própria "
-      + "(`cd apps/api && npx tsx src/semear-homologacao.ts`).";
+    return (
+      "--semear só semeia banco descartável: o host da DATABASE_URL precisa ser a própria " +
+      "máquina (localhost, 127.0.0.1) ou um serviço do Docker. Banco hospedado, de HML ou de " +
+      "qualquer outro ambiente, recusa. Em homologação use a semente própria " +
+      "(`cd apps/api && npx tsx src/semear-homologacao.ts`)."
+    );
   }
   return null;
 }

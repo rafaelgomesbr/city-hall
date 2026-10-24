@@ -21,7 +21,8 @@ const RAIZ = join(RAIZ_DB, "..");
 const PROD = IDENTIDADES_DE_PROD[0]!;
 const URL_DE_PROD = `postgres://dc360_setup.${PROD}:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`;
 const URL_DE_PROD_NO_HOST = `postgres://postgres:senha-secreta@db.${PROD}.supabase.co:5432/postgres`;
-const URL_DE_HML = "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres";
+const URL_DE_HML =
+  "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres";
 const URL_LOCAL = "postgres://dc360_setup:senha-local@127.0.0.1:5432/dc360";
 
 describe("positivos: banco descartável semeia", () => {
@@ -33,7 +34,12 @@ describe("positivos: banco descartável semeia", () => {
 
   it("o Postgres local (loopback) e o serviço do compose (um rótulo, sem ponto)", () => {
     expect(motivoParaNaoSemear({ url: URL_LOCAL, env: {} })).toBeNull();
-    expect(motivoParaNaoSemear({ url: "postgres://u:p@localhost:5432/dc360", env: { AMBIENTE_DC360: "dev" } })).toBeNull();
+    expect(
+      motivoParaNaoSemear({
+        url: "postgres://u:p@localhost:5432/dc360",
+        env: { AMBIENTE_DC360: "dev" },
+      }),
+    ).toBeNull();
     expect(motivoParaNaoSemear({ url: "postgres://u:p@[::1]:5432/dc360", env: {} })).toBeNull();
     expect(motivoParaNaoSemear({ url: "postgres://u:p@banco:5432/dc360", env: {} })).toBeNull();
   });
@@ -55,12 +61,18 @@ describe("negativos: o que a guarda recusa", () => {
   });
 
   it("NODE_ENV=production recusa, com qualquer URL ou nenhuma", () => {
-    expect(motivoParaNaoSemear({ url: undefined, env: { NODE_ENV: "production" } })).toMatch(/NODE_ENV=production/);
-    expect(motivoParaNaoSemear({ url: URL_LOCAL, env: { NODE_ENV: "production" } })).toMatch(/NODE_ENV=production/);
+    expect(motivoParaNaoSemear({ url: undefined, env: { NODE_ENV: "production" } })).toMatch(
+      /NODE_ENV=production/,
+    );
+    expect(motivoParaNaoSemear({ url: URL_LOCAL, env: { NODE_ENV: "production" } })).toMatch(
+      /NODE_ENV=production/,
+    );
   });
 
   it("AMBIENTE_DC360=prod recusa mesmo apontando para a própria máquina", () => {
-    expect(motivoParaNaoSemear({ url: URL_LOCAL, env: { AMBIENTE_DC360: "prod" } })).toMatch(/AMBIENTE_DC360=prod/);
+    expect(motivoParaNaoSemear({ url: URL_LOCAL, env: { AMBIENTE_DC360: "prod" } })).toMatch(
+      /AMBIENTE_DC360=prod/,
+    );
   });
 
   it("AMBIENTE_DC360=hml recusa e manda usar a semente própria", () => {
@@ -76,11 +88,16 @@ describe("negativos: o que a guarda recusa", () => {
   });
 
   it("a identidade DECLARADA em IDENTIDADE_DO_BANCO também protege (outro projeto de PROD)", () => {
-    const url = "postgres://dc360_setup.refoutroprodxxx:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres";
-    expect(motivoParaNaoSemear({ url, env: { IDENTIDADE_DO_BANCO: "refoutroprodxxx" } })).toMatch(/PRODUÇÃO|identidade/);
+    const url =
+      "postgres://dc360_setup.refoutroprodxxx:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres";
+    expect(motivoParaNaoSemear({ url, env: { IDENTIDADE_DO_BANCO: "refoutroprodxxx" } })).toMatch(
+      /PRODUÇÃO|identidade/,
+    );
     // Também no loopback: o túnel para o banco de PROD aparece como 127.0.0.1.
     const tunel = "postgres://dc360_setup.refoutroprodxxx:senha@127.0.0.1:5432/postgres";
-    expect(motivoParaNaoSemear({ url: tunel, env: { IDENTIDADE_DO_BANCO: "refoutroprodxxx" } })).toMatch(/PRODUÇÃO|identidade/);
+    expect(
+      motivoParaNaoSemear({ url: tunel, env: { IDENTIDADE_DO_BANCO: "refoutroprodxxx" } }),
+    ).toMatch(/PRODUÇÃO|identidade/);
   });
 
   it("o túnel local para a PRODUÇÃO (127.0.0.1 com o usuário do projeto) recusa", () => {
@@ -93,11 +110,15 @@ describe("negativos: o que a guarda recusa", () => {
     expect(motivo).toMatch(/analisar/);
     expect(motivo).not.toContain("senha-secreta");
     // O que tem forma de URL mas não tem host também não passa por descartável.
-    expect(motivoParaNaoSemear({ url: "isto-nao-e-uma-url:senha-secreta", env: {} })).not.toBeNull();
+    expect(
+      motivoParaNaoSemear({ url: "isto-nao-e-uma-url:senha-secreta", env: {} }),
+    ).not.toBeNull();
   });
 
   it("host público que não é da máquina recusa", () => {
-    expect(motivoParaNaoSemear({ url: "postgres://u:p@banco.exemplo.com.br:5432/x", env: {} })).toMatch(/descartável/);
+    expect(
+      motivoParaNaoSemear({ url: "postgres://u:p@banco.exemplo.com.br:5432/x", env: {} }),
+    ).toMatch(/descartável/);
   });
 
   it("nenhum motivo repete a senha da URL", () => {
@@ -139,7 +160,9 @@ describe("o comando de verdade: `--semear` recusa ANTES de conectar", () => {
     banco de verdade com uma credencial de mentira.
   */
   it("com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha", () => {
-    const r = rodar({ DATABASE_URL: `postgres://dc360_setup.${PROD}:senha-secreta@127.0.0.1:1/postgres` });
+    const r = rodar({
+      DATABASE_URL: `postgres://dc360_setup.${PROD}:senha-secreta@127.0.0.1:1/postgres`,
+    });
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/PRODUÇÃO/);
     expect(r.stdout).not.toMatch(/Aplicadas|Nada a fazer|Semeado/);
@@ -147,7 +170,9 @@ describe("o comando de verdade: `--semear` recusa ANTES de conectar", () => {
   });
 
   it("com a URL de um banco hospedado de HML: código 1", () => {
-    const r = rodar({ DATABASE_URL: "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secreta@db.invalid:5432/postgres" });
+    const r = rodar({
+      DATABASE_URL: "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secreta@db.invalid:5432/postgres",
+    });
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/descartável/);
   });

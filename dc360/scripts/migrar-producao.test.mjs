@@ -4,7 +4,12 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import {
-  COFRE, CONTA, HOST, decidirSobreACopia, mensagemDeRecusaSemCopia, montarUrl,
+  COFRE,
+  CONTA,
+  HOST,
+  decidirSobreACopia,
+  mensagemDeRecusaSemCopia,
+  montarUrl,
 } from "./migrar-producao.mjs";
 import { ajudaDaSenha, perfilDoAmbiente } from "./producao.mjs";
 
@@ -124,7 +129,11 @@ test("o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina",
  * ===================================================================== */
 
 test("a recusa sem copia nomeia o ambiente e manda tirar a copia DESSE ambiente", () => {
-  const decisao = decidirSobreACopia({ argv: ["x", "--aplicar"], ambiente: "hml", procurar: () => null });
+  const decisao = decidirSobreACopia({
+    argv: ["x", "--aplicar"],
+    ambiente: "hml",
+    procurar: () => null,
+  });
   assert.equal(decisao.situacao, "recusado");
   assert.match(decisao.pasta, /hml$/);
   const msg = mensagemDeRecusaSemCopia(decisao, "hml");
@@ -136,7 +145,14 @@ test("a recusa sem copia nomeia o ambiente e manda tirar a copia DESSE ambiente"
 test("o migrador procura a copia na pasta do proprio ambiente", () => {
   const pastas = [];
   for (const ambiente of ["hml", "prod"]) {
-    decidirSobreACopia({ argv: ["x", "--aplicar"], ambiente, procurar: ({ pasta }) => { pastas.push(pasta); return null; } });
+    decidirSobreACopia({
+      argv: ["x", "--aplicar"],
+      ambiente,
+      procurar: ({ pasta }) => {
+        pastas.push(pasta);
+        return null;
+      },
+    });
   }
   assert.match(pastas[0], /hml$/);
   assert.match(pastas[1], /prod$/);
@@ -144,10 +160,14 @@ test("o migrador procura a copia na pasta do proprio ambiente", () => {
 });
 
 test("sem --ambiente o migrador recusa antes de ler senha ou tocar em banco, com codigo 2", () => {
-  const r = spawnSync(process.execPath, [fileURLToPath(new URL("./migrar-producao.mjs", import.meta.url))], {
-    encoding: "utf8",
-    env: { PATH: process.env.PATH ?? "" },
-  });
+  const r = spawnSync(
+    process.execPath,
+    [fileURLToPath(new URL("./migrar-producao.mjs", import.meta.url))],
+    {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH ?? "" },
+    },
+  );
   assert.equal(r.status, 2);
   assert.match(r.stderr, /Falta dizer em qual ambiente agir: --ambiente hml\|prod/);
   assert.doesNotMatch(r.stdout + r.stderr, /postgresql:\/\//, "nao chegou a montar URL");
@@ -157,7 +177,10 @@ test("com --ambiente hml e o banco de HML ainda nao declarado, recusa dizendo po
   const r = spawnSync(
     process.execPath,
     [fileURLToPath(new URL("./migrar-producao.mjs", import.meta.url)), "--ambiente", "hml"],
-    { encoding: "utf8", env: { PATH: process.env.PATH ?? "", DC360_SENHA_BANCO_PROD: "so-vale-para-prod" } },
+    {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH ?? "", DC360_SENHA_BANCO_PROD: "so-vale-para-prod" },
+    },
   );
   /* Enquanto o ambientes.json de HML estiver vazio (E11); se um dia for preenchido, este caso passa a ser outro. */
   if (perfilFoiDeclarado("hml")) return;

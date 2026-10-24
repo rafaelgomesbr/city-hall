@@ -1,10 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import {
-  IDENTIDADES_DE_PROD,
-  carregarSemente,
-  urlComAncoraDeConfianca,
-} from "@dc360/db";
+import { IDENTIDADES_DE_PROD, carregarSemente, urlComAncoraDeConfianca } from "@dc360/db";
 import { identidadeConstaNaUrlDoBanco } from "./ambiente.js";
 import { derivarSenha } from "./auth/senha.js";
 
@@ -98,9 +94,11 @@ export function sortearSenha(): string {
 export function recusaDoAmbiente(env: OpcoesDaSemente["env"]): string | null {
   const ambiente = env["AMBIENTE_DC360"]?.trim();
   if (ambiente !== "hml") {
-    return `A semente de homologação só roda com AMBIENTE_DC360=hml (veio ${ambiente ? `"${ambiente}"` : "vazio"}). `
-      + "Ela troca a senha de todas as contas, e em qualquer outro ambiente isso seria "
-      + "destruir o acesso de quem usa o sistema, ou plantar contas de teste.";
+    return (
+      `A semente de homologação só roda com AMBIENTE_DC360=hml (veio ${ambiente ? `"${ambiente}"` : "vazio"}). ` +
+      "Ela troca a senha de todas as contas, e em qualquer outro ambiente isso seria " +
+      "destruir o acesso de quem usa o sistema, ou plantar contas de teste."
+    );
   }
   const url = env["DATABASE_URL"]?.trim();
   if (!url) {
@@ -108,19 +106,25 @@ export function recusaDoAmbiente(env: OpcoesDaSemente["env"]): string | null {
   }
   const identidade = env["IDENTIDADE_DO_BANCO"]?.trim();
   if (!identidade) {
-    return "Faltou IDENTIDADE_DO_BANCO (a referência do projeto de banco de HML). Sem ela não há como "
-      + "provar que a DATABASE_URL é do banco de homologação.";
+    return (
+      "Faltou IDENTIDADE_DO_BANCO (a referência do projeto de banco de HML). Sem ela não há como " +
+      "provar que a DATABASE_URL é do banco de homologação."
+    );
   }
   if (IDENTIDADES_DE_PROD.some((p) => p.toLowerCase() === identidade.toLowerCase())) {
     return "IDENTIDADE_DO_BANCO é a de PRODUÇÃO. HML tem banco próprio; recusando.";
   }
   if (IDENTIDADES_DE_PROD.some((p) => identidadeConstaNaUrlDoBanco(url, p))) {
-    return "A DATABASE_URL traz a identidade de um banco de PRODUÇÃO. A semente de homologação "
-      + "troca a senha de todas as contas: aqui, seria derrubar o acesso dos municípios. Recusando.";
+    return (
+      "A DATABASE_URL traz a identidade de um banco de PRODUÇÃO. A semente de homologação " +
+      "troca a senha de todas as contas: aqui, seria derrubar o acesso dos municípios. Recusando."
+    );
   }
   if (!identidadeConstaNaUrlDoBanco(url, identidade)) {
-    return "A DATABASE_URL não é do banco de HML: a identidade declarada em IDENTIDADE_DO_BANCO não "
-      + "consta no usuário nem no host dela. Confira a credencial colada neste terminal.";
+    return (
+      "A DATABASE_URL não é do banco de HML: a identidade declarada em IDENTIDADE_DO_BANCO não " +
+      "consta no usuário nem no host dela. Confira a credencial colada neste terminal."
+    );
   }
   return null;
 }
@@ -152,30 +156,37 @@ export async function semearHomologacao(
       const reais = existentes.rows.filter((o) => !ORGANIZACOES_SINTETICAS.includes(o.id));
       if (reais.length > 0) {
         throw new Error(
-          "Este banco já tem município que não é da semente de homologação "
-          + `(${reais.map((o) => `${o.municipio}/${o.uf}`).join(", ")}). Isso é município REAL, ou `
-          + "um cadastro de verdade feito em HML: a semente não mistura dado sintético com ele. "
-          + "Se este é mesmo o banco de HML, recrie-o vazio.",
+          "Este banco já tem município que não é da semente de homologação " +
+            `(${reais.map((o) => `${o.municipio}/${o.uf}`).join(", ")}). Isso é município REAL, ou ` +
+            "um cadastro de verdade feito em HML: a semente não mistura dado sintético com ele. " +
+            "Se este é mesmo o banco de HML, recrie-o vazio.",
         );
       }
       throw new Error(
-        "Este banco de HML já foi semeado (os municípios sintéticos já existem). Semear de novo "
-        + "duplicaria tudo e trocaria as senhas que alguém já recebeu. Para recomeçar, recrie o banco.",
+        "Este banco de HML já foi semeado (os municípios sintéticos já existem). Semear de novo " +
+          "duplicaria tudo e trocaria as senhas que alguém já recebeu. Para recomeçar, recrie o banco.",
       );
     }
 
     await bd.exec(carregarSemente("homologacao.sql"));
 
     const contas = await bd.query<{
-      id: string; email: string; matricula: string; nome: string; papel: string;
-      municipio: string; uf: string;
+      id: string;
+      email: string;
+      matricula: string;
+      nome: string;
+      papel: string;
+      municipio: string;
+      uf: string;
     }>(
       `SELECT u.id, u.email, u.matricula, u.nome, u.papel, o.municipio, o.uf
          FROM usuarios u JOIN organizacoes o ON o.id = u.organizacao_id
         ORDER BY o.municipio, u.papel, u.matricula`,
     );
     if (contas.rows.length === 0) {
-      throw new Error("A semente de homologação não criou nenhuma conta. Nada a fazer; desfazendo.");
+      throw new Error(
+        "A semente de homologação não criou nenhuma conta. Nada a fazer; desfazendo.",
+      );
     }
 
     const semeadas: ContaSemeada[] = [];
@@ -187,8 +198,13 @@ export async function semearHomologacao(
       const hash = await derivar(senha);
       await bd.query("UPDATE usuarios SET senha_hash = $1 WHERE id = $2", [hash, conta.id]);
       semeadas.push({
-        email: conta.email, matricula: conta.matricula, nome: conta.nome, papel: conta.papel,
-        municipio: conta.municipio, uf: conta.uf, senha,
+        email: conta.email,
+        matricula: conta.matricula,
+        nome: conta.nome,
+        papel: conta.papel,
+        municipio: conta.municipio,
+        uf: conta.uf,
+        senha,
       });
     }
 
@@ -221,7 +237,7 @@ async function principal(): Promise<void> {
   try {
     const contas = await semearHomologacao(
       {
-        query: async <T,>(sql: string, params?: readonly unknown[]) => {
+        query: async <T>(sql: string, params?: readonly unknown[]) => {
           const r = await cliente.query(sql, params ? [...params] : undefined);
           return { rows: r.rows as T[] };
         },
@@ -234,11 +250,17 @@ async function principal(): Promise<void> {
     console.log("HML semeado com dados sintéticos. Senhas sorteadas, mostradas só agora:");
     console.log("");
     for (const c of contas) {
-      console.log(`  ${c.municipio}/${c.uf}  ${c.papel.padEnd(13)} ${c.email}  ${c.senha}  (${c.nome}, matrícula ${c.matricula})`);
+      console.log(
+        `  ${c.municipio}/${c.uf}  ${c.papel.padEnd(13)} ${c.email}  ${c.senha}  (${c.nome}, matrícula ${c.matricula})`,
+      );
     }
     console.log("");
-    console.log("Entre pelo E-MAIL da conta. Nenhuma senha fica guardada em texto claro, e esta lista");
-    console.log("não aparece de novo: copie agora para o cofre de HML. Para recomeçar, recrie o banco.");
+    console.log(
+      "Entre pelo E-MAIL da conta. Nenhuma senha fica guardada em texto claro, e esta lista",
+    );
+    console.log(
+      "não aparece de novo: copie agora para o cofre de HML. Para recomeçar, recrie o banco.",
+    );
     console.log("");
   } finally {
     await cliente.end();

@@ -42,7 +42,8 @@ function envDoToml(arquivo: string): Record<string, string> {
 const HML = envDoToml("fly.hml.toml");
 const PROD = envDoToml("fly.toml");
 
-const URL_DE_HML = "postgres://dc360_api.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
+const URL_DE_HML =
+  "postgres://dc360_api.refhmlxxxxxxxxx:senha-de-hml@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
 const URL_DE_PROD = `postgres://dc360_api.${PROD["IDENTIDADE_DO_BANCO"]}:senha-de-prod@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full`;
 
 /** Os segredos de HML (valores de mentira) e a identidade e o domínio que o CP-05 trará. */
@@ -84,8 +85,15 @@ describe("o fly.hml.toml configura uma API de HML que parte", () => {
 
   it("não carrega nenhum segredo nem nada de PROD", () => {
     for (const segredo of [
-      "DATABASE_URL", "JWT_SEGREDO", "S3_CHAVE_SECRETA", "APNS_CHAVE", "APNS_KEY_ID", "APNS_TEAM_ID",
-      "FCM_CONTA_SERVICO", "ORIGENS_PERMITIDAS", "URL_PAINEL",
+      "DATABASE_URL",
+      "JWT_SEGREDO",
+      "S3_CHAVE_SECRETA",
+      "APNS_CHAVE",
+      "APNS_KEY_ID",
+      "APNS_TEAM_ID",
+      "FCM_CONTA_SERVICO",
+      "ORIGENS_PERMITIDAS",
+      "URL_PAINEL",
     ]) {
       expect(HML[segredo], segredo).toBeUndefined();
     }
@@ -95,7 +103,8 @@ describe("o fly.hml.toml configura uma API de HML que parte", () => {
   });
 
   it("o app do Fly de HML não é o de PROD", () => {
-    const app = (arquivo: string) => /^app\s*=\s*"([^"]+)"/m.exec(readFileSync(join(RAIZ, arquivo), "utf8"))![1];
+    const app = (arquivo: string) =>
+      /^app\s*=\s*"([^"]+)"/m.exec(readFileSync(join(RAIZ, arquivo), "utf8"))![1];
     expect(app("fly.hml.toml")).not.toBe(app("fly.toml"));
     expect(app("fly.console.hml.toml")).not.toBe(app("fly.console.toml"));
     expect(app("fly.hml.toml")).not.toBe(app("fly.console.hml.toml"));
@@ -120,24 +129,35 @@ describe("negativos: a API de HML não parte com a DATABASE_URL de PROD", () => 
   it("com o toml COMO ESTÁ (marcador no lugar da identidade), nem a URL de HML parte", () => {
     // Fecha para o lado seguro: enquanto o CP-05 não trocar o marcador, o app
     // de HML não sobe contra banco nenhum, muito menos contra o de PROD.
-    const comMarcador = { ...HML, ...SEGREDOS_DE_HML, DOMINIO_DO_AMBIENTE: "painel-hml.exemplo.com.br" } as NodeJS.ProcessEnv;
+    const comMarcador = {
+      ...HML,
+      ...SEGREDOS_DE_HML,
+      DOMINIO_DO_AMBIENTE: "painel-hml.exemplo.com.br",
+    } as NodeJS.ProcessEnv;
     if (HML["IDENTIDADE_DO_BANCO"] === "a-definir-no-cp-05") {
       expect(() => carregarConfig(comMarcador)).toThrow(/não é do banco de HML/);
-      expect(() => carregarConfig({ ...comMarcador, DATABASE_URL: URL_DE_PROD })).toThrow(/não é do banco de HML/);
+      expect(() => carregarConfig({ ...comMarcador, DATABASE_URL: URL_DE_PROD })).toThrow(
+        /não é do banco de HML/,
+      );
     }
   });
 
   it("com o domínio marcador (.invalid), o painel de qualquer outro lugar é recusado", () => {
     if (HML["DOMINIO_DO_AMBIENTE"]!.endsWith(".invalid")) {
-      expect(() => carregarConfig(ambienteDeHml({ DOMINIO_DO_AMBIENTE: HML["DOMINIO_DO_AMBIENTE"]! })))
-        .toThrow(/não é do domínio de HML/);
+      expect(() =>
+        carregarConfig(ambienteDeHml({ DOMINIO_DO_AMBIENTE: HML["DOMINIO_DO_AMBIENTE"]! })),
+      ).toThrow(/não é do domínio de HML/);
     }
   });
 
   it("com o domínio e a origem de PROD, a API de HML recusa (CORS cruzado)", () => {
     const painelDeProd = `https://${PROD["DOMINIO_DO_AMBIENTE"]}`;
-    expect(() => carregarConfig(ambienteDeHml({ URL_PAINEL: painelDeProd }))).toThrow(/não é do domínio de HML/);
-    expect(() => carregarConfig(ambienteDeHml({ ORIGENS_PERMITIDAS: painelDeProd }))).toThrow(/não é do domínio de HML/);
+    expect(() => carregarConfig(ambienteDeHml({ URL_PAINEL: painelDeProd }))).toThrow(
+      /não é do domínio de HML/,
+    );
+    expect(() => carregarConfig(ambienteDeHml({ ORIGENS_PERMITIDAS: painelDeProd }))).toThrow(
+      /não é do domínio de HML/,
+    );
   });
 
   it("sem marca d'água a API de HML recusa (o carimbo não desliga por descuido)", () => {
