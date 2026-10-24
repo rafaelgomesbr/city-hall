@@ -310,6 +310,18 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E17": 20,
   "V2-F01-E17-formato": 8,
   "V2-F01-E17-regras": 10,
+  /*
+    V2-F01-E19 (SBOM por release e licenças): `scripts/licencas.test.mjs` é
+    novo, com 15 casos (o estado real passa; a leitura do lockfile de produção;
+    as expressões SPDX; AGPL, componente sem licença, licença fora das listas e
+    exceção vencida, malformada, órfã ou desnecessária reprovam com a política
+    decidida ou como defeito da política; a linha de comando e o passo do job
+    `produto`) e `scripts/sbom.test.mjs` é novo, com 11 (o conferidor de SBOM, o
+    script que anexa ao Release com um `gh` de mentira e as travas do
+    `sbom.yml`: escrita só no job `publicar`, só em tag).
+  */
+  "V2-F01-E19": 15,
+  "V2-F01-E19-sbom": 11,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -334,6 +346,8 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E17": "lint-teto.test.mjs",
   "V2-F01-E17-formato": "formato-conferir.test.mjs",
   "V2-F01-E17-regras": "lint-regras.test.mjs",
+  "V2-F01-E19": "licencas.test.mjs",
+  "V2-F01-E19-sbom": "sbom.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

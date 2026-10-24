@@ -1,0 +1,8 @@
+plataforma: 83 componentes de produção; 83 permitidos, 0 por exceção nomeada, 0 proibidos, 0 sem licença, 0 fora da lista
+campo: 731 componentes de produção; 708 permitidos, 1 por exceção nomeada, 0 proibidos, 0 sem licença, 22 fora da lista
+AVISO (CP-43 em aberto), licença fora da lista (nem permitida nem proibida): BlueOak-1.0.0, 6 componente(s): glob@13.0.6 (campo), lru-cache@11.5.2 (campo), minimatch@10.2.6 (campo), minipass@7.1.3 (campo), path-scurry@2.0.2 (campo), sax@1.6.1 (campo)
+AVISO (CP-43 em aberto), licença fora da lista (nem permitida nem proibida): CC-BY-4.0, 1 componente(s): caniuse-lite@1.0.30001810 (campo)
+AVISO (CP-43 em aberto), licença fora da lista (nem permitida nem proibida): MPL-2.0, 12 componente(s): lightningcss-android-arm64@1.33.0 (campo), lightningcss-darwin-arm64@1.33.0 (campo), lightningcss-darwin-x64@1.33.0 (campo), lightningcss-freebsd-x64@1.33.0 (campo), lightningcss-linux-arm-gnueabihf@1.33.0 (campo), lightningcss-linux-arm64-gnu@1.33.0 (campo), lightningcss-linux-arm64-musl@1.33.0 (campo), lightningcss-linux-x64-gnu@1.33.0 (campo), lightningcss-linux-x64-musl@1.33.0 (campo), lightningcss-win32-arm64-msvc@1.33.0 (campo), lightningcss-win32-x64-msvc@1.33.0 (campo), lightningcss@1.33.0 (campo)
+AVISO (CP-43 em aberto), licença fora da lista (nem permitida nem proibida): Python-2.0, 1 componente(s): argparse@2.0.1 (campo)
+AVISO (CP-43 em aberto), licença fora da lista (nem permitida nem proibida): Unlicense, 2 componente(s): big-integer@1.6.52 (campo), stream-buffers@2.2.0 (campo)
+RESULTADO: em ordem, com 22 aviso(s). A política é uma PROPOSTA (CP-43 aberto): ela só passa a reprovar quando `decisao.status` for "decidida".
