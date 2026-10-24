@@ -68,7 +68,12 @@ describe("O banco do modo de demonstração", () => {
     // conferência é do PADRÃO contra o disco: qualquer arquivo `.sql` na
     // pasta precisa casar. Um nome fora do padrão (por exemplo `.psql`)
     // passaria despercebido pelo Vite e sumiria do modo de demonstração.
-    const foraDoPadrao = readdirSync(MIGRACOES).filter((n) => !n.endsWith(".sql"));
+    // A subpasta `desfazer/` (V2-F01-E18, a volta de cada migração) fica de
+    // fora de propósito: o padrão `*.sql` não desce em pastas, e a volta não
+    // deve entrar no banco do modo de demonstração.
+    const foraDoPadrao = readdirSync(MIGRACOES, { withFileTypes: true })
+      .filter((e) => !e.isDirectory() && !e.name.endsWith(".sql"))
+      .map((e) => e.name);
     expect(
       foraDoPadrao,
       "arquivo na pasta de migrações que o glob do modo de demonstração não "
