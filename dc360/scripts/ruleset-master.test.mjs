@@ -116,7 +116,7 @@ test("o ruleset real da master não tem problema nenhum", () => {
 
 test("cada check obrigatório é o nome de exibição de um job que roda em todo pull request", () => {
   const contextos = ruleset.rules.find((r) => r.type === "required_status_checks").parameters.required_status_checks.map((c) => c.context);
-  assert.ok(contextos.length >= 9);
+  assert.ok(contextos.length >= 8); // "Pacote da demonstração" saiu: com filtro de caminho (F01-E02) não reporta em todo PR e travaria o merge
   for (const contexto of contextos) assert.ok(nomesReais.has(contexto), `"${contexto}" não existe nos workflows`);
 });
 

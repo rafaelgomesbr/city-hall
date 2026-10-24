@@ -36,7 +36,6 @@
           { "context": "Dependências com vulnerabilidade conhecida (auditar)", "integration_id": 15368 },
           { "context": "Ferramentas do roadmap e estado gerado", "integration_id": 15368 },
           { "context": "Fluxo ponta a ponta no navegador", "integration_id": 15368 },
-          { "context": "Pacote da demonstração", "integration_id": 15368 },
           { "context": "Aplicativo de campo", "integration_id": 15368 },
           { "context": "A API sobe contra Postgres real", "integration_id": 15368 },
           { "context": "Varredura de segredos", "integration_id": 15368 },

@@ -2132,11 +2132,13 @@ New ruleset, Import a ruleset. Ela exige:
 
 Os checks são: `Testes, tipos e scripts`, `Dependências com vulnerabilidade conhecida
 (auditar)`, `Ferramentas do roadmap e estado gerado`, `Fluxo ponta a ponta no
-navegador`, `Pacote da demonstração`, `Aplicativo de campo`, `A API sobe contra
+navegador`, `Aplicativo de campo`, `A API sobe contra
 Postgres real` (todos de `verificar.yml`), `Varredura de segredos` (`segredos.yml`)
 e `SAST (Semgrep)` (`sast.yml`). Os nomes são contrato: o job `baseline`, o
 `restore`, o `windows` e o `plataformas` não estão na lista (os dois primeiros
-nem rodam em pull request; os outros dois são decisão do Rafael).
+nem rodam em pull request; os outros dois são decisão do Rafael), e o `Pacote da
+demonstração` também não, porque desde a F01-E02 só roda quando a demonstração
+muda: check obrigatório que não reporta trava o merge.
 `dc360/scripts/ruleset-master.test.mjs` reprova se algum nome do JSON deixar de
 existir num workflow, e `.github/CODEOWNERS` nomeia o dono das migrações, da
 autenticação da API e do `.github/`.
