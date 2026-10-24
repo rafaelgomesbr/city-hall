@@ -1,0 +1,17 @@
+$ node scripts/versao.mjs conferir
+Versões conferidas: plataforma 0.1.0, campo 0.1.0, ambas com seção no CHANGELOG.
+codigo=0
+
+$ node scripts/versao.mjs mostrar
+plataforma: 0.1.0
+campo: 0.1.0
+codigo=0
+
+$ node scripts/versao.mjs conferir-tag v0.1.0
+Tag v0.1.0 é um nome válido e bate com os arquivos. Este script não cria tag.
+codigo=0
+
+$ node scripts/versao.mjs conferir-tag campo-v0.1.0
+Tag campo-v0.1.0 é um nome válido e bate com os arquivos. Este script não cria tag.
+codigo=0
+
