@@ -1,0 +1,79 @@
+✖ o leitor de workflows acha os jobs que a regra precisa (senão os casos abaixo não provam nada) (0.620291ms)
+✖ o ruleset real da master não tem problema nenhum (0.60825ms)
+✖ cada check obrigatório é o nome de exibição de um job que roda em todo pull request (0.082542ms)
+✔ sem exceção para ninguém, nem para administrador (0.118166ms)
+✔ o merge é só por squash e a master não aceita force-push nem exclusão (0.097459ms)
+✔ negativo: ruleset com exceção, check inventado, 2 métodos de merge e sem os checks novos é reprovado (0.161042ms)
+✔ negativo: ruleset sem force-push bloqueado e sem alvo na master é reprovado (0.093833ms)
+✔ o CODEOWNERS nomeia as migrações, a autenticação da API e o .github, e os caminhos existem (0.21875ms)
+✔ o modelo de PR traz o checklist de auto-aprovação (gates locais, migração aditiva, rollback, evidência) (0.1535ms)
+✔ o CLAUDE.md manda a master por PR e o texto novo não tem travessão (0.240583ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 7
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44.24825
+
+✖ failing tests:
+
+test at scripts/ruleset-master.test.mjs:104:1
+✖ o leitor de workflows acha os jobs que a regra precisa (senão os casos abaixo não provam nada) (0.620291ms)
+  AssertionError [ERR_ASSERTION]: o leitor não achou o job "Aplicativo de campo"
+      at TestContext.<anonymous> (file://<worktree>/dc360/scripts/ruleset-master.test.mjs:106:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at scripts/ruleset-master.test.mjs:113:1
+✖ o ruleset real da master não tem problema nenhum (0.60825ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'o check "Aplicativo de campo" não é o nome de nenhum job que roda em pull request'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file://<worktree>/dc360/scripts/ruleset-master.test.mjs:114:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'o check "Aplicativo de campo" não é o nome de nenhum job que roda em pull request' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ruleset-master.test.mjs:117:1
+✖ cada check obrigatório é o nome de exibição de um job que roda em todo pull request (0.082542ms)
+  AssertionError [ERR_ASSERTION]: "Aplicativo de campo" não existe nos workflows
+      at TestContext.<anonymous> (file://<worktree>/dc360/scripts/ruleset-master.test.mjs:120:44)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

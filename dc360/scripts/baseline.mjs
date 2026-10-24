@@ -225,6 +225,15 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     nome de tag, e o comando com código de saída e a árvore real).
   */
   "V2-F01-E07": 32,
+  /*
+    V2-F01-E01: `scripts/ruleset-master.test.mjs` é novo, com 10 casos. Prende o
+    ruleset da master (`.github/rulesets/master.json`: PR com 0 aprovações, só
+    squash, sem force-push, exclusão nem exceção, branch atualizado) a nomes de
+    check que existem de verdade nos workflows e rodam em todo pull request, e
+    confere o CODEOWNERS e o modelo de PR. Dois casos são a prova de que o
+    teste morde: rulesets sintéticos estragados reprovam.
+  */
+  "V2-F01-E01": 10,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -239,6 +248,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E05-baseline": "sast-baseline.test.mjs",
   "V2-F01-E06": "dependabot.test.mjs",
   "V2-F01-E07": "versao.test.mjs",
+  "V2-F01-E01": "ruleset-master.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

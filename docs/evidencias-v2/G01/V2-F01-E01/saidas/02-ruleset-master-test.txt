@@ -1,0 +1,18 @@
+✔ o leitor de workflows acha os jobs que a regra precisa (senão os casos abaixo não provam nada) (0.422542ms)
+✔ o ruleset real da master não tem problema nenhum (0.340916ms)
+✔ cada check obrigatório é o nome de exibição de um job que roda em todo pull request (0.068458ms)
+✔ sem exceção para ninguém, nem para administrador (0.046375ms)
+✔ o merge é só por squash e a master não aceita force-push nem exclusão (0.11375ms)
+✔ negativo: ruleset com exceção, check inventado, 2 métodos de merge e sem os checks novos é reprovado (0.158125ms)
+✔ negativo: ruleset sem force-push bloqueado e sem alvo na master é reprovado (0.096667ms)
+✔ o CODEOWNERS nomeia as migrações, a autenticação da API e o .github, e os caminhos existem (0.215417ms)
+✔ o modelo de PR traz o checklist de auto-aprovação (gates locais, migração aditiva, rollback, evidência) (0.153625ms)
+✔ o CLAUDE.md manda a master por PR e o texto novo não tem travessão (0.240167ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 41.634875

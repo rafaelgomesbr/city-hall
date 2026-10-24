@@ -1,0 +1,18 @@
+# Donos do código (V2-F01-E01).
+#
+# Hoje há uma só pessoa contribuindo, então o dono é o Rafael e o ruleset da
+# master NÃO exige revisão do dono do código (`require_code_owner_review` falso):
+# quem abre o PR não pode aprová-lo, e exigir aprovação travaria a master. O que
+# este arquivo faz agora é pedir a revisão do dono automaticamente e deixar
+# escrito quais caminhos são sensíveis. Com a segunda pessoa revisora (E16,
+# CP-07) a exigência liga: o ruleset passa a 1 aprovação e
+# `require_code_owner_review` vira verdadeiro.
+#
+# A última regra que casa vence. Caminhos sensíveis:
+#   - migrações do banco: mexem em RLS, na trilha de auditoria e em dado vivo;
+#   - autenticação da API: sessão, senha e segundo fator;
+#   - `.github/`: workflows, ruleset e este arquivo (quem muda o CI muda o portão).
+
+/dc360/db/migrations/ @rafaelgomesbr
+/dc360/apps/api/src/auth/ @rafaelgomesbr
+/.github/ @rafaelgomesbr

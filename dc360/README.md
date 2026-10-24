@@ -2089,6 +2089,37 @@ O SAST não substitui o teste dinâmico de isolamento (`npm run test:isolamento`
 CA-06): a regra (1) é a versão estática dele, que pega o erro na revisão do PR,
 antes de o teste ter a chance de não cobrir a rota nova. Ficam de fora desta
 etapa: CodeQL, DAST, scan de contêiner e SBOM.
+
+### Proteção da `master` (ruleset)
+
+Nada entra na `master` sem pull request e sem os checks obrigatórios verdes, mesmo
+com uma só pessoa contribuindo. A regra está versionada em
+`.github/rulesets/master.json`, pronta para importar em Settings, Rules, Rulesets,
+New ruleset, Import a ruleset. Ela exige:
+
+- pull request com 0 aprovações (a auto-aprovação é o checklist de
+  `.github/pull_request_template.md`; vira 1 aprovação com a segunda pessoa
+  revisora, E16 e CP-07);
+- os nove checks abaixo, pelo nome de exibição do job, com o branch atualizado;
+- só merge por squash, histórico linear, sem force-push, sem exclusão e sem
+  exceção para ninguém (`bypass_actors` vazio, administrador incluído).
+
+Os checks são: `Testes, tipos e scripts`, `Dependências com vulnerabilidade conhecida
+(auditar)`, `Ferramentas do roadmap e estado gerado`, `Fluxo ponta a ponta no
+navegador`, `Pacote da demonstração`, `Aplicativo de campo`, `A API sobe contra
+Postgres real` (todos de `verificar.yml`), `Varredura de segredos` (`segredos.yml`)
+e `SAST (Semgrep)` (`sast.yml`). Os nomes são contrato: o job `baseline`, o
+`restore`, o `windows` e o `plataformas` não estão na lista (os dois primeiros
+nem rodam em pull request; os outros dois são decisão do Rafael).
+`dc360/scripts/ruleset-master.test.mjs` reprova se algum nome do JSON deixar de
+existir num workflow, e `.github/CODEOWNERS` nomeia o dono das migrações, da
+autenticação da API e do `.github/`.
+
+O ruleset não é aplicado por nenhum arquivo do repositório: ligá-lo é ação do
+Rafael no GitHub, e só depois do merge da F00 na `master` (com ele ativo, o merge
+da F00 também exigiria pull request). Para desfazer, desative o ruleset; o JSON o
+recria.
+
 ## Versões, tags e changelog
 
 Cada versão em produção precisa ter número, tag e changelog, para que dê para dizer
