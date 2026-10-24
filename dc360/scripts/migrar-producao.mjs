@@ -14,8 +14,16 @@
  * 3. **A senha no histórico.** Colada na linha de comando, ela fica em
  *    `~/.zsh_history`, em texto puro, para sempre.
  *
- * A senha mora no chaveiro do macOS e nunca passa pela tela. Este roteiro lê,
- * monta a URL com a senha codificada, e chama o migrador de sempre.
+ * A senha vem de `producao.mjs` (variável de ambiente do ambiente, chaveiro do
+ * sistema ou pergunta sem eco) e nunca passa pela tela nem pela linha de
+ * comando. Este roteiro lê, monta a URL com a senha codificada, e chama o
+ * migrador de sempre.
+ *
+ * ## Por ambiente (V2-F01-E15)
+ *
+ * `--ambiente hml|prod` é obrigatório, e o roteiro MOSTRA o banco (a URL sem a
+ * senha) antes de agir. Funciona em Windows, Linux e macOS. A cópia que o
+ * portão exige é a do MESMO ambiente: cópia de HML não libera PROD.
  *
  * ## O padrão é CONFERIR
  *
@@ -41,10 +49,12 @@ import { spawnSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { montarUrl, senhaDoChaveiro } from "./producao.mjs";
-import { JANELA_DA_COPIA_MS, PASTA_DE_COPIAS, copiaRecente } from "./copiar-producao.mjs";
+import {
+  comandoDoNpm, lerAmbiente, linhasDoAlvo, montarUrl, obterSenha, perfilDoAmbiente, sairComMensagem,
+} from "./producao.mjs";
+import { JANELA_DA_COPIA_MS, copiaRecente, pastaDeCopias } from "./copiar-producao.mjs";
 
-export { COFRE, CONTA, HOST, PORTA, PROJETO, montarUrl, senhaDoChaveiro } from "./producao.mjs";
+export { COFRE, CONTA, HOST, PORTA, PROJETO, montarUrl } from "./producao.mjs";
 
 /**
  * O que fazer com a cópia antes de aplicar. Função pura, para o teste medir
@@ -54,19 +64,24 @@ export { COFRE, CONTA, HOST, PORTA, PROJETO, montarUrl, senhaDoChaveiro } from "
  *   - `com_copia`: há cópia dentro da janela, e ela é nomeada;
  *   - `pulada`: `--sem-copia` escrito à mão, registrado na conclusão;
  *   - `recusado`: `--aplicar` sem cópia recente e sem `--sem-copia`.
+ *
+ * `ambiente` escolhe a pasta de cópias: só vale a cópia do ambiente que vai
+ * ser migrado (`pasta` existe para o teste apontar para uma pasta temporária).
  */
 export function decidirSobreACopia({
   argv,
-  pasta = PASTA_DE_COPIAS,
+  ambiente,
+  pasta,
   agora = new Date(),
   janelaMs = JANELA_DA_COPIA_MS,
   procurar = copiaRecente,
 }) {
   if (!argv.includes("--aplicar")) return { situacao: "conferir" };
-  const copia = procurar({ pasta, agora, janelaMs });
+  const pastaDaCopia = pasta ?? pastaDeCopias(ambiente);
+  const copia = procurar({ pasta: pastaDaCopia, agora, janelaMs });
   if (copia) return { situacao: "com_copia", copia };
   if (argv.includes("--sem-copia")) return { situacao: "pulada" };
-  return { situacao: "recusado", pasta, janelaMinutos: Math.round(janelaMs / 60_000) };
+  return { situacao: "recusado", pasta: pastaDaCopia, janelaMinutos: Math.round(janelaMs / 60_000) };
 }
 
 /** A linha da conclusão que diz o que foi feito com a cópia. */
@@ -82,13 +97,13 @@ export function fraseDaCopia(decisao) {
   }
 }
 
-export function mensagemDeRecusaSemCopia(decisao) {
+export function mensagemDeRecusaSemCopia(decisao, ambiente = "prod") {
   return (
-    `Nenhuma cópia da produção nos últimos ${decisao.janelaMinutos} minutos em ${decisao.pasta}.\n\n`
+    `Nenhuma cópia do banco de ${ambiente.toUpperCase()} nos últimos ${decisao.janelaMinutos} minutos em ${decisao.pasta}.\n\n`
     + "Migração é irreversível, e o único restore testado é sobre cópia tirada antes.\n"
     + "Tire a cópia e aplique em seguida:\n\n"
-    + "  node scripts/copiar-producao.mjs\n"
-    + "  node scripts/migrar-producao.mjs --aplicar\n\n"
+    + `  node scripts/copiar-producao.mjs --ambiente ${ambiente}\n`
+    + `  node scripts/migrar-producao.mjs --ambiente ${ambiente} --aplicar\n\n`
     + "Para aplicar SEM cópia, escreva --sem-copia junto de --aplicar. Isso fica\n"
     + "registrado na conclusão, e é decisão sua."
   );
@@ -104,25 +119,30 @@ export function mensagemDeRecusaSemCopia(decisao) {
 */
 const chamadoDiretamente = process.argv[1]?.endsWith("migrar-producao.mjs") ?? false;
 
-if (chamadoDiretamente) {
-  const aplicar = process.argv.includes("--aplicar");
+async function principal(argv) {
+  const { ambiente } = lerAmbiente(argv);
+  const perfil = perfilDoAmbiente(ambiente);
+  const aplicar = argv.includes("--aplicar");
+
+  /* O banco, sem a senha, antes de qualquer coisa: é a última chance de ver que o ambiente é o errado. */
+  console.log(`${linhasDoAlvo(perfil)}\n`);
 
   /*
-    A cópia é decidida ANTES de ler o chaveiro e antes de qualquer conexão:
+    A cópia é decidida ANTES de ler a senha e antes de qualquer conexão:
     quem vai ser recusado não precisa nem da senha.
   */
-  const decisao = decidirSobreACopia({ argv: process.argv });
+  const decisao = decidirSobreACopia({ argv, ambiente });
   if (decisao.situacao === "recusado") {
-    console.error(mensagemDeRecusaSemCopia(decisao));
+    console.error(mensagemDeRecusaSemCopia(decisao, ambiente));
     process.exit(2);
   }
 
-  const url = montarUrl(senhaDoChaveiro());
+  const url = montarUrl(await obterSenha({ perfil }), perfil);
   const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
 
   console.log(
     aplicar
-      ? `APLICANDO as migrações que faltam na produção.\n${fraseDaCopia(decisao)}\n`
+      ? `APLICANDO as migrações que faltam no banco de ${ambiente.toUpperCase()}.\n${fraseDaCopia(decisao)}\n`
       : "Só conferindo: nada vai ser escrito. Para aplicar, repita com --aplicar.\n",
   );
 
@@ -133,10 +153,11 @@ if (chamadoDiretamente) {
     resposta esperada do modo de conferência, não falha, e quem está migrando
     pela primeira vez lê "npm error" e acha que quebrou.
   */
+  const npm = comandoDoNpm();
   const r = spawnSync(
-    "npm",
-    ["run", "--silent", "migrar", "--", ...(aplicar ? [] : ["--conferir"])],
-    { cwd: raiz, stdio: "inherit", env: { ...process.env, DATABASE_URL: url } },
+    npm.comando,
+    [...npm.prefixo, "run", "--silent", "migrar", "--", ...(aplicar ? [] : ["--conferir"])],
+    { cwd: raiz, stdio: "inherit", shell: npm.shell, env: { ...process.env, DATABASE_URL: url } },
   );
 
   /*
@@ -157,11 +178,19 @@ if (chamadoDiretamente) {
       : (faltou
         ? "\nIsso é o esperado quando falta migração, e não é erro. Para aplicar,\n"
           + "tire a cópia e aplique em seguida:\n"
-          + "  node scripts/copiar-producao.mjs\n"
-          + "  node scripts/migrar-producao.mjs --aplicar"
+          + `  node scripts/copiar-producao.mjs --ambiente ${ambiente}\n`
+          + `  node scripts/migrar-producao.mjs --ambiente ${ambiente} --aplicar`
         : "\nO banco já está em dia. Nada a fazer."),
   );
   /* A cópia, repetida no fim: é a linha que vai para o relatório de quem migrou. */
   if (aplicar) console.log(fraseDaCopia(decisao));
   process.exit(r.status ?? 1);
+}
+
+if (chamadoDiretamente) {
+  try {
+    await principal(process.argv.slice(2));
+  } catch (erro) {
+    sairComMensagem(erro);
+  }
 }

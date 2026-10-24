@@ -1,0 +1,56 @@
+✔ o nome da copia traz a data, ordena por nome e nao tem dois-pontos (1.181ms)
+✔ a copia mora fora do repositorio, e a pasta e a da casa de quem roda (0.132166ms)
+✔ a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho (0.1555ms)
+✔ a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia (0.184417ms)
+✔ a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova (0.147375ms)
+✔ localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha (0.463083ms)
+✔ a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta (1.123458ms)
+✔ conferir nao pergunta por copia (0.08175ms)
+✔ aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape (0.148ms)
+✔ aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela (0.155041ms)
+✔ aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA (0.067958ms)
+✔ com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale (0.055ms)
+✖ o pg_dump leva --extension=pg_trgm, sem o que o restore para no indice de busca desde a migracao 041 (4.555458ms)
+✔ a senha nunca vai na linha de comando do pg_dump (0.104084ms)
+✔ os candidatos de pg_dump seguem o sistema: Homebrew no macOS, PGDG no Linux, Program Files no Windows (0.179834ms)
+✔ DC360_PG_DUMP vem antes do PATH, em qualquer sistema (0.092209ms)
+✔ no Linux e no Windows o pg_dump e achado no lugar padrao quando o PATH nao o tem (0.153375ms)
+✔ a instrucao de instalar fala a lingua do sistema (0.044209ms)
+✔ no Windows a pasta e o arquivo ficam so do usuario por icacls, sem heranca (0.136833ms)
+✔ no Windows, se o icacls falhar o roteiro RECUSA gravar, e a mensagem nao leva segredo (0.19025ms)
+✔ no macOS e no Linux a pasta e 0700 e o arquivo 0600 (0.06225ms)
+✔ a pasta de copias tem uma subpasta por ambiente, e so hml e prod (0.061834ms)
+✔ a copia de HML NAO vale como copia de PROD: cada ambiente olha a sua pasta (0.630459ms)
+✔ a URL do pg_dump de HML usa o projeto de HML e nao o de PROD (0.065041ms)
+✔ a decisao usa a pasta e a janela de verdade quando ninguem as passa (0.704292ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 24
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 62.041375
+
+✖ failing tests:
+
+test at scripts/copiar-producao.test.mjs:180:1
+✖ o pg_dump leva --extension=pg_trgm, sem o que o restore para no indice de busca desde a migracao 041 (4.555458ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(args.includes("--extension=pg_trgm"))
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-afd3525c96f770b9a/dc360/scripts/copiar-producao.test.mjs:182:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

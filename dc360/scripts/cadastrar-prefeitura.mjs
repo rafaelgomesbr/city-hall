@@ -3,10 +3,14 @@
  * CADASTRAR UMA PREFEITURA, para quem nunca mexeu em banco.
  *
  * Irmão de `migrar-producao.mjs`, e existe pela mesma razão: a senha do banco
- * fica no chaveiro do macOS, a URL é montada com a senha codificada, e o papel
- * usado é o de setup e não o da aplicação. Sem isso, cadastrar prefeitura
- * exigiria montar uma string de conexão à mão, que é onde moram as três
- * armadilhas descritas naquele arquivo.
+ * vem de `producao.mjs` (variável de ambiente, chaveiro do sistema ou pergunta
+ * sem eco, em Windows, Linux e macOS), a URL é montada com a senha codificada,
+ * e o papel usado é o de setup e não o da aplicação. Sem isso, cadastrar
+ * prefeitura exigiria montar uma string de conexão à mão, que é onde moram as
+ * três armadilhas descritas naquele arquivo.
+ *
+ * `--ambiente hml|prod` é obrigatório (V2-F01-E15) e o roteiro mostra o banco,
+ * sem a senha, antes de agir. A opção NÃO é repassada ao provisionador.
  *
  * ## Existe uma tela, e este comando continua existindo
  *
@@ -28,11 +32,12 @@
  * aplica migração.
  */
 import { spawnSync } from "node:child_process";
-import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { COFRE, CONTA, montarUrl } from "./migrar-producao.mjs";
+import {
+  comandoDoNpm, lerAmbiente, linhasDoAlvo, montarUrl, obterSenha, perfilDoAmbiente, sairComMensagem,
+} from "./producao.mjs";
 
 /**
  * O que o comando exige, com o nome que a pessoa lê na tela.
@@ -66,8 +71,10 @@ export function oQueFalta(argv) {
 
 const chamadoDiretamente = process.argv[1]?.endsWith("cadastrar-prefeitura.mjs") ?? false;
 
-if (chamadoDiretamente) {
-  const argv = process.argv.slice(2);
+async function principal(argvBruto) {
+  /* `--ambiente` fica aqui: o provisionador não o conhece e não deve receber. */
+  const { ambiente, restante: argv } = lerAmbiente(argvBruto);
+  const perfil = perfilDoAmbiente(ambiente);
   const faltando = oQueFalta(argv);
 
   if (faltando.length > 0) {
@@ -75,7 +82,7 @@ if (chamadoDiretamente) {
     for (const chave of faltando) console.error(`  --${chave}\n      ${OBRIGATORIOS[chave]}`);
     console.error(
       "\nExemplo completo:\n\n"
-      + "  node scripts/cadastrar-prefeitura.mjs \\\n"
+      + "  node scripts/cadastrar-prefeitura.mjs --ambiente prod \\\n"
       + '    --municipio "Serra Alta" --uf MG \\\n'
       + '    --nome "Rita Lopes" --matricula SA-1 \\\n'
       + "    --email rita@serraalta.mg.gov.br \\\n"
@@ -89,25 +96,16 @@ if (chamadoDiretamente) {
     process.exit(1);
   }
 
-  let senha;
-  try {
-    senha = execFileSync(
-      "security", ["find-generic-password", "-a", CONTA, "-s", COFRE, "-w"],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-    ).replace(/\n$/, "");
-  } catch {
-    console.error(
-      `\nNão achei a senha do banco no chaveiro do Mac. Guarde com:\n\n`
-      + `  security add-generic-password -a ${CONTA} -s ${COFRE} -w\n`,
-    );
-    process.exit(1);
-  }
+  /* O banco, sem a senha, antes de agir: cadastrar prefeitura no ambiente errado é difícil de desfazer. */
+  console.log(`${linhasDoAlvo(perfil)}\n`);
 
+  const url = montarUrl(await obterSenha({ perfil }), perfil);
   const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
+  const npm = comandoDoNpm();
   const r = spawnSync(
-    "npm",
-    ["run", "--silent", "provisionar", "--", ...argv],
-    { cwd: raiz, stdio: "inherit", env: { ...process.env, DATABASE_URL: montarUrl(senha) } },
+    npm.comando,
+    [...npm.prefixo, "run", "--silent", "provisionar", "--", ...argv],
+    { cwd: raiz, stdio: "inherit", shell: npm.shell, env: { ...process.env, DATABASE_URL: url } },
   );
 
   if ((r.status ?? 1) !== 0) {
@@ -118,3 +116,12 @@ if (chamadoDiretamente) {
   }
   process.exit(r.status ?? 1);
 }
+
+if (chamadoDiretamente) {
+  try {
+    await principal(process.argv.slice(2));
+  } catch (erro) {
+    sairComMensagem(erro);
+  }
+}
+

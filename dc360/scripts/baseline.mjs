@@ -293,6 +293,23 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     HML; e o comando com código de saída 0, 1 e 2, sem nunca imprimir valor).
   */
   "V2-F01-E09": 42,
+  /*
+    V2-F01-E15: `scripts/producao.test.mjs` é novo, com 19 casos (`--ambiente`
+    obrigatório e só hml ou prod, a URL e o cofre por ambiente, HML sem banco
+    que recusa em vez de herdar o de PROD, a senha por variável, chaveiro do
+    macOS e do Linux, pergunta sem eco e a ajuda de cada sistema, sem nunca
+    levar segredo, e o npm sem shell).
+  */
+  "V2-F01-E15": 19,
+  /*
+    V2-F01-E15, acréscimos em arquivos que já existiam (por isso não estão em
+    `ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS`, que ata uma linha a um arquivo
+    inteiro): `copiar-producao.test.mjs` ganhou 12 casos (o
+    `--extension=pg_trgm`, os candidatos de `pg_dump` de cada sistema, a ACL do
+    Windows, a cópia de HML que não vale para PROD) e
+    `migrar-producao.test.mjs` ganhou 4 (a recusa por ambiente).
+  */
+  "V2-F01-E15-acrescimos": 16,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -314,6 +331,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E16": "runbooks.test.mjs",
   "V2-F01-E08": "smoke-das-imagens.test.mjs",
   "V2-F01-E09": "conferir-ambiente.test.mjs",
+  "V2-F01-E15": "producao.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

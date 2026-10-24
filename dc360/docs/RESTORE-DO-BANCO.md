@@ -84,8 +84,9 @@ Não provado (validação humana pendente):
   diferenças conhecidas de Linux estão na seção "Fora do Windows".
 - **Origem Supabase.** O dump de produção tem os papéis do provedor (`anon`,
   `authenticated`, `service_role`, `supabase_admin`); o remédio está na Parte 6
-  histórica e não foi refeito aqui. O dump antes de migração e o
-  `copiar-producao.mjs` multiplataforma são a V2-F01-E15.
+  histórica e não foi refeito aqui. O `copiar-producao.mjs` multiplataforma (V2-F01-E15) já
+  leva `--extension=pg_trgm`, mas o restore de uma cópia dele contra a
+  origem Supabase não foi ensaiado aqui: é a validação humana pendente da E15.
 - **Fotos e assinaturas** (balde de armazenamento), PITR do provedor, restore
   por cima da produção, RPO e RTO: fora daqui (V2-F22).
 

@@ -1,14 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, parse, resolve } from "node:path";
 
 import {
   CA_DO_PROVEDOR, COMO_INSTALAR, JANELA_DA_COPIA_MS, PASTA_DE_COPIAS, RAIZ_DO_REPO,
-  clienteServe, copiaRecente, localizarPgDump, montarUrlParaPgDump, nomeDaCopia,
-  razaoParaRecusarAPasta, versaoDoPgDump,
+  argumentosDoPgDump, candidatosDePgDump, clienteServe, comandoDeAcl, comoInstalar, copiaRecente,
+  localizarPgDump, montarUrlParaPgDump, nomeDaCopia, pastaDeCopias, razaoParaRecusarAPasta,
+  restringirAoDono, usuarioDoWindows, versaoDoPgDump,
 } from "./copiar-producao.mjs";
+import { ErroDeUso } from "./producao.mjs";
 import { decidirSobreACopia, fraseDaCopia, mensagemDeRecusaSemCopia } from "./migrar-producao.mjs";
 
 /**
@@ -94,6 +96,7 @@ test("a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior
 test("localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha", () => {
   const tentados = [];
   const soNoHomebrew = localizarPgDump({
+    plataforma: "darwin",
     executar: (caminho) => {
       tentados.push(caminho);
       if (caminho === "/opt/homebrew/opt/libpq/bin/pg_dump") return "pg_dump (PostgreSQL) 17.6";
@@ -134,7 +137,7 @@ test("a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao c
  * ===================================================================== */
 
 test("conferir nao pergunta por copia", () => {
-  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs"], procurar: () => { throw new Error("não devia procurar"); } });
+  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs"], ambiente: "prod", procurar: () => { throw new Error("não devia procurar"); } });
   assert.deepEqual(decisao, { situacao: "conferir" });
 });
 
@@ -150,7 +153,7 @@ test("aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e 
 
 test("aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela", () => {
   const copia = { caminho: "/x/copias/2026-09-15T11-10-00.dump", nome: "2026-09-15T11-10-00.dump", idadeMs: 20 * MINUTO, bytes: 100 };
-  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs", "--aplicar"], procurar: () => copia });
+  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs", "--aplicar"], ambiente: "prod", procurar: () => copia });
   assert.equal(decisao.situacao, "com_copia");
   const frase = fraseDaCopia(decisao);
   assert.match(frase, /2026-09-15T11-10-00\.dump/);
@@ -158,7 +161,7 @@ test("aplicar com copia recente passa, e a conclusao nomeia a copia e a idade de
 });
 
 test("aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA", () => {
-  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs", "--aplicar", "--sem-copia"], procurar: () => null });
+  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs", "--aplicar", "--sem-copia"], ambiente: "prod", procurar: () => null });
   assert.equal(decisao.situacao, "pulada");
   assert.match(fraseDaCopia(decisao), /PULADA/);
   assert.match(fraseDaCopia(decisao), /decisão de quem rodou/);
@@ -166,8 +169,169 @@ test("aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia f
 
 test("com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale", () => {
   const copia = { caminho: "/x/c.dump", nome: "c.dump", idadeMs: MINUTO, bytes: 100 };
-  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs", "--aplicar", "--sem-copia"], procurar: () => copia });
+  const decisao = decidirSobreACopia({ argv: ["node", "migrar-producao.mjs", "--aplicar", "--sem-copia"], ambiente: "prod", procurar: () => copia });
   assert.equal(decisao.situacao, "com_copia");
+});
+
+/* =====================================================================
+ * V2-F01-E15: a extensao, os tres sistemas, a ACL do Windows e o ambiente.
+ * ===================================================================== */
+
+test("o pg_dump leva --extension=pg_trgm, sem o que o restore para no indice de busca desde a migracao 041", () => {
+  const args = argumentosDoPgDump({ destino: "/x/c.dump", urlSemSenha: "postgresql://u@h:5432/postgres" });
+  assert.ok(args.includes("--extension=pg_trgm"));
+  assert.ok(args.includes("--format=custom"), "o formato do restore provado");
+  assert.ok(args.includes("--schema=public"));
+  assert.ok(args.includes("--file=/x/c.dump"));
+  assert.equal(args.at(-1), "postgresql://u@h:5432/postgres", "a URL e o ultimo argumento");
+});
+
+test("a senha nunca vai na linha de comando do pg_dump", () => {
+  const url = new URL(montarUrlParaPgDump("S3nh@-secreta"));
+  const semSenha = new URL(url);
+  semSenha.password = "";
+  const args = argumentosDoPgDump({ destino: "/x/c.dump", urlSemSenha: semSenha.toString() });
+  assert.ok(!args.join(" ").includes("secreta"));
+  assert.ok(!args.join(" ").includes("S3nh"));
+});
+
+test("os candidatos de pg_dump seguem o sistema: Homebrew no macOS, PGDG no Linux, Program Files no Windows", () => {
+  const mac = candidatosDePgDump({ plataforma: "darwin", env: {} });
+  assert.deepEqual(mac.slice(0, 1), ["pg_dump"]);
+  assert.ok(mac.includes("/opt/homebrew/opt/libpq/bin/pg_dump"));
+  assert.ok(!mac.some((c) => c.includes("PostgreSQL")));
+
+  const linux = candidatosDePgDump({ plataforma: "linux", env: {} });
+  assert.ok(linux.includes("/usr/lib/postgresql/17/bin/pg_dump"), "Debian e Ubuntu");
+  assert.ok(linux.includes("/usr/pgsql-17/bin/pg_dump"), "RHEL e Fedora");
+  assert.ok(!linux.includes("/opt/homebrew/opt/libpq/bin/pg_dump"));
+
+  const win = candidatosDePgDump({
+    plataforma: "win32",
+    env: { ProgramFiles: "D:\\Programas", "ProgramFiles(x86)": "C:\\Program Files (x86)" },
+  });
+  assert.ok(win.includes("D:\\Programas\\PostgreSQL\\17\\bin\\pg_dump.exe"));
+  assert.ok(win.includes("C:\\Program Files (x86)\\PostgreSQL\\18\\bin\\pg_dump.exe"));
+  assert.ok(win.every((c) => c === "pg_dump" || c.endsWith("pg_dump.exe")));
+});
+
+test("DC360_PG_DUMP vem antes do PATH, em qualquer sistema", () => {
+  for (const plataforma of ["win32", "linux", "darwin"]) {
+    const lista = candidatosDePgDump({ plataforma, env: { DC360_PG_DUMP: "/opt/meu/pg_dump" } });
+    assert.equal(lista[0], "/opt/meu/pg_dump");
+    assert.equal(lista[1], "pg_dump");
+  }
+});
+
+test("no Linux e no Windows o pg_dump e achado no lugar padrao quando o PATH nao o tem", () => {
+  const noLinux = localizarPgDump({
+    plataforma: "linux",
+    env: {},
+    executar: (c) => {
+      if (c === "/usr/lib/postgresql/17/bin/pg_dump") return "pg_dump (PostgreSQL) 17.6 (Ubuntu 17.6-1.pgdg24.04+1)";
+      throw new Error("ENOENT");
+    },
+  });
+  assert.deepEqual(noLinux, { caminho: "/usr/lib/postgresql/17/bin/pg_dump", versao: "17.6" });
+
+  const noWindows = localizarPgDump({
+    plataforma: "win32",
+    env: { ProgramFiles: "C:\\Program Files" },
+    executar: (c) => {
+      if (c === "C:\\Program Files\\PostgreSQL\\17\\bin\\pg_dump.exe") return "pg_dump (PostgreSQL) 17.6";
+      throw new Error("ENOENT");
+    },
+  });
+  assert.equal(noWindows?.versao, "17.6");
+});
+
+test("a instrucao de instalar fala a lingua do sistema", () => {
+  assert.match(comoInstalar("darwin"), /brew install libpq/);
+  assert.match(comoInstalar("linux"), /postgresql-client-17/);
+  assert.match(comoInstalar("linux"), /DC360_PG_DUMP/);
+  assert.match(comoInstalar("win32"), /EDB/);
+  assert.match(comoInstalar("win32"), /Program Files\\PostgreSQL\\17/);
+  assert.doesNotMatch(comoInstalar("win32"), /brew/);
+  assert.doesNotMatch(comoInstalar("linux"), /brew/);
+});
+
+test("no Windows a pasta e o arquivo ficam so do usuario por icacls, sem heranca", () => {
+  assert.deepEqual(
+    comandoDeAcl("C:\\Users\\rafa\\dc360-copias\\prod", "PC\\rafa", { pasta: true }),
+    ["C:\\Users\\rafa\\dc360-copias\\prod", "/inheritance:r", "/grant:r", "PC\\rafa:(OI)(CI)F"],
+  );
+  assert.deepEqual(
+    comandoDeAcl("C:\\x\\c.dump", "PC\\rafa"),
+    ["C:\\x\\c.dump", "/inheritance:r", "/grant:r", "PC\\rafa:F"],
+  );
+  assert.equal(usuarioDoWindows({ env: { USERDOMAIN: "PC", USERNAME: "rafa" } }), "PC\\rafa");
+  assert.equal(usuarioDoWindows({ env: {}, executar: () => "PC\\ana\r\n" }), "PC\\ana");
+
+  const chamadas = [];
+  restringirAoDono("C:\\x\\c.dump", {
+    plataforma: "win32",
+    env: { USERDOMAIN: "PC", USERNAME: "rafa" },
+    executar: (cmd, args) => { chamadas.push([cmd, args]); return ""; },
+    chmod: () => assert.fail("no Windows nao se usa chmod"),
+  });
+  assert.deepEqual(chamadas, [["icacls", ["C:\\x\\c.dump", "/inheritance:r", "/grant:r", "PC\\rafa:F"]]]);
+});
+
+test("no Windows, se o icacls falhar o roteiro RECUSA gravar, e a mensagem nao leva segredo", () => {
+  assert.throws(
+    () => restringirAoDono("C:\\x", {
+      plataforma: "win32",
+      pasta: true,
+      env: { USERNAME: "rafa" },
+      executar: () => { throw new Error("acesso negado"); },
+    }),
+    (erro) => erro instanceof ErroDeUso && /Recuso gravar a cópia/.test(erro.message),
+  );
+});
+
+test("no macOS e no Linux a pasta e 0700 e o arquivo 0600", () => {
+  for (const plataforma of ["darwin", "linux"]) {
+    const modos = [];
+    restringirAoDono("/x/pasta", { plataforma, pasta: true, chmod: (_c, m) => modos.push(m) });
+    restringirAoDono("/x/a.dump", { plataforma, chmod: (_c, m) => modos.push(m) });
+    assert.deepEqual(modos, [0o700, 0o600]);
+  }
+});
+
+test("a pasta de copias tem uma subpasta por ambiente, e so hml e prod", () => {
+  assert.equal(pastaDeCopias("prod"), join(PASTA_DE_COPIAS, "prod"));
+  assert.equal(pastaDeCopias("hml"), join(PASTA_DE_COPIAS, "hml"));
+  assert.throws(() => pastaDeCopias("dev"));
+  assert.equal(razaoParaRecusarAPasta(pastaDeCopias("hml")), null);
+});
+
+test("a copia de HML NAO vale como copia de PROD: cada ambiente olha a sua pasta", () => {
+  const raiz = mkdtempSync(join(tmpdir(), "dc360-copias-de-teste-"));
+  try {
+    const hml = pastaDeCopias("hml", raiz);
+    mkdirSync(hml, { recursive: true });
+    const caminho = join(hml, "2026-10-24T10-00-00.dump");
+    writeFileSync(caminho, Buffer.alloc(100, 1));
+    const umMinutoAtras = new Date(Date.now() - MINUTO);
+    utimesSync(caminho, umMinutoAtras, umMinutoAtras);
+    const decisaoHml = decidirSobreACopia({ argv: ["x", "--aplicar"], pasta: hml });
+    assert.equal(decisaoHml.situacao, "com_copia");
+    const decisaoProd = decidirSobreACopia({ argv: ["x", "--aplicar"], pasta: pastaDeCopias("prod", raiz) });
+    assert.equal(decisaoProd.situacao, "recusado", "so a copia de HML existe: PROD tem de recusar");
+    assert.equal(decisaoProd.pasta, join(raiz, "prod"));
+    assert.match(mensagemDeRecusaSemCopia(decisaoProd, "prod"), /--ambiente prod/);
+    assert.match(mensagemDeRecusaSemCopia(decisaoProd, "prod"), /PROD/);
+  } finally {
+    rmSync(raiz, { recursive: true, force: true });
+  }
+});
+
+test("a URL do pg_dump de HML usa o projeto de HML e nao o de PROD", () => {
+  const hml = { projeto: "hmlprojetoabcdef", host: "h.exemplo.test", porta: 5432 };
+  const url = new URL(montarUrlParaPgDump("x", CA_DO_PROVEDOR, hml));
+  assert.equal(url.username, "postgres.hmlprojetoabcdef");
+  assert.equal(url.hostname, "h.exemplo.test");
+  assert.doesNotMatch(url.toString(), /bppklrxxwjshxvkvwirw/);
 });
 
 test("a decisao usa a pasta e a janela de verdade quando ninguem as passa", () => {

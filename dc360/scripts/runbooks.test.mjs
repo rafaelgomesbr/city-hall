@@ -239,7 +239,7 @@ test("toda etapa citada como dependência existe no roadmap da F01", () => {
 test("os pontos que dependem de etapa futura estão marcados como tal", () => {
   const marcas = {
     "deploy.md": ["V2-F01-E08", "V2-F01-E11", "V2-F01-E12"],
-    "migracao.md": ["V2-F01-E11", "V2-F01-E15", "V2-F01-E18"],
+    "migracao.md": ["V2-F01-E11", "V2-F01-E12", "V2-F01-E18"],
     "rotacao-de-segredo.md": ["V2-F01-E11"],
     "acesso-e-segredos.md": ["V2-F01-E11", "V2-F01-E12"],
     "ensaio-da-segunda-pessoa.md": ["V2-F01-E08", "V2-F01-E11", "V2-F01-E12"],

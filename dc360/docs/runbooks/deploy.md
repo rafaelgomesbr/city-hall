@@ -62,7 +62,7 @@ Todas precisam ser verdadeiras. Se uma não for, pare.
    tag depende de V2-F01-E12.
 4. **Migração pendente?** Veja o que falta, sem escrever nada:
    ```bash
-   node scripts/migrar-producao.mjs
+   node scripts/migrar-producao.mjs --ambiente prod
    ```
    Se faltar alguma, o passo 2 abaixo é `migracao.md`, inteiro, e só depois
    vem a API. A API e o console **recusam subir** contra esquema atrasado.

@@ -13,24 +13,24 @@
 
 ## Limites de hoje (leia antes)
 
-- **Só roda no macOS.** A senha do banco é lida do chaveiro do Mac
-  (`scripts/producao.mjs`) e o `pg_dump` é procurado no PATH e no Homebrew.
-  Windows e Linux, e a escolha de ambiente (`--ambiente hml|prod`), dependem de
-  V2-F01-E15. O dump antes da migração no pipeline de HML depende de
-  V2-F01-E12 e V2-F01-E15.
-- **Os scripts `*-producao` só falam com PROD.** O projeto, o host e a porta de
-  produção estão fixos em `scripts/producao.mjs`. Para HML, enquanto a E15 não
-  chegar, o caminho é o do passo "Ensaio em HML" abaixo (`npm run migrar`
-  direto). HML em si depende de V2-F01-E11.
+- **Roda em Windows, Linux e macOS, por ambiente (V2-F01-E15).** Todo roteiro
+  `*-producao` exige `--ambiente hml|prod` e recusa sem ele. O projeto, o host e
+  a porta de cada ambiente vêm de `scripts/ambientes.json`; a senha vem da
+  variável `DC360_SENHA_BANCO_PROD` (ou `_HML`), do chaveiro do sistema (macOS e
+  Linux com `secret-tool`) ou de uma pergunta sem eco. Rodar nos três sistemas
+  foi testado por parâmetro; a execução de verdade no Windows e no Linux é
+  validação humana pendente.
+- **HML só tem banco declarado depois da V2-F01-E11.** Até lá `--ambiente hml`
+  recusa dizendo isso; o passo "Ensaio em HML" abaixo (`npm run migrar` direto)
+  continua sendo o caminho. O dump antes da migração no pipeline de HML depende de
+  V2-F01-E12 (ela chama o mesmo `copiar-producao.mjs --ambiente hml`).
 - **A trava contra migração concorrente e a regra de migração reversível**
   dependem de V2-F01-E18. Hoje a única proteção é cada arquivo rodar na própria
   transação e o aplicador recusar histórico reescrito (`db/src/migrar.ts`).
-- **A cópia que `copiar-producao.mjs` tira não passa `--extension=pg_trgm`**,
-  e `RESTORE-DO-BANCO.md` exige essa opção desde a migração 041. Restaurar essa
-  cópia exige criar a extensão no destino antes (ver a seção "Voltar atrás").
-  O conserto está descrito em `docs/IMPLANTACAO.md`, 8.2, e não pertence a
-  nenhuma etapa escrita até hoje (a E15 não o cita). Não se resolve neste
-  runbook.
+- **A cópia leva `--extension=pg_trgm` desde a V2-F01-E15.** Cópias tiradas
+  antes disso **não restauram** além da migração 041 (o `pg_restore
+  --exit-on-error` para no índice de busca): não confie nelas como ponto de
+  volta; tire uma nova.
 
 ## Regra que vem antes do comando: só migração aditiva ou compatível
 
@@ -58,11 +58,15 @@ uma migração cabe na regra é a leitura de uma pessoa, na revisão do PR
 4. Máquina com `pg_dump` da **mesma versão maior do servidor ou mais nova**
    (o servidor é 17.x). Confira sem tocar no banco:
    ```bash
-   node scripts/copiar-producao.mjs --conferir
+   node scripts/copiar-producao.mjs --ambiente prod --conferir
    ```
-   Sem `pg_dump`: `brew install libpq` e `export PATH="$(brew --prefix libpq)/bin:$PATH"`.
-5. A senha do banco está no chaveiro (conta `dc360`, item `senha-do-banco-dc360`).
-   O script lê dali e a senha nunca passa pela tela; não a cole em comando.
+   Sem `pg_dump`, a saída diz o que instalar no seu sistema (`brew install libpq` no
+   macOS; pacote `postgresql-client-17` no Debian e Ubuntu; instalador da EDB no
+   Windows). Instalado fora do PATH: `DC360_PG_DUMP` com o caminho completo.
+5. A senha do banco de PROD está onde o roteiro a encontra: variável de ambiente
+   `DC360_SENHA_BANCO_PROD` na sessão, chaveiro (macOS: conta `dc360`, item
+   `senha-do-banco-dc360`) ou, num terminal interativo, a pergunta sem eco. A senha
+   nunca passa pela tela; não a cole em comando.
 6. Ninguém tem ocorrência crítica em andamento. Avise o plantão do município
    (`docs/INDISPONIBILIDADE.md`, seção 3.2).
 
@@ -89,7 +93,7 @@ critérios da seção 7 de `docs/roadmap-v2/28-execucao-e-validacao.md`).
 ### 2. Conferir o que falta em PROD (não escreve nada)
 
 ```bash
-node scripts/migrar-producao.mjs
+node scripts/migrar-producao.mjs --ambiente prod
 ```
 
 Sai com código 1 quando falta migração: é o esperado, não é erro.
@@ -97,11 +101,14 @@ Sai com código 1 quando falta migração: é o esperado, não é erro.
 ### 3. Tirar a cópia
 
 ```bash
-node scripts/copiar-producao.mjs --conferir   # diz o que falta na máquina, sem tocar no banco
-node scripts/copiar-producao.mjs              # tira a cópia
+node scripts/copiar-producao.mjs --ambiente prod --conferir   # diz o que falta na máquina, sem tocar no banco
+node scripts/copiar-producao.mjs --ambiente prod              # tira a cópia
 ```
 
-Grava em `~/dc360-copias/<data>.dump`, com permissão 0600. O roteiro **recusa**
+Grava em `~/dc360-copias/prod/<data>.dump` (a pasta é por ambiente: cópia de HML
+não vale para PROD), legível só por você: 0600 no macOS e no Linux, ACL por
+`icacls` no Windows (se a ACL falhar, o roteiro recusa gravar). Leva
+`--extension=pg_trgm`. O roteiro **recusa**
 gravar dentro do repositório, em pasta sincronizada com nuvem (iCloud, Dropbox,
 Google Drive, OneDrive) e na Área de Trabalho: o dump traz dado real de
 cidadão e nunca pode virar histórico de git nem ir parar numa nuvem que não é
@@ -110,10 +117,10 @@ subprocessador. A cópia vale por **30 minutos** para o próximo passo.
 ### 4. Aplicar
 
 ```bash
-node scripts/migrar-producao.mjs --aplicar
+node scripts/migrar-producao.mjs --ambiente prod --aplicar
 ```
 
-Recusa sem cópia recente e para antes de ler a senha. A saída de escape
+Mostra o banco (sem a senha) antes de agir. Recusa sem cópia recente e para antes de ler a senha. A saída de escape
 `--sem-copia` existe para o dia em que a máquina não tem `pg_dump` e a migração
 não pode esperar; fica registrada na conclusão. Quem pula, pula por decisão, e a
 decisão vai para o relatório. Cada migração roda na própria transação: se uma
@@ -132,9 +139,9 @@ psql "postgresql://postgres.<PROJETO>:<SENHA>@aws-0-sa-east-1.pooler.supabase.co
 ```
 
 `<PROJETO>` e `<SENHA>` são o que o chaveiro e `docs/IMPLANTACAO.md` (8.2, passo
-4) descrevem; a senha vem do chaveiro por
-`security find-generic-password -a dc360 -s senha-do-banco-dc360 -w` e nunca é
-colada no histórico.
+4) descrevem; a senha vem do chaveiro no macOS
+(`security find-generic-password -a dc360 -s senha-do-banco-dc360 -w`) ou da
+variável `DC360_SENHA_BANCO_PROD` e nunca é colada no histórico.
 
 ### 6. Reimplantar a API (e o console, se a migração for uma que ele lê)
 
@@ -151,7 +158,7 @@ Cópia velha é dado pessoal sem finalidade.
 
 ## Verificação
 
-- `node scripts/migrar-producao.mjs` responde que o banco está em dia (código 0).
+- `node scripts/migrar-producao.mjs --ambiente prod` responde que o banco está em dia (código 0).
 - A consulta do passo 5 volta **vazia**; uma linha que seja é uma porta que o
   produto não projetou:
   ```sql
@@ -180,8 +187,8 @@ ordem de preferência é:
 3. **Restaurar a cópia:** só quando houver perda ou corrupção de dado, e a
    decisão é do município, porque restaurar perde o que entrou depois do ponto
    de cópia (`docs/INDISPONIBILIDADE.md`, 3.4). O roteiro é
-   `docs/RESTORE-DO-BANCO.md`. Lembre que a cópia deste runbook não traz a
-   extensão `pg_trgm` (ver "Limites de hoje"). O restore automatizado depende
+   `docs/RESTORE-DO-BANCO.md`. Lembre que cópias anteriores à
+   V2-F01-E15 não trazem a extensão `pg_trgm` e não restauram (ver "Limites de hoje"). O restore automatizado depende
    de F22-E03 e F22-E04, que não são desta etapa.
 
 Nunca `UPDATE` ou `DELETE` à mão em produção com a credencial de dono para
@@ -190,17 +197,16 @@ Nunca `UPDATE` ou `DELETE` à mão em produção com a credencial de dono para
 
 ## Segredo e dado pessoal nesta operação
 
-- A senha do banco mora no chaveiro do Mac do dono. Esse é um ponto único de
-  falha; o cofre decidido no CP-07 passa a guardar uma segunda cópia (ver
+- A senha do banco mora hoje no chaveiro do Mac do dono (ou na variável da sessão,
+  nunca em arquivo). Esse é um ponto único de falha; o cofre decidido no CP-07 passa a guardar uma segunda cópia (ver
   `acesso-e-segredos.md`).
-- O dump é dado de cidadão: arquivo 0600, fora de repositório e de nuvem, apagado
+- O dump é dado de cidadão: arquivo só do seu usuário, fora de repositório e de nuvem, apagado
   assim que a migração for conferida.
 - A segunda pessoa, até o CP-07, **não** migra PROD.
 
 ## O que este runbook ainda não cobre
 
 - HML para ensaiar: depende de V2-F01-E11.
-- `--ambiente`, Windows e Linux, senha sem chaveiro: depende de V2-F01-E15.
 - Dump e migração automáticos no pipeline de HML: depende de V2-F01-E12.
 - Trava de migração concorrente e migração reversível: depende de V2-F01-E18.
 - Restore testado a cada migração: F22-E03 e F22-E04.
