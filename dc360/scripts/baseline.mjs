@@ -252,8 +252,12 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     gatilho, ambiente protegido, token por app, imagem por digest, migration de
     HML antes da API, `/saude` com versão e commit, selo de HML, escritas de job
     nomeadas) e os casos negativos que estragam o workflow real de cada jeito.
+    A correção da revisão 1 da F01 acrescenta 4 casos ao MESMO arquivo (48 no
+    total): a promoção exige o run bem-sucedido do `deploy-hml.yml` pela API do
+    Actions, o digest do selo igual ao construído e a atestação de proveniência
+    assinada pelo `deploy-hml.yml`, e o deploy de HML atesta as duas imagens.
   */
-  "V2-F01-E02": 44,
+  "V2-F01-E02": 48,
   /*
     V2-F01-E10: `scripts/conferir-dominio.test.mjs` é novo, com 20 casos (os
     julgamentos puros de TLS, redirecionamento, HSTS, cabeçalhos do painel e

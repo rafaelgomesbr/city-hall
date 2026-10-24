@@ -23,9 +23,16 @@
 #   1. rodar a partir do ramo master (nunca de um ramo de prova);
 #   2. a tag existe, aponta exatamente para o SHA, o SHA está no histórico da
 #      master, e o nome da tag confere com a versão dos arquivos naquele commit;
-#   3. as DUAS imagens têm o selo `hml-ok-<sha>`: o `deploy-hml.yml` só o põe
-#      depois de migrar HML, implantar e conferir `/saude` de API e console. SHA
-#      sem deploy bem-sucedido em HML não tem selo e é recusado;
+#   3. a PROVA de HML, em três partes que se confirmam (a tag do GHCR sozinha
+#      não basta, porque quem tem escrita no pacote consegue pôr uma tag):
+#        a. pela API do Actions, existe um run do `deploy-hml.yml` com
+#           `head_sha` igual ao SHA, evento `workflow_run`, conclusão `success`
+#           e o job `aprovar` concluído com sucesso;
+#        b. as DUAS imagens têm o selo `hml-ok-<sha>` e o digest dele é IGUAL ao
+#           de `sha-<sha>` (a imagem construída é a aprovada);
+#        c. cada digest tem atestação de proveniência assinada pelo
+#           `deploy-hml.yml` deste repositório (`gh attestation verify
+#           --signer-workflow`). SHA sem deploy bem-sucedido em HML é recusado;
 #   4. a confirmação digitada é exatamente `PROMOVER <tag>`.
 #
 # A MIGRATION DE PROD NÃO É AUTOMÁTICA. A credencial de dono do banco de PROD não
@@ -46,7 +53,8 @@
 #
 # PERMISSÕES: o topo só lê. O job `promover` precisa de `contents: write` para
 # mover o ramo `producao` (é a única escrita em conteúdo, e o teste a trava
-# neste job). O job `validar` não tem ambiente nem segredo.
+# neste job). O job `validar` não tem ambiente nem segredo e só LÊ: `actions:
+# read` para consultar os runs do `deploy-hml.yml` e `packages: read` para o GHCR.
 #
 # Rollback: promover de novo uma versão anterior (as imagens e os selos ficam) ou
 # o procedimento de docs/runbooks/rollback.md.
@@ -97,6 +105,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
+      actions: read
       contents: read
       packages: read
     outputs:
@@ -151,9 +160,31 @@ jobs:
           echo "versao=$versao" >> "$GITHUB_OUTPUT"
           echo "commit=$SHA" >> "$GITHUB_OUTPUT"
 
-      # O selo `hml-ok-<sha>` é a prova de "passou por HML". Sem ele nas DUAS
-      # imagens, a promoção é recusada, sem tentar construir nada.
-      - name: Exigir o selo de aprovação em HML nas duas imagens
+      # Prova 3a: o deploy de HML deste SHA aconteceu de verdade. Consulta a API
+      # do Actions (e não uma tag que alguém com escrita no pacote poderia pôr).
+      # Sem segredo: só o GITHUB_TOKEN com `actions: read`.
+      - name: Exigir um deploy de HML bem-sucedido para o SHA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT: ${{ steps.pedido.outputs.commit }}
+        run: |
+          set -euo pipefail
+          runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-hml.yml/runs?head_sha=${COMMIT}&event=workflow_run&per_page=100")"
+          id="$(jq -r --arg sha "$COMMIT" '[.workflow_runs[] | select(.head_sha == $sha and .event == "workflow_run" and .conclusion == "success")] | sort_by(.created_at) | last | .id // empty' <<<"$runs")"
+          if [ -z "$id" ]; then
+            echo "::error::não há run bem-sucedido do deploy-hml.yml (evento workflow_run) para o commit $COMMIT: ele não passou por um deploy em HML"
+            exit 1
+          fi
+          # O run inteiro verde só vale se o último job (o selo) concluiu.
+          aprovado="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}/jobs?per_page=100" --jq '[.jobs[] | select(.name == "Marcar a versão como aprovada em HML" and .conclusion == "success")] | length')"
+          [ "$aprovado" = "1" ] || { echo "::error::o run $id do deploy-hml.yml não concluiu o job de aprovação em HML"; exit 1; }
+          echo "deploy de HML conferido: run $id"
+
+      # Prova 3b e 3c. O selo `hml-ok-<sha>` tem de apontar para o MESMO digest de
+      # `sha-<sha>` (a imagem que o workflow construiu), e esse digest tem de ter
+      # proveniência assinada pelo `deploy-hml.yml` deste repositório. Sem as
+      # duas imagens com tudo isso, a promoção é recusada, sem construir nada.
+      - name: Exigir o selo, o digest igual e a atestação nas duas imagens
         id: selo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -169,9 +200,19 @@ jobs:
               echo "::error::o commit $COMMIT não tem o selo hml-ok na imagem $alvo: ele não passou por um deploy bem-sucedido em HML"
               exit 1
             fi
+            construido="$(docker buildx imagetools inspect "$imagem:sha-$COMMIT" --format '{{.Manifest.Digest}}' 2>/dev/null || true)"
+            if [ "$digest" != "$construido" ]; then
+              echo "::error::o selo hml-ok da imagem $alvo ($digest) não é o digest construído para o commit ($construido)"
+              exit 1
+            fi
+            gh attestation verify "oci://$imagem@$digest" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/deploy-hml.yml" \
+              --deny-self-hosted-runners >/dev/null \
+              || { echo "::error::a imagem $alvo ($digest) não tem atestação de proveniência assinada pelo deploy-hml.yml"; exit 1; }
             echo "imagem_$alvo=$imagem" >> "$GITHUB_OUTPUT"
             echo "digest_$alvo=$digest" >> "$GITHUB_OUTPUT"
-            echo "$alvo aprovado em HML: $digest"
+            echo "$alvo aprovado em HML e atestado: $digest"
           done
 
   promover:

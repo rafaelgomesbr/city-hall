@@ -278,11 +278,17 @@ test("todo workflow: permissions mínimas, timeout, ações por SHA, runner com 
  *   - `construir` e `aprovar` (deploy-hml): publicar a imagem e pôr o selo no GHCR;
  *   - `painel` (deploy-hml): mover o ramo `homologacao`, de onde a Vercel publica;
  *   - `promover` (promover-producao): mover o ramo `producao`, idem;
+ *   - `construir:id-token` e `construir:attestations` (deploy-hml, correção da
+ *     revisão 1 da F01): a ação `actions/attest-build-provenance` assina com o
+ *     OIDC do run (`id-token`) e grava a atestação do digest (`attestations`).
+ *     É o que permite à promoção para PROD verificar, com `gh attestation
+ *     verify --signer-workflow`, que a imagem saiu do deploy-hml.yml e não de uma
+ *     tag `hml-ok-` posta à mão. As duas valem só no job `construir`.
  *   - `publicar` (sbom.yml, V2-F01-E19): anexar o SBOM ao Release da tag.
  * Qualquer outra escrita, ou estas em outro workflow, reprova.
  */
 export const ESCRITAS_PERMITIDAS = {
-  "deploy-hml.yml": ["aprovar:packages", "construir:packages", "painel:contents"],
+  "deploy-hml.yml": ["aprovar:packages", "construir:attestations", "construir:id-token", "construir:packages", "painel:contents"],
   "promover-producao.yml": ["promover:contents"],
   "sbom.yml": ["publicar:contents"],
 };
@@ -456,6 +462,20 @@ export function problemasDoDeployHml(texto) {
   if (checkouts.length < 2 || checkouts.some((m) => !/ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/.test(m[1]))) {
     p.push("todo checkout tem de usar ref: github.event.workflow_run.head_sha");
   }
+  // Proveniência assinada de cada digest (a promoção a verifica).
+  const construirTexto = construir?.texto ?? "";
+  const atestados = [...codigo(construirTexto).matchAll(/uses: actions\/attest-build-provenance@[0-9a-f]{40}[^\n]*\n\s+with:\n((?: {10}\S[^\n]*\n)+)/g)].map((m) => m[1]);
+  for (const alvo of ["api", "console"]) {
+    const bloco = atestados.find((b) => b.includes(`steps.publicar.outputs.digest_${alvo}`));
+    if (!bloco) p.push(`construir sem atestação de proveniência do digest da imagem ${alvo}`);
+    else if (!/push-to-registry:\s*true/.test(bloco)) p.push(`a atestação da imagem ${alvo} não vai para o registro (push-to-registry)`);
+  }
+  if (!/^ {6}id-token:\s*write\s*$/m.test(construirTexto) || !/^ {6}attestations:\s*write\s*$/m.test(construirTexto)) {
+    p.push("construir sem id-token e attestations write (a atestação não assina)");
+  }
+  if (job(texto, "aprovar") && !/^ {4}name:\s*Marcar a versão como aprovada em HML\s*$/m.test(job(texto, "aprovar").texto)) {
+    p.push("o nome do job aprovar mudou: a promoção o procura pelo nome na API do Actions");
+  }
   if (ambienteDoJob(job(texto, "implantar") ?? { texto: "" }) !== "homologacao") p.push("o job implantar tem de usar o ambiente homologacao");
   if (/\bproducao\b/.test(c.replace(/dc360-copias|copiar-producao|migrar-producao|producao\.mjs/g, ""))) p.push("deploy de HML cita producao");
   // Nada de PROD: nem os apps, nem os arquivos de configuração.
@@ -544,6 +564,20 @@ export function problemasDaPromocao(texto) {
     "migracao_confirmada",
   ]) {
     if (!(validar.texto + c).includes(exigido === "migracao_confirmada" ? "inputs.migracao_confirmada" : exigido)) p.push(`validar não confere \`${exigido}\``);
+  }
+  // A tag do GHCR sozinha não prova HML: run do Actions, digest igual e atestação.
+  const v = codigo(validar.texto);
+  if (!/^ {6}actions:\s*read\s*$/m.test(validar.texto)) p.push("validar sem actions: read (não consulta os runs do deploy-hml.yml)");
+  for (const [exigido, rotulo] of [
+    [/actions\/workflows\/deploy-hml\.yml\/runs\?head_sha=\$\{COMMIT\}&event=workflow_run/, "a consulta aos runs do deploy-hml.yml por head_sha e evento workflow_run"],
+    [/\.head_sha == \$sha and \.event == "workflow_run" and \.conclusion == "success"/, "head_sha, evento workflow_run e conclusão success do run"],
+    [/Marcar a versão como aprovada em HML.*\.conclusion == "success"/, "o job de aprovação do run concluído com sucesso"],
+    [/imagetools inspect "\$imagem:sha-\$COMMIT"/, "o digest de sha-<sha>"],
+    [/if \[ "\$digest" != "\$construido" \]/, "o digest do selo igual ao digest construído"],
+    [/gh attestation verify "oci:\/\/\$imagem@\$digest"/, "gh attestation verify do digest"],
+    [/--signer-workflow "\$GITHUB_REPOSITORY\/\.github\/workflows\/deploy-hml\.yml"/, "a atestação assinada pelo deploy-hml.yml deste repositório (--signer-workflow)"],
+  ]) {
+    if (!exigido.test(v)) p.push(`validar não confere ${rotulo}`);
   }
   // A migration de PROD nunca entra em CI (ADR 0008), e HML não aparece aqui.
   if (/migrar-producao|copiar-producao|DC360_SENHA_BANCO|--aplicar/.test(c.replace(/docs\/runbooks\/migracao\.md/g, ""))) p.push("a promoção toca o banco: a migration de PROD é manual (ADR 0008)");
@@ -855,11 +889,50 @@ test("negativo E12: promover o painel antes de conferir o console, ou implantar 
 test("negativo E12: escrita fora da lista (permissão a mais, ou a mesma em outro job) reprova", () => {
   const virou = estragar(
     prod,
-    "    timeout-minutes: 15\n    permissions:\n      contents: read",
-    "    timeout-minutes: 15\n    permissions:\n      contents: write",
+    "    timeout-minutes: 15\n    permissions:\n      actions: read\n      contents: read",
+    "    timeout-minutes: 15\n    permissions:\n      actions: read\n      contents: write",
   );
   assert.deepEqual(escritasDeJobs(virou), ["promover:contents", "validar:contents"]);
   assert.notDeepEqual(escritasDeJobs(virou), ESCRITAS_PERMITIDAS[PROD]);
   assert.deepEqual(escritasDeJobs(hml), ESCRITAS_PERMITIDAS[HML]);
   assert.deepEqual(escritasDeJobs(BOM), []);
+});
+
+test("negativo E12 (revisão 1): promover sem run bem-sucedido do deploy-hml.yml para o SHA, ou só pela tag, reprova", () => {
+  const semRun = prod.replace(/ {6}- name: Exigir um deploy de HML bem-sucedido para o SHA[\s\S]*?\n(?= {6}# Prova 3b)/, "");
+  assert.notEqual(semRun, prod);
+  achou(problemasDaPromocao(semRun), /consulta aos runs do deploy-hml\.yml/);
+  achou(problemasDaPromocao(estragar(prod, '.head_sha == $sha and .event == "workflow_run" and .conclusion == "success"', '.head_sha == $sha')), /head_sha, evento workflow_run e conclusão success/);
+  achou(problemasDaPromocao(estragar(prod, "&event=workflow_run", "")), /consulta aos runs do deploy-hml\.yml/);
+  achou(problemasDaPromocao(estragar(prod, '.name == "Marcar a versão como aprovada em HML" and .conclusion == "success"', '.name == "Marcar a versão como aprovada em HML"')), /job de aprovação/);
+  achou(problemasDaPromocao(estragar(prod, "    permissions:\n      actions: read\n", "    permissions:\n")), /actions: read/);
+  assert.equal(escritasDeJobs(prod).includes("validar:actions"), false);
+});
+
+test("negativo E12 (revisão 1): selo hml-ok com digest diferente do construído reprova", () => {
+  const semConferir = prod.replace(/ {12}if \[ "\$digest" != "\$construido" \]; then\n[\s\S]*?\n {12}fi\n/, "");
+  assert.notEqual(semConferir, prod);
+  achou(problemasDaPromocao(semConferir), /digest do selo igual ao digest construído/);
+  achou(problemasDaPromocao(estragar(prod, 'imagetools inspect "$imagem:sha-$COMMIT"', 'imagetools inspect "$imagem:hml-ok-$COMMIT"')), /digest de sha-<sha>/);
+});
+
+test("negativo E12 (revisão 1): promoção sem verificar a atestação assinada pelo deploy-hml.yml reprova", () => {
+  achou(problemasDaPromocao(estragar(prod, 'gh attestation verify "oci://$imagem@$digest"', 'echo "oci://$imagem@$digest"')), /gh attestation verify/);
+  achou(problemasDaPromocao(estragar(prod, ".github/workflows/deploy-hml.yml\"", ".github/workflows/outro.yml\"")), /--signer-workflow/);
+  achou(problemasDaPromocao(prod.replace(/ *--signer-workflow [^\n]*\n/, "")), /--signer-workflow/);
+});
+
+test("negativo E12 (revisão 1): o deploy de HML sem atestar o digest de cada imagem, ou sem id-token e attestations, reprova", () => {
+  const semAtestar = hml.replace(/ {6}- name: Atestar a proveniência da imagem da API[\s\S]*?\n(?= {6}- name: Atestar a proveniência da imagem do console)/, "");
+  assert.notEqual(semAtestar, hml);
+  achou(problemasDoDeployHml(semAtestar), /sem atestação de proveniência do digest da imagem api/);
+  achou(problemasDoDeployHml(estragar(hml, "          subject-digest: ${{ steps.publicar.outputs.digest_console }}\n          push-to-registry: true", "          subject-digest: ${{ steps.publicar.outputs.digest_console }}")), /push-to-registry/);
+  achou(problemasDoDeployHml(estragar(hml, "      id-token: write\n", "")), /id-token e attestations/);
+  achou(problemasDoDeployHml(estragar(hml, "name: Marcar a versão como aprovada em HML", "name: Aprovar")), /nome do job aprovar mudou/);
+  // As escritas novas valem só no job construir.
+  assert.deepEqual(escritasDeJobs(hml), ESCRITAS_PERMITIDAS[HML]);
+  const aprovarComIdToken = hml.replace("    timeout-minutes: 10\n    permissions:\n      contents: read\n      packages: write", "    timeout-minutes: 10\n    permissions:\n      contents: read\n      packages: write\n      id-token: write");
+  assert.ok(escritasDeJobs(aprovarComIdToken).includes("aprovar:id-token"));
+  assert.notDeepEqual(escritasDeJobs(aprovarComIdToken), ESCRITAS_PERMITIDAS[HML]);
+  assert.notDeepEqual(escritasDeJobs(estragar(hml, "      attestations: write\n", "")), ESCRITAS_PERMITIDAS[HML]);
 });

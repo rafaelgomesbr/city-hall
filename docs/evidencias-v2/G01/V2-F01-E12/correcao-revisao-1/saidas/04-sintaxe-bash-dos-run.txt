@@ -1,0 +1,2 @@
+deploy-hml.yml: 12 blocos run verificados
+promover-producao.yml: 12 blocos run verificados
