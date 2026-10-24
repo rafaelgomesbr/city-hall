@@ -1,0 +1,170 @@
+[
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E22/correcao-4/sondas/referencias-a-arquivo.mjs",
+    "linha": 10,
+    "commit": "4ce0433",
+    "valor": "REDACTED",
+    "entropia": 3.52
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E10/correcao-3/saidas/42-migracao-051-por-cima-de-banco-existente.txt",
+    "linha": 2,
+    "commit": "0bb347b",
+    "valor": "REDACTED",
+    "entropia": 3.65
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E10/correcao-3/saidas/42-migracao-051-por-cima-de-banco-existente.txt",
+    "linha": 3,
+    "commit": "0bb347b",
+    "valor": "REDACTED",
+    "entropia": 3.65
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E10/correcao-3/saidas/42-migracao-051-por-cima-de-banco-existente.txt",
+    "linha": 4,
+    "commit": "0bb347b",
+    "valor": "REDACTED",
+    "entropia": 3.65
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/01-ins02-api-5-rodadas-sob-carga16.txt",
+    "linha": 10,
+    "commit": "9a47509",
+    "valor": "REDACTED",
+    "entropia": 3.51
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/01-ins02-api-5-rodadas-sob-carga16.txt",
+    "linha": 102,
+    "commit": "9a47509",
+    "valor": "REDACTED",
+    "entropia": 3.51
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/01-ins02-api-5-rodadas-sob-carga16.txt",
+    "linha": 139,
+    "commit": "9a47509",
+    "valor": "REDACTED",
+    "entropia": 3.51
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/01-ins02-api-5-rodadas-sob-carga16.txt",
+    "linha": 177,
+    "commit": "9a47509",
+    "valor": "REDACTED",
+    "entropia": 3.51
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E22/correcao-3/sondas/referencias-a-arquivo.mjs",
+    "linha": 10,
+    "commit": "56d0a24",
+    "valor": "REDACTED",
+    "entropia": 3.52
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E12/correcao-3/sonda/sonda.mts",
+    "linha": 212,
+    "commit": "4d6ee71",
+    "valor": "REDACTED",
+    "entropia": 3.62
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E12/validacao/4b96ea7/seguranca-aplicacao.md",
+    "linha": 33,
+    "commit": "7d9ed8d",
+    "valor": "REDACTED",
+    "entropia": 3.68
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "scripts/roadmap/relatorio-visual.test.mjs",
+    "linha": 175,
+    "commit": "c86f197",
+    "valor": "REDACTED",
+    "entropia": 3.58
+  },
+  {
+    "regra": "jwt",
+    "arquivo": "scripts/roadmap/conferir-evidencia.test.mjs",
+    "linha": 178,
+    "commit": "0b32d38",
+    "valor": "REDACTED",
+    "entropia": 4.91
+  },
+  {
+    "regra": "jwt",
+    "arquivo": "scripts/roadmap/conferir-evidencia.test.mjs",
+    "linha": 217,
+    "commit": "0b32d38",
+    "valor": "REDACTED",
+    "entropia": 4.91
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E25/saidas/03-migrar-origem.txt",
+    "linha": 56,
+    "commit": "99390e0",
+    "valor": "REDACTED",
+    "entropia": 3.65
+  },
+  {
+    "regra": "jwt",
+    "arquivo": "dc360/scripts/baseline.test.mjs",
+    "linha": 58,
+    "commit": "5d6bc57",
+    "valor": "REDACTED",
+    "entropia": 4.71
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E07/saidas/20-migrar-do-zero.txt",
+    "linha": 56,
+    "commit": "afde25c",
+    "valor": "REDACTED",
+    "entropia": 3.65
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E10/saidas/02-sonda-antes-do-conserto-api.txt",
+    "linha": 60,
+    "commit": "afde25c",
+    "valor": "REDACTED",
+    "entropia": 4.93
+  },
+  {
+    "regra": "generic-api-key",
+    "arquivo": "docs/evidencias-v2/G00/V2-F00-E10/saidas/02-sonda-antes-do-conserto-api.txt",
+    "linha": 60,
+    "commit": "afde25c",
+    "valor": "REDACTED",
+    "entropia": 4.93
+  },
+  {
+    "regra": "private-key",
+    "arquivo": "dc360/apps/api/test/push-segredo.test.ts",
+    "linha": 26,
+    "commit": "eafc4ca",
+    "valor": "REDACTED",
+    "entropia": 4.94
+  },
+  {
+    "regra": "gcp-api-key",
+    "arquivo": "dc360/apps/campo/google-services.json",
+    "linha": 18,
+    "commit": "a8e100f",
+    "valor": "REDACTED",
+    "entropia": 4.8
+  }
+]

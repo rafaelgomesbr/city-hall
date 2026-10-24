@@ -1,0 +1,22 @@
+# 3b. PR de prova com token SINTETICO (gerado ao acaso agora, nunca real, nao impresso): esperado codigo 1
+Finding:     const t = "REDACTED";
+Secret:      REDACTED
+RuleID:      github-pat
+Entropy:     4.853056
+File:        src/token-sintetico.ts
+Line:        1
+Commit:      1caaf2b2466736f3bf2845f0dd3b79a1081d91af
+Author:      Prova
+Email:       prova@example.invalid
+Date:        2026-10-24T15:35:52Z
+Fingerprint: 1caaf2b2466736f3bf2845f0dd3b79a1081d91af:src/token-sintetico.ts:github-pat:1
+
+12:35PM INF 2 commits scanned.
+12:35PM INF scanned ~6098 bytes (6.10 KB) in 113ms
+12:35PM WRN leaks found: 1
+codigo de saida: 1
+
+# o relatorio JSON gravado em disco tambem esta redigido? (o token inteiro NAO pode aparecer nele)
+ok: o token inteiro nao aparece no relatorio
+"Secret": "REDACTED"
+"RuleID": "github-pat"

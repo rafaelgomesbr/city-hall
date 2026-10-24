@@ -1,0 +1,5 @@
+# varredura do historico (todos os ramos locais) com o .gitleaks.toml do repositorio
+12:35PM INF 268 commits scanned.
+12:35PM INF scanned ~64344652 bytes (64.34 MB) in 2.45s
+12:35PM INF no leaks found
+codigo de saida: 0

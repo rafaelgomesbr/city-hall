@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 <worktree>/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 860ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  447ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  12:36:13
+   Duration  1.14s (transform 88ms, setup 0ms, collect 83ms, tests 860ms, environment 0ms, prepare 49ms)
+

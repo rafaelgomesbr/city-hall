@@ -1,0 +1,5 @@
+# varredura do historico (todos os ramos locais) com as regras padrao, SEM allowlist
+12:35PM INF 268 commits scanned.
+12:35PM INF scanned ~64344652 bytes (64.34 MB) in 3.19s
+12:35PM WRN leaks found: 21
+codigo de saida: 1

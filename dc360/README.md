@@ -1985,6 +1985,35 @@ portão, no executor embutido do node. Eles cobrem a regra (quando falhar,
 quando pular, como contar) e também a fiação, que é onde o defeito estava: a
 regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 
+### Varredura de segredos (gitleaks)
+
+Segredo commitado por engano é barrado antes do merge. O workflow
+`.github/workflows/segredos.yml` (job "Varredura de segredos") baixa o binário
+oficial do gitleaks em versão fixa, confere o SHA-256 escrito no próprio
+workflow e varre o histórico completo com `--redact`, de modo que um achado nunca
+imprime o valor do segredo no log nem no relatório. Ele só lê o repositório e não
+recebe nenhum segredo. A configuração é o `.gitleaks.toml` da raiz: parte das
+regras padrão e só acrescenta exceções estreitas, cada uma com a razão escrita.
+Exceção por caminho aponta um arquivo inteiro e uma regra; pasta inteira não
+entra, e `scripts/politica-de-segredos.test.mjs` reprova caminho que deixou de
+existir. Segredo real achado no histórico não vira exceção: é rotacionado (para o
+`JWT_SEGREDO`, `scripts/rotacionar-segredo.mjs`) e só então o achado é tratado.
+
+**Instalar o hook de pre-commit (opcional, por máquina).** Ele varre o que está em
+stage antes de o commit existir. O CI é o portão que vale; o hook só adianta o
+aviso.
+
+```bash
+# gitleaks 8.25 ou mais novo (brew install gitleaks, ou o binário do release oficial)
+cd dc360
+npm run preparar                   # git config core.hooksPath .githooks
+git config --unset core.hooksPath  # para desligar
+```
+
+Sem o gitleaks instalado o hook apenas avisa e deixa o commit seguir. Atenção: o
+`core.hooksPath` é configuração do repositório inteiro, e vale também para os
+worktrees dele.
+
 ## O que falta, e por quê
 
 - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em

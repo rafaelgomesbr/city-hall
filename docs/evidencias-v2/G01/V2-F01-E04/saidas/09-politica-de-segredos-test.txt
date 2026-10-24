@@ -1,0 +1,35 @@
+▶ allowlist do .gitleaks.toml
+  ✔ cumpre a política: arquivos existentes, razão escrita, regra-alvo, sem curinga (1.212417ms)
+  ✔ tem as exceções que a E04 triou (nem mais pouco, nem a pasta de testes inteira) (0.174625ms)
+  ✔ reprova caminho que não existe (0.119042ms)
+  ✔ reprova pasta inteira, curinga e padrão que não é arquivo (0.142208ms)
+  ✔ reprova exceção sem razão, sem regra-alvo ou sem critério nenhum (0.104792ms)
+  ✔ reprova regex ampla demais e config que desliga as regras padrão (0.480125ms)
+  ✔ não aceita linha que o leitor não entende (não ignora em silêncio) (0.190875ms)
+✔ allowlist do .gitleaks.toml (2.913333ms)
+▶ hook .githooks/pre-commit
+  ✔ existe, começa com shebang de bash e varre só o que está em stage, com relatório redigido (0.170541ms)
+  ✔ é executável (0.063042ms)
+  ✔ no índice do git o hook está versionado como executável (100755), que é o que Linux e macOS obedecem (11.680875ms)
+  ✔ sem gitleaks instalado: só avisa e deixa o commit seguir (120.687708ms)
+  ✔ com gitleaks que acusa: o commit é barrado e o gitleaks recebe --staged, --redact e a configuração (401.75825ms)
+  ✔ com gitleaks que não acha nada: o commit segue (426.923416ms)
+✔ hook .githooks/pre-commit (961.538417ms)
+▶ workflow segredos.yml
+  ✔ chama o gitleaks no histórico completo, redigido e com a configuração do repositório (0.248625ms)
+  ✔ segue as regras de workflow da fundação: permissão mínima, prazo, runner e ações fixadas (0.370458ms)
+  ✔ fixa o binário do gitleaks por versão e SHA-256, sem ação de terceiro licenciada (8.171292ms)
+  ✔ não recebe segredo nenhum (nem GITHUB_TOKEN explícito) nem escreve no repositório (0.07225ms)
+✔ workflow segredos.yml (8.959417ms)
+▶ script preparar
+  ✔ aponta core.hooksPath para .githooks, a pasta onde o hook mora (0.182ms)
+  ✔ não é um gancho automático do npm (hook é opt-in por máquina) (0.081416ms)
+✔ script preparar (0.302209ms)
+ℹ tests 19
+ℹ suites 4
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1021.646584

@@ -32,6 +32,7 @@
     "provisionar": "npm run provisionar --workspace @dc360/api --",
     "test:e2e:api": "node scripts/e2e-api.mjs",
     "build:shared": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo",
-    "auditar": "node scripts/auditar.mjs"
+    "auditar": "node scripts/auditar.mjs",
+    "preparar": "git config core.hooksPath .githooks"
   }
 }

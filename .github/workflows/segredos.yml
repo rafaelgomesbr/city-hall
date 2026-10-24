@@ -1,0 +1,98 @@
+# Varredura de segredos do DC360 (V2-F01-E04).
+#
+# O que ele impõe, e por quê:
+#
+# - Segredo commitado por engano é barrado antes do merge. O histórico
+#   COMPLETO é varrido (`fetch-depth: 0`), porque um segredo apagado no commit
+#   seguinte continua vivo no histórico.
+# - O binário do gitleaks vem do release oficial em versão fixa, com SHA-256
+#   conferido contra o valor escrito aqui. Não usamos a ação de terceiro
+#   `gitleaks/gitleaks-action` (licença paga para organização): o CI baixa o
+#   tarball, confere o hash e roda o comando.
+# - O workflow não recebe segredo nenhum e só lê o repositório. O relatório
+#   sai com `--redact`: se houver achado, o valor não aparece no log nem no
+#   artefato.
+# - O nome do job (`Varredura de segredos`) é contrato com o ruleset de E01:
+#   renomear exige atualizar a regra.
+#
+# Para subir a versão do gitleaks: troque GITLEAKS_VERSAO e GITLEAKS_SHA256
+# juntos, com o hash tirado de `gitleaks_<versão>_checksums.txt` do release.
+# `dc360/scripts/politica-de-segredos.test.mjs` confere que os dois existem.
+
+name: Segredos
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# Cancela execução antiga do mesmo ramo: revisar resultado de commit que já
+# foi substituído é desperdício de fila.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GITLEAKS_VERSAO: "8.30.1"
+  # SHA-256 de gitleaks_8.30.1_linux_x64.tar.gz, igual ao do arquivo
+  # gitleaks_8.30.1_checksums.txt publicado no release oficial.
+  GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+
+jobs:
+  segredos:
+    name: Varredura de segredos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      # Histórico inteiro, não só o último commit. Sem credencial gravada no
+      # .git: este job só lê.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Instalar gitleaks (versão fixa, SHA-256 conferido)
+        run: |
+          set -euo pipefail
+          arquivo="gitleaks_${GITLEAKS_VERSAO}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location \
+            --output "${RUNNER_TEMP}/${arquivo}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSAO}/${arquivo}"
+          echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${arquivo}" | sha256sum --check --strict
+          mkdir -p "${RUNNER_TEMP}/gitleaks"
+          tar -xzf "${RUNNER_TEMP}/${arquivo}" -C "${RUNNER_TEMP}/gitleaks" gitleaks
+          "${RUNNER_TEMP}/gitleaks/gitleaks" version
+
+      - name: Varrer o histórico completo
+        run: |
+          set -euo pipefail
+          mkdir -p relatorio-segredos
+          # `git` varre os commits; `--redact` esconde o valor no log e no
+          # relatório; sem `--exit-code` o padrão é 1 quando há achado.
+          # `HEAD` = tudo o que o commit testado alcança (a PR inteira e o
+          # histórico da base). Não é `--all`: um ramo de prova esquecido no
+          # remoto não pode deixar vermelha toda PR que não tem relação com ele.
+          "${RUNNER_TEMP}/gitleaks/gitleaks" git \
+            --config .gitleaks.toml \
+            --redact \
+            --no-banner \
+            --verbose \
+            --report-format json \
+            --report-path relatorio-segredos/gitleaks.json \
+            --log-opts="HEAD"
+
+      # Relatório redigido (sem o valor do segredo). Sobe mesmo com achado,
+      # que é quando ele serve.
+      - name: Guardar o relatório redigido
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: relatorio-segredos
+          path: relatorio-segredos/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Hook de pre-commit do DC360 (V2-F01-E04): varre o que está em stage com o
+# gitleaks antes do commit existir.
+#
+# - Opcional por máquina. Quem não instalou o gitleaks recebe um AVISO e o
+#   commit segue: o portão que vale é o CI (`.github/workflows/segredos.yml`).
+# - Ativação: `cd dc360 && npm run preparar` (aponta core.hooksPath para
+#   .githooks). Desativar: `git config --unset core.hooksPath`.
+# - Achado barra o commit. O relatório sai com --redact (valor escondido).
+#   Falso positivo de verdade vai para o .gitleaks.toml, com razão escrita;
+#   `git commit --no-verify` existe, mas o CI barra do mesmo jeito.
+
+set -u
+
+raiz="$(git rev-parse --show-toplevel)" || exit 0
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "AVISO (pre-commit): gitleaks não está instalado, a varredura de segredos local foi PULADA." >&2
+  echo "  O CI (workflow Segredos) ainda barra segredo no PR. Para instalar: https://github.com/gitleaks/gitleaks#installing" >&2
+  exit 0
+fi
+
+exec gitleaks git --pre-commit --staged --redact --no-banner --verbose --config "${raiz}/.gitleaks.toml" "${raiz}"
