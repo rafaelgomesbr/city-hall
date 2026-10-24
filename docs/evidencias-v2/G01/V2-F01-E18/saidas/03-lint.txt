@@ -1,0 +1,12 @@
+
+> dc360@0.1.0 lint
+> node scripts/lint.mjs
+
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+FALHA: apps/campo/node_modules não existe, e sem ele o lint com tipos do aplicativo não mede nada. Rode `npm ci` em dc360/apps/campo.
+REPROVADO: aplicativo de campo (código 2)
+exit 2

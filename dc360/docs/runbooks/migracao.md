@@ -24,9 +24,22 @@
   recusa dizendo isso; o passo "Ensaio em HML" abaixo (`npm run migrar` direto)
   continua sendo o caminho. O dump antes da migração no pipeline de HML depende de
   V2-F01-E12 (ela chama o mesmo `copiar-producao.mjs --ambiente hml`).
-- **A trava contra migração concorrente e a regra de migração reversível**
-  dependem de V2-F01-E18. Hoje a única proteção é cada arquivo rodar na própria
-  transação e o aplicador recusar histórico reescrito (`db/src/migrar.ts`).
+- **Uma migração de cada vez por banco (V2-F01-E18).** O aplicador toma uma
+  trava de sessão do Postgres (`pg_try_advisory_lock`) antes de ler o registro e a
+  larga no fim, sucesso ou erro. Quem chega com a trava ocupada espera até 60 s e,
+  sem obtê-la, sai com **código 3** e a frase "Outra migração está em andamento".
+  Isso não é falha da migração: é só esperar a outra terminar e rodar de novo (o
+  que já foi aplicado é ignorado). A trava solta sozinha se a conexão da outra
+  cair. Só vale na **conexão direta (porta 5432)**: na 6543 (pooler em modo
+  transação) o comando recusa antes de conectar, com código 2. Dentro disso
+  continuam valendo a transação por arquivo e a recusa de histórico reescrito
+  (`db/src/migrar.ts`).
+- **Toda migração nova traz a volta (V2-F01-E18).** A volta é um arquivo de
+  mesmo nome na subpasta `db/migrations/desfazer/` (a volta da 052 tem o nome da
+  própria 052), ou então a migração declara, no topo, o cabeçalho `-- IRREVERSIVEL: motivo; aprovado por NOME; AAAA-MM-DD`
+  no topo da própria migração. As 001 a 051 estão isentas por lista declarada em
+  `db/src/regras-de-migracao.ts`. O teste `db/test/migracoes-regras.test.ts`
+  (parte do `npm run test:isolamento`) reprova o PR que esquecer.
 - **A cópia leva `--extension=pg_trgm` desde a V2-F01-E15.** Cópias tiradas
   antes disso **não restauram** além da migração 041 (o `pg_restore
   --exit-on-error` para no índice de busca): não confie nelas como ponto de
@@ -174,10 +187,12 @@ Cópia velha é dado pessoal sem finalidade.
 
 ## Voltar atrás (rollback)
 
-**Não existe "desfazer migração".** O aplicador não tem migração de volta, e a
-regra de migração reversível depende de V2-F01-E18 (e, mesmo então, o desfazer
-é só fora de PROD). O ponto de volta é a **cópia** do passo 3, e o caminho em
-ordem de preferência é:
+**Em produção não existe "desfazer migração".** O `npm run migrar -- --desfazer`
+(V2-F01-E18) desfaz só a ÚLTIMA migração, só em banco de desenvolvimento ou HML,
+e se recusa com `AMBIENTE_DC360=prod`, com `NODE_ENV=production` e com URL que
+traga a identidade de um banco de produção, porque desfazer apaga dado. As 001 a
+051 nem têm volta. O ponto de volta em produção é a **cópia** do passo 3, e o
+caminho em ordem de preferência é:
 
 1. **Corrigir para a frente:** uma migração nova, aditiva, que conserta. Quase
    sempre é o certo, porque a migração anterior era compatível.
@@ -208,5 +223,5 @@ Nunca `UPDATE` ou `DELETE` à mão em produção com a credencial de dono para
 
 - HML para ensaiar: depende de V2-F01-E11.
 - Dump e migração automáticos no pipeline de HML: depende de V2-F01-E12.
-- Trava de migração concorrente e migração reversível: depende de V2-F01-E18.
+- A prova da trava com dois migradores de verdade (dois `pg.Client` contra Postgres real) roda no job `implantavel`, que precisa chamar `db/test/trava-de-migracao.test.ts` com `DC360_POSTGRES_DE_PROVA` (ver `db/PENDENCIAS.md`, item 7).
 - Restore testado a cada migração: F22-E03 e F22-E04.

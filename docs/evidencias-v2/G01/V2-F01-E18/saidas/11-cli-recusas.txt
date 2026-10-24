@@ -1,0 +1,12 @@
+$ AMBIENTE_DC360=prod npm run migrar -- --desfazer
+--desfazer não é permitido com AMBIENTE_DC360=prod: desfazer apaga dado. Em produção, corrija com uma migração nova (aditiva) ou restaure a cópia (runbook de restore).
+exit 1
+
+$ DATABASE_URL=postgres://...:6543/postgres npm run migrar
+A DATABASE_URL aponta para a porta 6543 (pooler em modo transação). A trava que impede duas migrações simultâneas é de sessão e não funciona nesse caminho. Migre pela conexão direta, porta 5432.
+exit 2
+
+$ npm run migrar -- --desfazer   (banco efemero vazio)
+DATABASE_URL ausente: migrando um Postgres em WebAssembly efêmero. Serve para conferir a sintaxe das migrações, não para preparar um banco real.
+Nenhuma migração aplicada: nada a desfazer.
+exit 0
