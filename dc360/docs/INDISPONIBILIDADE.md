@@ -223,6 +223,12 @@ madrugada do temporal, começa por descobrir para quem ligar. Os dois nomes do
 fornecedor são a primeira coisa a preencher; os dois do município entram na
 reunião da seção 1 de `IMPLANTACAO.md`, que já pede o administrador.
 
+**Quem opera quando o dono não pode** (rascunho da V2-F01-E16, depende do CP-07):
+os procedimentos de implantar, voltar uma implantação, migrar, girar segredo e
+conceder acesso estão em `docs/runbooks/` (comece por `README.md`). A segunda
+pessoa, o canal de alerta e o plantão ainda não existem: dependem do CP-07, de
+V2-F01-E14 e de F21-E06, e as quatro linhas acima continuam vazias até lá.
+
 Sem plantão de 24 horas contratado, o compromisso é **melhor esforço**, e isso
 precisa estar escrito no contrato. Prometer 24 por 7 sem escala de plantão é
 prometer o que não se cumpre, e o dia da cobrança será o dia do temporal.

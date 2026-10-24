@@ -325,6 +325,28 @@ minuta.
 
 ---
 
+## Acesso técnico do fornecedor à infraestrutura (rascunho do CP-07)
+
+Os quatro papéis acima são os de quem usa o produto. Há um quinto grupo, que não
+tem papel no produto e que alcança a infraestrutura: as pessoas do fornecedor que
+operam o sistema. Hoje é uma só. A V2-F01-E16 propõe uma segunda, e o CP-07
+(decisão do Rafael) diz quem é e quanto acesso tem. **Nada abaixo foi
+concedido.**
+
+| Função | Finalidade | Acesso padrão | Prazo |
+| --- | --- | --- | --- |
+| Dono da plataforma | Operar, implantar, migrar, girar segredo, conceder acesso | Tudo | Sem prazo; revisão trimestral |
+| Operador técnico reserva (segunda pessoa) | Manter o serviço no ar e recuperá-lo quando o dono não puder | Só homologação, com dado sintético. Em produção, apenas a recuperação por cofre, com registro de cada abertura | O registrado na ficha de concessão; revisão trimestral; expira se não for renovado |
+
+Quem opera a infraestrutura alcança dado pessoal de cidadão em produção
+(banco, armazenamento, logs). Por isso o acesso a produção é a exceção, com
+função, finalidade e prazo escritos, e nunca para consulta por curiosidade ou
+suporte: para a pergunta específica de um município existe a trilha e o telefone
+com quem o administra. O detalhe por conta, o nome dos segredos e a revogação
+estão em `docs/runbooks/acesso-e-segredos.md`.
+
+---
+
 ## Nove perguntas para o primeiro coordenador
 
 Na ordem de quanto cada resposta muda o produto:

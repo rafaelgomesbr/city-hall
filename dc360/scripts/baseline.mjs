@@ -260,6 +260,18 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   */
   "V2-F01-E10": 20,
   "V2-F01-E10-vercel-json": 9,
+  /*
+    V2-F01-E16: `scripts/runbooks.test.mjs` é novo, com 15 casos. Prende os
+    runbooks de `docs/runbooks/` ao que o repositório tem: as seções que a etapa
+    exige, todo `node scripts/X.mjs` apontando para arquivo, opção e subcomando
+    que existem, todo `npm run` um script do `package.json`, todo subcomando de
+    `fly`, `eas` e `gh` numa lista nomeada, todo arquivo citado existente (salvo
+    os nomeados que ainda nascerão), toda `depende de V2-F01-Enn` apontando para
+    etapa do roadmap, e nenhum valor de segredo nem travessão. Quatro casos são
+    a prova de que o conferidor morde: texto estragado reprova. O `rollback.md`
+    é da E08 e não é varrido.
+  */
+  "V2-F01-E16": 15,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -278,6 +290,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E02": "conferir-workflows.test.mjs",
   "V2-F01-E10": "conferir-dominio.test.mjs",
   "V2-F01-E10-vercel-json": "vercel-json.test.mjs",
+  "V2-F01-E16": "runbooks.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

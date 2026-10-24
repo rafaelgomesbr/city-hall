@@ -11,6 +11,12 @@ Este roteiro é escrito contra esses dois riscos.
 
 ---
 
+> **Runbooks de operação (rascunho, V2-F01-E16):** implantar, migrar, girar
+> segredo e conceder acesso têm texto próprio, um por operação, em
+> `docs/runbooks/`. As seções 6 a 8 abaixo continuam sendo a fonte dos
+> comandos; os runbooks organizam o mesmo conteúdo em pré-condições, passos,
+> verificação e volta atrás.
+
 ## 1. Antes de qualquer tela
 
 Nada disto é software, e tudo isto trava a implantação se ficar para depois.
