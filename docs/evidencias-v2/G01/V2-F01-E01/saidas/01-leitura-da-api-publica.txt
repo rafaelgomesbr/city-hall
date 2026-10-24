@@ -1,0 +1,24 @@
+# Lido em 2026-10-24T18:12Z, sem token, pela API publica do GitHub
+
+$ curl -s https://api.github.com/repos/rafaelgomesbr/city-hall/rulesets
+[
+
+]
+
+$ curl -s https://api.github.com/repos/rafaelgomesbr/city-hall/rules/branches/master
+[
+
+]
+
+$ curl -s https://api.github.com/repos/rafaelgomesbr/city-hall/branches/master | grep protected
+  "protected": false,
+$ curl -s https://api.github.com/repos/rafaelgomesbr/city-hall/branches/master/protection
+{
+  "message": "Requires authentication",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "401"
+}
+$ curl -s https://api.github.com/repos/rafaelgomesbr/city-hall | grep private,visibility,default_branch
+  "private": false,
+  "visibility": "public",
+  "default_branch": "master",
