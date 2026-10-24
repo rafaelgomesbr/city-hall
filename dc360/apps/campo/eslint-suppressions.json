@@ -1,0 +1,439 @@
+{
+  "src/__tests__/a-lista-com-a-fila-pausada-nao-pede-sinal.test.tsx": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/a-lista-de-tarefas-entra-e-sai.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/avisos-a-tela-do-sino.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 5
+    }
+  },
+  "src/__tests__/devolver-tarefa-vencida.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 2
+    }
+  },
+  "src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 7
+    }
+  },
+  "src/__tests__/entrar-responde-ao-dedo.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/hoje-lista-e-mapa.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/lista-de-tarefas-coletadas.test.tsx": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/lista-de-tarefas-nao-pula.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/mapa-a-legenda-nao-mente.test.tsx": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/mapa-tela-dedicada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 2
+    }
+  },
+  "src/__tests__/menu-de-vidro-e-transicoes.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 15
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 8
+    }
+  },
+  "src/__tests__/o-cartao-responde-ao-dedo.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 13
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 4
+    }
+  },
+  "src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/__tests__/perfil-caminho-para-os-ajustes.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/__tests__/tarefas-em-sanfona.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/tela-de-vistoria.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/__tests__/tema-a-escolha-do-agente.test.tsx": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  "src/__tests__/vistoria-ainda-nao-baixada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 9
+    },
+    "@typescript-eslint/only-throw-error": {
+      "count": 2
+    }
+  },
+  "src/__tests__/vistoria-ao-voltar-ao-foco.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 5
+    }
+  },
+  "src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "prefer-const": {
+      "count": 2
+    }
+  },
+  "src/__tests__/vistoria-como-produto.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "prefer-const": {
+      "count": 2
+    }
+  },
+  "src/__tests__/vistoria-ja-coletada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 5
+    }
+  },
+  "src/__tests__/vistoria-mapa-e-historico.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/__tests__/vistoria-nao-sai-quebrada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 26
+    },
+    "@typescript-eslint/only-throw-error": {
+      "count": 1
+    }
+  },
+  "src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    },
+    "@typescript-eslint/only-throw-error": {
+      "count": 1
+    }
+  },
+  "src/app/(agente)/mapa.tsx": {
+    "react-hooks/exhaustive-deps": {
+      "count": 1
+    }
+  },
+  "src/app/(agente)/vistoria/[id].tsx": {
+    "react-hooks/exhaustive-deps": {
+      "count": 3
+    }
+  },
+  "src/dados/api-aparelho.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "src/dados/api-avisos.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "src/dados/api.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "src/dados/contagem-de-avisos.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/dados/sessao.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/dados/tarefa-nova-avisa.test.ts": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/push/despacho-toca-uma-vez.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/push/logout-cala-o-aparelho.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/push/provedor-descarta-outro-municipio.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/push/registro-tenta-de-novo.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/push/tarefa-nova-com-o-aplicativo-aberto.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/push/volta-do-segundo-plano.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/artefato-de-documento.test.tsx": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/ui/avatar.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/aviso-e-vazio.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/ui/botoes-que-chamam.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/campo.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/ui/cena-da-aba.test.tsx": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 1
+    }
+  },
+  "src/ui/corrigir-na-fila.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/dado-que-conta.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/ui/devolucao-na-fila.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/ui/dialogo-na-conta.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/ui/dialogo-na-fila.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/ui/dialogo-na-vistoria.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/ui/dialogo.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 7
+    }
+  },
+  "src/ui/escolha-de-mapa.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/ui/fila-como-produto.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 18
+    }
+  },
+  "src/ui/fila-pausada-nao-promete-sinal.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/ui/fila-pausada-pela-sessao.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/folha-arrastavel.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    },
+    "no-var": {
+      "count": 1
+    }
+  },
+  "src/ui/folha-de-escolha.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/ui/guarda-de-saida-da-vistoria.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 9
+    }
+  },
+  "src/ui/item-de-lista.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/ui/item-de-tarefa.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/ui/linha-de-acoes.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/ui/mapa/mapa-do-imovel.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/ui/mapa/plano-das-tarefas.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/resposta-ao-toque.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 10
+    }
+  },
+  "src/ui/sino.test.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/ui/tipografia.ts": {
+    "@typescript-eslint/no-require-imports": {
+      "count": 5
+    }
+  }
+}

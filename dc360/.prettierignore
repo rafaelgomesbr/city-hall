@@ -1,0 +1,23 @@
+# Fora da checagem de formatação (V2-F01-E17). O Prettier só vê código; o resto
+# é gerado, binário ou texto cuja forma é contrato de outra ferramenta.
+
+# Dependências e saídas de build
+node_modules/
+dist/
+coverage/
+.expo/
+
+# Gerados por ferramenta: lockfiles e baselines do ESLint
+package-lock.json
+eslint-suppressions.json
+lint-teto.json
+formato-baseline.json
+
+# Gerados por script do repositório (a F08-E02 acrescenta aqui o que nascer):
+# fontes e imagens do painel
+apps/web/public/
+
+# Aplicativo de campo: o que o Expo reescreve
+apps/campo/android/
+apps/campo/ios/
+apps/campo/assets/

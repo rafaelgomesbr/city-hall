@@ -1,0 +1,29 @@
+{
+  // Só para o ESLint (V2-F01-E17): faz o lint com tipos enxergar testes e
+  // scripts, que não entram nos `tsconfig.json` de compilação de cada pacote.
+  // Nunca é usado para compilar nem para o `typecheck`.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "apps/*/test/**/*",
+    "db/test/**/*",
+    "packages/*/test/**/*",
+    "apps/*/*.config.ts",
+    "scripts/**/*.mjs",
+    "apps/web/scripts/**/*.mjs"
+  ],
+  "exclude": ["**/node_modules", "**/dist", "scripts/fixtures"]
+}

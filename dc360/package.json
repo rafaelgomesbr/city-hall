@@ -27,12 +27,25 @@
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
     "conferir:numeros": "node scripts/conferir-numeros.mjs",
-    "verificar": "npm run typecheck && npm test && npm run test:scripts && npm run test:campo && npm run auditar && npm run conferir:numeros",
+    "lint": "node scripts/lint.mjs",
+    "lint:campo": "node scripts/lint.mjs --so=campo",
+    "lint:podar": "node scripts/lint.mjs --podar",
+    "lint:teto": "node scripts/lint-teto.mjs conferir",
+    "formato:conferir": "node scripts/formato-conferir.mjs",
+    "verificar": "npm run typecheck && npm run lint && npm run lint:teto && npm run formato:conferir && npm test && npm run test:scripts && npm run test:campo && npm run auditar && npm run conferir:numeros",
     "migrar": "npm run migrar --workspace @dc360/db --",
     "provisionar": "npm run provisionar --workspace @dc360/api --",
     "test:e2e:api": "node scripts/e2e-api.mjs",
     "build:shared": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo",
     "auditar": "node scripts/auditar.mjs",
     "preparar": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.72.0"
   }
 }

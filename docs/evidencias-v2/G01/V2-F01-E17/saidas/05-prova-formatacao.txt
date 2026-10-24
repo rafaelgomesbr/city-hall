@@ -1,0 +1,11 @@
+### 5. Arquivo novo fora do Prettier
+REPROVADO: 1 arquivo(s) fora do Prettier e fora da baseline:
+- apps/api/src/prova-torta.ts
+Rode `npx prettier --write` neles (ou `node scripts/formato-conferir.mjs --formatar`).
+codigo=1
+--- baselinar o arquivo novo fecha o conferir, mas contra o ramo-base reprova:
+OK: 740 arquivo(s) de código conferidos; 665 na baseline (só desce).
+conferir codigo=0
+REPROVADO contra HEAD (1):
+- arquivo novo na baseline de formatação: apps/api/src/prova-torta.ts. Formate-o com `npx prettier --write` em vez de baselinar.
+contra-base codigo=1

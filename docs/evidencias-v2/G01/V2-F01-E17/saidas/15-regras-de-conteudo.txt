@@ -1,0 +1,47 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-ad9ca82e4f3b975a7/dc360/packages/shared
+
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 1 failed) 1124ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação 100ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 556ms
+     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+docs/evidencias-v2/G01/V2-F01-E16/RESUMO.md:53  trazia o caractere de travessão literal; virou escape `—`, como o portão pede.: expected [ Array(1) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  338ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 2ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real 88ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 11ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 12ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 7ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 8ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum
+AssertionError: travessão encontrado; use vírgula, dois pontos ou parênteses:
+docs/evidencias-v2/G01/V2-F01-E16/RESUMO.md:53  trazia o caractere de travessão literal; virou escape `—`, como o portão pede.: expected [ Array(1) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "docs/evidencias-v2/G01/V2-F01-E16/RESUMO.md:53  trazia o caractere de travessão literal; virou escape `—`, como o portão pede.",[39m
+[31m+ ][39m
+
+ ❯ test/regras-de-conteudo.test.ts:267:7
+    265|         ? ""
+    266|         : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    267|     ).toEqual([]);
+       |       ^
+    268|   }, LIMITE_DA_VARREDURA_MS);
+    269| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  18:38:28
+   Duration  1.52s (transform 112ms, setup 0ms, collect 112ms, tests 1.12s, environment 0ms, prepare 67ms)
+

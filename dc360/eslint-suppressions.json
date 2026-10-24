@@ -1,0 +1,343 @@
+{
+  "apps/api/src/documentos/folha.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "apps/api/src/saida/pacote.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "apps/api/test/assinatura.test.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/api/test/coordenada-de-ocorrencia-aberta.test.ts": {
+    "no-loss-of-precision": {
+      "count": 2
+    }
+  },
+  "apps/api/test/guarda-de-codigos-de-erro.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    },
+    "no-extend-native": {
+      "count": 4
+    }
+  },
+  "apps/api/test/notificador-http.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "apps/api/test/pacote-de-saida-contrato.test.ts": {
+    "no-irregular-whitespace": {
+      "count": 1
+    }
+  },
+  "apps/api/test/pico-lista-e-mapa.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/api/test/prova-perdida-e-ponto-da-vistoria.test.ts": {
+    "no-loss-of-precision": {
+      "count": 2
+    }
+  },
+  "apps/api/test/push-credenciais.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/api/test/push-partida-e-validade.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/api/test/reconciliar-pendencias.test.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    }
+  },
+  "apps/api/test/resolver-link.test.ts": {
+    "no-script-url": {
+      "count": 1
+    }
+  },
+  "apps/api/test/saida-de-municipio.test.ts": {
+    "no-irregular-whitespace": {
+      "count": 2
+    }
+  },
+  "apps/api/test/segundo-fator.test.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/api/test/varredura-de-acentos.ts": {
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  "apps/console/test/a-tela-responde.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "apps/console/test/guarda-de-codigos-de-erro.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "apps/console/test/ponta-a-ponta.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 8
+    }
+  },
+  "apps/console/test/segundo-fator-obrigatorio.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "apps/web/src/componentes/BuscaGlobal.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/componentes/Estrutura.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/componentes/Modal.tsx": {
+    "react-hooks/exhaustive-deps": {
+      "count": 1
+    }
+  },
+  "apps/web/src/componentes/SegundoFator.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "apps/web/src/dados/http.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "apps/web/src/estado/configuracao.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/paginas/Entrar.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 3
+    }
+  },
+  "apps/web/src/paginas/Equipes.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/paginas/MinhaConta.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "apps/web/src/paginas/NovaOcorrencia.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "apps/web/src/paginas/Ocorrencia.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 8
+    }
+  },
+  "apps/web/src/paginas/Organizacao.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/paginas/Painel.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/paginas/QueroConhecer.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/paginas/RecuperarSenha.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "apps/web/src/paginas/Usuarios.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "apps/web/src/paginas/trilha-detalhe.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 5
+    }
+  },
+  "apps/web/test/correcao-6-da-e09.test.ts": {
+    "no-regex-spaces": {
+      "count": 3
+    }
+  },
+  "apps/web/test/fluxo-api.e2e.mjs": {
+    "no-irregular-whitespace": {
+      "count": 2
+    },
+    "no-useless-escape": {
+      "count": 1
+    }
+  },
+  "apps/web/test/link-encurtado.test.ts": {
+    "@typescript-eslint/only-throw-error": {
+      "count": 1
+    }
+  },
+  "apps/web/test/minha-conta-estreita.test.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    },
+    "no-useless-escape": {
+      "count": 2
+    }
+  },
+  "db/test/busca.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "db/test/carga.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "db/test/isolamento.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "db/test/teto-de-coordenada.test.ts": {
+    "no-loss-of-precision": {
+      "count": 1
+    }
+  },
+  "db/test/varredura-de-prazo-sem-bypassrls.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/campo/src/deposito.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "packages/campo/src/transporte.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 4
+    }
+  },
+  "packages/campo/test/fila.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    },
+    "prefer-const": {
+      "count": 1
+    }
+  },
+  "packages/campo/test/pausa-de-sessao.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "packages/campo/test/pausa-por-senha-provisoria.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "packages/shared/src/csv.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "packages/shared/test/codigos-de-erro.test.ts": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 2
+    }
+  },
+  "packages/shared/test/prova-perdida-e-coordenada.test.ts": {
+    "no-loss-of-precision": {
+      "count": 2
+    }
+  },
+  "scripts/auditar-excecoes.mjs": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    }
+  },
+  "scripts/auditar.test.mjs": {
+    "@typescript-eslint/no-base-to-string": {
+      "count": 1
+    },
+    "no-regex-spaces": {
+      "count": 7
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  "scripts/baseline.mjs": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "no-control-regex": {
+      "count": 1
+    }
+  },
+  "scripts/dependabot.test.mjs": {
+    "no-regex-spaces": {
+      "count": 1
+    }
+  },
+  "scripts/excecoes-de-seguranca.test.mjs": {
+    "no-regex-spaces": {
+      "count": 3
+    },
+    "no-sparse-arrays": {
+      "count": 1
+    }
+  },
+  "scripts/politica-de-segredos.test.mjs": {
+    "no-regex-spaces": {
+      "count": 3
+    }
+  },
+  "scripts/ruleset-master.test.mjs": {
+    "no-regex-spaces": {
+      "count": 3
+    }
+  }
+}
