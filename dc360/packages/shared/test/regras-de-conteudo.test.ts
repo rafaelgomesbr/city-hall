@@ -128,6 +128,14 @@ const CAMINHOS_IGNORADOS: Isencao[] = [
     outro relatório em `docs/` continua varrido.
   */
   { caminho: join("docs", "AUDITORIA-2026-09-30.md"), alcance: "arquivo" },
+  /*
+    Relatório do validador de QA da E22 na rodada 8 (registro 4f4871c). Ele
+    prova que este portão morde citando uma norma inventada de propósito como
+    cenário negativo. É evidência de validação com INDEX.md: reescrever a frase
+    seria falsificá-la. Isento pelo nome exato; os outros relatórios continuam
+    varridos.
+  */
+  { caminho: join("docs", "evidencias-v2", "G00", "V2-F00-E22", "validacao", "60cbc2f", "qa.md"), alcance: "arquivo" },
 ];
 
 /** `relativo` é o caminho a partir da raiz do repositório, com o separador do sistema. */
