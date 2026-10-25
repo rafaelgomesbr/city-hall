@@ -132,10 +132,14 @@ export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
       base: topoUtil + painel.clientHeight,
       visual: window.visualViewport,
     });
-    const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
+    const respiro =
+      parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
     painel.scrollTop += rolagemParaVerNoPainel({
-      painelTopo: area.topo, painelBase: area.base,
-      alvoTopo: caixaDoAlvo.top, alvoBase: caixaDoAlvo.bottom, respiro,
+      painelTopo: area.topo,
+      painelBase: area.base,
+      alvoTopo: caixaDoAlvo.top,
+      alvoBase: caixaDoAlvo.bottom,
+      respiro,
     });
   };
 
@@ -153,7 +157,8 @@ export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
   const acompanharOFocoNoTamanhoNovo = () => {
     const painel = painelNaTela();
     const ativo = document.activeElement;
-    if (!painel || !(ativo instanceof HTMLElement) || ativo === painel || !painel.contains(ativo)) return;
+    if (!painel || !(ativo instanceof HTMLElement) || ativo === painel || !painel.contains(ativo))
+      return;
     levarAVista(ativo);
   };
 
@@ -219,7 +224,8 @@ export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
     const painel = painelNaTela();
     if (!painel) return;
     const ativo = document.activeElement;
-    const dentro = ativo instanceof HTMLElement && ativo !== document.body && painel.contains(ativo);
+    const dentro =
+      ativo instanceof HTMLElement && ativo !== document.body && painel.contains(ativo);
     if (dentro && ativo.matches(":disabled")) {
       // O motor deixou o foco num botão travado (ele não recebe tecla): o painel o guarda.
       esperando = ativo;
@@ -238,7 +244,8 @@ export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
     if (dentro) return;
     // O foco está fora da janela (no `<body>`): volta a um controle dela, à vista.
     const inicial = o.focoInicial();
-    const destino = [ultimoControle, inicial].find((el) => habilitado(painel, el)) ?? o.focaveis()[0] ?? painel;
+    const destino =
+      [ultimoControle, inicial].find((el) => habilitado(painel, el)) ?? o.focaveis()[0] ?? painel;
     if (destino === painel) {
       // Nada habilitado (gravando): o painel segura o foco, e o último controle espera.
       esperando = ultimoControle ?? inicial ?? null;
@@ -254,12 +261,19 @@ export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
     // `relatedTarget` nulo: o foco não foi para outro elemento. Espera o motor assentar (ele pode estar só trocando de controle).
     if (evento.relatedTarget !== null) return;
     if (tarefa !== null) clearTimeout(tarefa);
-    tarefa = setTimeout(() => { tarefa = null; devolverOFoco(false); }, 0);
+    tarefa = setTimeout(() => {
+      tarefa = null;
+      devolverOFoco(false);
+    }, 0);
   };
   const painelDaAbertura = o.painel();
   // O foco da abertura chegou antes dos ouvintes: o controle que já o tem é o último.
-  if (document.activeElement instanceof HTMLElement && document.activeElement !== painelDaAbertura
-    && painelDaAbertura?.contains(document.activeElement)) ultimoControle = document.activeElement;
+  if (
+    document.activeElement instanceof HTMLElement &&
+    document.activeElement !== painelDaAbertura &&
+    painelDaAbertura?.contains(document.activeElement)
+  )
+    ultimoControle = document.activeElement;
   painelDaAbertura?.addEventListener("focusout", aoPerderOFoco);
   painelDaAbertura?.addEventListener("focusin", aoGanharOFoco);
 
@@ -291,6 +305,7 @@ export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
       devolverOFoco(registros.some((registro) => registro.type === "attributes"));
       ajustarOFocoInicial();
     });
+    // prettier-ignore
     observador.observe(painelDaAbertura, {
       childList: true, subtree: true, characterData: true,
       attributes: true, attributeFilter: ["disabled"],

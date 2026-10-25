@@ -26,20 +26,30 @@ describe("A parte do painel que a pessoa enxerga", () => {
   });
 
   it("com o teclado virtual aberto (janela visual mais baixa, sem zoom), a base é a da janela visual", () => {
-    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: 150, scale: 1 } })).toEqual({ topo: 20, base: 150 });
+    expect(
+      areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: 150, scale: 1 } }),
+    ).toEqual({ topo: 20, base: 150 });
   });
 
   it("com a janela visual rolada para baixo, o topo é o dela", () => {
-    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 60, height: 400, scale: 1 } })).toEqual({ topo: 60, base: 236 });
+    expect(
+      areaVisivelDoPainel({ ...painel, visual: { offsetTop: 60, height: 400, scale: 1 } }),
+    ).toEqual({ topo: 60, base: 236 });
   });
 
   it("com zoom de pinça (escala acima de 1) a janela visual é o pedaço que a pessoa escolheu olhar: vale o painel inteiro, para não brigar com o gesto", () => {
-    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: 100, scale: 2 } })).toEqual(painel);
+    expect(
+      areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: 100, scale: 2 } }),
+    ).toEqual(painel);
   });
 
   it("janela visual que nem toca o painel, ou com números quebrados, não é medida confiável", () => {
-    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 500, height: 100, scale: 1 } })).toEqual(painel);
-    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: Number.NaN, scale: 1 } })).toEqual(painel);
+    expect(
+      areaVisivelDoPainel({ ...painel, visual: { offsetTop: 500, height: 100, scale: 1 } }),
+    ).toEqual(painel);
+    expect(
+      areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: Number.NaN, scale: 1 } }),
+    ).toEqual(painel);
   });
 });
 
@@ -55,12 +65,23 @@ class ElementoFalso {
   isConnected = true;
   topo: number;
   altura: number;
-  focado = vi.fn(() => { cenario.doc.activeElement = this; });
+  focado = vi.fn(() => {
+    cenario.doc.activeElement = this;
+  });
   filhos = new Set<ElementoFalso>();
-  constructor(topo = 0, altura = 44) { this.topo = topo; this.altura = altura; }
-  matches(seletor: string): boolean { return seletor === ":disabled" && this.disabled; }
-  focus(): void { this.focado(); }
-  getBoundingClientRect() { return { top: this.topo, bottom: this.topo + this.altura, height: this.altura }; }
+  constructor(topo = 0, altura = 44) {
+    this.topo = topo;
+    this.altura = altura;
+  }
+  matches(seletor: string): boolean {
+    return seletor === ":disabled" && this.disabled;
+  }
+  focus(): void {
+    this.focado();
+  }
+  getBoundingClientRect() {
+    return { top: this.topo, bottom: this.topo + this.altura, height: this.altura };
+  }
 }
 
 class PainelFalso extends ElementoFalso {
@@ -69,15 +90,35 @@ class PainelFalso extends ElementoFalso {
   clientHeight = 216;
   style: Record<string, string> = {};
   ouvintes = new Map<string, Ouvinte[]>();
-  contains(el: unknown): boolean { return el === this || (el instanceof ElementoFalso && this.filhos.has(el)); }
-  querySelector() { return null; }
-  addEventListener(tipo: string, f: Ouvinte) { this.ouvintes.set(tipo, [...(this.ouvintes.get(tipo) ?? []), f]); }
-  removeEventListener(tipo: string, f: Ouvinte) { this.ouvintes.set(tipo, (this.ouvintes.get(tipo) ?? []).filter((x) => x !== f)); }
-  total() { return [...this.ouvintes.values()].reduce((a, l) => a + l.length, 0); }
+  contains(el: unknown): boolean {
+    return el === this || (el instanceof ElementoFalso && this.filhos.has(el));
+  }
+  querySelector() {
+    return null;
+  }
+  addEventListener(tipo: string, f: Ouvinte) {
+    this.ouvintes.set(tipo, [...(this.ouvintes.get(tipo) ?? []), f]);
+  }
+  removeEventListener(tipo: string, f: Ouvinte) {
+    this.ouvintes.set(
+      tipo,
+      (this.ouvintes.get(tipo) ?? []).filter((x) => x !== f),
+    );
+  }
+  total() {
+    return [...this.ouvintes.values()].reduce((a, l) => a + l.length, 0);
+  }
 }
 
 type Cenario = {
-  doc: { activeElement: unknown; body: ElementoFalso; documentElement: object; ouvintes: Map<string, Ouvinte[]>; addEventListener: (t: string, f: Ouvinte) => void; removeEventListener: (t: string, f: Ouvinte) => void };
+  doc: {
+    activeElement: unknown;
+    body: ElementoFalso;
+    documentElement: object;
+    ouvintes: Map<string, Ouvinte[]>;
+    addEventListener: (t: string, f: Ouvinte) => void;
+    removeEventListener: (t: string, f: Ouvinte) => void;
+  };
   janela: { ouvintes: Map<string, Ouvinte[]>; visualViewport: ReturnType<typeof criarVisual> };
 };
 // Atribuído em `montar`; a classe acima o lê na hora de focar.
@@ -86,9 +127,19 @@ let cenario: Cenario;
 function criarVisual() {
   const ouvintes = new Map<string, Ouvinte[]>();
   return {
-    offsetTop: 0, height: 700, scale: 1, ouvintes,
-    addEventListener: (t: string, f: Ouvinte) => { ouvintes.set(t, [...(ouvintes.get(t) ?? []), f]); },
-    removeEventListener: (t: string, f: Ouvinte) => { ouvintes.set(t, (ouvintes.get(t) ?? []).filter((x) => x !== f)); },
+    offsetTop: 0,
+    height: 700,
+    scale: 1,
+    ouvintes,
+    addEventListener: (t: string, f: Ouvinte) => {
+      ouvintes.set(t, [...(ouvintes.get(t) ?? []), f]);
+    },
+    removeEventListener: (t: string, f: Ouvinte) => {
+      ouvintes.set(
+        t,
+        (ouvintes.get(t) ?? []).filter((x) => x !== f),
+      );
+    },
   };
 }
 
@@ -104,25 +155,47 @@ function montar() {
     body: new ElementoFalso(),
     documentElement: {},
     ouvintes: new Map<string, Ouvinte[]>(),
-    addEventListener(t: string, f: Ouvinte) { doc.ouvintes.set(t, [...(doc.ouvintes.get(t) ?? []), f]); },
-    removeEventListener(t: string, f: Ouvinte) { doc.ouvintes.set(t, (doc.ouvintes.get(t) ?? []).filter((x) => x !== f)); },
+    addEventListener(t: string, f: Ouvinte) {
+      doc.ouvintes.set(t, [...(doc.ouvintes.get(t) ?? []), f]);
+    },
+    removeEventListener(t: string, f: Ouvinte) {
+      doc.ouvintes.set(
+        t,
+        (doc.ouvintes.get(t) ?? []).filter((x) => x !== f),
+      );
+    },
   };
   const janela = {
     ouvintes: new Map<string, Ouvinte[]>(),
     visualViewport: visual,
-    addEventListener(t: string, f: Ouvinte) { janela.ouvintes.set(t, [...(janela.ouvintes.get(t) ?? []), f]); },
-    removeEventListener(t: string, f: Ouvinte) { janela.ouvintes.set(t, (janela.ouvintes.get(t) ?? []).filter((x) => x !== f)); },
+    addEventListener(t: string, f: Ouvinte) {
+      janela.ouvintes.set(t, [...(janela.ouvintes.get(t) ?? []), f]);
+    },
+    removeEventListener(t: string, f: Ouvinte) {
+      janela.ouvintes.set(
+        t,
+        (janela.ouvintes.get(t) ?? []).filter((x) => x !== f),
+      );
+    },
   };
   cenario = { doc, janela };
   let observadores = 0;
-  let observadorAtual: { chamar: (r: unknown[]) => void; desligado: boolean; opcoes: unknown } | null = null;
+  let observadorAtual: {
+    chamar: (r: unknown[]) => void;
+    desligado: boolean;
+    opcoes: unknown;
+  } | null = null;
   class ObservadorFalso {
     constructor(f: (r: unknown[]) => void) {
       observadores++;
       observadorAtual = { chamar: f, desligado: false, opcoes: null };
     }
-    observe(_alvo: unknown, opcoes: unknown) { if (observadorAtual) observadorAtual.opcoes = opcoes; }
-    disconnect() { if (observadorAtual) observadorAtual.desligado = true; }
+    observe(_alvo: unknown, opcoes: unknown) {
+      if (observadorAtual) observadorAtual.opcoes = opcoes;
+    }
+    disconnect() {
+      if (observadorAtual) observadorAtual.desligado = true;
+    }
   }
   vi.stubGlobal("HTMLElement", ElementoFalso);
   vi.stubGlobal("Node", ElementoFalso);
@@ -130,8 +203,13 @@ function montar() {
   vi.stubGlobal("window", janela);
   vi.stubGlobal("MutationObserver", ObservadorFalso);
   vi.stubGlobal("getComputedStyle", () => ({ position: "static", getPropertyValue: () => "12" }));
-  vi.stubGlobal("requestAnimationFrame", (f: () => void) => { quadros.push(f); return quadros.length; });
-  vi.stubGlobal("cancelAnimationFrame", (id: number) => { quadros[id - 1] = () => {}; });
+  vi.stubGlobal("requestAnimationFrame", (f: () => void) => {
+    quadros.push(f);
+    return quadros.length;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+    quadros[id - 1] = () => {};
+  });
 
   const painel = new PainelFalso(20, 216);
   const cancelar = new ElementoFalso(170, 44);
@@ -145,14 +223,28 @@ function montar() {
     focaveis: () => [confirmar, cancelar].filter((e) => !e.disabled) as unknown as HTMLElement[],
     aoTeclarFora,
   });
-  const dispararQuadros = () => { while (quadros.length) quadros.shift()?.(); };
+  const dispararQuadros = () => {
+    while (quadros.length) quadros.shift()?.();
+  };
   return {
-    painel, cancelar, confirmar, doc, janela, visual, acompanhamento, aoTeclarFora, dispararQuadros,
-    observador: () => observadorAtual, observadores: () => observadores,
+    painel,
+    cancelar,
+    confirmar,
+    doc,
+    janela,
+    visual,
+    acompanhamento,
+    aoTeclarFora,
+    dispararQuadros,
+    observador: () => observadorAtual,
+    observadores: () => observadores,
   };
 }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 describe("Achado 1: a janela aberta acompanha a mudança de tamanho", () => {
   it("liga resize, orientationchange e a janela visual (resize e scroll)", () => {
@@ -193,14 +285,20 @@ describe("Achado 1: a janela aberta acompanha a mudança de tamanho", () => {
   it("sem laço: com o botão já à vista, repetir o evento não rola nada", () => {
     const m = montar();
     m.cancelar.topo = 150; // à vista, com folga
-    for (let i = 0; i < 20; i++) { m.janela.ouvintes.get("resize")![0]!({}); m.dispararQuadros(); }
+    for (let i = 0; i < 20; i++) {
+      m.janela.ouvintes.get("resize")![0]!({});
+      m.dispararQuadros();
+    }
     expect(m.painel.scrollTop).toBe(0);
     m.cancelar.topo = 424;
     m.janela.ouvintes.get("resize")![0]!({});
     const uma = m.painel.scrollTop;
     // O botão acompanha a rolagem (como no navegador): depois do ajuste ele está à vista, e repetir não muda mais nada.
     m.cancelar.topo = 424 - uma;
-    for (let i = 0; i < 20; i++) { m.janela.ouvintes.get("resize")![0]!({}); m.dispararQuadros(); }
+    for (let i = 0; i < 20; i++) {
+      m.janela.ouvintes.get("resize")![0]!({});
+      m.dispararQuadros();
+    }
     expect(m.painel.scrollTop).toBe(uma);
     m.acompanhamento.parar();
   });
@@ -230,7 +328,12 @@ describe("Achado 1: a janela aberta acompanha a mudança de tamanho", () => {
   it("parar() desliga TUDO: ouvintes da janela, da janela visual, do documento e do painel, o observador e os quadros pendentes", () => {
     const m = montar();
     m.janela.ouvintes.get("resize")![0]!({}); // deixa um quadro pendente
-    expect(contar(m.janela.ouvintes) + contar(m.visual.ouvintes) + contar(m.doc.ouvintes) + m.painel.total()).toBeGreaterThan(0);
+    expect(
+      contar(m.janela.ouvintes) +
+        contar(m.visual.ouvintes) +
+        contar(m.doc.ouvintes) +
+        m.painel.total(),
+    ).toBeGreaterThan(0);
     m.acompanhamento.parar();
     expect(contar(m.janela.ouvintes)).toBe(0);
     expect(contar(m.visual.ouvintes)).toBe(0);
@@ -246,7 +349,12 @@ describe("Achado 1: a janela aberta acompanha a mudança de tamanho", () => {
     for (let i = 0; i < 50; i++) {
       const m = montar();
       m.acompanhamento.parar();
-      expect(contar(m.janela.ouvintes) + contar(m.visual.ouvintes) + contar(m.doc.ouvintes) + m.painel.total()).toBe(0);
+      expect(
+        contar(m.janela.ouvintes) +
+          contar(m.visual.ouvintes) +
+          contar(m.doc.ouvintes) +
+          m.painel.total(),
+      ).toBe(0);
     }
   });
 
@@ -330,9 +438,11 @@ describe("Achado 2: o foco que cai na página volta a um controle da janela, e o
     // Clique em "confirmar": o WebKit não foca o botão, foca o painel.
     m.painel.ouvintes.get("focusin")![0]!({ target: m.painel });
     m.doc.activeElement = m.painel;
-    m.cancelar.disabled = true; m.confirmar.disabled = true;
+    m.cancelar.disabled = true;
+    m.confirmar.disabled = true;
     m.observador()!.chamar([{ type: "attributes" }]);
-    m.cancelar.disabled = false; m.confirmar.disabled = false;
+    m.cancelar.disabled = false;
+    m.confirmar.disabled = false;
     m.observador()!.chamar([{ type: "attributes" }]);
     expect(m.doc.activeElement).toBe(m.cancelar);
     m.acompanhamento.parar();
@@ -360,7 +470,11 @@ describe("Achado 2: o foco que cai na página volta a um controle da janela, e o
   it("o observador também vê o atributo `disabled`, além do conteúdo", () => {
     const m = montar();
     expect(m.observador()?.opcoes).toEqual({
-      childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["disabled"],
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["disabled"],
     });
     m.acompanhamento.parar();
   });
@@ -386,18 +500,24 @@ describe("Os achados estão ligados ao Modal", () => {
   it("Esc e Tab têm UM caminho só, para o painel e para o documento, e o aoFechar do ouvinte do documento não fica velho", () => {
     expect(modal).toContain("function tratarTecla(");
     expect(modal).toContain("aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}");
-    expect(modal).toContain("aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),");
+    expect(modal).toContain(
+      "aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),",
+    );
     expect(modal).toContain("aoFecharAtual.current = aoFechar;");
   });
 
   it("apertar o mouse no fundo escurecido não tira o foco de onde estava", () => {
-    expect(modal).toMatch(/onMouseDown=\{\(evento\) => \{\s+if \(evento\.target === evento\.currentTarget\) evento\.preventDefault\(\);/);
+    expect(modal).toMatch(
+      /onMouseDown=\{\(evento\) => \{\s+if \(evento\.target === evento\.currentTarget\) evento\.preventDefault\(\);/,
+    );
   });
 
   it("o título fica preso no topo do painel, encostado na borda dele, sem mudar o repouso", () => {
     expect(modal).toContain('position: "sticky",');
     expect(modal).toContain('top: "calc(-1 * var(--ds-sp-5))",');
-    expect(modal).toContain('margin: "calc(-1 * var(--ds-sp-5)) 0 calc(var(--ds-sp-3) - var(--ds-sp-2))",');
+    expect(modal).toContain(
+      'margin: "calc(-1 * var(--ds-sp-5)) 0 calc(var(--ds-sp-3) - var(--ds-sp-2))",',
+    );
     expect(modal).toContain('paddingBottom: "var(--ds-sp-2)",');
     expect(modal).toContain('paddingTop: "var(--ds-sp-5)",');
     expect(modal).toContain('background: "var(--ds-surface)",');
@@ -438,7 +558,9 @@ describe("Achado 3: as frases das janelas dizem o que o sistema faz, e nada alé
 describe("A prova no navegador existe", () => {
   it("a seção 15 do layout-estreito gira e dá zoom com a janela aberta, clica no fundo e provoca o erro do servidor", () => {
     const e2e = fonte("..", "test", "layout-estreito.e2e.mjs");
-    expect(e2e).toContain("== 15. A janela de confirmação aberta acompanha a mudança de tamanho e não perde o foco");
+    expect(e2e).toContain(
+      "== 15. A janela de confirmação aberta acompanha a mudança de tamanho e não perde o foco",
+    );
     expect(e2e).toContain("await pg.setViewportSize({ width: resto[i], height: resto[i + 1] });");
     expect(e2e).toContain('["zoom de 400 por cento", 1280, 1024, 320, 256]');
     expect(e2e).toContain('["rotação do celular", 320, 568, 568, 320]');
@@ -448,4 +570,6 @@ describe("A prova no navegador existe", () => {
   });
 });
 
-beforeEach(() => { vi.unstubAllGlobals(); });
+beforeEach(() => {
+  vi.unstubAllGlobals();
+});

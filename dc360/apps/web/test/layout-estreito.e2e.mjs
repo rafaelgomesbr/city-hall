@@ -804,7 +804,7 @@ async function enviarPeloTeclado(pg, modo, botao, ultimoCampo) {
 
 console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a lista de órgãos não parte email nem telefone (V2-F00-E09, correção 4, revisão) ==");
 {
-  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
   const mat = () => `RV-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
   /*
     O sufixo do email de parte comprida é de PIOR CASO, e não ao acaso (revisão
@@ -1076,7 +1076,7 @@ async function campoFocadoAVista(pg) {
 }
 const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l === 320 && a === 256 ? " (zoom de 400 por cento)" : ""}`;
 {
-  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
   let n = 0;
   const idDasContas = new Map();
   async function contaDeOperador() {
@@ -1451,7 +1451,7 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
   meio sem nada por cima (`elementFromPoint`).
 */
 {
-  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
   let n = 0;
   async function contaComOutrasSessoes() {
     n++;
@@ -1592,7 +1592,7 @@ console.log("\n== 15. A janela de confirmação aberta acompanha a mudança de t
   rolagem do painel não muda entre elas).
 */
 {
-  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
   let n = 0;
   async function contaDeOitoComSessoes() {
     n++;

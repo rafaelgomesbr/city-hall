@@ -36,7 +36,9 @@ beforeAll(async () => {
   });
   await app.ready();
   const r = await app.inject({
-    method: "POST", url: "/auth/entrar", payload: { email: EMAIL_RITA, senha: "defesa-civil-2026" },
+    method: "POST",
+    url: "/auth/entrar",
+    payload: { email: EMAIL_RITA, senha: "defesa-civil-2026" },
   });
   tokenRita = r.json().acesso as string;
 }, 180_000);
@@ -49,10 +51,12 @@ afterAll(async () => {
 describe("422 de enum obrigatório ausente", () => {
   it("POST /ocorrencias sem tipo e sem canalEntrada diz 'Campo obrigatório' nos dois", async () => {
     const r = await app.inject({
-      method: "POST", url: "/ocorrencias",
+      method: "POST",
+      url: "/ocorrencias",
       headers: { authorization: `Bearer ${tokenRita}` },
       payload: {
-        solicitanteNome: "Marilda Souza Prado", endereco: "Rua das Acácias, 120",
+        solicitanteNome: "Marilda Souza Prado",
+        endereco: "Rua das Acácias, 120",
         descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
       },
     });
@@ -69,16 +73,21 @@ describe("422 de enum obrigatório ausente", () => {
 
   it("enum presente e fora da lista continua dizendo o valor e os aceitos", async () => {
     const r = await app.inject({
-      method: "POST", url: "/ocorrencias",
+      method: "POST",
+      url: "/ocorrencias",
       headers: { authorization: `Bearer ${tokenRita}` },
       payload: {
-        solicitanteNome: "Marilda Souza Prado", canalEntrada: "telefone", tipo: "terremoto",
+        solicitanteNome: "Marilda Souza Prado",
+        canalEntrada: "telefone",
+        tipo: "terremoto",
         endereco: "Rua das Acácias, 120",
         descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
       },
     });
     expect(r.statusCode, r.body).toBe(422);
-    const c = (r.json().campos as Array<{ campo: string; mensagem: string }>).find((x) => x.campo === "tipo");
+    const c = (r.json().campos as Array<{ campo: string; mensagem: string }>).find(
+      (x) => x.campo === "tipo",
+    );
     expect(c?.mensagem).toMatch(/^Valor não reconhecido: "terremoto"\. Os aceitos são: /);
   });
 });
