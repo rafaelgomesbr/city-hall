@@ -190,7 +190,9 @@ atualizado.
   trinta minutos. A cópia é o ponto de volta. (Os roteiros rodam em Windows, Linux
   e macOS desde a V2-F01-E15.)
 - O desfazer de migração escrito pela V2-F01-E18 serve **fora de produção**
-  (desenvolvimento e HML). Em produção ele não é usado.
+  (banco descartável e HML declarado, com `AMBIENTE_DC360=hml` e a identidade de
+  HML na URL; banco hospedado sem essa declaração é recusado). Em produção ele
+  não é usado.
 
 Se o problema é **dado** (perda, corrupção, apagado por engano), e não código:
 

@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
@@ -6,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DesfazerRecusado,
   IDENTIDADES_DE_PROD,
+  IDENTIDADES_GENERICAS,
   aplicarMigracoes,
   carregarMigracoes,
   desfazerUltimaMigracao,
@@ -278,9 +280,134 @@ describe("em PRODUÇÃO: recusa antes de tocar no banco", () => {
     ).toMatch(/PRODUÇÃO/);
   });
 
-  it("homologação e desenvolvimento podem desfazer", () => {
+  it("banco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável", () => {
     for (const env of [{ AMBIENTE_DC360: "hml" }, { AMBIENTE_DC360: "dev" }, {}]) {
       expect(motivoParaNaoDesfazer({ url: "postgres://u:p@127.0.0.1:5432/dc360", env })).toBeNull();
+      expect(motivoParaNaoDesfazer({ url: "postgres://u:p@localhost:5432/dc360", env })).toBeNull();
+      expect(motivoParaNaoDesfazer({ url: "postgres://u:p@banco:5432/dc360", env })).toBeNull();
+      expect(motivoParaNaoDesfazer({ url: undefined, env })).toBeNull();
+    }
+  });
+
+  it("descartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade)", () => {
+    const url = `postgres://dc360_setup.${PROD}:senha-secreta@127.0.0.1:5432/postgres`;
+    expect(motivoParaNaoDesfazer({ url, env: {} })).toMatch(/PRODUÇÃO/);
+    expect(motivoParaNaoDesfazer({ url, env: { AMBIENTE_DC360: "hml" } })).toMatch(/PRODUÇÃO/);
+  });
+});
+
+describe("FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01)", () => {
+  /** Um PROD restaurado num projeto NOVO: outra referência, que nada reconhece como produção. */
+  const REFERENCIA_NOVA = "refnovaprodxxxxxxxx";
+  const PROD_NO_PROJETO_NOVO = `postgres://dc360_setup.${REFERENCIA_NOVA}:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`;
+  const HML = "refhmlxxxxxxxxx";
+  const URL_DE_HML = `postgres://dc360_setup.${HML}:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`;
+
+  const intocavel: ExecutorSql = {
+    query: () => Promise.reject(new Error("o banco foi tocado")),
+    exec: () => Promise.reject(new Error("o banco foi tocado")),
+  };
+
+  it("PROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha", async () => {
+    for (const env of [{}, { AMBIENTE_DC360: "dev" }, { NODE_ENV: "development" }]) {
+      const erro = await desfazerUltimaMigracao(intocavel, [M1], [], {
+        url: PROD_NO_PROJETO_NOVO,
+        env,
+      }).then(
+        () => null,
+        (e: unknown) => e as Error,
+      );
+      expect(erro, JSON.stringify(env)).toBeInstanceOf(DesfazerRecusado);
+      expect(erro!.message).toMatch(/banco hospedado/);
+      expect(erro!.message).not.toContain("senha-secreta");
+      expect(erro!.message).not.toContain(REFERENCIA_NOVA);
+    }
+  });
+
+  it("declarar hml sem a identidade, ou com a de outro banco, ainda recusa", () => {
+    const hml = { AMBIENTE_DC360: "hml" };
+    expect(motivoParaNaoDesfazer({ url: PROD_NO_PROJETO_NOVO, env: hml })).toMatch(
+      /exige IDENTIDADE_DO_BANCO/,
+    );
+    expect(
+      motivoParaNaoDesfazer({
+        url: PROD_NO_PROJETO_NOVO,
+        env: { ...hml, IDENTIDADE_DO_BANCO: HML },
+      }),
+    ).toMatch(/não consta no usuário nem no host/);
+  });
+
+  it("a identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL", () => {
+    for (const generica of ["dc360_setup", "pooler", "supabase", "aws-0-sa-east-1", "hml1234"]) {
+      const url = `postgres://${generica}:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`;
+      const motivo = motivoParaNaoDesfazer({
+        url,
+        env: { AMBIENTE_DC360: "hml", IDENTIDADE_DO_BANCO: generica },
+      });
+      expect(motivo, generica).toMatch(/recusou a IDENTIDADE_DO_BANCO declarada/);
+      expect(motivo).not.toContain("senha-secreta");
+    }
+  });
+
+  it("HML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML)", () => {
+    const hml = { AMBIENTE_DC360: "hml", IDENTIDADE_DO_BANCO: HML };
+    expect(motivoParaNaoDesfazer({ url: URL_DE_HML, env: hml })).toBeNull();
+    expect(
+      motivoParaNaoDesfazer({ url: URL_DE_HML, env: { ...hml, NODE_ENV: "production" } }),
+    ).toBeNull();
+    expect(
+      motivoParaNaoDesfazer({
+        url: URL_DE_HML,
+        env: { ...hml, IDENTIDADE_DO_BANCO: HML.toUpperCase() },
+      }),
+    ).toBeNull();
+  });
+
+  it("a identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO", () => {
+    const urlDeProd = `postgres://dc360_setup.${PROD}:senha-secreta@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`;
+    expect(
+      motivoParaNaoDesfazer({
+        url: urlDeProd,
+        env: { AMBIENTE_DC360: "hml", IDENTIDADE_DO_BANCO: PROD },
+      }),
+    ).toMatch(/PRODUÇÃO/);
+    expect(
+      motivoParaNaoDesfazer({
+        url: urlDeProd,
+        env: { AMBIENTE_DC360: "hml", IDENTIDADE_DO_BANCO: HML },
+      }),
+    ).toMatch(/PRODUÇÃO/);
+  });
+
+  it("NODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML", () => {
+    expect(
+      motivoParaNaoDesfazer({
+        url: URL_DE_HML,
+        env: { NODE_ENV: "production", IDENTIDADE_DO_BANCO: HML },
+      }),
+    ).toMatch(/NODE_ENV=production/);
+    expect(
+      motivoParaNaoDesfazer({
+        url: URL_DE_HML,
+        env: { AMBIENTE_DC360: "prod", IDENTIDADE_DO_BANCO: HML },
+      }),
+    ).toMatch(/AMBIENTE_DC360=prod/);
+  });
+
+  it("URL que não dá para analisar recusa sem repetir o texto", () => {
+    const motivo = motivoParaNaoDesfazer({ url: "isto não é uma url senha-secreta", env: {} });
+    expect(motivo).toMatch(/não é uma URL que dê para analisar/);
+    expect(motivo).not.toContain("senha-secreta");
+  });
+
+  it("a lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host)", () => {
+    const fonte = readFileSync(join(RAIZ, "apps/api/src/ambiente.ts"), "utf8");
+    for (const nome of ["PAPEIS_DE_BANCO", "SEGMENTOS_GENERICOS_DE_HOST"]) {
+      const bloco = new RegExp(`${nome}: readonly string\\[\\] = \\[([\\s\\S]*?)\\];`).exec(fonte);
+      expect(bloco, `ambiente.ts não declara mais ${nome}`).toBeTruthy();
+      const nomes = [...bloco![1]!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+      expect(nomes.length).toBeGreaterThan(5);
+      for (const n of nomes) expect(IDENTIDADES_GENERICAS, `${n} (${nome})`).toContain(n);
     }
   });
 });
@@ -306,6 +433,18 @@ describe("o comando de verdade (`npm run migrar -- --desfazer`)", () => {
     expect(r.stderr).toMatch(/AMBIENTE_DC360=prod/);
     expect(r.stdout).not.toMatch(/Aplicadas|Desfeita/);
     expect(`${r.stdout}${r.stderr}`).not.toContain("senha-secreta");
+  });
+
+  it("banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar", () => {
+    const r = rodar(["--desfazer"], {
+      // Inalcançável de propósito: se a recusa regredir, o comando falha ao conectar.
+      DATABASE_URL: "postgres://u:senha-secreta@db.refnovaprodxxxxxxxx.supabase.co:1/postgres",
+    });
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/banco hospedado/);
+    expect(r.stdout).not.toMatch(/Aplicadas|Desfeita/);
+    expect(`${r.stdout}${r.stderr}`).not.toContain("senha-secreta");
+    expect(`${r.stdout}${r.stderr}`).not.toContain("refnovaprodxxxxxxxx");
   });
 
   it("com a porta 6543 (pooler): código 2, sem conectar", () => {

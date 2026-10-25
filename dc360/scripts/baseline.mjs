@@ -972,6 +972,18 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     os demais `*.espacial.test.ts`: roda por `npm run test:espacial`.
   */
   "V2-F01-E22": { total: 9, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E18, correção da revisão 1: `db/test/desfazer-migracao.test.ts` ganha 10
+    casos (o `--desfazer` passa a ser fail-closed como o `--semear`: banco
+    hospedado só desfaz se for o HML declarado; o PROD restaurado num projeto
+    novo, a identidade de HML genérica, a URL de PROD com o HML declarado, a URL
+    que não dá para analisar, o túnel descartável com identidade de PROD, a
+    paridade das listas genéricas com a API e o comando de verdade recusando sem
+    conectar). O caso "homologação e desenvolvimento podem desfazer" foi trocado
+    pelo "banco descartável pode desfazer", sem mudar a contagem. Nenhuma falha
+    nem pulo novos.
+  */
+  "V2-F01-E18-correcao-revisao-1": { total: 10, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

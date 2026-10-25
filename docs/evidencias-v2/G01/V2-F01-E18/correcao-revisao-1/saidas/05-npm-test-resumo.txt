@@ -1,0 +1,13 @@
+ Test Files  11 passed (11)
+      Tests  238 passed (238)
+ Test Files  19 passed (19)
+      Tests  233 passed (233)
+ Test Files  115 passed (115)
+      Tests  1867 passed | 34 skipped (1901)
+ Test Files  21 passed (21)
+      Tests  339 passed (339)
+ Test Files  49 passed (49)
+      Tests  750 passed (750)
+ Test Files  20 passed (20)
+      Tests  439 passed | 6 skipped (445)
+saida 0

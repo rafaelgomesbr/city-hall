@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 233 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 429 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 439 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 750 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1867 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
@@ -1659,8 +1659,8 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3856 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 429 testes do banco
+npm test                    # 3866 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 439 testes do banco
 npm run test:api            # 1867 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
