@@ -150,9 +150,11 @@ function git(raiz, argumentos, opcoes = {}) {
  */
 export function crlfPeloGit(pastas, raiz = RAIZ) {
   // `realpath` dos dois lados: no macOS `/var` é link para `/private/var`, e o
-  // `--show-toplevel` já devolve o caminho real.
-  const repo = realpathSync(git(raiz, ["rev-parse", "--show-toplevel"]).trim());
-  const base = realpathSync(raiz);
+  // `--show-toplevel` já devolve o caminho real. No Windows, só o `.native`
+  // expande o nome curto 8.3 (`RUNNER~1`) que o `os.tmpdir()` devolve; sem ele o
+  // caminho relativo sai do repositório e o git recusa.
+  const repo = realpathSync.native(git(raiz, ["rev-parse", "--show-toplevel"]).trim());
+  const base = realpathSync.native(raiz);
   const relativas = pastas.map((p) => relative(repo, resolve(base, p)).split(sep).join("/"));
   const antes = git(repo, ["ls-files", "-z", "--", ...relativas]).split("\0").filter(Boolean);
   if (antes.length === 0) return { arquivos: 0, problemas: [`nenhum arquivo rastreado em ${relativas.join(", ")}`] };
@@ -261,7 +263,7 @@ function eol(arquivo) {
 // pode vir `C:` de um lado e `c:` do outro conforme o diretório digitado.
 function mesmoArquivo(a, b) {
   try {
-    const [x, y] = [realpathSync(a), realpathSync(b)];
+    const [x, y] = [realpathSync.native(a), realpathSync.native(b)];
     return process.platform === "win32" ? x.toLowerCase() === y.toLowerCase() : x === y;
   } catch {
     return false;
