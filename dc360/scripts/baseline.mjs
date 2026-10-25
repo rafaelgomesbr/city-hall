@@ -195,7 +195,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     histórico completo, `--redact`, permissão mínima, binário fixado por SHA-256 e
     ações fixadas por SHA; e o script `preparar`).
   */
-  "V2-F01-E04": 19,
+  "V2-F01-E04": 21, // 19 na E04; a DV-17 acrescentou 2 (a exceção por conteúdo da migração 046 só perdoa a linha inteira nos formatos conhecidos, e regex de linha sem âncora reprova)
   /*
     V2-F01-E05 (SAST com Semgrep CE): `scripts/excecoes-de-seguranca.test.mjs` é
     novo, com 26 casos (a política de exceção `nosemgrep` com motivo, dono e
@@ -206,8 +206,8 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `scripts/sast-baseline.test.mjs` é novo, com 10 (a comparação com a baseline
     triada e a linha de comando).
   */
-  "V2-F01-E05": 44, // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
-  "V2-F01-E05-baseline": 10,
+  "V2-F01-E05": 48, // a DV-15 acrescentou 3 (dependências do Semgrep por hash) e a DV-22 mais 1 (o script recusa exceção que não é YAML; os 7 testes do .trivyignore viraram 7 do .trivyignore.yaml); antes: // 26 na E05; a V2-F01-E20 acrescentou 16 no mesmo arquivo (a política de exceção do `.trivyignore` do Trivy, o `varrer-imagem.sh` com um Trivy de mentira e os dois workflows que o chamam); a correção 1 do CI acrescentou 2 (o stdout do `instalar` é só o caminho do binário, e a prova de que essa trava morde)
+  "V2-F01-E05-baseline": 14, // 10 na E05; a DV-16 acrescentou 4 (erro de análise em warn também reprova em dc360/apps/api/src)
   /*
     V2-F01-E06: `scripts/dependabot.test.mjs` e novo, com 12 casos. Prende a
     configuracao de atualizacao de dependencias (`.github/dependabot.yml`: os
@@ -218,7 +218,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `docs/DEPENDENCIAS.md`. Um caso e a prova de que o teste morde: uma
     configuracao sintetica sem o `ignore` do Expo reprova.
   */
-  "V2-F01-E06": 12,
+  "V2-F01-E06": 13, // 12 na E06; a DV-18 acrescentou 1 (a frente docker-compose); a DV-27 mudou o teste das frentes para seis, sem caso novo
   /*
     V2-F01-E07: `scripts/versao.test.mjs` é novo, com 32 casos (SemVer e próxima
     versão, os positivos e negativos do conferidor de versões e de CHANGELOG, o
@@ -366,7 +366,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `sbom.yml`: escrita só no job `publicar`, só em tag).
   */
   "V2-F01-E19": 15,
-  "V2-F01-E19-sbom": 11,
+  "V2-F01-E19-sbom": 14, // 11 na E19; a DV-27 acrescentou 3 (o gerador de SBOM instalado por lockfile próprio)
   /*
     V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 20 casos (o
     `app.config.ts` resolvido de verdade por perfil: bundle, pacote, nome e

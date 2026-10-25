@@ -1,0 +1,5 @@
+# Instalacao como o CI faz (linux x86_64, python 3.11): pip download com --require-hashes --no-deps --only-binary=:all: para TODOS os pacotes do arquivo
+You should consider upgrading via the '<scratch>/uvenv/bin/python -m pip install --upgrade pip' command.
+codigo do pip: 0
+arquivos baixados e verificados por hash: 46
+semgrep-1.136.0-cp39.cp310.cp311.py39.py310.py311-none-musllinux_1_0_x86_64.manylinux2014_x86_64.whl

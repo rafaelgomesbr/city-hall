@@ -1,0 +1,20 @@
+# Matriz: 3 configuracoes x 2 pastas. pos = linhas REAIS do repositorio com o nome da 046; neg = o nome da 046 junto de um segredo sintetico gerado na hora (nunca gravado).
+# sem046 = sem a excecao; antigo = a config de antes (HEAD~ do conserto); novo = a config deste conserto.
+# Esperado: sem046 pos=5 neg=5 | antigo pos=0 neg=1 (perdoou 4 das 5 linhas com segredo: o defeito) | novo pos=0 neg=5 (os MESMOS 5 do sem046: nenhuma linha com segredo foi perdoada)
+novo.toml e identico ao .gitleaks.toml do repositorio
+== configuracao=sem046 pasta=pos
+4:01AM WRN leaks found: 5
+codigo=1
+== configuracao=sem046 pasta=neg
+4:01AM WRN leaks found: 5
+codigo=1
+== configuracao=antigo pasta=pos
+codigo=0
+== configuracao=antigo pasta=neg
+4:01AM WRN leaks found: 1
+codigo=1
+== configuracao=novo pasta=pos
+codigo=0
+== configuracao=novo pasta=neg
+4:01AM WRN leaks found: 5
+codigo=1

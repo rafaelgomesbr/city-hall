@@ -1,0 +1,5 @@
+# Historico (HEAD, todos os commits alcancaveis) com o .gitleaks.toml NOVO: tem de dar 0 achados
+4:01AM INF 321 commits scanned.
+4:01AM INF scanned ~71525483 bytes (71.53 MB) in 10.1s
+4:01AM INF no leaks found
+codigo de saida: 0

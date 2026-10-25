@@ -1,0 +1,3 @@
+# Reproducibilidade: gerar de novo, com o mesmo comando do cabecalho, e comparar byte a byte
+codigo do uv: 0
+IDENTICO: o arquivo versionado e o regerado sao iguais byte a byte

@@ -1,0 +1,11 @@
+# Achados reais da base node:22-bookworm-slim@sha256:de170b39... (Trivy 0.75.0, severidade CRITICAL,HIGH, so com correcao): pacote, caminho do arquivo e CVE
+CVE-2026-102276 brace-expansion usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json
+CVE-2026-102278 brace-expansion usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json
+CVE-2026-13149 brace-expansion usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json
+CVE-2026-14257 brace-expansion usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json
+CVE-2026-69152 brace-expansion usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json
+CVE-2026-69192 ip-address usr/local/lib/node_modules/npm/node_modules/ip-address/package.json
+CVE-2026-9496 pacote usr/local/lib/node_modules/npm/node_modules/pacote/package.json
+CVE-2026-9496 pacote usr/local/lib/node_modules/npm/node_modules/@npmcli/metavuln-calculator/node_modules/pacote/package.json
+CVE-2026-33671 picomatch usr/local/lib/node_modules/npm/node_modules/picomatch/package.json
+CVE-2026-48815 sigstore usr/local/lib/node_modules/npm/node_modules/sigstore/package.json

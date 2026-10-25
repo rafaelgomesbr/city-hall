@@ -1,0 +1,7 @@
+# npm ci --ignore-scripts --omit=optional (exatamente o passo do sbom.yml) e a versao instalada
+
+added 22 packages in 2s
+codigo do npm ci: 0
+6.0.1
+## npm audit do lockfile do gerador (so para registro; o gerador nao roda no produto)
+found 0 vulnerabilities

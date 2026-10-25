@@ -1,0 +1,15 @@
+# Teste novo: o workflow instala por hash. Sem o conserto (sast.yml antigo), 2 testes quebram
+## com o conserto
+✔ o workflow de SAST fixa a versão e não deixa código sair do runner (0.272584ms)
+✔ DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado (0.215125ms)
+✔ DV-15: .semgrep/requirements.txt tem hash em todo pacote, é gerado do .in e a versão do Semgrep bate com a do workflow (1.228958ms)
+✔ DV-15: o verificador de requirements com hash morde (sem hash, sem versão exata, URL, hash curto) (0.116458ms)
+ℹ tests 48
+ℹ pass 48
+ℹ fail 0
+## com o sast.yml ANTIGO (mordida, capturada antes do commit)
+ℹ fail 2
+ℹ pass 45
+✖ DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado (0.26675ms)
+✖ failing tests:
+✖ o workflow de SAST fixa a versão e não deixa código sair do runner (0.602416ms)

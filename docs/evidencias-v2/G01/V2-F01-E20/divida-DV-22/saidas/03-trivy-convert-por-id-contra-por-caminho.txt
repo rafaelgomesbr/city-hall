@@ -1,0 +1,17 @@
+achados na base: 11
+### a base real (so o npm embutido), sem excecao nenhuma: reprova
+== sem excecao: codigo de saida 1
+CVE-2026-102276 CVE-2026-102278 CVE-2026-13149 CVE-2026-14257 CVE-2026-33671 CVE-2026-48815 CVE-2026-69152 CVE-2026-69192 CVE-2026-9496 
+### a base real com o .trivyignore.yaml NOVO (por caminho): passa
+== yaml novo: codigo de saida 0
+
+### a base real mais a MESMA CVE-2026-102276 em /app/node_modules: o .trivyignore ANTIGO (por ID) esconde
+== ignore antigo (por ID): codigo de saida 0
+
+### o mesmo relatorio com o .trivyignore.yaml NOVO: a CVE no app continua reprovando
+== yaml novo: codigo de saida 1
+CVE-2026-102276 
+linhas que citam brace-expansion na tabela: 1
+### entrada vencida (expired_at no passado) volta a reprovar sozinha
+== yaml vencido: codigo de saida 1
+CVE-2026-102276 CVE-2026-102278 CVE-2026-13149 CVE-2026-14257 CVE-2026-33671 CVE-2026-48815 CVE-2026-69152 CVE-2026-69192 CVE-2026-9496 

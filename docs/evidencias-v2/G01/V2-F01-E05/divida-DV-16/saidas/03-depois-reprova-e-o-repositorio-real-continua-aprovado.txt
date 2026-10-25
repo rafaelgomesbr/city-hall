@@ -1,0 +1,8 @@
+# DEPOIS (com o conserto) sobre o MESMO JSON: reprova (codigo 2)
+O Semgrep terminou com 1 erro(s) de análise que deixam arquivo sem leitura confiável; o portão reprova.
+  - [warn] Syntax error em dc360/apps/api/src/zz-quebrado-temporario.ts: Syntax error at line dc360/apps/api/src/zz-quebrado-temporario.ts:1:
+exit=2
+# E sobre a varredura real do repositorio (33 achados, todos na baseline, nenhum erro de analise): aprova
+Semgrep: 33 achado(s); 33 na baseline triada; 0 novo(s).
+Aprovado: nenhum achado ERROR novo.
+exit=0

@@ -1,0 +1,9 @@
+# Prova de mordida: o teste de politica novo contra a config ANTIGA tem de falhar
+  ✖ cumpre a política: arquivos existentes, razão escrita, regra-alvo, sem curinga (1.899708ms)
+  ✖ exceção por conteúdo da migração 046 só perdoa a LINHA INTEIRA nos formatos conhecidos (DV-17) (1.109875ms)
+ℹ fail 2
+ℹ pass 19
+✖ allowlist do .gitleaks.toml (6.027542ms)
+✖ cumpre a política: arquivos existentes, razão escrita, regra-alvo, sem curinga (1.899708ms)
+✖ exceção por conteúdo da migração 046 só perdoa a LINHA INTEIRA nos formatos conhecidos (DV-17) (1.109875ms)
+✖ failing tests:

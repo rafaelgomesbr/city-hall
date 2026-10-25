@@ -1,0 +1,13 @@
+# SBOM das duas arvores pelo gerador TRAVADO (mesmo comando do sbom.yml), duas rodadas, comparadas byte a byte
+rodada 1 plataforma: codigo 0
+<scratch>/ev/sbom/r1-npm-plataforma.cdx.json: CycloneDX 1.6, 84 componentes
+rodada 1 campo: codigo 0
+<scratch>/ev/sbom/r1-npm-campo.cdx.json: CycloneDX 1.6, 667 componentes
+rodada 2 plataforma: codigo 0
+<scratch>/ev/sbom/r2-npm-plataforma.cdx.json: CycloneDX 1.6, 84 componentes
+rodada 2 campo: codigo 0
+<scratch>/ev/sbom/r2-npm-campo.cdx.json: CycloneDX 1.6, 667 componentes
+plataforma: duas rodadas identicas byte a byte
+910e891ac266f0a4368b28918a58dc86d8df92c3caeafd59a9585343379ff627  <scratch>/ev/sbom/r1-npm-plataforma.cdx.json
+campo: duas rodadas identicas byte a byte
+60d7ac1e559732149cbb62c81252a4479725e0cf88f814447460d721e1fe8b16  <scratch>/ev/sbom/r1-npm-campo.cdx.json

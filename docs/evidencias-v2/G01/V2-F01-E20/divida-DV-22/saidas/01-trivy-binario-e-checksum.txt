@@ -1,0 +1,7 @@
+# Trivy 0.75.0 oficial (o mesmo do varrer-imagem.sh), checksum do release conferido
+c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  trivy_0.75.0_Linux-64bit.tar.gz
+4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568  trivy_0.75.0_macOS-ARM64.tar.gz
+4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568  <scratch>/tv/trivy_0.75.0_macOS-ARM64.tar.gz
+## o SHA-256 do tarball Linux que o varrer-imagem.sh fixa
+TRIVY_SHA256="c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+Version: 0.75.0

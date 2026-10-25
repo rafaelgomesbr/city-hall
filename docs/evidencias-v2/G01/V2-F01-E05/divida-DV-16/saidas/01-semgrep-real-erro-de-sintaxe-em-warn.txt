@@ -1,0 +1,17 @@
+# O que o Semgrep 1.136.0 (o do arquivo travado) escreve de verdade para um arquivo com erro de sintaxe em dc360/apps/api/src
+# (arquivo temporario criado so para a prova e apagado; o Semgrep saiu com codigo 0)
+Scanning 2 files with 4 Code rules:
+Scanning 1 file with 4 ts rules.
+✅ Scan completed successfully.
+• Findings: 0 (0 blocking)
+• Targets scanned: 1
+## campo errors do JSON
+[
+  {
+    "code": 3,
+    "level": "warn",
+    "type": "Syntax error",
+    "message": "Syntax error at line dc360/apps/api/src/zz-quebrado-temporario.ts:1:\n `export function f(req: any) {\n  const x = ;;; { {\n  return req.body.organizacao_id\n` was unexpected",
+    "path": "dc360/apps/api/src/zz-quebrado-temporario.ts"
+  }
+]

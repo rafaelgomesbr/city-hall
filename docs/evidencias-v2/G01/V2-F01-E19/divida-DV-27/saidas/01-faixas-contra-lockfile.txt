@@ -1,0 +1,18 @@
+# Por que o npm exec nao travava: as dependencias DIRETAS do cyclonedx-npm 6.0.1 sao faixas (^), resolvidas na hora
+{
+  "@cyclonedx/cyclonedx-library": "^10.0.0",
+  "commander": "^14.0.0",
+  "normalize-package-data": "^7.0.0 || ^8.0.0",
+  "packageurl-js": "^2.0.1",
+  "spdx-expression-parse": "^3.0.1 || ^4.0.0",
+  "xmlbuilder2": "^3.0.2 || ^4.0.3"
+}
+# O lockfile novo trava a arvore inteira: pacotes e integridade
+lockfileVersion: 3 | pacotes travados: 176 | sem integrity: 0
+  @cyclonedx/cyclonedx-npm 6.0.1
+  @cyclonedx/cyclonedx-library 10.3.0
+  packageurl-js 2.0.1
+  xmlbuilder2 4.0.3
+  commander 14.0.3
+  ajv 8.20.0
+  semver 7.8.5
