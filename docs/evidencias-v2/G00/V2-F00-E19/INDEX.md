@@ -201,3 +201,6 @@
 | saidas/08-typecheck.txt | 5a56ccad88c743e16bc01377d357554dd764184a5732248d5d9aa0005ea8eb21 |
 | saidas/09-npm-audit-raiz-runtime.txt | 026aadca0cc89a2bd8e18ec36f3fb8119b2922f27026ce3057f6335913263fe2 |
 | saidas/10-e2e-api.txt | d3bdd4c4b8a8b09184518a4ed6ceca9b54025b5057e666964b16d50c8d71b395 |
+| divida-DV-40/RESUMO.md | 0f76d1ff147b93d795591797b0c92c603c4387a68101b15d06f903b5c05b55ee |
+| divida-DV-40/saidas/01-jest-dos-6-arquivos-com-o-duble-ANTIGO.txt | 68bf40b88dbfaee459c6f059b6c86e01c4b80d6d46fc9d3158809c1976eb6d77 |
+| divida-DV-40/saidas/02-jest-dos-6-arquivos-com-o-duble-NOVO.txt | 7af8e83ec763aede961ea6c40ab44f06e5d0bd58dc3b57625899069058da9b23 |

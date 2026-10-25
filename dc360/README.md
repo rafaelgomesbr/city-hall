@@ -1385,9 +1385,11 @@ segundo o STATUS, que o gatekeeper da rodada 4 NÃO conseguiu ler (o `gh` estava
 sem login); o run 39241470718 (2026-10-19, sobre o registro `766bc0a`,
 candidato `4ce0433`), 9 de 9 verdes segundo o STATUS, com as correções de E03,
 E05, E07, E09, E10, E15 e E25 posteriores ao anterior; o run 39366804765 (do
-candidato `1ed0b71`), que o GitHub recusou antes de começar, por faturamento
-(H32); e o run 39420436042 (2026-10-20, sobre o registro `55209ab`, candidato
-`fd17ff4`), 9 de 9 verdes, linha de base em Linux inclusive, lido pelo
+candidato `1ed0b71`, SHA do run `7644420`), cuja tentativa 1 o GitHub recusou
+antes de começar, por faturamento (H32), e cuja tentativa 2 (2026-10-20, depois
+de o repositório virar público) rodou 9 de 9 trabalhos verdes; e o run
+39420436042 (2026-10-20, sobre o registro `55209ab`, candidato `fd17ff4`), 9 de
+9 verdes, linha de base em Linux inclusive, lido pelo
 gatekeeper da rodada 7 pela API pública do GitHub (`VEREDITO.md` da E22). As
 correções posteriores a `fd17ff4` não estão nesse run; o run delas é o do
 candidato seguinte, registrado no `VEREDITO.md` de cada etapa. A
