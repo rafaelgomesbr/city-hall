@@ -138,6 +138,9 @@ export function problemasDaAllowlist(texto, raiz) {
       if (/^(\^)?\.[*+]\$?$/.test(r) || r.length < 12) {
         problemas.push(`${onde}: a regex "${r}" é curta ou ampla demais`);
       }
+      if (lista.regexTarget === "line" && !(r.startsWith("^") && r.endsWith("$"))) {
+        problemas.push(`${onde}: a regex de linha "${r.slice(0, 40)}..." precisa de âncora ^ no começo e $ no fim (sem elas, qualquer linha que cite o texto é perdoada)`);
+      }
     }
     if (regexes.length > 0 && lista.regexTarget !== "line" && lista.regexTarget !== "match") {
       problemas.push(`${onde}: regex sem regexTarget "line" ou "match" (o padrão, "secret", casa o valor escondido)`);
@@ -163,6 +166,43 @@ describe("allowlist do .gitleaks.toml", () => {
       !todosOsCaminhos.some((c) => /\/test\/?\$?$/.test(c)),
       "pasta de testes inteira nunca entra na allowlist",
     );
+  });
+
+  it("exceção por conteúdo da migração 046 só perdoa a LINHA INTEIRA nos formatos conhecidos (DV-17)", () => {
+    const N = "046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql";
+    const listas = lerAllowlists(TOML).filter((l) => (l.regexes ?? []).some((r) => r.includes("046_senha_provisoria")));
+    assert.equal(listas.length, 4, "esperava os quatro formatos (lista TypeScript, Aplicadas, JSON em aplicadas, JSON em jaEstavam)");
+    for (const l of listas) {
+      assert.deepEqual(l.targetRules, ["generic-api-key"]);
+      assert.equal(l.regexTarget, "line");
+      for (const r of l.regexes) assert.ok(r.startsWith("^") && r.endsWith("$"), `regex sem âncora nos dois lados: ${r}`);
+    }
+    const casa = (linha) => listas.some((l) => l.regexes.some((r) => new RegExp(r).test(linha)));
+    // Formatos reais que o repositório produz.
+    assert.ok(casa(`Aplicadas: 001_base.sql, 002_autenticacao.sql, ${N}, 047_familia_da_sessao.sql`));
+    assert.ok(casa(`Aplicadas: ${N}`));
+    assert.ok(casa(`\n3) de novo: {"aplicadas":[],"jaEstavam":["001_base.sql","${N}","047_familia_da_sessao.sql"]}`));
+    assert.ok(casa(`1) aplicando até a 050: {"aplicadas":["001_base.sql","${N}"],"jaEstavam":[]}`));
+    assert.ok(casa(`  "${N}",\n  "047_familia_da_sessao.sql",`));
+    assert.ok(casa(`  "045_x.sql",\n  "${N}",`));
+    // Qualquer outra linha que cite a 046 continua à vista do detector.
+    const segredo = "k3Jx9QpLz0aVb7Nm2RtYw5HcUe8DfGs1";
+    assert.ok(!casa(`Aplicadas: 001_base.sql, ${N} api_key = "${segredo}"`));
+    assert.ok(!casa(`${N} token="${segredo}"`));
+    assert.ok(!casa(`# ${N}`));
+    assert.ok(!casa(`api_key = "${segredo}" // ${N}`));
+    assert.ok(!casa(`Aplicadas: 001_base.sql, ${N}, ${segredo}.sql`));
+    assert.ok(!casa(`{"aplicadas":["${N}"],"jaEstavam":[]} api_key="${segredo}"`));
+  });
+
+  it("reprova regex de linha sem âncora nos dois lados (a mordida da DV-17)", () => {
+    const base = ["[extend]", "useDefault = true", "[[allowlists]]", 'description = "Razão escrita com tamanho suficiente para passar do mínimo."', 'targetRules = ["generic-api-key"]', 'regexTarget = "line"'];
+    const solta = problemasDaAllowlist([...base, "regexes = ['''046_senha_provisoria_e_o_dono_do_token_diz_por_que\\.sql''']"].join("\n"), RAIZ);
+    assert.match(solta.join("\n"), /precisa de âncora/);
+    const semFim = problemasDaAllowlist([...base, "regexes = ['''^Aplicadas: .*046_senha\\.sql''']"].join("\n"), RAIZ);
+    assert.match(semFim.join("\n"), /precisa de âncora/);
+    const ok = problemasDaAllowlist([...base, "regexes = ['''^\\s*Aplicadas: 046_senha\\.sql\\s*$''']"].join("\n"), RAIZ);
+    assert.deepEqual(ok, []);
   });
 
   it("reprova caminho que não existe", () => {

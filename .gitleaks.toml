@@ -112,11 +112,32 @@ paths = ['''^docs/evidencias-v2/G00/V2-F00-E22/correcao-4/sondas/referencias-a-a
 # ---------------------------------------------------------------------------
 
 [[allowlists]]
-description = "Nome da migração 046 ('046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql') dentro da lista de migrações aplicadas que toda saída de 'migrar' imprime. As palavras 'senha' e 'token' no nome fazem o detector de entropia tratar a linha como chave. A linha só é perdoada na regra generic-api-key e só se citar esse nome de arquivo."
+description = "O nome da migração 046 ('046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql') tem 'senha' e 'token' e o detector de entropia lê a linha como chave. A exceção vale só na regra generic-api-key e só para a LINHA INTEIRA neste formato, em que todo item é um nome de migração (NNN_nome.sql): elemento de lista TypeScript, com no máximo um vizinho (db/src/regras-de-migracao.ts, só no histórico; o detector lê o par de linhas). Linha com qualquer outro conteúdo, como um segredo ao lado do nome, não casa e continua sendo vista pelo detector (DV-17)."
 condition = "AND"
 targetRules = ["generic-api-key"]
 regexTarget = "line"
-regexes = ['''046_senha_provisoria_e_o_dono_do_token_diz_por_que\.sql''']
+regexes = ['''^\s*(?:"[0-9]{3}_[a-z0-9_]+\.sql",\s*)?"046_senha_provisoria_e_o_dono_do_token_diz_por_que\.sql",?(?:\s*"[0-9]{3}_[a-z0-9_]+\.sql",?)?\s*$''']
+
+[[allowlists]]
+description = "O nome da migração 046 ('046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql') tem 'senha' e 'token' e o detector de entropia lê a linha como chave. A exceção vale só na regra generic-api-key e só para a LINHA INTEIRA neste formato, em que todo item é um nome de migração (NNN_nome.sql): 'Aplicadas: a, b, c' (a lista que a saída de 'migrar' imprime). Linha com qualquer outro conteúdo, como um segredo ao lado do nome, não casa e continua sendo vista pelo detector (DV-17)."
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = ['''^\s*Aplicadas: (?:[0-9]{3}_[a-z0-9_]+\.sql, )*046_senha_provisoria_e_o_dono_do_token_diz_por_que\.sql(?:, [0-9]{3}_[a-z0-9_]+\.sql)*\s*$''']
+
+[[allowlists]]
+description = "O nome da migração 046 ('046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql') tem 'senha' e 'token' e o detector de entropia lê a linha como chave. A exceção vale só na regra generic-api-key e só para a LINHA INTEIRA neste formato, em que todo item é um nome de migração (NNN_nome.sql): JSON de 'migrar' com o nome em 'aplicadas'. Linha com qualquer outro conteúdo, como um segredo ao lado do nome, não casa e continua sendo vista pelo detector (DV-17)."
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = ['''^\s*(?:[0-9]\) [^:{}"]{1,60}: )?\{"aplicadas":\[(?:"[0-9]{3}_[a-z0-9_]+\.sql",)*"046_senha_provisoria_e_o_dono_do_token_diz_por_que\.sql"(?:,"[0-9]{3}_[a-z0-9_]+\.sql")*\],"jaEstavam":\[(?:"[0-9]{3}_[a-z0-9_]+\.sql"(?:,"[0-9]{3}_[a-z0-9_]+\.sql")*)?\]\}\s*$''']
+
+[[allowlists]]
+description = "O nome da migração 046 ('046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql') tem 'senha' e 'token' e o detector de entropia lê a linha como chave. A exceção vale só na regra generic-api-key e só para a LINHA INTEIRA neste formato, em que todo item é um nome de migração (NNN_nome.sql): JSON de 'migrar' com o nome em 'jaEstavam'. Linha com qualquer outro conteúdo, como um segredo ao lado do nome, não casa e continua sendo vista pelo detector (DV-17)."
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = ['''^\s*(?:[0-9]\) [^:{}"]{1,60}: )?\{"aplicadas":\[(?:"[0-9]{3}_[a-z0-9_]+\.sql"(?:,"[0-9]{3}_[a-z0-9_]+\.sql")*)?\],"jaEstavam":\[(?:"[0-9]{3}_[a-z0-9_]+\.sql",)*"046_senha_provisoria_e_o_dono_do_token_diz_por_que\.sql"(?:,"[0-9]{3}_[a-z0-9_]+\.sql")*\]\}\s*$''']
 
 [[allowlists]]
 description = "Rótulo de rodada da sonda de carga da E03 ('===== rodada da API 3: ins02-api-3.txt ====='): 'API' seguido de nome de arquivo foi lido como chave. A linha só é perdoada na regra generic-api-key e só se tiver exatamente esse formato."
