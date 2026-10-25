@@ -643,6 +643,30 @@ jobs:
       # `dependencias`) já audita `apps/campo` contra a lista nomeada
       # `ACEITAS_NO_APLICATIVO`.
 
+      # O Metro (DV-39). O jest do aplicativo não passa pelo Metro: resolve os
+      # módulos com o Node e o Babel do jest. O Metro é o que empacota o
+      # aplicativo de verdade, com resolvedor próprio e a leitura de `exports` do
+      # `metro.config.js`; um pacote que o jest acha e o Metro não deixava o
+      # aplicativo sem compilar com tudo verde aqui. `expo export` empacota só o
+      # JavaScript (sem Gradle nem Xcode), nas duas plataformas, e reprova com
+      # "Unable to resolve module". `--no-bytecode` deixa o pacote legível para
+      # o conferidor abrir: ele exige o zod 4 e o código do `@dc360/shared`
+      # DENTRO do pacote, porque sair com 0 não diz o que foi empacotado. A
+      # saída, o `metadata.json` e o SHA-256 de cada pacote vão para o artefato
+      # (os pacotes em si, de uns 3 MB cada, não).
+      - name: Empacotar o aplicativo com o Metro (expo export, android e ios)
+        id: empacotar
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        timeout-minutes: 10
+        env:
+          CI: "1"
+          EXPO_NO_TELEMETRY: "1"
+        run: |
+          A="$RUNNER_TEMP/artefatos"
+          npx expo export --platform android --platform ios --no-bytecode --output-dir "$RUNNER_TEMP/export-campo" 2>&1 | tee "$A/08-expo-export.txt"
+          cp "$RUNNER_TEMP/export-campo/metadata.json" "$A/08-expo-export-metadata.json"
+          node "$GITHUB_WORKSPACE/dc360/scripts/conferir-empacotamento-do-campo.mjs" "$RUNNER_TEMP/export-campo" android ios 2>&1 | tee "$A/08b-empacotamento-conferido.txt"
+
       - name: Redigir segredo dos artefatos
         if: ${{ always() }}
         run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
@@ -660,9 +684,13 @@ jobs:
   windows:
     # Os comandos que as etapas pedem verdes também no Windows, onde o `npm` é
     # `npm.cmd` e os caminhos têm letra de unidade: o portão do `auditar` (E19)
-    # e `test:scripts` mais `conferir:numeros` (E17). Job próprio para que uma
-    # falha aqui não se confunda com a prova do ambiente hostil (`plataformas`).
-    name: Windows (auditar, test:scripts e conferir:numeros)
+    # e `test:scripts` mais `conferir:numeros` (E17), e o lint com a baseline e a
+    # formatação (DV-26): o ESLint tipado lê caminho de arquivo (a baseline de
+    # supressões é por caminho), então só rodar em Linux deixava sem prova o
+    # que muda com a letra de unidade e a barra invertida. Job próprio para que
+    # uma falha aqui não se confunda com a prova do ambiente hostil
+    # (`plataformas`).
+    name: Windows (auditar, lint, test:scripts e conferir:numeros)
     runs-on: windows-latest
     timeout-minutes: 40
     defaults:
@@ -703,6 +731,21 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: npm run build:shared 2>&1 | tee "$RUNNER_TEMP/artefatos/03b-build-shared.txt"
 
+      # Os três portões da E17 do `verificar`, em Windows (DV-26). Precisam da
+      # árvore do aplicativo instalada (o lint do campo usa o `node_modules`
+      # dele) e dos pacotes compartilhados compilados (lint tipado).
+      - name: Lint (ESLint tipado) em Windows (npm run lint)
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm run lint 2>&1 | tee "$RUNNER_TEMP/artefatos/03c-lint-windows.txt"
+
+      - name: Teto da baseline do lint em Windows (npm run lint:teto)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run lint:teto 2>&1 | tee "$RUNNER_TEMP/artefatos/03d-lint-teto-windows.txt"
+
+      - name: Formatação em Windows (npm run formato:conferir)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run formato:conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/03e-formato-windows.txt"
+
       - name: Testes dos scripts em Windows (npm run test:scripts)
         if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
         run: npm run test:scripts 2>&1 | tee "$RUNNER_TEMP/artefatos/04-test-scripts-windows.txt"
@@ -741,8 +784,14 @@ jobs:
     #    Windows do autor (e o padrão do Git for Windows). Com o `.gitattributes`
     #    em vigor o `eol=lf` vence e o checkout sai LF: é isso que o passo de
     #    `git ls-files --eol` prova. A árvore CRLF de antes do `.gitattributes`
-    #    é então montada à mão em `apps/web/src` e `apps/web/test`, e a suíte
-    #    do painel inteira roda sobre ela.
+    #    é então escrita PELO GIT em `apps/web/src` e `apps/web/test`
+    #    (`ambiente-hostil.mjs crlf-pelo-git`: `eol=crlf` em
+    #    `.git/info/attributes`, que vence o `.gitattributes`, e `git checkout`
+    #    dos arquivos rastreados; o índice segue LF), e não montada por
+    #    substituição de texto (DV-13). A suíte do painel inteira roda sobre
+    #    ela e o total tem de ser o que o `baseline.mjs` fixa
+    #    (`conferir-painel`), o que prova que nenhum teste sumiu nem foi pulado
+    #    (DV-14).
     # 2. `OPENSSL_CONF` apontando para arquivo que não existe (o valor que o
     #    instalador do driver ODBC do PostgreSQL grava no Windows). Antes, o
     #    controle mostra o `openssl` cru reprovando com ela. Roda no bash (no
@@ -752,7 +801,11 @@ jobs:
     # 3. Cache velho do Expo: `apps/campo/.expo/types/router.d.ts` sem
     #    `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`).
     #    O controle é o `tsc` direto dando TS2345; depois `npm run test:campo`
-    #    tem de apagar o cache e passar, e o typecheck sem cache dá zero.
+    #    tem de apagar o cache e passar, e o typecheck sem cache dá zero. Os
+    #    TS2345 do controle são ESPERADOS, e por isso o passo desliga o
+    #    problem matcher do `tsc` que o `setup-node` registra: sem isso cada um
+    #    virava anotação `##[error]` num job verde, e quem olha só as anotações
+    #    via "erro" (DV-13).
     #
     # Mais o conferidor de índices de evidência (SHA-256) sobre um checkout
     # feito com `autocrlf=true`, que é onde um índice tirado do disco errado
@@ -760,9 +813,10 @@ jobs:
     #
     # Roda em TODO push, e não só com `[ci completo]`: a prova que a validação
     # lê é o run do SHA candidato, e um commit candidato sem este job deixaria a
-    # E21 sem Windows de novo. Estimativa: 15 a 25 minutos no Windows (os dois
-    # `npm ci`, a suíte do painel e o jest do aplicativo), perto de 10 no Linux,
-    # em paralelo com os outros jobs.
+    # E21 sem Windows de novo. Duração medida (rodada 8 da F00): cerca de 4,5
+    # minutos no Windows e menos no Linux (os dois `npm ci`, a suíte do painel e
+    # o jest do aplicativo), em paralelo com os outros jobs. O `timeout-minutes`
+    # de 45 não é a estimativa: é folga contra fila lenta e `npm ci` travado.
     name: Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ${{ matrix.sistema }}
     strategy:
       fail-fast: false
@@ -825,19 +879,21 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: npm run build:shared 2>&1 | tee "$RUNNER_TEMP/artefatos/04-build-shared.txt"
 
-      - name: "Caso 1, controle: árvore do painel em CRLF, sem a agulha antiga"
+      - name: "Caso 1, controle: árvore do painel em CRLF escrita pelo git, sem a agulha antiga"
         id: crlf
         if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
         run: |
           {
-            node scripts/ambiente-hostil.mjs crlf apps/web/src apps/web/test
+            node scripts/ambiente-hostil.mjs crlf-pelo-git apps/web/src apps/web/test
             node scripts/ambiente-hostil.mjs conferir-crlf apps/web/src/paginas/Ocorrencia.tsx
             node scripts/ambiente-hostil.mjs conferir-crlf apps/web/test/ocorrencia-encerramento.test.ts
           } 2>&1 | tee "$RUNNER_TEMP/artefatos/05-crlf-controle.txt"
 
       - name: "Caso 1: suíte do painel inteira sobre a árvore CRLF"
         if: ${{ !cancelled() && steps.crlf.outcome == 'success' }}
-        run: npm run test --workspace @dc360/web 2>&1 | tee "$RUNNER_TEMP/artefatos/06-painel-em-crlf.txt"
+        run: |
+          npm run test --workspace @dc360/web 2>&1 | tee "$RUNNER_TEMP/artefatos/06-painel-em-crlf.txt"
+          node scripts/ambiente-hostil.mjs conferir-painel "$RUNNER_TEMP/artefatos/06-painel-em-crlf.txt" 2>&1 | tee "$RUNNER_TEMP/artefatos/06b-painel-contagem.txt"
 
       # `MSYS_NO_PATHCONV`: sem ele o Git Bash reescreve `/CN=controle` como
       # caminho do Windows e o `openssl` reprovaria pelo motivo errado.
@@ -912,6 +968,8 @@ jobs:
         id: cache_controle
         if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
         run: |
+          # Os TS2345 abaixo são a condição hostil reproduzida: não são erro do job.
+          echo "::remove-matcher owner=tsc::"
           A="$RUNNER_TEMP/artefatos/11-cache-velho-controle.txt"
           node scripts/ambiente-hostil.mjs cache-velho 2>&1 | tee "$A"
           if (cd apps/campo && npx tsc -p tsconfig.json --noEmit) >> "$A" 2>&1; then
@@ -920,7 +978,7 @@ jobs:
             exit 1
           fi
           cat "$A"
-          echo "erros TS2345: $(grep -c 'error TS2345' "$A")" | tee -a "$A"
+          echo "erros TS2345 ESPERADOS (a condição hostil, o job segue verde): $(grep -c 'error TS2345' "$A")" | tee -a "$A"
           grep -q "error TS2345" "$A" || { echo "FALHA: o tsc reprovou por outro motivo"; exit 1; }
 
       - name: "Caso 3: npm run test:campo com o cache velho presente"

@@ -1,0 +1,49 @@
+✔ paraCrlf converte LF e não duplica o CR de linha que já é CRLF (1.303083ms)
+✔ numa fonte em CRLF a agulha antiga some, e é isso que reprovava o teste (0.181292ms)
+✔ estadoDoFimDeLinha conta LF sozinho num arquivo misto (2.687125ms)
+✔ resumirEol aceita LF, binário e CRLF no disco onde o .gitattributes pede (0.601834ms)
+✔ resumirEol reprova CRLF no disco sem eol=crlf e índice misto (0.165667ms)
+✔ a fixture do cache velho não conhece as três rotas e conhece as outras (0.464375ms)
+✔ como comando, `eol` sai com 1 diante de i/crlf e com 0 numa saída limpa (169.719166ms)
+✔ como comando, subcomando desconhecido sai com 2 (70.413417ms)
+✖ crlfPeloGit: o git escreve CRLF no disco, o índice segue LF e a árvore não aparece como modificada (266.956875ms)
+✔ crlfPeloGit reprova pasta sem arquivo rastreado (verde sobre pasta vazia não prova nada) (178.980167ms)
+✔ divergenciasDoPainel aceita a contagem do baseline e reprova total, falha e pulo diferentes (0.870959ms)
+✔ como comando, conferir-painel sai com 1 diante de uma contagem menor e com 0 diante da fixada (50.534334ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 838.442208
+
+✖ failing tests:
+
+test at scripts/ambiente-hostil.test.mjs:111:1
+✖ crlfPeloGit: o git escreve CRLF no disco, o índice segue LF e a árvore não aparece como modificada (266.956875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'i/lf w/lf, esperado w/crlf: src/a.ts',
+  +   'i/lf w/lf, esperado w/crlf: src/fundo/b.tsx',
+  +   'nenhum arquivo ficou w/crlf: o git não escreveu CRLF no disco'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a0133b701f4fa22b4/dc360/scripts/ambiente-hostil.test.mjs:117:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'i/lf w/lf, esperado w/crlf: src/a.ts', 'i/lf w/lf, esperado w/crlf: src/fundo/b.tsx', 'nenhum arquivo ficou w/crlf: o git não escreveu CRLF no disco' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

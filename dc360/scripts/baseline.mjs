@@ -185,8 +185,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     resumo de `git ls-files --eol` que aceita e o que reprova, a fixture do
     cache velho sem as três rotas, e o comando `eol` saindo com 1 diante de
     `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
+    A dívida DV-13/DV-14 acrescenta 4 casos ao MESMO arquivo (12 no total): o
+    `crlf-pelo-git` (o git escreve o CRLF no disco, o índice segue LF, a árvore
+    não aparece modificada, binário e o que está fora das pastas intocados; e
+    pasta sem arquivo rastreado reprova) e o `conferir-painel` (total, falha e
+    pulo contra o `baseline.mjs`, e o comando saindo com 1).
   */
-  "V2-F00-E21-correcao-3": 8,
+  "V2-F00-E21-correcao-3": 12,
   /*
     V2-F01-E04: `scripts/politica-de-segredos.test.mjs` é novo, com 19 casos
     (a allowlist do `.gitleaks.toml` só com arquivo existente, razão e regra-alvo,
@@ -262,8 +267,19 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     total): a promoção exige o run bem-sucedido do `deploy-hml.yml` pela API do
     Actions, o digest do selo igual ao construído e a atestação de proveniência
     assinada pelo `deploy-hml.yml`, e o deploy de HML atesta as duas imagens.
+    As dívidas DV-26 e DV-39 acrescentam 3 casos ao MESMO arquivo (51 no
+    total): o job `aplicativo` empacota com o Metro (`expo export`, tempo limite
+    no passo, conferidor e artefato), o job `windows` roda `lint`, `lint:teto` e
+    `formato:conferir`, e o `plataformas` deixa o git escrever o CRLF e fixa a
+    contagem do painel.
   */
-  "V2-F01-E02": 48,
+  "V2-F01-E02": 51,
+  /*
+    DV-39: `scripts/conferir-empacotamento-do-campo.test.mjs` é novo, com 3 casos
+    (o pacote do Metro com o zod 4 e o código do shared passa; sem um deles,
+    pequeno demais, ausente ou sem plataforma reprova; e o comando com 0, 1 e 2).
+  */
+  "V2-F01-E02-empacotamento": 3,
   /*
     V2-F01-E10: `scripts/conferir-dominio.test.mjs` é novo, com 20 casos (os
     julgamentos puros de TLS, redirecionamento, HSTS, cabeçalhos do painel e
@@ -408,6 +424,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E07": "versao.test.mjs",
   "V2-F01-E01": "ruleset-master.test.mjs",
   "V2-F01-E02": "conferir-workflows.test.mjs",
+  "V2-F01-E02-empacotamento": "conferir-empacotamento-do-campo.test.mjs",
   "V2-F01-E10": "conferir-dominio.test.mjs",
   "V2-F01-E10-vercel-json": "vercel-json.test.mjs",
   "V2-F01-E12": "conferir-saude-remota.test.mjs",

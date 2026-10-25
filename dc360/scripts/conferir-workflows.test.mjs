@@ -400,6 +400,58 @@ test("o test:scripts roda com as duas árvores instaladas (a do aplicativo antes
   assert.doesNotMatch(app.texto, /npm audit/, "o aplicativo não tem mais `npm audit` próprio");
 });
 
+// ----- Dívidas DV-13, DV-14, DV-26 e DV-39 (CI confiável, antes do G01) -----
+
+/** O texto de um passo (`- name:` até o próximo `- name:`/`- uses:`) de um job, ou undefined. */
+export function passoDe(textoDoJob, trecho) {
+  const partes = textoDoJob.split(/\n(?= {6}- (?:name|uses):)/);
+  return partes.find((p) => p.includes(trecho));
+}
+
+test("o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39)", () => {
+  const app = jobsDe(workflows["verificar.yml"]).find((j) => j.id === "aplicativo");
+  const passo = passoDe(app.texto, "npx expo export");
+  assert.ok(passo, "falta o passo `npx expo export` no job aplicativo");
+  assert.match(passo, /^ {8}timeout-minutes:\s*\d+\s*$/m, "o passo do Metro precisa de timeout-minutes próprio");
+  assert.match(passo, /--platform android --platform ios/, "as duas plataformas");
+  assert.match(passo, /--no-bytecode/, "pacote legível, para o conferidor abrir");
+  assert.match(passo, /conferir-empacotamento-do-campo\.mjs/, "o conferidor olha DENTRO do pacote");
+  assert.match(passo, /tee "\$A\/08-expo-export\.txt"/, "a saída vai para o artefato");
+  assert.match(passo, /if:.*steps\.instalar_app\.outcome == 'success'/, "só com o aplicativo instalado");
+  // O artefato é publicado depois e `always()`, para a saída existir quando o Metro reprova.
+  const iPasso = app.texto.indexOf("npx expo export");
+  const iUpload = app.texto.indexOf("actions/upload-artifact");
+  assert.ok(iPasso > 0 && iUpload > iPasso, "upload-artifact depois do passo do Metro");
+  assert.match(passoDe(app.texto, "actions/upload-artifact") ?? "", /if:\s*\$\{\{\s*always\(\)\s*\}\}/);
+});
+
+test("o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26)", () => {
+  const win = jobsDe(workflows["verificar.yml"]).find((j) => j.id === "windows");
+  assert.match(win.texto, /^ {4}runs-on:\s*windows-latest\s*$/m);
+  // Só o que está em `run:` conta: o nome do passo também cita o comando.
+  const runs = comandosDosRuns(win.texto);
+  const em = (cmd) => runs.findIndex((c) => c.startsWith(cmd));
+  const iBuild = em("npm run build:shared");
+  const iApp = em("npm ci");
+  assert.ok(iBuild >= 0 && iApp >= 0, "windows: build do shared e npm ci");
+  for (const cmd of ["npm run lint ", "npm run lint:teto", "npm run formato:conferir"]) {
+    assert.ok(em(cmd) > iBuild, `windows: \`${cmd.trim()}\` ausente ou antes do build do shared`);
+  }
+  assert.ok(win.texto.indexOf("npm run lint ") > win.texto.indexOf("id: instalar_app"), "o lint do campo precisa do npm ci do aplicativo antes");
+});
+
+test("o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14)", () => {
+  const plat = jobsDe(workflows["verificar.yml"]).find((j) => j.id === "plataformas");
+  const crlf = comandosDosRuns(plat.texto).join("\n");
+  assert.match(crlf, /ambiente-hostil\.mjs crlf-pelo-git apps\/web\/src apps\/web\/test/);
+  assert.doesNotMatch(crlf, /ambiente-hostil\.mjs crlf apps\//, "o CRLF não pode voltar a ser montado por substituição de texto");
+  assert.match(crlf, /ambiente-hostil\.mjs conferir-painel "\$RUNNER_TEMP\/artefatos\/06-painel-em-crlf\.txt"/, "a contagem do painel é conferida contra o baseline");
+  // Os TS2345 esperados do controle do caso 3 não viram anotação de erro num job verde.
+  assert.match(passoDe(plat.texto, "Caso 3, controle") ?? "", /::remove-matcher owner=tsc::/);
+  // A estimativa do comentário não pode voltar a ser a de 15 a 25 minutos.
+  assert.doesNotMatch(workflows["verificar.yml"], /15 a 25 minutos/);
+});
+
 // ---------------------------------------------------------------------------
 // E12: deploy de HML por merge e promoção manual para PROD
 // ---------------------------------------------------------------------------

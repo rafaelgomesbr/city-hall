@@ -14,13 +14,29 @@
 
   Subcomandos (rodar a partir de `dc360/`):
 
+    node scripts/ambiente-hostil.mjs crlf-pelo-git PASTA...
+        Faz o PRÓPRIO GIT reescrever as pastas em CRLF no disco (índice segue
+        LF): escreve `eol=crlf` em `.git/info/attributes` (que vence o
+        `.gitattributes` versionado), apaga os arquivos rastreados e os
+        restaura com `git checkout`. É o mesmo caminho do checkout do Windows
+        do autor antes do `.gitattributes`, sem a montagem à mão. Ao fim confere
+        com `git ls-files --eol` que todo arquivo de texto ficou i/lf w/crlf.
+        É o que o job `plataformas` usa (DV-13).
+
     node scripts/ambiente-hostil.mjs crlf PASTA...
-        Grava em CRLF todo arquivo de texto de fonte das pastas. Simula a
-        árvore do Windows de antes do `.gitattributes` (índice LF, disco CRLF).
+        Grava em CRLF, por script, todo arquivo de texto de fonte das pastas.
+        Montagem sintética, mantida só como reserva e para os testes do
+        script; o CI usa `crlf-pelo-git`.
 
     node scripts/ambiente-hostil.mjs conferir-crlf ARQUIVO
         Confere que o arquivo está em CRLF no disco e que a agulha antiga do
         teste ("\n}\n") não aparece nele: é o que fazia o teste reprovar.
+
+    node scripts/ambiente-hostil.mjs conferir-painel ARQUIVO
+        Lê a saída do vitest do painel e reprova se o total, as falhas ou os
+        pulos divergem da contagem fixada em `baseline.mjs`
+        (`esperadoDoTesteWeb`). Prova que a suíte sobre a árvore CRLF rodou
+        INTEIRA, e não só que o vitest saiu com 0.
 
     node scripts/ambiente-hostil.mjs cache-velho
         Põe em `apps/campo/.expo/types/router.d.ts` o cache de rotas tipadas
@@ -31,9 +47,12 @@
         Lê a saída de `git ls-files --eol` e reprova se algum arquivo está
         CRLF ou misto no índice, ou CRLF no disco sem o `.gitattributes` pedir.
 */
-import { copyFileSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { dirname, extname, join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { appendFileSync, copyFileSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { esperadoDoTesteWeb, extrairContagem } from "./baseline.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -112,6 +131,96 @@ function crlf(pastas) {
   if (convertidos === 0) falhar("nenhum arquivo mudou; a árvore já estava CRLF ou as pastas estão vazias");
 }
 
+const GIT = ["-c", "core.quotepath=off"];
+
+function git(raiz, argumentos, opcoes = {}) {
+  return execFileSync("git", [...GIT, "-C", raiz, ...argumentos], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, ...opcoes });
+}
+
+/**
+ * Deixa o PRÓPRIO GIT escrever as pastas em CRLF no disco, com o índice em LF.
+ *
+ * `.git/info/attributes` tem precedência sobre o `.gitattributes` versionado, e
+ * é por ele que o `eol=lf` do repositório deixa de valer só para estas pastas.
+ * Os arquivos rastreados são apagados e restaurados por `git checkout`, que é
+ * quem aplica a conversão: o CRLF não é montado por este script.
+ *
+ * Devolve `{ arquivos, problemas }`; `problemas` vazio quer dizer que todo
+ * arquivo de texto das pastas ficou `i/lf w/crlf`.
+ */
+export function crlfPeloGit(pastas, raiz = RAIZ) {
+  // `realpath` dos dois lados: no macOS `/var` é link para `/private/var`, e o
+  // `--show-toplevel` já devolve o caminho real.
+  const repo = realpathSync(git(raiz, ["rev-parse", "--show-toplevel"]).trim());
+  const base = realpathSync(raiz);
+  const relativas = pastas.map((p) => relative(repo, resolve(base, p)).split(sep).join("/"));
+  const antes = git(repo, ["ls-files", "-z", "--", ...relativas]).split("\0").filter(Boolean);
+  if (antes.length === 0) return { arquivos: 0, problemas: [`nenhum arquivo rastreado em ${relativas.join(", ")}`] };
+
+  const atributos = resolve(repo, git(repo, ["rev-parse", "--git-path", "info/attributes"]).trim());
+  mkdirSync(dirname(atributos), { recursive: true });
+  appendFileSync(atributos, relativas.map((r) => `${r}/** text=auto eol=crlf\n`).join(""));
+
+  for (const arquivo of antes) rmSync(join(repo, arquivo), { force: true });
+  git(repo, ["checkout", "--", ...relativas]);
+
+  const { total, contagem, violacoes } = resumirEolDeTexto(git(repo, ["ls-files", "--eol", "--", ...relativas]));
+  const problemas = [...violacoes];
+  if (total === 0) problemas.push("git ls-files --eol não listou nenhum arquivo");
+  if (!contagem["w/crlf"]) problemas.push("nenhum arquivo ficou w/crlf: o git não escreveu CRLF no disco");
+  if (contagem["i/crlf"] || contagem["i/mixed"]) problemas.push("o índice passou a ter CRLF; a conversão deveria ser só no disco");
+  return { arquivos: total, problemas };
+}
+
+/** Texto de arquivo (`i/lf`) que não ficou `w/crlf` no disco. Binário e vazio (`i/-text`, `i/none`) ficam de fora. */
+function resumirEolDeTexto(saida) {
+  const { total, contagem } = resumirEol(saida);
+  const violacoes = [];
+  for (const linha of saida.split(/\r?\n/)) {
+    const tab = linha.indexOf("\t");
+    if (tab < 0) continue;
+    const [indice, disco] = linha.slice(0, tab).trim().split(/\s+/);
+    if (indice === "i/lf" && disco !== "w/crlf") violacoes.push(`${indice} ${disco}, esperado w/crlf: ${linha.slice(tab + 1)}`);
+  }
+  return { total, contagem, violacoes };
+}
+
+function crlfPeloGitCmd(pastas) {
+  if (pastas.length === 0) falhar("nenhuma pasta informada");
+  const { arquivos, problemas } = crlfPeloGit(pastas);
+  console.log(`git reescreveu ${arquivos} arquivos rastreados de ${pastas.join(", ")} em CRLF no disco.`);
+  if (problemas.length > 0) {
+    for (const p of problemas) console.error(`  ${p}`);
+    falhar(`o git não deixou a árvore inteira em CRLF (${problemas.length} problema(s))`);
+  }
+  console.log("Todo arquivo de texto das pastas está i/lf w/crlf, escrito pelo git.");
+}
+
+/**
+ * Compara a saída do vitest do painel com a contagem fixada no baseline.
+ * Devolve a lista de divergências (vazia = a suíte rodou inteira e sem falha).
+ */
+export function divergenciasDoPainel(saida, esperado = esperadoDoTesteWeb()) {
+  const lido = extrairContagem(saida, "vitest");
+  if (lido.total === undefined) return ["a saída do vitest não traz a linha `Tests ... (N)`"];
+  const problemas = [];
+  if (lido.total !== esperado.total) problemas.push(`total ${lido.total}, o baseline fixa ${esperado.total}`);
+  if (lido.falhas !== (esperado.falhas ?? 0)) problemas.push(`falhas ${lido.falhas}, o baseline fixa ${esperado.falhas ?? 0}`);
+  if (lido.puladas !== (esperado.puladas ?? 0)) problemas.push(`puladas ${lido.puladas}, o baseline fixa ${esperado.puladas ?? 0}`);
+  return problemas;
+}
+
+function conferirPainel(arquivo) {
+  if (!arquivo) falhar("nenhum arquivo informado");
+  const esperado = esperadoDoTesteWeb();
+  const problemas = divergenciasDoPainel(readFileSync(arquivo, "utf8"), esperado);
+  if (problemas.length > 0) {
+    for (const p of problemas) console.error(`  ${p}`);
+    falhar("a suíte do painel sobre a árvore CRLF não bate com a contagem do baseline");
+  }
+  console.log(`Painel sobre a árvore CRLF: ${esperado.total} de ${esperado.total} testes, como o baseline fixa (sem falha, sem pulo).`);
+}
+
 function conferirCrlf(arquivo) {
   if (!arquivo) falhar("nenhum arquivo informado");
   const estado = estadoDoFimDeLinha(readFileSync(join(RAIZ, arquivo), "utf8"));
@@ -163,11 +272,13 @@ const executadoDireto = Boolean(process.argv[1]) && mesmoArquivo(fileURLToPath(i
 if (executadoDireto) {
   const [subcomando, ...argumentos] = process.argv.slice(2);
   if (subcomando === "crlf") crlf(argumentos);
+  else if (subcomando === "crlf-pelo-git") crlfPeloGitCmd(argumentos);
+  else if (subcomando === "conferir-painel") conferirPainel(argumentos[0]);
   else if (subcomando === "conferir-crlf") conferirCrlf(argumentos[0]);
   else if (subcomando === "cache-velho") cacheVelho();
   else if (subcomando === "eol") eol(argumentos[0]);
   else {
-    console.error("uso: ambiente-hostil.mjs crlf PASTA... | conferir-crlf ARQUIVO | cache-velho | eol ARQUIVO");
+    console.error("uso: ambiente-hostil.mjs crlf-pelo-git PASTA... | crlf PASTA... | conferir-crlf ARQUIVO | conferir-painel ARQUIVO | cache-velho | eol ARQUIVO");
     process.exit(2);
   }
 }
