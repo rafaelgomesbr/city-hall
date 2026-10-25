@@ -15,3 +15,6 @@
 | saidas/10-prova-de-mordida.txt | 93fc47ee2aa25e931798f660d7c27f1b302ab064043a4638c7dfa36e49e06976 |
 | saidas/11-conferir-ambiente.txt | b78faa358855380e5713fcfb8d16fcb1a998d142fd80a009cef8af85d5ef8b12 |
 | saidas/12-espacial-local-e-negativos.txt | edb1e11e9a5e4a53a6e09e30690fede4cea6ef20360d4061b3bb26b90316630a |
+| correcao-ci-2/RESUMO.md | a5a5ddf659ce17201137631053eeb851b5953f18368e88292cb8434b955e31d1 |
+| correcao-ci-2/saidas/01-reproducao-42501.txt | bf01a3511f4acbca68ad24e2efdb32f02dad7105733b21c4a84d30e5a51ccc3b |
+| correcao-ci-2/saidas/02-teste-da-conferencia.txt | defb8ff3044e5c335390f500966f272979318511e59864cc7192c396cd535ec2 |

@@ -1,0 +1,3 @@
+papel leitor: sem USAGE no schema extensions
+ANTES  (to_regclass pelo nome): falhou, codigo 42501, permission denied for schema extensions
+DEPOIS (consulta atual `aplicacao`): [{"existe":true,"uso_no_esquema":true,"select_srs":true,"funcoes_sem_execute":0}]

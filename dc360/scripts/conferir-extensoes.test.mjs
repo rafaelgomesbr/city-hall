@@ -320,3 +320,34 @@ test("as consultas e o endurecimento se entendem num Postgres real (extensão su
     await db.close();
   }
 });
+
+test("a coleta funciona com um papel sem USAGE no schema da extensão (o papel de setup do provedor)", async () => {
+  // Defeito do CI 2 (42501): `to_regclass('extensions.spatial_ref_sys')` exige
+  // USAGE no schema para quem consulta. O papel de setup do provedor não tem,
+  // e a conferência precisa responder pelo catálogo, que qualquer papel lê.
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { pg_trgm } = await import("@electric-sql/pglite/contrib/pg_trgm");
+  const trocar = (sql) => sql.replaceAll("'postgis'", "'pg_trgm'");
+  const db = new PGlite({ extensions: { pg_trgm } });
+  try {
+    await db.exec(`
+      CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;
+      CREATE ROLE service_role NOLOGIN; CREATE ROLE dc360_app NOLOGIN;
+      CREATE ROLE leitor NOLOGIN;
+      CREATE SCHEMA extensions;
+      CREATE EXTENSION pg_trgm WITH SCHEMA extensions;
+      CREATE TABLE extensions.spatial_ref_sys (srid int);
+      GRANT USAGE ON SCHEMA extensions TO dc360_app;
+      GRANT SELECT ON extensions.spatial_ref_sys TO dc360_app;`);
+    const consultar = async (sql, parametros) => (await db.query(trocar(sql), parametros)).rows;
+    await db.exec("SET ROLE leitor");
+    const fatos = await coletarFatos(consultar);
+    assert.equal(fatos.aplicacao.usoNoEsquema, true);
+    assert.equal(fatos.aplicacao.selectSpatialRefSys, true);
+    await db.exec("RESET ROLE; REVOKE SELECT ON extensions.spatial_ref_sys FROM dc360_app");
+    await db.exec("SET ROLE leitor");
+    assert.equal((await coletarFatos(consultar)).aplicacao.selectSpatialRefSys, false);
+  } finally {
+    await db.close();
+  }
+});
