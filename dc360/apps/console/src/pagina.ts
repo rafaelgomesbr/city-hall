@@ -2337,6 +2337,15 @@ function esperar(botao, rotulo, textoOcupado) {
 }
 
 /**
+ * O prefixo de versão de TODA chamada à API do console (V2-F02-E02). Os
+ * chamadores seguem escrevendo o caminho de sempre (\`/entrar\`, \`/municipios\`)
+ * e só \`pedir\` sabe da versão: um ponto único, como o \`BASE\` do painel. O
+ * servidor mantém as mesmas rotas sem prefixo como espelho, só para a página que
+ * alguém deixou aberta antes da troca. Os estáticos e \`/saude\` ficam sem prefixo.
+ */
+var BASE_DA_API = "/v1";
+
+/**
  * Uma chamada ao servidor, e ela nunca explode na cara de quem chamou.
  *
  * O desfecho \`rede\` é o caso que faltava: servidor reiniciando, rede caída,
@@ -2347,7 +2356,7 @@ function esperar(botao, rotulo, textoOcupado) {
 async function pedir(caminho, opcoes) {
   var resposta;
   try {
-    resposta = await fetch(caminho, opcoes);
+    resposta = await fetch(BASE_DA_API + caminho, opcoes);
   } catch (e) {
     return { ok: false, rede: true, corpo: null };
   }

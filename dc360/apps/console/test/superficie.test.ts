@@ -110,6 +110,25 @@ function rotas(): string[] {
   return achadas;
 }
 
+/**
+ * A chave sem o `/v1`: a isencao e declarada UMA vez, na forma sem prefixo, e
+ * vale para a rota sob `/v1` e para o espelho (V2-F02-E02).
+ */
+function semV1(rota: string): string {
+  return rota.replace(/^(\S+) \/v1(?=\/|$)/, "$1 ");
+}
+
+/** As rotas que existem so sem prefixo, e cada uma tem a razao escrita. */
+const SO_SEM_PREFIXO: Record<string, string> = {
+  "GET /saude": "Infraestrutura: quem pergunta e o balanceador, que nao conhece versao.",
+  "GET /": "A casca da pagina.",
+  "GET /console.css": "Estatico da pagina.",
+  "GET /console.js": "Estatico da pagina.",
+  "GET /fontes/work-sans-400.ttf": "Estatico da pagina.",
+  "GET /fontes/work-sans-600.ttf": "Estatico da pagina.",
+  "GET /fontes/roboto-mono-400.ttf": "Estatico da pagina.",
+};
+
 describe("Toda rota do console exige sessao, menos as isentas por escrito", () => {
   it("a leitura da arvore de rotas funciona", () => {
     // Sem esta âncora, uma expressão regular quebrada devolveria lista vazia e o
@@ -125,7 +144,7 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
     const semPortao: string[] = [];
 
     for (const rota of rotas()) {
-      if (ABERTAS[rota]) continue;
+      if (ABERTAS[semV1(rota)]) continue;
       const [metodo, caminho] = rota.split(" ") as [string, string];
       const r = await app.inject({
         method: metodo as "GET",
@@ -143,8 +162,29 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
     ).toEqual([]);
   });
 
+  it("toda rota tem par sob /v1 e vice-versa, salvo as sete de infraestrutura e estaticos", () => {
+    const todas = rotas();
+    const legadas = todas.filter((r) => !/^\S+ \/v1(\/|$)/.test(r));
+    const v1 = todas.filter((r) => /^\S+ \/v1(\/|$)/.test(r)).map(semV1);
+
+    // Ancora: sem ela, um filtro quebrado deixaria as duas listas vazias e o caso verde.
+    expect(v1.length).toBeGreaterThanOrEqual(10);
+
+    const semPar = legadas.filter((r) => !SO_SEM_PREFIXO[r] && !v1.includes(r));
+    expect(semPar, `rota sem par sob /v1: ${semPar.join(", ")}`).toEqual([]);
+
+    const soNoV1 = v1.filter((r) => !legadas.includes(r));
+    expect(soNoV1, `rota sob /v1 sem espelho: ${soNoV1.join(", ")}`).toEqual([]);
+
+    const fora = v1.filter((r) => SO_SEM_PREFIXO[r]);
+    expect(fora, `infraestrutura ou estatico entrou sob /v1: ${fora.join(", ")}`).toEqual([]);
+
+    const orfas = Object.keys(SO_SEM_PREFIXO).filter((r) => !legadas.includes(r));
+    expect(orfas, `excecao apontando para rota que nao existe: ${orfas.join(", ")}`).toEqual([]);
+  });
+
   it("nenhuma isencao sobrou apontando para rota que nao existe mais", () => {
-    const existentes = new Set(rotas());
+    const existentes = new Set(rotas().map(semV1));
     const orfas = Object.keys(ABERTAS).filter((r) => !existentes.has(r));
     expect(
       orfas,
@@ -177,11 +217,8 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
     expect(escritas, `o console ganhou rota que altera ou apaga: ${escritas.join(", ")}`)
       .toEqual([]);
 
-    const posts = rotas().filter((r) => r.startsWith("POST "));
-    expect(
-      posts.sort(),
-      "o console ganhou rota de POST que ninguem nomeou neste teste",
-    ).toEqual([
+    const todosOsPosts = rotas().filter((r) => r.startsWith("POST "));
+    const LISTA = [
       "POST /codigos-de-recuperacao",
       "POST /entrar",
       "POST /entrar/codigo",
@@ -194,7 +231,17 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
       "POST /prefeituras",
       "POST /recuperar",
       "POST /senha",
-    ]);
+    ];
+    // A lista vale para o espelho sem prefixo e, igual, para o `/v1`.
+    const posts = todosOsPosts.filter((r) => !r.startsWith("POST /v1/"));
+    expect(
+      [...posts].sort(),
+      "o console ganhou rota de POST que ninguem nomeou neste teste",
+    ).toEqual(LISTA);
+    expect(
+      todosOsPosts.filter((r) => r.startsWith("POST /v1/")).map(semV1).sort(),
+      "o console ganhou rota de POST sob /v1 que ninguem nomeou neste teste",
+    ).toEqual(LISTA);
 
     /*
       E nenhuma rota de escrita está entre as isentas, com UMA exceção nomeada:
