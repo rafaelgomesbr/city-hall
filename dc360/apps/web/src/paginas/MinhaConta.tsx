@@ -418,7 +418,7 @@ function MinhasOutrasSessoes() {
           <>
             Os outros navegadores e aparelhos da sua conta deixam de poder renovar a sessão e de
             gravar agora, e precisam entrar de novo com a sua senha. Uma tela já aberta neles
-            pode continuar mostrando consultas por até 15 minutos. Esta sessão continua aberta,
+            pode continuar consultando por alguns minutos. Esta sessão continua aberta,
             e a senha não muda.
           </>
         }
