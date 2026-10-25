@@ -1,0 +1,326 @@
+PASS src/dados/sessao.test.tsx
+  ● Console
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+      at warn (src/dados/banco-local.ts:226:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+      at warn (src/dados/banco-local.ts:240:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+      at warn (src/dados/banco-local.ts:226:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+      at warn (src/dados/banco-local.ts:240:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+      at warn (src/dados/banco-local.ts:226:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+      at warn (src/dados/banco-local.ts:240:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+      at warn (src/dados/banco-local.ts:226:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+      at warn (src/dados/banco-local.ts:240:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para ler de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      224 |     return linha?.valor ?? null;
+      225 |   } catch (erro) {
+    > 226 |     console.warn("Não deu para ler de quem é o dado local", erro);
+          |             ^
+      227 |     return null;
+      228 |   }
+      229 | }
+
+      at warn (src/dados/banco-local.ts:226:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Não deu para marcar de quem é o dado local TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      238 |     );
+      239 |   } catch (erro) {
+    > 240 |     console.warn("Não deu para marcar de quem é o dado local", erro);
+          |             ^
+      241 |   }
+      242 | }
+      243 |
+
+      at warn (src/dados/banco-local.ts:240:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Falha ao limpar o banco local no logout TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      346 |     );
+      347 |   } catch (erro) {
+    > 348 |     console.warn("Falha ao limpar o banco local no logout", erro);
+          |             ^
+      349 |   }
+      350 |
+      351 |   /*
+
+      at warn (src/dados/banco-local.ts:348:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+    console.warn
+      Falha ao apagar arquivos de prova no logout TypeError: _ExpoSQLite.default.NativeDatabase is not a constructor
+          at Object.<anonymous> (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/expo-sqlite/src/SQLiteDatabase.ts:584:26)
+          at Generator.next (<anonymous>)
+          at asyncGeneratorStep (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+          at _next (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a36c5499c5d4531a3/dc360/apps/campo/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+      379 |     }
+      380 |   } catch (erro) {
+    > 381 |     console.warn("Falha ao apagar arquivos de prova no logout", erro);
+          |             ^
+      382 |   }
+      383 |
+      384 |   /*
+
+      at warn (src/dados/banco-local.ts:381:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+PASS src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx (12.702 s)
+PASS src/__tests__/vistoria-ainda-nao-baixada.test.tsx (13.464 s)
+FAIL src/__tests__/vistoria-mapa-e-historico.test.tsx (14.755 s)
+  ● a coordenada da vistoria entra no envelope › o ponto que o aparelho mediu sobe junto com a coleta
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      365 |     await fireEvent.press(screen.getByText("Concluir vistoria"));
+      366 |     await act(async () => {});
+    > 367 |     expect(mockEnfileirar).toHaveBeenCalledTimes(1);
+          |                            ^
+      368 |     return mockEnfileirar.mock.calls[0]?.[0] as Record<string, unknown>;
+      369 |   }
+      370 |
+
+      at toHaveBeenCalledTimes (src/__tests__/vistoria-mapa-e-historico.test.tsx:367:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a coordenada da vistoria entra no envelope › sem leitura de GPS, a chave não existe no envelope
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      365 |     await fireEvent.press(screen.getByText("Concluir vistoria"));
+      366 |     await act(async () => {});
+    > 367 |     expect(mockEnfileirar).toHaveBeenCalledTimes(1);
+          |                            ^
+      368 |     return mockEnfileirar.mock.calls[0]?.[0] as Record<string, unknown>;
+      369 |   }
+      370 |
+
+      at toHaveBeenCalledTimes (src/__tests__/vistoria-mapa-e-historico.test.tsx:367:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● o que já aconteceu nesta casa › a coleta conclui do mesmo jeito com o histórico fora do ar
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      726 |
+      727 |     // A promessa da tela inteira: nada aqui depende de sinal, e nada se perde.
+    > 728 |     expect(mockEnfileirar).toHaveBeenCalledTimes(1);
+          |                            ^
+      729 |     expect(screen.getByTestId("vistoria-guardada")).toBeTruthy();
+      730 |   });
+      731 |
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/vistoria-mapa-e-historico.test.tsx:728:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS src/__tests__/tela-de-vistoria.test.tsx (14.894 s)
+FAIL src/__tests__/orgaos-a-acionar.test.tsx (15.629 s)
+  ● concluir a vistoria › os órgãos sobem dentro do envelope da coleta
+
+    TypeError: Cannot read properties of undefined (reading 'vistoria')
+
+      481 |       vistoria: { orgaosParaAcionar?: unknown };
+      482 |     };
+    > 483 |     expect(envelope.vistoria.orgaosParaAcionar).toEqual([
+          |                     ^
+      484 |       { orgaoId: "0000000e-0000-4000-8000-000000000002", nome: "Concessionária de energia" },
+      485 |     ]);
+      486 |   });
+
+      at Object.vistoria (src/__tests__/orgaos-a-acionar.test.tsx:483:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 2 failed, 4 passed, 6 total
+Tests:       4 failed, 75 passed, 79 total
+Snapshots:   0 total
+Time:        16.401 s
+Ran all test suites matching /src\/__tests__\/orgaos-a-acionar.test.tsx|src\/__tests__\/tela-de-vistoria.test.tsx|src\/__tests__\/vistoria-ainda-nao-baixada.test.tsx|src\/__tests__\/vistoria-mapa-e-historico.test.tsx|src\/__tests__\/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx|src\/dados\/sessao.test.tsx/i.

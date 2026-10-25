@@ -1,0 +1,20 @@
+# V2-F00-E19, dívida DV-40: retificação do FATO da correção 10 sobre a troca do dublê de UUID
+
+Dívida da rodada 9 da E19 (anotada pela QA da E15, sobre `dda7557`). Paga em 2026-10-25, sobre `e48e5e9` (ramo `v2/f00`). Este arquivo **não altera** `correcao-10/RESUMO.md`, que é evidência arquivada (o `INDEX.md` fecha byte a byte). Ele a retifica por cima. Nenhum código tocado.
+
+## Fatos
+
+- **O que o arquivo arquivado diz** (`../correcao-10/RESUMO.md`, bullet "UUID mais estrito" da lista de migração): "O que quebrou foi o dublê de teste `11111111-1111-1111-1111-111111111111` em 6 testes do aplicativo (quatro casos de `orgaos-a-acionar` e `vistoria-mapa-e-historico` não enfileiravam): trocado por `11111111-1111-4111-8111-111111111111`". Lida sem cuidado, a frase atribui a quebra aos 6 arquivos.
+- **O que o diff da correção 10 mostra** (`../correcao-10/diff-da-correcao.patch`): a troca foi feita em 6 arquivos de teste do aplicativo de campo: `orgaos-a-acionar.test.tsx`, `tela-de-vistoria.test.tsx`, `vistoria-ainda-nao-baixada.test.tsx`, `vistoria-mapa-e-historico.test.tsx`, `vistoria-sessao-vencida-preserva-o-rascunho.test.tsx` e `src/dados/sessao.test.tsx`.
+- **O que a troca realmente consertou (esta pasta, `saidas/`).** Pus o dublê antigo (`11111111-1111-1111-1111-111111111111`) de volta, só nas 6 linhas que o diff trocou (`randomUUID: () => ...` e, em `sessao.test.tsx`, `usuarioId: ...`), e rodei os 6 arquivos no Jest do aplicativo (zod 4.6.7 instalado, como no ramo):
+  - **Com o dublê antigo** (`saidas/01-jest-dos-6-arquivos-com-o-duble-ANTIGO.txt`): 2 suítes falham, 4 testes falham e 75 passam, de 79. Em `vistoria-mapa-e-historico` falham 3 ("o ponto que o aparelho mediu sobe junto com a coleta", "sem leitura de GPS, a chave não existe no envelope" e "a coleta conclui do mesmo jeito com o histórico fora do ar"); em `orgaos-a-acionar` falha 1 ("concluir a vistoria › os órgãos sobem dentro do envelope da coleta").
+  - **Com o dublê novo** (`saidas/02-jest-dos-6-arquivos-com-o-duble-NOVO.txt`): 6 de 6 suítes, 79 de 79.
+  - Os outros 4 arquivos (`tela-de-vistoria`, `vistoria-ainda-nao-baixada`, `vistoria-sessao-vencida-preserva-o-rascunho` e `sessao`) **passam com o dublê antigo**: a troca neles foi uniformização com os outros arquivos do aplicativo (que já usavam um dublê com versão e variante válidas), não conserto.
+- **Retificação.** A justificativa "o `.uuid()` do Zod 4 recusava o dublê e o teste deixava de enfileirar" vale para **2 dos 6 arquivos** (`orgaos-a-acionar` e `vistoria-mapa-e-historico`), que são os dois que a própria frase nomeia entre parênteses. Nos outros 4 a troca era opcional.
+- **Consequência para a E15.** O teste da etapa (`vistoria-sessao-vencida-preserva-o-rascunho`) passa também com o dublê antigo, então a troca nele não mascara regressão da E15: o teste continua provando o que prova. Isto confirma o que a QA da rodada 9 anotou.
+- **Documentos vivos.** Procurei a mesma afirmação (a troca do dublê atribuída a "6 testes", ou a todos) em `dc360/README.md`, `dc360/apps/campo/LEIA-ME.md`, `docs/COLOCAR-DE-PE.md`, `docs/roadmap-v2/` (`STATUS.md`, `pendencias-humanas.md`, as etapas) e `dc360/apps/api/PENDENCIAS.md`. Não aparece em nenhum deles. O STATUS, na linha da E15, diz só que "o Zod 4 trocou o dublê de UUID de um teste da etapa", o que é exato (um teste, sem generalizar), e fica como está. A afirmação generalizada existe apenas no `RESUMO.md` arquivado de `correcao-10`, que esta retificação cobre.
+- **Não verificado:** a causa fina de cada um dos 4 testes que falham com o dublê antigo (li o nome do teste e a falha do Jest, não depurei o ramo de código); e a execução do aplicativo inteiro com o dublê antigo (rodei só os 6 arquivos tocados pela correção).
+
+## Justificativa
+
+A dívida era de precisão do registro, sem efeito no código nem nos critérios. O arquivo arquivado não pode ser reescrito (os índices de evidência fecham por hash), então a retificação mora aqui. Rodar de verdade os 6 arquivos com o dublê antigo trocou "a QA anotou" por prova: dois arquivos precisavam da troca, quatro não. Quem ler `correcao-10/RESUMO.md` deve ler este arquivo junto.
