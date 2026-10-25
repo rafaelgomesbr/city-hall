@@ -1,6 +1,7 @@
 /**
  * Testes do SBOM por release (V2-F01-E19): o conferidor de SBOM, o script que
- * anexa ao Release (com um `gh` de mentira) e as travas do `sbom.yml`.
+ * anexa ao Release (com um `gh` de mentira) e as travas do `sbom.yml`, incluindo
+ * (DV-27) o gerador de SBOM instalado por lockfile próprio, não por `npm exec`.
  *
  * O que estes testes NÃO provam: que o GitHub aceita o workflow e que o Trivy
  * real gera os dois SBOM de imagem. Isso só o run de `workflow_dispatch` prova,
@@ -317,4 +318,182 @@ test("sbom.yml: o job publicar não grava credencial no checkout e só traz dc36
   assert.match(publicar, /persist-credentials: false/);
   assert.match(publicar, /sparse-checkout: dc360\/scripts/);
   assert.match(publicar, /actions\/download-artifact@[0-9a-f]{40} # v\d/);
+});
+
+// ----- DV-27: o gerador de SBOM e as dependências dele vêm de um lockfile -----
+
+const PASTA_DO_GERADOR = join(AQUI, "sbom-gerador");
+
+/**
+ * Problemas na forma como o workflow obtém o gerador. Função pura sobre os três textos,
+ * para os casos negativos estragarem um deles e provarem que a regra morde.
+ */
+export function problemasDoGeradorTravado({ corpoDoWorkflow, pacote, lock }) {
+  const problemas = [];
+  const versao = /CYCLONEDX_NPM_VERSAO: "(\d+\.\d+\.\d+)"/.exec(corpoDoWorkflow)?.[1];
+  if (!versao) problemas.push("falta CYCLONEDX_NPM_VERSAO exata no workflow");
+  if (/\bnpm exec\b|\bnpx\b/.test(corpoDoWorkflow)) {
+    problemas.push(
+      "o workflow usa npm exec/npx: as dependências transitivas do gerador seriam resolvidas na hora",
+    );
+  }
+  if (
+    !/npm ci [^\n]*--ignore-scripts[^\n]*--prefix dc360\/scripts\/sbom-gerador/.test(
+      corpoDoWorkflow,
+    )
+  ) {
+    problemas.push(
+      "falta `npm ci --ignore-scripts ... --prefix dc360/scripts/sbom-gerador` (instalação pelo lockfile, sem script)",
+    );
+  }
+  if (/npm install\b/.test(corpoDoWorkflow))
+    problemas.push("`npm install` reescreve o lockfile: use `npm ci`");
+  if (!/sbom-gerador\/node_modules\/\.bin\/cyclonedx-npm/.test(corpoDoWorkflow)) {
+    problemas.push("o workflow não roda o gerador instalado a partir do lockfile");
+  }
+  const declarada = pacote?.dependencies?.["@cyclonedx/cyclonedx-npm"];
+  if (declarada !== versao)
+    problemas.push(
+      `package.json do gerador declara "${declarada}" e o workflow ${versao} (versão exata nos dois)`,
+    );
+  const raiz = lock?.packages?.["node_modules/@cyclonedx/cyclonedx-npm"]?.version;
+  if (raiz !== versao)
+    problemas.push(`o lockfile resolve o gerador em ${raiz}, e o workflow fixa ${versao}`);
+  if (lock?.lockfileVersion !== 3) problemas.push("lockfileVersion diferente de 3");
+  const semIntegridade = Object.entries(lock?.packages ?? {}).filter(
+    ([nome, p]) => nome !== "" && !p.link && !p.integrity,
+  );
+  if (semIntegridade.length > 0) {
+    problemas.push(
+      `pacote sem integrity no lockfile: ${semIntegridade
+        .slice(0, 3)
+        .map(([n]) => n)
+        .join(", ")}`,
+    );
+  }
+  const deOutroLugar = Object.entries(lock?.packages ?? {}).filter(
+    ([nome, p]) =>
+      nome !== "" && p.resolved && !/^https:\/\/registry\.npmjs\.org\//.test(p.resolved),
+  );
+  if (deOutroLugar.length > 0)
+    problemas.push(
+      `pacote que não vem do registro do npm: ${deOutroLugar
+        .slice(0, 3)
+        .map(([n]) => n)
+        .join(", ")}`,
+    );
+  if (Object.keys(lock?.packages ?? {}).length < 20)
+    problemas.push("lockfile com poucos pacotes: as transitivas não estão travadas");
+  return problemas;
+}
+
+const leJson = (caminho) => JSON.parse(readFileSync(caminho, "utf8"));
+
+test("DV-27: o gerador de SBOM é instalado por `npm ci` a partir de um lockfile com integrity, e a versão bate nos três lugares", () => {
+  const pacote = leJson(join(PASTA_DO_GERADOR, "package.json"));
+  const lock = leJson(join(PASTA_DO_GERADOR, "package-lock.json"));
+  assert.deepEqual(problemasDoGeradorTravado({ corpoDoWorkflow: corpo, pacote, lock }), []);
+  assert.equal(pacote.private, true, "ferramenta de release, nunca publicada");
+  assert.deepEqual(
+    Object.keys(pacote.dependencies),
+    ["@cyclonedx/cyclonedx-npm"],
+    "uma dependência direta, a versão exata",
+  );
+});
+
+test("DV-27: a regra do gerador travado morde (npm exec, sem lockfile, sem integrity, versão fora de sincronia)", () => {
+  const pacote = leJson(join(PASTA_DO_GERADOR, "package.json"));
+  const lock = leJson(join(PASTA_DO_GERADOR, "package-lock.json"));
+  const casos = {
+    "volta o npm exec": {
+      corpoDoWorkflow: corpo.replace("npm ci --ignore-scripts", "npm exec --yes --ignore-scripts"),
+      pacote,
+      lock,
+      esperado: /npm exec/,
+    },
+    "npm install no lugar do npm ci": {
+      corpoDoWorkflow: corpo.replace("npm ci ", "npm install "),
+      pacote,
+      lock,
+      esperado: /npm install|falta `npm ci/,
+    },
+    "instalação sem --ignore-scripts": {
+      corpoDoWorkflow: corpo.replace(/npm ci --ignore-scripts/, "npm ci"),
+      pacote,
+      lock,
+      esperado: /falta `npm ci/,
+    },
+    "lockfile sem as transitivas": {
+      corpoDoWorkflow: corpo,
+      pacote,
+      lock: {
+        ...lock,
+        packages: {
+          "": {},
+          "node_modules/@cyclonedx/cyclonedx-npm":
+            lock.packages["node_modules/@cyclonedx/cyclonedx-npm"],
+        },
+      },
+      esperado: /poucos pacotes/,
+    },
+    "pacote sem integrity": {
+      corpoDoWorkflow: corpo,
+      pacote,
+      lock: {
+        ...lock,
+        packages: {
+          ...lock.packages,
+          "node_modules/ms": {
+            version: "2.1.3",
+            resolved: "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+          },
+        },
+      },
+      esperado: /sem integrity/,
+    },
+    "pacote de fora do registro": {
+      corpoDoWorkflow: corpo,
+      pacote,
+      lock: {
+        ...lock,
+        packages: {
+          ...lock.packages,
+          "node_modules/ms": {
+            version: "2.1.3",
+            integrity: "sha512-x",
+            resolved: "https://example.org/ms.tgz",
+          },
+        },
+      },
+      esperado: /não vem do registro/,
+    },
+    "package.json com outra versão": {
+      corpoDoWorkflow: corpo,
+      pacote: { dependencies: { "@cyclonedx/cyclonedx-npm": "^6.0.0" } },
+      lock,
+      esperado: /declara "\^6\.0\.0"/,
+    },
+    "workflow com outra versão": {
+      corpoDoWorkflow: corpo.replace(
+        /CYCLONEDX_NPM_VERSAO: "[\d.]+"/,
+        'CYCLONEDX_NPM_VERSAO: "6.0.2"',
+      ),
+      pacote,
+      lock,
+      esperado: /declara "6\.0\.1" e o workflow 6\.0\.2/,
+    },
+  };
+  for (const [nome, { esperado, ...entrada }] of Object.entries(casos)) {
+    const problemas = problemasDoGeradorTravado(entrada).join(" | ");
+    assert.match(problemas, esperado, `caso "${nome}" tinha de reprovar: ${problemas}`);
+  }
+});
+
+test("DV-27: o que o gerador não cobre fica escrito: o SBOM exclui devOptional e a conferência de licença não", () => {
+  assert.match(
+    workflow,
+    /Limite que sobra: o `--omit dev` do gerador usa `npm ls`, que\n#\s+exclui `devOptional`/,
+  );
+  assert.match(workflow, /667 componentes/);
+  assert.match(workflow, /731/);
 });

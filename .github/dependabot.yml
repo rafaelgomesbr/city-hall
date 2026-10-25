@@ -6,11 +6,14 @@
 # mesclado sozinho (não há auto-merge, nem aqui nem em workflow). PR de
 # dependência é vetor de cadeia de suprimentos: alguém lê antes de aceitar.
 #
-# Quatro frentes, todas semanais (segunda-feira de manhã em Brasília):
+# Seis frentes, todas semanais (segunda-feira de manhã em Brasília):
 #   1. npm em /dc360            (raiz do monorepo: api, console, web, db, pacotes)
 #   2. npm em /dc360/apps/campo (aplicativo Expo; fica fora de `workspaces`)
 #   3. github-actions em /      (mantém os SHAs fixados pela E02)
 #   4. docker em /dc360         (imagens base dos Dockerfiles)
+#   5. docker-compose em /dc360 (imagem do Postgres/PostGIS do compose.yaml)
+#   6. npm em /dc360/scripts/sbom-gerador (o gerador de SBOM do release e o
+#      lockfile próprio dele, DV-27)
 #
 # O que o Dependabot NÃO faz aqui, de propósito: subir o SDK do Expo (ver a
 # frente 2), subir o Node para outra versão major (frente 4) e tratar advisory
@@ -137,8 +140,7 @@ updates:
   # Node é runtime de produção: major novo (22 para 24, por exemplo) é decisão
   # de plataforma, com ADR e teste completo, e não PR automático. Minor e patch
   # da série 22 (inclusive o rebuild de segurança do Debian) entram normalmente.
-  # A imagem do Postgres/PostGIS em `compose.yaml` fica de fora: trocar a versão
-  # do banco exige plano de migração, não um PR de rotina.
+  # A imagem do Postgres/PostGIS do `compose.yaml` tem frente própria (a 5).
   - package-ecosystem: "docker"
     directory: "/dc360"
     schedule:
@@ -154,3 +156,45 @@ updates:
     ignore:
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
+
+  # 5. Imagem do banco em `compose.yaml` (DV-18). É o banco de desenvolvimento e
+  # de teste; sem esta frente ele envelhecia sem aviso (o ecossistema `docker` só
+  # lê Dockerfile). A imagem é fixada por tag E digest; o Dependabot atualiza os
+  # dois juntos. Major do PostgreSQL (17 para 18, por exemplo) fica ignorado:
+  # trocar a versão do banco exige plano de migração (ADR e teste completo), não
+  # um PR de rotina. Minor e patch (inclusive o rebuild de segurança da imagem)
+  # entram normalmente.
+  - package-ecosystem: "docker-compose"
+    directory: "/dc360"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "dependencias(banco)"
+    ignore:
+      - dependency-name: "postgis/postgis"
+        update-types: ["version-update:semver-major"]
+
+  # 6. Gerador de SBOM (DV-27). `dc360/scripts/sbom-gerador/` tem o lockfile que
+  # trava o `@cyclonedx/cyclonedx-npm` e todas as dependências transitivas dele; sem
+  # esta frente o lockfile envelheceria sem aviso. É ferramenta de release, não
+  # runtime: subir o gerador muda o SBOM de toda tag, então cada subida é PR próprio
+  # (sem grupo), com o SBOM de antes e de depois comparados, e a versão do workflow
+  # (`CYCLONEDX_NPM_VERSAO`) mudando junto (o teste `sbom.test.mjs` confere).
+  - package-ecosystem: "npm"
+    directory: "/dc360/scripts/sbom-gerador"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "dependencias(sbom)"

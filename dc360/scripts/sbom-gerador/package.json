@@ -1,0 +1,13 @@
+{
+  "name": "dc360-sbom-gerador",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Trava o gerador de SBOM do sbom.yml (cyclonedx-npm) e TODAS as dependencias dele por lockfile com integridade. Ferramenta de release, nao entra no produto (DV-27).",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.1"
+  }
+}
