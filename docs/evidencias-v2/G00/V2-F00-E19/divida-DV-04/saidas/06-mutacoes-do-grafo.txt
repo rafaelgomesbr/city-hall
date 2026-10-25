@@ -1,0 +1,7 @@
+M1 ignora peerDependencies: 3 teste(s) vermelho(s), 7 verdes -> MORDEU
+M2 ignora optionalDependencies: 3 teste(s) vermelho(s), 7 verdes -> MORDEU
+M3 segue devDependencies (o grafo cresce com o desenvolvimento): 8 teste(s) vermelho(s), 2 verdes -> MORDEU
+M4 não segue os workspaces (só a raiz): 10 teste(s) vermelho(s), 0 verdes -> MORDEU
+M5 resolve só na raiz (sem cópia aninhada): 2 teste(s) vermelho(s), 8 verdes -> MORDEU
+M6 marcasDevEmRuntime sempre vazia: 4 teste(s) vermelho(s), 6 verdes -> MORDEU
+Restaurado: 10 verdes, 0 vermelhos

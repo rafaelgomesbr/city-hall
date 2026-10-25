@@ -137,7 +137,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
     dava 0 para este arquivo e por isso ele ficou de fora).
   */
-  "V2-F00-E19": 77, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita); a correção 7 (2026-10-20) mais 4 (a raiz é auditada na raiz e sem variável de workspace: de dentro de um workspace, com npm_config_workspace, o ambiente puro e a reprovação de runtime; a correção 8 (2026-10-20) mais 12 (lista permitida de chaves da configuração do npm, lockfile sempre auditado, workspaces auditados de novo pela raiz); a correção 9 (2026-10-20) mais 5 (npm-shrinkwrap.json na raiz, no aplicativo ou num workspace sai 2, padrão de workspace que não se expande sai 2, caminho com UUID que o npm mascara com ***, e as regras puras mesmoProjeto e shrinkwrapsPresentes); a correção 10 (2026-10-24) mais 2 (a exceção por advisory ganha `somenteEm`, que a restringe à cópia no caminho nomeado, como a do `zod` que o `@expo/cli` carrega por dentro, e a cópia do próprio projeto reprova; a lista do aplicativo deixa de ter `braces` e `sprintf-js`)
+  "V2-F00-E19": 88, // DV-04 (2026-10-25) acrescentou 11 (o runtime sai do GRAFO de dependências de execução e não da marca `dev` do lockfile: o grafo, as marcas, o defeito do grafo, a equivalência com `npm ls --omit=dev --all` nos dois lockfiles reais e num sintético, e cinco ponta a ponta com lockfile adulterado na raiz e no aplicativo); 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita); a correção 7 (2026-10-20) mais 4 (a raiz é auditada na raiz e sem variável de workspace: de dentro de um workspace, com npm_config_workspace, o ambiente puro e a reprovação de runtime; a correção 8 (2026-10-20) mais 12 (lista permitida de chaves da configuração do npm, lockfile sempre auditado, workspaces auditados de novo pela raiz); a correção 9 (2026-10-20) mais 5 (npm-shrinkwrap.json na raiz, no aplicativo ou num workspace sai 2, padrão de workspace que não se expande sai 2, caminho com UUID que o npm mascara com ***, e as regras puras mesmoProjeto e shrinkwrapsPresentes); a correção 10 (2026-10-24) mais 2 (a exceção por advisory ganha `somenteEm`, que a restringe à cópia no caminho nomeado, como a do `zod` que o `@expo/cli` carrega por dentro, e a cópia do próprio projeto reprova; a lista do aplicativo deixa de ter `braces` e `sprintf-js`)
   /*
     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
@@ -396,7 +396,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     mostrou derrubar o arquivo inteiro em Windows com
     `ERR_UNSUPPORTED_ESM_URL_SCHEME`).
   */
-  "V2-F01-E13": 20,
+  "V2-F01-E13": 22, // 20 na E13; a DV-29 (2026-10-25) acrescentou 2 (o carregador do `app.config.ts` entende `enum`, `namespace` e propriedade de parâmetro, que o strip-types do Node recusa, e recusa TypeScript com erro de sintaxe)
   /*
     V2-F01-E22 (PostGIS no provedor): `scripts/conferir-extensoes.test.mjs` é
     novo, com 24 casos (a avaliação dos fatos: HML saudável, extensão ausente,

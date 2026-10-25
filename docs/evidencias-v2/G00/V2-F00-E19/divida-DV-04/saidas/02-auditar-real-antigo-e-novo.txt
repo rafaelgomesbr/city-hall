@@ -1,0 +1,41 @@
+=== lockfile ADULTERADO (fast-uri 4.2.3 de runtime com dev: true)
+--- scripts/auditar-antigo.mjs
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+  aceita (desenvolvimento): @vitest/mocker (dono Rafael, até 2027-01-05)
+  aceita (desenvolvimento): tinypool (dono Rafael, até 2027-01-05)
+  aceita (desenvolvimento): vitest (dono Rafael, até 2027-01-05)
+
+Aviso: 3 vulnerabilidade(s) apenas em ferramenta de desenvolvimento, todas aceitas com dono e prazo (CP-03). Não reprova.
+
+Aplicativo de campo (vai para o telefone): 10 vulnerabilidade(s)
+  aceita: brace-expansion GHSA-6j4f-fj2g-mc7p (high, dono Rafael, até 2027-01-05)
+  aceita: brace-expansion GHSA-q2hr-2g5m-vwhr (moderate, dono Rafael, até 2027-01-05)
+  aceita: brace-expansion GHSA-qhr7-859c-m2p7 (high, dono Rafael, até 2027-01-05)
+  aceita: decode-uri-component GHSA-vcc3-ghjq-m6fr (moderate, dono Rafael, até 2027-01-05)
+  aceita: node-forge GHSA-86w9-cpqp-85rv (high, dono Rafael, até 2027-01-05)
+  aceita: shell-quote GHSA-pqg4-j6r4-53mv (critical, dono Rafael, até 2027-01-05)
+  aceita: zod GHSA-mrhx-c7xc-m3w5 (high, dono Rafael, até 2027-01-05)
+
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 7 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+
+Runtime limpo, e o aplicativo sem advisory nova.
+codigo de saida: 0
+--- scripts/auditar.mjs
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+
+REPROVADO: o package-lock.json da raiz marca como só de desenvolvimento (dev: true) 1 pacote(s) que o grafo de dependências de execução alcança: node_modules/fast-uri.
+A marca é a fronteira que o `npm audit --omit=dev` usa, e o `npm ci --omit=dev` do Dockerfile não a obedece igual no npm 10 e no npm 11: o pacote vai para o servidor numa versão do npm e não vai noutra. Refaça o lockfile (`npm install --package-lock-only`) e confira o diff.
+codigo de saida: 1
+=== lockfile ORIGINAL
+--- scripts/auditar-antigo.mjs
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 7 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+
+Runtime limpo, e o aplicativo sem advisory nova.
+codigo de saida: 0
+--- scripts/auditar.mjs
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 7 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+
+Runtime limpo, e o aplicativo sem advisory nova.
+codigo de saida: 0

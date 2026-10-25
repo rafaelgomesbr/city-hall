@@ -43,6 +43,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { lerEnvDoToml, lerMatriz } from "./conferir-ambiente.mjs";
 
@@ -60,31 +61,74 @@ const lerTexto = (caminho) => readFileSync(`${RAIZ}${caminho}`, "utf8");
 export const especificadorDoModulo = (arquivo, windows = process.platform === "win32") =>
   pathToFileURL(arquivo, { windows }).href;
 
+/**
+ * Converte o TypeScript do `app.config.ts` em JavaScript de módulo, com o
+ * compilador do próprio repositório (`typescript`, que a raiz já instala).
+ *
+ * Até a V2-F01-E13 o arquivo era carregado com `node --experimental-strip-types`,
+ * que só APAGA anotação de tipo. No Node 22.17 a bandeira é obrigatória e some
+ * quando o recurso vira padrão; e `enum`, `namespace` e propriedade de parâmetro
+ * (sintaxe que gera código) fazem o Node recusar o arquivo
+ * (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`) em qualquer versão. Quem mexesse no
+ * `app.config.ts` com um `enum` quebraria este teste por um motivo que não é o
+ * contrato dos perfis (DV-29). O compilador entende o TypeScript inteiro e não
+ * depende da versão do Node: é o mesmo resultado no 22 do `.nvmrc` e no 24.
+ *
+ * Só serve a arquivo sem import de valor (o `app.config.ts` só importa o TIPO
+ * `ExpoConfig`, que a conversão apaga). Import de valor de pacote não resolveria
+ * a partir da pasta temporária, e falha alto, com o nome do pacote.
+ */
+let compilador;
+export function emJavaScript(texto, nome = "app.config.ts") {
+  compilador ??= createRequire(import.meta.url)("typescript");
+  const { outputText, diagnostics } = compilador.transpileModule(texto, {
+    fileName: nome,
+    reportDiagnostics: true,
+    compilerOptions: {
+      module: compilador.ModuleKind.ESNext,
+      target: compilador.ScriptTarget.ES2022,
+      verbatimModuleSyntax: false,
+    },
+  });
+  const erros = (diagnostics ?? []).filter(
+    (d) => d.category === compilador.DiagnosticCategory.Error,
+  );
+  assert.equal(
+    erros.length,
+    0,
+    `${nome} não converteu: ${erros.map((d) => compilador.flattenDiagnosticMessageText(d.messageText, " ")).join("; ")}`,
+  );
+  return outputText;
+}
+
 /** O que o próprio `app.config.ts` resolve para um perfil do EAS (`undefined` é fora do EAS). */
 export function resolverConfiguracao(perfil, arquivo = `${RAIZ}apps/campo/app.config.ts`) {
   const env = { ...process.env };
   delete env["EAS_BUILD_PROFILE"];
   delete env["DC360_API_URL"];
   if (perfil !== undefined) env["EAS_BUILD_PROFILE"] = perfil;
-  const roteiro =
-    `const { default: c } = await import(${JSON.stringify(especificadorDoModulo(arquivo))});` +
-    "process.stdout.write(JSON.stringify({ name: c.name, scheme: c.scheme," +
-    " ios: c.ios?.bundleIdentifier, android: c.android?.package," +
-    " pushAmbiente: c.extra?.pushAmbiente }));";
-  const r = spawnSync(
-    process.execPath,
-    ["--no-warnings", "--experimental-strip-types", "--input-type=module", "-e", roteiro],
-    {
+  const pasta = mkdtempSync(join(tmpdir(), "perfis-do-eas-js-"));
+  try {
+    const convertido = join(pasta, "app.config.mjs");
+    writeFileSync(convertido, emJavaScript(readFileSync(arquivo, "utf8"), arquivo));
+    const roteiro =
+      `const { default: c } = await import(${JSON.stringify(especificadorDoModulo(convertido))});` +
+      "process.stdout.write(JSON.stringify({ name: c.name, scheme: c.scheme," +
+      " ios: c.ios?.bundleIdentifier, android: c.android?.package," +
+      " pushAmbiente: c.extra?.pushAmbiente }));";
+    const r = spawnSync(process.execPath, ["--no-warnings", "--input-type=module", "-e", roteiro], {
       env,
       encoding: "utf8",
-    },
-  );
-  assert.equal(
-    r.status,
-    0,
-    `o app.config.ts não carregou com EAS_BUILD_PROFILE=${perfil}: ${r.stderr}`,
-  );
-  return JSON.parse(r.stdout);
+    });
+    assert.equal(
+      r.status,
+      0,
+      `o app.config.ts não carregou com EAS_BUILD_PROFILE=${perfil}: ${r.stderr}`,
+    );
+    return JSON.parse(r.stdout);
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
 }
 
 /** O nome do app do Fly (`app = "..."` do nível de cima do toml), ou null. */
@@ -364,4 +408,42 @@ test("negativo: o app do fly.hml.toml sai do texto, e toml sem app devolve null"
   assert.equal(appDoToml('app = "x-hml"\n[env]\n  A = "b"'), "x-hml");
   assert.equal(appDoToml('[env]\n  app = "nao-conta"'), null);
   assert.equal(appDoToml("# só comentário"), null);
+});
+
+// ---- O carregador não depende do Node apagar tipos (DV-29) ------------------
+
+test("o carregador entende enum, namespace e propriedade de parâmetro, que o strip-types do Node recusa", () => {
+  const pasta = mkdtempSync(join(tmpdir(), "perfis-do-eas-"));
+  const arquivo = join(pasta, "app.config.nao-apagavel.ts");
+  writeFileSync(
+    arquivo,
+    [
+      'import type { ExpoConfig } from "expo/config";',
+      'enum Perfil { Producao = "producao", Homologacao = "homologacao" }',
+      'namespace Ids { export const base = "com.exemplo.app"; }',
+      "class Identificador { constructor(public readonly base: string) {} }",
+      "const id = new Identificador(Ids.base).base;",
+      "const config: ExpoConfig = {",
+      '  name: "Exemplo", slug: "exemplo", scheme: "exemplo",',
+      "  ios: { bundleIdentifier: `${id}.${Perfil.Homologacao}` },",
+      "  android: { package: id },",
+      '  extra: { pushAmbiente: "teste" },',
+      "};",
+      "export default config;",
+      "",
+    ].join("\n"),
+  );
+  try {
+    const lida = resolverConfiguracao("homologacao", arquivo);
+    assert.equal(lida.ios, "com.exemplo.app.homologacao");
+    assert.equal(lida.android, "com.exemplo.app");
+    assert.equal(lida.pushAmbiente, "teste");
+  } finally {
+    rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+test("o carregador reprova TypeScript com erro de sintaxe, em vez de entregar um módulo pela metade", () => {
+  assert.throws(() => emJavaScript("const = ;", "quebrado.ts"), /quebrado\.ts não converteu/);
+  assert.match(emJavaScript("export default { a: 1 as number };"), /export default \{ a: 1 \}/);
 });

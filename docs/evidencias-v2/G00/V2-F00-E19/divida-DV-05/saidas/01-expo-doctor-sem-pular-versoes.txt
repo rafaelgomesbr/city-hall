@@ -1,0 +1,3 @@
+SHA c78a98a, macOS arm64, node v24.15.0, sem EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK (valor no ambiente: '')
+Running 21 checks on your project...
+21/21 checks passed. No issues detected!

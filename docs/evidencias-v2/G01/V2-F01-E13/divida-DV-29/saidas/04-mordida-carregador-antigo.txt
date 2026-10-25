@@ -1,0 +1,16 @@
+Carregador ANTIGO (strip-types, perfis-do-eas.test.mjs de c78a98a) mais os dois casos novos da DV-29
+== Node 24.15.0
+  SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]: TypeScript enum is not supported in strip-only mode
+ℹ fail 2
+ℹ pass 20
+ℹ tests 22
+✖ failing tests:
+✖ o carregador entende enum, namespace e propriedade de parâmetro, que o strip-types do Node recusa (77.582917ms)
+✖ o carregador reprova TypeScript com erro de sintaxe, em vez de entregar um módulo pela metade (0.618833ms)
+== Node 22.17.0
+    SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]:   x TypeScript enum is not supported in strip-only mode
+# fail 2
+# pass 20
+# tests 22
+not ok 21 - o carregador entende enum, namespace e propriedade de parâmetro, que o strip-types do Node recusa
+not ok 22 - o carregador reprova TypeScript com erro de sintaxe, em vez de entregar um módulo pela metade

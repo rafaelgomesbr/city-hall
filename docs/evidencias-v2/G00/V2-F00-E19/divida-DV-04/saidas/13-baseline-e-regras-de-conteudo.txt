@@ -1,0 +1,16 @@
+✔ o registro da deriva V-DEP-4 existe e diz que foi fechada (2.588292ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 103.316625
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  537ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  04:04:59
+   Duration  1.22s (transform 93ms, setup 0ms, collect 89ms, tests 942ms, environment 0ms, prepare 45ms)
+

@@ -1,0 +1,16 @@
+raiz {
+  pelo_grafo: 83,
+  pelo_npm_ls: 83,
+  so_no_grafo: [],
+  so_no_npm_ls: [],
+  marcas_dev_em_runtime: [],
+  defeito_do_grafo: null
+}
+apps/campo {
+  pelo_grafo: 733,
+  pelo_npm_ls: 733,
+  so_no_grafo: [],
+  so_no_npm_ls: [],
+  marcas_dev_em_runtime: [],
+  defeito_do_grafo: null
+}

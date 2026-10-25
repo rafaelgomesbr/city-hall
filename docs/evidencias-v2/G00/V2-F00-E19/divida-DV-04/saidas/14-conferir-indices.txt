@@ -1,0 +1,4 @@
+Rodada de node dc360/scripts/conferir-indices-de-evidencia.mjs depois de gravar os índices desta pasta (e antes de este arquivo entrar no índice):
+FALHA G00/V2-F00-E19/divida-DV-04/INDEX.md
+  - saidas/14-conferir-indices.txt existe na pasta e não está no índice
+RESULTADO: 2 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git

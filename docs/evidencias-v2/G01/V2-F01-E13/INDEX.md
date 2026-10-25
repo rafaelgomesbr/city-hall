@@ -3,6 +3,11 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 72ed594e66a8472c372697dc6241a7546c34bb9fb3cb531967d67638cfb9da75 |
+| divida-DV-29/RESUMO.md | 04a37f421a5eb80b873b87ad996b77a3a753c116aeeb0aebbd871db8262d2113 |
+| divida-DV-29/saidas/01-perfis-do-eas-node-22.17.0.txt | b9f57e329aad56ee6298002d9ad058da41fe3924823007c6b4fa72e2d8434ae5 |
+| divida-DV-29/saidas/02-perfis-do-eas-node-24.15.0.txt | aad2c990330159c317c0b65a00f78453eb183e0dcfb5430e6c27f1e6f899bea6 |
+| divida-DV-29/saidas/03-perfis-do-eas-node-22.23.4.txt | 2bc89e705c9a41dcbeed19cc392a498467d62f9c7d63d342ab744120c308dde9 |
+| divida-DV-29/saidas/04-mordida-carregador-antigo.txt | 5019fe7ba61fb1d184ec9c3329d532c9a5dd08cdfba12582668e66756dbfa8e8 |
 | saidas/01-perfis-do-eas.txt | d52c80da62797c4e2fbceed79eee4e618b737ffcdfe0f3a7d71013e73ef69028 |
 | saidas/02-prova-de-mordida.txt | 9b2c469c5d3ec431289e87bfdebcf07f96965c41447b21ee43c0aab5d6d43f5a |
 | saidas/03-conferir-numeros.txt | 498863b68f283e6289c5d435240ff34587e9709a649f9fa878b792d248d0995a |
