@@ -187,3 +187,86 @@ test("o CLAUDE.md manda a master por PR e o texto novo não tem travessão", () 
     assert.ok(!ler(arquivo).includes(TRAVESSAO), `travessão em ${arquivo}`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Ramos de implantação (correção da revisão 1 da F01, itens E12 e E01)
+// ---------------------------------------------------------------------------
+//
+// `producao` e `homologacao` são os ramos de onde a Vercel publica o painel. Só o
+// workflow (`deploy-hml.yml` e `promover-producao.yml`, pelo GITHUB_TOKEN) pode
+// movê-los. Sem este ruleset, quem tem escrita no repositório empurra o ramo
+// `producao` à mão e o painel de PROD sai sem passar pela promoção.
+
+/** O app do GitHub Actions, o mesmo `integration_id` dos checks da master. */
+const APP_DO_ACTIONS = 15368;
+
+const O_QUE_CADA_REGRA_BLOQUEIA = {
+  creation: "criar o ramo à mão",
+  update: "push direto",
+  deletion: "excluir o ramo",
+  non_fast_forward: "force-push",
+};
+
+export function problemasDoRulesetDeImplantacao(r) {
+  const p = [];
+  if (r.target !== "branch") p.push("o alvo não é branch");
+  if (r.enforcement !== "active") p.push("o ruleset não está ativo");
+  const incluidos = [...(r.conditions?.ref_name?.include ?? [])].sort();
+  if (JSON.stringify(incluidos) !== JSON.stringify(["refs/heads/homologacao", "refs/heads/producao"])) {
+    p.push("não mira exatamente refs/heads/producao e refs/heads/homologacao");
+  }
+  if ((r.conditions?.ref_name?.exclude ?? []).length > 0) p.push("exclui ramos");
+  const bypass = r.bypass_actors ?? [];
+  if (bypass.length !== 1 || bypass[0].actor_id !== APP_DO_ACTIONS || bypass[0].actor_type !== "Integration" || bypass[0].bypass_mode !== "always") {
+    p.push("o bypass tem de ser só o app do GitHub Actions (Integration 15368), sem pessoa nem papel");
+  }
+  const tipos = new Set((r.rules ?? []).map((x) => x.type));
+  for (const [tipo, bloqueia] of Object.entries(O_QUE_CADA_REGRA_BLOQUEIA)) {
+    if (!tipos.has(tipo)) p.push(`falta a regra ${tipo} (${bloqueia})`);
+  }
+  return p;
+}
+
+const rulesetDeImplantacao = JSON.parse(ler(".github/rulesets/ramos-de-implantacao.json"));
+
+test("o ruleset dos ramos de implantação bloqueia criação, push direto, exclusão e force-push, com exceção só para o Actions", () => {
+  assert.deepEqual(problemasDoRulesetDeImplantacao(rulesetDeImplantacao), []);
+  assert.ok(!ler(".github/rulesets/ramos-de-implantacao.json").includes(TRAVESSAO), "travessão no ruleset");
+});
+
+test("os ramos do ruleset são os que os workflows de fato movem, e a master fica de fora", () => {
+  const incluidos = rulesetDeImplantacao.conditions.ref_name.include;
+  assert.ok(!incluidos.includes("refs/heads/master"));
+  assert.match(ler(".github/workflows/deploy-hml.yml"), /git\/refs\/heads\/homologacao/);
+  assert.match(ler(".github/workflows/promover-producao.yml"), /git\/refs\/heads\/producao/);
+  assert.ok(incluidos.includes("refs/heads/homologacao") && incluidos.includes("refs/heads/producao"));
+  // O ruleset da master continua sem exceção; a do Actions vale só aqui.
+  assert.deepEqual(ruleset.bypass_actors, []);
+});
+
+test("o IMPLANTACAO.md diz que importar o ruleset dos ramos é condição da primeira promoção", () => {
+  const texto = ler("dc360/docs/IMPLANTACAO.md");
+  assert.match(texto, /\.github\/rulesets\/ramos-de-implantacao\.json/);
+  assert.match(texto, /CONDIÇÃO DA PRIMEIRA\s+PROMOÇÃO/);
+  assert.ok(!texto.includes(TRAVESSAO), "travessão no IMPLANTACAO.md");
+});
+
+test("negativo: ruleset dos ramos sem uma das regras, com pessoa no bypass, ou mirando só um ramo, reprova", () => {
+  for (const [tipo, trecho] of [["creation", /criar o ramo/], ["update", /push direto/], ["deletion", /excluir/], ["non_fast_forward", /force-push/]]) {
+    const sem = structuredClone(rulesetDeImplantacao);
+    sem.rules = sem.rules.filter((x) => x.type !== tipo);
+    assert.match(problemasDoRulesetDeImplantacao(sem).join(" | "), trecho, `sem ${tipo}`);
+  }
+  const comPessoa = structuredClone(rulesetDeImplantacao);
+  comPessoa.bypass_actors.push({ actor_id: 5, actor_type: "RepositoryRole", bypass_mode: "always" });
+  assert.match(problemasDoRulesetDeImplantacao(comPessoa).join(" | "), /bypass/);
+  const semBypass = structuredClone(rulesetDeImplantacao);
+  semBypass.bypass_actors = [];
+  assert.match(problemasDoRulesetDeImplantacao(semBypass).join(" | "), /bypass/);
+  const umRamo = structuredClone(rulesetDeImplantacao);
+  umRamo.conditions.ref_name.include = ["refs/heads/producao"];
+  assert.match(problemasDoRulesetDeImplantacao(umRamo).join(" | "), /exatamente/);
+  const inativo = structuredClone(rulesetDeImplantacao);
+  inativo.enforcement = "evaluate";
+  assert.match(problemasDoRulesetDeImplantacao(inativo).join(" | "), /não está ativo/);
+});

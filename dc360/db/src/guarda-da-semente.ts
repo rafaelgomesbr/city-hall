@@ -51,7 +51,7 @@ export type EntradaDaGuarda = {
 const HOSTS_DA_PROPRIA_MAQUINA = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 /** Os segmentos separados por ponto do usuário e do host, em minúsculas. */
-function segmentosDaUrl(analisada: URL): string[] {
+export function segmentosDaUrl(analisada: URL): string[] {
   let usuario = analisada.username;
   try {
     usuario = decodeURIComponent(usuario);
@@ -62,7 +62,7 @@ function segmentosDaUrl(analisada: URL): string[] {
 }
 
 /** O host é a própria máquina, ou um nome de serviço do Docker (um rótulo, sem ponto)? */
-function hostEhDescartavel(hostname: string): boolean {
+export function hostEhDescartavel(hostname: string): boolean {
   const host = hostname.toLowerCase();
   if (HOSTS_DA_PROPRIA_MAQUINA.has(host)) return true;
   return host !== "" && !host.includes(".") && !host.includes(":");

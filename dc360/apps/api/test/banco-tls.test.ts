@@ -251,7 +251,7 @@ describe("Certificado do banco: contra um servidor que apresenta o proprio", () 
  */
 describe("DATABASE_URL sem verificacao nao sobe", () => {
   /** O que o painel do provedor entrega, sem uma palavra sobre TLS. */
-  const COMO_O_PROVEDOR_ENTREGA = "postgres://dc360_api:senha@db.projeto.supabase.com:5432/postgres";
+  const COMO_O_PROVEDOR_ENTREGA = "postgres://dc360_api.refprodxxxxxxxx:senha@db.projeto.supabase.com:5432/postgres";
 
   function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
     return {
@@ -268,7 +268,7 @@ describe("DATABASE_URL sem verificacao nao sobe", () => {
       RECUPERACAO_ATIVA: "nao",
       // O contrato de ambiente (V2-F01-E09): as três declarações não secretas.
       AMBIENTE_DC360: "prod",
-      IDENTIDADE_DO_BANCO: "projeto",
+      IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
       DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
       ...sobrescrever,
     } as NodeJS.ProcessEnv;

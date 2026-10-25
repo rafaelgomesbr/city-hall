@@ -1,0 +1,29 @@
+> npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/cam
+> @dc360/shared@0.1.0 build
+> @dc360/db@0.1.0 build
+> @dc360/campo@0.1.0 build
+> @dc360/campo@0.1.0 test
+> vitest run
+ Test Files  11 passed (11)
+      Tests  238 passed (238)
+> @dc360/shared@0.1.0 test
+> vitest run
+ Test Files  19 passed (19)
+      Tests  233 passed (233)
+> @dc360/api@0.1.0 test
+> vitest run
+ Test Files  115 passed (115)
+      Tests  1867 passed | 34 skipped (1901)
+> @dc360/console@0.1.0 test
+> vitest run
+ Test Files  21 passed (21)
+      Tests  339 passed (339)
+> @dc360/web@0.1.0 test
+> vitest run
+ Test Files  49 passed (49)
+      Tests  750 passed (750)
+> @dc360/db@0.1.0 test
+> vitest run
+ Test Files  20 passed (20)
+      Tests  429 passed | 6 skipped (435)
+saida 0

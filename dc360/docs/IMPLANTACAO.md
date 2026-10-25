@@ -881,9 +881,20 @@ Nesta ordem. Nenhum valor de segredo entra no repositório nem em conversa.
    criar o projeto de HML, fechar a exceção da E10**: enquanto o `vercel.json`
    fixar a URL de PROD em `build.env`, o painel de HML falaria com a API de
    PROD (ver `docs/VERCEL-PAINEL.md`, "Tirar a URL de PROD do `vercel.json`").
-4. **Ruleset dos ramos `producao` e `homologacao`** (recomendado): bloquear
-   exclusão e push de pessoas; só o workflow move. Não está versionado em
-   `.github/rulesets/` porque o bypass do GitHub Actions depende da conta.
+4. **Ruleset dos ramos `producao` e `homologacao`** (CONDIÇÃO DA PRIMEIRA
+   PROMOÇÃO, não mais recomendação): importar
+   `.github/rulesets/ramos-de-implantacao.json` em Settings > Rules > Rulesets
+   (New ruleset > Import a ruleset), antes do primeiro `Implantar HML` e do
+   primeiro `Promover para PROD`. Ele bloqueia criação, push direto, exclusão e
+   force-push nos dois ramos, com exceção só para o app do GitHub Actions
+   (`integration_id` 15368, o mesmo dos checks da `master`): é o `GITHUB_TOKEN`
+   do workflow que move o ramo. Sem ele, quem tem escrita no repositório move o
+   ramo `producao` à mão e a Vercel publica o painel de PROD fora da promoção.
+   O teste `scripts/ruleset-master.test.mjs` confere o arquivo; só o dono
+   consegue importá-lo, e este é o único passo desta lista que o repositório
+   não prova sozinho. Depois de importar, conferir que o primeiro run consegue
+   criar o ramo (a exceção do Actions valendo) e que um push de pessoa é
+   recusado.
 5. **Pacotes no GHCR**: o primeiro run cria `dc360-api` e `dc360-console` como
    privados, ligados ao repositório pelo rótulo `org.opencontainers.image.source`.
    Conferir em Packages que o acesso de Actions do repositório está como

@@ -23,7 +23,10 @@ import {
   AMBIENTES,
   APPS,
   DOMINIOS_COMPARTILHADOS,
+  PAPEIS_DE_BANCO,
   RAIZ_DO_PRODUTO,
+  SEGMENTOS_GENERICOS_DE_HOST,
+  TAMANHO_MINIMO_DA_IDENTIDADE,
   compararNomes,
   conferirRepositorio,
   estadoDe,
@@ -32,6 +35,7 @@ import {
   lerEnvDoToml,
   lerMatriz,
   lerNomesDeSegredos,
+  problemaNaIdentidadeDoBanco,
   reprovou,
   validarMatriz,
   variaveisDoEsquema,
@@ -617,4 +621,92 @@ test("o comando: uso errado sai com código 2", () => {
     2,
     "HML sem app na matriz exige --fly",
   );
+});
+
+// ---------------------------------------------------------------------------
+// Identidade de banco genérica (correção da revisão 1 da F01, item E09)
+// ---------------------------------------------------------------------------
+//
+// Uma `IDENTIDADE_DO_BANCO` que consta na URL de QUALQUER ambiente (nome de
+// papel, `pooler`, `supabase`, a região, uma palavra curta) era aceita e anulava
+// a trava de ambiente cruzado: a URL de PROD colada no HML também a continha.
+
+test("as listas de identidade genérica são as MESMAS do código da API", () => {
+  const fonte = readFileSync(join(RAIZ_DO_PRODUTO, "apps/api/src/ambiente.ts"), "utf8");
+  const lista = (nome) => {
+    const bloco = new RegExp(`${nome}: readonly string\\[\\] = \\[([\\s\\S]*?)\\];`).exec(fonte);
+    assert.ok(bloco, `ambiente.ts não declara mais ${nome}`);
+    return [...bloco[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  };
+  assert.deepEqual(lista("PAPEIS_DE_BANCO"), PAPEIS_DE_BANCO);
+  assert.deepEqual(lista("SEGMENTOS_GENERICOS_DE_HOST"), SEGMENTOS_GENERICOS_DE_HOST);
+  const minimo = /TAMANHO_MINIMO_DA_IDENTIDADE = (\d+);/.exec(fonte);
+  assert.equal(Number(minimo?.[1]), TAMANHO_MINIMO_DA_IDENTIDADE);
+});
+
+test("problemaNaIdentidadeDoBanco recusa papel, pedaço de host do provedor, região e palavra curta, e aceita referência de projeto", () => {
+  for (const generica of [
+    "dc360_api",
+    "DC360_API",
+    "dc360_console_login",
+    "dc360_qualquercoisa",
+    "postgres",
+    "service_role",
+    "pooler",
+    "supabase",
+    "aws-0-sa-east-1",
+    "sa-east-1",
+    "firebaseapp",
+    "homologacao",
+    "abc",
+    "prod",
+    "hml-ref",
+  ]) {
+    assert.ok(problemaNaIdentidadeDoBanco(generica), `${generica} deveria ser recusada`);
+  }
+  for (const boa of [
+    "bppklrxxwjshxvkvwirw",
+    "refhmlxxxxxxxxx",
+    "a-definir-no-cp-05",
+    "dc360-hml-projeto",
+  ]) {
+    assert.equal(problemaNaIdentidadeDoBanco(boa), null, `${boa} deveria ser aceita`);
+  }
+});
+
+test("validarMatriz reprova identidade de banco genérica em HML ou PROD", () => {
+  for (const generica of ["dc360_api", "pooler", "supabase", "abc"]) {
+    for (const amb of ["hml", "prod"]) {
+      const m = copiaDaMatriz();
+      m.ambientes[amb].identidadeDoBanco = generica;
+      assert.match(
+        validarMatriz(m).join("\n"),
+        new RegExp(`ambientes\\.${amb}\\.identidadeDoBanco[\\s\\S]*não separaria nada`),
+        `${amb} com ${generica}`,
+      );
+    }
+  }
+});
+
+test("toml de PROD, da API ou do console, com identidade genérica reprova (a trava de ambiente cruzado seria anulada)", () => {
+  for (const [arquivo, variavel] of [
+    ["fly.toml", "IDENTIDADE_DO_BANCO"],
+    ["fly.console.toml", "CONSOLE_IDENTIDADE_DO_BANCO"],
+  ]) {
+    for (const generica of ["dc360_api", "pooler", "aws-0-sa-east-1", "abc"]) {
+      comRaiz((raiz) => {
+        trocar(
+          raiz,
+          arquivo,
+          `${variavel} = "bppklrxxwjshxvkvwirw"`,
+          `${variavel} = "${generica}"`,
+        );
+        assert.match(
+          conferirRepositorio({ raiz }).problemas.join("\n"),
+          new RegExp(`${arquivo}: ${variavel}[\\s\\S]*não separaria nada`),
+          `${arquivo} com ${generica}`,
+        );
+      });
+    }
+  }
 });

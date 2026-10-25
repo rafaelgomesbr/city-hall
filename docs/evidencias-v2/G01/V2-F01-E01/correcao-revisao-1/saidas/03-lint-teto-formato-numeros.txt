@@ -1,0 +1,10 @@
+OK: monorepo
+OK: aplicativo de campo
+OK: lint-teto.json confere com as baselines (431 supressões).
+OK: 788 arquivo(s) de código conferidos; 664 na baseline (só desce).
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.
+ℹ pass 29
+ℹ fail 0
+ Test Files  1 passed (1)
+      Tests  10 passed (10)

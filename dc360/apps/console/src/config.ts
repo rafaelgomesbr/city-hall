@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   identidadeConstaNaUrlDoBanco,
+  problemaNaIdentidadeDoBanco,
   resolverAmbiente,
   type AmbienteDc360,
 } from "../../api/src/ambiente.js";
@@ -250,6 +251,14 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
         `CONSOLE_IDENTIDADE_DO_BANCO é obrigatória em ${rotulo}. É a palavra (no Supabase, a `
         + "referência do projeto) que o usuário ou o host da CONSOLE_DATABASE_URL precisa "
         + "conter. Está no [env] do fly.console.toml.",
+      );
+    }
+    const problemaNaIdentidade = problemaNaIdentidadeDoBanco(config.CONSOLE_IDENTIDADE_DO_BANCO);
+    if (problemaNaIdentidade) {
+      throw new Error(
+        `CONSOLE_IDENTIDADE_DO_BANCO=${config.CONSOLE_IDENTIDADE_DO_BANCO} ${problemaNaIdentidade}. `
+        + "Uma identidade que consta na URL de qualquer ambiente anula a trava contra a "
+        + "configuração cruzada.",
       );
     }
     if (

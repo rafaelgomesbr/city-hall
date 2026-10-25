@@ -228,6 +228,53 @@ describe("negativos: a trava de ambiente cruzado do banco", () => {
     );
     expect(() => carregarConfig(hml({ IDENTIDADE_DO_BANCO: "ab" }))).toThrow(/IDENTIDADE_DO_BANCO/);
   });
+
+  it("identidade genérica, que consta na URL de qualquer ambiente, recusa e a mensagem diz por quê", () => {
+    // Cada uma destas CONSTA na URL de PROD e na de HML do teste: aceitá-la
+    // anularia a trava, e a URL de PROD colada no HML passaria.
+    const casos: Array<[string, RegExp]> = [
+      ["dc360_api", /nome de papel do banco/],
+      ["DC360_API", /nome de papel do banco/],
+      ["dc360_console_login", /nome de papel do banco/],
+      ["postgres", /nome de papel do banco/],
+      ["service_role", /nome de papel do banco/],
+      ["pooler", /pedaço de host/],
+      ["supabase", /pedaço de host/],
+      ["aws-0-sa-east-1", /pedaço de host/],
+      ["homologacao", /pedaço de host/],
+      ["hml-ref", /pelo menos 8/],
+      ["abc1234", /pelo menos 8/],
+    ];
+    for (const [identidade, motivo] of casos) {
+      for (const montar of [hml, prod]) {
+        expect(
+          () => carregarConfig(montar({ IDENTIDADE_DO_BANCO: identidade })),
+          identidade,
+        ).toThrow(motivo);
+      }
+    }
+  });
+
+  it("a identidade genérica não passa nem quando a URL a contém (o caso que a trava deixava escapar)", () => {
+    // O usuário da URL de PROD é `dc360_api.<ref>`: com a identidade `dc360_api`
+    // ela "consta", e antes desta correção a partida de HML com a URL de PROD
+    // subia. Agora recusa antes de comparar.
+    expect(() =>
+      carregarConfig(hml({ IDENTIDADE_DO_BANCO: "dc360_api", DATABASE_URL: URL_DE_PROD })),
+    ).toThrow(/nome de papel do banco/);
+    // A mensagem não repete a URL (a senha está nela).
+    try {
+      carregarConfig(hml({ IDENTIDADE_DO_BANCO: "pooler", DATABASE_URL: URL_DE_PROD }));
+      throw new Error("deveria ter recusado");
+    } catch (e) {
+      expect(String((e as Error).message)).not.toContain("senha-de-prod");
+    }
+  });
+
+  it("a referência real do projeto, em qualquer caixa, continua aceita", () => {
+    expect(() => carregarConfig(hml())).not.toThrow();
+    expect(() => carregarConfig(prod())).not.toThrow();
+  });
 });
 
 describe("negativos: o domínio do ambiente (painel e CORS)", () => {

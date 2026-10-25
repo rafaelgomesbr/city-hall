@@ -38,7 +38,8 @@
 # PERMISSÕES: o topo só lê. Escrita é declarada no job que precisa e o teste a
 # trava por job: `construir` escreve pacotes (publica a imagem no GHCR) e
 # `painel` escreve conteúdo (move o ramo `homologacao`). `aprovar` escreve
-# pacotes para pôr o selo.
+# pacotes para pôr o selo. `construir` também escreve `id-token` e `attestations`
+# para a atestação de proveniência das imagens (correção da revisão 1 da F01).
 #
 # O QUE DEPENDE DE UMA PESSOA (e por isso este arquivo ainda não foi executado)
 #
@@ -92,9 +93,15 @@ jobs:
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    # `id-token` e `attestations` são as duas escritas novas da correção da
+    # revisão 1 da F01: a ação de proveniência assina (OIDC) e registra a
+    # atestação de cada imagem, e a promoção para PROD verifica que o digest foi
+    # construído por ESTE workflow (`gh attestation verify --signer-workflow`).
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     outputs:
       versao: ${{ steps.carimbo.outputs.versao }}
       commit: ${{ steps.carimbo.outputs.commit }}
@@ -163,6 +170,23 @@ jobs:
             echo "digest_$alvo=$digest" >> "$GITHUB_OUTPUT"
             echo "$alvo: $imagem@$digest"
           done
+
+      # Proveniência assinada do digest de cada imagem. É o que impede que uma
+      # tag `hml-ok-` posta à mão, ou um digest que não saiu deste workflow,
+      # passe pela promoção para PROD.
+      - name: Atestar a proveniência da imagem da API
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-name: ${{ steps.publicar.outputs.imagem_api }}
+          subject-digest: ${{ steps.publicar.outputs.digest_api }}
+          push-to-registry: true
+
+      - name: Atestar a proveniência da imagem do console
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-name: ${{ steps.publicar.outputs.imagem_console }}
+          subject-digest: ${{ steps.publicar.outputs.digest_console }}
+          push-to-registry: true
 
   implantar:
     name: Migrar e implantar API e console em HML

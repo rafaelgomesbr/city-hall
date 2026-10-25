@@ -232,8 +232,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     check que existem de verdade nos workflows e rodam em todo pull request, e
     confere o CODEOWNERS e o modelo de PR. Dois casos são a prova de que o
     teste morde: rulesets sintéticos estragados reprovam.
+    A correção da revisão 1 da F01 acrescenta 4 casos ao MESMO arquivo (14 no
+    total): o ruleset dos ramos `producao` e `homologacao`
+    (`.github/rulesets/ramos-de-implantacao.json`, exceção só para o app do
+    Actions), o vínculo dele com os ramos que os workflows movem, a frase do
+    `IMPLANTACAO.md` que faz da importação condição da primeira promoção e o
+    caso negativo.
   */
-  "V2-F01-E01": 10,
+  "V2-F01-E01": 14,
   /*
     V2-F01-E02 e V2-F01-E03: `scripts/conferir-workflows.test.mjs` é novo, com 24
     casos (15 da E02 e 9 da E03; é um arquivo só, por isso uma linha só). Aplica
@@ -252,8 +258,12 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     gatilho, ambiente protegido, token por app, imagem por digest, migration de
     HML antes da API, `/saude` com versão e commit, selo de HML, escritas de job
     nomeadas) e os casos negativos que estragam o workflow real de cada jeito.
+    A correção da revisão 1 da F01 acrescenta 4 casos ao MESMO arquivo (48 no
+    total): a promoção exige o run bem-sucedido do `deploy-hml.yml` pela API do
+    Actions, o digest do selo igual ao construído e a atestação de proveniência
+    assinada pelo `deploy-hml.yml`, e o deploy de HML atesta as duas imagens.
   */
-  "V2-F01-E02": 44,
+  "V2-F01-E02": 48,
   /*
     V2-F01-E10: `scripts/conferir-dominio.test.mjs` é novo, com 20 casos (os
     julgamentos puros de TLS, redirecionamento, HSTS, cabeçalhos do painel e
@@ -304,8 +314,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     domínio de PROD, Node e Postgres divergentes; os nomes de `fly secrets list`
     contra a coluna do ambiente, incluindo o segredo exclusivo de PROD no app de
     HML; e o comando com código de saída 0, 1 e 2, sem nunca imprimir valor).
+    A correção da revisão 1 da F01 acrescenta 4 casos ao MESMO arquivo (46 no
+    total): as listas de papel de banco e de pedaço de host iguais às da API,
+    `problemaNaIdentidadeDoBanco` recusando papel, host do provedor, região e
+    palavra curta, e a matriz e os dois `fly*.toml` de PROD reprovando a
+    identidade genérica.
   */
-  "V2-F01-E09": 42,
+  "V2-F01-E09": 46,
   /*
     V2-F01-E17 (lint e formatação com baseline que só desce):
     `scripts/lint-teto.test.mjs` é novo, com 20 casos (o teto é exatamente a
@@ -774,6 +789,18 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     contagem. Nenhuma falha nem pulo novos.
   */
   "V2-F01-E09": { total: 60, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E09, correção da revisão 1: `IDENTIDADE_DO_BANCO` genérica (papel de
+    banco, pedaço de host do provedor, região, palavra curta) passa a recusar a
+    partida. 3 casos novos em `apps/api/test/contrato-de-ambiente.test.ts`
+    (as identidades recusadas com o motivo, a URL de PROD que "constava" e a
+    referência real continuando aceita). Os helpers de `config.test.ts`,
+    `banco-tls.test.ts`, `log.test.ts` e `recuperacao-em-producao.test.ts`
+    ganharam uma referência de projeto no lugar de identidades curtas, sem mudar
+    a contagem. O console ganha 1 caso (`contrato-de-ambiente.test.ts`), que está
+    no número do próprio passo (teste-console, +1: 338 para 339).
+  */
+  "V2-F01-E09-correcao-revisao-1": { total: 3, falhas: 0, puladas: 0 },
   // V2-F01-E14: `request-id.test.ts` (13), `reportador-de-erros.test.ts` (17), `rotinas-em-nivel-error.test.ts` (8) e `alerta-de-armazenamento.test.ts` (11).
   "V2-F01-E14": { total: 49, falhas: 0, puladas: 0 },
   /*
@@ -949,6 +976,18 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     os demais `*.espacial.test.ts`: roda por `npm run test:espacial`.
   */
   "V2-F01-E22": { total: 9, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E18, correção da revisão 1: `db/test/desfazer-migracao.test.ts` ganha 10
+    casos (o `--desfazer` passa a ser fail-closed como o `--semear`: banco
+    hospedado só desfaz se for o HML declarado; o PROD restaurado num projeto
+    novo, a identidade de HML genérica, a URL de PROD com o HML declarado, a URL
+    que não dá para analisar, o túnel descartável com identidade de PROD, a
+    paridade das listas genéricas com a API e o comando de verdade recusando sem
+    conectar). O caso "homologação e desenvolvimento podem desfazer" foi trocado
+    pelo "banco descartável pode desfazer", sem mudar a contagem. Nenhuma falha
+    nem pulo novos.
+  */
+  "V2-F01-E18-correcao-revisao-1": { total: 10, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
@@ -1085,7 +1124,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 338, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 339, falhas: 0 } }, // 338 + 1 da correção da revisão 1 da V2-F01-E09
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

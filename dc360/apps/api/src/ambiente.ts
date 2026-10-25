@@ -73,6 +73,102 @@ export const DOMINIOS_COMPARTILHADOS: readonly string[] = [
 ];
 
 /**
+ * Nomes de papel de banco. Aparecem como o PRIMEIRO segmento do usuário de uma
+ * URL (`dc360_api.<ref>`), então uma `IDENTIDADE_DO_BANCO` igual a um deles
+ * consta na URL de QUALQUER ambiente e a trava de ambiente cruzado deixa de
+ * separar HML de PROD. Precisa ser IGUAL à lista de `scripts/conferir-ambiente.mjs`
+ * (o teste `conferir-ambiente.test.mjs` compara as duas).
+ */
+export const PAPEIS_DE_BANCO: readonly string[] = [
+  "postgres",
+  "authenticator",
+  "authenticated",
+  "anon",
+  "service_role",
+  "supabase_admin",
+  "supabase_auth_admin",
+  "supabase_storage_admin",
+  "pgbouncer",
+  "dc360_api",
+  "dc360_app",
+  "dc360_setup",
+  "dc360_console",
+  "dc360_console_login",
+];
+
+/**
+ * Pedaços de host que o provedor repete em todo projeto, ou palavras que dizem
+ * o ambiente e não o banco. Qualquer um deles consta em toda URL do mesmo
+ * provedor (ou em nenhuma), então não identifica projeto algum. Os rótulos de
+ * `DOMINIOS_COMPARTILHADOS` também valem. Mesma regra de igualdade com o
+ * conferidor de `scripts/`.
+ */
+export const SEGMENTOS_GENERICOS_DE_HOST: readonly string[] = [
+  "pooler",
+  "supabase",
+  "database",
+  "postgres",
+  "postgresql",
+  "amazonaws",
+  "localhost",
+  "flycast",
+  "internal",
+  "pgbouncer",
+  "transaction",
+  "session",
+  "producao",
+  "production",
+  "homologacao",
+  "staging",
+  "desenvolvimento",
+  "development",
+];
+
+/** Menos que isto não é referência de projeto (a do Supabase tem 20 caracteres). */
+export const TAMANHO_MINIMO_DA_IDENTIDADE = 8;
+
+/**
+ * Confere `IDENTIDADE_DO_BANCO`. Devolve o problema, em português, ou `null`.
+ *
+ * A trava de ambiente cruzado só vale se a identidade for algo que a URL do
+ * banco de OUTRO ambiente NÃO contém. Uma identidade genérica (nome de papel,
+ * `pooler`, `supabase`, `aws-0-sa-east-1`, uma palavra curta) está na URL de
+ * todos e a anula sem ninguém perceber: a partida passa, e o HML fala com o
+ * banco de PROD.
+ */
+export function problemaNaIdentidadeDoBanco(identidade: string): string | null {
+  const id = identidade.trim().toLowerCase();
+  if (PAPEIS_DE_BANCO.includes(id) || /^dc360_/.test(id)) {
+    return (
+      "é nome de papel do banco, que aparece no usuário da URL de TODOS os ambientes: " +
+      "a trava aceitaria o banco de qualquer um. Use a referência do projeto, " +
+      "que é o segundo segmento do usuário (`dc360_api.<referência>`)"
+    );
+  }
+  const rotulosDosDominios = DOMINIOS_COMPARTILHADOS.flatMap((d) => d.split("."));
+  if (
+    SEGMENTOS_GENERICOS_DE_HOST.includes(id) ||
+    rotulosDosDominios.includes(id) ||
+    /^aws-\d+-[a-z]{2}-[a-z]+-\d+$/.test(id) ||
+    /^[a-z]{2}-[a-z]+-\d+$/.test(id)
+  ) {
+    return (
+      "é um pedaço de host que o provedor repete em todo projeto " +
+      "(`pooler`, `supabase`, a região, o domínio): consta na URL de qualquer " +
+      "ambiente e não identifica o deste. Use a referência do projeto"
+    );
+  }
+  if (id.length < TAMANHO_MINIMO_DA_IDENTIDADE) {
+    return (
+      `tem ${id.length} caracteres e precisa ter pelo menos ${TAMANHO_MINIMO_DA_IDENTIDADE}: ` +
+      "uma palavra curta consta em muitas URLs e não separa um banco do outro. " +
+      "Use a referência inteira do projeto (no Supabase, 20 caracteres)"
+    );
+  }
+  return null;
+}
+
+/**
  * Lê `AMBIENTE_DC360` e confere se ele combina com `NODE_ENV`.
  *
  * Fora de produção, ausente vale `dev`. Em produção é obrigatória: um processo

@@ -168,6 +168,35 @@ describe("negativos: a trava de ambiente cruzado do banco", () => {
       /CONSOLE_IDENTIDADE_DO_BANCO/,
     );
   });
+
+  it("identidade genérica, que consta na URL de qualquer ambiente, recusa e a mensagem diz por quê", () => {
+    const casos: Array<[string, RegExp]> = [
+      ["dc360_console_login", /nome de papel do banco/],
+      ["dc360_api", /nome de papel do banco/],
+      ["postgres", /nome de papel do banco/],
+      ["pooler", /pedaço de host/],
+      ["supabase", /pedaço de host/],
+      ["aws-0-sa-east-1", /pedaço de host/],
+      ["abc1234", /pelo menos 8/],
+    ];
+    for (const [identidade, motivo] of casos) {
+      for (const montar of [hml, prod]) {
+        expect(
+          () => carregarConfig(montar({ CONSOLE_IDENTIDADE_DO_BANCO: identidade })),
+          identidade,
+        ).toThrow(motivo);
+      }
+    }
+    // Com a URL de PROD colada e a identidade `dc360_console_login`, que consta nela, a trava antiga cedia.
+    expect(() =>
+      carregarConfig(
+        hml({
+          CONSOLE_IDENTIDADE_DO_BANCO: "dc360_console_login",
+          CONSOLE_DATABASE_URL: URL_DE_PROD,
+        }),
+      ),
+    ).toThrow(/CONSOLE_IDENTIDADE_DO_BANCO=dc360_console_login/);
+  });
 });
 
 describe("a organização nunca vem de configuração", () => {

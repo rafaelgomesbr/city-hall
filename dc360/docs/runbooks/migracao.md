@@ -188,9 +188,13 @@ Cópia velha é dado pessoal sem finalidade.
 ## Voltar atrás (rollback)
 
 **Em produção não existe "desfazer migração".** O `npm run migrar -- --desfazer`
-(V2-F01-E18) desfaz só a ÚLTIMA migração, só em banco de desenvolvimento ou HML,
-e se recusa com `AMBIENTE_DC360=prod`, com `NODE_ENV=production` e com URL que
-traga a identidade de um banco de produção, porque desfazer apaga dado. As 001 a
+(V2-F01-E18) desfaz só a ÚLTIMA migração, e só em banco descartável (a própria
+máquina ou um serviço do Docker) ou em HML declarado (`AMBIENTE_DC360=hml` com a
+`IDENTIDADE_DO_BANCO` de HML constando na URL). Todo o resto ele recusa, porque
+desfazer apaga dado: banco hospedado sem essa declaração (inclusive uma cópia de
+produção restaurada num projeto novo, que nenhuma identidade conhecida
+reconhece), `AMBIENTE_DC360=prod`, `NODE_ENV=production` fora do HML declarado e
+URL que traga a identidade de um banco de produção. As 001 a
 051 nem têm volta. O ponto de volta em produção é a **cópia** do passo 3, e o
 caminho em ordem de preferência é:
 
