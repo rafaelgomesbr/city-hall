@@ -353,16 +353,19 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E19": 15,
   "V2-F01-E19-sbom": 11,
   /*
-    V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 17 casos (o
+    V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 20 casos (o
     `app.config.ts` resolvido de verdade por perfil: bundle, pacote, nome e
     esquema de HML distintos dos de PROD; PROD e desenvolvimento inalterados; a
     URL de HML do `eas.json` vinda do `fly.hml.toml` e do `ambientes.json`; só
     `producao` com a URL de PROD; zero endereço de exemplo; `APNS_BUNDLE` e
     `APNS_AMBIENTE` dos dois toml; o `google-services.json`; e os negativos que
     provam que o teste reprova HML na URL de PROD, endereço de exemplo, canal
-    repetido e o bundle igual ao de PROD).
+    repetido e o bundle igual ao de PROD; mais 3 casos do especificador de
+    `import()` como URL `file://`, com o caminho do Windows simulado, que o CI 2
+    mostrou derrubar o arquivo inteiro em Windows com
+    `ERR_UNSUPPORTED_ESM_URL_SCHEME`).
   */
-  "V2-F01-E13": 17,
+  "V2-F01-E13": 20,
   /*
     V2-F01-E22 (PostGIS no provedor): `scripts/conferir-extensoes.test.mjs` é
     novo, com 24 casos (a avaliação dos fatos: HML saudável, extensão ausente,
