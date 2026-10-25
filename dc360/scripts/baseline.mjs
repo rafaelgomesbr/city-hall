@@ -626,6 +626,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
   // V2-F00-E09, correção 7: `correcao-7-da-e09.test.ts` é novo, com 14 casos (a conta que rola o painel da janela até o foco inicial, para baixo, para cima, quando já está à vista e quando o controle é mais alto que o painel; o Modal que a usa depois de abrir no topo e que a refaz quando o conteúdo muda depois de aberto; o ajuste que leva a confirmação das sessões à faixa livre entre o topo e a barra do pé, com o foco e sem ele; Minha conta que o chama quando a confirmação aparece e quando a lista relida chega; e a seção 14 do layout-estreito). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o focus() do Modal nunca rola). Nenhuma falha nova.
   "V2-F00-E09-correcao-7": { total: 14, falhas: 0 },
+  // V2-F00-E09, correção 8: `correcao-8-da-e09.test.ts` é novo, com 33 casos (a parte do painel que a pessoa enxerga com e sem teclado virtual e zoom de pinça; o acompanhamento da janela aberta com um DOM mínimo: resize, orientationchange e a janela visual, a mesma conta no quadro seguinte, sem laço, e tudo desligado em parar(), sem acumular ouvinte em 50 aberturas; o foco que cai na página volta ao último controle, o botão travado gravando e devolvido quando volta a valer, o WebKit que leva o foco ao painel; o Esc e o Tab ouvidos no documento só com o alvo fora do painel; o Modal ligado ao acompanhamento, o fundo que não tira o foco e o título preso; as três frases que deixam de prometer a saída imediata; e a seção 15 do layout-estreito). Doze mutações do código novo, todas vermelhas. `correcao-7-da-e09.test.ts` e `correcao-4-da-e09.test.ts` trocaram asserções no lugar (o observador e a limpeza passaram para `acompanhar-janela.ts`). Nenhuma falha nova.
+  "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -954,13 +956,23 @@ export const PASSOS = [
     inicial de "Cancelar" a vista dentro da janela de confirmacao em Usuarios
     ("Redefinir senha" e "Encerrar sessoes", 7 tamanhos, 14) e em Minha conta
     (3). 325 no Chromium e no Firefox, 324 no WebKit.
+
+    Correcao 8 da E09 (2026-10-25): de 325 para 390 (mais 65), secao 15, e o
+    titulo da janela a vista passou a valer tambem na secao 14 (sem verificacao
+    nova). A janela de confirmacao ABERTA acompanha a mudanca de tamanho (rotacao
+    e zoom de 200 e de 400 por cento por mudanca de viewport, em Usuarios, 2
+    janelas x 9 passos = 18 verificacoes, mais 3 em Minha conta), o clique e o
+    toque no fundo escurecido, o foco que volta sozinho, o Tab e o Esc ouvidos
+    no documento (4 tamanhos x 4 = 16) e o erro do servidor (5 tamanhos x 2
+    janelas, durante a gravacao, depois do erro e o Esc: 28). 390 no Chromium e
+    no Firefox, 389 no WebKit.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 325   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 390   Falhou: 0"] },
   },
 ];
 

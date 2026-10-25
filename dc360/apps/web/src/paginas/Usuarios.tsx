@@ -549,8 +549,9 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
         titulo="Redefinir senha"
         consequencia={
           <>
-            A senha atual de {alvo.nome} deixa de valer agora e as sessões abertas
-            caem. O sistema sorteia uma senha temporária, mostrada uma única vez,
+            A senha atual de {alvo.nome} deixa de valer agora, e as sessões abertas deixam
+            de renovar e de gravar (uma tela já aberta pode seguir mostrando consultas por
+            até 15 minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
             que vale por 72 horas e precisa ser trocada na primeira entrada.
           </>
         }
@@ -647,9 +648,10 @@ function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
         titulo="Encerrar sessões"
         consequencia={
           <>
-            {alvo.nome} sai de todos os navegadores e aparelhos agora e precisa entrar de
-            novo com a própria senha, que não muda. Quem está em campo fica sem sincronizar
-            até entrar outra vez.
+            {alvo.nome} deixa de poder renovar a sessão e de gravar qualquer coisa agora, e
+            precisa entrar de novo com a própria senha, que não muda. Uma tela que já estava
+            aberta pode continuar mostrando consultas por até 15 minutos. Quem está em campo
+            fica sem sincronizar até entrar outra vez.
           </>
         }
         rotuloDaAcao={`Encerrar sessões de ${alvo.nome}`}

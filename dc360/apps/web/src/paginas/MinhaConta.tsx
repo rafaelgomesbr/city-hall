@@ -416,8 +416,10 @@ function MinhasOutrasSessoes() {
         titulo="Encerrar minhas outras sessões"
         consequencia={
           <>
-            Os outros navegadores e aparelhos da sua conta saem agora e precisam entrar de novo
-            com a sua senha. Esta sessão continua aberta, e a senha não muda.
+            Os outros navegadores e aparelhos da sua conta deixam de poder renovar a sessão e de
+            gravar agora, e precisam entrar de novo com a sua senha. Uma tela já aberta neles
+            pode continuar mostrando consultas por até 15 minutos. Esta sessão continua aberta,
+            e a senha não muda.
           </>
         }
         rotuloDaAcao={rotuloDeEncerrarOutras(outras)}
