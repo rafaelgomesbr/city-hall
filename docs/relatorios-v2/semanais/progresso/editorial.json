@@ -1,9 +1,9 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "A F00 passou por sete rodadas de validação independente desde 13/10. Na rodada 7, de 20/10, 21 das 25 etapas foram aprovadas. A correção das quatro restantes já está no ramo da fase, e a validação ganhou regras para terminar.",
+  "lead": "A F00 (estabilização) passou por nove rodadas de validação independente desde 13/10: na nona, 23 das 25 etapas estão validadas e as 2 restantes já foram corrigidas, esperando a décima rodada. A F01 (engenharia e ambientes) está com as 22 etapas implementadas e revisadas, mas nenhuma validada, e a F02 (API v1 e contratos) acaba de abrir no seu próprio ramo.",
   "aSeguir": {
-    "titulo": "Rodada 8 da validação, gate G00 e fase 1",
-    "texto": "A rodada 8 já segue as regras novas: valida só o que mudou e usa o CI, em Linux e em Windows, como prova. A fase 1 pode começar num ramo próprio quando restarem até 3 etapas abertas na F00."
+    "titulo": "Rodada 10, validação da F01 e decisões suas",
+    "texto": "A rodada 10 revalida só a E19 e a documentação das E16 e E22; a E09 foi aceita por você pelo modelo de ameaça. Em seguida, o gatekeeper valida a F01 em sessão nova, e o merge na master e a troca da Production Branch da Vercel acontecem juntos, depois da aprovação do G00. A F02 segue em paralelo, sem entrar na master antes dos gates."
   },
   "imagens": [
     {
@@ -22,45 +22,50 @@
   "notaDasImagens": "Capturas reais do ambiente de teste, com dados fictícios.",
   "validacao": {
     "titulo": "O que a validação achou",
-    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para 3 na rodada 7. A correção dessas três já foi implementada e espera a rodada 8.",
+    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para 2 na rodada 9. As correções dessas duas já foram feitas e esperam a rodada 10.",
     "achados": [
       {
-        "titulo": "Códigos de erro:",
-        "texto": "a API escapava do catálogo em casos de resposta em fluxo; corrigido. O caso que exige código hostil dentro da própria rota virou dívida, com prazo antes do G02.",
-        "selo": "corrigido"
-      },
-      {
-        "titulo": "Auditoria de pacotes:",
-        "texto": "configurações do npm davam verde falso; o CI agora recusa essas configurações e roda também em Windows.",
+        "titulo": "Pacotes com falha conhecida:",
+        "texto": "novos avisos de segurança saíram depois do CI verde e fizeram a auditoria falhar; o pacote zod foi atualizado para a versão 4 e a auditoria fecha em zero.",
         "selo": "corrigido"
       },
       {
         "titulo": "Telas de sessão e senha:",
-        "texto": "foco do teclado escondido atrás do topo e da barra do celular; corrigido de 320 px até tela larga.",
+        "texto": "em celulares e janelas baixas, a frase de confirmação e o botão Cancelar ficavam fora da vista. Corrigido, e a decisão final sobre o que resta foi sua (aceito com o modelo de ameaça).",
         "selo": "corrigido"
       },
       {
-        "titulo": "Windows:",
-        "texto": "a prova deixou de depender de uma máquina sua: sai do CI a cada commit.",
+        "titulo": "Revisão da F01:",
+        "texto": "o revisor independente apontou 4 problemas, entre eles a promoção para produção sem prova de origem e a falta de regras de proteção nos ramos de implantação. Os 4 foram corrigidos e esperam validação.",
         "selo": "corrigido"
+      },
+      {
+        "titulo": "Testes instáveis:",
+        "texto": "um caso do navegador WebKit no Linux falhou uma vez e passou na repetição. Virou dívida registrada e, pela D-32, achado instável não reprova a etapa.",
+        "selo": "em dívida"
       }
     ]
   },
   "decisoes": [
     {
       "quem": "Rafael",
-      "titulo": "Proposta de aceleração",
-      "texto": "Aprovada em 20/10: achado que só existe com código hostil no repositório vira dívida, e não reprova a etapa."
+      "titulo": "Gate G00 e merge na master",
+      "texto": "Aprovar o G00 e o merge da F01 depois da rodada 10, junto com a troca da Production Branch da Vercel para producao (sem a troca, o painel congela)."
     },
     {
       "quem": "Rafael",
-      "titulo": "Gate G00",
-      "texto": "Aprovar a fase 1 quando o gatekeeper recomendar, depois da rodada 8."
+      "titulo": "Decisões de checkpoint da F01",
+      "texto": "Decidir os CP-04, CP-05, CP-06, CP-07, CP-43 e CP-44, que deixam 4 etapas da F01 só parcialmente feitas."
     },
     {
       "quem": "Rafael",
-      "titulo": "Chave do Firebase",
-      "texto": "Restringir a chave do aplicativo no console do Google, porque o repositório agora é público."
+      "titulo": "GitHub e Vercel",
+      "texto": "Aplicar os rulesets e as configurações listadas na seção F01 das pendências humanas."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Chave do Firebase (H33)",
+      "texto": "Restringir a chave do aplicativo no console do Google, porque o repositório é público."
     },
     {
       "quem": "Rafael e Alyson",

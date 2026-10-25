@@ -85,6 +85,34 @@
       "titulo": "Rafael aprova as regras novas de validação",
       "texto": "Achado que só existe com código hostil no repositório vira dívida com prazo; a validação passa a olhar só o que mudou.",
       "tipo": "marco"
+    },
+    {
+      "data": "24/10",
+      "iso": "2026-10-24",
+      "titulo": "Oitava rodada e início da F01 em paralelo",
+      "texto": "A validação segue só o que mudou. A F01 (engenharia e ambientes) começa em ramo próprio, em lotes de etapas feitas ao mesmo tempo, sem tocar na master.",
+      "tipo": "marco"
+    },
+    {
+      "data": "24 e 25/10",
+      "iso": "2026-10-25",
+      "titulo": "Nona rodada: 23 de 25 etapas da F00 validadas",
+      "texto": "As 2 restantes (E09 e E19) voltaram para correção, e as correções já estão feitas e esperam a décima rodada.",
+      "tipo": "ok"
+    },
+    {
+      "data": "25/10",
+      "iso": "2026-10-25",
+      "titulo": "As 22 etapas da F01 estão implementadas",
+      "texto": "Revisão independente feita, correções incorporadas e verificação automática verde nas três frentes já lidas (testes, segredos e análise de código). Nenhuma está validada ainda.",
+      "tipo": "ok"
+    },
+    {
+      "data": "25/10",
+      "iso": "2026-10-25",
+      "titulo": "Rafael aprova a D-32 e a F02 começa",
+      "texto": "Suficiente para tela, achado instável não reprova e fases correm em paralelo, cada uma no seu ramo. A F02 (API v1 e contratos) abre no ramo v2/f02.",
+      "tipo": "marco"
     }
   ]
 }
