@@ -43,11 +43,22 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { lerEnvDoToml, lerMatriz } from "./conferir-ambiente.mjs";
 
 const RAIZ = fileURLToPath(new URL("..", import.meta.url));
 const lerTexto = (caminho) => readFileSync(`${RAIZ}${caminho}`, "utf8");
+
+/**
+ * O especificador que o `import()` aceita para um arquivo local. Caminho solto
+ * como `D:\a\x\app.config.ts` o ESM do Node recusa no Windows
+ * (`ERR_UNSUPPORTED_ESM_URL_SCHEME`: a letra da unidade vira "esquema"), e a
+ * falha derrubava o arquivo inteiro. Por isso vira URL `file://` em todo
+ * sistema. `windows` existe para o teste simular o caminho do Windows no Linux
+ * e no macOS.
+ */
+export const especificadorDoModulo = (arquivo, windows = process.platform === "win32") =>
+  pathToFileURL(arquivo, { windows }).href;
 
 /** O que o próprio `app.config.ts` resolve para um perfil do EAS (`undefined` é fora do EAS). */
 export function resolverConfiguracao(perfil, arquivo = `${RAIZ}apps/campo/app.config.ts`) {
@@ -56,7 +67,7 @@ export function resolverConfiguracao(perfil, arquivo = `${RAIZ}apps/campo/app.co
   delete env["DC360_API_URL"];
   if (perfil !== undefined) env["EAS_BUILD_PROFILE"] = perfil;
   const roteiro =
-    `const { default: c } = await import(${JSON.stringify(arquivo)});` +
+    `const { default: c } = await import(${JSON.stringify(especificadorDoModulo(arquivo))});` +
     "process.stdout.write(JSON.stringify({ name: c.name, scheme: c.scheme," +
     " ios: c.ios?.bundleIdentifier, android: c.android?.package," +
     " pushAmbiente: c.extra?.pushAmbiente }));";
@@ -141,6 +152,42 @@ export const pacotesDoFirebase = (json) =>
   (json?.client ?? [])
     .map((c) => c?.client_info?.android_client_info?.package_name)
     .filter(Boolean);
+
+// ---- O caminho que o Windows entrega ao import() ---------------------------
+
+test("o especificador do import() é URL file:// também para caminho de Windows", () => {
+  assert.equal(
+    especificadorDoModulo("D:\\a\\city-hall\\dc360\\apps\\campo\\app.config.ts", true),
+    "file:///D:/a/city-hall/dc360/apps/campo/app.config.ts",
+  );
+  // A raiz do teste termina com barra invertida no Windows e o resto vem com
+  // barra normal: a mistura também tem de virar uma URL só.
+  assert.equal(
+    especificadorDoModulo("D:\\a\\city-hall\\dc360\\apps/campo/app.config.ts", true),
+    "file:///D:/a/city-hall/dc360/apps/campo/app.config.ts",
+  );
+  assert.match(
+    especificadorDoModulo("D:\\com espaço\\app.config.ts", true),
+    /^file:\/\/\/D:\/com%20espa/,
+  );
+});
+
+test("o especificador do import() é URL file:// também para caminho de POSIX", () => {
+  assert.equal(
+    especificadorDoModulo("/home/runner/work/dc360/apps/campo/app.config.ts", false),
+    "file:///home/runner/work/dc360/apps/campo/app.config.ts",
+  );
+});
+
+test("nenhum especificador começa com letra de unidade (o que o ESM recusa)", () => {
+  for (const [caminho, windows] of [
+    ["C:\\x\\a.ts", true],
+    ["z:\\x\\a.ts", true],
+    ["/x/a.ts", false],
+  ]) {
+    assert.match(especificadorDoModulo(caminho, windows), /^file:\/\/\//);
+  }
+});
 
 // ---- O repositório de verdade ----------------------------------------------
 

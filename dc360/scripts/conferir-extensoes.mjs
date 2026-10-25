@@ -99,9 +99,15 @@ ORDER BY 1`,
   EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $2::text) AS existe,
   CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $2::text)
        THEN has_schema_privilege($2::text, $1::text, 'USAGE') END AS uso_no_esquema,
+  -- Sem to_regclass: ele resolve o nome e exige USAGE no schema para o papel de
+  -- quem consulta (42501 quando o papel de setup não o tem). Pelo catálogo, o
+  -- oid sai de pg_class/pg_namespace, que qualquer papel lê.
   CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $2::text)
-        AND to_regclass(quote_ident($1::text) || '.spatial_ref_sys') IS NOT NULL
-       THEN has_table_privilege($2::text, quote_ident($1::text) || '.spatial_ref_sys', 'SELECT')
+        AND EXISTS (SELECT 1 FROM pg_class t JOIN pg_namespace s ON s.oid = t.relnamespace
+                    WHERE s.nspname = $1::text AND t.relname = 'spatial_ref_sys')
+       THEN (SELECT has_table_privilege($2::text, t.oid, 'SELECT')
+             FROM pg_class t JOIN pg_namespace s ON s.oid = t.relnamespace
+             WHERE s.nspname = $1::text AND t.relname = 'spatial_ref_sys')
        END AS select_srs,
   CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $2::text)
        THEN (SELECT count(*)::int FROM pg_proc p

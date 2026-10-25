@@ -1,0 +1,15 @@
+# V2-F01-E22, correção do CI 2: a conferência de extensões não pode exigir USAGE no schema de quem consulta
+
+## Fatos
+
+- **Origem:** o CI do ramo `v2/f01` no SHA `ef10aad`, job "A API sobe contra Postgres real", passo "Smoke espacial, em Postgres real com PostGIS". O caso 7 de `db/test/postgis-provedor.espacial.test.ts` ("a saída da conferência nunca traz o usuário nem a senha da URL") saiu com `conferir-ambiente: a consulta falhou (42501)`, código 2, em vez de 0. Os outros 25 casos do arquivo passaram.
+- **Causa:** o caso 7 conecta como um papel de LOGIN comum (`prova_e22_api_*`), sem nenhum privilégio no schema `extensions`, que é como o papel de setup de um provedor também pode estar. A consulta `aplicacao` de `scripts/conferir-extensoes.mjs` usava `to_regclass(quote_ident($1) || '.spatial_ref_sys')`, e resolver um nome qualificado exige USAGE no schema de QUEM CONSULTA. Sem ele o Postgres devolve `42501 permission denied for schema extensions`. Os casos 1 a 6 passaram porque rodam como superusuário. O 42501 não era do teste: era uma consulta da conferência que só funcionava com um papel mais forte do que o que a conferência vai usar em HML e PROD.
+- **Conserto (a causa, não o teste):** o campo `select_srs` passou a achar a tabela por `pg_class` junto de `pg_namespace` (`nspname = $1 AND relname = 'spatial_ref_sys'`) e a perguntar `has_table_privilege($2, <oid>, 'SELECT')` pelo oid. O catálogo é legível por qualquer papel, e `has_table_privilege` e `has_schema_privilege` falam do privilégio de OUTRO papel sem exigir nada de quem pergunta. Nenhuma outra consulta do arquivo resolve nome (`to_regclass` não aparece mais). O teste do caso 7 ficou como estava.
+- **O que a conferência continua provando (nada afrouxou):** USAGE de `dc360_app` no schema, SELECT em `spatial_ref_sys` (agora `false` quando a tabela existe e o SELECT foi revogado, `null` quando a tabela não existe), EXECUTE em todas as funções da extensão, e que nenhum dos três papéis do provedor nem PUBLIC toca a extensão. A consulta segue só de leitura (o teste "nenhuma consulta escreve" passa).
+- **Teste novo:** `scripts/conferir-extensoes.test.mjs`, "a coleta funciona com um papel sem USAGE no schema da extensão", em PGlite (Postgres de verdade), com `SET ROLE leitor` (papel sem nada no schema): a coleta termina, `usoNoEsquema` e `selectSpatialRefSys` são `true` para `dc360_app`, e depois do `REVOKE SELECT` o `selectSpatialRefSys` vira `false`. Casos do arquivo: 23 para 24 (linha `V2-F01-E22` de `scripts/baseline.mjs`).
+- **Prova local do defeito e do conserto** (`saidas/01-reproducao-42501.txt`): num PGlite, o mesmo papel sem USAGE recebe `42501` do `to_regclass` pelo nome e recebe as quatro colunas certas da consulta atual. `saidas/02-teste-da-conferencia.txt`: 24 de 24.
+
+## Limitações
+
+- O caso 7 em si (Postgres com PostGIS de verdade, job `implantavel`) não roda aqui: não há Postgres nem PostGIS nesta máquina. O que se provou local é a causa (o 42501 reproduzido com o mesmo tipo de papel) e o conserto na consulta. A confirmação é o run do CI do próximo SHA.
+- Sem push.

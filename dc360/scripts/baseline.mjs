@@ -353,26 +353,30 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E19": 15,
   "V2-F01-E19-sbom": 11,
   /*
-    V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 17 casos (o
+    V2-F01-E13: `scripts/perfis-do-eas.test.mjs` é novo, com 20 casos (o
     `app.config.ts` resolvido de verdade por perfil: bundle, pacote, nome e
     esquema de HML distintos dos de PROD; PROD e desenvolvimento inalterados; a
     URL de HML do `eas.json` vinda do `fly.hml.toml` e do `ambientes.json`; só
     `producao` com a URL de PROD; zero endereço de exemplo; `APNS_BUNDLE` e
     `APNS_AMBIENTE` dos dois toml; o `google-services.json`; e os negativos que
     provam que o teste reprova HML na URL de PROD, endereço de exemplo, canal
-    repetido e o bundle igual ao de PROD).
+    repetido e o bundle igual ao de PROD; mais 3 casos do especificador de
+    `import()` como URL `file://`, com o caminho do Windows simulado, que o CI 2
+    mostrou derrubar o arquivo inteiro em Windows com
+    `ERR_UNSUPPORTED_ESM_URL_SCHEME`).
   */
-  "V2-F01-E13": 17,
+  "V2-F01-E13": 20,
   /*
     V2-F01-E22 (PostGIS no provedor): `scripts/conferir-extensoes.test.mjs` é
-    novo, com 23 casos (a avaliação dos fatos: HML saudável, extensão ausente,
+    novo, com 24 casos (a avaliação dos fatos: HML saudável, extensão ausente,
     em `public` ou em outro schema, PUBLIC ou `anon` com privilégio, `dc360_app`
     sem USAGE, SELECT ou EXECUTE, PROD só com a disponibilidade; as consultas
     são só leitura; a coleta; os argumentos; o comando com código 0, 1 e 2 sem
     nunca imprimir URL; e as consultas com o endurecimento num Postgres real do
-    PGlite, com `pg_trgm` no lugar do PostGIS).
+    PGlite, com `pg_trgm` no lugar do PostGIS; e a coleta feita por um papel sem
+    USAGE no schema, que o CI 2 mostrou falhar com 42501).
   */
-  "V2-F01-E22": 23,
+  "V2-F01-E22": 24,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */

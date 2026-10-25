@@ -1,0 +1,10 @@
+✔ as consultas e o endurecimento se entendem num Postgres real (extensão substituta) (2537.141292ms)
+✔ a coleta funciona com um papel sem USAGE no schema da extensão (o papel de setup do provedor) (2285.629291ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5373.900917

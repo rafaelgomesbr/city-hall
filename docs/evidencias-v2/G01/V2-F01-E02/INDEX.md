@@ -12,3 +12,6 @@
 | saidas/06-baseline-test.txt | 1c352ae5baa7c896986070c5cada06d8f47a08454c49cbaa875fde032df5bfcb |
 | saidas/07-regras-de-conteudo.txt | 35642e80d4e9bb5233d5a9b65712c91794546a8b11c9bffd54eb794df3f758b1 |
 | saidas/08-test-scripts-com-index.txt | 61c48cece502405eb9539eec3f9b176309eb3256402738defc51a75e48663d20 |
+| correcao-ci-2/RESUMO.md | 58abfc0fc4ef24706caffa03e24e29413d3940c2ae26625a5b2dde05371af075 |
+| correcao-ci-2/saidas/01-conferir-workflows.txt | 6f66dead4b8484b46def480fb64486cc0f13d241bde180db249a66371c219f0c |
+| correcao-ci-2/saidas/02-yaml-valido.txt | 04ed3cac9b86b26864af89af1b63f4a4058708690fcb0b0854afeaee125515ce |
