@@ -1227,8 +1227,9 @@ jobs:
     #      entrou por `COPY`, reprova o job. Binário de versão fixa com SHA-256
     #      conferido (`scripts/varrer-imagem.sh`, a mesma lógica da varredura
     #      semanal de `auditoria-semanal.yml`). A única porta de exceção é o
-    #      `.trivyignore` da raiz, com ID, motivo, dono e prazo por linha, e o
-    #      teste de `excecoes-de-seguranca.test.mjs` reprova a que venceu.
+    #      `.trivyignore.yaml` da raiz, com ID, caminho, motivo, dono e prazo por
+    #      entrada, e o teste de `excecoes-de-seguranca.test.mjs` reprova a que
+    #      venceu.
     #      O relatório sai em SARIF e em tabela no artefato (`trivy/`). O SARIF
     #      NÃO é enviado ao code scanning: isso pede `security-events: write` no
     #      job, e nenhum workflow deste repositório tem escrita (regra de
