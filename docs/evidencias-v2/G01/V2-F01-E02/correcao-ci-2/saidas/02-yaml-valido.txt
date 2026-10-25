@@ -1,0 +1,12 @@
+produto: timeout-minutes=30
+dependencias: timeout-minutes=15
+roadmap: timeout-minutes=10
+navegador: timeout-minutes=50
+aplicativo: timeout-minutes=15
+windows: timeout-minutes=40
+plataformas: timeout-minutes=45
+implantavel: timeout-minutes=10
+imagens: timeout-minutes=40
+baseline: timeout-minutes=120
+restore: timeout-minutes=40
+passo WebKit: timeout-minutes=12

@@ -395,7 +395,16 @@ jobs:
   navegador:
     name: Fluxo ponta a ponta no navegador
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    # 50 minutos. A V2-F01-E02 pôs 35 (o máximo de 28,6 dos 8 últimos verdes mais
+    # folga), e o primeiro run completo da fase (24/10/2026) foi CANCELADO por
+    # tempo aos 35,3 minutos, ainda no passo do WebKit, o último. Então o job
+    # leva mais de 35 minutos agora, e o log daquele run não diz quanto dos 35
+    # foi cada passo. 35,3 mais o resto do WebKit (suíte de geometria, que é
+    # curta) mais 40% de folga dá cerca de 50. O WebKit tem teto próprio de 12
+    # minutos no passo: um travamento ali reprova com o passo nomeado, em vez de
+    # gastar o orçamento do job inteiro. `saidas/00-duracoes-antes.txt` da E02 é
+    # a medida de antes; a de depois sai deste run (correção do CI 2).
+    timeout-minutes: 50
     defaults:
       run:
         shell: bash
@@ -515,6 +524,7 @@ jobs:
       # Safari, não foca (ver o cabeçalho de `scripts/e2e-api.mjs`).
       - name: Caminho de produção, contra a API, no WebKit (geometria e foco)
         if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        timeout-minutes: 12
         run: node scripts/e2e-api.mjs webkit --so-layout 2>&1 | tee "$RUNNER_TEMP/artefatos/06c-e2e-contra-a-api-webkit.txt"
 
       - name: Registro do servidor de pré-visualização
