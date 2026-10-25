@@ -380,7 +380,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     mostrou derrubar o arquivo inteiro em Windows com
     `ERR_UNSUPPORTED_ESM_URL_SCHEME`).
   */
-  "V2-F01-E13": 20,
+  "V2-F01-E13": 22, // 20 na E13; a DV-29 (2026-10-25) acrescentou 2 (o carregador do `app.config.ts` entende `enum`, `namespace` e propriedade de parâmetro, que o strip-types do Node recusa, e recusa TypeScript com erro de sintaxe)
   /*
     V2-F01-E22 (PostGIS no provedor): `scripts/conferir-extensoes.test.mjs` é
     novo, com 24 casos (a avaliação dos fatos: HML saudável, extensão ausente,
