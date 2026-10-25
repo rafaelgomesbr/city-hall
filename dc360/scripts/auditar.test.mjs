@@ -30,6 +30,7 @@ import {
   CHAVES_PERMITIDAS, aceitasAusentes, mascararComoONpm, mesmoProjeto, shrinkwrapsPresentes, advisoriesNaoAceitas, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas,
   hojeEmSaoPaulo, lerNpmConfigList, normalizarChave, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+  defeitoDoGrafo, marcasDevEmRuntime, nosDeRuntimeDoLockfile,
 } from "./auditar-excecoes.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -629,6 +630,142 @@ describe("regras puras do portão: advisory por id e prova de consulta", () => {
     assert.deepEqual(pacotesDeRuntimeNoCompleto(vulns, lock), ["desconhecido", "misto", "o", "p", "semNos"]);
   });
 
+  /*
+    DV-04: a marca `dev` do lockfile não é a fronteira do runtime. O runtime é o
+    que o GRAFO de dependências de execução alcança, e é isso que a imagem de
+    produção instala (o `npm ci --omit=dev` do Dockerfile obedece a marca no
+    npm 10 e a recalcula no npm 11).
+  */
+  const LOCK_SINTETICO = () => ({
+    lockfileVersion: 3,
+    packages: {
+      "": {
+        name: "r", version: "1.0.0", workspaces: ["pkg/*"],
+        dependencies: { a: "^1.0.0" }, devDependencies: { d: "^1.0.0" }, optionalDependencies: { o: "^1.0.0" },
+      },
+      "pkg/w": { name: "w", version: "1.0.0", dependencies: { b: "^1.0.0" }, devDependencies: { dw: "^1.0.0" } },
+      "node_modules/w": { resolved: "pkg/w", link: true },
+      "node_modules/a": { version: "1.0.0", dependencies: { c: "^1.0.0" }, peerDependencies: { p: "^1.0.0" } },
+      "node_modules/b": { version: "1.0.0", dependencies: { c: "^2.0.0" } },
+      "node_modules/b/node_modules/c": { version: "2.0.0" },
+      "node_modules/c": { version: "1.0.0" },
+      "node_modules/p": { version: "1.0.0" },
+      "node_modules/o": { version: "1.0.0", optional: true },
+      "node_modules/d": { version: "1.0.0", dev: true, dependencies: { e: "^1.0.0", c: "^1.0.0" } },
+      "node_modules/e": { version: "1.0.0", dev: true },
+      "node_modules/dw": { version: "1.0.0", dev: true },
+    },
+  });
+
+  it("nosDeRuntimeDoLockfile segue só dependências de execução: raiz, workspace, opcional e peer entram; devDependencies de raiz e de workspace não", () => {
+    const nos = [...nosDeRuntimeDoLockfile(LOCK_SINTETICO())].sort();
+    assert.deepEqual(nos, [
+      "", "node_modules/a", "node_modules/b", "node_modules/b/node_modules/c", "node_modules/c",
+      "node_modules/o", "node_modules/p", "pkg/w",
+    ]);
+  });
+
+  it("nosDeRuntimeDoLockfile resolve como o npm: a cópia aninhada vale para quem a pede, e o dedupe da raiz para os outros", () => {
+    const lock = LOCK_SINTETICO();
+    const nos = nosDeRuntimeDoLockfile(lock);
+    assert.ok(nos.has("node_modules/b/node_modules/c") && nos.has("node_modules/c"));
+    // Sem a cópia aninhada, o `b` do workspace passa a usar o `c` da raiz.
+    delete lock.packages["node_modules/b/node_modules/c"];
+    assert.ok(!nosDeRuntimeDoLockfile(lock).has("node_modules/b/node_modules/c"));
+    // Pacote que só um nó de desenvolvimento usa não entra, e nome de protótipo (`constructor`) não quebra.
+    lock.packages["node_modules/d"].dependencies = { constructor: "*", toString: "*", e: "^1.0.0" };
+    assert.ok(!nosDeRuntimeDoLockfile(lock).has("node_modules/e"));
+  });
+
+  it("marcasDevEmRuntime acha o nó de runtime marcado dev: true (a cópia aninhada também) e ignora o dev de verdade", () => {
+    const lock = LOCK_SINTETICO();
+    assert.deepEqual(marcasDevEmRuntime(lock), []);
+    lock.packages["node_modules/c"].dev = true;
+    assert.deepEqual(marcasDevEmRuntime(lock), ["node_modules/c"]);
+    lock.packages["node_modules/b/node_modules/c"].dev = true;
+    lock.packages["node_modules/a"].dev = true;
+    assert.deepEqual(marcasDevEmRuntime(lock), ["node_modules/a", "node_modules/b/node_modules/c", "node_modules/c"]);
+    // `devOptional` não é "só desenvolvimento": o npm o instala quando o opcional entra.
+    const so = LOCK_SINTETICO();
+    so.packages["node_modules/o"].devOptional = true;
+    delete so.packages["node_modules/o"].optional;
+    assert.deepEqual(marcasDevEmRuntime(so), []);
+  });
+
+  it("defeitoDoGrafo recusa lockfile sem o mapa packages, sem a raiz ou sem pacote nenhum alcançado", () => {
+    assert.equal(defeitoDoGrafo(LOCK_SINTETICO()), null);
+    assert.match(defeitoDoGrafo({ lockfileVersion: 1, dependencies: {} }), /mapa `packages`/);
+    assert.match(defeitoDoGrafo({ packages: { "node_modules/a": {} } }), /mapa `packages`/);
+    assert.match(defeitoDoGrafo({ packages: [] }), /mapa `packages`/);
+    assert.match(defeitoDoGrafo(null), /mapa `packages`/);
+    assert.match(defeitoDoGrafo({ packages: { "": { name: "x", devDependencies: { d: "1" } }, "node_modules/d": { dev: true } } }), /não alcançou nenhum pacote/);
+  });
+
+  /*
+    A prova de equivalência: o grafo calculado aqui é o mesmo conjunto de
+    pacotes que o próprio npm lista como instalado em produção
+    (`npm ls --omit=dev --all`, que parte do lockfile sem node_modules).
+  */
+  /** nome@versão de cada nó de runtime do lockfile, pelo grafo. */
+  function conjuntoPeloGrafo(lock) {
+    const conjunto = new Set();
+    for (const chave of nosDeRuntimeDoLockfile(lock)) {
+      const no = lock.packages[chave];
+      if (!chave.split("/").includes("node_modules") || no.link === true) continue;
+      conjunto.add(`${chave.slice(chave.lastIndexOf("node_modules/") + "node_modules/".length)}@${no.version}`);
+    }
+    return conjunto;
+  }
+
+  /** nome@versão de cada pacote de runtime que o `npm ls --omit=dev --all` lista, sem os de workspace (links do lockfile). */
+  function conjuntoPeloNpmLs(projeto, lock) {
+    const r = spawnSync("npm", ["ls", "--package-lock-only", "--omit=dev", "--all", "--json"], {
+      cwd: projeto, encoding: "utf8", maxBuffer: 1 << 28, shell: process.platform === "win32",
+      env: { ...AMBIENTE_LIMPO },
+    });
+    // `npm ls` sai 1 quando acha "missing" (os pacotes `file:` do aplicativo apontam para workspaces que ele não instala), mas o JSON vem.
+    const arvore = JSON.parse(r.stdout);
+    const conjunto = new Set();
+    (function andar(no) {
+      for (const [nome, d] of Object.entries(no.dependencies ?? {})) {
+        const ehLink = lock.packages[`node_modules/${nome}`]?.link === true;
+        if (d.version && !ehLink && !String(d.resolved ?? "").startsWith("file:")) conjunto.add(`${nome}@${d.version}`);
+        andar(d);
+      }
+    })(arvore);
+    return conjunto;
+  }
+
+  it("equivalência com `npm ls --omit=dev --all`: o grafo dá o mesmo conjunto nos dois lockfiles do repositório", () => {
+    for (const projeto of [join(AQUI, ".."), join(AQUI, "..", "apps", "campo")]) {
+      const lock = JSON.parse(readFileSync(join(projeto, "package-lock.json"), "utf8"));
+      const doGrafo = conjuntoPeloGrafo(lock);
+      const doNpm = conjuntoPeloNpmLs(projeto, lock);
+      assert.ok(doGrafo.size > 50, `${projeto}: o grafo alcançou poucos pacotes (${doGrafo.size})`);
+      // Os workspaces da raiz (`@dc360/db`, `@dc360/shared`) o npm lista como `file:` e o grafo como link: já fora dos dois conjuntos.
+      assert.deepEqual([...doGrafo].filter((x) => !doNpm.has(x)).sort(), [], `${projeto}: só no grafo`);
+      assert.deepEqual([...doNpm].filter((x) => !doGrafo.has(x)).sort(), [], `${projeto}: só no npm ls`);
+    }
+  });
+
+  it("equivalência com `npm ls --omit=dev --all` num projeto sintético com workspace, cópia aninhada, opcional e peer", () => {
+    const projeto = mkdtempSync(join(tmpdir(), "auditar-grafo-"));
+    try {
+      const lock = LOCK_SINTETICO();
+      mkdirSync(join(projeto, "pkg", "w"), { recursive: true });
+      const manifesto = (entrada) => JSON.stringify(Object.fromEntries(Object.entries(entrada).filter(([k]) => k !== "resolved")));
+      writeFileSync(join(projeto, "package.json"), manifesto(lock.packages[""]));
+      writeFileSync(join(projeto, "pkg", "w", "package.json"), manifesto(lock.packages["pkg/w"]));
+      writeFileSync(join(projeto, "package-lock.json"), JSON.stringify(lock));
+      const doGrafo = conjuntoPeloGrafo(lock);
+      const doNpm = conjuntoPeloNpmLs(projeto, lock);
+      assert.deepEqual([...doGrafo].sort(), ["a@1.0.0", "b@1.0.0", "c@1.0.0", "c@2.0.0", "o@1.0.0", "p@1.0.0"]);
+      assert.deepEqual([...doNpm].sort(), [...doGrafo].sort());
+    } finally {
+      rmSync(projeto, { recursive: true, force: true });
+    }
+  });
+
   it("chavesDoNpmrc lê o ini do .npmrc: comentário, lista com [], seção e linha sem valor", () => {
     assert.deepEqual(
       chavesDoNpmrc("; c\n# d\n\npackage-lock = false\nfoo[]=1\r\n[secao]\n  //registry.npmjs.org/:_authToken=${T}\nsozinha\n"),
@@ -805,6 +942,8 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
       mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
       copyFileSync(SCRIPT, join(raiz, "scripts", "auditar.mjs"));
       if (!semLockfile) copyFileSync(join(AQUI, "..", "package-lock.json"), join(raiz, "package-lock.json"));
+      // O portão lê também o lockfile do aplicativo (grafo de execução, DV-04); `arquivos` o sobrescreve.
+      copyFileSync(join(AQUI, "..", "apps", "campo", "package-lock.json"), join(raiz, "apps", "campo", "package-lock.json"));
       const lista = readFileSync(join(AQUI, "auditar-excecoes.mjs"), "utf8").replaceAll("\r\n", "\n");
       const nova = alterar(lista);
       assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
@@ -938,6 +1077,73 @@ describe("auditar.mjs com a lista de exceções adulterada", () => {
     const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { prefixo: "123e4567-e89b-12d3-a456-426614174000-" });
     assert.equal(codigo, 0, saida);
     assert.doesNotMatch(saida, /não tomou/);
+  });
+
+  /*
+    DV-04 (V2-F00-E19): a marca `dev` do lockfile era a fronteira entre runtime e
+    desenvolvimento. Com `dev: true` posto à mão num pacote de runtime, o
+    `npm audit --omit=dev` o escondia e o portão saía 0 com "Runtime limpo",
+    enquanto o `npm ci --omit=dev` do Dockerfile instala o pacote no npm 11. Hoje
+    o runtime sai do grafo, e a marca errada reprova.
+  */
+  const lerLock = (...partes) => JSON.parse(readFileSync(join(AQUI, "..", ...partes, "package-lock.json"), "utf8"));
+
+  it("DV-04: pacote de runtime da raiz marcado dev: true à mão reprova (1) e diz qual, mesmo com a auditoria voltando limpa", () => {
+    const lock = lerLock();
+    assert.notEqual(lock.packages["node_modules/fastify"]?.dev, true, "premissa do teste: fastify é runtime");
+    lock.packages["node_modules/fastify"].dev = true;
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "package-lock.json": JSON.stringify(lock, null, 2) } });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /marca como só de desenvolvimento \(dev: true\)/);
+    assert.match(saida, /node_modules\/fastify/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("DV-04: o caso do achado, fast-uri vulnerável de runtime marcado dev: true e fora do relatório --omit=dev, reprova (1)", () => {
+    const lock = lerLock();
+    assert.notEqual(lock.packages["node_modules/fast-uri"]?.dev, true, "premissa do teste: fast-uri é runtime");
+    lock.packages["node_modules/fast-uri"].dev = true;
+    // O que o npm audit devolve com a marca errada: nada no --omit=dev, e a advisory só na completa.
+    const fastUri = relatorio({ "fast-uri": { fixAvailable: true, ids: ["GHSA-n0va-0000-0000"], nodes: ["node_modules/fast-uri"] } });
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, {
+      arquivos: { "package-lock.json": JSON.stringify(lock, null, 2) },
+      fixturaDaCopia: { runtime: limpo, tudo: juntar(DEV_ACEITO, fastUri) },
+    });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /node_modules\/fast-uri/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("DV-04: pacote de runtime do aplicativo de campo marcado dev: true também reprova (1)", () => {
+    const lock = lerLock("apps", "campo");
+    assert.notEqual(lock.packages["node_modules/expo"]?.dev, true, "premissa do teste: expo é runtime");
+    lock.packages["node_modules/expo"].dev = true;
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "apps/campo/package-lock.json": JSON.stringify(lock, null, 2) } });
+    assert.equal(codigo, 1, saida);
+    assert.match(saida, /aplicativo de campo marca como só de desenvolvimento/);
+    assert.match(saida, /node_modules\/expo/);
+    assert.doesNotMatch(saida, /Runtime limpo/);
+  });
+
+  it("DV-04: lockfile sem o mapa packages (versão antiga) ou ilegível sai 2, na raiz e no aplicativo", () => {
+    const antigo = JSON.stringify({ lockfileVersion: 1, dependencies: {} });
+    const raiz = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "package-lock.json": antigo } });
+    assert.equal(raiz.codigo, 2, raiz.saida);
+    assert.match(raiz.saida, /mapa `packages`/);
+    const app = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "apps/campo/package-lock.json": antigo } });
+    assert.equal(app.codigo, 2, app.saida);
+    assert.match(app.saida, /mapa `packages`/);
+    const ilegivel = rodarCopia((t) => `${t}\n// controle\n`, { arquivos: { "apps/campo/package-lock.json": "{ isto não é json" } });
+    assert.equal(ilegivel.codigo, 2, ilegivel.saida);
+    assert.match(ilegivel.saida, /package-lock\.json do aplicativo/);
+  });
+
+  it("DV-04: dev de verdade com a marca dev continua só avisando (o conserto não vira falso positivo)", () => {
+    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`);
+    assert.equal(codigo, 0, saida);
+    assert.match(saida, /Runtime limpo/);
+    assert.deepEqual(marcasDevEmRuntime(lerLock()), []);
+    assert.deepEqual(marcasDevEmRuntime(lerLock("apps", "campo")), []);
   });
 
   it("reprova a exceção vencida", () => {

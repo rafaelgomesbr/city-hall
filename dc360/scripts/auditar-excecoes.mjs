@@ -338,6 +338,111 @@ export function pacotesDeRuntimeNoCompleto(vulnerabilidades, lockfile) {
     .sort();
 }
 
+/**
+ * Onde o npm procura `nome` a partir de `de`: a pasta `node_modules` do próprio
+ * nó, depois a de cada pasta acima, até a raiz. Devolve a chave do
+ * `package-lock.json` ou `null`. `de` é a chave de um nó (`""` é a raiz).
+ */
+function resolverNoLockfile(pacotes, de, nome) {
+  let base = de;
+  for (;;) {
+    const candidato = base === "" ? `node_modules/${nome}` : `${base}/node_modules/${nome}`;
+    if (Object.hasOwn(pacotes, candidato)) return candidato;
+    if (base === "") return null;
+    const corte = base.lastIndexOf("/");
+    base = corte === -1 ? "" : base.slice(0, corte);
+  }
+}
+
+/**
+ * Os nós do `package-lock.json` que a imagem de produção instala, calculados
+ * pelo GRAFO e não pela marca `dev` (DV-04, V2-F00-E19).
+ *
+ * A marca `dev: true` do lockfile é a fronteira que este portão usava entre
+ * runtime e desenvolvimento, e o `npm ci --omit=dev` do Dockerfile NÃO a obedece
+ * igual nas versões do npm: com um `fast-uri` de runtime marcado `dev: true` à
+ * mão, o npm 10.9.9 (a imagem `node:22-bookworm-slim`) não o instala, e o
+ * npm 11 o instala, porque recalcula quem é de desenvolvimento a partir das
+ * dependências. Então a marca sozinha não diz o que vai para o servidor. O que
+ * diz é a árvore: a partir da raiz e de cada workspace (o Dockerfile instala
+ * `--workspaces --include-workspace-root`), seguem-se SÓ as dependências de
+ * execução (`dependencies`, `optionalDependencies` e `peerDependencies`, que o
+ * npm instala), resolvidas como o npm resolve (`node_modules` do nó e de cada
+ * pasta acima). `devDependencies` de raiz e de workspace não entram. Quem for
+ * alcançado assim é runtime, qualquer que seja a marca.
+ *
+ * É a mesma resposta de `npm ls --omit=dev --all` (o teste compara os dois nos
+ * dois lockfiles do repositório) e a de uma instalação `npm ci --omit=dev` de
+ * npm 10 e de npm 11 sobre um lockfile honesto, mas dá a CHAVE do nó (o npm ls
+ * só dá nome e versão, e um nome pode ter duas cópias, uma só de
+ * desenvolvimento) e não depende de qual npm está no PATH.
+ */
+export function nosDeRuntimeDoLockfile(lockfile) {
+  const pacotes = lockfile?.packages ?? {};
+  const alcancados = new Set();
+  const fila = [];
+  const entrar = (chave) => {
+    if (alcancados.has(chave)) return;
+    alcancados.add(chave);
+    const no = pacotes[chave];
+    if (no?.link === true && typeof no.resolved === "string" && Object.hasOwn(pacotes, no.resolved)) {
+      entrar(no.resolved);
+      return;
+    }
+    fila.push(chave);
+  };
+  // Raiz e workspaces: as chaves sem `node_modules` no caminho (o link
+  // `node_modules/@dc360/api` aponta para `apps/api`, que já é uma delas).
+  for (const chave of Object.keys(pacotes)) if (!chave.split("/").includes("node_modules")) entrar(chave);
+  while (fila.length > 0) {
+    const chave = fila.pop();
+    const no = pacotes[chave];
+    const nomes = new Set([
+      ...Object.keys(no?.dependencies ?? {}),
+      ...Object.keys(no?.optionalDependencies ?? {}),
+      ...Object.keys(no?.peerDependencies ?? {}),
+    ]);
+    for (const nome of nomes) {
+      const alvo = resolverNoLockfile(pacotes, chave, nome);
+      if (alvo !== null) entrar(alvo);
+    }
+  }
+  return alcancados;
+}
+
+/**
+ * As chaves que o grafo alcança em runtime e o `package-lock.json` marca como
+ * só de desenvolvimento (`dev: true`). Em lockfile honesto é lista vazia: o
+ * próprio npm calcula a marca a partir do grafo. Lista não vazia quer dizer
+ * lockfile editado ou corrompido, e é exatamente o caso em que o `npm audit
+ * --omit=dev` esconde a advisory e o `npm ci --omit=dev` instala ou não o
+ * pacote conforme a versão do npm. Reprova mesmo sem advisory hoje.
+ */
+export function marcasDevEmRuntime(lockfile) {
+  const pacotes = lockfile?.packages ?? {};
+  return [...nosDeRuntimeDoLockfile(lockfile)]
+    .filter((chave) => chave !== "" && pacotes[chave]?.dev === true)
+    .sort();
+}
+
+/**
+ * Texto do defeito se o grafo de runtime não é confiável (lockfile sem o mapa
+ * `packages`, como o de versão 1, ou grafo que não alcança nenhum pacote), ou
+ * `null`. Um grafo vazio deixaria `marcasDevEmRuntime` devolver "nada" sem ter
+ * olhado coisa nenhuma, e falta de prova não é prova de ausência.
+ */
+export function defeitoDoGrafo(lockfile) {
+  const pacotes = lockfile?.packages;
+  if (pacotes === null || typeof pacotes !== "object" || Array.isArray(pacotes) || !Object.hasOwn(pacotes, "")) {
+    return "o lockfile não traz o mapa `packages` com a raiz (lockfileVersion antigo?), então não dá para calcular o runtime pelo grafo";
+  }
+  const alcancados = [...nosDeRuntimeDoLockfile(lockfile)].filter((chave) => chave.split("/").includes("node_modules"));
+  if (alcancados.length === 0) {
+    return "o grafo de execução não alcançou nenhum pacote (lockfile vazio ou sem dependências de execução)";
+  }
+  return null;
+}
+
 /* ---------- Provar que houve consulta de verdade ---------- */
 
 /**

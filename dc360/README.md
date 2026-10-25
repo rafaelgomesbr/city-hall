@@ -1730,11 +1730,28 @@ confia no programa que executa); um proxy de inspeção TLS que reescreve a
 resposta tirando só a advisory nova e deixando as conhecidas (as variáveis de
 proxy do sistema, como `HTTPS_PROXY`, não são configuração do npm e não passam
 pela lista); o dia em que as duas listas de aceitas ficarem vazias (aí a única
-prova é a consulta de controle à parte); e um `package-lock.json` adulterado que
-marca um pacote de runtime como `dev: true`, porque o portão confia nessa marca
-para separar runtime de desenvolvimento (o `npm ci --omit=dev` do Dockerfile usa
-a mesma marca e não instala o pacote, então a imagem não leva a versão
-vulnerável; anotado na rodada 7).
+prova é a consulta de controle à parte); e um `package-lock.json` adulterado
+depois do CI (a prova que vale é a do CI, item 2 da seção 19 de `28`).
+
+**A fronteira entre runtime e desenvolvimento é o grafo, não a marca `dev`
+(DV-04).** O `npm ci --omit=dev` do Dockerfile NÃO obedece a marca `dev` do
+lockfile igual em todo npm: com um pacote de runtime marcado `dev: true` à mão, o
+npm 10.9.9 (o da imagem `node:22-bookworm-slim`) não o instala, e o npm 11 o
+instala, porque recalcula quem é de desenvolvimento a partir das dependências
+(provado por execução nas duas versões, `docs/evidencias-v2/G00/V2-F00-E19/divida-DV-04/`).
+Por isso o portão decide runtime pelo que a árvore alcança (`nosDeRuntimeDoLockfile`
+em `scripts/auditar-excecoes.mjs`): a partir da raiz e de cada workspace (o
+Dockerfile instala `--workspaces --include-workspace-root`) segue só
+`dependencies`, `optionalDependencies` e `peerDependencies`, resolvidas como o npm
+resolve, e não `devDependencies`. O teste compara esse conjunto com o de
+`npm ls --omit=dev --all` nos dois lockfiles do repositório e num projeto
+sintético. Nó que o grafo alcança e o lockfile marca `dev: true` faz o portão
+sair 1 e dizer o caminho, na raiz e no aplicativo de campo, ainda que a auditoria
+volte limpa (é lockfile editado ou corrompido). A marca continua valendo no
+sentido contrário, o conservador: nó sem `dev: true` conta como runtime mesmo que
+o grafo não o alcance, porque o npm 10 o instalaria. Lockfile sem o mapa
+`packages` (versão 1) ou com grafo vazio sai 2: não dá para calcular, e falta de
+prova não é prova de ausência.
 
 **Atualização de dependências e auditoria agendada (V2-F01-E06).** Dependência
 chega como PR pequeno: o `.github/dependabot.yml` abre PR toda segunda-feira em

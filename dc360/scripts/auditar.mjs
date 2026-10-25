@@ -43,7 +43,7 @@ import {
   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
   CHAVES_PERMITIDAS, aceitasAusentes, ambienteDaConsulta, chavesDoNpmrc, chavesProibidas, hojeEmSaoPaulo,
   lerNpmConfigList, mesmoProjeto, normalizarChave, shrinkwrapsPresentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
-  idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+  idDaAdvisory, marcasDevEmRuntime, defeitoDoGrafo, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
 } from "./auditar-excecoes.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -272,6 +272,16 @@ try {
   naoAuditou("o conjunto de runtime da raiz", `não consegui ler o package-lock.json da raiz (${erro.message})`);
 }
 const runtimeNoCompleto = pacotesDeRuntimeNoCompleto(relatorioDeTudo.vulnerabilities, lockfile);
+/*
+  A marca `dev` do lockfile NÃO é a fronteira confiável (DV-04): o `npm ci
+  --omit=dev` do Dockerfile a obedece no npm 10 e a recalcula no npm 11. O que a
+  imagem instala é o grafo de dependências de execução, e é ele que decide. Pacote
+  que o grafo alcança em runtime e o lockfile marca `dev: true` é lockfile editado
+  ou corrompido, e o `npm audit --omit=dev` o esconde.
+*/
+const defeitoDoGrafoDaRaiz = defeitoDoGrafo(lockfile);
+if (defeitoDoGrafoDaRaiz) naoAuditou("o conjunto de runtime da raiz", defeitoDoGrafoDaRaiz);
+const marcasErradasDaRaiz = marcasDevEmRuntime(lockfile);
 
 console.log(`Runtime (vai para a imagem): ${runtime.total} vulnerabilidade(s)`);
 console.log(`Desenvolvimento (fica na máquina): ${soDesenvolvimento} vulnerabilidade(s)`);
@@ -287,6 +297,19 @@ if (runtimeNoCompleto.length > 0) {
     + "NÃO marca como só de desenvolvimento (e a consulta de runtime voltou limpa: as duas não batem).",
   );
   console.error("Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.");
+  process.exit(1);
+}
+
+if (marcasErradasDaRaiz.length > 0) {
+  console.error(
+    `\nREPROVADO: o package-lock.json da raiz marca como só de desenvolvimento (dev: true) ${marcasErradasDaRaiz.length} `
+    + `pacote(s) que o grafo de dependências de execução alcança: ${marcasErradasDaRaiz.join(", ")}.`,
+  );
+  console.error(
+    "A marca é a fronteira que o `npm audit --omit=dev` usa, e o `npm ci --omit=dev` do Dockerfile não a obedece igual "
+    + "no npm 10 e no npm 11: o pacote vai para o servidor numa versão do npm e não vai noutra. Refaça o lockfile "
+    + "(`npm install --package-lock-only`) e confira o diff.",
+  );
   process.exit(1);
 }
 
@@ -323,6 +346,27 @@ const relatorioDoApp = auditar(
   ["--package-lock-only=false", "--omit=dev", "--audit-level=low"], APLICATIVO, "o aplicativo de campo",
 );
 const doApp = contar(relatorioDoApp);
+// Mesma regra da raiz (DV-04): o grafo de execução do aplicativo manda, não a marca `dev`.
+let lockfileDoApp;
+try {
+  lockfileDoApp = JSON.parse(readFileSync(join(APLICATIVO, "package-lock.json"), "utf8"));
+} catch (erro) {
+  naoAuditou("o aplicativo de campo", `não consegui ler o package-lock.json do aplicativo (${erro.message})`);
+}
+const defeitoDoGrafoDoApp = defeitoDoGrafo(lockfileDoApp);
+if (defeitoDoGrafoDoApp) naoAuditou("o aplicativo de campo", defeitoDoGrafoDoApp);
+const marcasErradasDoApp = marcasDevEmRuntime(lockfileDoApp);
+if (marcasErradasDoApp.length > 0) {
+  console.error(
+    `\nREPROVADO: o package-lock.json do aplicativo de campo marca como só de desenvolvimento (dev: true) ${marcasErradasDoApp.length} `
+    + `pacote(s) que o grafo de dependências de execução alcança: ${marcasErradasDoApp.join(", ")}.`,
+  );
+  console.error(
+    "A marca é a que o `npm audit --omit=dev` usa para decidir o que olhar, e com ela errada a advisory do pacote some "
+    + "do relatório. Refaça o lockfile do aplicativo (`npm install --package-lock-only`) e confira o diff.",
+  );
+  process.exit(1);
+}
 /*
   Só os pacotes com advisory PRÓPRIA, e não a cadeia inteira que depende deles.
 
