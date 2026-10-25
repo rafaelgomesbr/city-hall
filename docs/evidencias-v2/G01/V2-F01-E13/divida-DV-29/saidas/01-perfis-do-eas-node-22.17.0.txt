@@ -1,0 +1,144 @@
+v22.17.0
+TAP version 13
+# \# PENDENTE (humano): criar o cliente Android com.solerte.dc360.campo.hml no Firebase e acrescentá-lo ao google-services.json antes do primeiro build de HML (V2-F01-E13, CP-04).
+# Subtest: o especificador do import() é URL file:// também para caminho de Windows
+ok 1 - o especificador do import() é URL file:// também para caminho de Windows
+  ---
+  duration_ms: 2.395791
+  type: 'test'
+  ...
+# Subtest: o especificador do import() é URL file:// também para caminho de POSIX
+ok 2 - o especificador do import() é URL file:// também para caminho de POSIX
+  ---
+  duration_ms: 0.231834
+  type: 'test'
+  ...
+# Subtest: nenhum especificador começa com letra de unidade (o que o ESM recusa)
+ok 3 - nenhum especificador começa com letra de unidade (o que o ESM recusa)
+  ---
+  duration_ms: 0.533
+  type: 'test'
+  ...
+# Subtest: os dois toml declaram o nome do app do Fly, e são nomes diferentes
+ok 4 - os dois toml declaram o nome do app do Fly, e são nomes diferentes
+  ---
+  duration_ms: 0.559917
+  type: 'test'
+  ...
+# Subtest: o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo
+ok 5 - o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo
+  ---
+  duration_ms: 1.571292
+  type: 'test'
+  ...
+# Subtest: a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML
+ok 6 - a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML
+  ---
+  duration_ms: 0.078542
+  type: 'test'
+  ...
+# Subtest: nenhum endereço de exemplo sobrou em eas.json
+ok 7 - nenhum endereço de exemplo sobrou em eas.json
+  ---
+  duration_ms: 0.242209
+  type: 'test'
+  ...
+# Subtest: com EAS_BUILD_PROFILE=homologacao o app.config.ts resolve o bundle, o pacote e o nome de HML
+ok 8 - com EAS_BUILD_PROFILE=homologacao o app.config.ts resolve o bundle, o pacote e o nome de HML
+  ---
+  duration_ms: 0.063
+  type: 'test'
+  ...
+# Subtest: o bundle de HML é diferente do de PROD e do de desenvolvimento: os aplicativos coexistem no aparelho
+ok 9 - o bundle de HML é diferente do de PROD e do de desenvolvimento: os aplicativos coexistem no aparelho
+  ---
+  duration_ms: 0.25175
+  type: 'test'
+  ...
+# Subtest: produção, desenvolvimento e fora do EAS mantêm o identificador de sempre
+ok 10 - produção, desenvolvimento e fora do EAS mantêm o identificador de sempre
+  ---
+  duration_ms: 0.364334
+  type: 'test'
+  ...
+# Subtest: APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic)
+ok 11 - APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic)
+  ---
+  duration_ms: 0.295042
+  type: 'test'
+  ...
+# Subtest: APNS_AMBIENTE de HML é teste, o mesmo vocabulário do pushAmbiente do binário de HML
+ok 12 - APNS_AMBIENTE de HML é teste, o mesmo vocabulário do pushAmbiente do binário de HML
+  ---
+  duration_ms: 0.082792
+  type: 'test'
+  ...
+# Subtest: o HML segue sem push ligado nem segredo de push de PROD no toml
+ok 13 - o HML segue sem push ligado nem segredo de push de PROD no toml
+  ---
+  duration_ms: 0.057959
+  type: 'test'
+  ...
+# Subtest: o google-services.json mantém o cliente de PROD e não traz pacote desconhecido
+ok 14 - o google-services.json mantém o cliente de PROD e não traz pacote desconhecido
+  ---
+  duration_ms: 0.850292
+  type: 'test'
+  ...
+# Subtest: negativo: HML apontando para a URL de PROD reprova
+ok 15 - negativo: HML apontando para a URL de PROD reprova
+  ---
+  duration_ms: 0.32175
+  type: 'test'
+  ...
+# Subtest: negativo: endereço de exemplo em qualquer perfil reprova
+ok 16 - negativo: endereço de exemplo em qualquer perfil reprova
+  ---
+  duration_ms: 1.167625
+  type: 'test'
+  ...
+# Subtest: negativo: perfil de desenvolvimento com a URL de PROD reprova
+ok 17 - negativo: perfil de desenvolvimento com a URL de PROD reprova
+  ---
+  duration_ms: 0.658875
+  type: 'test'
+  ...
+# Subtest: negativo: producao com a URL errada, HML fora de internal e canal repetido reprovam
+ok 18 - negativo: producao com a URL errada, HML fora de internal e canal repetido reprovam
+  ---
+  duration_ms: 0.193084
+  type: 'test'
+  ...
+# Subtest: negativo: um app.config.ts que dá o mesmo bundle a todo perfil reprova no teste de coexistência
+ok 19 - negativo: um app.config.ts que dá o mesmo bundle a todo perfil reprova no teste de coexistência
+  ---
+  duration_ms: 135.643959
+  type: 'test'
+  ...
+# Subtest: negativo: o app do fly.hml.toml sai do texto, e toml sem app devolve null
+ok 20 - negativo: o app do fly.hml.toml sai do texto, e toml sem app devolve null
+  ---
+  duration_ms: 0.299083
+  type: 'test'
+  ...
+# Subtest: o carregador entende enum, namespace e propriedade de parâmetro, que o strip-types do Node recusa
+ok 21 - o carregador entende enum, namespace e propriedade de parâmetro, que o strip-types do Node recusa
+  ---
+  duration_ms: 142.536
+  type: 'test'
+  ...
+# Subtest: o carregador reprova TypeScript com erro de sintaxe, em vez de entregar um módulo pela metade
+ok 22 - o carregador reprova TypeScript com erro de sintaxe, em vez de entregar um módulo pela metade
+  ---
+  duration_ms: 10.696541
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1255.203791

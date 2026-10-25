@@ -1,0 +1,25 @@
+npm 10: 10.9.9   npm 11: 11.12.1   node: v24.15.0
+== Lockfile HONESTO (fast-uri sem a marca dev)
+  honesto-npm10: 85 entradas em node_modules; node_modules/fast-uri INSTALADO
+  honesto-npm11: 71 entradas em node_modules; node_modules/fast-uri INSTALADO
+  conjunto instalado x grafo do npm ls --omit=dev --all, npm 10:
+{
+  instalados: 83,
+  grafo: 85,
+  soInstalado: [],
+  soGrafo: [ '@dc360/db@0.1.0', '@dc360/shared@0.1.0' ]
+}
+  conjunto instalado x grafo do npm ls --omit=dev --all, npm 11:
+{
+  instalados: 83,
+  grafo: 85,
+  soInstalado: [],
+  soGrafo: [ '@dc360/db@0.1.0', '@dc360/shared@0.1.0' ]
+}
+== Lockfile ADULTERADO (fast-uri 4.2.3, de runtime, com dev: true posto à mão)
+  adulterado-npm10: 84 entradas em node_modules; node_modules/fast-uri NAO instalado
+  adulterado-npm11: 71 entradas em node_modules; node_modules/fast-uri INSTALADO
+  npm ls --package-lock-only --omit=dev --all sobre o lockfile adulterado (npm 11), linhas com fast-uri:
+    │ │ └── fast-uri@3.1.9
+    │ └── fast-uri@4.2.3
+      └── fast-uri@4.2.3 deduped

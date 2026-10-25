@@ -1,0 +1,32 @@
+v24.15.0
+# PENDENTE (humano): criar o cliente Android com.solerte.dc360.campo.hml no Firebase e acrescentá-lo ao google-services.json antes do primeiro build de HML (V2-F01-E13, CP-04).
+✔ o especificador do import() é URL file:// também para caminho de Windows (0.742292ms)
+✔ o especificador do import() é URL file:// também para caminho de POSIX (0.080334ms)
+✔ nenhum especificador começa com letra de unidade (o que o ESM recusa) (0.144042ms)
+✔ os dois toml declaram o nome do app do Fly, e são nomes diferentes (0.098125ms)
+✔ o eas.json de verdade passa: HML na API de HML, só producao na de PROD, zero exemplo (0.544375ms)
+✔ a URL de HML do perfil concorda com o ambientes.json quando ele declara o app de HML (0.065291ms)
+✔ nenhum endereço de exemplo sobrou em eas.json (0.243041ms)
+✔ com EAS_BUILD_PROFILE=homologacao o app.config.ts resolve o bundle, o pacote e o nome de HML (0.05475ms)
+✔ o bundle de HML é diferente do de PROD e do de desenvolvimento: os aplicativos coexistem no aparelho (0.05825ms)
+✔ produção, desenvolvimento e fora do EAS mantêm o identificador de sempre (0.099667ms)
+✔ APNS_BUNDLE de PROD é o bundle de PROD, e o de HML é o bundle de HML (o apns-topic) (0.235416ms)
+✔ APNS_AMBIENTE de HML é teste, o mesmo vocabulário do pushAmbiente do binário de HML (0.08ms)
+✔ o HML segue sem push ligado nem segredo de push de PROD no toml (0.062833ms)
+✔ o google-services.json mantém o cliente de PROD e não traz pacote desconhecido (0.47325ms)
+✔ negativo: HML apontando para a URL de PROD reprova (0.148ms)
+✔ negativo: endereço de exemplo em qualquer perfil reprova (0.093833ms)
+✔ negativo: perfil de desenvolvimento com a URL de PROD reprova (0.1065ms)
+✔ negativo: producao com a URL errada, HML fora de internal e canal repetido reprovam (0.077ms)
+✔ negativo: um app.config.ts que dá o mesmo bundle a todo perfil reprova no teste de coexistência (61.399792ms)
+✔ negativo: o app do fly.hml.toml sai do texto, e toml sem app devolve null (0.088125ms)
+✔ o carregador entende enum, namespace e propriedade de parâmetro, que o strip-types do Node recusa (72.276709ms)
+✔ o carregador reprova TypeScript com erro de sintaxe, em vez de entregar um módulo pela metade (3.608583ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1014.373166
