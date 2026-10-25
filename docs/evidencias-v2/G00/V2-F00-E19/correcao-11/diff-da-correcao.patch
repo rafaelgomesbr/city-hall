@@ -1,0 +1,497 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 95275b1..c9176bd 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -8,10 +8,10 @@ build) valem lá, não aqui.
+ 
+ | Pacote | O que é | Situação |
+ | --- | --- | --- |
+-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 224 testes do pacote compartilhado passando |
++| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 236 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 737 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1719 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 307 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+@@ -1616,9 +1616,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3568 testes em seis pacotes
++npm test                    # 3582 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1717 testes da API
++npm run test:api            # 1719 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+ npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+@@ -1629,8 +1629,8 @@ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas
+ Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
+ de campo (`npm run auditar`, que também roda no Windows; no CI, o job
+ `windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
+-o que sobra é só de desenvolvimento (`vitest` e `tinypool`, que pedem salto de
+-versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
++o que sobra é só de desenvolvimento (`vitest`, `@vitest/mocker` e `tinypool`, que
++pedem salto de versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
+ dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,
+ `decode-uri-component` e a cópia do `zod` 3 que o `@expo/cli` carrega) estão em
+ `ACEITAS_NO_APLICATIVO`, cada um com motivo, dono e prazo de 2027-01-05; depois
+@@ -2016,7 +2016,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
+   próprio lockfile e a própria auditoria, que NÃO fecha em zero no `npm audit` puro
+-  (fecha em `npm run auditar`, com as seis exceções nomeadas do CP-03). O preço
++  (fecha em `npm run auditar`, com as exceções nomeadas do CP-03: cinco pacotes e sete advisories). O preço
+   dessa separação é que nenhum comando da raiz o enxerga de graça: quem o
+   alcança é `npm run test:campo`, e ele está dentro de `npm run verificar`.
+ - **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play
+diff --git a/dc360/apps/api/test/campo-obrigatorio-ausente.test.ts b/dc360/apps/api/test/campo-obrigatorio-ausente.test.ts
+new file mode 100644
+index 0000000..84f36ad
+--- /dev/null
++++ b/dc360/apps/api/test/campo-obrigatorio-ausente.test.ts
+@@ -0,0 +1,84 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++
++/**
++ * CAMPO OBRIGATÓRIO AUSENTE FALA "Campo obrigatório", NUNCA "undefined"
++ * (V2-F00-E19, correção 11, achado 1 da rodada 9, SHA dda7557).
++ *
++ * Com o Zod 4, um enum obrigatório que chega sem o campo reprova com o código
++ * da própria regra (`invalid_value`), e o mapa de mensagens imprimia "Valor
++ * não reconhecido: undefined. Os aceitos são: ...". Reproduzido num 422 real
++ * de `POST /ocorrencias` sem `tipo` e sem `canalEntrada`. Este teste passa
++ * pela API de verdade (a mesma rota, o mesmo tratador de erro), para provar
++ * que a frase que chega ao aparelho é a certa.
++ */
++
++const EMAIL_RITA = "rita.lopes@serraalta.exemplo.gov.br";
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++let tokenRita = "";
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria({ semear: true });
++  app = await construirServidor({
++    banco: mem.banco,
++    config: carregarConfig({
++      NODE_ENV: "test",
++      JWT_SEGREDO: "segredo-do-campo-obrigatorio-com-mais-de-32-bytes",
++      LOGIN_POR_IP: "10000",
++    } as NodeJS.ProcessEnv),
++    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++  });
++  await app.ready();
++  const r = await app.inject({
++    method: "POST", url: "/auth/entrar", payload: { email: EMAIL_RITA, senha: "defesa-civil-2026" },
++  });
++  tokenRita = r.json().acesso as string;
++}, 180_000);
++
++afterAll(async () => {
++  await app?.close();
++  await mem?.banco.encerrar();
++});
++
++describe("422 de enum obrigatório ausente", () => {
++  it("POST /ocorrencias sem tipo e sem canalEntrada diz 'Campo obrigatório' nos dois", async () => {
++    const r = await app.inject({
++      method: "POST", url: "/ocorrencias",
++      headers: { authorization: `Bearer ${tokenRita}` },
++      payload: {
++        solicitanteNome: "Marilda Souza Prado", endereco: "Rua das Acácias, 120",
++        descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
++      },
++    });
++    expect(r.statusCode, r.body).toBe(422);
++    const campos = r.json().campos as Array<{ campo: string; mensagem: string }>;
++    for (const nome of ["tipo", "canalEntrada"]) {
++      const c = campos.find((x) => x.campo === nome);
++      expect(c, `${nome} em ${r.body}`).toBeDefined();
++      expect(c!.mensagem).toBe("Campo obrigatório");
++    }
++    // Nenhum identificador de JavaScript chega ao aparelho, em campo nenhum.
++    expect(r.body).not.toMatch(/undefined|\bnull\b/i);
++  });
++
++  it("enum presente e fora da lista continua dizendo o valor e os aceitos", async () => {
++    const r = await app.inject({
++      method: "POST", url: "/ocorrencias",
++      headers: { authorization: `Bearer ${tokenRita}` },
++      payload: {
++        solicitanteNome: "Marilda Souza Prado", canalEntrada: "telefone", tipo: "terremoto",
++        endereco: "Rua das Acácias, 120",
++        descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
++      },
++    });
++    expect(r.statusCode, r.body).toBe(422);
++    const c = (r.json().campos as Array<{ campo: string; mensagem: string }>).find((x) => x.campo === "tipo");
++    expect(c?.mensagem).toMatch(/^Valor não reconhecido: "terremoto"\. Os aceitos são: /);
++  });
++});
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index e3740ae..805a43d 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -40,8 +40,8 @@ O que É verificável daqui, e está verificado:
+ | Verificação | Como rodar | Resultado |
+ | --- | --- | --- |
+ | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+-| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
+-| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-13: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as seis exceções nomeadas do CP-03 (`decode-uri-component`, `brace-expansion`, `braces`, `node-forge`, `shell-quote`, `sprintf-js`), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
++| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). **Voltou de novo em 2026-10-24 e fechou em 21 de 21 sem pular a checagem de versões** com a correção 10 da E19, que subiu cinco pacotes um patch (`expo` 57.0.30 para 57.0.31, `expo-location` 57.0.21 para 57.0.22, `expo-network` 57.0.2 para 57.0.3, `expo-notifications` 57.0.23 para 57.0.24 e `expo-router` 57.0.28 para 57.0.29; mesma premissa das anteriores, a confirmação do Rafael segue pendente). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho (ver "Antes da próxima entrega aos agentes: novo binário nativo", abaixo) |
++| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-24: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as exceções nomeadas do CP-03 (cinco pacotes, sete advisories: `decode-uri-component`, `brace-expansion` com três, `node-forge`, `shell-quote` e a cópia do `zod` 3 que o `@expo/cli` carrega, com `somenteEm: ["node_modules/expo/node_modules/"]`; `braces` e `sprintf-js` saíram em 2026-10-24, porque o registro retirou as duas advisories), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
+ | A fila que ele consome | `npm test --workspace @dc360/campo` | 238 testes do motor de campo |
+ 
+ **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
+@@ -143,14 +143,37 @@ integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.te
+ fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
+ isso que ele é fino de propósito.
+ 
++## Antes da próxima entrega aos agentes: novo binário nativo
++
++A correção 10 da V2-F00-E19 (2026-10-24) mudou o que vai dentro do aplicativo, e
++o binário que está nos aparelhos é anterior a ela. **Nenhum binário novo foi
++gerado**: antes de entregar aos agentes, gerar um (`eas build`, ver
++**[LOJAS.md](./LOJAS.md)**) com o que mudou:
++
++- cinco pacotes do SDK 57 subiram um patch, todos dentro do `~57.0`:
++  `expo` 57.0.31, `expo-location` 57.0.22, `expo-network` 57.0.3,
++  `expo-notifications` 57.0.24 e `expo-router` 57.0.29. Pacote nativo muda o
++  código que o aparelho carrega, então precisa de build nativo novo, e o
++  `expo-doctor` volta a 21 de 21 só com eles;
++- o `zod` passou da linha 3 para a **4** (4.6.7), que a GHSA-mrhx-c7xc-m3w5
++  exige, e entra como dependência declarada deste aplicativo (`^4.6.7`). O
++  `@dc360/shared` (esquemas e mensagens em português) usa a linha 4, e o
++  `@expo/cli` mantém por dentro a cópia 3.25.76 em
++  `node_modules/expo/node_modules/zod`, só na máquina de build (exceção
++  nomeada acima).
++
++O Metro nunca empacotou o aplicativo com o `zod` 4: os testes de Jest passam,
++mas nenhum bundle foi gerado até aqui. O primeiro `eas build` é também essa
++prova.
++
+ ## Por que fica fora do `workspaces` do monorepo
+ 
+ O Expo traz quase seiscentos pacotes. Deixá-lo fora significa que
+ `npm install` na raiz do produto continua rápido, e que o `npm audit` de lá
+ não passa a depender do ciclo de lançamento do React Native. Este diretório
+ tem o próprio `package-lock.json` e a própria auditoria, que NÃO fecha em zero
+-no `npm audit` puro (fecha em `npm run auditar`, com as seis exceções nomeadas
+-do CP-03; ver a tabela acima).
++no `npm audit` puro (fecha em `npm run auditar`, com as exceções nomeadas do CP-03: cinco
++pacotes e sete advisories; ver a tabela acima).
+ 
+ ## Por que `react-native-reanimated` e `react-native-worklets` estão fixados
+ 
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 77aa29f..3e0ace0 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5565 testes somando o aplicativo** (contagem estática de `npm run
++- **5579 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5565 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5579 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/shared/src/mensagens-do-zod.ts b/dc360/packages/shared/src/mensagens-do-zod.ts
+index ba69b5a..e108bd0 100644
+--- a/dc360/packages/shared/src/mensagens-do-zod.ts
++++ b/dc360/packages/shared/src/mensagens-do-zod.ts
+@@ -54,7 +54,7 @@ const TIPO: Record<string, string> = {
+   object: "um objeto",
+   null: "nulo",
+   undefined: "nada",
+-  nan: "um número",
++  nan: "um valor que não é número",
+   integer: "um número inteiro",
+   float: "um número",
+   symbol: "um símbolo",
+@@ -102,14 +102,54 @@ function caracteres(n: number | bigint): string {
+   return Number(n) === 1 ? "1 caractere" : `${n} caracteres`;
+ }
+ 
++/**
++ * Um valor dito em português para entrar numa frase. Nunca devolve o
++ * identificador cru de JavaScript: `JSON.stringify(undefined)` é o próprio
++ * `undefined` (o valor, não um texto), `JSON.stringify(null)` e
++ * `JSON.stringify(NaN)` dão "null", e `JSON.stringify(1n)` lança TypeError.
++ * Frase com "undefined" ou "null" no meio chega ao agente na rua.
++ */
++function valorDito(valor: unknown): string {
++  if (valor === undefined) return "nada";
++  if (valor === null) return "nulo";
++  switch (typeof valor) {
++    case "string":
++      return JSON.stringify(valor);
++    case "number":
++      if (Number.isNaN(valor)) return "um valor que não é número";
++      return Number.isFinite(valor) ? String(valor) : "infinito";
++    case "bigint":
++    case "boolean":
++      return String(valor);
++    default:
++      /* Objeto, lista, função, símbolo: dizer o tipo, sem repetir o conteúdo
++         que veio de fora numa frase de erro. */
++      return tipo(tipoRecebido(valor));
++  }
++}
++
+ function lista(valores: ReadonlyArray<unknown>): string {
+-  return valores.map((v) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ");
++  return valores.map((v) => (typeof v === "string" ? v : valorDito(v))).join(", ");
+ }
+ 
+ /** O problema como o Zod 4 o entrega ao mapa: ainda sem `message` e com `input`. */
+ type Problema = Parameters<z.core.$ZodErrorMap>[0];
+ 
+ function traduzir(issue: Problema): string {
++  /*
++    Campo ausente é "Campo obrigatório", qualquer que seja a regra que o
++    reprovou. No Zod 3 só `invalid_type` carregava o "Required"; no Zod 4 um
++    enum, um literal ou uma união obrigatórios que chegam sem o campo
++    reprovam com o código da própria regra (`invalid_value`, `invalid_union`),
++    e a frase daquela regra imprimia "Valor não reconhecido: undefined". Por
++    isso a checagem vem ANTES do `switch`, para todos os códigos. Fora daqui
++    ficam os problemas do objeto como um todo (chaves a mais), que não têm
++    um campo ausente para apontar.
++  */
++  if (issue.input === undefined && issue.code !== "unrecognized_keys") {
++    return "Campo obrigatório";
++  }
++
+   switch (issue.code) {
+     case "invalid_type": {
+       /* `z.number()` do Zod 4 recusa Infinity como tipo errado; para quem lê
+@@ -118,7 +158,12 @@ function traduzir(issue: Problema): string {
+         return "Precisa ser um número finito";
+       }
+       const recebido = tipoRecebido(issue.input);
+-      if (recebido === "undefined") return "Campo obrigatório";
++      /* NaN (por exemplo `z.coerce.number()` sobre "abc") é um `number` para
++         o JavaScript: sem este caso a frase saía "Era esperado um número,
++         veio um número" (DV-19). */
++      if (recebido === "nan" && ["number", "int", "integer", "float"].includes(issue.expected)) {
++        return "Precisa ser um número";
++      }
+       /* `.int()` reprova com "esperava inteiro, veio float": a pergunta é
+          sobre a forma do número, e não sobre o tipo do valor. */
+       if (issue.expected === "int" || issue.expected === "integer") return "Precisa ser um número inteiro";
+@@ -131,9 +176,9 @@ function traduzir(issue: Problema): string {
+     case "invalid_value":
+       /* Literal tem um valor só; enum tem vários (no Zod 3 eram dois códigos). */
+       if (issue.values.length === 1) {
+-        return `Era esperado exatamente ${JSON.stringify(issue.values[0])}`;
++        return `Era esperado exatamente ${valorDito(issue.values[0])}`;
+       }
+-      return `Valor não reconhecido: ${JSON.stringify(issue.input)}. Os aceitos são: ${lista(issue.values)}`;
++      return `Valor não reconhecido: ${valorDito(issue.input)}. Os aceitos são: ${lista(issue.values)}`;
+ 
+     case "unrecognized_keys":
+       return issue.keys.length === 1
+@@ -145,7 +190,7 @@ function traduzir(issue: Problema): string {
+       {
+         const opcoes = Array.isArray(issue.options) ? (issue.options as unknown[]) : [];
+         if (issue.discriminator !== undefined && opcoes.length > 0) {
+-          return `Tipo não reconhecido. Os aceitos são: ${opcoes.map((o) => JSON.stringify(o)).join(", ")}`;
++          return `Tipo não reconhecido. Os aceitos são: ${opcoes.map((o) => valorDito(o)).join(", ")}`;
+         }
+       }
+       return "Valor inválido";
+diff --git a/dc360/packages/shared/test/mensagens-em-portugues.test.ts b/dc360/packages/shared/test/mensagens-em-portugues.test.ts
+index af46a43..25db0b9 100644
+--- a/dc360/packages/shared/test/mensagens-em-portugues.test.ts
++++ b/dc360/packages/shared/test/mensagens-em-portugues.test.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, it } from "vitest";
+ import { z } from "zod";
+ import {
++  aberturaOcorrenciaSchema,
+   envelopeSincronizacaoSchema,
+   pedidoDeEvidenciaSchema,
+   uuidSchema,
+@@ -209,3 +210,142 @@ describe("uuidSchema na linha 4 do Zod", () => {
+     }
+   });
+ });
++
++/*
++  Campo ausente é "Campo obrigatório" em QUALQUER regra (V2-F00-E19, correção
++  11). No Zod 4 só `invalid_type` carregava essa frase de graça; enum, literal e
++  união obrigatórios reprovam com o código da própria regra, e a frase dessa
++  regra imprimia "Valor não reconhecido: undefined". O validador da rodada 9
++  reproduziu num 422 real de `POST /ocorrencias`.
++*/
++describe("campo obrigatório ausente, em qualquer regra", () => {
++  const ausente = (esquema: z.ZodType) => mensagem(z.object({ campo: esquema }).safeParse({}));
++
++  it("enum, literal, união, união discriminada e lista ausentes dizem 'Campo obrigatório'", () => {
++    expect(ausente(z.enum(["alta", "media"]))).toBe("Campo obrigatório");
++    expect(ausente(z.literal("x"))).toBe("Campo obrigatório");
++    expect(ausente(z.union([z.string(), z.number()]))).toBe("Campo obrigatório");
++    expect(ausente(z.array(z.string()).min(1))).toBe("Campo obrigatório");
++    expect(ausente(z.string().uuid())).toBe("Campo obrigatório");
++    expect(ausente(z.number().int().positive())).toBe("Campo obrigatório");
++    expect(ausente(z.discriminatedUnion("t", [
++      z.object({ t: z.literal("a") }), z.object({ t: z.literal("b") }),
++    ]))).toBe("Campo obrigatório");
++  });
++
++  it("enum explicitamente undefined também (o JSON não carrega undefined, mas o aparelho monta objeto)", () => {
++    expect(mensagem(z.object({ campo: z.enum(["a", "b"]) }).safeParse({ campo: undefined })))
++      .toBe("Campo obrigatório");
++  });
++
++  it("o esquema real de abertura de ocorrência, sem tipo e sem canal, diz 'Campo obrigatório' nos dois", () => {
++    const r = aberturaOcorrenciaSchema.safeParse({
++      solicitanteNome: "Marilda Souza Prado", endereco: "Rua das Acácias, 120",
++      descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
++    });
++    if (r.success) throw new Error("esperava reprovação");
++    for (const nome of ["tipo", "canalEntrada"]) {
++      const p = r.error.issues.find((i) => i.path[0] === nome);
++      expect(p?.message, nome).toBe("Campo obrigatório");
++    }
++  });
++
++  it("enum presente e errado continua dizendo o que veio e o que era aceito", () => {
++    expect(mensagem(z.enum(["alta", "media"]).safeParse("urgente")))
++      .toBe("Valor não reconhecido: \"urgente\". Os aceitos são: alta, media");
++  });
++});
++
++/*
++  Nenhuma frase do mapa imprime `undefined` nem `null` de JavaScript, e
++  nenhuma lança: o valor que veio de fora entra na frase dito em português.
++*/
++describe("o mapa nunca imprime undefined nem null crus", () => {
++  it("enum que recebe nulo, número, booleano, objeto e lista", () => {
++    const e = z.enum(["alta", "media"]);
++    expect(mensagem(e.safeParse(null))).toBe("Valor não reconhecido: nulo. Os aceitos são: alta, media");
++    expect(mensagem(e.safeParse(7))).toBe("Valor não reconhecido: 7. Os aceitos são: alta, media");
++    expect(mensagem(e.safeParse(true))).toBe("Valor não reconhecido: true. Os aceitos são: alta, media");
++    expect(mensagem(e.safeParse({ a: 1 }))).toBe("Valor não reconhecido: um objeto. Os aceitos são: alta, media");
++    expect(mensagem(e.safeParse([1]))).toBe("Valor não reconhecido: uma lista. Os aceitos são: alta, media");
++  });
++
++  it("BigInt, NaN e Infinity no enum não lançam nem viram 'null'", () => {
++    const e = z.enum(["alta", "media"]);
++    expect(mensagem(e.safeParse(10n))).toBe("Valor não reconhecido: 10. Os aceitos são: alta, media");
++    expect(mensagem(e.safeParse(Number.NaN)))
++      .toBe("Valor não reconhecido: um valor que não é número. Os aceitos são: alta, media");
++    expect(mensagem(e.safeParse(Infinity))).toBe("Valor não reconhecido: infinito. Os aceitos são: alta, media");
++  });
++
++  it("literal nulo e lista de aceitos com nulo", () => {
++    expect(mensagem(z.literal(null).safeParse("x"))).toBe("Era esperado exatamente nulo");
++    expect(mensagem(z.literal(["a", null]).safeParse("x")))
++      .toBe("Valor não reconhecido: \"x\". Os aceitos são: a, nulo");
++  });
++
++  it("nenhum caso acima deixa 'undefined' ou 'null' na frase", () => {
++    const casos = [
++      z.enum(["a", "b"]).safeParse(null),
++      z.enum(["a", "b"]).safeParse(undefined),
++      z.literal(null).safeParse(1),
++      z.literal(["a", null]).safeParse(1),
++      z.object({ a: z.enum(["a", "b"]) }).safeParse({}),
++      z.object({ a: z.enum(["a", "b"]) }).safeParse({ a: null }),
++      z.number().safeParse(Number.NaN),
++      z.string().safeParse(undefined),
++    ];
++    for (const c of casos) expect(mensagem(c)).not.toMatch(/\b(undefined|null)\b/);
++  });
++});
++
++/*
++  DV-19: `z.coerce.number()` sobre texto não numérico dá NaN, e a frase saía
++  "Era esperado um número, veio um número".
++*/
++describe("NaN tem frase própria", () => {
++  it("coerce.number sobre 'abc' diz 'Precisa ser um número'", () => {
++    expect(mensagem(z.coerce.number().safeParse("abc"))).toBe("Precisa ser um número");
++    expect(mensagem(z.object({ pagina: z.coerce.number().int() }).safeParse({ pagina: "abc" })))
++      .toBe("Precisa ser um número");
++  });
++
++  it("number sobre NaN direto também, e coerce de texto válido continua passando", () => {
++    expect(mensagem(z.number().safeParse(Number.NaN))).toBe("Precisa ser um número");
++    expect(z.coerce.number().safeParse("12").success).toBe(true);
++  });
++
++  it("NaN onde se esperava texto diz o que veio sem repetir 'número' como se fosse certo", () => {
++    expect(mensagem(z.string().safeParse(Number.NaN)))
++      .toBe("Era esperado um texto, veio um valor que não é número");
++  });
++});
++
++/*
++  Dívida de teste da rodada 9 (QA 3 e QA da E06 1): a função `error` de
++  `tamanhoBytes` separa "não foi informado" de "precisa ser um número", e o
++  mutante que apagava a distinção sobrevivia porque nenhum teste afirmava a
++  frase do ausente.
++*/
++describe("tamanhoBytes separa ausente de não numérico", () => {
++  const base = {
++    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
++    nomeArquivo: "foto.png",
++    tipoConteudo: "image/png",
++    capturadaEm: "2026-09-14T12:00:00.000Z",
++    ordem: 0,
++  };
++  const frase = (corpo: Record<string, unknown>) => {
++    const r = pedidoDeEvidenciaSchema.safeParse(corpo);
++    if (r.success) throw new Error("esperava reprovação");
++    return r.error.issues.find((i) => i.path[0] === "tamanhoBytes")?.message;
++  };
++
++  it("ausente: 'não foi informado'; texto: 'precisa ser um número de bytes'", () => {
++    expect(frase(base)).toBe("O tamanho do arquivo não foi informado.");
++    expect(frase({ ...base, tamanhoBytes: "12" }))
++      .toBe("O tamanho do arquivo precisa ser um número de bytes.");
++    expect(frase({ ...base, tamanhoBytes: null }))
++      .toBe("O tamanho do arquivo precisa ser um número de bytes.");
++  });
++});
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index edddf1f..bbd1169 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -537,6 +537,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     console (+3) está no número do próprio passo.
+   */
+   "V2-F00-E05-correcao-7b": { total: 2, falhas: 0, puladas: 0 },
++  // V2-F00-E19, correção 11: `apps/api/test/campo-obrigatorio-ausente.test.ts` e novo, com 2 casos (o 422 real de `POST /ocorrencias` sem `tipo` e sem `canalEntrada` diz "Campo obrigatório" e nenhum "undefined" ou "null" sai no corpo; o enum presente e errado continua dizendo o valor e os aceitos).
++  "V2-F00-E19-correcao-11": { total: 2, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -579,6 +581,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
+   "V2-F00-E24-correcao-3": { total: 38, falhas: 0 },
+   // V2-F00-E19, correção 10: `mensagens-em-portugues.test.ts` ganha 1 caso (o `uuidSchema` do Zod 4 aceita o v4 e o nulo e recusa o 8-4-4-4-12 que não é UUID, com a frase em português). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
+   "V2-F00-E19-correcao-10": { total: 1, falhas: 0 },
++  // V2-F00-E19, correção 11: `mensagens-em-portugues.test.ts` ganha 12 casos (campo obrigatório ausente em qualquer regra, 4; o mapa nunca imprime `undefined` nem `null` crus, 4; NaN com frase própria, 3; `tamanhoBytes` separa ausente de não numérico, 1). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
++  "V2-F00-E19-correcao-11": { total: 12, falhas: 0 },
+ };
+ export function esperadoDoTesteShared() {
+   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

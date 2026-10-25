@@ -54,7 +54,7 @@ const TIPO: Record<string, string> = {
   object: "um objeto",
   null: "nulo",
   undefined: "nada",
-  nan: "um número",
+  nan: "um valor que não é número",
   integer: "um número inteiro",
   float: "um número",
   symbol: "um símbolo",
@@ -102,14 +102,54 @@ function caracteres(n: number | bigint): string {
   return Number(n) === 1 ? "1 caractere" : `${n} caracteres`;
 }
 
+/**
+ * Um valor dito em português para entrar numa frase. Nunca devolve o
+ * identificador cru de JavaScript: `JSON.stringify(undefined)` é o próprio
+ * `undefined` (o valor, não um texto), `JSON.stringify(null)` e
+ * `JSON.stringify(NaN)` dão "null", e `JSON.stringify(1n)` lança TypeError.
+ * Frase com "undefined" ou "null" no meio chega ao agente na rua.
+ */
+function valorDito(valor: unknown): string {
+  if (valor === undefined) return "nada";
+  if (valor === null) return "nulo";
+  switch (typeof valor) {
+    case "string":
+      return JSON.stringify(valor);
+    case "number":
+      if (Number.isNaN(valor)) return "um valor que não é número";
+      return Number.isFinite(valor) ? String(valor) : "infinito";
+    case "bigint":
+    case "boolean":
+      return String(valor);
+    default:
+      /* Objeto, lista, função, símbolo: dizer o tipo, sem repetir o conteúdo
+         que veio de fora numa frase de erro. */
+      return tipo(tipoRecebido(valor));
+  }
+}
+
 function lista(valores: ReadonlyArray<unknown>): string {
-  return valores.map((v) => (typeof v === "string" ? v : JSON.stringify(v))).join(", ");
+  return valores.map((v) => (typeof v === "string" ? v : valorDito(v))).join(", ");
 }
 
 /** O problema como o Zod 4 o entrega ao mapa: ainda sem `message` e com `input`. */
 type Problema = Parameters<z.core.$ZodErrorMap>[0];
 
 function traduzir(issue: Problema): string {
+  /*
+    Campo ausente é "Campo obrigatório", qualquer que seja a regra que o
+    reprovou. No Zod 3 só `invalid_type` carregava o "Required"; no Zod 4 um
+    enum, um literal ou uma união obrigatórios que chegam sem o campo
+    reprovam com o código da própria regra (`invalid_value`, `invalid_union`),
+    e a frase daquela regra imprimia "Valor não reconhecido: undefined". Por
+    isso a checagem vem ANTES do `switch`, para todos os códigos. Fora daqui
+    ficam os problemas do objeto como um todo (chaves a mais), que não têm
+    um campo ausente para apontar.
+  */
+  if (issue.input === undefined && issue.code !== "unrecognized_keys") {
+    return "Campo obrigatório";
+  }
+
   switch (issue.code) {
     case "invalid_type": {
       /* `z.number()` do Zod 4 recusa Infinity como tipo errado; para quem lê
@@ -118,7 +158,12 @@ function traduzir(issue: Problema): string {
         return "Precisa ser um número finito";
       }
       const recebido = tipoRecebido(issue.input);
-      if (recebido === "undefined") return "Campo obrigatório";
+      /* NaN (por exemplo `z.coerce.number()` sobre "abc") é um `number` para
+         o JavaScript: sem este caso a frase saía "Era esperado um número,
+         veio um número" (DV-19). */
+      if (recebido === "nan" && ["number", "int", "integer", "float"].includes(issue.expected)) {
+        return "Precisa ser um número";
+      }
       /* `.int()` reprova com "esperava inteiro, veio float": a pergunta é
          sobre a forma do número, e não sobre o tipo do valor. */
       if (issue.expected === "int" || issue.expected === "integer") return "Precisa ser um número inteiro";
@@ -131,9 +176,9 @@ function traduzir(issue: Problema): string {
     case "invalid_value":
       /* Literal tem um valor só; enum tem vários (no Zod 3 eram dois códigos). */
       if (issue.values.length === 1) {
-        return `Era esperado exatamente ${JSON.stringify(issue.values[0])}`;
+        return `Era esperado exatamente ${valorDito(issue.values[0])}`;
       }
-      return `Valor não reconhecido: ${JSON.stringify(issue.input)}. Os aceitos são: ${lista(issue.values)}`;
+      return `Valor não reconhecido: ${valorDito(issue.input)}. Os aceitos são: ${lista(issue.values)}`;
 
     case "unrecognized_keys":
       return issue.keys.length === 1
@@ -145,7 +190,7 @@ function traduzir(issue: Problema): string {
       {
         const opcoes = Array.isArray(issue.options) ? (issue.options as unknown[]) : [];
         if (issue.discriminator !== undefined && opcoes.length > 0) {
-          return `Tipo não reconhecido. Os aceitos são: ${opcoes.map((o) => JSON.stringify(o)).join(", ")}`;
+          return `Tipo não reconhecido. Os aceitos são: ${opcoes.map((o) => valorDito(o)).join(", ")}`;
         }
       }
       return "Valor inválido";

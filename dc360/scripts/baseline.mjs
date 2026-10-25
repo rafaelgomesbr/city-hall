@@ -537,6 +537,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     console (+3) está no número do próprio passo.
   */
   "V2-F00-E05-correcao-7b": { total: 2, falhas: 0, puladas: 0 },
+  // V2-F00-E19, correção 11: `apps/api/test/campo-obrigatorio-ausente.test.ts` e novo, com 2 casos (o 422 real de `POST /ocorrencias` sem `tipo` e sem `canalEntrada` diz "Campo obrigatório" e nenhum "undefined" ou "null" sai no corpo; o enum presente e errado continua dizendo o valor e os aceitos).
+  "V2-F00-E19-correcao-11": { total: 2, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -579,6 +581,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E24-correcao-3": { total: 38, falhas: 0 },
   // V2-F00-E19, correção 10: `mensagens-em-portugues.test.ts` ganha 1 caso (o `uuidSchema` do Zod 4 aceita o v4 e o nulo e recusa o 8-4-4-4-12 que não é UUID, com a frase em português). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
   "V2-F00-E19-correcao-10": { total: 1, falhas: 0 },
+  // V2-F00-E19, correção 11: `mensagens-em-portugues.test.ts` ganha 12 casos (campo obrigatório ausente em qualquer regra, 4; o mapa nunca imprime `undefined` nem `null` crus, 4; NaN com frase própria, 3; `tamanhoBytes` separa ausente de não numérico, 1). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
+  "V2-F00-E19-correcao-11": { total: 12, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
