@@ -2,7 +2,9 @@ import type { FastifyInstance, FastifyReply } from "fastify";
 import { connect } from "node:net";
 import { Readable } from "node:stream";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { lerDesviosDaGuarda } from "../src/guarda-de-codigos-de-erro.js";
+import {
+  CONTRATO_DE_ACESSO_DO_CONSOLE, conferirCorpoDeAcesso, lerDesviosDaGuarda,
+} from "../src/guarda-de-codigos-de-erro.js";
 import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
 
 /**
@@ -72,6 +74,90 @@ function plantarCorrecao7(app: FastifyInstance): void {
       return { codigo: (e as { code?: string }).code ?? "sem-codigo", fila: x.outputData.length };
     }
     return { codigo: "escreveu", fila: x.outputData.length };
+  });
+}
+
+/*
+  DV-01 (retrato dos cabeçalhos). Valores INOFENSIVOS que contam quantas vezes o
+  Node (e a guarda) os leem: um objeto cujo `toString` devolve sempre o mesmo
+  texto comum e soma um contador, e um que devolve um texto na primeira leitura
+  e outro nas seguintes. A prova é o contador (tem de ser uma leitura da guarda)
+  e o que sai no fio (o texto da primeira leitura, numa resposta só).
+*/
+const leituras = { n: 0, antes: 0 };
+const valorContado = (texto: string) => ({ toString: () => { leituras.n += 1; return texto; } });
+/** Primeira leitura: "um". Da segunda em diante: dois campos separados por linha em branco. */
+const valorQueMuda = () => ({ toString: () => { leituras.n += 1; return leituras.n === 1 ? "um" : "dois\r\n\r\nx-y: z"; } });
+function plantarDv01(app: FastifyInstance): void {
+  const r = (n: string) => `/dv01/${n}`;
+  type Crua = {
+    setHeader(nome: string, valor: unknown): void; statusMessage: unknown; _header: unknown;
+    writeHead(status: number, cabecalhos: Record<string, string>): void; end(corpo: string): void;
+  };
+  const crua = (rep: FastifyReply): Crua => { const k = "ra" + "w"; return (rep as unknown as Record<string, Crua>)[k]!; };
+  const ok = { erro: "so_o_dono", mensagem: "x" };
+  app.get(r("contado-403"), async (_q, rep) => {
+    leituras.n = 0;
+    return rep.code(403).header("x-contado", valorContado("valor-comum")).send(ok);
+  });
+  app.get(r("contado-setheader-403"), async (_q, rep) => {
+    leituras.n = 0;
+    crua(rep).setHeader("x-contado", valorContado("valor-comum"));
+    leituras.antes = leituras.n;
+    return rep.code(403).send(ok);
+  });
+  app.get(r("contado-desvio"), async (_q, rep) => {
+    leituras.n = 0;
+    return rep.code(403).header("x-contado", valorContado("valor-comum")).send({ erro: "fora_do_catalogo_dv01", mensagem: "x" });
+  });
+  app.get(r("contado-lista-403"), async (_q, rep) => {
+    leituras.n = 0;
+    return rep.code(403).header("x-lista", [valorContado("a"), valorContado("b")] as unknown as string).send(ok);
+  });
+  app.get(r("contado-frase-403"), async (_q, rep) => {
+    leituras.n = 0;
+    crua(rep).statusMessage = valorContado("Frase Comum");
+    return rep.code(403).send(ok);
+  });
+  app.get(r("muda-403"), async (_q, rep) => {
+    leituras.n = 0;
+    return rep.code(403).header("x-muda", valorQueMuda()).send(ok);
+  });
+  app.get(r("muda-setheader-403"), async (_q, rep) => {
+    leituras.n = 0;
+    crua(rep).setHeader("x-muda", valorQueMuda());
+    leituras.antes = leituras.n;
+    return rep.code(403).send(ok);
+  });
+  // A resposta que não é de acesso não é segurada: quem pega é a segunda rede, na cabeça que o Node montou.
+  app.get(r("muda-200"), async (_q, rep) => {
+    leituras.n = 0;
+    return rep.code(200).header("x-muda", valorQueMuda()).send({ ok: true });
+  });
+  app.get(r("cabeca-inteira-200"), async (_q, rep) => {
+    rep.hijack();
+    const x = crua(rep);
+    x.writeHead(200, { "content-length": "10" });
+    x.end("0123456789");
+  });
+  app.get(r("cabeca-partida-200"), async (_q, rep) => {
+    rep.hijack();
+    const x = crua(rep);
+    x.writeHead(200, { "content-length": "10" });
+    x._header = "HTTP/1.1 200 OK\r\ncontent-length: 19\r\n\r\nz: 1\r\n\r\n";
+    x.end("0123456789");
+  });
+  // Early Hints: o Node recebe um objeto novo, e cada valor é lido uma vez.
+  app.get(r("early-contado"), async (_q, rep) => {
+    leituras.n = 0;
+    rep.writeEarlyHints({ link: "</a.css>; rel=preload", "x-s": valorContado("dica-comum") });
+    return { lidas: leituras.n };
+  });
+  app.get(r("early-getter"), async (_q, rep) => {
+    leituras.n = 0;
+    const dicas = { link: "</a.css>; rel=preload", get "x-g"() { leituras.n += 1; return "dica-comum"; } };
+    rep.writeEarlyHints(dicas);
+    return { lidas: leituras.n };
   });
 }
 
@@ -176,6 +262,7 @@ beforeAll(async () => {
       .send(Readable.from([Buffer.from("{}" + cabecaQa7 + corpoQa7)])));
     c.app.get(r("trailer-inventado"), async (_q, rep) => rep.code(403).trailer("x-t", async () => "y").send({ erro: "inventado_qa7", mensagem: "x" }));
     plantarCorrecao7(c.app);
+    plantarDv01(c.app);
     await c.app.ready();
     consoles.set(modo, c);
   }
@@ -420,5 +507,163 @@ describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em p
       expect(JSON.parse(respostas[1]!.corpo)).toEqual({ erro: "so_o_dono", mensagem: "x" });
     }
     expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+});
+
+describe("DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve", () => {
+  const bytesDe = async (modo: "falhar" | "corrigir", n: string): Promise<string> => {
+    const porta = Number(new URL(await enderecoDe(modo)).port);
+    return new Promise((ok) => {
+      const s = connect(porta, "127.0.0.1", () => s.write(
+        `GET /dv01/${n} HTTP/1.1\r\nhost: x\r\n\r\nGET /nada HTTP/1.1\r\nhost: x\r\nconnection: close\r\n\r\n`));
+      let b = "";
+      s.on("data", (d: Buffer) => { b += d.toString("latin1"); });
+      s.on("error", () => {});
+      const fim = setTimeout(() => s.destroy(), 4000);
+      s.on("close", () => { clearTimeout(fim); ok(b); });
+    });
+  };
+  const ate = (t: string) => t.slice(0, t.indexOf("\r\n\r\n"));
+
+  it("403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const t = await bytesDe(modo, "contado-403");
+      expect(leituras.n, modo).toBe(1);
+      expect(t.startsWith("HTTP/1.1 403"), modo).toBe(true);
+      expect(ate(t), modo).toContain("x-contado: valor-comum");
+      expect(lerRespostas(t).respostas.map((x) => x.status), modo).toEqual([403, 404]);
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("cabeçalho posto por setHeader da resposta crua: o Node lê uma vez ao receber, a guarda uma ao entregar (duas no total)", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const t = await bytesDe(modo, "contado-setheader-403");
+      expect(leituras.antes, modo).toBe(1);
+      expect(leituras.n - leituras.antes, `${modo}: leituras da guarda`).toBe(1);
+      expect(ate(t), modo).toContain("x-contado: valor-comum");
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("lista de objetos e frase da linha de status: cada elemento é lido uma vez", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const lista = await bytesDe(modo, "contado-lista-403");
+      expect(leituras.n, `${modo} lista`).toBe(2);
+      expect(ate(lista), modo).toMatch(/x-lista: a\r\nx-lista: b|x-lista: a, b/);
+      const frase = await bytesDe(modo, "contado-frase-403");
+      expect(leituras.n, `${modo} frase`).toBe(1);
+      expect(frase.startsWith("HTTP/1.1 403 Frase Comum\r\n"), modo).toBe(true);
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("o desvio também lê o valor uma vez, e a resposta trocada leva o texto lido", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const t = await bytesDe(modo, "contado-desvio");
+      expect(leituras.n, modo).toBe(1);
+      expect(t.startsWith(`HTTP/1.1 ${modo === "falhar" ? 500 : 403}`), modo).toBe(true);
+      expect(ate(t), modo).toContain("x-contado: valor-comum");
+      expect(t, modo).not.toContain("fora_do_catalogo_dv01");
+      expect(lerDesviosDaGuarda(), modo).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("valor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const t = await bytesDe(modo, "muda-403");
+      expect(leituras.n, modo).toBe(1);
+      expect(ate(t), modo).toContain("x-muda: um");
+      expect(t, modo).not.toContain("x-y: z");
+      expect(lerRespostas(t).respostas.map((x) => x.status), modo).toEqual([403, 404]);
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+
+  it("valor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const t = await bytesDe(modo, "muda-setheader-403");
+      expect(leituras.antes, modo).toBe(1);
+      expect(leituras.n - leituras.antes, modo).toBe(1);
+      expect(t, modo).not.toContain("x-y: z");
+      const { respostas } = lerRespostas(t);
+      expect(respostas.map((x) => x.status), modo).toEqual([modo === "falhar" ? 500 : 403, 404]);
+      expect(lerDesviosDaGuarda(), modo).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("segunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const t = await bytesDe(modo, "muda-200");
+      const { respostas } = lerRespostas(t);
+      expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
+      expect(t, modo).not.toContain("x-y: z");
+      expect(respostas.filter((x) => x.status === 200), modo).toEqual([]);
+      const desvios = lerDesviosDaGuarda();
+      expect(desvios, modo).toHaveLength(modo === "falhar" ? 1 : 0);
+      if (modo === "falhar") expect(desvios[0]!.motivo).toContain("CRLF CRLF");
+    }
+  });
+
+  it("segunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle)", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      const inteira = lerRespostas(await bytesDe(modo, "cabeca-inteira-200")).respostas;
+      expect(inteira.map((x) => x.status), modo).toEqual([200, 404]);
+      expect(inteira[0]!.corpo, modo).toBe("0123456789");
+      expect(lerDesviosDaGuarda(), `${modo} controle`).toEqual([]);
+      const partida = lerRespostas(await bytesDe(modo, "cabeca-partida-200")).respostas;
+      expect(partida.filter((x) => x.status === 200), modo).toEqual([]);
+      expect(partida[0]!.status, modo).toBe(modo === "falhar" ? 500 : 403);
+      expect(lerDesviosDaGuarda(), modo).toHaveLength(modo === "falhar" ? 1 : 0);
+    }
+  });
+
+  it("Early Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto", async () => {
+    for (const modo of ["falhar", "corrigir"] as const) {
+      for (const n of ["early-contado", "early-getter"]) {
+        const t = await bytesDe(modo, n);
+        const { respostas } = lerRespostas(t);
+        expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual([103, 200, 404]);
+        expect(JSON.parse(respostas[1]!.corpo), `${modo} ${n}`).toEqual({ lidas: 1 });
+        expect(ate(t), `${modo} ${n}`).toMatch(/x-[sg]: dica-comum/);
+      }
+    }
+    expect(lerDesviosDaGuarda()).toEqual([]);
+  });
+});
+
+describe("DV-03: a conferência do corpo é linear no tamanho do texto", () => {
+  const aspas = (n: number) => `{"erro":"so_o_dono","mensagem":"${"\\\"".repeat(n)}"}`;
+  const ms = (f: () => unknown) => { const t0 = performance.now(); f(); return performance.now() - t0; };
+
+  it("60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado", () => {
+    const sessenta = aspas(30_000);
+    expect(sessenta.length).toBeGreaterThan(60_000);
+    expect(conferirCorpoDeAcesso(403, sessenta, CONTRATO_DE_ACESSO_DO_CONSOLE)).toBeNull();
+    expect(ms(() => conferirCorpoDeAcesso(403, sessenta, CONTRATO_DE_ACESSO_DO_CONSOLE))).toBeLessThan(100);
+    const grande = aspas(500_000);
+    expect(ms(() => conferirCorpoDeAcesso(403, grande, CONTRATO_DE_ACESSO_DO_CONSOLE))).toBeLessThan(1500);
+  });
+
+  it("muitas chaves curtas e uma cadeia sem chave também ficam em tempo curto", () => {
+    const chaves = `{"erro":"so_o_dono",${Array.from({ length: 20_000 }, (_, i) => `"k${i}":${i}`).join(",")}}`;
+    expect(conferirCorpoDeAcesso(403, chaves, CONTRATO_DE_ACESSO_DO_CONSOLE)).toBeNull();
+    expect(ms(() => conferirCorpoDeAcesso(403, chaves, CONTRATO_DE_ACESSO_DO_CONSOLE))).toBeLessThan(500);
+    const lista = `{"erro":"so_o_dono","itens":[${Array.from({ length: 20_000 }, () => '"a\\"b"').join(",")}]}`;
+    expect(ms(() => conferirCorpoDeAcesso(403, lista, CONTRATO_DE_ACESSO_DO_CONSOLE))).toBeLessThan(500);
+  });
+
+  it.each([
+    ['{"erro":"so_o_dono","mensagem":"texto com \\"erro\\": 1 dentro"}', null],
+    ['{"a\\"b":"x","erro":"so_o_dono"}', null],
+    ['{ "erro"\n\t: "so_o_dono" }', null],
+    ['{"erro":"so_o_dono","\\u0065rro":"x"}', "repetida"],
+    ['{"erro":"so_o_dono","\\u0065\\u0072\\u0072\\u006f"\r\n:"x"}', "repetida"],
+    ['{"erro":"so_o_dono","a":{"b":[{"erro" :1}]}}', "repetida"],
+    ['{"erro":"so_o_dono","errou":1,"err":2,"erros":3}', null],
+  ] as const)("contagem de chaves `erro`: %s", (texto, motivo) => {
+    const r = conferirCorpoDeAcesso(403, texto, CONTRATO_DE_ACESSO_DO_CONSOLE);
+    if (motivo === null) expect(r).toBeNull();
+    else expect(r?.motivo).toContain(motivo);
   });
 });

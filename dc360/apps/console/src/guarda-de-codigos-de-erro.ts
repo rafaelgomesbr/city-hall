@@ -24,7 +24,10 @@ import type { ServerResponse } from "node:http";
  * o próprio Node. A moldura do corpo (`content-length`, `chunked`) ela confere,
  * como a da API (correção 6), e o status 1xx como resposta final é desvio e
  * sai 500, como na API (correção 7). As Early Hints com CR ou LF no valor ela
- * recusa nas duas versões do Node, como a da API (correção 7b).
+ * recusa nas duas versões do Node, como a da API (correção 7b). O valor de
+ * cabeçalho é lido uma vez e o Node recebe só o retrato de texto, a cabeça com
+ * `CRLF CRLF` antes do fim é trocada (DV-01), e a conferência das chaves do corpo
+ * é linear (DV-03), tudo como na API.
  */
 
 export type ModoDaGuarda = "falhar" | "corrigir";
@@ -80,8 +83,6 @@ const fatiar = String.prototype.slice;
 const subarray = Buffer.prototype.subarray;
 const HEX = "0123456789abcdef";
 const TETO_DO_CORPO = 64 * 1024;
-/** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
-const CHAVE_JSON = /"((?:[^"\\]|\\.)*)"\s*:/g;
 const FORMA_DE_CODIGO = /^[a-z_]{1,64}$/;
 /** Nome de cabeçalho válido (token do HTTP) e valor sem caractere de controle: a regra do Node 24. */
 const NOME_DE_CABECALHO = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
@@ -90,17 +91,147 @@ const VALOR_DE_CABECALHO_INVALIDO = /[^\t\x20-\x7e\x80-\xff]/;
 const tem = (o: object, k: string): boolean => aplicar(temPropria, o, [k]) as boolean;
 const casa = (re: RegExp, s: string): RegExpExecArray | null => aplicar(executarRegex, re, [s]) as RegExpExecArray | null;
 
-/** Quantas chaves do texto JSON, em qualquer profundidade, valem `erro` (com escape ou sem). */
-function chavesErro(texto: string): number {
-  const re = CHAVE_JSON;
-  re.lastIndex = 0;
-  let n = 0;
-  for (let m = casa(re, texto); m !== null; m = casa(re, texto)) {
-    let chave: unknown;
-    try { chave = analisarJson(`"${m[1]}"`); } catch { chave = null; }
-    if (chave === "erro") n += 1;
+const criarSemProto = Object.create;
+
+/**
+ * O RETRATO DOS CABEÇALHOS (DV-01). O Node lê o valor de um cabeçalho mais de
+ * uma vez: confere os caracteres e depois o concatena na cabeça. Um valor que é
+ * um objeto cujo `toString` devolve outra coisa a cada leitura passa na
+ * conferência com uma leitura e sai no fio com a outra. Então a guarda lê cada
+ * valor UMA vez, converte para texto nessa leitura (primitivo não muda: lê-lo
+ * não tem efeito), confere o retrato e entrega ao Node só o retrato.
+ */
+type Linha = { nome: unknown; valor: unknown; anexar: boolean };
+type Retrato = { armazenadas: Linha[]; segurados: Linha[]; malFormado: boolean; frase: unknown };
+
+const ehObjeto = (v: unknown): boolean => (typeof v === "object" && v !== null) || typeof v === "function";
+
+/** Uma leitura, e o texto dela agora, se for objeto; o primitivo fica como está. */
+function textoUmaVez(v: unknown): unknown {
+  return ehObjeto(v) ? `${v as string}` : v;
+}
+
+/** Como `textoUmaVez`, e uma lista vira outra lista, cada elemento lido uma vez. */
+function valorEmTexto(v: unknown): unknown {
+  if (!ehArray(v)) return textoUmaVez(v);
+  const n = v.length as number;
+  const saida: unknown[] = [];
+  for (let i = 0; i < n; i += 1) saida[saida.length] = textoUmaVez(v[i]);
+  return saida;
+}
+
+/** Um valor (ou cada elemento da lista) que o Node aceitaria: não é `undefined` nem símbolo, e o texto não tem controle. */
+function valorAceito(v: unknown): boolean {
+  if (ehArray(v)) {
+    for (let i = 0; i < v.length; i += 1) if (!valorAceito(v[i])) return false;
+    return true;
   }
-  return n;
+  if (v === undefined || typeof v === "symbol") return false;
+  if (typeof v === "string") return casa(VALOR_DE_CABECALHO_INVALIDO, v) === null;
+  return true;
+}
+
+const linhaAceita = (l: Linha): boolean =>
+  typeof l.nome === "string" && casa(NOME_DE_CABECALHO, l.nome) !== null && valorAceito(l.valor);
+
+/** As linhas que os cabeçalhos do `writeHead` dizem, cada nome e cada valor lido uma vez. */
+function linhasDe(cab: Cabecalhos): { linhas: Linha[]; malFormado: boolean } {
+  const linhas: Linha[] = [];
+  let malFormado = false;
+  if (ehArray(cab)) {
+    if (cab.length > 0 && ehArray(cab[0])) {
+      for (let i = 0; i < cab.length; i += 1) {
+        const tupla = cab[i] as unknown;
+        if (!ehArray(tupla)) { malFormado = true; continue; }
+        const nome = textoUmaVez(tupla[0]);
+        const valor = valorEmTexto(tupla[1]);
+        if (nome) linhas[linhas.length] = { nome, valor, anexar: true };
+      }
+    } else {
+      if (cab.length % 2 !== 0) malFormado = true;
+      for (let i = 0; i + 1 < cab.length; i += 2) {
+        const nome = textoUmaVez(cab[i]);
+        const valor = valorEmTexto(cab[i + 1]);
+        if (nome) linhas[linhas.length] = { nome, valor, anexar: true };
+      }
+    }
+  } else if (cab) {
+    const nomes = chavesDe(cab);
+    for (let i = 0; i < nomes.length; i += 1) {
+      const nome = nomes[i]!;
+      if (nome) linhas[linhas.length] = { nome, valor: valorEmTexto((cab as Record<string, unknown>)[nome]), anexar: false };
+    }
+  }
+  return { linhas, malFormado };
+}
+
+const paraLista = (v: unknown): unknown[] => (ehArray(v) ? v : [v]);
+
+/** As linhas aceitas como um objeto de texto novo para o `writeHead`: repetida por lista soma, por objeto troca. */
+function objetoDeLinhas(linhas: readonly Linha[]): Record<string, unknown> {
+  const saida = aplicar(criarSemProto, Object, [null]) as Record<string, unknown>;
+  const grafia = aplicar(criarSemProto, Object, [null]) as Record<string, string>;
+  for (let i = 0; i < linhas.length; i += 1) {
+    const l = linhas[i]!;
+    if (!linhaAceita(l)) continue;
+    const nome = l.nome as string;
+    const min = aplicar(paraMinusculas, nome, []) as string;
+    const ja = tem(grafia, min) ? grafia[min]! : null;
+    if (ja === null || !l.anexar) {
+      if (ja !== null) delete saida[ja];
+      saida[nome] = l.valor;
+      grafia[min] = nome;
+    } else {
+      const soma: unknown[] = [];
+      const antes = paraLista(saida[ja]);
+      const agora = paraLista(l.valor);
+      for (let j = 0; j < antes.length; j += 1) soma[soma.length] = antes[j];
+      for (let j = 0; j < agora.length; j += 1) soma[soma.length] = agora[j];
+      saida[ja] = soma;
+    }
+  }
+  return saida;
+}
+
+/**
+ * Quantas chaves do texto JSON, em qualquer profundidade, valem `erro` (com
+ * escape ou sem). DV-03: o texto já é JSON válido (quem chama o analisou), então
+ * uma passada só basta: cada cadeia é lida do começo ao fim uma vez, e é chave
+ * quando o próximo caractere que não é espaço é `:`. A versão anterior usava uma
+ * expressão regular que, a cada aspas sem fecho útil, relia o resto do texto
+ * inteiro (tempo quadrático: 60 KB de aspas escapadas custavam cerca de 1 s).
+ * Uma chave só vale `erro` se o texto dela, com escapes, tiver de 4 a 24
+ * caracteres (`\u0065\u0072\u0072\u006f` é o maior caso), então só essas são
+ * analisadas.
+ */
+function chavesErro(texto: string): number {
+  const n = texto.length;
+  let contagem = 0;
+  let i = 0;
+  while (i < n) {
+    if ((aplicar(codigoDoCaractere, texto, [i]) as number) !== 0x22) { i += 1; continue; }
+    let j = i + 1;
+    for (; j < n; j += 1) {
+      const c = aplicar(codigoDoCaractere, texto, [j]) as number;
+      if (c === 0x22) break;
+      if (c === 0x5c) j += 1;
+    }
+    if (j >= n) break;
+    let k = j + 1;
+    while (k < n) {
+      const c = aplicar(codigoDoCaractere, texto, [k]) as number;
+      if (c !== 0x20 && c !== 0x09 && c !== 0x0a && c !== 0x0d) break;
+      k += 1;
+    }
+    const tamanho = j - i - 1;
+    if (k < n && (aplicar(codigoDoCaractere, texto, [k]) as number) === 0x3a && tamanho >= 4 && tamanho <= 24) {
+      let chave: unknown;
+      try { chave = analisarJson(`"${aplicar(fatiar, texto, [i + 1, j]) as string}"`); } catch { chave = null; }
+      if (chave === "erro") contagem += 1;
+    }
+    i = j + 1;
+  }
+  return contagem;
 }
 
 /**
@@ -238,7 +369,7 @@ function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
 function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: FastifyBaseLogger, opcoes: OpcoesDaGuarda): void {
   const writeHeadOriginal = raw.writeHead;
   type Interna = { _writeRaw: (...a: unknown[]) => unknown; _flushOutput: (...a: unknown[]) => unknown;
-    outputData: Array<{ data: unknown; encoding?: unknown }>; finished: boolean; _last: boolean };
+    outputData: Array<{ data: unknown; encoding?: unknown }>; finished: boolean; _last: boolean; _header: unknown };
   const interna = raw as unknown as Interna;
   const writeRawOriginal = interna._writeRaw;
   const flushOutputOriginal = interna._flushOutput;
@@ -526,17 +657,32 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   }
 
   /** A resposta inteira do desvio, já em bytes: cabeça e corpo. */
-  function substituta(visto: number | "ilegivel"): Buffer {
+  function substituta(visto: number | "ilegivel", motivoProprio?: string): Buffer {
     const status: 401 | 403 = visto === 401 ? 401 : 403;
-    const { statusFinal, novo } = registrarDesvio(status, null, visto === "ilegivel"
+    const { statusFinal, novo } = registrarDesvio(status, null, motivoProprio ?? (visto === "ilegivel"
       ? "bytes da resposta que não começam com uma linha de status legível (ou moldura de corpo contraditória)"
-      : `linha de status ${visto} escrita por fora da guarda`);
+      : `linha de status ${visto} escrita por fora da guarda`));
     return bytesDaResposta(statusFinal, novo);
   }
   function bytesDaResposta(statusFinal: number, novo: string): Buffer {
     return bufferDe(`HTTP/1.1 ${statusFinal} ${FRASE_DO_STATUS[statusFinal]!}\r\n`
       + "content-type: application/json; charset=utf-8\r\n"
       + `content-length: ${tamanhoEmBytes(novo)}\r\nconnection: close\r\n\r\n${novo}`, "utf8");
+  }
+
+  /**
+   * A cabeça que o Node montou (`_header`) tem `CRLF CRLF` antes do fim dela. Uma
+   * cabeça de verdade termina nele e só nele; o valor de um cabeçalho não pode
+   * ter CR nem LF, então isto só acontece se um valor mudou entre a conferência
+   * e a escrita (DV-01). `_header` que não é uma cabeça (texto sem `CRLF CRLF`,
+   * como o `"x"` de quem escreve os bytes por baixo) não entra aqui: quem
+   * escreve por baixo cai na leitura da linha de status.
+   */
+  function cabecaPartida(): boolean {
+    const h = interna._header;
+    if (typeof h !== "string") return false;
+    const fim = aplicar(indiceDe, h, ["\r\n\r\n"]) as number;
+    return fim >= 0 && fim + 4 !== h.length;
   }
 
   /**
@@ -551,6 +697,13 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     if (lido === null) return dado;
     if (lido.visto === "provisoria") { provisoriasVistas = true; return dado; }
     cabecaPendente = false;
+    if (cabecaPartida()) {
+      // DV-01, segunda rede: o fim da cabeça (`CRLF CRLF`) antes do fim do `_header` que o Node montou
+      // é uma segunda resposta dentro da cabeça, e o cliente a leria como a do pedido seguinte.
+      bloqueado = true;
+      interna._last = true;
+      return substituta("ilegivel", "fim de cabeçalho (CRLF CRLF) antes do fim da cabeça que o Node montou");
+    }
     let visto: number | "ilegivel" = lido.visto;
     let m: Moldura | null = null;
     if (visto !== "ilegivel") {
@@ -755,6 +908,36 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     return true;
   }
 
+  /** Lê os cabeçalhos da resposta e os segurados do `writeHead` uma vez, cada valor para texto. */
+  function tirarRetrato(): Retrato {
+    const guardados = raw.getHeaders() as Record<string, unknown>;
+    const nomes = chavesDe(guardados);
+    const armazenadas: Linha[] = [];
+    for (let i = 0; i < nomes.length; i += 1) {
+      armazenadas[armazenadas.length] = { nome: nomes[i]!, valor: valorEmTexto(guardados[nomes[i]!]), anexar: false };
+    }
+    const { linhas, malFormado } = linhasDe(cabecalhosSegurados);
+    return { armazenadas, segurados: linhas, malFormado, frase: textoUmaVez((raw as { statusMessage?: unknown }).statusMessage) };
+  }
+  function retratoAceito(r: Retrato): boolean {
+    if (r.malFormado) return false;
+    for (let i = 0; i < r.armazenadas.length; i += 1) if (!linhaAceita(r.armazenadas[i]!)) return false;
+    for (let i = 0; i < r.segurados.length; i += 1) if (!linhaAceita(r.segurados[i]!)) return false;
+    // A frase só conta se o Node a usar: a do `writeHead` (texto) a substitui.
+    return mensagemDeStatus !== undefined || typeof r.frase !== "string" || casa(VALOR_DE_CABECALHO_INVALIDO, r.frase) === null;
+  }
+  /** Devolve à resposta o retrato (só as linhas aceitas): o Node passa a ler texto, e não o objeto da rota. */
+  function regravarRetrato(r: Retrato): void {
+    for (let i = 0; i < r.armazenadas.length; i += 1) {
+      const l = r.armazenadas[i]!;
+      if (linhaAceita(l)) raw.setHeader(l.nome as string, l.valor as string);
+      else raw.removeHeader(`${l.nome as string}`);
+    }
+    if (mensagemDeStatus === undefined && typeof r.frase === "string" && casa(VALOR_DE_CABECALHO_INVALIDO, r.frase) === null) {
+      raw.statusMessage = r.frase;
+    }
+  }
+
   function end(this: ServerResponse, ...args: unknown[]) {
     conferirCabecalhoImplicito();
     if (!segurando) {
@@ -794,6 +977,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
       cb = typeof args[1] === "function" ? args[1] : args[2];
     }
     const corpoOriginal = juntarBuffers(pedacos);
+    // DV-01: cada valor de cabeçalho é lido uma vez, agora; daqui em diante só o retrato vale.
+    let retrato: Retrato | null = null;
     let achado: { motivo: string; erroVisto: string | null } | null;
     if (provisorioComoFinal) {
       achado = {
@@ -815,12 +1000,21 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
       }
     }
     const fimComCb = (corpo: Buffer | string) => aplicar(endOriginal, raw, typeof cb === "function" ? [corpo, cb] : [corpo]);
+    try {
+      retrato = tirarRetrato();
+    } catch {
+      achado ??= { motivo: "a leitura dos cabeçalhos falhou", erroVisto: null };
+    }
+    if (achado === null && retrato !== null && !retratoAceito(retrato)) {
+      achado = { motivo: "cabeçalho com nome ou valor que o Node recusaria (ou que não é texto)", erroVisto: null };
+    }
     if (achado === null) {
       liberado = statusSegurado;
       const cabeca: unknown[] = [statusSegurado];
       if (mensagemDeStatus !== undefined) cabeca[cabeca.length] = mensagemDeStatus;
-      if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = cabecalhosSegurados;
+      if (cabecalhosSegurados !== undefined) cabeca[cabeca.length] = objetoDeLinhas(retrato!.segurados);
       try {
+        regravarRetrato(retrato!);
         aplicar(writeHeadOriginal, raw, cabeca);
         return fimComCb(corpoOriginal);
       } catch (e) {
@@ -836,7 +1030,8 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
       for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
       // O trailer de `addTrailers` só sai em `chunked`; com content-length o Node recusaria a cabeça.
       (raw as unknown as { _trailer: string })._trailer = "";
-      const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+      const cabecalhos = retrato === null ? {} : semCabecalhosDoCorpo(objetoDeLinhas(retrato.segurados));
+      if (retrato !== null) regravarRetrato(retrato);
       cabecalhos["content-type"] = "application/json; charset=utf-8";
       cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
       aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
@@ -873,12 +1068,16 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
   const earlyHintsOriginal = (raw as unknown as { writeEarlyHints?: (...a: unknown[]) => unknown }).writeEarlyHints;
   function writeEarlyHints(this: ServerResponse, ...args: unknown[]) {
     const dicas = args[0];
-    if (typeof dicas === "object" && dicas !== null) {
+    // Objeto novo, sempre (DV-01): cada valor é lido uma vez, daqui sai o texto, e o Node recebe a cópia.
+    // Lista e não-objeto seguem como vieram: o Node os recusa antes de ler qualquer valor.
+    let repasse: unknown = dicas;
+    if (typeof dicas === "object" && dicas !== null && !ehArray(dicas)) {
       const nomes = chavesDe(dicas);
+      const copia = aplicar(criarSemProto, Object, [null]) as Record<string, unknown>;
       for (let i = 0; i < nomes.length; i += 1) {
         const nome = nomes[i]!;
-        const v = (dicas as Record<string, unknown>)[nome];
-        const valores: unknown[] = ehArray(v) ? v : [v];
+        const v = valorEmTexto((dicas as Record<string, unknown>)[nome]);
+        const valores: unknown[] = paraLista(v);
         let ruim = casa(NOME_DE_CABECALHO, nome) === null;
         for (let j = 0; !ruim && j < valores.length; j += 1) {
           ruim = casa(VALOR_DE_CABECALHO_INVALIDO, `${valores[j] as string}`) !== null;
@@ -887,9 +1086,13 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
           throw definirPropriedade(new TypeError(`Cabeçalho de Early Hints inválido: "${nome}"`), "code",
             { value: "ERR_INVALID_CHAR", enumerable: false });
         }
+        copia[nome] = v;
       }
+      repasse = copia;
     }
-    return aplicar(earlyHintsOriginal!, raw, args);
+    const resto: unknown[] = [repasse];
+    for (let i = 1; i < args.length; i += 1) resto[resto.length] = args[i];
+    return aplicar(earlyHintsOriginal!, raw, resto);
   }
 
   raw.strictContentLength = true;
