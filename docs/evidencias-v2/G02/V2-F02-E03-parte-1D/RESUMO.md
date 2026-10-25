@@ -1,0 +1,37 @@
+# V2-F02-E03, parte 1D: catálogo de erros no pacote compartilhado (DV-20, DV-37, DV-44)
+
+Esta pasta cobre SÓ a parte do `packages/shared` da E03. A parte da API (`RegraDeNegocio` tipado, `setErrorHandler` que lança fora do catálogo em teste, `apps/api/test/catalogo-de-erros.test.ts`) e a dos clientes (`transporte.ts`, `apps/campo/src/dados/api.ts`, `apps/web/src/dados/http.ts` lendo a `categoria`) NÃO foram feitas aqui: a E03 só fecha quando elas entrarem.
+
+## Fatos
+
+**O que mudou (só `dc360/packages/shared/**` e contagens):**
+
+- `src/erros.ts` deixou de ser um módulo vazio. Traz `CATEGORIAS_DE_ERRO` (renovar, reentrar, corrigir, aguardar, permanente) com `DESCRICAO_DAS_CATEGORIAS`, `CODIGOS_DE_ERRO` (92 códigos que a API emite hoje, levantados lendo os usos de `RegraDeNegocio` e das respostas em `apps/api/src`, cada um com `status`, `categoria`, `titulo` e, quando o mesmo código sai com outro status, `tambemSai`), `CODIGOS_RESERVADOS` (`chave_ja_usada_em_outro_registro` da E07, `versao_do_aplicativo_antiga` da E06 e `versao_do_aplicativo_ausente`, prevista em `docs/roadmap-v2/11-cidadao-fundacao.md`), `erroDaApiSchema` (`{ erro, mensagem, campos?, requisicao?, categoria? }`, objeto aberto, só aditivo), as funções `ehCodigoDeErro`, `ehCodigoReservado`, `ehCategoriaDeErro`, `categoriaDoCodigo`, `categoriaPadraoDoStatus` e `categoriaDoErro`, e `tabelaDoCatalogoEmMarkdown`.
+- Nenhum código mudou de nome, o status e o campo `erro` das respostas não mudam, e `codigos-de-erro.ts` (acesso e entrada) ficou como estava: o catálogo novo o contém, com o mesmo status, e o teste prende isso. Os 404 continuam mistos (`nao_encontrado` e `nao_encontrada`). Recurso de outro município não tem código próprio: é 404, nunca 403.
+- **DV-20** (pago): `test/varredura-de-esquemas.test.ts` prende o comportamento do Zod 4 (`.default()` dentro de `.optional()` passa a aplicar o padrão; `z.record(z.enum(...))` passa a exigir todas as chaves) e varre o texto de todo código de produto em `packages/*/src` e `apps/*/src`: reprova o aparecimento de qualquer das duas formas.
+- **DV-37** (pago): `objetoSoDeOpcionais` em `src/schemas.ts` põe uma guarda contra `Date` antes de um objeto cujos campos são todos opcionais (`pessoasAtingidasSchema`, o único esquema exportado nessa condição). A mesma varredura percorre todos os esquemas exportados e reprova o próximo que aceitar `new Date()`. A vistoria continua espalhando as cinco contagens (`pessoasAtingidasObjeto.shape`), então a forma dos dados e o 422 não mudam.
+- **DV-44** (pago): em `src/mensagens-do-zod.ts`, um item `undefined` dentro de uma lista deixa de dizer "Campo obrigatório" e passa a dizer "O item N da lista é obrigatório" (N de 1 em diante, leitura humana). O `campo` do 422 segue com a posição do Zod, a partir de 0. 5 casos novos em `test/mensagens-em-portugues.test.ts`.
+- `test/catalogo-de-erros.test.ts` (26 casos): forma de cada entrada, acesso e entrada dentro do catálogo, reservados fora dos emitidos, cobertura dos códigos literais de `apps/api/src` nos dois sentidos (leitura de texto, rede mais larga e mais simples que a varredura por árvore da E03 na API), `erroDaApiSchema`, funções do cliente e a tabela.
+- Contagens: `baseline.mjs` ganhou `"V2-F02-E03": { total: 48 }` em `MUDANCAS_DO_TESTE_SHARED_POR_ETAPA` (26 + 17 + 5); README (shared 293, total 3969) e `COLOCAR-DE-PE.md` (5966) ajustados; a seção "Catálogo completo de erros e categoria" do README descreve o catálogo.
+- Correções feitas nesta rodada sobre o trabalho em andamento herdado: (1) `erros.ts` usava `temPropria.call(...)`, forma que a varredura de código-fonte da API (`apps/api/test/codigos-de-erro.test.ts`) recusa; passou a usar a forma literal `Object.prototype.hasOwnProperty.call` que o próprio `codigos-de-erro.ts` usa; (2) o caso de DV-20 em `varredura-de-esquemas.test.ts` leva ao todo ~0,5 s sozinho mas estourava os 5 s padrão com a máquina carregada: ganhou limite de 60 s.
+
+## Limites declarados (leia antes de dar PASS)
+
+- Verificado em Windows, com `core.autocrlf=true` no repositório compartilhado. O checkout deixou centenas de arquivos em CRLF na árvore de trabalho (o índice e o `.gitattributes` são LF), o que reprovava o Prettier e os testes de mutação da API que procuram `\n`. Eu converti para LF só na árvore de trabalho, sem tocar em configuração do git e sem mudar conteúdo versionado (`git diff` só mostra os arquivos desta parte). Em Linux ou num checkout LF nada disso existe.
+- Reprovações que são do ambiente Windows desta máquina, em arquivos que esta parte NÃO toca, e que devem passar no CI Linux:
+  - `packages/shared/test/regras-de-conteudo.test.ts`, caso "tolera o arquivo que some entre a listagem e a leitura (ENOENT)": `EPERM` ao criar link simbólico (Windows sem privilégio de symlink). Os demais 9 casos do arquivo passam.
+  - `db`: `desfazer-migracao.test.ts` (5), `guarda-da-semente.test.ts` (3) e `apps/api` `semear-homologacao.test.ts` (2): todos lançam o `tsx` por `spawnSync` e recebem `status` nulo no Windows. O portão de isolamento CA-06 (`isolamento.test.ts`) passa.
+  - `test:scripts`: `conferir-indices-de-evidencia: a evidência real` reprovou na primeira rodada porque esta pasta ainda não tinha `INDEX.md`; ver `saidas/05` e a nota abaixo.
+- A E03 não está completa (ver topo): faltam a API e os clientes. A tabela do catálogo para o Rafael ler está em `tabela-do-catalogo.md` (gerada do código).
+- `categoria` no corpo da resposta é só espaço reservado no esquema; a API ainda não a emite.
+
+## Provas (em `saidas/`)
+
+1. `01-typecheck.txt` (código 0, todos os pacotes). 2. `02-lint.txt` (código 0). 3. `03-lint-teto.txt` (431, não sobe). 4. `04-formato.txt` (código 0). 5. `05-test-scripts.txt` (831 casos, 807 passam, 23 pulados por ambiente, 1 reprova: o do INDEX desta pasta, rodado antes de existir; revalidado depois, ver INDEX). 6. `06-regras-de-conteudo.txt` (9 de 10; o que falha é o EPERM de symlink). 7. `07-conferir-numeros.txt` (código 0: 5966 testes, números da documentação batem). 8. `08-auditar.txt` (código 0, runtime limpo). 9. `09-npm-test-todos-os-pacotes.txt`: campo 238 passam; shared 292 de 293; api 1867 passam, 2 do ambiente, 34 pulados; console 339; web 791; db 431 passam, 8 do ambiente, 6 pulados. 10. `10-test-shared.txt` (293 casos do shared: 292 passam, 1 é o EPERM). `tabela-do-catalogo.md`: os 92 códigos emitidos e os 3 reservados.
+
+## Para o orquestrador
+
+- **Linha do STATUS sugerida:** `V2-F02-E03 | PARCIAL, parte shared (1D) IMPLEMENTADA (candidato) | catálogo de 92 códigos com categoria e 3 reservados em packages/shared/src/erros.ts, erroDaApiSchema aditivo, DV-20, DV-37 e DV-44 pagas; FALTAM a API (RegraDeNegocio tipado, setErrorHandler em teste, apps/api/test/catalogo-de-erros.test.ts) e os clientes lerem a categoria.`
+- **Dívidas pagas:** DV-20 (varredura de esquemas e testes que prendem `.default().optional()` e `z.record(z.enum())`), DV-37 (guarda de `Date` em `pessoasAtingidasSchema` mais varredura de todos os esquemas exportados), DV-44 (mensagem "O item N da lista é obrigatório"). As três tinham destino V2-F02-E03; como a E03 ainda tem a parte da API, o orquestrador decide se marca como pagas agora ou ao fechar a etapa.
+- **Pendência humana:** Rafael ler a tabela do catálogo (`tabela-do-catalogo.md`), que é a validação humana da E03. Mais nenhuma.
+- **Integração:** `baseline.mjs`, README e `COLOCAR-DE-PE.md` mexem em contagens que as outras partes também mexem; o integrador recalcula os totais na junção.

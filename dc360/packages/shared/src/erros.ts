@@ -503,15 +503,15 @@ export type CodigoReservado = keyof typeof CODIGOS_RESERVADOS;
 
 export const LISTA_DE_CODIGOS_DE_ERRO = Object.keys(CODIGOS_DE_ERRO) as readonly CodigoDeErro[];
 
-const temPropria = Object.prototype.hasOwnProperty;
-
 /** Se o texto é um código emitido hoje pela API. Reservado dá `false`. */
 export function ehCodigoDeErro(valor: unknown): valor is CodigoDeErro {
-  return typeof valor === "string" && temPropria.call(CODIGOS_DE_ERRO, valor);
+  return typeof valor === "string" && Object.prototype.hasOwnProperty.call(CODIGOS_DE_ERRO, valor);
 }
 
 export function ehCodigoReservado(valor: unknown): valor is CodigoReservado {
-  return typeof valor === "string" && temPropria.call(CODIGOS_RESERVADOS, valor);
+  return (
+    typeof valor === "string" && Object.prototype.hasOwnProperty.call(CODIGOS_RESERVADOS, valor)
+  );
 }
 
 export function ehCategoriaDeErro(valor: unknown): valor is CategoriaDeErro {

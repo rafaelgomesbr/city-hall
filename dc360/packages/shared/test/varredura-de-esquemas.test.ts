@@ -266,5 +266,6 @@ describe("o texto do código não usa as duas formas armadilhadas", () => {
         achados.push(`${arquivo}: z.record(z.enum(`);
     }
     expect(achados).toEqual([]);
-  });
+    /* A leitura de todos os fontes passa de 5 s num disco frio (Windows, carga alta). */
+  }, 60_000);
 });
