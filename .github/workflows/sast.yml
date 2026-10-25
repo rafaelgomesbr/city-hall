@@ -14,7 +14,8 @@
 #   repositório é público e essas regras são da Semgrep Rules License v1.0 (uso
 #   interno, sem redistribuição): nenhuma cópia delas mora aqui. E o registro muda
 #   sem aviso, o que quebraria o CI por culpa dele, não do código.
-# - Nenhum código sai do runner: versão fixa do Semgrep, `--metrics=off`, sem login,
+# - Nenhum código sai do runner: versão fixa do Semgrep (e das dependências dele,
+#   por hash, em `.semgrep/requirements.txt`), `--metrics=off`, sem login,
 #   sem token (`SEMGREP_APP_TOKEN` não existe aqui e o teste de política reprova se
 #   aparecer). O passo do registro só BAIXA regras.
 # - Só achado NOVO de severidade ERROR reprova. Achado antigo mora na baseline
@@ -67,10 +68,16 @@ jobs:
           # setuptools novo, instalado sozinho no 3.12, já não traz.
           python-version: "3.11"
 
-      - name: Instalar o Semgrep CE na versão fixa
+      # Todas as distribuições (o Semgrep e as 45 transitivas) vêm de
+      # `.semgrep/requirements.txt` com SHA-256 de cada arquivo, e o pip recusa
+      # qualquer arquivo cujo hash não bata (`--require-hashes`). `--no-deps` porque
+      # o arquivo já traz a árvore inteira; `--only-binary=:all:` porque compilar
+      # sdist rodaria código de build sem hash. Como o arquivo é gerado (ver o
+      # cabeçalho dele e `.semgrep/requirements.in`), subir a versão é um PR próprio.
+      - name: Instalar o Semgrep CE e as dependências por hash
         run: |
-          python -m pip install --disable-pip-version-check "semgrep==${SEMGREP_VERSION}" "setuptools<81"
-          semgrep --version
+          python -m pip install --disable-pip-version-check --require-hashes --no-deps --only-binary=:all: -r .semgrep/requirements.txt
+          semgrep --version | grep -Fx "${SEMGREP_VERSION}"
 
       - name: Regras próprias passam nos próprios testes
         run: |
