@@ -1,7 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as EventoDeTecla, ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { acompanharAJanela } from "./acompanhar-janela";
 import { registrarModalAberto } from "./modais-abertos";
+
+/* A conta da rolagem do painel mora com o resto do acompanhamento; continua exportada daqui. */
+export { rolagemParaVerNoPainel } from "./acompanhar-janela";
 
 /**
  * A janela modal que o painel não tinha.
@@ -169,29 +173,6 @@ export function interditarFundo(irmaos: readonly ElementoInterditavel[]): () => 
 }
 
 /**
- * Quanto o painel da janela rola (para baixo, positivo; para cima, negativo)
- * para o controle ficar inteiro dentro da parte visível dele, com um respiro de
- * cada lado quando cabe (o anel de foco é uma sombra de alguns pixels, e uma
- * borda de painel que rola a corta). Zero quando já está. Controle mais alto
- * que o painel não cabe: o começo dele vai ao começo do painel.
- */
-export function rolagemParaVerNoPainel(a: {
-  painelTopo: number;
-  painelBase: number;
-  alvoTopo: number;
-  alvoBase: number;
-  respiro: number;
-}): number {
-  const altura = a.painelBase - a.painelTopo;
-  const alturaDoAlvo = a.alvoBase - a.alvoTopo;
-  if (alturaDoAlvo >= altura) return a.alvoTopo - a.painelTopo;
-  const respiro = Math.max(0, Math.min(a.respiro, (altura - alturaDoAlvo) / 2));
-  if (a.alvoTopo < a.painelTopo + respiro - 0.5) return a.alvoTopo - (a.painelTopo + respiro);
-  if (a.alvoBase > a.painelBase - respiro + 0.5) return a.alvoBase - (a.painelBase - respiro);
-  return 0;
-}
-
-/**
  * Clique fora fecha? Só quando o clique foi no fundo mesmo e a janela permite.
  *
  * A conferência de que o alvo é o próprio fundo não é firula: sem ela, soltar
@@ -200,6 +181,35 @@ export function rolagemParaVerNoPainel(a: {
  */
 export function deveFecharPeloFundo(permitido: boolean, alvoEhOFundo: boolean): boolean {
   return permitido && alvoEhOFundo;
+}
+
+/**
+ * Aplica a decisão de teclado da janela a uma tecla de verdade. É a mesma para
+ * a tecla que chega ao painel (o foco está dentro dele) e para a que chega ao
+ * documento com o foco no `<body>`, que o painel não recebe: um só caminho para
+ * as duas, ou o Esc passaria a valer num caso e não no outro (rodada 9 da
+ * V2-F00-E09: depois de um erro do servidor ou de um clique no fundo, o Esc
+ * morria).
+ */
+function tratarTecla(
+  evento: { key: string; shiftKey: boolean; preventDefault(): void },
+  painel: HTMLElement | null,
+  aoFechar: () => void,
+): void {
+  const intencao = decidirTecla<HTMLElement>({
+    tecla: evento.key,
+    comShift: evento.shiftKey,
+    focaveis: focaveisDentro(painel),
+    ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  });
+  if (intencao.acao === "seguir") return;
+  // Tudo o que não é "seguir" substitui o comportamento do navegador:
+  // sem isto o Tab moveria o foco DUAS vezes, o nosso e o dele.
+  evento.preventDefault();
+  if (intencao.acao === "fechar") aoFechar();
+  if (intencao.acao === "mover") intencao.alvo.focus();
+  // "prender": nada focável dentro (tudo travado gravando); o foco fica onde está, no painel.
+  if (intencao.acao === "prender") painel?.focus({ preventScroll: true });
 }
 
 /* ============================================================
@@ -228,11 +238,29 @@ const ESTILO_PAINEL: CSSProperties = {
   padding: "var(--ds-sp-5)",
 };
 
+/*
+  O título fica preso no topo do painel quando ele rola (V2-F00-E09, correção 8,
+  achado 4 da rodada 9). Em janela baixa (zoom de 400 por cento, celular
+  deitado) o "Cancelar" focado exige rolar o painel, e o título, que é a
+  primeira coisa que se lê, saía por cima. Preso, ele fica à vista sem esconder
+  o campo focado: `acompanhar-janela.ts` conta a altura dele como parte coberta
+  do painel e a repassa ao `scroll-padding-top`. Em repouso nada muda de lugar:
+  a folga de cima do painel (`--ds-sp-5`) passa para dentro do cabeçalho, com a
+  margem negativa de mesmo valor, para o título preso ter o mesmo respiro.
+*/
 const ESTILO_CABECALHO: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: "var(--ds-sp-3)",
-  marginBottom: "var(--ds-sp-3)",
+  position: "sticky",
+  /* A borda de cima do cabeçalho preso encosta na borda do painel, e não na folga (padding) dele: sem o valor negativo, o texto que rola passava por cima do título, naquela folga. */
+  top: "calc(-1 * var(--ds-sp-5))",
+  zIndex: 1,
+  background: "var(--ds-surface)",
+  margin: "calc(-1 * var(--ds-sp-5)) 0 calc(var(--ds-sp-3) - var(--ds-sp-2))",
+  paddingTop: "var(--ds-sp-5)",
+  /* Um respiro embaixo do título preso: o texto que rola por baixo dele não encosta nas letras. Em repouso a soma com a margem é a de antes (`--ds-sp-3`). */
+  paddingBottom: "var(--ds-sp-2)",
 };
 
 const ESTILO_RODAPE: CSSProperties = {
@@ -284,6 +312,18 @@ export function CorpoDoModal({
     <div
       className="modal"
       style={ESTILO_FUNDO}
+      /*
+        Apertar o botão do mouse (ou tocar) no fundo escurecido tira o foco de
+        onde ele estava e o leva ao `<body>`, e dali o Esc não chega ao painel.
+        O fundo não é controle nenhum, então o gesto não precisa mover o foco:
+        sem isto, clicar fora de uma janela destrutiva (que de propósito não
+        fecha) a deixava sem foco (V2-F00-E09, correção 8). O clique continua
+        valendo, e `acompanhar-janela.ts` ainda devolve o foco se algum motor
+        o perder por outro caminho.
+      */
+      onMouseDown={(evento) => {
+        if (evento.target === evento.currentTarget) evento.preventDefault();
+      }}
       onClick={(evento) => {
         if (deveFecharPeloFundo(fecharAoClicarFora, evento.target === evento.currentTarget)) {
           aoFechar();
@@ -358,6 +398,9 @@ export function Modal({
   focoInicial, rodape, children,
 }: PropsModal) {
   const painel = useRef<HTMLDivElement>(null);
+  /* O ouvinte do documento vive uma abertura inteira; o `aoFechar` dele não pode ser o da primeira renderização. */
+  const aoFecharAtual = useRef(aoFechar);
+  aoFecharAtual.current = aoFechar;
   const tituloId = useId();
   const descricaoId = useId();
 
@@ -453,40 +496,25 @@ export function Modal({
       pelo leitor de tela na abertura (`aria-labelledby`). Sem foco pedido, o
       caminho é o de antes (o foco vai ao painel, e a janela abre no topo).
     */
-    const levarOFocoInicialAVista = () => {
-      const botao = focoInicial?.current;
-      const corpo = painel.current;
-      if (!botao || !corpo || document.activeElement !== botao) return;
-      const caixaDoPainel = corpo.getBoundingClientRect();
-      const caixaDoAlvo = botao.getBoundingClientRect();
-      const topoUtil = caixaDoPainel.top + corpo.clientTop;
-      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
-      corpo.scrollTop += rolagemParaVerNoPainel({
-        painelTopo: topoUtil, painelBase: topoUtil + corpo.clientHeight,
-        alvoTopo: caixaDoAlvo.top, alvoBase: caixaDoAlvo.bottom, respiro,
-      });
-    };
-    let observador: MutationObserver | null = null;
-    if (focoInicial?.current && alvo === focoInicial.current && painel.current) {
-      levarOFocoInicialAVista();
-      /*
-        O conteúdo da janela muda DEPOIS de aberta: "Encerrar sessões" abre com
-        "Conferindo quantas sessões estão abertas." e troca pela frase da
-        contagem (16 px mais alta a 320 px), "Redefinir senha" e as outras acrescentam o
-        erro do servidor. Cada mudança acima do botão o empurra para fora da
-        parte visível (a 320x256, de 178..222 para 194..238 numa janela que
-        vai até 234), e a medida única da abertura não vê. Enquanto o foco
-        continua no botão, o painel refaz a conta a cada mudança de conteúdo;
-        quem já passou para outro controle não é puxado de volta.
-      */
-      if (typeof MutationObserver === "function") {
-        observador = new MutationObserver(levarOFocoInicialAVista);
-        observador.observe(painel.current, { childList: true, subtree: true, characterData: true });
-      }
-    }
+    /*
+      Daqui para a frente a janela é ACOMPANHADA (ver `acompanhar-janela.ts`):
+      o foco inicial é levado à vista agora e de novo a cada mudança do
+      conteúdo (a contagem de sessões que chega, o erro do servidor), do
+      tamanho da janela do navegador (girar o celular, dar zoom) e da janela
+      visual; o foco que cai no `<body>` volta a um controle da janela; e o
+      Esc e o Tab valem mesmo com o foco fora do painel. Tudo desligado no
+      fechamento.
+    */
+    const acompanhamento = acompanharAJanela({
+      painel: () => painel.current,
+      focoInicial: () => focoInicial?.current,
+      focaveis: () => focaveisDentro(painel.current),
+      aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),
+    });
+    if (focoInicial?.current && alvo === focoInicial.current) acompanhamento.ajustarOFocoInicial();
 
     return () => {
-      observador?.disconnect();
+      acompanhamento.parar();
       restaurar();
       hospedeiro.remove();
       liberarAvisos();
@@ -519,20 +547,7 @@ export function Modal({
       fecharAoClicarFora={fecharAoClicarFora}
       mostrarBotaoFechar={mostrarBotaoFechar}
       refPainel={painel}
-      aoTeclar={(evento) => {
-        const intencao = decidirTecla<HTMLElement>({
-          tecla: evento.key,
-          comShift: evento.shiftKey,
-          focaveis: focaveisDentro(painel.current),
-          ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
-        });
-        if (intencao.acao === "seguir") return;
-        // Tudo o que não é "seguir" substitui o comportamento do navegador:
-        // sem isto o Tab moveria o foco DUAS vezes, o nosso e o dele.
-        evento.preventDefault();
-        if (intencao.acao === "fechar") aoFechar();
-        if (intencao.acao === "mover") intencao.alvo.focus();
-      }}
+      aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}
     >
       {children}
     </CorpoDoModal>,

@@ -8,10 +8,10 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 233 testes do pacote compartilhado passando |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 245 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 439 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 750 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1867 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 791 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1869 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 339 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
@@ -1390,9 +1390,11 @@ segundo o STATUS, que o gatekeeper da rodada 4 NÃO conseguiu ler (o `gh` estava
 sem login); o run 39241470718 (2026-10-19, sobre o registro `766bc0a`,
 candidato `4ce0433`), 9 de 9 verdes segundo o STATUS, com as correções de E03,
 E05, E07, E09, E10, E15 e E25 posteriores ao anterior; o run 39366804765 (do
-candidato `1ed0b71`), que o GitHub recusou antes de começar, por faturamento
-(H32); e o run 39420436042 (2026-10-20, sobre o registro `55209ab`, candidato
-`fd17ff4`), 9 de 9 verdes, linha de base em Linux inclusive, lido pelo
+candidato `1ed0b71`, SHA do run `7644420`), cuja tentativa 1 o GitHub recusou
+antes de começar, por faturamento (H32), e cuja tentativa 2 (2026-10-20, depois
+de o repositório virar público) rodou 9 de 9 trabalhos verdes; e o run
+39420436042 (2026-10-20, sobre o registro `55209ab`, candidato `fd17ff4`), 9 de
+9 verdes, linha de base em Linux inclusive, lido pelo
 gatekeeper da rodada 7 pela API pública do GitHub (`VEREDITO.md` da E22). As
 correções posteriores a `fd17ff4` não estão nesse run; o run delas é o do
 candidato seguinte, registrado no `VEREDITO.md` de cada etapa. A
@@ -1659,9 +1661,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3866 testes em seis pacotes
+npm test                    # 3921 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 439 testes do banco
-npm run test:api            # 1867 testes da API
+npm run test:api            # 1869 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -1672,8 +1674,8 @@ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas
 Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
 de campo (`npm run auditar`, que também roda no Windows; no CI, o job
 `windows` o chama a cada push, como `node scripts/auditar.mjs`). Na raiz,
-o que sobra é só de desenvolvimento (`vitest` e `tinypool`, que pedem salto de
-versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
+o que sobra é só de desenvolvimento (`vitest`, `@vitest/mocker` e `tinypool`, que
+pedem salto de versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
 dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,
 `decode-uri-component` e a cópia do `zod` 3 que o `@expo/cli` carrega) estão em
 `ACEITAS_NO_APLICATIVO`, cada um com motivo, dono e prazo de 2027-01-05; depois
@@ -2297,7 +2299,7 @@ rollback de cada frente (Fly, Vercel, EAS e banco) estão em
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
   próprio lockfile e a própria auditoria, que NÃO fecha em zero no `npm audit` puro
-  (fecha em `npm run auditar`, com as seis exceções nomeadas do CP-03). O preço
+  (fecha em `npm run auditar`, com as exceções nomeadas do CP-03: cinco pacotes e sete advisories). O preço
   dessa separação é que nenhum comando da raiz o enxerga de graça: quem o
   alcança é `npm run test:campo`, e ele está dentro de `npm run verificar`.
 - **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play

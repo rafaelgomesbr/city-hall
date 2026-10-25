@@ -99,3 +99,5 @@
 | correcao-3/scripts/corrigir.mjs | 1e0b45205b741917a10578f03a378e49e45dca931983aae2be57efe874e3c21f |
 | correcao-3/scripts/fazer-sonda.mjs | 2e5bfbb1540e313060150830816343d7f2d8753906c16226b364cdac5bf49a21 |
 | correcao-3/scripts/indexar.sh | 8cd603d7921e1488c5876ffc081af973fd5109083f034b8ea599c2081b7e0089 |
+| divida-DV-09/RESUMO.md | f0b32740ac6e683970f1663be6ba6116d01c94a087fd854ebd7fc10833b7d000 |
+| divida-DV-09/saidas/01-gatilho-do-job-plataformas.txt | bcc30679ac699ab4418108c92b571269adbae22385e2f683f8b8618b0680ba9a |

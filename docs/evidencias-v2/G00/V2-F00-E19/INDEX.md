@@ -38,6 +38,19 @@
 | correcao-10/saidas/15-e2e-api-DEPOIS.txt | 7c32d2e21af94085db13909da0dda20d9afe3c938e7da9ba48a6e8916e0eb177 |
 | correcao-10/saidas/16-npm-audit-raiz-DEPOIS.txt | 39ec710febeee62eea1e72a023d3c95ce141ba58023ef79dd537fa4f7086fcff |
 | correcao-10/saidas/17-conferir-indices-e-test-scripts-DEPOIS.txt | 8887ba0b9c24069aebd023781cb3c8b00e8c9de4ab909a66f89631c7014d6e01 |
+| correcao-11/RESUMO.md | 9a3ecda2da9a8b2071ef86dc33d340ac169d1d2c9c80b31dec798769d48de9f9 |
+| correcao-11/diff-da-correcao.patch | 90b1a223260af789a41289e71b66ffe43d25c20682da5b69feeb83d18325186f |
+| correcao-11/saidas/01-api-ANTES.txt | e6cdc8681e09b00f6087497cf63fa30d45a0b74444df0687861c3168b21bdc4c |
+| correcao-11/saidas/02-shared-ANTES.txt | e58415204b6f69e1dceec0e683c1b8a736c1e04df796e5bb86e039e37eaef3cb |
+| correcao-11/saidas/03-typecheck-DEPOIS.txt | e2e2341764b0e26dff4254b5a9fa4f616f575e8efdebb6a3265bcbf85371b5aa |
+| correcao-11/saidas/04-npm-test-DEPOIS.txt | 75b2bd2ddbc18ced2e73daa9dd3c83afb20b481e13f5cc53f964679355d93275 |
+| correcao-11/saidas/05-test-isolamento-DEPOIS.txt | f81cba3517391b0a03b05ef3d3835876313de0c485162de4813b8372f3d8c187 |
+| correcao-11/saidas/06-test-scripts-ANTES-DO-INDICE.txt | a3423cbc7d31f74d08b0835fc5722e65d9958ba5fce82e2b2824c6c7bce4bc7c |
+| correcao-11/saidas/07-conferir-numeros-DEPOIS.txt | 60a9a37175f6c555383c58e79efc51275fcc26ee2759ace51182f2a51f843ec0 |
+| correcao-11/saidas/08-auditar-DEPOIS.txt | eebdef20a3f894e04b6cd8c12aaf3b60646cc6ef101a4edbd1ff59e2cb866ea0 |
+| correcao-11/saidas/09-portao-de-conteudo.txt | a46c8ca452ec676e8bed412a6261a68cc4841c0256731dede6d169cb6b9ce137 |
+| correcao-11/saidas/10-mutante-tamanhoBytes.txt | f29e725957606604f716cf449e517c3f1adfff035194e0b3f684c39dee8c5c8d |
+| correcao-11/saidas/11-test-scripts-DEPOIS.txt | 6a332f52a9776eef672d544ef73c61135305d8e69e34d6e09cfdcfa5986fc50b |
 | correcao-2/RESUMO.md | 95a52f4d464b79ab7f03124aeb8fb3825a8b38f45364b99f79b6746c40bd3490 |
 | correcao-2/diff-da-correcao.patch | 2dc6201a18fd7d0b74954f1b82c9819d3f6fe386eb2b7f31aad31e111a7fa4ed |
 | correcao-2/saidas/01-doctor-antes.txt | cb91d942f0fcfd560ce9d358b059e95d2006c29ba02b1735a5b66b476d9459ee |
@@ -210,3 +223,6 @@
 | saidas/08-typecheck.txt | 5a56ccad88c743e16bc01377d357554dd764184a5732248d5d9aa0005ea8eb21 |
 | saidas/09-npm-audit-raiz-runtime.txt | 026aadca0cc89a2bd8e18ec36f3fb8119b2922f27026ce3057f6335913263fe2 |
 | saidas/10-e2e-api.txt | d3bdd4c4b8a8b09184518a4ed6ceca9b54025b5057e666964b16d50c8d71b395 |
+| divida-DV-40/RESUMO.md | 0f76d1ff147b93d795591797b0c92c603c4387a68101b15d06f903b5c05b55ee |
+| divida-DV-40/saidas/01-jest-dos-6-arquivos-com-o-duble-ANTIGO.txt | 68bf40b88dbfaee459c6f059b6c86e01c4b80d6d46fc9d3158809c1976eb6d77 |
+| divida-DV-40/saidas/02-jest-dos-6-arquivos-com-o-duble-NOVO.txt | 7af8e83ec763aede961ea6c40ab44f06e5d0bd58dc3b57625899069058da9b23 |

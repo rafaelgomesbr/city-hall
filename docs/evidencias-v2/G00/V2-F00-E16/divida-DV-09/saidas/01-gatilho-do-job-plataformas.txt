@@ -1,0 +1,29 @@
+# .github/workflows/verificar.yml: gatilhos (linhas 49 a 52)
+49: on:
+50:   push:
+51:     branches: [main, master, "v2/**"]
+52:   pull_request:
+
+# job plataformas: linhas 674 a 900; linhas com 'if:' dentro dele (todas indentadas em passo, nenhuma no nivel do job, que teria 4 espacos)
+760:         if: ${{ !cancelled() }}
+766:         if: ${{ !cancelled() }}
+771:         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+776:         if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+785:         if: ${{ !cancelled() && steps.crlf.outcome == 'success' }}
+792:         if: ${{ !cancelled() }}
+811:         if: ${{ !cancelled() && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
+828:         if: ${{ !cancelled() && runner.os == 'Windows' && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
+853:         if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+859:         if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+874:         if: ${{ !cancelled() && steps.cache_controle.outcome == 'success' }}
+883:         if: ${{ !cancelled() && steps.cache_teste.outcome == 'success' }}
+888:         if: ${{ always() }}
+892:         if: ${{ always() }}
+
+# chaves de primeiro nivel do job (4 espacos):
+712:     name: Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ${{ matrix.sistema }}
+713:     strategy:
+717:     runs-on: ${{ matrix.sistema }}
+718:     timeout-minutes: 45
+719:     defaults:
+726:     steps:

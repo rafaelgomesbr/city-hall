@@ -7,6 +7,7 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9 | 2026-10-24 | dda7557 | d4683cc (run 40132234324, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | e7e1326 |
 | 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -15,6 +16,82 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 9 (2026-10-24, SHA dda7557)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-24. Candidato `dda7557` (correção 7 da E09 e correção 10 da E19, com a migração do `zod` 3.25.76 para 4.6.7, `fastify` 5.12.7 e `fast-uri` 3.1.9 e 4.2.3); HEAD durante a validação `d4683cc`, que só difere em `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida). SHA no remoto (`origin/v2/f00`), árvore limpa no início. Política: D-31 (seção 19 de `28`), validação POR DIFERENÇA desde a rodada 8 (`60cbc2f`): E09 e E19 nas dimensões que reprovaram (E09 também QA e Red-team, que a rodada 8 mandou rodar de novo porque o código da etapa mudou), mais as etapas cujo código a migração do `zod` tocou, pela autoria dos patches arquivados: E06 (`pedidoDeEvidenciaSchema` em `packages/shared/src/evidencia.ts`, onde a E06 pôs `coletadaPor`, mais o UUID mais estrito) e E15 (dublê de UUID trocado num teste dela). `apps/api/src/config.ts`, `apps/api/src/rotas/aparelhos.ts`, `mensagens-do-zod.ts`, os `package.json` e os lockfiles só têm a E19 como autora na F00; o `schemas.ts` foi tocado pela E22 só num comentário (`correcao-4`), por isso a E22 herda; `baseline.mjs`, README e COLOCAR-DE-PE mudaram só em totais (conferidos por `conferir:numeros`, D-31 item 4) e no parágrafo da política do CP-03, que é da E19. As demais etapas herdam a rodada 8 (código delas não mudou). `impacto.mjs --herdavel` responde "NÃO herdável" a todo relatório anterior a `8832367` porque o diff inclui a própria emenda D-31; a rodada 8 já aplicou a D-31 e a herança aqui segue o item 4 dela (código da etapa). Validadores em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, com o prompt de `prompt-do-validador.md` preenchido mais as instruções comuns da rodada (scratchpad): o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` das correções (antes de `## Justificativa`), a evidência, os relatórios anteriores como pista, as decisões e o run do CI. Ordem: Infra e CI da E19, QA de E19, E06 e E15 (um validador, três relatórios), QA, UX e Acessibilidade da E09 (Sonnet) e Red-team da E09 (Opus, 45 minutos, no máximo 3 achados). Ambiente: Mac, Node 24.15.0 (o CI usa 22), PGlite e Postgres local, Chromium, Firefox e WebKit do Playwright; sem aparelho, emulador ou Windows local.
+
+Veredito da rodada: **FAIL**.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Infra e CI | engenharia-entrega (general-purpose) | claude-sonnet-5-5 | PASS | alta | E1 | E1, E2 |  | validacao/dda7557/engenharia-entrega.md |
+| QA | qa (general-purpose) | claude-sonnet-5-5 | FAIL na consolidação (o relatório diz PASS; achado 1 bloqueia pela D-31, item 1 (b), ver Motivo) | media | E1, E2 | E1, E2 |  | validacao/dda7557/qa.md |
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 120986221218 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 120986221042; `auditar` 0, saída idêntica à do Linux |
+| Fluxo ponta a ponta no navegador | success | QA, UX, Acessibilidade | job 120986221122; inclui a seção 14 nova do `layout-estreito.e2e.mjs` |
+| Aplicativo de campo | success | QA | job 120986221030; typecheck e Jest com o `zod` 4 do topo |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 120986221110; `expo-doctor` 21 de 21 sem pular a checagem de versões |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 120986220910; repetido hoje pelo gatekeeper e pelo validador: código 0 |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 120986221063 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | Infra e CI | job 120986221244 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | Infra e CI | job 120986221105 |
+| A API sobe contra Postgres real | success | QA, Banco | job 120986221157; `fastify` 5.12.7 e `zod` 4.6.7 |
+| Pacote da demonstração | success | QA | job 120986221089 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 120986221090 |
+
+Run 40132234324 (workflow "Verificar", push com `[ci completo]`, criado em 2026-10-24T20:59Z) sobre `d4683cc`, registro do candidato: o diff `dda7557..d4683cc` só toca `STATUS.md` e `ESTADO-ATUAL.md`, então vale como run do candidato. Lido com `~/.local/bin/gh` e `GH_TOKEN` tirado de `git credential fill`, sem imprimir o token.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-Enn --sha dda7557` em E06, E09, E15 e E19, antes e depois dos relatórios: sem falha em E06, E15 e E19; na E09, uma FALHA de segredo, o falso positivo conhecido (`correcao-6/sondas/api.sh:5`, `correcao-6b/sondas/api.sh:5` e `correcao-7/sondas/api.sh:5`: o `JWT_SEGREDO` de teste do roteiro local, valor textual "segredo-...", conferido pelo gatekeeper sem imprimir o valor inteiro); nenhuma outra falha. Varredura dos relatórios novos por token, chave e travessão: nada.
+- Regressão base do gatekeeper na árvore (`d4683cc`, produto de `dda7557`): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0; `node scripts/auditar.mjs` código 0 ("Runtime limpo, e o aplicativo sem advisory nova"). O kit indicado por `impacto.mjs 60cbc2f..dda7557` (`apps/api/src/config.ts` sem regra no mapa, portanto kit completo) é o do CI completo deste SHA, 12 de 12 verdes (D-31, item 5).
+- Formato: os 8 relatórios desta rodada conferidos pelo gatekeeper (cabeçalho com os 14 campos, `sha_validado` dda7557, `rodada` 9, `ci_run` 40132234324, as nove seções, "Tentativas de reprovar" e "Não verificado" preenchidas); todos conferem.
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/dda7557/`; as mutações foram desfeitas com `git restore` e os worktrees temporários dos validadores removidos (os worktrees em `.claude/worktrees/` são da sessão paralela da F01).
+
+### Motivo do veredito
+
+- Os defeitos da rodada 8 estão CONSERTADOS, concordantes nas duas dimensões: `auditar` 0 no CI (Linux e Windows) e hoje (gatekeeper e validador, 2026-10-24 por volta das 21h UTC); `npm audit --omit=dev` na raiz 0; `fastify` 5.12.7, `fast-uri` 3.1.9 e 4.2.3, `zod` do produto 4.6.7 na raiz e no aplicativo; `braces` e `sprintf-js` fora da lista do aplicativo; `expo-doctor` 21 de 21 sem pular a checagem de versões, inclusive no job de linha de base do CI. A exceção nova do `zod` 3.25.76 (GHSA-mrhx-c7xc-m3w5) vale só para a cópia que o `@expo/cli` carrega em `node_modules/expo/node_modules/` (ferramenta de build, não vai ao telefone; o bundle do Metro, gerado pelo validador com `expo export`, leva o Zod 4); três mutações fora do repositório (cópia do produto vulnerável, as duas cópias, relatório sem `nodes`) fazem o portão sair 1. É exceção pela política do CP-03 (mesma natureza de `node-forge` e `shell-quote`, dono Rafael, prazo 2027-01-05), não aceite avulso do item 7 da seção 7.
+- Migração do Zod 4 (QA, 130 mil comparações Zod 3 contra Zod 4 sobre os esquemas exportados de `packages/shared` e os da API): nenhuma validação ficou mais frouxa de forma alcançável (só mais estrita: UUID RFC, `datetime` sem segundos); nenhuma frase em inglês; forma do erro da API igual; `test:e2e:api` 325 de 325, API 1717, shared 224; o teste novo do `uuidSchema` e a linha `error` da varredura de acentos mordem.
+- **Bloqueia (QA, achado 1), classificação do gatekeeper pela D-31, item 1 (b):** a correção 10 introduziu uma regressão de frase: campo obrigatório que é enum e chega ausente agora responde "Valor não reconhecido: undefined. Os aceitos são: ..." em vez de "Campo obrigatório" (o ramo `invalid_value` de `packages/shared/src/mensagens-do-zod.ts` não trata `issue.input === undefined`). Reproduzido pelo validador num 422 real (`POST /ocorrencias` sem `tipo` e sem `canalEntrada`) e pelo gatekeeper sobre `aberturaOcorrenciaSchema` (`canalEntrada` e `tipo` com a frase nova, os campos de texto com "Campo obrigatório"); o UX da E09 achou o mesmo em `papel` ausente. Atinge todo esquema com enum obrigatório (abertura de ocorrência, cadastro de usuário, triagem, devolução de tarefa, encerramento de saída, resposta de providência, evidência perdida, evento de trilha). O validador classificou como dívida "a pagar antes de crescer" e escreveu que a condição (b) "se cumpre (alcançável por quem chama a API)"; o gatekeeper aplica a regra como está escrita: o achado é alcançável por usuário externo no produto deste SHA (integrador que chama a API, e o 422 que chega ao aparelho), é defeito NOVO desta correção (não anterior à etapa, então não cabe na exceção de dívida) e põe o identificador `undefined` de JavaScript numa frase em português, contra o FATO declarado ("Todas as frases em português são as mesmas") e contra o objetivo do mapa (`mensagens-em-portugues.test.ts`). O painel e o aplicativo não mostram a frase hoje porque os selects têm valor inicial. Conserto: tratar `issue.input === undefined` no começo do ramo `invalid_value` ("Campo obrigatório") e um caso em `mensagens-em-portugues.test.ts` que prenda a frase para um enum ausente.
+- Não é a mesma classe das reprovações anteriores da E19 (falso verde do portão nas rodadas 6 e 7; advisory nova na 8): o item 3 da D-31 não se aplica.
+- Conserto (sessão de implementador, correção 11): o achado 1; e, no mesmo lote, os textos falsos de documentação do QA, achado 2 (`dc360/README.md:2019` e `dc360/apps/campo/LEIA-ME.md:152` dizem "as seis exceções nomeadas do CP-03", hoje são 5 pacotes e 7 advisories; `LEIA-ME.md:44` ainda lista `braces` e `sprintf-js`), o LEIA-ME do aplicativo sem a subida dos cinco patches do Expo, a entrada do `zod` 4 e a exigência de novo binário nativo (Infra, achado 2: a etapa pede "novo binário nativo, registrado no LEIA-ME") e o README que cita só dois dos três pacotes de desenvolvimento (Infra, achado 3). Depois, CI completo verde e rodada 10 da E19 (QA, por diferença; o Infra e CI fica herdado se o diff só tocar `mensagens-do-zod.ts`, o teste e a documentação).
+
+### Achados que viram dívida (propostas para `dividas.md`, registro pelo próximo commit de implementador, porque o arquivo está fora da lista permitida)
+
+- QA 3 e QA da E06 1: a função `error` de `tamanhoBytes` (`packages/shared/src/evidencia.ts` perto da linha 102) separa "não foi informado" de "precisa ser um número", e o mutante que apaga a distinção sobrevive (224 de 224). Comportamento correto hoje. Dívida de teste, dono E19, corrige junto da correção 11.
+- QA 4 (latente): `JSON.stringify(issue.input)` no ramo de enum do mapa lança `TypeError` com BigInt; JSON não carrega BigInt. Dono V2-F02-E03, antes do G02.
+- QA 5 (latente): objeto `Date` passa onde se espera objeto em esquemas só com campos opcionais; JSON e query string não o produzem. Dono V2-F02-E03, antes do G02.
+- QA 6: DV-21 é um pouco mais larga do que o registro (`tamanhoBytes: 1e21`, alcançável por JSON, só muda a frase); DV-19 e DV-20 confirmadas como estão.
+- QA 7 (anterior à etapa): o `apps/console` não importa o mapa do shared e responde em inglês ("Invalid input: expected string, received undefined"), como já respondia no Zod 3 ("Required"). Dono: a etapa que tocar o console (F01 ou F02), antes do G02.
+- Infra 1: a DV-05 ficou desatualizada: o job de linha de base do CI prova `expo-doctor` 21 de 21 sem pular a checagem, mas só em `[ci completo]`, agenda ou disparo manual; reescrever a DV-05 para "falta prova em todo push".
+- Infra 5: o CI não roda o Metro (`expo export`) sobre o aplicativo; sugerido um passo barato no job `aplicativo` (V2-F01-E02, antes do G01).
+- Infra 4 (máquina, não repositório): o `node_modules` do aplicativo na árvore principal deste Mac está desatualizado em relação ao lockfile (`expo` 57.0.30 e `zod` 3.25.76 no topo); um `npm ci` resolve.
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| Ler a lista de exceções do aplicativo com dono e prazo, agora com a exceção estreita do `zod` 3 do `@expo/cli` (`somenteEm`), e confirmar a migração para o Zod 4 (H37) | Rafael | "Validação humana" da etapa e decisão do CP-03 |
+| Novo binário nativo do aplicativo antes da próxima entrega aos agentes (cinco patches do Expo e o `zod` 4) | Rafael | aparelho e loja |
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| gate crítico G00 (seção 12 de `28`) e D-31 item 6 | consolidação em Opus; validadores em Sonnet | feito |
+| classificação pela D-31 item 1 contra o "PASS" do relatório de QA | gatekeeper (Opus), sem arbitragem: não há dois validadores em conflito, só a regra aplicada ao achado que o próprio validador descreveu como alcançável | FAIL |
+
+### Métricas da rodada
+
+Achados: 1 bloqueia (QA 1); 4 corrigem antes de crescer, junto da correção 11 (QA 2, QA 3, Infra 2, Infra 3); os outros viram dívida ou ficam anotados. Dimensões herdadas: nenhuma (as duas obrigatórias da etapa rodaram). Gatilhos visuais: não se aplica. Tokens de subagente: Infra e CI 146 mil (7,7 min); QA do lote E19, E06 e E15 375 mil (30 min).
 
 ## Rodada 8 (2026-10-24, SHA 60cbc2f)
 

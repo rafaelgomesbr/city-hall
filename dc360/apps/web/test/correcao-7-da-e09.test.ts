@@ -50,19 +50,22 @@ describe("Achado de acessibilidade 1: o foco inicial da janela de confirmação 
   });
 
   it("o conteúdo que muda depois de aberta (a contagem de sessões que chega) refaz a conta enquanto o foco continua no botão, e o observador é desligado ao fechar", () => {
+    const acompanhamento = fonte("componentes", "acompanhar-janela.ts");
     const modal = fonte("componentes", "Modal.tsx");
-    expect(modal).toContain("if (!botao || !corpo || document.activeElement !== botao) return;");
-    expect(modal).toContain("observador = new MutationObserver(levarOFocoInicialAVista);");
-    expect(modal).toContain("observador.observe(painel.current, { childList: true, subtree: true, characterData: true });");
-    expect(modal).toMatch(/return \(\) => \{\s+observador\?\.disconnect\(\);\s+restaurar\(\);/);
+    // A conta só age com o foco no botão pedido (quem já seguiu adiante não é puxado de volta).
+    expect(acompanhamento).toContain("if (!botao || document.activeElement !== botao) return;");
+    expect(acompanhamento).toContain("observador = new MutationObserver((registros) => {");
+    expect(acompanhamento).toContain("childList: true, subtree: true, characterData: true,");
+    expect(acompanhamento).toMatch(/parar: \(\) => \{\s+observador\?\.disconnect\(\);/);
+    expect(modal).toMatch(/return \(\) => \{\s+acompanhamento\.parar\(\);\s+restaurar\(\);/);
   });
 
   it("o Modal usa a conta depois de abrir no topo, só quando um foco inicial foi pedido, e já não deixa o focus() rolar a página", () => {
     const modal = fonte("componentes", "Modal.tsx");
     expect(modal).toContain("alvo?.focus({ preventScroll: true });");
     expect(modal).toContain("if (painel.current) painel.current.scrollTop = 0;");
-    expect(modal.indexOf("painel.current.scrollTop = 0;")).toBeLessThan(modal.indexOf("corpo.scrollTop += rolagemParaVerNoPainel({"));
-    expect(modal).toContain("if (focoInicial?.current && alvo === focoInicial.current && painel.current) {");
+    expect(modal.indexOf("painel.current.scrollTop = 0;")).toBeLessThan(modal.indexOf("acompanhamento.ajustarOFocoInicial();"));
+    expect(modal).toContain("if (focoInicial?.current && alvo === focoInicial.current) acompanhamento.ajustarOFocoInicial();");
     // Sem foco pedido, o caminho da correção 4 continua: primeiro controle à vista, senão o painel.
     expect(modal).toContain("focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current)");
   });

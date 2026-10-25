@@ -54,6 +54,21 @@ async function viaApi(caminho, { metodo = "GET", token, corpo } = {}) {
   return { status: r.status, json: await r.json().catch(() => ({})) };
 }
 
+/**
+ * O token de acesso da administradora vale 15 minutos, e a seção 13 sozinha passa
+ * disso em máquina carregada (a execução inteira foi de 10 a mais de 25 minutos): o
+ * token da primeira linha da seção virava 401 no meio dela. Reentra quando o que
+ * se tem tem mais de 5 minutos.
+ */
+let ultimoTokenDoAdm = { em: 0, token: "" };
+async function tokenDoAdm() {
+  if (Date.now() - ultimoTokenDoAdm.em > 5 * 60_000) {
+    const r = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+    ultimoTokenDoAdm = { em: Date.now(), token: r.json.acesso };
+  }
+  return ultimoTokenDoAdm.token;
+}
+
 const navegador = await lancador.launch();
 const contexto = await navegador.newContext({ locale: "pt-BR" });
 const page = await contexto.newPage();
@@ -802,11 +817,11 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a 
   const longo = `joanaplantao24horasdefesacivilmunicipal${sufixoLargo}@serraalta.exemplo.gov.br`;
   const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
   for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
-    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
       corpo: { nome, matricula: mat(), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
     ok(`${nome} foi cadastrada para a medida`, r.status === 201 || r.status === 200, `(${r.status})`);
   }
-  const org = await viaApi("/orgaos", { metodo: "POST", token: adm.json.acesso,
+  const org = await viaApi("/orgaos", { metodo: "POST", token: await tokenDoAdm(),
     corpo: { nome: `Companhia de Saneamento ${sufixo}`, sigla: "CSR", email: `atendimento.emergencial.${sufixo}@saneamento.serraalta.exemplo.gov.br`, telefone: "(35) 3333-0000" } });
   ok("o órgão de teste foi cadastrado", org.status === 201 || org.status === 200, `(${org.status})`);
 
@@ -997,13 +1012,15 @@ console.log("\n== 13. O campo focado depois do erro fica inteiro entre o topo fi
   640x450 de CSS com dois pixels de tela por pixel de CSS; o de 400 por cento
   de uma tela de 1280x1024 é 320x256.
 */
-async function contextoDeFoco(largura, altura, dpr = 1, toque = false) {
+async function contextoDeFoco(largura, altura, dpr = 1, toque = false, esperaOErro500 = false) {
   const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr, hasTouch: toque });
   const pg = await ctx.newPage();
   pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
   pg.on("console", (m) => {
     if (m.type() !== "error") return;
     if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
+    // O 500 que a seção 15 provoca de propósito (a janela depois de um erro do servidor); só ali.
+    if (esperaOErro500 && /Failed to load resource: the server responded with a status of 500/.test(m.text())) return;
     // A mesma exceção do contexto principal: a fonte cuja carga o Firefox aborta ao trocar de página.
     if (/downloadable font: download failed .*status=2152398850 /.test(m.text())) return;
     erros.push(`console: ${m.text()}`);
@@ -1065,7 +1082,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
   async function contaDeOperador() {
     n++;
     const email = `foco.${n}.${sufixo}@serraalta.exemplo.gov.br`;
-    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
       corpo: { nome: `Foco à Vista ${n}`, matricula: `FV-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
     if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} não foi criada (${r.status})`);
     idDasContas.set(email, r.json.id);
@@ -1136,11 +1153,11 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
     rodada 7 usou: parte local de 38 letras sem ponto.
   */
   const OC_DO_OFICIO = "11111111-1111-4111-8111-0000000000c4";
-  let oficio = (await viaApi(`/oficios?ocorrenciaId=${OC_DO_OFICIO}`, { token: adm.json.acesso })).json.itens?.[0];
+  let oficio = (await viaApi(`/oficios?ocorrenciaId=${OC_DO_OFICIO}`, { token: await tokenDoAdm() })).json.itens?.[0];
   if (!oficio) {
-    const pendentes = await viaApi("/ocorrencias/providencias/pendentes", { token: adm.json.acesso });
+    const pendentes = await viaApi("/ocorrencias/providencias/pendentes", { token: await tokenDoAdm() });
     const daOcorrencia = pendentes.json.itens.find((p) => p.ocorrencia_id === OC_DO_OFICIO);
-    const emitido = await viaApi("/oficios", { metodo: "POST", token: adm.json.acesso, corpo: { providenciaId: daOcorrencia?.id } });
+    const emitido = await viaApi("/oficios", { metodo: "POST", token: await tokenDoAdm(), corpo: { providenciaId: daOcorrencia?.id } });
     oficio = { id: emitido.json.id };
   }
   ok("há um ofício emitido na ocorrência da Equipe Alfa para medir", Boolean(oficio?.id));
@@ -1197,7 +1214,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
   for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
     // "Defina a sua senha" (tela pública, sem topo fixo): a provisória digitada errada.
     const email = await contaDeOperador();
-    const provisoria = (await viaApi(`/usuarios/${idDasContas.get(email)}/redefinir-senha`, { metodo: "POST", token: adm.json.acesso, corpo: {} })).json.senhaTemporaria;
+    const provisoria = (await viaApi(`/usuarios/${idDasContas.get(email)}/redefinir-senha`, { metodo: "POST", token: await tokenDoAdm(), corpo: {} })).json.senhaTemporaria;
     const { ctx, pg } = await contextoDeFoco(l, a, d);
     await pg.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
     await pg.locator("#entrada-email").fill(email);
@@ -1375,10 +1392,10 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l 
   // "Meu trabalho" é a tela do agente de campo: a administradora recebe 403 nela, então ela é medida com um agente, logo abaixo.
   const TELAS_LOGADAS = ["/painel", "/minha-conta", "/ocorrencias", "/ocorrencias/nova", `/ocorrencias/${OC_DO_OFICIO}`,
     "/mapa", "/quem-esta-em-campo", "/equipes", "/orgaos", "/usuarios", "/auditoria", "/organizacao"];
-  const equipes = await viaApi("/equipes", { token: adm.json.acesso });
+  const equipes = await viaApi("/equipes", { token: await tokenDoAdm() });
   const equipeId = (equipes.json.itens ?? equipes.json)[0]?.id;
   const emailDoAgente = `agente.320.${sufixo}@serraalta.exemplo.gov.br`;
-  const agente = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+  const agente = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
     corpo: { nome: "Agente da Tela Estreita", matricula: `AG-${sufixo}`.toUpperCase(), email: emailDoAgente, papel: "agente_campo", equipeId, senha: SENHA_DO_TESTE } });
   ok("o agente de campo de teste foi cadastrado (para medir \"Meu trabalho\")", agente.status === 201 || agente.status === 200, `(${agente.status})`);
   for (const tema of ["claro", "escuro"]) {
@@ -1439,7 +1456,7 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
   async function contaComOutrasSessoes() {
     n++;
     const email = `sete.${n}.${sufixo}@serraalta.exemplo.gov.br`;
-    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
       corpo: { nome: `Sessões Sete ${n}`, matricula: `S7-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
     if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} da seção 14 não foi criada (${r.status})`);
     // Duas sessões a mais, abertas por outro "aparelho": é o que dá o que encerrar.
@@ -1504,9 +1521,14 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
       const anel = cs.boxShadow !== "none" || (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0);
       const inteiro = r.top >= topoUtil - 0.5 && r.bottom <= baseUtil + 0.5;
       const semRolagemLateral = !(document.documentElement.scrollWidth > innerWidth + 1) && !(painel.scrollWidth > painel.clientWidth + 1);
+      // Correção 8: o título também fica à vista (preso no topo do painel quando ele rola).
+      const titulo = painel.querySelector(".modal__titulo");
+      const t = titulo ? titulo.getBoundingClientRect() : null;
+      const tituloLivre = t ? document.elementFromPoint(t.left + Math.min(t.width / 2, 20), t.top + t.height / 2) : null;
+      const tituloOk = Boolean(t && t.top >= topoUtil - 0.5 && t.bottom <= baseUtil + 0.5 && tituloLivre && (tituloLivre === titulo || titulo.contains(tituloLivre)));
       return {
-        ok: inteiro && livre && anel && semRolagemLateral,
-        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}`,
+        ok: inteiro && livre && anel && semRolagemLateral && tituloOk,
+        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}, título à vista: ${tituloOk}`,
       };
     });
   }
@@ -1544,6 +1566,224 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
     ok(`Minha conta a ${tamanho(l, a, d)}, a janela "Encerrar minhas outras sessões" abre com o foco em "Cancelar" à vista dentro da janela`,
        m.ok && /Cancelar/.test(m.txt), `(${m.txt})`);
     await ctx.close();
+  }
+}
+
+console.log("\n== 15. A janela de confirmação aberta acompanha a mudança de tamanho e não perde o foco (V2-F00-E09, correção 8) ==");
+/*
+  A rodada 9 da validação (sobre dda7557) reprovou pela quarta vez, ainda pela
+  classe do foco fora da vista, em dois caminhos que as seções 7 e 14 não
+  exercitavam porque ambas abrem a janela já no tamanho final e nunca a
+  estragam depois de aberta:
+
+  1. Com a janela de confirmação ABERTA, girar o celular (320x568 para 568x320)
+     ou dar zoom (1280x720 para 320x256) deixava "Cancelar" com o foco, mas
+     fora da parte visível do painel, nos três motores: o ajuste só rodava na
+     abertura e a cada mudança de conteúdo, nunca quando o tamanho mudava.
+  2. Depois de um erro do servidor ou de um clique no fundo escurecido, o foco
+     caía em BODY e o Esc deixava de fechar a janela (as teclas eram ouvidas
+     pelo painel, que não recebe tecla com o alvo em BODY); no WebKit nem o Tab
+     saía de lá.
+
+  O zoom é o equivalente em pixels de CSS (400 por cento de 1280x1024 é 320x256),
+  feito por `setViewportSize` com a janela já aberta, e a medida é a de sempre:
+  o retângulo do foco, inteiro, dentro da parte visível do painel, com o ponto
+  do meio livre. Duas medidas, 0,7 s e 1,7 s depois, provam que não há laço (a
+  rolagem do painel não muda entre elas).
+*/
+{
+  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+  let n = 0;
+  async function contaDeOitoComSessoes() {
+    n++;
+    const email = `oito.${n}.${sufixo}@serraalta.exemplo.gov.br`;
+    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
+      corpo: { nome: `Sessões Oito ${n}`, matricula: `S8-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+    if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} da seção 15 não foi criada (${r.status})`);
+    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
+    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
+    return email;
+  }
+  const rotulo = (l, a) => `${l}x${a}`;
+
+  /** O foco está num CONTROLE da janela (botão habilitado), inteiro na parte visível do painel, com o ponto do meio livre. */
+  async function focoNaJanela(pg, { comAnel = true } = {}) {
+    return pg.evaluate((comAnel) => {
+      const painel = document.querySelector(".modal__painel");
+      const el = document.activeElement;
+      if (!painel) return { ok: false, txt: "a janela não está aberta" };
+      if (!el || el === document.body || !painel.contains(el)) return { ok: false, txt: `o foco não está dentro da janela (${el ? el.tagName.toLowerCase() : "nada"})` };
+      if (el === painel) return { ok: false, txt: "o foco está no painel, e não num controle" };
+      const p = painel.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const topoUtil = p.top + painel.clientTop, baseUtil = topoUtil + painel.clientHeight;
+      const meio = document.elementFromPoint(r.left + r.width / 2, Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
+      const livre = meio === el || el.contains(meio);
+      const cs = getComputedStyle(el);
+      const anel = cs.boxShadow !== "none" || (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0);
+      const inteiro = r.top >= topoUtil - 0.5 && r.bottom <= baseUtil + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5;
+      const semRolagemLateral = !(document.documentElement.scrollWidth > innerWidth + 1) && !(painel.scrollWidth > painel.clientWidth + 1);
+      // O título, que é a primeira coisa que se lê, também fica à vista e sem nada por cima (achado 4 da rodada 9).
+      const titulo = painel.querySelector(".modal__titulo");
+      const t = titulo ? titulo.getBoundingClientRect() : null;
+      const tituloLivre = t ? document.elementFromPoint(t.left + Math.min(t.width / 2, 20), t.top + t.height / 2) : null;
+      const tituloOk = Boolean(t && t.top >= topoUtil - 0.5 && t.bottom <= baseUtil + 0.5 && tituloLivre && (tituloLivre === titulo || titulo.contains(tituloLivre)));
+      return {
+        ok: inteiro && livre && (anel || !comAnel) && semRolagemLateral && !el.disabled,
+        tituloOk,
+        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)} de ${innerHeight}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}; título em ${t ? `${Math.round(t.top)}..${Math.round(t.bottom)}` : "ausente"}, à vista: ${tituloOk}`,
+      };
+    }, comAnel);
+  }
+  const rolagemDoPainel = (pg) => pg.evaluate(() => document.querySelector(".modal__painel")?.scrollTop ?? null);
+  const botaoDeEncerrarNaConta = (pg) => pg.getByRole("button", { name: "Encerrar minhas outras sessões" });
+
+  // A) O tamanho muda com a janela aberta: rotação e zoom de 200 e de 400 por cento.
+  const MUDANCAS = [
+    ["rotação do celular", 320, 568, 568, 320],
+    ["rotação de volta", 568, 320, 320, 568],
+    ["rotação de um celular maior", 390, 844, 844, 390],
+    ["zoom de 400 por cento", 1280, 1024, 320, 256],
+    ["zoom de 200 por cento", 1280, 720, 640, 360],
+    ["zoom de 400 por cento, de uma tela baixa", 1280, 720, 320, 180],
+    ["zoom de 200 e depois de 400 por cento", 1280, 1024, 640, 512, 320, 256],
+    ["zoom que volta ao normal", 320, 256, 1280, 720],
+  ];
+  {
+    const { ctx, pg } = await contextoDeFoco(1280, 720);
+    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+    await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+    for (const nome of ["Redefinir senha", "Encerrar sessões"]) {
+      for (const [quando, l0, a0, ...resto] of MUDANCAS) {
+        await pg.setViewportSize({ width: l0, height: a0 });
+        await pg.waitForTimeout(300);
+        const gatilho = pg.getByRole("button", { name: nome, exact: true }).first();
+        await gatilho.scrollIntoViewIfNeeded();
+        await gatilho.focus();
+        await pg.keyboard.press("Enter");
+        await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
+        await pg.waitForTimeout(500);
+        for (let i = 0; i < resto.length; i += 2) {
+          await pg.setViewportSize({ width: resto[i], height: resto[i + 1] });
+          await pg.waitForTimeout(700);
+          const m = await focoNaJanela(pg);
+          const r1 = await rolagemDoPainel(pg);
+          await pg.waitForTimeout(1000);
+          const r2 = await rolagemDoPainel(pg);
+          ok(`Usuários, ${quando} com a janela "${nome}" aberta (${rotulo(l0, a0)} para ${rotulo(resto[i], resto[i + 1])}): o foco em "Cancelar" continua à vista e o título também`,
+             m.ok && m.tituloOk && /Cancelar/.test(m.txt) && r1 === r2, `(${m.txt}; rolagem do painel ${r1} e depois ${r2})`);
+        }
+        await pg.keyboard.press("Escape");
+        await pg.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
+      }
+    }
+    await ctx.close();
+  }
+  for (const [quando, l0, a0, l1, a1] of [MUDANCAS[0], MUDANCAS[3], MUDANCAS[5]]) {
+    const email = await contaDeOitoComSessoes();
+    const { ctx, pg } = await contextoDeFoco(l0, a0);
+    await entrar(email, SENHA_DO_TESTE, pg);
+    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
+    await pg.waitForTimeout(400);
+    await botaoDeEncerrarNaConta(pg).focus();
+    await pg.keyboard.press("Enter");
+    await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(500);
+    await pg.setViewportSize({ width: l1, height: a1 });
+    await pg.waitForTimeout(700);
+    const m = await focoNaJanela(pg);
+    ok(`Minha conta, ${quando} com a janela "Encerrar minhas outras sessões" aberta (${rotulo(l0, a0)} para ${rotulo(l1, a1)}): o foco em "Cancelar" continua à vista e o título também`,
+       m.ok && m.tituloOk && /Cancelar/.test(m.txt), `(${m.txt})`);
+    await ctx.close();
+  }
+
+  // B) O clique no fundo escurecido e o foco que cai em BODY: o foco volta a um controle da janela e o Esc fecha.
+  for (const [l, a, via] of [[1280, 720, "clique"], [390, 844, "clique"], [320, 568, "toque"], [568, 320, "clique"]]) {
+    const { ctx, pg } = await contextoDeFoco(l, a, 1, via === "toque");
+    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+    await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+    const gatilho = pg.getByRole("button", { name: "Redefinir senha", exact: true }).first();
+    await gatilho.scrollIntoViewIfNeeded();
+    await gatilho.focus();
+    await pg.keyboard.press("Enter");
+    await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
+    await pg.waitForTimeout(500);
+    if (via === "toque") await pg.touchscreen.tap(3, 3); else await pg.mouse.click(3, 3);
+    await pg.waitForTimeout(500);
+    const aposFundo = await focoNaJanela(pg, { comAnel: false });
+    ok(`a ${rotulo(l, a)}, depois de um ${via} no fundo escurecido da janela destrutiva: ela continua aberta e o foco está num controle dela, à vista`,
+       aposFundo.ok, `(${aposFundo.txt})`);
+    // O foco que escapa por outro caminho (um script de terceiro, uma extensão, o motor): volta sozinho a um controle da janela...
+    await pg.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+    await pg.waitForTimeout(400);
+    const aposPerder = await focoNaJanela(pg, { comAnel: false });
+    ok(`a ${rotulo(l, a)}, com o foco arrancado da janela (blur), ele volta sozinho a um controle da janela, à vista`, aposPerder.ok, `(${aposPerder.txt})`);
+    // ... e a tecla que chega ao DOCUMENTO (alvo fora do painel, como com o foco em BODY) vale: o Tab move o foco dentro da janela e o Esc fecha.
+    const tabNoCorpo = await pg.evaluate(() => {
+      const antes = document.activeElement;
+      const e = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+      document.body.dispatchEvent(e);
+      return { impedido: e.defaultPrevented, mudou: document.activeElement !== antes, dentro: Boolean(document.querySelector(".modal__painel")?.contains(document.activeElement)) };
+    });
+    ok(`a ${rotulo(l, a)}, o Tab que chega ao documento é tratado pela janela: o foco anda dentro dela`, tabNoCorpo.impedido && tabNoCorpo.mudou && tabNoCorpo.dentro, `(${JSON.stringify(tabNoCorpo)})`);
+    await pg.evaluate(() => document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    await pg.getByRole("dialog").waitFor({ state: "detached", timeout: 5_000 }).then(
+      () => ok(`a ${rotulo(l, a)}, o Esc que chega ao documento fecha a janela`, true),
+      () => ok(`a ${rotulo(l, a)}, o Esc que chega ao documento fecha a janela`, false, "(a janela continua aberta)"),
+    );
+    await ctx.close();
+  }
+
+  // C) Erro do servidor na janela de confirmação: durante a gravação o foco fica na janela, depois do erro volta a um controle, e o Esc fecha.
+  const CORS = { "access-control-allow-origin": new URL(BASE).origin, "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
+  for (const [l, a, via, atraso] of [[1280, 720, "teclado", 0], [1280, 720, "teclado", 1200], [390, 844, "clique", 1200], [320, 568, "teclado", 1200], [568, 320, "teclado", 1200]]) {
+    for (const nome of ["Redefinir senha", "Encerrar sessões"]) {
+      const { ctx, pg } = await contextoDeFoco(l, a, 1, false, true);
+      await pg.route(/\/usuarios\/[^/]+\/(redefinir-senha|encerrar-sessoes)$/, async (rota) => {
+        if (rota.request().method() === "OPTIONS") return rota.fulfill({ status: 204, headers: CORS });
+        if (atraso) await new Promise((r) => setTimeout(r, atraso));
+        return rota.fulfill({ status: 500, headers: { ...CORS, "content-type": "application/json" },
+          body: JSON.stringify({ codigo: "erro_interno", mensagem: "Erro do servidor" }) });
+      });
+      await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+      await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+      await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
+      const gatilho = pg.getByRole("button", { name: nome, exact: true }).first();
+      await gatilho.scrollIntoViewIfNeeded();
+      await gatilho.focus();
+      await pg.keyboard.press("Enter");
+      const janela = pg.getByRole("dialog");
+      await janela.waitFor({ timeout: 10_000 });
+      await pg.waitForTimeout(600);
+      const confirmar = janela.locator(".modal__rodape button").first();
+      if (via === "teclado") { await confirmar.focus(); await pg.keyboard.press("Enter"); } else await confirmar.click();
+      if (atraso) {
+        await pg.waitForTimeout(Math.min(500, atraso / 2));
+        const durante = await pg.evaluate(() => {
+          const painel = document.querySelector(".modal__painel"); const el = document.activeElement;
+          return { dentro: Boolean(painel && el && el !== document.body && painel.contains(el)), txt: el ? el.tagName.toLowerCase() : "nada" };
+        });
+        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava (botões travados), o foco continua dentro da janela`, durante.dentro, `(${durante.txt})`);
+        // Correção 8b: enquanto grava, o Esc e o clique no fundo não fecham a janela (o erro do servidor tem onde cair).
+        await pg.keyboard.press("Escape");
+        await pg.waitForTimeout(150);
+        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava, o Esc não fecha a janela`, await janela.isVisible());
+        await pg.mouse.click(2, 2);
+        await pg.waitForTimeout(150);
+        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava, o clique no fundo não fecha a janela`, await janela.isVisible());
+      }
+      await janela.locator('[role="alert"], .aviso--perigo').first().waitFor({ timeout: 10_000 });
+      await pg.waitForTimeout(600);
+      const depois = await focoNaJanela(pg, { comAnel: false });
+      ok(`a ${rotulo(l, a)}, "${nome}": depois do erro do servidor (${atraso ? "com demora" : "na hora"}), o foco está num controle da janela, à vista`, depois.ok, `(${depois.txt})`);
+      await pg.keyboard.press("Escape");
+      await janela.waitFor({ state: "detached", timeout: 5_000 }).then(
+        () => ok(`a ${rotulo(l, a)}, "${nome}": depois do erro, o Esc fecha a janela`, true),
+        () => ok(`a ${rotulo(l, a)}, "${nome}": depois do erro, o Esc fecha a janela`, false, "(a janela continua aberta)"),
+      );
+      await ctx.close();
+    }
   }
 }
 

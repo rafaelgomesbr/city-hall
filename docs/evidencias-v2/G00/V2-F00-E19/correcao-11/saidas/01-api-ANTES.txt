@@ -1,0 +1,32 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-af25d0cdb517c358e/dc360/apps/api
+
+ ❯ test/campo-obrigatorio-ausente.test.ts (2 tests | 1 failed) 1129ms
+   × 422 de enum obrigatório ausente > POST /ocorrencias sem tipo e sem canalEntrada diz 'Campo obrigatório' nos dois 9ms
+     → expected 'Valor não reconhecido: undefined. Os …' to be 'Campo obrigatório' // Object.is equality
+   ✓ 422 de enum obrigatório ausente > enum presente e fora da lista continua dizendo o valor e os aceitos 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/campo-obrigatorio-ausente.test.ts > 422 de enum obrigatório ausente > POST /ocorrencias sem tipo e sem canalEntrada diz 'Campo obrigatório' nos dois
+AssertionError: expected 'Valor não reconhecido: undefined. Os …' to be 'Campo obrigatório' // Object.is equality
+
+Expected: [32m"[7mCampo obrigatóri[27mo"[39m
+Received: [31m"[7mValor não reconhecido: undefined. Os aceitos são: deslizamento, inundacao, alagamento, enxurrada, vendaval, granizo, colapso_edificacao, incendio_urbano, outr[27mo"[39m
+
+ ❯ test/campo-obrigatorio-ausente.test.ts:64:27
+     62|       const c = campos.find((x) => x.campo === nome);
+     63|       expect(c, `${nome} em ${r.body}`).toBeDefined();
+     64|       expect(c!.mensagem).toBe("Campo obrigatório");
+       |                           ^
+     65|     }
+     66|     // Nenhum identificador de JavaScript chega ao aparelho, em campo …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  23:05:07
+   Duration  1.78s (transform 224ms, setup 132ms, collect 326ms, tests 1.13s, environment 0ms, prepare 40ms)
+

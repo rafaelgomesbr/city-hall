@@ -40,8 +40,8 @@ O que É verificável daqui, e está verificado:
 | Verificação | Como rodar | Resultado |
 | --- | --- | --- |
 | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
-| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
-| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-13: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as seis exceções nomeadas do CP-03 (`decode-uri-component`, `brace-expansion`, `braces`, `node-forge`, `shell-quote`, `sprintf-js`), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
+| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). **Voltou de novo em 2026-10-24 e fechou em 21 de 21 sem pular a checagem de versões** com a correção 10 da E19, que subiu cinco pacotes um patch (`expo` 57.0.30 para 57.0.31, `expo-location` 57.0.21 para 57.0.22, `expo-network` 57.0.2 para 57.0.3, `expo-notifications` 57.0.23 para 57.0.24 e `expo-router` 57.0.28 para 57.0.29; mesma premissa das anteriores, a confirmação do Rafael segue pendente). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho (ver "Antes da próxima entrega aos agentes: novo binário nativo", abaixo) |
+| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-24: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as exceções nomeadas do CP-03 (cinco pacotes, sete advisories: `decode-uri-component`, `brace-expansion` com três, `node-forge`, `shell-quote` e a cópia do `zod` 3 que o `@expo/cli` carrega, com `somenteEm: ["node_modules/expo/node_modules/"]`; `braces` e `sprintf-js` saíram em 2026-10-24, porque o registro retirou as duas advisories), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
 | A fila que ele consome | `npm test --workspace @dc360/campo` | 238 testes do motor de campo |
 
 **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
@@ -56,7 +56,8 @@ na raiz do `dc360`, confere o arquivo contra as rotas do disco antes do
 typecheck e apaga `.expo/types` quando falta alguma rota; o próximo
 `expo start` o recria. Quem rodar `npm run typecheck` direto aqui, com cache
 velho, apaga `.expo/types` à mão ou roda `npm run test:campo`. O job
-`plataformas` do CI (Windows e Linux) prova isso a cada push: põe aqui um cache
+`plataformas` do CI (Windows e Linux) prova isso a cada push em `main`, `master`
+e `v2/**` e a cada `pull_request` (não em push para outro ramo): põe aqui um cache
 sem `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`, na
 raiz do `dc360`), confere que o `tsc` direto reprova com TS2345 e só então roda
 o `npm run test:campo`. Se uma atualização do expo-router mudar o formato do
@@ -143,14 +144,37 @@ integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.te
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.
 
+## Antes da próxima entrega aos agentes: novo binário nativo
+
+A correção 10 da V2-F00-E19 (2026-10-24) mudou o que vai dentro do aplicativo, e
+o binário que está nos aparelhos é anterior a ela. **Nenhum binário novo foi
+gerado**: antes de entregar aos agentes, gerar um (`eas build`, ver
+**[LOJAS.md](./LOJAS.md)**) com o que mudou:
+
+- cinco pacotes do SDK 57 subiram um patch, todos dentro do `~57.0`:
+  `expo` 57.0.31, `expo-location` 57.0.22, `expo-network` 57.0.3,
+  `expo-notifications` 57.0.24 e `expo-router` 57.0.29. Pacote nativo muda o
+  código que o aparelho carrega, então precisa de build nativo novo, e o
+  `expo-doctor` volta a 21 de 21 só com eles;
+- o `zod` passou da linha 3 para a **4** (4.6.7), que a GHSA-mrhx-c7xc-m3w5
+  exige, e entra como dependência declarada deste aplicativo (`^4.6.7`). O
+  `@dc360/shared` (esquemas e mensagens em português) usa a linha 4, e o
+  `@expo/cli` mantém por dentro a cópia 3.25.76 em
+  `node_modules/expo/node_modules/zod`, só na máquina de build (exceção
+  nomeada acima).
+
+O Metro nunca empacotou o aplicativo com o `zod` 4: os testes de Jest passam,
+mas nenhum bundle foi gerado até aqui. O primeiro `eas build` é também essa
+prova.
+
 ## Por que fica fora do `workspaces` do monorepo
 
 O Expo traz quase seiscentos pacotes. Deixá-lo fora significa que
 `npm install` na raiz do produto continua rápido, e que o `npm audit` de lá
 não passa a depender do ciclo de lançamento do React Native. Este diretório
 tem o próprio `package-lock.json` e a própria auditoria, que NÃO fecha em zero
-no `npm audit` puro (fecha em `npm run auditar`, com as seis exceções nomeadas
-do CP-03; ver a tabela acima).
+no `npm audit` puro (fecha em `npm run auditar`, com as exceções nomeadas do CP-03: cinco
+pacotes e sete advisories; ver a tabela acima).
 
 ## Por que `react-native-reanimated` e `react-native-worklets` estão fixados
 

@@ -86,7 +86,7 @@ describe("Defeito 2: com janela aberta o aviso passageiro espera", () => {
     const modal = fonte("componentes", "Modal.tsx");
     expect(modal).toContain("const liberarAvisos = registrarModalAberto();");
     // A liberação mora na limpeza do mesmo efeito que abriu a janela.
-    expect(modal).toMatch(/return \(\) => \{\s+observador\?\.disconnect\(\);\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
+    expect(modal).toMatch(/return \(\) => \{\s+acompanhamento\.parar\(\);\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
   });
 
   it("o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada", () => {
