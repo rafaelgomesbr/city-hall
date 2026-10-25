@@ -1,0 +1,17 @@
+# dependabot.test.mjs
+✔ os seis ecossistemas pedidos existem, com as pastas certas, todos semanais (4.251875ms)
+✔ as pastas do Dependabot existem de verdade e têm o arquivo que ele lê (4.196208ms)
+✔ NEGATIVO: major e minor de expo, react-native, reanimated e worklets estão ignorados no aplicativo, e patch não (0.526583ms)
+✔ NEGATIVO: o ignore do Expo cobre também a família atrelada ao SDK (0.078625ms)
+✔ NEGATIVO (o teste morde): config sem o ignore do Expo, ou que ignora patch, é reprovada (0.314417ms)
+✔ patch da família do Expo sobe só em grupo, e o grupo contém os quatro nomeados (0.141917ms)
+✔ docker-compose (DV-18): o Dependabot vigia a imagem do compose.yaml, e major do banco é ignorado (0.249625ms)
+✔ docker: major do node ignorado (subir o Node é decisão de plataforma) (0.066166ms)
+✔ sem auto-merge em lugar nenhum e todo bloco tem cooldown (1.943666ms)
+✔ auditoria semanal: agenda semanal, disparo manual e nenhum gatilho de PR (0.235125ms)
+✔ auditoria semanal: regras do CI (permissões mínimas, timeout, runner fixo, ações por SHA) (0.270542ms)
+✔ auditoria semanal: roda o portão do CP-03 pelo node e não mascara a falha (0.069791ms)
+✔ DEPENDENCIAS.md existe, cita o CP-03, os quatro pacotes e marca os prazos como proposta (0.417292ms)
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0

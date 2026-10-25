@@ -1,0 +1,25 @@
+# sbom.test.mjs: com o conserto, e com o sbom.yml ANTIGO (npm exec), capturado antes do commit
+## com o conserto
+✔ conferir-sbom: um CycloneDX com componentes passa; vazio, formato errado e componente sem nome reprovam (0.94975ms)
+✔ conferir-sbom: o código de saída que o CI lê (0 em ordem, 1 reprovado, 2 arquivo ilegível ou uso errado) (514.159083ms)
+✔ publicar-sbom.sh: com os quatro SBOM e sem Release, cria RASCUNHO e anexa os quatro mais o SHA256SUMS.txt com --clobber (874.952375ms)
+✔ publicar-sbom.sh: Release que já existe não é recriado, só recebe os arquivos (637.090834ms)
+✔ publicar-sbom.sh: faltando um dos quatro, ou um deles vazio, não publica NADA (SBOM pela metade parece completo) (834.029209ms)
+✔ publicar-sbom.sh: tag fora do padrão e uso errado saem 2 sem chamar o gh (147.76625ms)
+✔ sbom.yml: dispara em tag v* e campo-v* e em rodada manual, e nada mais (0.2425ms)
+✔ sbom.yml: escrita só no job publicar, só contents, só em tag; o topo e os jobs que geram só leem (0.482375ms)
+✔ sbom.yml: os dois lockfiles e as duas imagens estão na matriz, o gerador npm tem versão exata e lê só o lockfile de produção (0.166167ms)
+✔ sbom.yml: nome de tag e de ramo entram nos comandos por variável de ambiente, nunca interpolados no script (0.1985ms)
+✔ sbom.yml: o job publicar não grava credencial no checkout e só traz dc360/scripts (0.089833ms)
+✔ DV-27: o gerador de SBOM é instalado por `npm ci` a partir de um lockfile com integrity, e a versão bate nos três lugares (2.205417ms)
+✔ DV-27: a regra do gerador travado morde (npm exec, sem lockfile, sem integrity, versão fora de sincronia) (4.99275ms)
+✔ DV-27: o que o gerador não cobre fica escrito: o SBOM exclui devOptional e a conferência de licença não (0.090791ms)
+ℹ tests 14
+ℹ pass 14
+ℹ fail 0
+## com o sbom.yml antigo
+ℹ fail 2
+ℹ pass 12
+✖ DV-27: o gerador de SBOM é instalado por `npm ci` a partir de um lockfile com integrity, e a versão bate nos três lugares (2.866625ms)
+✖ DV-27: o que o gerador não cobre fica escrito: o SBOM exclui devOptional e a conferência de licença não (0.7425ms)
+✖ failing tests:

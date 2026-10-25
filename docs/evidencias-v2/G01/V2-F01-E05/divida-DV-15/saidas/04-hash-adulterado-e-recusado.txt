@@ -1,0 +1,10 @@
+# Mordida do --require-hashes: um unico caractere do hash do semgrep trocado, o pip RECUSA
+linhas de hash adulteradas: 480
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions, please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
+    attrs==26.1.0 from https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl#sha256=c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309 (from -r <scratch>/ev/requirements-adulterado.txt (line 3)):
+        Expected sha256 X03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32
+        Expected     or X647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309
+             Got        c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309
+
+You should consider upgrading via the '<scratch>/uvenv/bin/python -m pip install --upgrade pip' command.
+codigo do pip: 1

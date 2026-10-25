@@ -23,7 +23,7 @@
 # imagens do ramo padrão (a `master`, na agenda) e as varre com o Trivy pelo mesmo
 # script do PR (`dc360/scripts/varrer-imagem.sh`: versão fixa, SHA-256 conferido,
 # CRITICAL e HIGH com correção publicada, mais segredo na imagem), com a mesma e
-# única porta de exceção, o `.trivyignore` da raiz. Fica vermelho (e avisa por
+# única porta de exceção, o `.trivyignore.yaml` da raiz. Fica vermelho (e avisa por
 # e-mail) quando a resposta mudou; não corrige nada.
 #
 # ATENÇÃO: `schedule` só dispara a partir do ramo padrão. Enquanto este arquivo

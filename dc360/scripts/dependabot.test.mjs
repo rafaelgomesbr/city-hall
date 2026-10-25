@@ -66,12 +66,14 @@ function problemasDoAplicativo(texto) {
   return problemas;
 }
 
-test("os quatro ecossistemas pedidos existem, com as pastas certas, todos semanais", () => {
+test("os seis ecossistemas pedidos existem, com as pastas certas, todos semanais", () => {
   assert.ok(achar("npm", "/dc360"), "npm em /dc360");
   assert.ok(achar("npm", "/dc360/apps/campo"), "npm em /dc360/apps/campo");
   assert.ok(achar("github-actions", "/"), "github-actions em /");
   assert.ok(achar("docker", "/dc360"), "docker em /dc360");
-  assert.equal(todos.length, 4, "só estas quatro frentes (Renovate e compose ficam de fora)");
+  assert.ok(achar("docker-compose", "/dc360"), "docker-compose em /dc360 (DV-18: a imagem do banco do compose.yaml)");
+  assert.ok(achar("npm", "/dc360/scripts/sbom-gerador"), "npm em /dc360/scripts/sbom-gerador (DV-27: o lockfile do gerador de SBOM)");
+  assert.equal(todos.length, 6, "só estas seis frentes (Renovate fica de fora)");
   for (const b of todos) assert.equal(b.intervalo, "weekly", `${b.ecossistema} ${b.diretorio} é semanal`);
 });
 
@@ -82,6 +84,8 @@ test("as pastas do Dependabot existem de verdade e têm o arquivo que ele lê", 
   ler("dc360/apps/campo/package.json");
   ler("dc360/apps/campo/package-lock.json");
   ler("dc360/Dockerfile");
+  ler("dc360/scripts/sbom-gerador/package.json");
+  ler("dc360/scripts/sbom-gerador/package-lock.json");
   assert.ok(RAIZ_DO_REPO.length > 0);
 });
 
@@ -122,6 +126,18 @@ test("patch da família do Expo sobe só em grupo, e o grupo contém os quatro n
     assert.ok(grupo.includes(`"${nome}"`), `${nome} no grupo`);
   }
   assert.match(grupo, /update-types: \["patch"\]/, "o grupo é só de patch");
+});
+
+test("docker-compose (DV-18): o Dependabot vigia a imagem do compose.yaml, e major do banco é ignorado", () => {
+  const b = achar("docker-compose", "/dc360");
+  assert.ok(b, "falta a frente docker-compose");
+  // A pasta tem de ter o compose.yaml que ele lê, e a imagem vigiada tem de ser a que está lá.
+  const compose = ler("dc360/compose.yaml");
+  const imagens = [...compose.matchAll(/^\s+image:\s*(\S+)/gm)].map((m) => m[1]);
+  assert.ok(imagens.length >= 1, "o compose.yaml tem imagem");
+  assert.ok(imagens.every((i) => i.startsWith("postgis/postgis:")), `imagens do compose: ${imagens.join(", ")}`);
+  assert.deepEqual(b.ignore["postgis/postgis"], [MAJOR], "major do banco exige plano de migração");
+  assert.match(b.texto, /cooldown:\n\s+default-days: \d+/);
 });
 
 test("docker: major do node ignorado (subir o Node é decisão de plataforma)", () => {

@@ -1,0 +1,16 @@
+# Os arquivos YAML lidos por um parser de verdade (js-yaml da arvore do monorepo): sintaxe valida e as frentes do Dependabot
+npm              /dc360                           weekly prs<=5 []
+npm              /dc360/apps/campo                weekly prs<=3 [{"dependency-name":"expo","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"react-native","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"react-native-reanimated","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"react-native-worklets","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"expo-*","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"@expo/*","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"react-native-*","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"@react-native/*","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"jest-expo","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"react","update-types":["version-update:semver-major","version-update:semver-minor"]},{"dependency-name":"react-dom","update-types":["version-update:semver-major","version-update:semver-minor"]}]
+github-actions   /                                weekly prs<=3 []
+docker           /dc360                           weekly prs<=3 [{"dependency-name":"node","update-types":["version-update:semver-major"]}]
+docker-compose   /dc360                           weekly prs<=2 [{"dependency-name":"postgis/postgis","update-types":["version-update:semver-major"]}]
+npm              /dc360/scripts/sbom-gerador      weekly prs<=2 []
+YAML valido: .github/workflows/sast.yml
+YAML valido: .github/workflows/sbom.yml
+YAML valido: .github/workflows/auditoria-semanal.yml
+YAML valido: .trivyignore.yaml
+## as imagens que o compose.yaml usa (o que a frente docker-compose vigia)
+39:    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+69:    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+## a pasta da frente tem o arquivo que o Dependabot le
+-rw-r--r--@ 1 rafaelgomes  staff  5531 Oct 25 03:32 compose.yaml

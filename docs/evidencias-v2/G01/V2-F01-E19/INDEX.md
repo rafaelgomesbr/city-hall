@@ -19,3 +19,8 @@
 | saidas/18-baseline-workflows-dependabot.txt | 584aced14af0b5500e6f3e7cfb161319a612c5158e21a24ce69f2acd4400acb0 |
 | sbom-local-npm-campo.cdx.json | 60d7ac1e559732149cbb62c81252a4479725e0cf88f814447460d721e1fe8b16 |
 | sbom-local-npm-plataforma.cdx.json | 910e891ac266f0a4368b28918a58dc86d8df92c3caeafd59a9585343379ff627 |
+| divida-DV-27/RESUMO.md | fd9f87819ea563c502a0345fcce01d7d1b4d0217858226aea3e7239f13fbf610 |
+| divida-DV-27/saidas/01-faixas-contra-lockfile.txt | 42670fd72c277286e34e296193f7fd954f4b90b83092e8a326fdb22a36196cac |
+| divida-DV-27/saidas/02-npm-ci-do-gerador.txt | c65ac50f55e2d8fa68163308e63789f298581435b1ddfe4fdde8c841f1f774a8 |
+| divida-DV-27/saidas/03-sbom-gerado-pelo-gerador-travado.txt | ea0e1d8c97f50c0da4bec3a02f5b58f7e9113d7c13da9d336d404a5018034da1 |
+| divida-DV-27/saidas/04-sbom-test-e-mordida.txt | 3efae518fc8adc8a52c5f53e0d628a815e547cb559930c29f802f37dd5f9cabf |

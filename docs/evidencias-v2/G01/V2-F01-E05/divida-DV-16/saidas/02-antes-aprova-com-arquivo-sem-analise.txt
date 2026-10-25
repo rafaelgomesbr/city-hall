@@ -1,0 +1,4 @@
+# ANTES (sast-baseline.mjs do commit anterior ao conserto) sobre o JSON acima: aprova, sem ter lido o arquivo
+Semgrep: 0 achado(s); 0 na baseline triada; 0 novo(s).
+Aprovado: nenhum achado ERROR novo.
+exit=0

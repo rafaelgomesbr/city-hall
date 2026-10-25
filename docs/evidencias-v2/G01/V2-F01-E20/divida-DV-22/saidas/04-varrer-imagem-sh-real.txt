@@ -1,0 +1,8 @@
+# O varrer-imagem.sh REAL (o do CI), com o Trivy oficial, na base real (sem Docker), tres cenarios
+### com o .trivyignore.yaml da raiz: tem de sair 0
+codigo de saida do varrer-imagem.sh: 0
+### com um arquivo de excecoes sem entradas: tem de reprovar (1)
+codigo de saida do varrer-imagem.sh: 1
+### com o .trivyignore por linha (formato antigo, sem caminho): o script recusa (2)
+codigo de saida do varrer-imagem.sh: 2
+::error::o arquivo de exceções precisa ser YAML (.yaml ou .yml), com `paths` por entrada: <scratch>/tv/trivyignore-antigo.txt

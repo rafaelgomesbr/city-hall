@@ -16,7 +16,9 @@
 #
 # Como cada um é gerado:
 #
-# - npm: `@cyclonedx/cyclonedx-npm` em versão fixa, sobre o lockfile
+# - npm: `@cyclonedx/cyclonedx-npm` em versão fixa E com as dependências dele
+#   travadas pelo lockfile de `dc360/scripts/sbom-gerador/` (instalado por `npm ci`,
+#   DV-27), sobre o lockfile do produto
 #   (`--package-lock-only`), só produção (`--omit dev`), sem timestamp nem número
 #   de série (`--output-reproducible`): o mesmo lockfile dá o mesmo arquivo, e o
 #   SHA-256 muda só quando a árvore muda. `--ignore-npm-errors` é necessário no
@@ -25,7 +27,9 @@
 #   `file:` fora da pasta. As dependências deles (zod, por exemplo) estão no
 #   lockfile do aplicativo e entram no SBOM (conferido na evidência da etapa).
 #   `--ignore-scripts`: o gerador e as dependências dele não rodam script de
-#   instalação.
+#   instalação. Limite que sobra: o `--omit dev` do gerador usa `npm ls`, que
+#   exclui `devOptional`, então o SBOM do aplicativo (667 componentes) tem menos
+#   que a conferência de licença (731), que conta `devOptional` como produção.
 # - imagem: o MESMO Trivy da varredura (V2-F01-E20), versão fixa e SHA-256
 #   conferido por `scripts/varrer-imagem.sh instalar`, lendo a imagem recém
 #   construída com os mesmos `Dockerfile` e argumentos do job `imagens`.
@@ -64,8 +68,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Versão fixa do gerador npm. Subir é um PR próprio, com o SBOM de antes e de
-  # depois comparados. 6.0.1 foi publicada em 2026-08-11.
+  # Versão fixa do gerador npm. Subir é um PR próprio: muda a versão aqui, em
+  # `dc360/scripts/sbom-gerador/package.json` e no lockfile dele (o teste
+  # `scripts/sbom.test.mjs` confere os três), com o SBOM de antes e de depois
+  # comparados. 6.0.1 foi publicada em 2026-08-11.
   CYCLONEDX_NPM_VERSAO: "6.0.1"
 
 jobs:
@@ -92,6 +98,17 @@ jobs:
         with:
           node-version: "22"
 
+      # O gerador e TODAS as dependências dele (transitivas, com `integrity`) vêm do
+      # lockfile de `dc360/scripts/sbom-gerador/` (DV-27). Antes, `npm exec` resolvia
+      # as transitivas na hora e o SBOM de uma mesma tag podia mudar com o dia.
+      # `npm ci` recusa lockfile fora de sincronia; `--omit=optional` deixa de fora
+      # o validador de XML nativo (`libxmljs2`), que a saída JSON não usa.
+      - name: Instalar o gerador de SBOM pelo lockfile
+        run: |
+          npm ci --ignore-scripts --omit=optional --no-audit --no-fund --prefix dc360/scripts/sbom-gerador
+          versao=$(dc360/scripts/sbom-gerador/node_modules/.bin/cyclonedx-npm --version)
+          test "$versao" = "${CYCLONEDX_NPM_VERSAO}"
+
       - name: Gerar o SBOM CycloneDX do lockfile
         env:
           ARVORE: ${{ matrix.arvore }}
@@ -101,11 +118,11 @@ jobs:
           rotulo="${REF_NOME//\//-}"
           mkdir -p "$RUNNER_TEMP/sbom"
           arquivo="$RUNNER_TEMP/sbom/sbom-${rotulo}-npm-${ARVORE}.cdx.json"
+          gerador="$GITHUB_WORKSPACE/dc360/scripts/sbom-gerador/node_modules/.bin/cyclonedx-npm"
           cd "$PASTA"
-          npm exec --yes --ignore-scripts --package="@cyclonedx/cyclonedx-npm@${CYCLONEDX_NPM_VERSAO}" -- \
-            cyclonedx-npm --package-lock-only --ignore-npm-errors --omit dev \
-              --spec-version 1.6 --output-format JSON --output-reproducible \
-              --output-file "$arquivo"
+          "$gerador" --package-lock-only --ignore-npm-errors --omit dev \
+            --spec-version 1.6 --output-format JSON --output-reproducible \
+            --output-file "$arquivo"
           cd "$GITHUB_WORKSPACE"
           node dc360/scripts/conferir-sbom.mjs "$arquivo" "--minimo=${{ matrix.minimo }}"
 

@@ -1,0 +1,18 @@
+# Testes do sast-baseline (14, dos quais 4 novos da DV-16)
+✔ o id da regra perde o prefixo do caminho da configuração (0.477541ms)
+✔ achados iguais em linhas diferentes têm impressão própria (a ordem entre eles), e a linha não entra nela (7.759417ms)
+✔ a mesma regra vinda de dois pacotes entra uma vez só (0.086916ms)
+✔ achado que já está na baseline não é novo; linha que andou também não (0.159833ms)
+✔ achado NOVO (outro texto, outro arquivo ou segunda ocorrência) fica de fora da baseline (0.7675ms)
+✔ entrada da baseline que o Semgrep já não encontra é listada como obsoleta (0.058958ms)
+✔ CLI: varredura sem nenhum achado aprova (e avisa as entradas obsoletas) (53.400166ms)
+✔ CLI: achado ERROR novo reprova com código 1 e diz onde (47.471458ms)
+✔ CLI: achado novo de severidade WARNING avisa e não reprova (44.134708ms)
+✔ CLI: análise com erro do Semgrep reprova (sem leitura confiável não há aprovação) (52.323625ms)
+✔ DV-16: erro de sintaxe (warn) em dc360/apps/api/src reprova, e a mensagem não despeja o código (107.283083ms)
+✔ DV-16: parse parcial e tempo esgotado (type em lista, nível warn) em api/src também reprovam (105.179625ms)
+✔ DV-16: erro warn fora de api/src é listado como aviso e não reprova; sem caminho reprova (211.221792ms)
+✔ DV-16: classificarErrosDeAnalise separa bloqueantes e avisos e aceita lista vazia ou ausente (2.166166ms)
+ℹ tests 14
+ℹ pass 14
+ℹ fail 0

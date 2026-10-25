@@ -1,0 +1,7 @@
+# O Semgrep instalado do arquivo travado (macOS, para a maquina do orquestrador; o hash cobre todos os arquivos da versao) roda os testes das regras proprias
+opentelemetry-api                        1.25.0
+semgrep                                  1.136.0
+setuptools                               80.10.2
+1.136.0
+4/4: ✓ All tests passed
+No tests for fixes found.

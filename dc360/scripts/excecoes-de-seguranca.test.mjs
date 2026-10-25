@@ -10,8 +10,9 @@
  *     positivos e negativos em `.semgrep/test/`;
  *  4. o workflow `sast.yml` não deixa código sair do runner nem versão flutuar, e
  *     o registro só roda num passo de relatório que nunca reprova;
- *  5. (V2-F01-E20) a mesma política de exceção para o scan de imagens: toda linha
- *     do `.trivyignore` tem ID, motivo, dono e prazo vigente, e o script
+ *  5. (V2-F01-E20, DV-22) a mesma política de exceção para o scan de imagens: toda
+ *     entrada do `.trivyignore.yaml` tem ID, caminho (só o npm embutido na imagem
+ *     base), motivo, dono e prazo vigente, e o script
  *     `varrer-imagem.sh` (com um Trivy de mentira) e os dois workflows que o
  *     chamam não deixam a varredura virar verde por engano.
  *
@@ -28,7 +29,7 @@ import { fileURLToPath } from "node:url";
 import {
   PRAZO_MAXIMO_EM_DIAS,
   analisarArquivo,
-  analisarTrivyignore,
+  analisarTrivyignoreYaml,
   hojeEmIso,
   lerDataIso,
   problemasDaExcecao,
@@ -216,13 +217,95 @@ function workflowSemComentarios() {
 test("o workflow de SAST fixa a versão e não deixa código sair do runner", () => {
   const w = workflowSemComentarios();
   assert.match(w, /SEMGREP_VERSION:\s*"\d+\.\d+\.\d+"/, "versão do Semgrep fixa (X.Y.Z)");
-  assert.match(w, /semgrep==\$\{SEMGREP_VERSION\}/, "instala por versão exata");
+  // V2-F01-E05, DV-15: a instalação é por hash (ver o teste abaixo), não por `semgrep==` solto.
+  assert.doesNotMatch(w, /pip install[^\n]*"?semgrep==/, "nada de `pip install semgrep==x` sem hash");
   assert.match(w, /SEMGREP_SEND_METRICS:\s*"off"/);
   assert.ok((w.match(/--metrics=off/g) ?? []).length >= 2, "--metrics=off no teste e na varredura");
   assert.doesNotMatch(w, /SEMGREP_APP_TOKEN|SEMGREP_APP_URL|semgrep\s+login|semgrep\s+ci\b/, "sem login, sem token, sem `semgrep ci`");
   assert.doesNotMatch(w, /--config\s+(auto|r\/|https?:)/, "nem `auto`, nem regra avulsa, nem URL");
   assert.doesNotMatch(w, /secrets\./, "o SAST não precisa de segredo nenhum");
   assert.doesNotMatch(w, /\.semgrep\/registro/, "não há cópia do registro para apontar");
+});
+
+// ---- DV-15: dependências do Semgrep travadas por hash ---------------------------
+
+/** Os comandos `pip install` do workflow (continuações de linha juntadas), sem comentários. */
+export function comandosPipDoWorkflow(texto) {
+  return texto.replace(/\\\n\s*/g, " ").split("\n").filter((l) => /\bpip3?\s+install\b/.test(l)).map((l) => l.trim());
+}
+
+const ORIGEM_FORA_DO_PYPI = /^(-e\b|--editable|[a-z]+\+[a-z]+:|https?:|file:|\.{0,2}\/)|@\s*([a-z]+\+)?(https?|file|ssh):/;
+
+/**
+ * Problemas de um `requirements.txt` gerado com hashes: todo pacote tem versão exata e
+ * ao menos um `--hash=sha256:<64 hex>`, e nada vem de URL, de repositório ou de caminho local.
+ */
+export function problemasDoRequirementsComHashes(texto) {
+  const problemas = [];
+  const linhas = texto.replace(/\r\n/g, "\n").replace(/\\\n\s*/g, " ").split("\n");
+  let pacotes = 0;
+  for (const bruta of linhas) {
+    const linha = bruta.trim();
+    if (linha === "" || linha.startsWith("#")) continue;
+    if (ORIGEM_FORA_DO_PYPI.test(linha)) {
+      problemas.push(`origem que não é o PyPI por hash: ${linha.slice(0, 60)}`);
+      continue;
+    }
+    if (linha.startsWith("-")) {
+      problemas.push(`opção inesperada no arquivo de dependências: ${linha.slice(0, 60)}`);
+      continue;
+    }
+    const m = /^([A-Za-z0-9][A-Za-z0-9._-]*)==([0-9][^\s;]*)(?:\s*;[^\\]*?)?\s+(--hash=sha256:[0-9a-f]{64}(?:\s+--hash=sha256:[0-9a-f]{64})*)\s*$/.exec(linha);
+    if (!m) {
+      problemas.push(`pacote sem versão exata (==) ou sem --hash=sha256 de 64 hexadecimais: ${linha.slice(0, 60)}`);
+      continue;
+    }
+    pacotes++;
+  }
+  if (pacotes === 0) problemas.push("o arquivo não tem nenhum pacote");
+  return problemas;
+}
+
+test("DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado", () => {
+  const w = workflowSemComentarios();
+  const pips = comandosPipDoWorkflow(w);
+  assert.ok(pips.length >= 1, "o workflow instala o Semgrep com pip");
+  for (const c of pips) {
+    assert.match(c, /--require-hashes/, `pip sem --require-hashes: ${c}`);
+    assert.match(c, /-r \.semgrep\/requirements\.txt\b/, `pip precisa ler o arquivo travado: ${c}`);
+    assert.match(c, /--only-binary=:all:/, `sdist rodaria código de build sem hash: ${c}`);
+    assert.match(c, /--no-deps/, `o arquivo já traz a árvore inteira: ${c}`);
+    assert.doesNotMatch(c, /\bsemgrep==|\bsetuptools[<=>]/, `pacote avulso no comando (fora do arquivo com hash): ${c}`);
+  }
+  assert.match(w, /semgrep --version \| grep -Fx "\$\{SEMGREP_VERSION\}"/, "confere que a versão instalada é a fixada");
+});
+
+test("DV-15: .semgrep/requirements.txt tem hash em todo pacote, é gerado do .in e a versão do Semgrep bate com a do workflow", () => {
+  const txt = lerTexto(".semgrep/requirements.txt");
+  assert.deepEqual(problemasDoRequirementsComHashes(txt), []);
+  assert.match(txt, /^# This file was autogenerated by uv via the following command:\n#\s+uv pip compile \.semgrep\/requirements\.in .*--generate-hashes/m,
+    "o cabeçalho traz o comando que reproduz o arquivo");
+  assert.match(txt, /--python-version 3\.11\b/, "gerado para o Python do CI (3.11)");
+  assert.match(txt, /--exclude-newer \d{4}-\d{2}-\d{2}/, "a data de corte torna a geração reproduzível");
+  const versao = /SEMGREP_VERSION:\s*"(\d+\.\d+\.\d+)"/.exec(lerTexto(".github/workflows/sast.yml"))?.[1];
+  assert.ok(versao);
+  const v = versao.replace(/\./g, "\\.");
+  assert.match(txt, new RegExp(`^semgrep==${v} \\\\$`, "m"), "semgrep no arquivo travado = SEMGREP_VERSION");
+  assert.match(lerTexto(".semgrep/requirements.in"), new RegExp(`^semgrep==${v}$`, "m"));
+  assert.match(txt, /^setuptools==80\./m, "setuptools abaixo da 81 (pkg_resources) também está no arquivo");
+});
+
+test("DV-15: o verificador de requirements com hash morde (sem hash, sem versão exata, URL, hash curto)", () => {
+  const h = "a".repeat(64);
+  assert.deepEqual(problemasDoRequirementsComHashes(`attrs==26.1.0 \\\n    --hash=sha256:${h} \\\n    --hash=sha256:${"b".repeat(64)}\n    # via x\n`), []);
+  assert.match(problemasDoRequirementsComHashes("attrs==26.1.0\n").join("|"), /--hash/);
+  assert.match(problemasDoRequirementsComHashes(`attrs>=26 \\\n    --hash=sha256:${h}\n`).join("|"), /sem versão exata/);
+  assert.match(problemasDoRequirementsComHashes("attrs==26.1.0 \\\n    --hash=sha256:abc123\n").join("|"), /64 hexadecimais/);
+  assert.match(problemasDoRequirementsComHashes("git+https://example.org/x.git\n").join("|"), /não é o PyPI/);
+  assert.match(problemasDoRequirementsComHashes(`x @ https://example.org/x.whl \\\n    --hash=sha256:${h}\n`).join("|"), /não é o PyPI/);
+  assert.match(problemasDoRequirementsComHashes("# só comentário\n").join("|"), /nenhum pacote/);
+  // O comando antigo do workflow (sem hash) é achado pelo extrator.
+  assert.deepEqual(comandosPipDoWorkflow('python -m pip install "semgrep==1.0.0" "setuptools<81"\n'), ['python -m pip install "semgrep==1.0.0" "setuptools<81"']);
 });
 
 /** Os passos do job, cada um com o texto do bloco (sem comentários). */
@@ -279,60 +362,88 @@ test("o ruleset exige o nome de exibição do job de SAST, então o nome é cont
   assert.match(lerTexto(".github/workflows/sast.yml"), /^    name: SAST \(Semgrep\)$/m);
 });
 
-// ---- E20: exceções do scan de imagens (Trivy) -----------------------------------
+// ---- E20 e DV-22: exceções do scan de imagens (Trivy), em .trivyignore.yaml ------
 
-const BOA_TRIVY = "CVE-2026-0001 exp:2026-12-15 # motivo: pacote do npm embutido na imagem base, que não roda em produção; dono: Rafael";
+const NPM_EMBUTIDO = "usr/local/lib/node_modules/npm/**";
+const MOTIVO_TRIVY = "motivo: pacote do npm embutido na imagem base, que não roda em produção; dono: Rafael";
 
-test("trivyignore: linha completa e vigente, comentário e linha em branco são aceitos", () => {
-  assert.deepEqual(analisarTrivyignore(`# cabeçalho livre\n\n${BOA_TRIVY}\n`, HOJE), []);
+/** Uma entrada boa do `.trivyignore.yaml`, com campos substituíveis para os casos negativos. */
+function entradaTrivy({ id = "CVE-2026-0001", paths = [NPM_EMBUTIDO], statement = MOTIVO_TRIVY, exp = "2026-12-15" } = {}) {
+  const linhas = [`  - id: ${id}`];
+  if (paths !== null) {
+    linhas.push("    paths:");
+    for (const p of paths) linhas.push(`      - "${p}"`);
+  }
+  if (statement !== null) linhas.push(`    statement: "${statement}"`);
+  if (exp !== null) linhas.push(`    expired_at: ${exp}`);
+  return linhas.join("\n");
+}
+const arquivoTrivy = (...entradas) => `# cabeçalho livre\n\nvulnerabilities:\n${entradas.join("\n")}\n`;
+const problemasTrivy = (texto, hoje = HOJE) => analisarTrivyignoreYaml(texto, hoje).map((x) => x.problema).join("|");
+
+test("trivyignore.yaml: entrada completa e vigente, comentário e linha em branco são aceitos", () => {
+  assert.deepEqual(analisarTrivyignoreYaml(arquivoTrivy(entradaTrivy()), HOJE), []);
+  assert.deepEqual(analisarTrivyignoreYaml(arquivoTrivy(entradaTrivy(), entradaTrivy({ id: "CVE-2026-0002", paths: [NPM_EMBUTIDO, "usr/local/lib/node_modules/npm/node_modules/x/package.json"] })), HOJE), []);
 });
 
-test("trivyignore: sem motivo, sem dono ou sem prazo reprova, e diz o quê", () => {
-  const v = analisarTrivyignore("CVE-2026-0002\n", HOJE).map((x) => x.problema);
-  assert.equal(v.length, 3);
-  assert.match(v.join("|"), /falta o motivo/);
-  assert.match(v.join("|"), /falta o dono/);
-  assert.match(v.join("|"), /falta a data de vencimento \(exp:AAAA-MM-DD\)/);
-  const semPrazo = analisarTrivyignore("CVE-2026-0002 # motivo: pacote do npm embutido na imagem base; dono: Rafael", HOJE);
-  assert.equal(semPrazo.length, 1);
-  assert.match(semPrazo[0].problema, /falta a data/);
+test("trivyignore.yaml: sem motivo, sem dono ou sem prazo reprova, e diz o quê", () => {
+  const v = problemasTrivy(arquivoTrivy(entradaTrivy({ statement: null, exp: null })));
+  assert.match(v, /falta o motivo/);
+  assert.match(v, /falta o dono/);
+  assert.match(v, /falta a data de vencimento \(expired_at: AAAA-MM-DD\)/);
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ exp: null }))), /falta a data/);
 });
 
-test("trivyignore: motivo curto, data impossível e prazo de mais de um ano reprovam", () => {
-  const com = (extra) => analisarTrivyignore(`CVE-2026-0003 ${extra}`, HOJE).map((x) => x.problema).join("|");
-  assert.match(com("exp:2026-12-15 # motivo: ok; dono: Rafael"), /motivo curto demais/);
-  assert.match(com("exp:2026-02-31 # motivo: pacote do npm embutido na imagem base; dono: Rafael"), /inválida/);
-  assert.match(com("exp:2099-01-01 # motivo: pacote do npm embutido na imagem base; dono: Rafael"), /passa de 366/);
+test("trivyignore.yaml: motivo curto, data impossível e prazo de mais de um ano reprovam", () => {
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ statement: "motivo: ok; dono: Rafael" }))), /motivo curto demais/);
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ exp: "2026-02-31" }))), /inválida/);
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ exp: "2099-01-01" }))), /passa de 366/);
 });
 
-test("trivyignore: linha vencida reprova, e o próprio dia do exp: já conta como sem efeito (o exp: do Trivy é exclusivo)", () => {
-  const com = (data) => analisarTrivyignore(
-    `CVE-2026-0004 exp:${data} # motivo: pacote do npm embutido na imagem base; dono: Rafael`, HOJE);
+test("trivyignore.yaml: entrada vencida reprova, e o próprio dia do expired_at já conta como sem efeito (é exclusivo no Trivy)", () => {
+  const com = (data) => analisarTrivyignoreYaml(arquivoTrivy(entradaTrivy({ exp: data })), HOJE);
   assert.match(com("2026-10-23")[0].problema, /vencida em 2026-10-23/);
   assert.match(com(HOJE)[0].problema, /deixa de ignorar a partir do próprio dia/);
   assert.deepEqual(com("2026-10-25"), [], "amanhã ainda vale");
 });
 
-test("trivyignore: ID repetido e linha fora do formato reprovam (nada é ignorado em silêncio)", () => {
-  const v = analisarTrivyignore(`${BOA_TRIVY}\n${BOA_TRIVY}\nlixo com espaço\n`, HOJE);
-  assert.match(v.map((x) => x.problema).join("|"), /CVE-2026-0001 repetido \(primeira vez na linha 1\)/);
-  const fora = v.find((x) => x.linha === 3);
-  assert.match(fora.problema, /fora do formato/);
+test("trivyignore.yaml: ID repetido, chave desconhecida e linha fora do formato reprovam (nada é ignorado em silêncio)", () => {
+  const repetido = analisarTrivyignoreYaml(arquivoTrivy(entradaTrivy(), entradaTrivy()), HOJE);
+  assert.match(repetido.map((x) => x.problema).join("|"), /CVE-2026-0001 repetido/);
+  // `purls` e `statuses` são portas de exceção do Trivy que a política não conhece.
+  const comPurl = `${entradaTrivy()}\n    purls:\n      - "pkg:npm/brace-expansion"`;
+  assert.match(problemasTrivy(arquivoTrivy(comPurl)), /chave `purls` não é aceita/);
+  assert.match(problemasTrivy(arquivoTrivy(`${entradaTrivy()}\n    statuses: [affected]`)), /chave `statuses` não é aceita/);
+  assert.match(problemasTrivy(arquivoTrivy(`${entradaTrivy()}\nlixo com espaço`)), /fora do formato/);
+  // Outras chaves do topo (misconfigurations, secrets, licenses) abririam outra porta.
+  assert.match(problemasTrivy(`secrets:\n  - id: aws-access-key-id\nvulnerabilities:\n${entradaTrivy()}\n`), /só a chave `vulnerabilities:`/);
+  assert.match(problemasTrivy(""), /falta a chave `vulnerabilities:`/);
 });
 
-test("o .trivyignore da raiz existe e toda linha dele tem ID, motivo, dono e prazo vigente", () => {
-  assert.equal(existsSync(join(RAIZ, ".trivyignore")), true, ".trivyignore na raiz (mesmo vazio, é onde mora a política)");
-  const violacoes = analisarTrivyignore(lerTexto(".trivyignore"), hojeEmIso());
+test("trivyignore.yaml (DV-22): entrada sem caminho ou com caminho largo demais reprova", () => {
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ paths: null }))), /falta paths/);
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ paths: [] }))), /falta paths/);
+  for (const largo of ["**", "*", "usr/**", "usr/local/lib/node_modules/**", "app/node_modules/brace-expansion/package.json", "/usr/local/lib/node_modules/npm/**", "usr/local/lib/node_modules/npm/../../../../app/x"]) {
+    assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ paths: [largo] }))), /caminho|barra inicial|\.\./, `deveria reprovar: ${largo}`);
+  }
+  // Um caminho bom junto de um ruim reprova do mesmo jeito.
+  assert.match(problemasTrivy(arquivoTrivy(entradaTrivy({ paths: [NPM_EMBUTIDO, "app/**"] }))), /fora de/);
+});
+
+test("o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente", () => {
+  assert.equal(existsSync(join(RAIZ, ".trivyignore.yaml")), true, ".trivyignore.yaml na raiz (é onde mora a política)");
+  assert.equal(existsSync(join(RAIZ, ".trivyignore")), false, "o .trivyignore por linha vale por ID na imagem inteira (DV-22): não pode voltar");
+  const violacoes = analisarTrivyignoreYaml(lerTexto(".trivyignore.yaml"), hojeEmIso());
   assert.deepEqual(
-    violacoes.map((v) => `.trivyignore:${v.linha} ${v.problema}`),
+    violacoes.map((v) => `.trivyignore.yaml:${v.linha} ${v.problema}`),
     [],
-    "exceção do Trivy fora da política (ID, motivo, dono e prazo vigente): corrija a linha, renove com decisão ou apague",
+    "exceção do Trivy fora da política (ID, caminho, motivo, dono e prazo vigente): corrija a entrada, renove com decisão ou apague",
   );
-});
-
-test("o .trivyignore não esconde achado de forma genérica: toda linha de dados tem ID, exp, motivo e dono", () => {
-  const linhas = lerTexto(".trivyignore").split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
-  for (const l of linhas) assert.match(l, /^\S+ exp:\d{4}-\d{2}-\d{2} # motivo: .+; dono: .+$/, l);
+  const texto = lerTexto(".trivyignore.yaml");
+  const ids = [...texto.matchAll(/^ {2}- id: (\S+)$/gm)].map((m) => m[1]);
+  assert.equal(ids.length, 9, "as nove CVEs da triagem inicial do npm embutido");
+  assert.equal((texto.match(/^ {6}- "usr\/local\/lib\/node_modules\/npm\/\*\*"$/gm) ?? []).length, 9, "cada uma restrita ao npm embutido");
+  assert.doesNotMatch(texto.replace(/^\s*#.*$/gm, ""), /purls|statuses/);
 });
 
 // ---- E20: o script e os workflows ------------------------------------------------
@@ -352,7 +463,7 @@ test("varrer-imagem.sh fixa a versão do Trivy com SHA-256 e usa a régua da eta
   assert.match(t, /--ignore-unfixed/);
   assert.match(t, /--ignorefile "\$ARQUIVO_DE_EXCECOES"/);
   assert.match(t, /--exit-code 1/, "o portão reprova com código 1");
-  assert.doesNotMatch(t, /--skip-(files|dirs)|--ignore-policy|--severity (LOW|MEDIUM|UNKNOWN)/, "nenhum atalho fora do .trivyignore");
+  assert.doesNotMatch(t, /--skip-(files|dirs)|--ignore-policy|--severity (LOW|MEDIUM|UNKNOWN)/, "nenhum atalho fora do .trivyignore.yaml");
   assert.doesNotMatch(t, /secrets\.|_TOKEN/, "o scan não recebe segredo");
 });
 
@@ -379,14 +490,14 @@ exit 9
   return caminho;
 }
 
-function rodarVarrer({ scan = 0, convert = 0, excecoes = true } = {}) {
+function rodarVarrer({ scan = 0, convert = 0, excecoes = true, nomeDoArquivo = ".trivyignore.yaml" } = {}) {
   const pasta = mkdtempSync(join(tmpdir(), "dc360-varrer-"));
   try {
     const trivy = trivyDeMentira(pasta);
     const saida = join(pasta, "saida");
     mkdirSync(saida);
-    const arquivo = join(pasta, ".trivyignore");
-    if (excecoes) writeFileSync(arquivo, "");
+    const arquivo = join(pasta, nomeDoArquivo);
+    if (excecoes) writeFileSync(arquivo, "vulnerabilities:\n");
     const r = spawnSync("bash", [join(RAIZ, SCRIPT_TRIVY), "varrer", trivy, saida, "api", "dc360-api:ci"], {
       encoding: "utf8",
       env: {
@@ -426,6 +537,15 @@ test("varrer-imagem.sh: Trivy que não consegue varrer sai 2, nunca verde", { sk
   const r = rodarVarrer({ scan: 1 });
   assert.equal(r.codigo, 2, r.saida);
   assert.match(r.saida, /não conseguiu varrer/);
+});
+
+test("varrer-imagem.sh (DV-22): arquivo de exceções que não é YAML (o .trivyignore por linha, sem caminho) não roda", { skip: WINDOWS && "script em bash" }, () => {
+  const r = rodarVarrer({ nomeDoArquivo: ".trivyignore" });
+  assert.equal(r.codigo, 2, r.saida);
+  assert.match(r.saida, /precisa ser YAML/);
+  assert.equal(r.chamadas, "", "nem chegou a chamar o Trivy");
+  // E o padrão do script é o YAML da raiz.
+  assert.match(lerTexto(SCRIPT_TRIVY), /TRIVY_ARQUIVO_DE_EXCECOES:-\$RAIZ_DO_REPOSITORIO\/\.trivyignore\.yaml\}/);
 });
 
 test("varrer-imagem.sh: sem o arquivo de exceções a varredura não roda", { skip: WINDOWS && "script em bash" }, () => {

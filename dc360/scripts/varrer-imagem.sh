@@ -26,12 +26,19 @@
 #   --ignore-unfixed         só o que tem correção publicada (a "correção
 #                            disponível" do critério): CVE sem correção não é
 #                            algo que o time possa resolver, e vira ruído;
-#   --ignorefile .trivyignore a ÚNICA porta de exceção. Cada linha tem
-#                            id, motivo, dono e prazo, e o teste
-#                            `excecoes-de-seguranca.test.mjs` reprova a que
-#                            não tem ou que venceu. O próprio Trivy também
-#                            deixa de ignorar a linha vencida (`exp:`), então
-#                            o scan volta a reprovar sozinho.
+#   --ignorefile .trivyignore.yaml
+#                            a ÚNICA porta de exceção, e em YAML de propósito
+#                            (DV-22): cada entrada tem id, `paths` (o arquivo do
+#                            pacote afetado, restrito ao npm embutido na imagem
+#                            base), motivo, dono e prazo, e a mesma CVE em outro
+#                            lugar da imagem continua reprovando. O teste
+#                            `excecoes-de-seguranca.test.mjs` reprova a entrada
+#                            que não tem isso ou que venceu. O próprio Trivy
+#                            também deixa de ignorar a entrada vencida
+#                            (`expired_at`), então o scan volta a reprovar sozinho.
+#                            Este script recusa um arquivo que não seja .yaml/.yml:
+#                            o formato por linha (`.trivyignore`) vale por ID na
+#                            imagem inteira.
 #
 # Para subir a versão do Trivy: troque TRIVY_VERSAO e TRIVY_SHA256 juntos, com o
 # hash de `trivy_<versão>_checksums.txt` do release, linha `Linux-64bit.tar.gz`.
@@ -47,7 +54,7 @@ TRIVY_SHA256="c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
 
 RAIZ_DO_REPOSITORIO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Quem chama pode apontar outro arquivo (os testes usam isso); o padrão é o da raiz.
-ARQUIVO_DE_EXCECOES="${TRIVY_ARQUIVO_DE_EXCECOES:-$RAIZ_DO_REPOSITORIO/.trivyignore}"
+ARQUIVO_DE_EXCECOES="${TRIVY_ARQUIVO_DE_EXCECOES:-$RAIZ_DO_REPOSITORIO/.trivyignore.yaml}"
 GRAVIDADES="CRITICAL,HIGH"
 
 # Sem verificação de versão nova e sem telemetria: nada além do banco de
@@ -87,6 +94,13 @@ varrer() {
     echo "::error::arquivo de exceções ausente: $ARQUIVO_DE_EXCECOES (a política de exceção mora nele, mesmo vazio)" >&2
     return 2
   fi
+  case "$ARQUIVO_DE_EXCECOES" in
+    *.yaml|*.yml) ;;
+    *)
+      echo "::error::o arquivo de exceções precisa ser YAML (.yaml ou .yml), com \`paths\` por entrada: $ARQUIVO_DE_EXCECOES" >&2
+      return 2
+      ;;
+  esac
   mkdir -p "$saida"
   local json="$saida/$nome.json"
 

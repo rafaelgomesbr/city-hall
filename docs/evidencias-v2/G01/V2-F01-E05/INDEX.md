@@ -21,3 +21,15 @@
 | saidas/16-conferir-numeros.txt | 0d5dfeb1cecb767462cefeb76f13c5b047fffea6773d9eb221f47cec24b88e84 |
 | saidas/17-regras-de-conteudo.txt | 28e8ed7b5514194cdaa5d2f183dcf693619984f1ea72a170f22e7bcef4a3afa9 |
 | saidas/18-relatorio-do-registro.txt | c37e46f0caf06010cb553a374cddd38aebd350ad6326d63f4368d76cb1ab8704 |
+| divida-DV-15/RESUMO.md | cf9d009acc3eeadd055f2c40c26786a0072978351db81445c3e26446ea5a9746 |
+| divida-DV-15/saidas/01-arquivo-travado.txt | ff9592d29189d8df34f94c8cfe272221d986140e0b8d123fd2f10d6854290bdb |
+| divida-DV-15/saidas/02-regerar-e-comparar.txt | b1e91f5bad790421fa2d7e94f95254c4181dc08bfcce4266ca22bfa4d62c5e35 |
+| divida-DV-15/saidas/03-pip-require-hashes-linux-py311.txt | b229287dcc817641206872c0dbaa6c893de111e3c150ae2350e08417bd04c894 |
+| divida-DV-15/saidas/04-hash-adulterado-e-recusado.txt | 605b78582a9a4250321354edc743185f164cf5423809f0a84773bd4091875032 |
+| divida-DV-15/saidas/05-semgrep-do-arquivo-travado-roda-os-testes.txt | b7a095fe9036b1be460eef7f4b72e2299e0ec525b108dd61cafb4ab5ca18ff91 |
+| divida-DV-15/saidas/06-testes-e-mordida.txt | def19ec8dc899226407e40207eccb3a6838bf19af596a75562095e926a54e2ff |
+| divida-DV-16/RESUMO.md | 4aa2a0eb717e3281bbb50cf25318cacbb028c50502b3d74b4b8c63ba22c7a3ce |
+| divida-DV-16/saidas/01-semgrep-real-erro-de-sintaxe-em-warn.txt | 71107a5f456711ceaa58fee05305ed52bf053f9daff5a803faebd40946451deb |
+| divida-DV-16/saidas/02-antes-aprova-com-arquivo-sem-analise.txt | d0caa80208b6aff1b9318ee44d7b961e204b93fc37f8cb56be5a91f88d7a8439 |
+| divida-DV-16/saidas/03-depois-reprova-e-o-repositorio-real-continua-aprovado.txt | 2c3bfa6232aa809285fcbcf1501217c422b6cef27067851374cf7dbf348ec791 |
+| divida-DV-16/saidas/04-sast-baseline-test.txt | 45d82c0a0d5ef1eba1bc573e566dee311c611217d8b4eb1817d9608ef4df338e |

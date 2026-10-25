@@ -1,0 +1,83 @@
+# Exceções da varredura de imagens com o Trivy (V2-F01-E20; DV-22 trocou o
+# `.trivyignore` por linha por este arquivo, que vale por CAMINHO).
+#
+# A varredura (job `imagens` do verificar.yml e a agenda semanal de
+# auditoria-semanal.yml) reprova CRITICAL e HIGH que tenham correção publicada.
+# Isto aqui é a ÚNICA porta de exceção. Uma entrada por identificador:
+#
+#   - id: <ID>
+#     paths:
+#       - "<caminho dentro da imagem, sem barra inicial, com glob>"
+#     statement: "motivo: <por que não dá para corrigir agora>; dono: <quem responde>"
+#     expired_at: AAAA-MM-DD
+#
+# - `id` é o identificador do achado (CVE-AAAA-NNNN, GHSA-xxxx-xxxx-xxxx ou outro
+#   que o Trivy imprima na coluna "Vulnerability");
+# - `paths` restringe a exceção ao ARQUIVO do pacote afetado. A mesma CVE num
+#   pacote do app (/app/node_modules/...) NÃO é perdoada: continua reprovando.
+#   Só é aceito caminho que comece por `usr/local/lib/node_modules/npm/` (o npm
+#   embutido na imagem base); para perdoar outro lugar, mude a política em
+#   `dc360/scripts/excecoes-de-seguranca.mjs` de propósito, com o teste;
+# - `expired_at` é o PRIMEIRO dia sem exceção (conferido contra o Trivy 0.75.0:
+#   no próprio dia ele já não ignora). O scan volta a reprovar sozinho. Máximo de
+#   366 dias a partir de hoje, porque exceção não é decisão permanente;
+# - o `statement` tem de explicar (mínimo de 20 caracteres de motivo) e ter dono
+#   que seja uma pessoa, não "time" nem vazio.
+#
+# `dc360/scripts/excecoes-de-seguranca.test.mjs` (roda no `npm run test:scripts`)
+# reprova entrada sem motivo, sem dono, sem prazo, sem caminho, com caminho largo
+# demais, vencida, repetida ou com prazo longo demais. Para renovar, escreva a nova
+# data E o porquê; para encerrar, apague a entrada.
+#
+# Triagem inicial de 2026-10-24: pacotes do npm embutido em
+# /usr/local/lib/node_modules/npm da imagem base node:22-bookworm-slim. O npm
+# nunca roda na imagem de produção (o processo é `node`), e a correção chega
+# com a próxima imagem base do Node (o Dependabot propõe a troca de tag e
+# digest). Rafael revê a triagem.
+
+vulnerabilities:
+  - id: CVE-2026-102276
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-102278
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-13149
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-14257
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-69152
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-69192
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-9496
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-33671
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15
+  - id: CVE-2026-48815
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: pacote do npm embutido na imagem base node:22-bookworm-slim, que o processo de produção nunca executa; dono: Rafael"
+    expired_at: 2026-12-15

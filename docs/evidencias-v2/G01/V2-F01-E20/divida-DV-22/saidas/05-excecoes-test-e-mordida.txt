@@ -1,0 +1,25 @@
+# excecoes-de-seguranca.test.mjs
+✔ trivyignore.yaml: entrada completa e vigente, comentário e linha em branco são aceitos (0.503416ms)
+✔ trivyignore.yaml: sem motivo, sem dono ou sem prazo reprova, e diz o quê (0.10425ms)
+✔ trivyignore.yaml: motivo curto, data impossível e prazo de mais de um ano reprovam (0.090625ms)
+✔ trivyignore.yaml: entrada vencida reprova, e o próprio dia do expired_at já conta como sem efeito (é exclusivo no Trivy) (0.084125ms)
+✔ trivyignore.yaml: ID repetido, chave desconhecida e linha fora do formato reprovam (nada é ignorado em silêncio) (0.135334ms)
+✔ trivyignore.yaml (DV-22): entrada sem caminho ou com caminho largo demais reprova (0.2095ms)
+✔ o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente (0.448875ms)
+✔ varrer-imagem.sh fixa a versão do Trivy com SHA-256 e usa a régua da etapa (0.224125ms)
+✔ varrer-imagem.sh: imagem limpa sai 0, e o Trivy recebe a régua inteira e o arquivo de exceções (353.679417ms)
+✔ varrer-imagem.sh: achado de CRITICAL ou HIGH com correção reprova com código 1 (265.869834ms)
+✔ varrer-imagem.sh: Trivy que não consegue varrer sai 2, nunca verde (244.315292ms)
+✔ varrer-imagem.sh (DV-22): arquivo de exceções que não é YAML (o .trivyignore por linha, sem caminho) não roda (64.245334ms)
+✔ varrer-imagem.sh: sem o arquivo de exceções a varredura não roda (60.22925ms)
+✔ varrer-imagem.sh: checksum que não bate interrompe a instalação antes de extrair (201.283334ms)
+✔ varrer-imagem.sh instalar: o stdout é UMA linha, só o caminho do binário (o workflow o grava em $GITHUB_ENV) (834.616791ms)
+✔ varrer-imagem.sh instalar: a trava do stdout morde (sem o redirecionamento da conferência, o teste reprova) (758.5085ms)
+ℹ tests 48
+ℹ pass 48
+ℹ fail 0
+## mordida: criar um .trivyignore na raiz (o formato antigo, por ID) faz o teste reprovar
+ℹ fail 1
+ℹ pass 47
+✖ failing tests:
+✖ o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente (0.518708ms)

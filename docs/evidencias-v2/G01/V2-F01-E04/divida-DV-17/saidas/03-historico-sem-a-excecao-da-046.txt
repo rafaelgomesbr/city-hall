@@ -1,0 +1,12 @@
+# Mesma varredura SEM a excecao da 046 (copia da config sem os blocos da 046): mostra o que ela perdoa
+4:01AM INF 321 commits scanned.
+4:01AM INF scanned ~71525483 bytes (71.53 MB) in 9.36s
+4:01AM WRN leaks found: 6
+codigo de saida: 1
+## achados (regra, arquivo, linha inicial, linha final), valores nunca impressos
+generic-api-key dc360/db/src/regras-de-migracao.ts 79-80
+generic-api-key docs/evidencias-v2/G00/V2-F00-E10/correcao-3/saidas/42-migracao-051-por-cima-de-banco-existente.txt 2-2
+generic-api-key docs/evidencias-v2/G00/V2-F00-E10/correcao-3/saidas/42-migracao-051-por-cima-de-banco-existente.txt 3-3
+generic-api-key docs/evidencias-v2/G00/V2-F00-E10/correcao-3/saidas/42-migracao-051-por-cima-de-banco-existente.txt 4-4
+generic-api-key docs/evidencias-v2/G00/V2-F00-E25/saidas/03-migrar-origem.txt 56-56
+generic-api-key docs/evidencias-v2/G00/V2-F00-E07/saidas/20-migrar-do-zero.txt 56-56

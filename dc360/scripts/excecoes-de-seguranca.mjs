@@ -115,50 +115,129 @@ export function analisarArquivo(texto, hoje) {
 }
 
 /**
- * Exceções da varredura de imagens (Trivy), arquivo `.trivyignore` da raiz
- * (V2-F01-E20). Uma linha por achado, no formato
+ * Exceções da varredura de imagens (Trivy), arquivo `.trivyignore.yaml` da raiz
+ * (V2-F01-E20; DV-22 trocou o `.trivyignore` por linha, que valia por
+ * identificador na imagem INTEIRA, por este, que vale por CAMINHO). Uma entrada
+ * por identificador:
  *
- *   <ID> exp:AAAA-MM-DD # motivo: <texto>; dono: <nome>
+ *   vulnerabilities:
+ *     - id: CVE-AAAA-NNNN
+ *       paths:
+ *         - "usr/local/lib/node_modules/npm/**"
+ *       statement: "motivo: <texto>; dono: <nome>"
+ *       expired_at: AAAA-MM-DD
  *
- * É o formato nativo do Trivy (ID, `exp:` e comentário depois de `#`, que ele
- * ignora): o Trivy deixa de ignorar a linha NO DIA do `exp:` (a data é o
- * primeiro dia sem exceção, conferido na etapa), e este
- * leitor confere o resto, que ele não confere: motivo de verdade, dono, prazo
- * obrigatório e no máximo um ano, e nenhum ID repetido. Linha de comentário
- * inteira (`#`) e linha em branco são livres. Qualquer outra coisa reprova, em
- * vez de ser ignorada em silêncio.
+ * É o formato nativo do Trivy: `paths` casa com o arquivo do pacote afetado
+ * (`PkgPath` do relatório), então a mesma CVE num pacote do app não é perdoada.
+ * O `expired_at` é EXCLUSIVO (conferido contra o Trivy 0.75.0 na DV-22: no próprio
+ * dia da data ele já não ignora). Este leitor confere o que o Trivy não confere:
+ * motivo de verdade, dono, prazo obrigatório e no máximo um ano, nenhum ID
+ * repetido, caminho obrigatório e só dentro de `CAMINHOS_PERMITIDOS`, sem `..`.
+ * Só o subconjunto acima é aceito: qualquer outra chave ou linha reprova, em vez de
+ * ser ignorada em silêncio (outra chave do Trivy, como `purls` ou `statuses`,
+ * abriria outra porta de exceção sem motivo e sem caminho).
  */
-const LINHA_TRIVYIGNORE = /^([A-Za-z0-9][A-Za-z0-9._-]*)(?:[ \t]+exp:(\S+))?[ \t]*(?:#[ \t]*(.*))?$/;
+export const CAMINHOS_PERMITIDOS = ["usr/local/lib/node_modules/npm/"];
 
-export function analisarTrivyignore(texto, hoje) {
+/** Caminho de exceção: relativo (sem barra inicial), dentro de um prefixo permitido e sem `..`. */
+export function problemaDoCaminhoDaExcecao(caminho) {
+  if (typeof caminho !== "string" || caminho.trim() === "") return "caminho vazio";
+  if (caminho.startsWith("/")) return `caminho com barra inicial: "${caminho}" (o Trivy compara sem ela)`;
+  if (caminho.split("/").includes("..")) return `caminho com "..": "${caminho}"`;
+  if (!CAMINHOS_PERMITIDOS.some((p) => caminho.startsWith(p))) {
+    return `caminho "${caminho}" fora de ${CAMINHOS_PERMITIDOS.map((p) => `"${p}"`).join(", ")} (o npm embutido na imagem base): ampliar é decisão, com a política e o teste mudados juntos`;
+  }
+  return null;
+}
+
+const CHAVES_DA_ENTRADA = new Set(["paths", "statement", "expired_at"]);
+
+/** Tira as aspas de um escalar YAML simples (`"texto"`, `'texto'` ou sem aspas). */
+function escalarYaml(texto) {
+  const v = texto.trim();
+  const m = /^"((?:[^"\\]|\\.)*)"$/.exec(v) ?? /^'((?:[^']|'')*)'$/.exec(v);
+  return m ? m[1] : v;
+}
+
+export function analisarTrivyignoreYaml(texto, hoje) {
   const violacoes = [];
   const vistos = new Map();
+  let entrada = null;
+  let noCabecalho = false;
+  let lendoPaths = false;
+
+  const fechar = () => {
+    if (!entrada) return;
+    const { linha, id, paths, statement, expired_at: exp } = entrada;
+    const nome = id ?? `entrada da linha ${linha}`;
+    if (!id) violacoes.push({ linha, problema: "entrada sem id" });
+    else if (vistos.has(id)) violacoes.push({ linha, problema: `${id} repetido (primeira vez na linha ${vistos.get(id)})` });
+    else vistos.set(id, linha);
+    if (!paths || paths.length === 0) {
+      violacoes.push({ linha, problema: `${nome}: falta paths (sem caminho a exceção valeria para a imagem inteira)` });
+    } else {
+      for (const c of paths) {
+        const p = problemaDoCaminhoDaExcecao(c);
+        if (p) violacoes.push({ linha, problema: `${nome}: ${p}` });
+      }
+    }
+    const { motivo, dono } = lerCamposDaExcecao(statement ?? "");
+    const problemas = problemasDaExcecao({ motivo, dono, ate: exp }, hoje)
+      .map((x) => x.replace("(ate: AAAA-MM-DD)", "(expired_at: AAAA-MM-DD)"));
+    // Conferido contra o Trivy 0.75.0 (DV-22): `expired_at` é EXCLUSIVO, como o `exp:` antigo.
+    if (exp === hoje) problemas.push(`o Trivy deixa de ignorar a partir do próprio dia ${exp} (expired_at é exclusivo): renove ou apague`);
+    for (const x of problemas) violacoes.push({ linha, problema: `${nome}: ${x}` });
+    entrada = null;
+  };
+
   texto.split(/\r?\n/).forEach((bruta, i) => {
-    const linha = bruta.trim();
-    if (linha === "" || linha.startsWith("#")) return;
     const n = i + 1;
-    const achou = LINHA_TRIVYIGNORE.exec(linha);
-    if (!achou) {
-      violacoes.push({
-        linha: n,
-        problema: "linha fora do formato: use `<ID> exp:AAAA-MM-DD # motivo: ...; dono: ...`",
-      });
+    if (bruta.trim() === "" || bruta.trim().startsWith("#")) return;
+    if (/^vulnerabilities:\s*$/.test(bruta)) {
+      noCabecalho = true;
+      lendoPaths = false;
       return;
     }
-    const [, id, exp, comentario = ""] = achou;
-    if (vistos.has(id)) {
-      violacoes.push({ linha: n, problema: `${id} repetido (primeira vez na linha ${vistos.get(id)})` });
-    } else {
-      vistos.set(id, n);
+    if (!noCabecalho) {
+      violacoes.push({ linha: n, problema: "só a chave `vulnerabilities:` é aceita no topo (outras chaves do Trivy abririam outra porta de exceção)" });
+      return;
     }
-    const { motivo, dono } = lerCamposDaExcecao(comentario);
-    const problemas = problemasDaExcecao({ motivo, dono, ate: exp }, hoje)
-      .map((p) => p.replace("(ate: AAAA-MM-DD)", "(exp:AAAA-MM-DD)"));
-    // Conferido contra o Trivy 0.75.0: o `exp:` é EXCLUSIVO. No dia da data ele já
-    // não ignora o achado, então a linha "vence hoje" já está sem efeito no scan.
-    if (exp === hoje) problemas.push(`o Trivy deixa de ignorar a partir do próprio dia ${exp} (exp: é exclusivo): renove ou apague`);
-    for (const p of problemas) violacoes.push({ linha: n, problema: `${id}: ${p}` });
+    let m;
+    if ((m = /^ {2}- id:\s*(\S.*?)\s*$/.exec(bruta))) {
+      fechar();
+      entrada = { linha: n, id: escalarYaml(m[1]) };
+      lendoPaths = false;
+      return;
+    }
+    if (!entrada) {
+      violacoes.push({ linha: n, problema: "linha fora do formato: cada entrada começa em `  - id: <ID>`" });
+      return;
+    }
+    if (lendoPaths && (m = /^ {6}- (\S.*?)\s*$/.exec(bruta))) {
+      entrada.paths.push(escalarYaml(m[1]));
+      return;
+    }
+    if ((m = /^ {4}([a-z_]+):\s*(.*?)\s*$/.exec(bruta))) {
+      const [, chave, valor] = m;
+      lendoPaths = false;
+      if (!CHAVES_DA_ENTRADA.has(chave)) {
+        violacoes.push({ linha: n, problema: `chave \`${chave}\` não é aceita (use paths, statement e expired_at)` });
+      } else if (chave === "paths") {
+        if (entrada.paths) violacoes.push({ linha: n, problema: "chave `paths` repetida na mesma entrada" });
+        entrada.paths ??= [];
+        if (valor !== "") violacoes.push({ linha: n, problema: "paths é uma lista, um caminho por linha (`      - \"caminho\"`)" });
+        lendoPaths = true;
+      } else if (chave in entrada) {
+        violacoes.push({ linha: n, problema: `chave \`${chave}\` repetida na mesma entrada` });
+      } else {
+        entrada[chave] = escalarYaml(valor);
+      }
+      return;
+    }
+    violacoes.push({ linha: n, problema: "linha fora do formato (veja o cabeçalho de .trivyignore.yaml)" });
   });
+  fechar();
+  if (!noCabecalho) violacoes.push({ linha: 1, problema: "falta a chave `vulnerabilities:` (arquivo vazio ou fora do formato)" });
   return violacoes;
 }
 

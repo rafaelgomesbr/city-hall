@@ -49,7 +49,7 @@ Regras que valem para todas as linhas:
 
 ## Como as atualizações chegam
 
-O Dependabot abre PR toda segunda-feira de manhã (Brasília), em quatro frentes.
+O Dependabot abre PR toda segunda-feira de manhã (Brasília), em seis frentes.
 Cada PR passa pelos mesmos checks obrigatórios de qualquer outro. **Não há
 auto-merge, em lugar nenhum**: uma pessoa lê o PR e mescla. PR de dependência é
 vetor de cadeia de suprimentos.
@@ -60,6 +60,8 @@ vetor de cadeia de suprimentos.
 | npm, aplicativo de campo | `/dc360/apps/campo` | patch da família do SDK do Expo em **um** PR (`expo-sdk-patch`); o resto (jest, testing library, tipos) como na raiz | major e minor da família do Expo **ignorados** (abaixo); máximo 3 PRs |
 | github-actions | `/` | minor e patch num PR só; major em PR próprio | respeita o SHA completo fixado pela E02 (o Dependabot atualiza o SHA e o comentário da versão juntos) |
 | docker | `/dc360` | imagem base dos `Dockerfile` | major do `node` **ignorado**: subir de 22 para 24 é decisão de plataforma, com ADR |
+| docker-compose | `/dc360` | imagem do Postgres/PostGIS do `compose.yaml` (tag e digest juntos) | major do `postgis/postgis` **ignorado**: trocar a versão do banco exige plano de migração |
+| npm, gerador de SBOM | `/dc360/scripts/sbom-gerador` | o lockfile próprio do `cyclonedx-npm` (DV-27); cada subida é PR próprio | no máximo 2 PRs; a versão do `sbom.yml` muda junto (o teste confere) |
 
 `cooldown` de 7 dias atrasa versão recém-publicada, que é a janela em que
 pacote sequestrado costuma ser detectado e retirado. Atualização de segurança
@@ -136,19 +138,25 @@ pacote é conferido antes de extrair. Subir a versão é trocar `TRIVY_VERSAO` e
 
 **Como se trata um achado.** Primeiro se corrige: subir a base (o Dependabot
 propõe a troca de tag e digest) ou o pacote. Só quando não dá, se escreve uma
-exceção no `.trivyignore` da raiz, uma linha por identificador:
+exceção no `.trivyignore.yaml` da raiz, uma entrada por identificador:
 
-```
-CVE-AAAA-NNNN exp:AAAA-MM-DD # motivo: <por que não dá agora>; dono: <quem responde>
+```yaml
+vulnerabilities:
+  - id: CVE-AAAA-NNNN
+    paths:
+      - "usr/local/lib/node_modules/npm/**"
+    statement: "motivo: <por que não dá agora>; dono: <quem responde>"
+    expired_at: AAAA-MM-DD
 ```
 
-Sem motivo, sem dono, sem prazo, com prazo de mais de 366 dias, vencida ou
-repetida, o teste `excecoes-de-seguranca.test.mjs` reprova (roda no
-`npm run test:scripts`). A data do `exp:` é o primeiro dia **sem** exceção: o
-próprio Trivy volta a reprovar nesse dia. Atenção: a exceção vale para o
-identificador na imagem inteira, não por caminho. Antes de renovar, confira na
-tabela do artefato (`trivy/api.txt`, `trivy/console.txt`) em que caminho o
-achado está.
+A exceção vale por **caminho** (DV-22): `paths` é o arquivo do pacote afetado, e
+só o npm embutido na imagem base (`usr/local/lib/node_modules/npm/`) é aceito. A
+mesma CVE num pacote do app (`app/node_modules/...`) continua reprovando. Sem
+motivo, sem dono, sem prazo, sem caminho, com prazo de mais de 366 dias, vencida
+ou repetida, o teste `excecoes-de-seguranca.test.mjs` reprova (roda no
+`npm run test:scripts`). A data do `expired_at` é o primeiro dia **sem**
+exceção: o próprio Trivy volta a reprovar nesse dia. Para perdoar outro lugar da
+imagem, a política e o teste mudam juntos, de propósito.
 
 O relatório de cada imagem sai no artefato do run em tabela, JSON e SARIF. O
 SARIF não é enviado ao code scanning: isso pede `security-events: write` no job,
@@ -223,6 +231,18 @@ Para conferir um arquivo baixado: `sha256sum --check SHA256SUMS.txt`.
   anexado (`scripts/conferir-sbom.mjs`).
 - **Reprodutível.** Sem timestamp nem número de série (`--output-reproducible`):
   o mesmo lockfile dá o mesmo arquivo, e o SHA-256 só muda quando a árvore muda.
+- **O gerador também é travado (DV-27).** O `cyclonedx-npm` e todas as
+  dependências transitivas dele vêm do lockfile de `dc360/scripts/sbom-gerador/`
+  (`npm ci --ignore-scripts`, com `integrity`), e não de um `npm exec` que
+  resolvia as transitivas na hora. Subir o gerador é trocar a versão em três
+  lugares (`CYCLONEDX_NPM_VERSAO` no `sbom.yml`, o `package.json` e o lockfile
+  dele), o que o `scripts/sbom.test.mjs` confere. A pasta tem frente própria no
+  Dependabot. Ela não está no `npm run auditar` (que cobre a raiz e o aplicativo):
+  o gerador não roda no produto, só na hora do release.
+- **Limite que fica.** O SBOM do aplicativo (667 componentes) tem menos itens que a
+  conferência de licença (731): o gerador usa `npm ls --omit dev`, que exclui
+  `devOptional`, e a licença conta `devOptional` como produção (leitura
+  conservadora). A diferença é de critério, não de perda.
 - Fica para a F25: assinar o SBOM. Fica na E20: varrer vulnerabilidade da imagem.
 
 ## Fora desta etapa
@@ -230,6 +250,7 @@ Para conferir um arquivo baixado: `sha256sum --check SHA256SUMS.txt`.
 Renovate; lint de Dockerfile; DAST; assinatura do SBOM (F25); troca de SDK do
 Expo; correção das advisories atuais (F00-E19); auto-merge.
 
-A imagem `postgis/postgis` do `compose.yaml` e a pasta `docs/relatorios-v2/site`
-(sem lockfile) não estão no Dependabot: banco exige plano de migração, e o site
-de relatórios não é produto.
+A pasta `docs/relatorios-v2/site` (sem lockfile) não está no Dependabot: o site
+de relatórios não é produto. A imagem `postgis/postgis` do `compose.yaml` está
+(frente `docker-compose`, DV-18), com o major ignorado: o banco exige plano de
+migração para trocar de versão.

@@ -1755,8 +1755,9 @@ prova não é prova de ausência.
 
 **Atualização de dependências e auditoria agendada (V2-F01-E06).** Dependência
 chega como PR pequeno: o `.github/dependabot.yml` abre PR toda segunda-feira em
-quatro frentes (npm na raiz, npm no aplicativo de campo, ações do GitHub e
-imagens do Docker), sempre com os checks obrigatórios e **sem auto-merge**. No
+seis frentes (npm na raiz, npm no aplicativo de campo, ações do GitHub,
+imagens do Docker, a imagem do banco do `compose.yaml` e o lockfile do gerador de
+SBOM), sempre com os checks obrigatórios e **sem auto-merge**. No
 aplicativo de campo, major e minor de `expo`, `react-native`,
 `react-native-reanimated`, `react-native-worklets` e do resto da família do SDK
 ficam ignorados, e o patch da família sobe só num PR em grupo: o SDK do Expo sobe
