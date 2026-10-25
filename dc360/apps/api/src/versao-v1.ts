@@ -19,14 +19,14 @@ export const PREFIXO_V1 = "/v1";
 export const ROTAS_FORA_DO_PREFIXO: ReadonlyMap<string, string> = new Map([
   [
     "GET /saude",
-    "infraestrutura: a sonda do balanceador e a conferência de rollback apontam "
-    + "para este caminho, e ele não é contrato de aplicativo",
+    "infraestrutura: a sonda do balanceador e a conferência de rollback apontam " +
+      "para este caminho, e ele não é contrato de aplicativo",
   ],
   [
     "GET /armazenamento/objeto",
-    "URL assinada: a assinatura cobre o caminho, então a API não pode devolver "
-    + "um endereço com prefixo diferente do que foi assinado. Só existe fora de "
-    + "produção, onde a própria API guarda os bytes",
+    "URL assinada: a assinatura cobre o caminho, então a API não pode devolver " +
+      "um endereço com prefixo diferente do que foi assinado. Só existe fora de " +
+      "produção, onde a própria API guarda os bytes",
   ],
   [
     "PUT /armazenamento/objeto",
@@ -34,9 +34,9 @@ export const ROTAS_FORA_DO_PREFIXO: ReadonlyMap<string, string> = new Map([
   ],
   [
     "GET /publico/oficio/:token",
-    "o endereço vive em email já enviado ao órgão destinatário, e um link de "
-    + "uso único não pode quebrar por mudança de versão. Também não ganha "
-    + "cabeçalho de depreciação",
+    "o endereço vive em email já enviado ao órgão destinatário, e um link de " +
+      "uso único não pode quebrar por mudança de versão. Também não ganha " +
+      "cabeçalho de depreciação",
   ],
 ]);
 
@@ -79,9 +79,8 @@ export function cabecalhosDeDepreciacao(
   espelhoLegadoAte: string,
   urlPedida: string,
 ): { deprecation: string; sunset: string; link: string } {
-  const caminho = (urlPedida.split("?")[0] ?? "").replace(
-    /[^A-Za-z0-9._~!$&'()*+,;=:@%/-]/g,
-    (c) => encodeURIComponent(c),
+  const caminho = (urlPedida.split("?")[0] ?? "").replace(/[^A-Za-z0-9._~!$&'()*+,;=:@%/-]/g, (c) =>
+    encodeURIComponent(c),
   );
   return {
     deprecation: "true",

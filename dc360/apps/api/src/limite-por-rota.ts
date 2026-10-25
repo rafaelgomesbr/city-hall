@@ -21,7 +21,10 @@ import { semPrefixoDeVersao } from "./versao-v1.js";
  * esta API não usa.
  */
 export class LimitePorRotaSemVersao implements FastifyRateLimitStore {
-  private readonly baldes = new Map<string, { current: number; ttl: number; iterationStartMs: number }>();
+  private readonly baldes = new Map<
+    string,
+    { current: number; ttl: number; iterationStartMs: number }
+  >();
   private readonly filhos: Map<string, LimitePorRotaSemVersao>;
 
   constructor(_opcoes?: FastifyRateLimitOptions, filhos?: Map<string, LimitePorRotaSemVersao>) {
@@ -58,7 +61,8 @@ export class LimitePorRotaSemVersao implements FastifyRateLimitStore {
   }
 
   child(opcoes: unknown): FastifyRateLimitStore {
-    const info = (opcoes as { routeInfo?: { url?: string; method?: string | string[] } }).routeInfo ?? {};
+    const info =
+      (opcoes as { routeInfo?: { url?: string; method?: string | string[] } }).routeInfo ?? {};
     const metodo = Array.isArray(info.method) ? info.method.join(",") : (info.method ?? "");
     const chave = `${metodo} ${semPrefixoDeVersao(info.url ?? "")}`;
     let filho = this.filhos.get(chave);

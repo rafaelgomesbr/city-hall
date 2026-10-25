@@ -1,0 +1,48 @@
+## POST /auth/entrar  (legado, sem token, corpo vazio (422))
+status: 422
+deprecation: true
+sunset: Fri, 31 Dec 2027 23:59:59 GMT
+link: </v1/auth/entrar>; rel="successor-version"
+
+## POST /v1/auth/entrar  (v1, sem token, corpo vazio (422))
+status: 422
+deprecation: (ausente)
+sunset: (ausente)
+link: (ausente)
+
+## GET /ocorrencias  (legado, sem token (401))
+status: 401
+deprecation: true
+sunset: Fri, 31 Dec 2027 23:59:59 GMT
+link: </v1/ocorrencias>; rel="successor-version"
+
+## GET /v1/ocorrencias  (v1, sem token (401))
+status: 401
+deprecation: (ausente)
+sunset: (ausente)
+link: (ausente)
+
+## GET /ocorrencias?endereco=Rua+Segredo,+10  (legado, sem token, com query (o Link nao leva a query))
+status: 401
+deprecation: true
+sunset: Fri, 31 Dec 2027 23:59:59 GMT
+link: </v1/ocorrencias>; rel="successor-version"
+
+## GET /saude  (infraestrutura, sem prefixo (200))
+status: 200
+deprecation: (ausente)
+sunset: (ausente)
+link: (ausente)
+
+## GET /v1/saude  (nao existe sob /v1 (404))
+status: 404
+deprecation: (ausente)
+sunset: (ausente)
+link: (ausente)
+
+## GET /v1/publico/oficio/x  (nao existe sob /v1 (404))
+status: 404
+deprecation: (ausente)
+sunset: (ausente)
+link: (ausente)
+

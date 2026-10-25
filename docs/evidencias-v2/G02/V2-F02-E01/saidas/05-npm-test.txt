@@ -1,0 +1,1504 @@
+
+> dc360@0.1.0 test
+> npm run build:shared && npm run test --workspaces --if-present
+
+
+> dc360@0.1.0 build:shared
+> npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo
+
+
+> @dc360/shared@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/db@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/campo@0.1.0 build
+> tsc -p tsconfig.build.json
+
+
+> @dc360/campo@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/packages/campo
+
+ ✓ test/prazo.test.ts (12 tests) 33ms
+ ✓ test/conclusao.test.ts (11 tests) 6ms
+ ✓ test/coleta.test.ts (14 tests) 9ms
+ ✓ test/pausa-velha.test.ts (7 tests) 14ms
+ ✓ test/prova-perdida.test.ts (10 tests) 25ms
+ ✓ test/devolucao.test.ts (24 tests) 23ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 30ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 46ms
+ ✓ test/pausa-de-sessao.test.ts (29 tests) 56ms
+ ✓ test/pausa-por-senha-provisoria.test.ts (43 tests) 74ms
+ ✓ test/fila.test.ts (58 tests) 90ms
+
+ Test Files  11 passed (11)
+      Tests  238 passed (238)
+   Start at  20:43:31
+   Duration  1.67s (transform 1.18s, setup 0ms, collect 8.98s, tests 407ms, environment 3ms, prepare 3.21s)
+
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 18ms
+ ✓ test/ressalva-saida-a-campo.test.ts (38 tests) 223ms
+ ✓ src/pessoas.test.ts (11 tests) 12ms
+ ✓ test/permissoes.test.ts (16 tests) 12ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 13ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 18ms
+ ✓ test/codigos-de-erro.test.ts (15 tests) 17ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 15ms
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 19ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 19ms
+ ✓ test/evidencia.test.ts (10 tests) 31ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 24ms
+ ✓ test/mensagens-em-portugues.test.ts (21 tests) 56ms
+ ✓ test/campos.test.ts (7 tests) 6ms
+ ✓ test/csv.test.ts (8 tests) 7ms
+ ✓ test/observabilidade.test.ts (9 tests) 7ms
+ ✓ test/telefone.test.ts (10 tests) 4ms
+ ✓ test/dominio.test.ts (14 tests) 8756ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  8736ms
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 1 failed) 28989ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  1307ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  25674ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1193ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  701ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 18ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 33ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 37ms
+     → EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-DCnmqo\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-DCnmqo\docs\sumiu-depois-da-listagem.md'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 22ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-DCnmqo\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-DCnmqo\docs\sumiu-depois-da-listagem.md'
+ ❯ test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 18 passed (19)
+      Tests  1 failed | 244 passed (245)
+   Start at  20:43:33
+   Duration  29.79s (transform 1.84s, setup 0ms, collect 9.51s, tests 38.25s, environment 5ms, prepare 4.94s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\packages\shared
+npm error workspace @dc360/shared@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\packages\shared
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run
+
+
+> @dc360/api@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/apps/api
+
+ ✓ test/saida-de-municipio.test.ts (37 tests) 21573ms
+   ✓ O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz  505ms
+   ✓ Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação  372ms
+   ✓ Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais  375ms
+   ✓ Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais  370ms
+   ✓ Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido  342ms
+   ✓ Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote  395ms
+   ✓ Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele  333ms
+   ✓ Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita  335ms
+   ✓ O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade  351ms
+   ✓ Isolamento entre municípios > o pacote de um município não carrega nada do outro  342ms
+   ✓ É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada  348ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos  344ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso  373ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe  384ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso  775ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência  425ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote  362ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção)  351ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem a seção das fotos avulsas que a rota tem  327ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a seção dos registros perdidos sai IGUAL nos dois laudos (consertada na correção 3)  382ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote  365ms
+   ✓ O laudo do pacote e o da rota, campo por campo > isolamento: a perda registrada em Vale Fundo não entra no pacote de Serra Alta (correção 3)  1424ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura COLETADA E PERDIDA no aparelho sai igual nos dois, no laudo e no termo de interdição (consertada na correção 3)  381ms
+   ✓ O laudo do pacote e o da rota, campo por campo > re-vistoria: a perda da ida anterior não entra no laudo da vigente, nos dois (correção 3)  485ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): depois da re-vistoria, o termo de interdição da rota sai da vistoria do ato e o do pacote sai da vigente  410ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2)  376ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo  378ms
+   ✓ O laudo do pacote e o da rota, campo por campo > armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência  350ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz "Assinatura não coletada" e o pacote diz que não conferiu  447ms
+ ✓ test/documentos.test.ts (33 tests) 22475ms
+   ✓ Documento em PDF > gera um PDF valido a partir do mesmo HTML  9881ms
+ ❯ test/semear-homologacao.test.ts (22 tests | 2 failed) 27696ms
+   ✓ o sorteio > tem três grupos de quatro, sem os símbolos que se confundem, e não repete 10ms
+   ✓ a semente sintética do arquivo SQL > não tem hash de senha nenhum, nem o da semente de desenvolvimento 1ms
+   ✓ a semente sintética do arquivo SQL > só tem e-mail em example.org (RFC 2606) e telefone do bloco 90000 1ms
+   ✓ a semente sintética do arquivo SQL > os identificadores das organizações são os que a recusa de município real conhece 1ms
+   ✓ as recusas do ambiente (antes de qualquer escrita) > fora de AMBIENTE_DC360=hml recusa: ausente, dev e prod 1ms
+   ✓ as recusas do ambiente (antes de qualquer escrita) > sem DATABASE_URL ou sem IDENTIDADE_DO_BANCO recusa 0ms
+   ✓ as recusas do ambiente (antes de qualquer escrita) > a identidade de PRODUÇÃO recusa, declarada ou colada na URL 1ms
+   ✓ as recusas do ambiente (antes de qualquer escrita) > a URL de outro banco (identidade ausente) recusa, e nenhum motivo repete a senha 0ms
+   ✓ as recusas do ambiente (antes de qualquer escrita) > o marcador de identidade que o fly.hml.toml traz hoje nunca consta numa URL, então recusa 1ms
+   ✓ as recusas do ambiente (antes de qualquer escrita) > o ambiente certo e a URL de HML passam 0ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > semeou os dois municípios e todas as contas, e cada uma tem hash e senha própria 7ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > login com a senha sorteada funciona (positivo)  869ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > `defesa-civil-2026` NÃO loga em HML, em nenhuma conta (negativo)  5390ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > a conta de Serra Alta recebe 404 ao ler um recurso de Vale Fundo (RLS com o papel restrito)  793ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > semear de novo recusa e não troca nenhuma senha 19ms
+   ✓ semear de verdade, contra o Postgres e o servidor reais > a trilha da semente existe e as ocorrências são só dos dois municípios sintéticos 4ms
+   ✓ as recusas que dependem do banco > banco com município REAL recusa e não escreve nada  2085ms
+   ✓ as recusas que dependem do banco > banco com município real E sintético também recusa como real  2101ms
+   ✓ as recusas que dependem do banco > falha no meio desfaz TUDO: nenhuma conta sem senha, nenhum município  2805ms
+   ✓ as recusas que dependem do banco > fora de HML recusa sem tocar no banco, mesmo vazio  2272ms
+   × o comando de verdade recusa antes de conectar > sem AMBIENTE_DC360=hml: código 1 e a frase da recusa 18ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade recusa antes de conectar > com a URL de PRODUÇÃO mesmo declarando hml: código 1, sem tocar na rede 2ms
+     → expected null to be 1 // Object.is equality
+ ✓ test/api.test.ts (52 tests) 28887ms
+   ✓ Autenticação > recusa senha errada com a mesma resposta de email inexistente  1669ms
+   ✓ Autenticação > nunca devolve o hash da senha  784ms
+   ✓ Autenticação > bloqueia a conta depois das tentativas configuradas  3842ms
+   ✓ Autenticação > rotaciona o token de renovação e derruba tudo se o antigo reaparecer  1564ms
+   ✓ Isolamento entre municípios pela API > não cadastra usuário carimbado para outro município  748ms
+   ✓ Fluxo e trilha auditável > a troca de email de outra conta entra na trilha, de/para  821ms
+   ✓ Superfície e respostas de erro > desativar usuário derruba as sessões dele na hora  1518ms
+   ✓ Limite de tentativas por endereço > recusa depois do teto configurado, com 429  2741ms
+   ✓ Posto entre papeis > o administrador cria administrador  732ms
+   ✓ Trilha dos atos administrativos > promover, rebaixar e desativar deixa os três registros  739ms
+ ✓ test/recuperacao.test.ts (14 tests) 30337ms
+   ✓ Pedido de recuperação > pedir de novo invalida o link anterior  922ms
+   ✓ Pedido de recuperação > conta desativada não recebe link  1575ms
+   ✓ Redefinição pelo link > troca a senha, e a nova funciona enquanto a antiga não  2611ms
+   ✓ Redefinição pelo link > o mesmo link não serve duas vezes  2436ms
+   ✓ Redefinição pelo link > redefinir derruba as sessões abertas  1515ms
+   ✓ Redefinição pelo link > token inventado é recusado, e a mensagem não confirma nada  705ms
+   ✓ Redefinição pelo link > recusa senha curta antes de tocar no banco  777ms
+   ✓ Redefinição pelo link > desbloqueia a conta que estava travada por tentativas  6597ms
+   ✓ Troca de senha por quem já está dentro > exige a senha atual  2953ms
+   ✓ Troca de senha por quem já está dentro > troca e encerra as outras sessões, preservando a atual  4693ms
+ ✓ test/senha-e-sessoes.test.ts (17 tests) 33482ms
+   ✓ Quem administra redefine a senha de outra pessoa > troca a senha: a antiga morre e a temporaria entra  2499ms
+   ✓ Quem administra redefine a senha de outra pessoa > derruba TODAS as sessoes do alvo  2442ms
+   ✓ Quem administra redefine a senha de outra pessoa > conta de outro municipio responde 404, nunca 403, e nada la muda  2261ms
+   ✓ Quem administra redefine a senha de outra pessoa > nao redefine a propria senha por esta rota  793ms
+   ✓ Quem administra redefine a senha de outra pessoa > coordenador nao redefine a senha do administrador  1445ms
+   ✓ Quem administra redefine a senha de outra pessoa > deixa o ato na trilha, e a trilha nao carrega a senha  743ms
+   ✓ Quem administra redefine a senha de outra pessoa > a senha temporaria e sorteada de novo a cada vez  1524ms
+   ✓ Encerrar todas as minhas sessoes > encerra as outras e preserva a de onde a pessoa clicou  2486ms
+   ✓ Encerrar todas as minhas sessoes > nao mexe na senha, e qualquer papel alcanca  2861ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > derruba tudo do alvo, e a senha dele continua valendo  2290ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > conta de outro municipio responde 404, e a sessao de la sobrevive  919ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > nao encerra as proprias sessoes por esta rota  950ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > coordenador nao encerra as sessoes do administrador  1014ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > deixa o ato na trilha  1722ms
+ ✓ test/objeto-orfao.test.ts (19 tests) 44048ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > foto confirmada e em uso não é candidata  2083ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > envio não confirmado DENTRO da janela de graça não é candidato  3966ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > envio não confirmado FORA da janela vira candidato, e a espécie diz qual é  2609ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > objeto sem linha nenhuma vira candidato de outra espécie  2006ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > chave que não nomeia município nenhum é relatada e NUNCA descartada  2340ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > a varredura não mistura municípios  2178ms
+   ✓ A varredura não apaga nada > depois de varrer, o objeto continua no armazenamento  2178ms
+   ✓ O descarte é ato deliberado, e confere de novo antes de apagar > apaga o que a varredura listou, e registra quem decidiu  2077ms
+   ✓ O descarte é ato deliberado, e confere de novo antes de apagar > se a linha apareceu entre a varredura e o descarte, o objeto NÃO é apagado  1966ms
+   ✓ O descarte é ato deliberado, e confere de novo antes de apagar > descarte de uma varredura não alcança candidato de outra  2119ms
+   ✓ A reserva que nunca virou byte > autorização velha sem objeto é marcada abandonada e para de consumir o teto  2050ms
+   ✓ A reserva que nunca virou byte > reserva recente não é tocada  2752ms
+   ✓ Sem a lista de municípios, que é como a API roda > o dono sai do prefixo da chave e é confirmado no banco  2037ms
+   ✓ Sem a lista de municípios, que é como a API roda > sem a lista, a reserva de um município sem objeto nenhum não é alcançada  2260ms
+   ✓ O descarte fecha a conta do teto > a linha da autorização é encerrada com motivo, e não apagada  2363ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > a foto de perfil viva NUNCA e candidata, por mais velha que seja  2386ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > a foto de perfil de OUTRO municipio nao justifica a chave: o dono e quem esta no prefixo  2315ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > a foto ANTERIOR, cujo apagamento falhou na troca, continua sendo orfa de verdade  2190ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > no descarte, a foto que virou perfil entre a varredura e a decisao e MANTIDA  2170ms
+ ✓ test/minimizacao.test.ts (19 tests) 43508ms
+   ✓ Minimização por prazo > vencido o prazo, o nome e o contato saem e o ato administrativo fica  3083ms
+   ✓ Minimização por prazo > é marcador e não nulo, senão descarte e ausência ficam iguais  3667ms
+   ✓ Minimização por prazo > registra a remoção na trilha da própria ocorrência, com os campos  2224ms
+   ✓ Minimização por prazo > a trilha diz QUE saiu, e nunca o que saía  2313ms
+   ✓ Minimização por prazo > município sem prazo configurado não perde nada  2156ms
+   ✓ Minimização por prazo > ocorrência ainda aberta não é minimizada, mesmo velha  1968ms
+   ✓ Minimização por prazo > dentro do prazo, nada sai  2194ms
+   ✓ Minimização por prazo > a descrição de vulnerabilidade sai JUNTO com o nome, sem prazo próprio  1922ms
+   ✓ Minimização por prazo > com prazo próprio menor, a vulnerabilidade sai ANTES do nome  2029ms
+   ✓ Minimização por prazo > o banco recusa prazo de vulnerabilidade maior que o do nome  2056ms
+   ✓ Minimização por prazo > o banco recusa marcador incoerente: data de remoção com nome de verdade  2316ms
+   ✓ Minimização por prazo > a segunda passada não remove de novo nem duplica o evento  2323ms
+   ✓ Minimização por prazo > duas máquinas do Fly: a segunda desiste da rodada  1991ms
+   ✓ Minimização por prazo > o teto por rodada limita, e a rodada seguinte continua  2332ms
+   ✓ Minimização por prazo > não atravessa municípios: cada um segue o próprio prazo  2296ms
+   ✓ Minimização alcança a observação da devolução > vencido o prazo, o texto livre do agente sai junto com o nome do solicitante  2273ms
+   ✓ Minimização alcança a observação da devolução > o motivo de lista fechada FICA, porque ele não é dado pessoal  2143ms
+   ✓ Minimização alcança a observação da devolução > município sem prazo configurado não perde a observação  2163ms
+   ✓ Minimização alcança a observação da devolução > a trilha diz que a observação saiu, senão descarte e perda ficam iguais  2055ms
+ ✓ test/familia-da-sessao.test.ts (20 tests) 44303ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > renovação normal: o token antigo escreve até vencer e o novo também  784ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada  954ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever  798ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo  1653ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > sair encerra a cadeia: o token anterior à renovação deixa de escrever  825ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai  840ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > troca de senha em outra sessão encerra a cadeia das demais  3915ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login  1571ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > cada login abre família nova e cada renovação herda a família: o banco guarda isso  1544ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa  1635ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > depois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao  1520ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > promoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo  997ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > a troca de papel NÃO revoga as sessões da pessoa (decisão registrada)  1933ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > sessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar  1594ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > isolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404)  1593ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > coordenador do município B com o papel mudado não ganha nada no município A  829ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > no prazo, a senha provisória troca  4419ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada  3436ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes  3207ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > senha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida  3130ms
+ ✓ test/prova-dinamica-dos-codigos-de-erro.test.ts (1 test) 45851ms
+   ✓ Prova dinâmica: nenhuma recusa de acesso do servidor real sai fora do catálogo > em toda rota registrada, com cada perfil, todo 401 e todo 403 traz um `erro` do catálogo e o status do catálogo  32377ms
+ ✓ test/segundo-fator.test.ts (23 tests) 46789ms
+   ✓ A entrada em duas etapas > administrador sem segundo fator não recebe sessão nenhuma, só o desafio  794ms
+   ✓ A entrada em duas etapas > o desafio NÃO vale como token de acesso em rota nenhuma  785ms
+   ✓ A entrada em duas etapas > quem não é administrador continua entrando em uma etapa  2450ms
+   ✓ A entrada em duas etapas > com a verificação ligada, a senha sozinha não abre sessão, e o código abre  1655ms
+   ✓ A entrada em duas etapas > o mesmo código não vale duas vezes dentro da mesma janela  2470ms
+   ✓ A entrada em duas etapas > a tolerância é de um passo para cada lado, e não mais  2330ms
+   ✓ A entrada em duas etapas > o teto de tentativas do código é separado do teto da senha  5626ms
+   ✓ A entrada em duas etapas > o código de recuperação entra uma vez, e só uma  3466ms
+   ✓ A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo  4208ms
+   ✓ Ligar a verificação > a ativação começada e não confirmada NÃO muda o login  1773ms
+   ✓ Ligar a verificação > código errado não liga a verificação  814ms
+   ✓ Ligar a verificação > o administrador obrigado liga pelo desafio e sai daqui com sessão  908ms
+   ✓ Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele  1822ms
+   ✓ Ligar a verificação > a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator  1642ms
+   ✓ Ligar a verificação > o segredo vai CIFRADO para o banco, e não em texto  841ms
+   ✓ Ligar a verificação > ligar de novo, por cima de uma verificação ativa, é recusado  814ms
+   ✓ Desligar a verificação > exige a senha atual  2318ms
+   ✓ Desligar a verificação > desligar apaga o segredo, derruba os códigos e deixa rastro  3592ms
+ ✓ test/codigos-de-erro.test.ts (229 tests) 44167ms
+   ✓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde  835ms
+   ✓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada  1032ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve  890ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada  848ms
+   ✓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou  906ms
+   ✓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto  1429ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município  844ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo  794ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo  762ms
+   ✓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum  775ms
+   ✓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo  794ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete  1562ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada  1634ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada  2417ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada  2913ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar  2457ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token  3722ms
+   ✓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente  2551ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe  909ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também  963ms
+ ✓ test/eliminacao-de-municipio.test.ts (18 tests) 50214ms
+   ✓ O relogio que elimina municipio > sem eliminacao agendada, a rodada nao toca em nada e nao faz barulho  5184ms
+   ✓ O relogio que elimina municipio > eliminacao agendada para o futuro NAO acontece: os sete dias sao de arrependimento  2233ms
+   ✓ O relogio que elimina municipio > eliminacao vencida: banco limpo, armazenamento purgado, linha da organizacao fechada, e o vizinho intacto  2444ms
+   ✓ O relogio que elimina municipio > o log diz o identificador e quantos objetos foram apagados, por organizacao  2226ms
+   ✓ O relogio que elimina municipio > listagem que falha no meio NAO conclui: a linha fica, e a proxima rodada termina o servico  2284ms
+   ✓ O relogio que elimina municipio > um eliminador novo (processo reiniciado) REDESCOBRE a purga pendente e termina o trabalho  2275ms
+   ✓ O relogio que elimina municipio > um apagar que falha NAO conclui, os outros objetos saem, e a proxima rodada termina  2018ms
+   ✓ O relogio que elimina municipio > a retomada reconfere no banco: organizacao concluida pela outra maquina sai da memoria sem purgar nada  2240ms
+   ✓ O relogio que elimina municipio > o relogio do resumo nao escreve metrica de municipio eliminado: senao a conclusao bate na chave estrangeira  2273ms
+   ✓ O relogio que elimina municipio > purga alem de uma pagina de listagem: mil e um objetos, todos apagados  7259ms
+   ✓ O relogio que elimina municipio > recusa purgar um prefixo que nao e o da propria organizacao  2573ms
+   ✓ O relogio que elimina municipio > com a trava tomada por outra maquina, a rodada desiste sem tocar em nada  2353ms
+   ✓ O relogio que elimina municipio > a trava tem numero proprio, distinto das outras rotinas  2373ms
+   ✓ O relogio que elimina municipio > uma falha inteira no banco solta a trava para a proxima rodada  2051ms
+   ✓ O relogio que elimina municipio > a partida da API liga o relogio SEM chave de ambiente, e nao apenas o declara  2057ms
+   ✓ A rota de saude diz se o relogio tem trabalho > sem nada agendado, diz zero  2942ms
+   ✓ A rota de saude diz se o relogio tem trabalho > conta as agendadas e as vencidas, sem nome nenhum  2485ms
+   ✓ A rota de saude diz se o relogio tem trabalho > a eliminacao vencida some da conta quando o relogio conclui  2939ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 21709ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  2726ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  2411ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  2333ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  2079ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  2235ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  2132ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  2600ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  2587ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  2603ms
+ ✓ test/push-varredor.test.ts (23 tests) 54133ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > avisa o aparelho do agente da equipe designada  3489ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > o que sai na tela bloqueada é genérico, e o detalhe vai no dado  3392ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa quem saiu da equipe, nem quem foi desativado  2166ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa aparelho revogado  2209ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa prazo que já venceu  2124ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa prazo que ainda está longe da janela  1946ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa ocorrência encerrada  2151ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > o aparelho de outro município não recebe o prazo deste  2018ms
+   ✓ Idempotência: reiniciar não remanda > a segunda varredura não manda de novo o que já foi entregue  2105ms
+   ✓ Idempotência: reiniciar não remanda > o que falhou volta a ser tentado depois da espera, e conta a tentativa  2206ms
+   ✓ Idempotência: reiniciar não remanda > notificação presa em enviando é retomada, e não fica órfã para sempre  2388ms
+   ✓ Idempotência: reiniciar não remanda > desiste depois do teto de tentativas, em vez de martelar para sempre  2477ms
+   ✓ A trava impede duas máquinas de varrerem o mesmo prazo > sem a trava, a varredura não manda nada e diz que estava travada  2031ms
+   ✓ A trava impede duas máquinas de varrerem o mesmo prazo > a trava é solta mesmo quando a varredura estoura  2567ms
+   ✓ A trava impede duas máquinas de varrerem o mesmo prazo > a trava de aviso do Postgres é chamável pelo papel de aplicação  2428ms
+   ✓ Falha de envio não derruba o resto > um aparelho com problema não impede o aviso dos outros  2550ms
+   ✓ Falha de envio não derruba o resto > ficha recusada pelo provedor revoga o aparelho, e ele para de ser tentado  2101ms
+   ✓ Falha de envio não derruba o resto > o detalhe guardado não carrega a ficha do aparelho  2077ms
+   ✓ Retenção e conexão > aviso mais velho que a retenção é expurgado na própria varredura  2155ms
+   ✓ Retenção e conexão > a varredura pede pool próprio e pequeno, separado do das requisições  2332ms
+   ✓ o piso da retenção, que existe porque a policy do banco tem um > recusa retenção menor que o piso, em vez de apagar menos em silêncio  2319ms
+   ✓ o piso da retenção, que existe porque a policy do banco tem um > a recusa nomeia a migração, para quem lê saber onde se conserta  2743ms
+   ✓ o piso da retenção, que existe porque a policy do banco tem um > exatamente o piso é aceito  2153ms
+ ✓ test/recuperacao-morre-com-a-credencial.test.ts (7 tests) 27049ms
+   ✓ O link de recuperação pendente morre com a credencial > controle: sem nada no meio, o link redefine; a senha nova entra e a antiga não  2720ms
+   ✓ O link de recuperação pendente morre com a credencial > quem administra redefine a senha: o link pendente não vale mais, e a temporária entra  4115ms
+   ✓ O link de recuperação pendente morre com a credencial > a própria pessoa troca a senha: o link pendente não vale mais, e a senha nova dela entra  4266ms
+   ✓ O link de recuperação pendente morre com a credencial > quem administra desativa a conta: o link não vale mais, nem depois da reativação  4501ms
+   ✓ O link de recuperação pendente morre com a credencial > link vivo numa conta desativada: recusado, gasto, e a senha não muda (consumir_recuperacao confere a conta)  1856ms
+   ✓ O link de recuperação pendente morre com a credencial > dois links pendentes: usar um mata o outro  1623ms
+   ✓ O link de recuperação pendente morre com a credencial > o que não é senha nem desativação não mata o link: falha de login, edição do cadastro e reativação  3521ms
+ ✓ test/foto-do-agente.test.ts (23 tests) 9940ms
+   ✓ A equipe vê a foto e quem está em campo > meu trabalho traz a URL assinada do colega, e nunca a chave  1606ms
+   ✓ A foto conta no teto de armazenamento (migracao 045) > com o municipio alem da margem do teto, a autorizacao de envio da foto responde 507 e nada e gravado  305ms
+ ✓ test/senha-provisoria.test.ts (9 tests) 23783ms
+   ✓ A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera  3207ms
+   ✓ A senha temporária de quem administra > a senha atual errada na troca responde em português correto e diz o que fazer  3467ms
+   ✓ A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403  2725ms
+   ✓ A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha  3539ms
+   ✓ A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova  2610ms
+   ✓ A senha temporária de quem administra > a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403  2491ms
+   ✓ A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa  1559ms
+ ✓ test/get-com-efeito.test.ts (10 tests) 27401ms
+   ✓ Controle: quem está vigente continua emitindo, e as pegadas enxergam a escrita > termo de interdição interdita e grava; o CSV grava a exportação  2546ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > conta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  2569ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > papel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  2958ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > sessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  4140ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > cadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  3774ms
+   ✓ A lista de GET com efeito é a decisão, e o comportamento a obedece > com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista  1733ms
+   ✓ PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve > toda rota de escrita autenticada recusa com 403 conta_desativada, sem tocar no banco  1566ms
+   ✓ /auth/encerrar-sessoes com o token anterior à renovação > a mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu  1847ms
+ ✓ test/enumeracao-pelo-bloqueio.test.ts (2 tests) 12181ms
+   ✓ Email cadastrado e email inexistente respondem igual > do primeiro erro ao bloqueio, o par (status, erro) é o mesmo dos dois lados  6741ms
+   ✓ Email cadastrado e email inexistente respondem igual > o bloqueio continua valendo: a senha certa é recusada em silêncio, e volta depois  1758ms
+stderr | test/provisionar.test.ts
+DATABASE_URL ausente. Provisionar contra um banco efêmero não serviria para nada: o município sumiria junto com o processo.
+
+ ✓ test/resolver-link.test.ts (37 tests) 18478ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  1641ms
+ ✓ test/id-da-propria-conta.test.ts (13 tests) 39419ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em minúsculas: 422 autoredefinicao (controle)  2612ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em maiúsculas: 422 autoredefinicao, e nada muda  2705ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id com caixa misturada: 422 autoredefinicao, e nada muda  2621ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  2529ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em minúsculas: 422 autoencerramento (controle)  2358ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em maiúsculas: 422 autoencerramento, e nada muda  2473ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id com caixa misturada: 422 autoencerramento, e nada muda  2702ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  2785ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em minúsculas: 422 autodesativacao (controle)  2761ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em maiúsculas: 422 autodesativacao, e nada muda  2680ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id com caixa misturada: 422 autodesativacao, e nada muda  2499ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  2527ms
+   ✓ A própria conta com o id escrito de outro jeito > o id de outra pessoa em maiúsculas continua valendo: a redefinição da Helena responde 200  3977ms
+ ✓ test/evidencias.test.ts (21 tests) 8975ms
+ ✓ test/saida-a-campo.test.ts (27 tests) 13235ms
+   ✓ A tela de quem coordena > põe as vencidas primeiro, e quem foi sozinho na frente  396ms
+   ✓ Isolamento entre municípios > a lista de um município não mostra saída de outro  856ms
+   ✓ Isolamento entre municípios > encerrar saída de outro município responde 404, e nunca 403  1037ms
+ ✓ test/sessoes-da-conta.test.ts (27 tests) 24925ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > lista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase  1979ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > não entrega IP, user-agent completo nem identificador de sessão  814ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > a renovação não multiplica as linhas nem muda o 'entrou em'  843ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > só a própria conta: a de outra pessoa e a de outro município não aparecem  2659ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > encerrar as outras deixa só esta na lista, e a lista reflete o banco  1694ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > sessão vencida ou encerrada não aparece  790ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a administradora vê a quantidade e as datas, e nada do aparelho  2589ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a coordenadora vê as de quem está abaixo do posto dela  1107ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > posto igual ou acima: 403 posto_insuficiente  1158ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > o operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas  1540ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > conta de outro município: 404, igual a id que não existe  2056ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > identificador que não é uuid: 422; sem token: 401  1085ms
+   ✓ as duas recusas que a tela não oferece e a API mantém > redefinir a própria senha e encerrar as próprias sessões por esta via: 422  1151ms
+ ✓ test/busca.test.ts (56 tests) 23060ms
+   ✓ GET /busca, 'com pg_trgm (producao)' > teto por pessoa > a 61ª busca no minuto responde 429, e o colega continua servido  1842ms
+   ✓ GET /busca, 'sem pg_trgm (API sem DATABASE_URL)' > teto por pessoa > a 61ª busca no minuto responde 429, e o colega continua servido  3274ms
+ ✓ test/leitura-do-agente-oficios-e-avisos.test.ts (14 tests) 11371ms
+ ✓ test/exportacao-em-dois-niveis.test.ts (18 tests) 9131ms
+   ✓ O teto de linhas do nível completo > recorte grande demais RECUSA, em vez de cortar em silêncio  398ms
+   ✓ O teto de linhas do nível completo > o mesmo volume passa no nível básico, que não leva pessoa  371ms
+ ✓ test/vigencia-na-escrita.test.ts (13 tests) 20707ms
+   ✓ Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte  1040ms
+   ✓ Token vivo de quem já não pode > papel rebaixado: a escrita com o token do papel antigo leva 401 nao_autenticado (vale o banco; renovar e repetir)  884ms
+   ✓ Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive  1717ms
+   ✓ Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada  842ms
+   ✓ Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão  769ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro  790ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  1846ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca  1284ms
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  1733ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  1950ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  2400ms
+   ✓ Token de renovação vencido não é reuso > H1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão  865ms
+ ✓ test/endereco-de-origem.test.ts (6 tests) 46924ms
+   ✓ O teto de login nao se contorna por cabecalho > sem borda declarada, trocar Fly-Client-IP nao ganha balde novo  8169ms
+   ✓ O teto de login nao se contorna por cabecalho > com a borda declarada, o cabecalho do edge volta a valer  35039ms
+ ✓ test/coleta-nao-reescreve-prova.test.ts (20 tests) 9499ms
+   ✓ 1. A fotografia amarrada a uma vistoria não muda de vistoria nem de legenda > a primeira amarração continua funcionando: foto solta, do próprio agente, entra na vistoria  356ms
+ ✓ test/provisionar.test.ts (9 tests) 11570ms
+   ✓ Provisionar município > cria o município e o primeiro administrador  1072ms
+   ✓ Provisionar município > o administrador recém-criado consegue entrar, e a primeira entrada exige definir a senha  3245ms
+   ✓ Provisionar município > o município nasce funcionando: dá para abrir ocorrência e sai protocolo  863ms
+   ✓ Provisionar município > o novo município não enxerga o município que já existia  1013ms
+   ✓ Provisionar deixa linha espelho na trilha do município > o município recém-criado enxerga, na trilha dele, o próprio nascimento  1775ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 8963ms
+   ✓ O rodapé diz o que o código é > imprime 'Identificador da emissão', e não promete validação  393ms
+   ✓ O identificador é da emissão > a segunda via carrega o mesmo identificador, porque é o mesmo ato  378ms
+   ✓ O identificador é da emissão > laudo e termo da mesma vistoria têm identificadores diferentes  436ms
+   ✓ O identificador é da emissão > vistoria nova produz identificador novo  408ms
+ ✓ test/acesso-suspenso.test.ts (20 tests) 20538ms
+   ✓ Entrar num municipio suspenso > recusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato  838ms
+   ✓ Entrar num municipio suspenso > nunca responde 401: a credencial esta certa, o que falta e o contrato  818ms
+   ✓ Entrar num municipio suspenso > senha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao  965ms
+   ✓ Entrar num municipio suspenso > nao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou  801ms
+   ✓ Entrar num municipio suspenso > o municipio vizinho continua entrando normalmente  1296ms
+   ✓ Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel  1860ms
+   ✓ Entrar num municipio suspenso > municipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra  747ms
+   ✓ Sessao viva de municipio suspenso > renovar recusa com 403 mesmo com a sessao ainda de pe no banco  904ms
+   ✓ Sessao viva de municipio suspenso > renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403  1745ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: escrita recusa na hora, com 403  892ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: leitura continua ate o token vencer  1006ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD)  919ms
+   ✓ A fila do aparelho num municipio suspenso > a sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario  779ms
+   ✓ A fila do aparelho num municipio suspenso > as quatro rotas que a fila chama recusam com 503, e as demais escritas com 403  1234ms
+   ✓ A fila do aparelho num municipio suspenso > nada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso  1432ms
+ ✓ test/renovacao-contra-encerramento.test.ts (53 tests | 34 skipped) 74733ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  905ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  1702ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  4059ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive  887ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar  935ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  3739ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  2235ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  1554ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  1745ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela  956ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  5946ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  6162ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  4710ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  8111ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  5200ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  7140ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  3610ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé  4196ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela  4481ms
+ ✓ test/prestacao-de-contas.test.ts (20 tests) 10336ms
+ ✓ test/vistoria-em-corrida.test.ts (5 tests) 8829ms
+ ✓ test/teto-de-armazenamento.test.ts (11 tests) 10973ms
+ ✓ test/resumo-do-municipio.test.ts (6 tests) 18338ms
+   ✓ O relogio que escreve a metrica do municipio > escreve o resumo de cada municipio, e a tabela deixa de estar vazia  3121ms
+   ✓ O relogio que escreve a metrica do municipio > cada numero e o do proprio municipio, e nao a soma de todos  2666ms
+   ✓ O relogio que escreve a metrica do municipio > municipio que falha nao impede o resumo dos outros  3035ms
+   ✓ O relogio que escreve a metrica do municipio > nao escreve duas vezes na mesma rodada de outra maquina  3532ms
+   ✓ O relogio que escreve a metrica do municipio > a segunda rodada dentro do frescor nao reescreve nada  3122ms
+   ✓ O relogio que escreve a metrica do municipio > a partida da API liga o relogio, e nao apenas o declara  2859ms
+ ✓ test/reconciliar-pendencias.test.ts (5 tests) 8813ms
+ ✓ test/encerrada-nao-recebe-ato.test.ts (9 tests) 9560ms
+   ✓ Encerrada não recebe ato > o termo de interdição NÃO interdita uma ocorrência encerrada  327ms
+   ✓ Encerrada não recebe ato > o levantamento da interdição NÃO entra numa ocorrência encerrada  306ms
+   ✓ Encerrada recebe cópia > a segunda via do termo de interdição continua saindo depois do encerramento  316ms
+ ✓ test/evidencia-so-do-autor.test.ts (11 tests) 10503ms
+ ✓ test/rotacao-de-segredo.test.ts (8 tests) 7875ms
+   ✓ Rotação programada: o segredo gira e ninguém cai > o token emitido antes da troca continua valendo com o antigo na lista  1799ms
+   ✓ Rotação programada: o segredo gira e ninguém cai > assina sempre com o PRIMEIRO, e não com um qualquer da lista  1133ms
+   ✓ Revogação por vazamento: o segredo sai e todo mundo cai > tirar o segredo da lista invalida na hora o token assinado com ele  1198ms
+ ✓ test/coordenada-de-ocorrencia-aberta.test.ts (13 tests) 9718ms
+ ✓ test/prova-perdida-e-ponto-da-vistoria.test.ts (9 tests) 8708ms
+ ✓ test/recuperacao-desligada.test.ts (3 tests) 9944ms
+   ✓ recuperacao de senha desligada > recusa o pedido em vez de prometer um email que nao sai  4237ms
+   ✓ recuperacao de senha desligada > recusa tambem a redefinicao, para token aberto antes do desligamento  2847ms
+   ✓ recuperacao de senha desligada > com a recuperacao ligada, a rota volta a responder 202 sem revelar se a conta existe  2857ms
+ ✓ test/desinterdicao.test.ts (22 tests) 13879ms
+   ✓ Reinterdição: o risco volta > volta para a lista de interditados, com data nova  389ms
+   ✓ A re-vistoria que atesta a cessação do risco > a segunda via do termo de interdição sai da vistoria que sustentou o ato  354ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição imprime a re-vistoria que motivou o levantamento  311ms
+ ✓ test/push-saude-e-despertar.test.ts (7 tests) 8630ms
+   ✓ GET /saude e o push > com o push desligado, `push` é nulo  677ms
+   ✓ o despacho acorda o varredor > sem push ligado, o despacho segue igual e não estoura  2087ms
+ ✓ test/prova-fotografica.test.ts (11 tests) 7681ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 15622ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  4050ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  2875ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  902ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  2940ms
+ ✓ test/limite-por-usuario.test.ts (3 tests) 16590ms
+   ✓ limite de requisição por usuário > agente que estoura o próprio teto não derruba o colega atrás do mesmo NAT  2952ms
+   ✓ limite de requisição por usuário > token inventado a cada requisição não abre balde novo, cai no teto do endereço  2991ms
+   ✓ limite de requisição por usuário > o teto por endereço continua valendo para quem não tem token  2941ms
+ ✓ test/orgaos-indicados-na-vistoria.test.ts (15 tests) 8998ms
+ ✓ test/bytes-confirmados-nao-se-trocam.test.ts (8 tests) 7154ms
+ ✓ test/push-aparelhos.test.ts (21 tests) 17030ms
+   ✓ Sair do aplicativo cala o aparelho > a saída revoga o aparelho daquela sessão  1379ms
+   ✓ Sair do aplicativo cala o aparelho > sair de um aparelho não cala o outro da mesma pessoa  1122ms
+   ✓ Sair do aplicativo cala o aparelho > sair sem mandar ficha continua funcionando, para o painel e para versão antiga  992ms
+   ✓ Sair do aplicativo cala o aparelho > a saída não alcança aparelho de outra pessoa, mesmo mandando a ficha dela  1731ms
+   ✓ Com PUSH_ATIVO=nao, as rotas recusam em vez de guardar > registrar responde 503 explicando, e a rota existe (não é 404)  965ms
+   ✓ Com PUSH_ATIVO=nao, as rotas recusam em vez de guardar > revogar responde 503 do mesmo jeito  1274ms
+ ✓ test/agente-so-ve-a-equipe.test.ts (9 tests) 7769ms
+ ✓ test/pacote-de-saida-contrato.test.ts (8 tests) 10082ms
+   ✓ O pacote traz só o município do token > toda linha de toda tabela é da organização de quem pediu, e a de Vale Fundo é só de Vale Fundo  1270ms
+   ✓ O pacote traz só o município do token > a organização continua vindo do token: parâmetro, cabeçalho e corpo não trocam de município  684ms
+   ✓ Coluna proibida não sai, nem o valor dela > nenhum cabeçalho de CSV nem chave de JSON traz coluna proibida, e o valor sentinela não aparece  573ms
+   ✓ A soma de verificação confere > SOMAS-SHA256.txt traz uma linha por arquivo (menos ela mesma) e cada soma é a do arquivo  541ms
+ ✓ test/pdf-na-imagem.test.ts (5 tests) 7203ms
+   ✓ O gerador de PDF > usa o navegador apontado pelo ambiente, e uma falha nao envenena o gerador  7195ms
+ ✓ test/rota.test.ts (17 tests) 9302ms
+   ✓ O teto por pessoa, porque cada chamada que passa da cache custa dinheiro > o trigésimo primeiro pedido no mesmo minuto leva 429, mesmo com a cache ajudando  1629ms
+ ✓ test/autoria-da-coleta.test.ts (6 tests) 7785ms
+ ✓ test/fuso-do-documento.test.ts (5 tests) 7186ms
+ ✓ test/prazo-do-despacho.test.ts (3 tests) 7071ms
+ ✓ test/push-ambiente-por-aparelho.test.ts (9 tests) 8580ms
+ ✓ test/posto-abaixo-do-seu.test.ts (7 tests) 10696ms
+   ✓ Coordenador sobre coordenador: 403 em toda porta > não desativa, não edita, não redefine a senha nem derruba as sessões de outro coordenador  2123ms
+   ✓ Coordenador sobre coordenador: 403 em toda porta > o administrador administra outro administrador, e o próprio posto  1124ms
+ ✓ test/vistoria-e-da-equipe.test.ts (7 tests) 8361ms
+   ✓ Coleta de agente de fora da equipe designada > o termo de interdição imprime o aviso, antes de alguém assinar  301ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 7816ms
+ ✓ test/devolucao-de-tarefa.test.ts (20 tests) 11570ms
+   ✓ O reenvio da fila > recusa a tarefa cuja vistoria a equipe já registrou, e a já encerrada  363ms
+ ✓ test/precisao-do-gps-na-sincronizacao.test.ts (3 tests) 7807ms
+ ✓ test/devolvidas-esperando-decisao.test.ts (6 tests) 7278ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 11538ms
+   ✓ FCM: a chamada que nao volta > o envio desiste no tempo limite mesmo com o token ja trocado  350ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  3720ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  3284ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  3728ms
+ ✓ test/retencao-do-municipio.test.ts (8 tests) 7570ms
+ ✓ test/fotos-do-documento.test.ts (4 tests) 8738ms
+   ✓ O laudo da re-vistoria > não imprime as fotos da vistoria anterior  532ms
+   ✓ A foto anexada fora da vistoria > sai em seção própria, com quem anexou, e não vira foto da vistoria  319ms
+   ✓ A foto anexada fora da vistoria > sem foto avulsa, a seção não existe  399ms
+ ✓ test/sino-de-avisos.test.ts (19 tests) 11119ms
+   ✓ cada pessoa lê no seu tempo > uma pessoa marcar como lido não apaga o sino da colega  431ms
+   ✓ o teto aparece na resposta, e nada é pulado por causa dele > corta no teto, declara o teto e declara que cortou  831ms
+   ✓ o teto aparece na resposta, e nada é pulado por causa dele > o corte não pula aviso: a pergunta seguinte continua de onde esta parou  582ms
+ ✓ test/request-id.test.ts (13 tests) 11951ms
+   ✓ o 500 e o banco fora do ar > o reportador injetado recebe o molde da rota e o id, e nunca a barra de endereço  3540ms
+ ✓ test/laudo-depois-da-minimizacao.test.ts (5 tests) 9013ms
+ ✓ test/pico-lista-e-mapa.test.ts (16 tests) 8524ms
+ ✓ test/triagem-nao-devolve.test.ts (3 tests) 7637ms
+   ✓ De onde a triagem parte > NÃO devolve a que está em campo: a aresta para trás é da devolução  300ms
+ ✓ test/despacho-avisa.test.ts (16 tests) 12621ms
+   ✓ O despacho enfileira o aviso de tarefa nova, na mesma transação > redespacho para a mesma equipe não duplica o aviso  385ms
+   ✓ O despacho enfileira o aviso de tarefa nova, na mesma transação > redespacho para outra equipe avisa a equipe nova, e não repete para a antiga  328ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > iOS recebe despacho.wav sensível ao tempo; Android recebe o canal de despacho  699ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > ficha morta revoga o aparelho, como no prazo, e ele não é tentado de novo  433ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > redespachada para outra equipe antes da rodada, só a equipe nova recebe  351ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > tarefa nova e prazo saem na mesma rodada, e a trava segura os dois  389ms
+ ✓ test/versao-v1.test.ts (31 tests) 29770ms
+   ✓ Senha provisória vale nos dois prefixos > token provisório em /v1/ocorrencias recebe 403 troca_de_senha_obrigatoria, como no legado  4572ms
+   ✓ Senha provisória vale nos dois prefixos > encerrar as próprias sessões também passa com a senha provisória, nos dois prefixos  9169ms
+   ✓ A fila do campo (503) vale nos dois prefixos > município suspenso: as rotas da fila respondem 503 e as demais escritas 403, em /v1 e no legado  1550ms
+   ✓ O limitador vale nos dois prefixos > o limite do login NÃO dobra pela escolha do prefixo: três tentativas no total, não três por prefixo  3283ms
+   ✓ O limitador vale nos dois prefixos > rotas diferentes continuam com baldes diferentes (login e segundo fator não se somam)  2478ms
+ ✓ test/orgaos-e-oficio.test.ts (24 tests) 11174ms
+ ✓ test/registro-de-consulta.test.ts (11 tests) 9944ms
+ ✓ test/superficie.test.ts (9 tests) 5928ms
+   ✓ Toda rota exige token > nenhuma rota nova responde sem autenticação  486ms
+ ✓ test/campo-integracao-v1.test.ts (17 tests) 23979ms
+   ✓ Fila de campo contra a API > uma coleta offline sobe e vira laudo com as duas marcas de tempo  372ms
+   ✓ Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só  441ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação  2681ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada  2447ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez  6924ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar  1698ms
+   ✓ Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez  889ms
+ ✓ test/teto-de-pendencias.test.ts (7 tests) 9238ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 9904ms
+   ✓ Segunda via do termo depois do levantamento > não reinterdita, não apaga o motivo e não muda a data  621ms
+   ✓ Segunda via do termo depois do levantamento > o termo de desinterdição continua podendo ser emitido depois da segunda via  342ms
+   ✓ Segunda via do termo depois do levantamento > o registro não se contradiz: a trilha do levantamento continua sozinha  357ms
+   ✓ A reinterdição legítima continua funcionando > com vistoria nova depois do levantamento, o termo interdita de novo  457ms
+ ✓ test/campo-integracao.test.ts (17 tests) 24122ms
+   ✓ Fila de campo contra a API > uma coleta offline sobe e vira laudo com as duas marcas de tempo  363ms
+   ✓ Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só  407ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação  3107ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada  2225ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez  7309ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar  1479ms
+   ✓ Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez  959ms
+ ✓ test/configuracao-do-painel.test.ts (7 tests) 10211ms
+ ✓ test/corpo-ilegivel.test.ts (3 tests) 6650ms
+ ✓ test/push-partida-e-validade.test.ts (7 tests) 1096ms
+   ✓ a chave da Apple é conferida na partida, e não no primeiro envio > a conta de serviço do Google também é conferida na partida  501ms
+   ✓ a notificação leva prazo de validade > FCM: android.ttl é declarado, em segundos, com a mesma regra  396ms
+ ✓ test/notificador-http.test.ts (14 tests) 6846ms
+ ✓ test/log.test.ts (17 tests) 7296ms
+   ✓ O que nunca pode aparecer no log > a senha de quem entra  1855ms
+ ✓ test/campo-obrigatorio-ausente.test.ts (2 tests) 6973ms
+ ✓ test/openssl-do-teste.test.ts (10 tests) 1417ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente  748ms
+   ✓ O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado  650ms
+ ✓ test/push-credenciais.test.ts (14 tests) 1685ms
+   ✓ FCM: a conta de serviço > troca a credencial por token de acesso uma vez e reaproveita  453ms
+   ✓ FCM: a conta de serviço > a chave privada da conta de serviço não sai no que é enviado  459ms
+   ✓ FCM: a conta de serviço > aparelho desconhecido do Google marca a ficha como inválida  464ms
+stderr | test/banco-tls.test.ts
+banco-tls: OPENSSL_CONF aponta para "C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+ ✓ test/contrato-de-ambiente.test.ts (53 tests) 129ms
+ ✓ test/minuta-nao-diverge.test.ts (8 tests) 91ms
+ ✓ test/banco-tls.test.ts (13 tests) 732ms
+ ✓ test/eventos-tem-rotulo.test.ts (5 tests) 131ms
+ ✓ test/rotinas-em-nivel-error.test.ts (8 tests) 44ms
+ ✓ test/config.test.ts (19 tests) 58ms
+ ✓ test/reportador-de-erros.test.ts (17 tests) 32ms
+ ✓ test/fly-hml.test.ts (9 tests) 28ms
+ ✓ test/recuperacao-em-producao.test.ts (10 tests) 27ms
+ ✓ test/prosa-do-documento.test.ts (14 tests) 13ms
+ ✓ test/push-canal-e-som.test.ts (20 tests) 6053ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade critica: canal de despacho, som, prioridade alta  376ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade alta: canal de despacho, som, prioridade alta  348ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade media: canal de despacho, som, prioridade alta  999ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade baixa: canal de despacho, som, prioridade alta  865ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade ausente: canal de despacho, som, prioridade alta  506ms
+   ✓ Android: o prazo continua saindo da severidade > severidade critica vai para dc360.urgencia.v1  682ms
+   ✓ Android: o prazo continua saindo da severidade > severidade media vai para dc360.comum.v1  1220ms
+   ✓ Android: o prazo continua saindo da severidade > severidade ausente vai para dc360.comum.v1  504ms
+ ✓ test/dominios-de-teste.test.ts (10 tests) 14ms
+ ✓ test/mensagens-visiveis-com-acento.test.ts (12 tests) 5457ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/api/src (mensagens)  1517ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/console/src (mensagens)  407ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/web/src (tudo)  1078ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/campo/src (tudo)  1045ms
+   ✓ Nenhuma frase de tela sai sem acento > cada exceção ainda existe (lista velha esconde regressão)  1178ms
+ ✓ test/alerta-de-armazenamento.test.ts (11 tests) 21ms
+ ✓ test/push-vitrine.test.ts (10 tests) 12ms
+ ✓ test/saida-nao-declara-inexistente.test.ts (11 tests) 6205ms
+   ✓ O pacote inteiro, com o armazenamento engasgado > fotografia que nao pode ser lida nao sai declarada inexistente  640ms
+ ✓ test/cors-do-envio-de-evidencia.test.ts (8 tests) 6435ms
+ ✓ test/push-segredo.test.ts (6 tests) 11ms
+ ✓ test/partida-nao-carrega-pglite.test.ts (4 tests) 10ms
+ ✓ test/listagem-do-armazenamento.test.ts (5 tests) 9ms
+ ✓ test/assinatura.test.ts (1 test) 9ms
+ ✓ test/saude-versao.test.ts (7 tests) 6817ms
+   ✓ GET /saude devolve versao e commit > repete o que o build gravou, tal e qual  816ms
+ ✓ test/assinatura-ausente-no-documento.test.ts (4 tests) 4ms
+ ✓ test/contrato-do-painel.test.ts (12 tests) 5570ms
+ ✓ test/guarda-de-codigos-de-erro.test.ts (140 tests) 6541ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/semear-homologacao.test.ts > o comando de verdade recusa antes de conectar > sem AMBIENTE_DC360=hml: código 1 e a frase da recusa
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/semear-homologacao.test.ts:374:22
+    372|   it("sem AMBIENTE_DC360=hml: código 1 e a frase da recusa", () => {
+    373|     const r = rodar({ DATABASE_URL: URL_DE_HML, IDENTIDADE_DO_BANCO: "…
+    374|     expect(r.status).toBe(1);
+       |                      ^
+    375|     expect(r.stderr).toMatch(/AMBIENTE_DC360=hml/);
+    376|     expect(`${r.stdout}${r.stderr}`).not.toContain("senha-de-hml");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/semear-homologacao.test.ts > o comando de verdade recusa antes de conectar > com a URL de PRODUÇÃO mesmo declarando hml: código 1, sem tocar na rede
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/semear-homologacao.test.ts:386:22
+    384|       DATABASE_URL: `postgres://dc360_setup.${prod}:senha-de-prod@db.i…
+    385|     });
+    386|     expect(r.status).toBe(1);
+       |                      ^
+    387|     expect(r.stderr).toMatch(/PRODUÇÃO/);
+    388|     expect(`${r.stdout}${r.stderr}`).not.toContain("senha-de-prod");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 117 passed (118)
+      Tests  2 failed | 1916 passed | 34 skipped (1952)
+   Start at  20:44:03
+   Duration  126.32s (transform 9.31s, setup 37.44s, collect 101.49s, tests 1628.14s, environment 39ms, prepare 37.85s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\api
+npm error workspace @dc360/api@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\api
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run
+
+
+> @dc360/console@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/apps/console
+
+ ✓ test/subir-em-producao.test.ts (25 tests) 10958ms
+   ✓ a armadilha das aspas no hash da senha > um hash de verdade passa  713ms
+   ✓ a armadilha das aspas no hash da senha > uma semente inteira bem formada continua sendo aceita  1226ms
+{"level":30,"time":1792971983769,"pid":32464,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","operador_id":"9f2ffd6b-c763-4477-8df4-85ce090109fc","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792971983920,"pid":17836,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","operador_id":"e1063aea-6f68-4559-9660-4fd7de512ade","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792971983880,"pid":32464,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792971983889,"pid":32464,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador coordenacao@fornecedor.com.br é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792971983954,"pid":32464,"hostname":"Rafa_Laptop","reqId":"7e37b9ff-d4c7-4bce-9e5d-9645a0ae1dd8","req":{"method":"POST","url":"/entrar","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971983964,"pid":17836,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792971983990,"pid":17836,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792971984052,"pid":17836,"hostname":"Rafa_Laptop","reqId":"7c92caf0-bf6a-4c01-84f4-cb3b1c4d4580","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971984065,"pid":17836,"hostname":"Rafa_Laptop","reqId":"7c92caf0-bf6a-4c01-84f4-cb3b1c4d4580","res":{"statusCode":200},"responseTime":12.398699999999735,"msg":"request completed"}
+ ✓ test/o-acabamento-da-tela.test.ts (26 tests) 11775ms
+{"level":30,"time":1792971985522,"pid":32464,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","msg":"senha conferida, aguardando o codigo"}
+{"level":40,"time":1792971985883,"pid":17836,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792971985969,"pid":17836,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792971985978,"pid":17836,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792971985980,"pid":17836,"hostname":"Rafa_Laptop","reqId":"de0faade-d81d-4eaf-8c26-0b0d5bdaf939","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985981,"pid":17836,"hostname":"Rafa_Laptop","reqId":"de0faade-d81d-4eaf-8c26-0b0d5bdaf939","res":{"statusCode":200},"responseTime":1.0300000000006548,"msg":"request completed"}
+{"level":30,"time":1792971985533,"pid":32464,"hostname":"Rafa_Laptop","reqId":"7e37b9ff-d4c7-4bce-9e5d-9645a0ae1dd8","res":{"statusCode":200},"responseTime":1579.085799999999,"msg":"request completed"}
+{"level":30,"time":1792971985534,"pid":32464,"hostname":"Rafa_Laptop","reqId":"223ccb98-c21f-4ddc-9e49-7f007f8f3ae0","req":{"method":"POST","url":"/entrar/codigo","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985601,"pid":32464,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador entrou no console"}
+{"level":30,"time":1792971985608,"pid":32464,"hostname":"Rafa_Laptop","reqId":"223ccb98-c21f-4ddc-9e49-7f007f8f3ae0","res":{"statusCode":200},"responseTime":73.6880000000001,"msg":"request completed"}
+{"level":30,"time":1792971985672,"pid":32464,"hostname":"Rafa_Laptop","reqId":"82a062cb-51cf-4cab-97ba-00864bbce549","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985687,"pid":32464,"hostname":"Rafa_Laptop","reqId":"82a062cb-51cf-4cab-97ba-00864bbce549","res":{"statusCode":200},"responseTime":14.322399999999107,"msg":"request completed"}
+{"level":30,"time":1792971985756,"pid":32464,"hostname":"Rafa_Laptop","reqId":"69220ba1-ad55-48ce-a89c-22da9ac98d75","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985809,"pid":32464,"hostname":"Rafa_Laptop","reqId":"69220ba1-ad55-48ce-a89c-22da9ac98d75","res":{"statusCode":200},"responseTime":52.20340000000033,"msg":"request completed"}
+{"level":30,"time":1792971985809,"pid":32464,"hostname":"Rafa_Laptop","reqId":"1e96fe08-2192-4fb3-8531-bafb84659e2c","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985818,"pid":32464,"hostname":"Rafa_Laptop","reqId":"1e96fe08-2192-4fb3-8531-bafb84659e2c","res":{"statusCode":200},"responseTime":8.923300000000381,"msg":"request completed"}
+{"level":30,"time":1792971985869,"pid":32464,"hostname":"Rafa_Laptop","reqId":"856b4311-5770-41ce-ad4d-6e37c6f10234","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985887,"pid":32464,"hostname":"Rafa_Laptop","reqId":"856b4311-5770-41ce-ad4d-6e37c6f10234","res":{"statusCode":200},"responseTime":17.30240000000049,"msg":"request completed"}
+{"level":30,"time":1792971985945,"pid":32464,"hostname":"Rafa_Laptop","reqId":"bf702399-2be3-4c71-95ea-9ee0079cedb4","req":{"method":"GET","url":"/municipios/11111111-1111-4111-8111-000000000001/serie?dias=30","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985964,"pid":32464,"hostname":"Rafa_Laptop","reqId":"bf702399-2be3-4c71-95ea-9ee0079cedb4","res":{"statusCode":200},"responseTime":18.641599999999016,"msg":"request completed"}
+{"level":30,"time":1792971985967,"pid":32464,"hostname":"Rafa_Laptop","reqId":"4d8a5fbc-1f0d-44d2-887c-6f220272a178","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985978,"pid":32464,"hostname":"Rafa_Laptop","reqId":"4d8a5fbc-1f0d-44d2-887c-6f220272a178","res":{"statusCode":200},"responseTime":11.862499999999272,"msg":"request completed"}
+{"level":30,"time":1792971985981,"pid":32464,"hostname":"Rafa_Laptop","reqId":"f807514b-30e8-4c1c-b9de-3870c0d828f2","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971985996,"pid":32464,"hostname":"Rafa_Laptop","reqId":"f807514b-30e8-4c1c-b9de-3870c0d828f2","res":{"statusCode":200},"responseTime":15.23450000000048,"msg":"request completed"}
+{"level":30,"time":1792971985997,"pid":32464,"hostname":"Rafa_Laptop","reqId":"5ed538be-68fa-4361-87a2-611a5cb9fc26","req":{"method":"GET","url":"/municipios/54a88fd7-df2d-4dc9-a4c9-ed2f3cdc8fd8/serie","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971986001,"pid":32464,"hostname":"Rafa_Laptop","reqId":"5ed538be-68fa-4361-87a2-611a5cb9fc26","res":{"statusCode":401},"responseTime":3.673399999999674,"msg":"request completed"}
+ ✓ test/ponta-a-ponta.test.ts (9 tests) 12839ms
+{"level":40,"time":1792971986818,"pid":17836,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792971986827,"pid":17836,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792971986887,"pid":17836,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792971986889,"pid":17836,"hostname":"Rafa_Laptop","reqId":"e595b2e0-14e5-4667-a912-e4d89a56c659","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792971986889,"pid":17836,"hostname":"Rafa_Laptop","reqId":"e595b2e0-14e5-4667-a912-e4d89a56c659","res":{"statusCode":200},"responseTime":0.6553999999996449,"msg":"request completed"}
+ ✓ test/saude-versao.test.ts (3 tests) 13879ms
+   ✓ GET /saude do console > repete a versão e o commit que o build gravou  2002ms
+   ✓ GET /saude do console > sem as variáveis (fora de uma imagem) diz desconhecida, e segue 200  1914ms
+   ✓ GET /saude do console > negativo: valor fora do formato não é ecoado pela rota pública  908ms
+ ✓ test/a-tela-responde.test.ts (65 tests) 720ms
+ ✓ test/contrato-de-ambiente.test.ts (21 tests) 34ms
+ ✓ test/o-qr-e-o-do-produto.test.ts (2 tests) 237ms
+ ✓ test/guarda-de-codigos-de-erro.test.ts (48 tests) 17045ms
+   ✓ correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos  314ms
+ ✓ test/plateia-nao-atravessa.test.ts (6 tests) 23ms
+ ✓ test/fly-hml.test.ts (4 tests) 15ms
+ ✓ test/superficie.test.ts (12 tests) 21289ms
+   ✓ O limite por endereco cobre a porta, e so a porta > a porta trava depois do teto  2943ms
+ ✓ test/cadastro-de-prefeitura.test.ts (10 tests) 21841ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > cria o municipio, o administrador e a linha de nascimento, e devolve a senha  1007ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > a senha que a tela mostra abre a conta que acabou de nascer  4433ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > a senha inicial nao fica guardada em texto claro em lugar nenhum  836ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > recusa municipio duplicado, diz qual ja existe, e nao cria o segundo  2366ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > recusa o email que ja tem conta em outro municipio, e nao diz em qual  1521ms
+ ✓ test/request-id.test.ts (4 tests) 8454ms
+ ✓ test/dono-sem-codigos.test.ts (4 tests) 23749ms
+   ✓ A entrada diz quantos codigos a conta tem > o dono recem-semeado entra com zero, e a resposta traz o numero  1331ms
+   ✓ Depois de gerar o lote, as duas bocas se calam > a entrada devolve oito, e um segundo processo sobre o mesmo banco sobe sem o warn  11187ms
+ ✓ test/segundo-fator-obrigatorio.test.ts (13 tests) 26916ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > a senha certa NAO devolve sessao, devolve desafio  967ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > o desafio da primeira etapa e recusado pelas rotas de leitura  1224ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > a senha errada nao passa da primeira etapa, e a resposta e igual a de email desconhecido  2935ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > com o codigo certo, a sessao nasce e ela vale nas rotas de leitura  1122ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > o mesmo codigo nao serve duas vezes  2928ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > codigos errados demais poem a conta de castigo  6998ms
+ ✓ test/area-de-usuarios.test.ts (19 tests) 32383ms
+   ✓ O dono cria operadores, e a credencial deles aparece uma vez > criar operador devolve senha, segredo, endereco otpauth, o desenho do QR e os codigos de recuperacao, uma vez  8887ms
+   ✓ O dono cria operadores, e a credencial deles aparece uma vez > a senha e o segredo mostrados abrem a conta criada  807ms
+   ✓ O dono cria operadores, e a credencial deles aparece uma vez > email repetido e recusado com mensagem, e nao com falha interna  690ms
+   ✓ Trocar a minha senha > exige a senha atual E um codigo novo do autenticador  2232ms
+   ✓ Trocar a minha senha > o codigo da entrada, ja usado, nao serve para trocar a senha  1498ms
+   ✓ Trocar a minha senha > com senha atual e codigo novo, troca, e devolve uma sessao nova  3605ms
+   ✓ Trocar a minha senha > e a senha nova abre a conta  845ms
+ ✓ test/acoes-perigosas.test.ts (17 tests) 33784ms
+   ✓ Eliminar, com prazo de arrependimento de sete dias > a rota exige senha atual, codigo novo, nome exato e motivo, nessa ordem  2016ms
+   ✓ Eliminar, com prazo de arrependimento de sete dias > o codigo que abriu a sessao (ja usado) nao serve para eliminar  1575ms
+   ✓ Eliminar, com prazo de arrependimento de sete dias > com tudo certo, suspende na hora e agenda para sete dias, e a lista mostra  1223ms
+   ✓ Nada que sirva para entrar cai no log das acoes perigosas > as linhas de warn carregam quem, qual municipio por id e a acao, e nunca senha nem codigo  869ms
+   ✓ Limite por endereco nas rotas de acao perigosa > depois do teto, a rota responde 429 com a espera certa, e a de numeros nao  3039ms
+ ✓ test/no-navegador.test.ts (8 tests) 39262ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > a pagina abre com a politica no cabecalho, e o script e a folha passam por ela  1771ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > o dono entra pela porta de duas etapas e ve a linha de Serra Alta com as acoes  3100ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > eliminar abre o modal destrutivo, com foco dentro e a pagina atras inerte  820ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > com senha, codigo novo, nome exato e motivo, agenda; a linha mostra o prazo e o cancelar  1351ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > cancelar durante o prazo passa pelo dialogo, e a linha volta a suspensa, sem reativar sozinha  1211ms
+   ✓ Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador > em Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda  8066ms
+   ✓ Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador > sair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele  7851ms
+{"level":40,"time":1792972016827,"pid":524,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792972016839,"pid":524,"hostname":"Rafa_Laptop","operadores":2,"msg":"console do fornecedor pronto, com 2 operador(es) no banco"}
+ ✓ test/diagnostico-da-porta.test.ts (8 tests) 43754ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > senha errada escreve uma linha, com o email tentado e um motivo  1196ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > email desconhecido tambem escreve, e com o MESMO motivo generico da senha errada  2009ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > nem a senha nem o corpo do pedido entram na linha da recusa  1203ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > codigo errado escreve uma linha, e o codigo NAO entra nela  957ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > a conta de castigo tem motivo proprio, e nao se confunde com codigo errado  5313ms
+   ✓ Nada que sirva para entrar cai no log > uma entrada inteira, com as rotas novas depois dela, nao deixa segredo nenhum escrito  21378ms
+ ✓ test/operadores-no-banco.test.ts (15 tests) 44847ms
+   ✓ A semente do dono, na partida > com a tabela vazia e SEM a variavel, o console nao sobe, e diz o que fazer  6483ms
+   ✓ A semente do dono, na partida > a semente com mais de um operador e recusada: so o dono nasce por ela  4394ms
+   ✓ A semente do dono, na partida > a semente continua recusando hash estragado pelo shell, antes de tocar no banco  2665ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > o dono semeado entra com a senha e o segredo da semente  907ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > a entrada devolve o papel, para a tela saber o que mostrar  624ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > um segundo processo sobre o mesmo banco recusa o codigo que o primeiro ja queimou  1645ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > codigos errados contam na tabela, e o quinto poe a conta de castigo tambem na tabela  8627ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > operador desativado nao entra, e a resposta e a mesma de senha errada  8620ms
+ ✓ test/recuperacao-de-senha.test.ts (20 tests) 88219ms
+   ✓ Gerar codigos de recuperacao, na propria conta > gerar exige a senha atual e um codigo NOVO do autenticador, como a troca de senha  1991ms
+   ✓ Gerar codigos de recuperacao, na propria conta > com senha e codigo novo, saem oito codigos de dez simbolos, e nada em texto claro no banco nem no log  8458ms
+   ✓ Gerar codigos de recuperacao, na propria conta > gerar de novo invalida os anteriores: os oito antigos ficam usados, e sobram exatamente oito  7158ms
+   ✓ Gerar codigos de recuperacao, na propria conta > um codigo do lote invalidado nao recupera nada  5772ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > um codigo valido redefine a senha E o segundo fator, devolve o segredo novo uma vez, e NAO devolve sessao  5330ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > a senha antiga e o autenticador antigo nao abrem mais nada  1070ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > a senha nova com o autenticador novo entram, e a sessao e a de sempre  536ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > o codigo usado nao serve de novo, e a resposta e a generica  3980ms
+   ✓ Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado > email inexistente, operador inativo, codigo errado e codigo ja usado: uma resposta so  16121ms
+   ✓ Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado > email inexistente gasta o mesmo trabalho de uma conta com oito codigos  6895ms
+   ✓ Ao criar operador, os codigos dele saem junto com senha, segredo e QR > a resposta traz oito codigos, gravados como hash na linha do operador novo  4271ms
+   ✓ Ao criar operador, os codigos dele saem junto com senha, segredo e QR > o operador novo recupera a propria conta com um dos codigos, sem precisar do dono  4089ms
+   ✓ A rota de recuperar esta sob o limite da porta > depois do teto, responde 429 com a espera da porta  10665ms
+
+ Test Files  21 passed (21)
+      Tests  339 passed (339)
+   Start at  20:46:11
+   Duration  90.16s (transform 2.87s, setup 1.97s, collect 20.36s, tests 452.02s, environment 6ms, prepare 9.05s)
+
+
+> @dc360/web@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/apps/web
+
+ ✓ test/ler-fonte.test.ts (7 tests) 85ms
+ ✓ test/design-system.test.ts (12 tests) 279ms
+ ✓ test/qr.test.ts (11 tests) 382ms
+ ✓ test/pico-lista-e-mapa.test.ts (17 tests) 541ms
+   ✓ O prazo mostra a data, e nao so a contagem regressiva > existe um componente que diz QUANDO vence  480ms
+ ✓ test/acessibilidade.test.ts (21 tests) 706ms
+   ✓ Troca de tela > toda rota do painel tem título próprio  619ms
+ ✓ test/portoes-de-componente.test.ts (11 tests) 407ms
+ ✓ test/trilha-detalhe.test.ts (15 tests) 64ms
+ ✓ test/oficio.test.ts (13 tests) 33ms
+ ✓ test/correcao-8-da-e09.test.ts (33 tests) 36ms
+ ✓ test/busca-pontuador.test.ts (20 tests) 39ms
+ ✓ test/seo.test.ts (27 tests) 30ms
+ ✓ test/pacote-de-saida.test.ts (7 tests) 30ms
+ ✓ test/toast.test.ts (17 tests) 24ms
+ ✓ test/correcao-5-da-e09.test.ts (11 tests) 25ms
+ ✓ test/busca-global.test.ts (33 tests) 44ms
+stderr | test/semente-e-confirmacoes.test.ts > A linha do tempo da semente conta a história na ordem
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/sino.test.ts > O painel desenhado > cada aviso leva à ocorrência dele
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/quem-esta-em-campo.test.ts > Quem está em campo, no modo de demonstração
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/sino.test.ts > O painel desenhado > o não lido é dito com palavra, e não só com a faixa colorida
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > o estado vazio diz o que apareceria ali
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/oficio-so-para-quem-consulta.test.ts > Ofício no modo de demonstração segue a mesma regra da API
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/sino.test.ts > O painel desenhado > quando o sino conta mais do que a lista mostra, ele diz isso
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/sino.test.ts > O painel desenhado > a falha da consulta não apaga a lista que já estava na tela
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at PainelDeAvisos (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\Sino.tsx:22:3)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/sino.test.ts (28 tests) 89ms
+ ✓ test/recuperar-senha.test.ts (47 tests) 53ms
+stderr | test/tipo-a-classificar.test.ts > O modo de demonstração se comporta como o servidor
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+stderr | test/devolucao.test.ts > A devolução na demonstração, contra o banco
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+ ✓ test/orgaos.test.ts (15 tests) 30ms
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > mostra protocolo, tipo, data e situação, e leva ao outro chamado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at div
+    at section
+    at Cartao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\comuns.tsx:373:19)
+    at CartaoVerTambem (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Ocorrencia.tsx:1347:28)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > o estado vazio diz o que foi procurado
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+stderr | test/ocorrencia-ver-tambem.test.ts > O cartão desenhado na tela > consulta que falhou não vira lista vazia
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at li
+    at ul
+    at div
+    at div
+    at section
+    at Cartao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\componentes\comuns.tsx:373:19)
+    at CartaoVerTambem (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Ocorrencia.tsx:1347:28)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+
+ ✓ test/ocorrencia-ver-tambem.test.ts (9 tests) 48ms
+ ✓ test/mapa-e-coordenada.test.ts (31 tests) 322ms
+stderr | test/sessao-e-entrada.test.ts > A tela de entrada > diz que a sessão expirou quando chegou aqui por isso, e não diz nada quando não
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+
+stderr | test/sessao-e-entrada.test.ts > A tela de entrada > diz a frase certa para cada motivo, com ícone e texto, e só a de conta desativada manda procurar a coordenação
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EscolhaDePerfil (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:534:28)
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at LinkWithRef (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:10503:5)
+    at p
+    at div
+    at div
+    at Entrar (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\paginas\Entrar.tsx:31:38)
+    at Router (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:7036:13)
+    at MemoryRouter (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/react-router/dist/development/chunk-62JRHF6Z.mjs:6952:3)
+    at ProvedorSessao (C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\apps\web\src\estado\sessao.tsx:15:27)
+
+ ✓ test/sessao-e-entrada.test.ts (31 tests) 170ms
+stderr | test/busca-nos-dois-modos.test.ts > A lista filtrada por texto, nos dois modos
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+ ✓ test/link-encurtado.test.ts (20 tests) 26ms
+ ✓ test/glifos-de-severidade.test.ts (21 tests) 29ms
+ ✓ test/busca-registros.test.ts (14 tests) 39ms
+ ✓ test/correcao-4-da-e09.test.ts (19 tests) 28ms
+ ✓ test/ocorrencia-encerramento.test.ts (13 tests) 32ms
+ ✓ test/modal.test.ts (30 tests) 27ms
+ ✓ test/correcao-6-da-e09.test.ts (24 tests) 24ms
+ ✓ test/formularios.test.ts (9 tests) 24ms
+ ✓ test/sessoes-e-senha-temporaria.test.ts (18 tests) 23ms
+ ✓ test/foco.test.ts (15 tests) 13ms
+ ✓ test/campo.test.ts (12 tests) 16ms
+ ✓ test/correcao-7-da-e09.test.ts (14 tests) 18ms
+ ✓ test/coordenada-corrigida.test.ts (12 tests) 18ms
+ ✓ test/codigo-de-suporte.test.ts (13 tests) 25ms
+ ✓ test/recuperar-senha-e-sessao.test.ts (3 tests) 17ms
+ ✓ test/duplicidade-sem-rede.test.ts (3 tests) 15ms
+ ✓ test/seguranca-da-conta.test.ts (8 tests) 18ms
+ ✓ test/correcao-8b-da-e09.test.ts (8 tests) 11ms
+ ✓ test/modo-de-demonstracao.test.ts (6 tests) 9ms
+ ✓ test/lista-sem-o-que-so-o-dossie-entrega.test.ts (4 tests) 8ms
+ ✓ test/minha-conta-estreita.test.ts (6 tests) 7ms
+ ✓ test/quem-esta-em-campo.test.ts (4 tests) 4207ms
+ ✓ test/oficio-so-para-quem-consulta.test.ts (4 tests) 4221ms
+ ✓ test/usuarios-regras.test.ts (5 tests) 8ms
+ ✓ test/devolucao.test.ts (40 tests) 4248ms
+ ✓ test/semente-e-confirmacoes.test.ts (5 tests) 4283ms
+ ✓ test/paridade-dos-modos.test.ts (10 tests) 10ms
+ ✓ test/senha-provisoria.test.ts (4 tests) 9ms
+ ✓ test/tipo-a-classificar.test.ts (19 tests) 4322ms
+ ✓ test/busca-nos-dois-modos.test.ts (12 tests) 4537ms
+
+ Test Files  51 passed (51)
+      Tests  791 passed (791)
+   Start at  20:47:41
+   Duration  7.84s (transform 4.95s, setup 0ms, collect 40.63s, tests 29.71s, environment 15ms, prepare 12.65s)
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/db
+
+ ❯ test/guarda-da-semente.test.ts (18 tests | 3 failed) 28ms
+   ✓ positivos: banco descartável semeia > sem DATABASE_URL (o banco em WebAssembly que morre com o processo) 2ms
+   ✓ positivos: banco descartável semeia > o Postgres local (loopback) e o serviço do compose (um rótulo, sem ponto) 1ms
+   ✓ negativos: o que a guarda recusa > a URL de PRODUÇÃO sem NODE_ENV (o caso do defeito): pela identidade no usuário 0ms
+   ✓ negativos: o que a guarda recusa > a URL de PRODUÇÃO pela identidade no host (conexão direta) 0ms
+   ✓ negativos: o que a guarda recusa > a identidade de PROD em maiúsculas não escapa 0ms
+   ✓ negativos: o que a guarda recusa > NODE_ENV=production recusa, com qualquer URL ou nenhuma 0ms
+   ✓ negativos: o que a guarda recusa > AMBIENTE_DC360=prod recusa mesmo apontando para a própria máquina 0ms
+   ✓ negativos: o que a guarda recusa > AMBIENTE_DC360=hml recusa e manda usar a semente própria 0ms
+   ✓ negativos: o que a guarda recusa > um banco de HML hospedado recusa: a semente de desenvolvimento tem senha pública 0ms
+   ✓ negativos: o que a guarda recusa > a identidade DECLARADA em IDENTIDADE_DO_BANCO também protege (outro projeto de PROD) 0ms
+   ✓ negativos: o que a guarda recusa > o túnel local para a PRODUÇÃO (127.0.0.1 com o usuário do projeto) recusa 0ms
+   ✓ negativos: o que a guarda recusa > URL que não dá para analisar recusa (fail-closed), sem repetir o texto 0ms
+   ✓ negativos: o que a guarda recusa > host público que não é da máquina recusa 0ms
+   ✓ negativos: o que a guarda recusa > nenhum motivo repete a senha da URL 0ms
+   ✓ a identidade de PROD da guarda é a mesma da matriz de ambientes > scripts/ambientes.json declara a identidade que a guarda protege 1ms
+   × o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha 12ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1 2ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento) 4ms
+     → .toMatch() expects to receive a string, but got undefined
+ ✓ test/familia-da-sessao.test.ts (12 tests) 5391ms
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 5390ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 5392ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts (12 tests) 5576ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 5620ms
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 5868ms
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 8ms
+ ✓ test/migracoes-regras.test.ts (19 tests) 199ms
+ ✓ test/postgis-decisao.test.ts (8 tests) 8ms
+ ✓ test/carga.test.ts (15 tests) 6534ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts (6 tests) 4085ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 7761ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 8600ms
+ ✓ test/endurecer-extensao.test.ts (9 tests) 2812ms
+   ✓ sem a extensão instalada > o arquivo inteiro roda num Postgres comum, sem os papéis do provedor  924ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 9304ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  2310ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  1556ms
+ ✓ test/trava-de-migracao.test.ts (15 tests | 3 skipped) 15494ms
+   ✓ a decisão, em PGlite > aplica, e a trava é largada no fim  4221ms
+   ✓ a decisão, em PGlite > a trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle  1814ms
+   ✓ a decisão, em PGlite > usa a chave fixa do produto  1441ms
+   ✓ a decisão, em PGlite > trava ocupada: espera, tenta de novo e aplica quando a outra termina  1092ms
+   ✓ a decisão, em PGlite > trava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado  930ms
+   ✓ a decisão, em PGlite > com esperaMs 0 é uma tentativa só  843ms
+   ✓ a decisão, em PGlite > avisa uma vez, no registro, que está esperando  818ms
+   ✓ a decisão, em PGlite > a trava é larga mesmo quando a migração falha  816ms
+   ✓ a decisão, em PGlite > a trava é larga quando o histórico foi alterado  875ms
+   ✓ a decisão, em PGlite > migrar com o papel errado continua dando a mensagem do papel, e larga a trava  865ms
+   ✓ o pooler não serve > a porta 6543 (pooler em modo transação) é recusada com a explicação  897ms
+   ✓ o pooler não serve > conexão direta, sem URL e URL ilegível não recusam aqui  881ms
+ ✓ test/migrar.test.ts (17 tests) 20441ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  4191ms
+   ✓ Aplicação > rodar de novo não faz nada  1851ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  1533ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  1059ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  914ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  916ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  810ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  837ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  854ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  871ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  906ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  871ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  1286ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  1235ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  735ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  788ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  780ms
+ ❯ test/desfazer-migracao.test.ts (28 tests | 5 failed) 27550ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > aplicar, desfazer e reaplicar: information_schema, índices e RLS idênticos  4426ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > desfaz UMA só: a anterior continua aplicada  1844ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > sem nada aplicado, diz que não há o que desfazer  1305ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > larga a trava de migração no fim  1131ms
+   ✓ com as migrações de verdade: o isolamento sobrevive ao ciclo > uma 052 de prova com tabela de negócio e RLS forçada: desfazer devolve o estado exato  1654ms
+   ✓ com as migrações de verdade: o isolamento sobrevive ao ciclo > a última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada  1428ms
+   ✓ negativos: o que o desfazer recusa > migração declarada IRREVERSIVEL  851ms
+   ✓ negativos: o que o desfazer recusa > migração aplicada cujo arquivo não existe nesta versão do código  825ms
+   ✓ negativos: o que o desfazer recusa > volta que falha: desfaz inteira ou não desfaz nada, e o registro continua  927ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > AMBIENTE_DC360=prod  853ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > NODE_ENV=production, mesmo sem AMBIENTE_DC360  794ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > URL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha  694ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > a identidade declarada pelo processo (IDENTIDADE_DO_BANCO) também protege  734ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > banco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável  713ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > descartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade)  730ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > PROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha  730ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > declarar hml sem a identidade, ou com a de outro banco, ainda recusa  746ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL  727ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > HML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML)  638ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO  666ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > NODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML  808ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > URL que não dá para analisar recusa sem repetir o texto  616ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host)  642ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar 603ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar 616ms
+     → expected null to be 1 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar 618ms
+     → expected null to be 2 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2 563ms
+     → expected null to be 2 // Object.is equality
+   × o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0 663ms
+     → expected null to be +0 // Object.is equality
+ ✓ test/isolamento.test.ts (137 tests) 35120ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  511ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1569ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1368ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  24194ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:432:22
+    430|       DATABASE_URL: "postgres://u:senha-secreta@127.0.0.1:1/postgres",
+    431|     });
+    432|     expect(r.status).toBe(1);
+       |                      ^
+    433|     expect(r.stderr).toMatch(/AMBIENTE_DC360=prod/);
+    434|     expect(r.stdout).not.toMatch(/Aplicadas|Desfeita/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:443:22
+    441|       DATABASE_URL: "postgres://u:senha-secreta@db.refnovaprodxxxxxxxx…
+    442|     });
+    443|     expect(r.status).toBe(1);
+       |                      ^
+    444|     expect(r.stderr).toMatch(/banco hospedado/);
+    445|     expect(r.stdout).not.toMatch(/Aplicadas|Desfeita/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar
+AssertionError: expected null to be 2 // Object.is equality
+
+- Expected: 
+2
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:452:22
+    450|   it("com a porta 6543 (pooler): código 2, sem conectar", () => {
+    451|     const r = rodar([], { DATABASE_URL: "postgres://u:senha-secreta@12…
+    452|     expect(r.status).toBe(2);
+       |                      ^
+    453|     expect(r.stderr).toMatch(/6543/);
+    454|     expect(`${r.stdout}${r.stderr}`).not.toContain("senha-secreta");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2
+AssertionError: expected null to be 2 // Object.is equality
+
+- Expected: 
+2
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:459:22
+    457|   it("--desfazer com --semear: código 2", () => {
+    458|     const r = rodar(["--desfazer", "--semear"], {});
+    459|     expect(r.status).toBe(2);
+       |                      ^
+    460|     expect(r.stderr).toMatch(/não combinam/);
+    461|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0
+AssertionError: expected null to be +0 // Object.is equality
+
+- Expected: 
+0
+
++ Received: 
+null
+
+ ❯ test/desfazer-migracao.test.ts:465:32
+    463|   it("banco efêmero vazio: nada a desfazer, código 0", () => {
+    464|     const r = rodar(["--desfazer"], {});
+    465|     expect(r.status, r.stderr).toBe(0);
+       |                                ^
+    466|     expect(r.stdout).toMatch(/nada a desfazer/);
+    467|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/guarda-da-semente.test.ts:166:22
+    164|       DATABASE_URL: `postgres://dc360_setup.${PROD}:senha-secreta@127.…
+    165|     });
+    166|     expect(r.status).toBe(1);
+       |                      ^
+    167|     expect(r.stderr).toMatch(/PRODUÇÃO/);
+    168|     expect(r.stdout).not.toMatch(/Aplicadas|Nada a fazer|Semeado/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1
+AssertionError: expected null to be 1 // Object.is equality
+
+- Expected: 
+1
+
++ Received: 
+null
+
+ ❯ test/guarda-da-semente.test.ts:176:22
+    174|       DATABASE_URL: "postgres://dc360_setup.refhmlxxxxxxxxx:senha-secr…
+    175|     });
+    176|     expect(r.status).toBe(1);
+       |                      ^
+    177|     expect(r.stderr).toMatch(/descartável/);
+    178|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+TypeError: .toMatch() expects to receive a string, but got undefined
+ ❯ test/guarda-da-semente.test.ts:183:22
+    181|     const r = rodar({});
+    182|     expect(r.status ?? 0).toBe(0);
+    183|     expect(r.stdout).toMatch(/Semeado/);
+       |                      ^
+    184|   });
+    185| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  2 failed | 18 passed (20)
+      Tests  8 failed | 431 passed | 6 skipped (445)
+   Start at  20:47:50
+   Duration  36.06s (transform 1.87s, setup 0ms, collect 5.47s, tests 171.18s, environment 5ms, prepare 7.15s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-a8bd7917e1e97e5a7\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

@@ -841,6 +841,19 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F01-E11": { total: 31, falhas: 0, puladas: 0 },
   // V2-F00-E19, correção 11: `apps/api/test/campo-obrigatorio-ausente.test.ts` e novo, com 2 casos (o 422 real de `POST /ocorrencias` sem `tipo` e sem `canalEntrada` diz "Campo obrigatório" e nenhum "undefined" ou "null" sai no corpo; o enum presente e errado continua dizendo o valor e os aceitos).
   "V2-F00-E19-correcao-11": { total: 2, falhas: 0, puladas: 0 },
+  /*
+    V2-F02-E01: `apps/api/test/versao-v1.test.ts` e novo, com 31 casos (a
+    paridade entre `/v1` e o espelho sem prefixo, a mesma resposta nos dois,
+    o isolamento entre municipios, o que fica fora do prefixo, os cabecalhos
+    de depreciacao, `ESPELHO_LEGADO_ATE`, a senha provisoria, a marca da fila
+    do campo e o limitador). `campo-integracao-v1.test.ts` e novo e importa
+    `campo-integracao.test.ts` com o prefixo `/v1` ligado, entao roda os 17
+    casos dele uma segunda vez. `log.test.ts` ganha 1 caso (o token do
+    oficio colado sob `/v1` nao sai no log). Os demais arquivos tocados
+    (`superficie`, `get-com-efeito`, `prova-dinamica`) mudaram por dentro,
+    sem caso novo. Nenhuma falha nem pulo novos.
+  */
+  "V2-F02-E01": { total: 49, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
