@@ -1,0 +1,24 @@
+Bytecode makes the app startup faster, disabling bytecode is highly discouraged and should only be used for debugging purposes.
+Using src/app as the root directory for Expo Router.
+Starting Metro Bundler
+
+Android Bundling failed 608ms node_modules/expo-router/entry.js (1677 modules)
+
+Error: Unable to resolve module @dc360/pacote-que-nao-existe from /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-a0133b701f4fa22b4/dc360/apps/campo/src/app/_layout.tsx: @dc360/pacote-que-nao-existe could not be found within the project or in these directories:
+  node_modules
+  ../../node_modules
+  node_modules
+  ../../node_modules
+[0m [90m 138 |[39m   )[33m;[39m
+ [90m 139 |[39m }
+[31m[1m>[22m[39m[90m 140 |[39m [36mimport[39m [32m"@dc360/pacote-que-nao-existe"[39m[33m;[39m
+ [90m     |[39m         [31m[1m^[22m[39m
+ [90m 141 |[39m[0m
+
+Import stack:
+
+ src/app/_layout.tsx
+ | import "@dc360/pacote-que-nao-existe"
+
+ src/app (require.context)
+

@@ -1,0 +1,1 @@
+Painel sobre a árvore CRLF: 750 de 750 testes, como o baseline fixa (sem falha, sem pulo).

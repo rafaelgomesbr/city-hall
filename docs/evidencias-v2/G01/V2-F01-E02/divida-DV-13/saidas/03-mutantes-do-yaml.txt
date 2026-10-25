@@ -1,0 +1,16 @@
+MUTANTE Metro sem timeout no passo -> ℹ pass 50 / ℹ fail 1
+✖ o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39) (0.66025ms)
+✖ o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39) (0.66025ms)
+MUTANTE CRLF volta a ser montado por script -> ℹ pass 50 / ℹ fail 1
+✖ o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14) (0.930291ms)
+✖ o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14) (0.930291ms)
+MUTANTE windows sem lint:teto -> ℹ pass 50 / ℹ fail 1
+✖ o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26) (0.700042ms)
+✖ o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26) (0.700042ms)
+MUTANTE Metro nao roda -> ℹ pass 50 / ℹ fail 1
+✖ o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39) (0.596667ms)
+✖ o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39) (0.596667ms)
+MUTANTE contagem do painel nao conferida -> ℹ pass 50 / ℹ fail 1
+✖ o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14) (0.5685ms)
+✖ o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14) (0.5685ms)
+yml restaurado

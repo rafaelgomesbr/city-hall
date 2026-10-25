@@ -1,0 +1,20 @@
+✔ paraCrlf converte LF e não duplica o CR de linha que já é CRLF (0.569958ms)
+✔ numa fonte em CRLF a agulha antiga some, e é isso que reprovava o teste (0.14125ms)
+✔ estadoDoFimDeLinha conta LF sozinho num arquivo misto (1.832625ms)
+✔ resumirEol aceita LF, binário e CRLF no disco onde o .gitattributes pede (0.523917ms)
+✔ resumirEol reprova CRLF no disco sem eol=crlf e índice misto (0.307625ms)
+✔ a fixture do cache velho não conhece as três rotas e conhece as outras (2.604625ms)
+✔ como comando, `eol` sai com 1 diante de i/crlf e com 0 numa saída limpa (167.376541ms)
+✔ como comando, subcomando desconhecido sai com 2 (49.136958ms)
+✔ crlfPeloGit: o git escreve CRLF no disco, o índice segue LF e a árvore não aparece como modificada (326.895333ms)
+✔ crlfPeloGit reprova pasta sem arquivo rastreado (verde sobre pasta vazia não prova nada) (170.108ms)
+✔ divergenciasDoPainel aceita a contagem do baseline e reprova total, falha e pulo diferentes (0.45875ms)
+✔ como comando, conferir-painel sai com 1 diante de uma contagem menor e com 0 diante da fixada (44.969625ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 859.434458

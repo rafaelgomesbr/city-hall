@@ -1,0 +1,11 @@
+✔ um pacote com o zod 4 e o código do shared passa, e a linha traz o SHA-256 (4.163292ms)
+✔ sem o zod 4, sem o shared, pequeno demais ou ausente: cada um reprova por si (3.76325ms)
+✔ como comando: pacote bom sai 0; sem metadata.json ou sem o zod 4 sai 1; sem argumento sai 2 (210.347916ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 287.996167

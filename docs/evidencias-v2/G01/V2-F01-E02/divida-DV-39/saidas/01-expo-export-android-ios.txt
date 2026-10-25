@@ -1,0 +1,39 @@
+Bytecode makes the app startup faster, disabling bytecode is highly discouraged and should only be used for debugging purposes.
+Using src/app as the root directory for Expo Router.
+Starting Metro Bundler
+
+iOS Bundled 2920ms node_modules/expo-router/entry.js (1433 modules)
+Android Bundled 3072ms node_modules/expo-router/entry.js (1757 modules)
+
+› Assets (39):
+assets/fontes/RobotoMono-Bold.ttf (79KB)
+assets/fontes/RobotoMono-Regular.ttf (79KB)
+assets/fontes/WorkSans-Bold.ttf (116KB)
+assets/fontes/WorkSans-Regular.ttf (114KB)
+assets/fontes/WorkSans-SemiBold.ttf (115KB)
+node_modules/@expo-google-fonts/material-symbols/400Regular/MaterialSymbols_400Regular.ttf (972KB)
+node_modules/expo-router/assets/arrow_down.png (9.5KB)
+node_modules/expo-router/assets/arrow_right.xml (307B)
+node_modules/expo-router/assets/checkmark.xml (312B)
+node_modules/expo-router/assets/error.png (469B)
+node_modules/expo-router/assets/file.png (138B)
+node_modules/expo-router/assets/forward.png (188B)
+node_modules/expo-router/assets/pkg.png (364B)
+node_modules/expo-router/assets/react-navigation/elements/back-icon-mask.png (653B)
+node_modules/expo-router/assets/react-navigation/elements/back-icon.png (8 variations | 359B)
+node_modules/expo-router/assets/react-navigation/elements/clear-icon.png (4 variations | 425B)
+node_modules/expo-router/assets/react-navigation/elements/close-icon.png (4 variations | 235B)
+node_modules/expo-router/assets/react-navigation/elements/search-icon.png (7 variations | 592B)
+node_modules/expo-router/assets/sitemap.png (465B)
+node_modules/expo-router/assets/unmatched.png (4.8KB)
+
+› ios bundles (1):
+_expo/static/js/ios/entry-f6c865393f975de2ec46c33fa856a6d0.js (2.8MB)
+
+› android bundles (1):
+_expo/static/js/android/entry-3446b21024cf02bd9298b405bc6a4cbe.js (3MB)
+
+› Files (1):
+metadata.json (4KB)
+
+Exported: /private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3294a44b-7d6b-4289-a196-1ebe378eab16/scratchpad/ex3

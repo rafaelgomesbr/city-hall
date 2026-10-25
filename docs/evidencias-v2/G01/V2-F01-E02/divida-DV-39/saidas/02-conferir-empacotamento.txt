@@ -1,0 +1,3 @@
+android: _expo/static/js/android/entry-3446b21024cf02bd9298b405bc6a4cbe.js 3048990 bytes sha256=744eb64a28e0313b13faae45e0d72d9b726a26a36e7ceadf37fe371f97ea303d
+ios: _expo/static/js/ios/entry-f6c865393f975de2ec46c33fa856a6d0.js 2800008 bytes sha256=92bc31bb36bfe1a55741e9a9572de512db31101d378466c1cfa746033adc0ec5
+Empacotamento do Metro conferido para: android, ios.
