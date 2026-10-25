@@ -1,0 +1,113 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/agent-ae37603c1989e2705/dc360/db
+
+ ✓ test/carga.test.ts (15 tests) 10484ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 11572ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > vencido o prazo, o relogio apaga todas as linhas do municipio e grava as contagens  522ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > tabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar  413ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 14927ms
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 7000ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 4209ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 14242ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  2845ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  5125ms
+ ✓ test/endurecer-extensao.test.ts (9 tests) 9887ms
+   ✓ o endurecimento de extensão, com pg_trgm no lugar do PostGIS > depois: nenhum papel do provedor executa a função da extensão  328ms
+   ✓ o endurecimento de extensão, com pg_trgm no lugar do PostGIS > rodar de novo não muda nada e não dá erro  395ms
+   ✓ sem a extensão instalada > o arquivo inteiro roda num Postgres comum, sem os papéis do provedor  3445ms
+ ✓ test/guarda-da-semente.test.ts (18 tests) 10795ms
+   ✓ o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha  459ms
+   ✓ o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1  549ms
+   ✓ o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)  9759ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts (12 tests) 10603ms
+   ✓ A trava e as permissões > cada encerramento em massa do banco toma a MESMA trava da renovação, e ela some no COMMIT  2552ms
+   ✓ A trava e as permissões > a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console  338ms
+   ✓ A trava e as permissões > a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios  474ms
+ ✓ test/familia-da-sessao.test.ts (12 tests) 5631ms
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 4857ms
+ ✓ test/migracoes-regras.test.ts (19 tests) 136ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 1879ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts (6 tests) 1916ms
+ ✓ test/postgis-decisao.test.ts (8 tests) 4ms
+ ✓ test/trava-de-migracao.test.ts (15 tests | 3 skipped) 41452ms
+   ✓ a decisão, em PGlite > aplica, e a trava é largada no fim  7129ms
+   ✓ a decisão, em PGlite > a trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle  2766ms
+   ✓ a decisão, em PGlite > usa a chave fixa do produto  2298ms
+   ✓ a decisão, em PGlite > trava ocupada: espera, tenta de novo e aplica quando a outra termina  3056ms
+   ✓ a decisão, em PGlite > trava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado  3574ms
+   ✓ a decisão, em PGlite > com esperaMs 0 é uma tentativa só  1289ms
+   ✓ a decisão, em PGlite > avisa uma vez, no registro, que está esperando  3613ms
+   ✓ a decisão, em PGlite > a trava é larga mesmo quando a migração falha  4280ms
+   ✓ a decisão, em PGlite > a trava é larga quando o histórico foi alterado  3429ms
+   ✓ a decisão, em PGlite > migrar com o papel errado continua dando a mensagem do papel, e larga a trava  6251ms
+   ✓ o pooler não serve > a porta 6543 (pooler em modo transação) é recusada com a explicação  2701ms
+   ✓ o pooler não serve > conexão direta, sem URL e URL ilegível não recusam aqui  1063ms
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 2ms
+ ✓ test/migrar.test.ts (17 tests) 48448ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  7080ms
+   ✓ Aplicação > rodar de novo não faz nada  2662ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  2407ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  3227ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  3566ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  1280ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  3552ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  3642ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  3279ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  5734ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  1822ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  1574ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  2288ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  2171ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  1945ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  1489ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  721ms
+ ✓ test/desfazer-migracao.test.ts (28 tests) 66544ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > aplicar, desfazer e reaplicar: information_schema, índices e RLS idênticos  7515ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > desfaz UMA só: a anterior continua aplicada  2909ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > sem nada aplicado, diz que não há o que desfazer  2515ms
+   ✓ positivos: desfaz só a última, e o ciclo deixa o esquema idêntico > larga a trava de migração no fim  3566ms
+   ✓ com as migrações de verdade: o isolamento sobrevive ao ciclo > uma 052 de prova com tabela de negócio e RLS forçada: desfazer devolve o estado exato  3686ms
+   ✓ com as migrações de verdade: o isolamento sobrevive ao ciclo > a última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada  6578ms
+   ✓ negativos: o que o desfazer recusa > migração declarada IRREVERSIVEL  3759ms
+   ✓ negativos: o que o desfazer recusa > migração aplicada cujo arquivo não existe nesta versão do código  5867ms
+   ✓ negativos: o que o desfazer recusa > volta que falha: desfaz inteira ou não desfaz nada, e o registro continua  2088ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > AMBIENTE_DC360=prod  3175ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > NODE_ENV=production, mesmo sem AMBIENTE_DC360  1290ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > URL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha  1635ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > a identidade declarada pelo processo (IDENTIDADE_DO_BANCO) também protege  2046ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > banco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável  1419ms
+   ✓ em PRODUÇÃO: recusa antes de tocar no banco > descartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade)  572ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > PROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha  1169ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > declarar hml sem a identidade, ou com a de outro banco, ainda recusa  1619ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL  1554ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > HML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML)  652ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO  431ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > NODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML  1719ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > URL que não dá para analisar recusa sem repetir o texto  2442ms
+   ✓ FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) > a lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host)  1791ms
+   ✓ o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar  1788ms
+   ✓ o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar  689ms
+   ✓ o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar  614ms
+   ✓ o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2  513ms
+   ✓ o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0  2935ms
+ ✓ test/isolamento.test.ts (137 tests) 89431ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id  534ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  717ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  7611ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  5575ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  62955ms
+
+ Test Files  20 passed (20)
+      Tests  439 passed | 6 skipped (445)
+   Start at  11:59:31
+   Duration  90.52s (transform 4.00s, setup 0ms, collect 8.13s, tests 354.02s, environment 3ms, prepare 3.36s)
+
+exit=0

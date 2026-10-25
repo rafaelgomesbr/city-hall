@@ -498,3 +498,10 @@ aplicação.
    passa 15 espaços e uma letra. O painel não tem esse furo, porque apara antes de
    validar (`apps/web/src/paginas/Ocorrencia.tsx`, `desinterdicaoSchema.safeParse({
    motivo: motivo.trim() })`); o guia do coordenador descreve a tela. Anotado.
+6. **As métricas do município ainda contam o dia pelo relógio do banco.**
+   `db/migrations/023_metricas_do_municipio.sql` (perto da linha 84) agrupa por
+   dia sem converter para o fuso do município. A V2-F02-E09 moveu para o fuso
+   da UF só o ano do protocolo e as datas e o nome do CSV
+   (`packages/shared/src/fuso.ts`); as métricas ficaram de fora de propósito,
+   porque mudar a janela do dia reescreve séries já exibidas. Decisão de
+   produto, a tratar junto com qualquer etapa que mexa nas métricas.

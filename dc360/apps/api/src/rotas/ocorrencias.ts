@@ -17,6 +17,7 @@ import {
   transicaoPermitida,
   triagemSchema,
   type StatusOcorrencia,
+  anoNoFuso, fusoDoEstado,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
@@ -634,9 +635,13 @@ export async function rotasOcorrencias(
       // O protocolo sai do banco, dentro da transação, com a linha da
       // sequência travada. Gerar na aplicação abriria corrida entre dois
       // operadores registrando ao mesmo tempo.
+      const org = await c.query<{ uf: string | null }>(
+        "SELECT uf FROM organizacoes WHERE id = $1",
+        [quem.organizacaoId],
+      );
       const p = await c.query<{ proximo: string }>(
         "SELECT proximo_protocolo($1) AS proximo",
-        [new Date().getFullYear()],
+        [anoNoFuso(new Date(), fusoDoEstado(org.rows[0]?.uf))],
       );
       const protocolo = p.rows[0]!.proximo;
 
