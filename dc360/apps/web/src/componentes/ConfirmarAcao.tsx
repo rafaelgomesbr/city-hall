@@ -49,6 +49,19 @@ export function aparenciaDaConfirmacao(destrutiva: boolean): Aparencia {
 }
 
 /**
+ * O que o Esc e o clique no fundo fazem.
+ *
+ * Enquanto a ação grava, "Cancelar" fica travado, e as outras saídas da janela
+ * (Esc e clique no fundo) precisam ficar travadas junto: senão a janela fecha, a
+ * gravação conclui e um erro do servidor cai numa janela que já não existe
+ * (rodada 10 da V2-F00-E09). Quando o erro chega e `ocupado` volta a falso, a
+ * saída volta a valer, então a janela nunca fica presa.
+ */
+export function aoFecharDaConfirmacao(ocupado: boolean, aoCancelar: () => void): () => void {
+  return ocupado ? () => {} : aoCancelar;
+}
+
+/**
  * Palavras que não dizem o que vai acontecer.
  *
  * Um rótulo é vago quando TODAS as suas palavras são destas: "OK", "Sim",
@@ -122,7 +135,7 @@ export function ConfirmarAcao({
       aberto={aberto}
       titulo={titulo}
       descricao={consequencia}
-      aoFechar={aoCancelar}
+      aoFechar={aoFecharDaConfirmacao(ocupado, aoCancelar)}
       fecharAoClicarFora={fecharAoClicarFora}
       /*
         Sem o "Fechar" do canto: com ele, a janela ofereceria duas saídas com

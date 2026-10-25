@@ -452,8 +452,9 @@ export function Usuarios() {
         titulo="Desativar usuário"
         consequencia={
           <>
-            A pessoa perde o acesso agora: as sessões dela caem e o aplicativo
-            de campo para de sincronizar. O nome continua nos laudos que ela
+            A pessoa perde o acesso agora: renovar a sessão e gravar são recusados na
+            hora (uma tela já aberta pode continuar consultando por alguns minutos) e o
+            aplicativo de campo para de sincronizar. O nome continua nos laudos que ela
             assinou e na trilha de auditoria, e reativar devolve o acesso.
           </>
         }
@@ -550,8 +551,8 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
         consequencia={
           <>
             A senha atual de {alvo.nome} deixa de valer agora, e as sessões abertas deixam
-            de renovar e de gravar (uma tela já aberta pode seguir mostrando consultas por
-            até 15 minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
+            de renovar e de gravar (uma tela já aberta pode continuar consultando por alguns
+            minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
             que vale por 72 horas e precisa ser trocada na primeira entrada.
           </>
         }
@@ -650,7 +651,7 @@ function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
           <>
             {alvo.nome} deixa de poder renovar a sessão e de gravar qualquer coisa agora, e
             precisa entrar de novo com a própria senha, que não muda. Uma tela que já estava
-            aberta pode continuar mostrando consultas por até 15 minutos. Quem está em campo
+            aberta pode continuar consultando por alguns minutos. Quem está em campo
             fica sem sincronizar até entrar outra vez.
           </>
         }

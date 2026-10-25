@@ -1765,6 +1765,13 @@ console.log("\n== 15. A janela de confirmação aberta acompanha a mudança de t
           return { dentro: Boolean(painel && el && el !== document.body && painel.contains(el)), txt: el ? el.tagName.toLowerCase() : "nada" };
         });
         ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava (botões travados), o foco continua dentro da janela`, durante.dentro, `(${durante.txt})`);
+        // Correção 8b: enquanto grava, o Esc e o clique no fundo não fecham a janela (o erro do servidor tem onde cair).
+        await pg.keyboard.press("Escape");
+        await pg.waitForTimeout(150);
+        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava, o Esc não fecha a janela`, await janela.isVisible());
+        await pg.mouse.click(2, 2);
+        await pg.waitForTimeout(150);
+        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava, o clique no fundo não fecha a janela`, await janela.isVisible());
       }
       await janela.locator('[role="alert"], .aviso--perigo').first().waitFor({ timeout: 10_000 });
       await pg.waitForTimeout(600);

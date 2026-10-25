@@ -1,0 +1,294 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 2278815..4552009 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,7 +10,7 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 236 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 770 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 778 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1719 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1618,7 +1618,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3615 testes em seis pacotes
++npm test                    # 3623 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1719 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+diff --git a/dc360/apps/web/src/componentes/ConfirmarAcao.tsx b/dc360/apps/web/src/componentes/ConfirmarAcao.tsx
+index be9581f..d4755c7 100644
+--- a/dc360/apps/web/src/componentes/ConfirmarAcao.tsx
++++ b/dc360/apps/web/src/componentes/ConfirmarAcao.tsx
+@@ -48,6 +48,19 @@ export function aparenciaDaConfirmacao(destrutiva: boolean): Aparencia {
+   };
+ }
+ 
++/**
++ * O que o Esc e o clique no fundo fazem.
++ *
++ * Enquanto a ação grava, "Cancelar" fica travado, e as outras saídas da janela
++ * (Esc e clique no fundo) precisam ficar travadas junto: senão a janela fecha, a
++ * gravação conclui e um erro do servidor cai numa janela que já não existe
++ * (rodada 10 da V2-F00-E09). Quando o erro chega e `ocupado` volta a falso, a
++ * saída volta a valer, então a janela nunca fica presa.
++ */
++export function aoFecharDaConfirmacao(ocupado: boolean, aoCancelar: () => void): () => void {
++  return ocupado ? () => {} : aoCancelar;
++}
++
+ /**
+  * Palavras que não dizem o que vai acontecer.
+  *
+@@ -122,7 +135,7 @@ export function ConfirmarAcao({
+       aberto={aberto}
+       titulo={titulo}
+       descricao={consequencia}
+-      aoFechar={aoCancelar}
++      aoFechar={aoFecharDaConfirmacao(ocupado, aoCancelar)}
+       fecharAoClicarFora={fecharAoClicarFora}
+       /*
+         Sem o "Fechar" do canto: com ele, a janela ofereceria duas saídas com
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index 36b9fff..4ef2e47 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -418,7 +418,7 @@ function MinhasOutrasSessoes() {
+           <>
+             Os outros navegadores e aparelhos da sua conta deixam de poder renovar a sessão e de
+             gravar agora, e precisam entrar de novo com a sua senha. Uma tela já aberta neles
+-            pode continuar mostrando consultas por até 15 minutos. Esta sessão continua aberta,
++            pode continuar consultando por alguns minutos. Esta sessão continua aberta,
+             e a senha não muda.
+           </>
+         }
+diff --git a/dc360/apps/web/src/paginas/Usuarios.tsx b/dc360/apps/web/src/paginas/Usuarios.tsx
+index 881590a..9525b0f 100644
+--- a/dc360/apps/web/src/paginas/Usuarios.tsx
++++ b/dc360/apps/web/src/paginas/Usuarios.tsx
+@@ -452,8 +452,9 @@ export function Usuarios() {
+         titulo="Desativar usuário"
+         consequencia={
+           <>
+-            A pessoa perde o acesso agora: as sessões dela caem e o aplicativo
+-            de campo para de sincronizar. O nome continua nos laudos que ela
++            A pessoa perde o acesso agora: renovar a sessão e gravar são recusados na
++            hora (uma tela já aberta pode continuar consultando por alguns minutos) e o
++            aplicativo de campo para de sincronizar. O nome continua nos laudos que ela
+             assinou e na trilha de auditoria, e reativar devolve o acesso.
+           </>
+         }
+@@ -550,8 +551,8 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
+         consequencia={
+           <>
+             A senha atual de {alvo.nome} deixa de valer agora, e as sessões abertas deixam
+-            de renovar e de gravar (uma tela já aberta pode seguir mostrando consultas por
+-            até 15 minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
++            de renovar e de gravar (uma tela já aberta pode continuar consultando por alguns
++            minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
+             que vale por 72 horas e precisa ser trocada na primeira entrada.
+           </>
+         }
+@@ -650,7 +651,7 @@ function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
+           <>
+             {alvo.nome} deixa de poder renovar a sessão e de gravar qualquer coisa agora, e
+             precisa entrar de novo com a própria senha, que não muda. Uma tela que já estava
+-            aberta pode continuar mostrando consultas por até 15 minutos. Quem está em campo
++            aberta pode continuar consultando por alguns minutos. Quem está em campo
+             fica sem sincronizar até entrar outra vez.
+           </>
+         }
+diff --git a/dc360/apps/web/test/correcao-8-da-e09.test.ts b/dc360/apps/web/test/correcao-8-da-e09.test.ts
+index cafa785..21e936e 100644
+--- a/dc360/apps/web/test/correcao-8-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-8-da-e09.test.ts
+@@ -419,19 +419,19 @@ describe("Achado 3: as frases das janelas dizem o que o sistema faz, e nada alé
+     expect(usuarios).not.toContain("sai de todos os navegadores");
+     expect(usuarios).toContain("deixa de poder renovar a sessão e de gravar qualquer coisa agora");
+     expect(usuarios).toContain("Uma tela que já estava");
+-    expect(usuarios).toContain("por até 15 minutos");
++    expect(usuarios).toContain("pode continuar consultando por alguns minutos");
+   });
+ 
+   it("'Redefinir senha' não promete que as sessões abertas caem na hora", () => {
+     expect(usuarios).not.toMatch(/as sessões abertas\s+caem/);
+     expect(usuarios).toContain("as sessões abertas deixam");
+-    expect(usuarios).toContain("até 15 minutos). O sistema sorteia");
++    expect(usuarios).toContain("minutos). O sistema sorteia");
+   });
+ 
+-  it("'Encerrar minhas outras sessões' diz a mesma coisa, com as mesmas palavras de 15 minutos", () => {
++  it("'Encerrar minhas outras sessões' diz a mesma coisa, sem fixar o número de minutos", () => {
+     expect(conta).not.toContain("saem agora e precisam entrar de novo");
+     expect(conta).toContain("deixam de poder renovar a sessão e de");
+-    expect(conta).toContain("pode continuar mostrando consultas por até 15 minutos");
++    expect(conta).toContain("pode continuar consultando por alguns minutos");
+   });
+ });
+ 
+diff --git a/dc360/apps/web/test/correcao-8b-da-e09.test.ts b/dc360/apps/web/test/correcao-8b-da-e09.test.ts
+new file mode 100644
+index 0000000..e01ebad
+--- /dev/null
++++ b/dc360/apps/web/test/correcao-8b-da-e09.test.ts
+@@ -0,0 +1,83 @@
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { describe, expect, it, vi } from "vitest";
++
++import { aoFecharDaConfirmacao } from "../src/componentes/ConfirmarAcao";
++import { lerFonte } from "./ler-fonte";
++
++/**
++ * Os achados da rodada 10 da V2-F00-E09 que a correção 8b conserta: (1) durante
++ * a gravação, o Esc e o clique no fundo fechavam a janela de confirmação
++ * (só o "Cancelar" estava travado) e o erro do servidor caía numa janela
++ * fechada; (2) e (3) as frases das janelas fixavam "15 minutos" (a API aceita
++ * até 60) e "mostrando consultas", e "Desativar usuário" ainda dizia que as
++ * sessões "caem". A prova no navegador está em `layout-estreito.e2e.mjs`,
++ * seção 15 (C).
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const SRC = join(AQUI, "..", "src");
++const semQuebras = (texto: string) => texto.replace(/\s+/g, " ");
++const fonte = (...partes: string[]) => lerFonte(join(SRC, ...partes));
++
++describe("Achado 1: gravando, o Esc e o clique no fundo não fecham a janela de confirmação", () => {
++  it("ocupado: a saída da janela não faz nada e o cancelamento não é chamado", () => {
++    const aoCancelar = vi.fn();
++    const aoFechar = aoFecharDaConfirmacao(true, aoCancelar);
++    aoFechar();
++    expect(aoCancelar).not.toHaveBeenCalled();
++  });
++
++  it("livre: a saída da janela é o cancelamento", () => {
++    const aoCancelar = vi.fn();
++    aoFecharDaConfirmacao(false, aoCancelar)();
++    expect(aoCancelar).toHaveBeenCalledTimes(1);
++  });
++
++  it("o erro do servidor devolve o controle: ocupado volta a falso e a saída volta a valer", () => {
++    const aoCancelar = vi.fn();
++    aoFecharDaConfirmacao(true, aoCancelar)();
++    aoFecharDaConfirmacao(false, aoCancelar)();
++    expect(aoCancelar).toHaveBeenCalledTimes(1);
++  });
++
++  it("a ConfirmarAcao entrega ao Modal a saída travada, e não o aoCancelar direto", () => {
++    const confirmar = fonte("componentes", "ConfirmarAcao.tsx");
++    expect(confirmar).toContain("aoFechar={aoFecharDaConfirmacao(ocupado, aoCancelar)}");
++    expect(confirmar).not.toMatch(/aoFechar=\{aoCancelar\}/);
++  });
++});
++
++describe("Achados 2 e 3: as frases não fixam o número de minutos nem dizem que as sessões caem", () => {
++  const usuarios = semQuebras(fonte("paginas", "Usuarios.tsx"));
++  const conta = semQuebras(fonte("paginas", "MinhaConta.tsx"));
++  const honesta = "pode continuar consultando por alguns minutos";
++
++  it("nenhuma das telas fixa '15 minutos' nem diz 'mostrando consultas'", () => {
++    for (const texto of [usuarios, conta]) {
++      expect(texto).not.toContain("15 minutos");
++      expect(texto).not.toContain("mostrando consultas");
++    }
++  });
++
++  it("'Desativar usuário' não diz que as sessões caem e usa a frase honesta", () => {
++    const janela = usuarios.slice(usuarios.indexOf('titulo="Desativar usuário"'));
++    const trecho = janela.slice(0, janela.indexOf("rotuloDaAcao"));
++    expect(trecho).not.toContain("as sessões dela caem");
++    expect(trecho).toContain("renovar a sessão e gravar são recusados na hora");
++    expect(trecho).toContain(honesta);
++  });
++
++  it("'Redefinir senha', 'Encerrar sessões' e 'Encerrar minhas outras sessões' usam a mesma frase", () => {
++    expect(usuarios.split(honesta)).toHaveLength(4); // Desativar, Redefinir, Encerrar: 3 ocorrências
++    expect(conta).toContain(honesta);
++  });
++});
++
++describe("A prova no navegador existe", () => {
++  it("a seção 15 do layout-estreito aperta Esc e clica no fundo enquanto grava", () => {
++    const e2e = fonte("..", "test", "layout-estreito.e2e.mjs");
++    expect(e2e).toContain("enquanto grava, o Esc não fecha a janela");
++    expect(e2e).toContain("enquanto grava, o clique no fundo não fecha a janela");
++  });
++});
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index 39f5363..05c2dc7 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -1765,6 +1765,13 @@ console.log("\n== 15. A janela de confirmação aberta acompanha a mudança de t
+           return { dentro: Boolean(painel && el && el !== document.body && painel.contains(el)), txt: el ? el.tagName.toLowerCase() : "nada" };
+         });
+         ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava (botões travados), o foco continua dentro da janela`, durante.dentro, `(${durante.txt})`);
++        // Correção 8b: enquanto grava, o Esc e o clique no fundo não fecham a janela (o erro do servidor tem onde cair).
++        await pg.keyboard.press("Escape");
++        await pg.waitForTimeout(150);
++        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava, o Esc não fecha a janela`, await janela.isVisible());
++        await pg.mouse.click(2, 2);
++        await pg.waitForTimeout(150);
++        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava, o clique no fundo não fecha a janela`, await janela.isVisible());
+       }
+       await janela.locator('[role="alert"], .aviso--perigo').first().waitFor({ timeout: 10_000 });
+       await pg.waitForTimeout(600);
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 7b12938..940cc5a 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5612 testes somando o aplicativo** (contagem estática de `npm run
++- **5620 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5612 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5620 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index a3616b9..146f79d 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -628,6 +628,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
+   "V2-F00-E09-correcao-7": { total: 14, falhas: 0 },
+   // V2-F00-E09, correção 8: `correcao-8-da-e09.test.ts` é novo, com 33 casos (a parte do painel que a pessoa enxerga com e sem teclado virtual e zoom de pinça; o acompanhamento da janela aberta com um DOM mínimo: resize, orientationchange e a janela visual, a mesma conta no quadro seguinte, sem laço, e tudo desligado em parar(), sem acumular ouvinte em 50 aberturas; o foco que cai na página volta ao último controle, o botão travado gravando e devolvido quando volta a valer, o WebKit que leva o foco ao painel; o Esc e o Tab ouvidos no documento só com o alvo fora do painel; o Modal ligado ao acompanhamento, o fundo que não tira o foco e o título preso; as três frases que deixam de prometer a saída imediata; e a seção 15 do layout-estreito). Doze mutações do código novo, todas vermelhas. `correcao-7-da-e09.test.ts` e `correcao-4-da-e09.test.ts` trocaram asserções no lugar (o observador e a limpeza passaram para `acompanhar-janela.ts`). Nenhuma falha nova.
+   "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
++  // V2-F00-E09, correção 8b: `correcao-8b-da-e09.test.ts` é novo, com 8 casos (a saída da janela de confirmação, o Esc e o clique no fundo, fica travada enquanto grava e volta a valer com o erro; as quatro frases de sessão não fixam o número de minutos e "Desativar usuário" não diz que as sessões caem; a seção 15 do layout-estreito aperta o Esc e clica no fundo gravando). `correcao-8-da-e09.test.ts` trocou 4 asserções de texto no lugar. Nenhuma falha nova.
++  "V2-F00-E09-correcao-8b": { total: 8, falhas: 0 },
+ };
+ export function esperadoDoTesteWeb() {
+   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
+@@ -966,13 +968,18 @@ export const PASSOS = [
+     no documento (4 tamanhos x 4 = 16) e o erro do servidor (5 tamanhos x 2
+     janelas, durante a gravacao, depois do erro e o Esc: 28). 390 no Chromium e
+     no Firefox, 389 no WebKit.
++
++    Correcao 8b da E09 (2026-10-25): de 390 para 406 (mais 16), secao 15 (C):
++    durante a gravacao (4 dos 5 tamanhos, os de demora de 1,2 s, x 2 janelas), o
++    Esc e o clique no fundo nao fecham a janela de confirmacao. 406 no Chromium
++    e no Firefox, 405 no WebKit.
+   */
+   {
+     id: "e2e-api",
+     titulo: "npm run test:e2e:api",
+     cmd: "npm run test:e2e:api",
+     cwd: ".",
+-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 390   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 406   Falhou: 0"] },
+   },
+ ];
+ 

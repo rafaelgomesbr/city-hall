@@ -628,6 +628,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E09-correcao-7": { total: 14, falhas: 0 },
   // V2-F00-E09, correção 8: `correcao-8-da-e09.test.ts` é novo, com 33 casos (a parte do painel que a pessoa enxerga com e sem teclado virtual e zoom de pinça; o acompanhamento da janela aberta com um DOM mínimo: resize, orientationchange e a janela visual, a mesma conta no quadro seguinte, sem laço, e tudo desligado em parar(), sem acumular ouvinte em 50 aberturas; o foco que cai na página volta ao último controle, o botão travado gravando e devolvido quando volta a valer, o WebKit que leva o foco ao painel; o Esc e o Tab ouvidos no documento só com o alvo fora do painel; o Modal ligado ao acompanhamento, o fundo que não tira o foco e o título preso; as três frases que deixam de prometer a saída imediata; e a seção 15 do layout-estreito). Doze mutações do código novo, todas vermelhas. `correcao-7-da-e09.test.ts` e `correcao-4-da-e09.test.ts` trocaram asserções no lugar (o observador e a limpeza passaram para `acompanhar-janela.ts`). Nenhuma falha nova.
   "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
+  // V2-F00-E09, correção 8b: `correcao-8b-da-e09.test.ts` é novo, com 8 casos (a saída da janela de confirmação, o Esc e o clique no fundo, fica travada enquanto grava e volta a valer com o erro; as quatro frases de sessão não fixam o número de minutos e "Desativar usuário" não diz que as sessões caem; a seção 15 do layout-estreito aperta o Esc e clica no fundo gravando). `correcao-8-da-e09.test.ts` trocou 4 asserções de texto no lugar. Nenhuma falha nova.
+  "V2-F00-E09-correcao-8b": { total: 8, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -966,13 +968,18 @@ export const PASSOS = [
     no documento (4 tamanhos x 4 = 16) e o erro do servidor (5 tamanhos x 2
     janelas, durante a gravacao, depois do erro e o Esc: 28). 390 no Chromium e
     no Firefox, 389 no WebKit.
+
+    Correcao 8b da E09 (2026-10-25): de 390 para 406 (mais 16), secao 15 (C):
+    durante a gravacao (4 dos 5 tamanhos, os de demora de 1,2 s, x 2 janelas), o
+    Esc e o clique no fundo nao fecham a janela de confirmacao. 406 no Chromium
+    e no Firefox, 405 no WebKit.
   */
   {
     id: "e2e-api",
     titulo: "npm run test:e2e:api",
     cmd: "npm run test:e2e:api",
     cwd: ".",
-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 390   Falhou: 0"] },
+    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 406   Falhou: 0"] },
   },
 ];
 
