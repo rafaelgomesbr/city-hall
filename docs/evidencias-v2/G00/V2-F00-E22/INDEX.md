@@ -128,3 +128,5 @@
 | saidas/npm-test.txt | 56696e6803a6af8d232201528bc9ca4c29b14480fba635cd6cb12f1f6de2009a |
 | saidas/sonda-103-contra-a-api.txt | 43d9ca95bf9f8b66c397002bb3ed476eee1263db3c76c67a82385f9d66c2c94c |
 | saidas/sonda-103-regex-antigo.txt | 9fa84d770fcb83cd335c6235eaf024afaf2cff9868b319325a92b63ac0941393 |
+| divida-DV-08/RESUMO.md | 442cd028529e092ec5d8a15f88f8ab56095e8a012ba509dec85daa8b99368ec6 |
+| divida-DV-08/saidas/01-api-do-github-run-39366804765.txt | 8957e0a9bb26aa373b176dc1c644d5f14092455e528e561e0baad3c2a0088af1 |
