@@ -16,4 +16,7 @@ export * from "./glifos-de-severidade.js";
 export * from "./evidencia.js";
 export * from "./codigos-de-erro.js";
 export * from "./observabilidade.js";
+export * from "./erros.js";
+export * from "./fuso.js";
+export * from "./versao.js";
 export { mensagensDoZodEmPortugues } from "./mensagens-do-zod.js";
