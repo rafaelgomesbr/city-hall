@@ -15,6 +15,10 @@
  * alguém precisa olhar de novo. O Semgrep CE não entrega a impressão própria
  * (`fingerprint` vem como "requires login"), por isso ela é calculada aqui.
  *
+ * Erro de análise (arquivo que o Semgrep não conseguiu ler por inteiro) também
+ * reprova quando está em `dc360/apps/api/src/` ou é de nível `error` (DV-16); fora
+ * dessa pasta é listado como aviso. Ver `classificarErrosDeAnalise`.
+ *
  * Uso (na raiz do repositório):
  *   node dc360/scripts/sast-baseline.mjs conferir saida-do-semgrep.json
  *   node dc360/scripts/sast-baseline.mjs propor   saida-do-semgrep.json
@@ -111,6 +115,39 @@ export function problemasDaBaseline(baseline, hoje) {
   return problemas;
 }
 
+/** Onde as regras próprias valem (`paths.include` delas): arquivo sem análise aqui é um furo no portão. */
+export const PASTA_DAS_REGRAS_PROPRIAS = "dc360/apps/api/src/";
+
+/**
+ * Separa os erros de análise do Semgrep (`errors` do JSON) em bloqueantes e avisos
+ * (V2-F01-E05, DV-16). Um arquivo com erro de sintaxe, parse parcial ou tempo
+ * esgotado sai como `level: "warn"` e o Semgrep termina com código 0, mas as regras
+ * não rodaram nele (ou só em parte): o portão passava verde sem ter lido o arquivo.
+ *
+ * Bloqueia (1) qualquer erro de nível `error`; (2) QUALQUER erro, de qualquer nível
+ * e tipo, em `dc360/apps/api/src/` (é onde as regras próprias valem); (3) erro sem
+ * caminho, porque não dá para provar que está fora dessa pasta. Os demais, de
+ * arquivo fora da pasta, são listados como aviso: nenhum erro de parse some.
+ */
+export function classificarErrosDeAnalise(erros) {
+  const bloqueantes = [];
+  const avisos = [];
+  for (const e of erros ?? []) {
+    const caminho = typeof e.path === "string" ? e.path.replace(/\\/g, "/").replace(/^\.\//, "") : "";
+    const dentro = caminho !== "" && (caminho.startsWith(PASTA_DAS_REGRAS_PROPRIAS) || caminho.includes(`/${PASTA_DAS_REGRAS_PROPRIAS}`));
+    const tipo = Array.isArray(e.type) ? String(e.type[0]) : String(e.type ?? "erro");
+    const item = {
+      nivel: String(e.level ?? "?"),
+      tipo,
+      caminho: caminho || "(sem caminho)",
+      mensagem: String(e.message ?? "").split("\n")[0],
+    };
+    if (e.level === "error" || caminho === "" || dentro) bloqueantes.push(item);
+    else avisos.push(item);
+  }
+  return { bloqueantes, avisos };
+}
+
 function lerLinhasDoDisco(caminho) {
   try { return readFileSync(join(RAIZ, caminho), "utf8").split(/\r?\n/); } catch { return undefined; }
 }
@@ -126,10 +163,11 @@ function principal(argv) {
     return 2;
   }
   const json = JSON.parse(readFileSync(arquivoJson, "utf8"));
-  const erros = (json.errors ?? []).filter((e) => e.level === "error");
-  if (erros.length) {
-    console.error(`O Semgrep terminou com ${erros.length} erro(s) de análise; sem leitura confiável, o portão reprova.`);
-    for (const e of erros) console.error(`  - ${String(e.message).split("\n")[0]}`);
+  const { bloqueantes, avisos: errosFora } = classificarErrosDeAnalise(json.errors);
+  for (const e of errosFora) console.log(`  erro de análise fora de ${PASTA_DAS_REGRAS_PROPRIAS} (não reprova): [${e.nivel}] ${e.tipo} em ${e.caminho}`);
+  if (bloqueantes.length) {
+    console.error(`O Semgrep terminou com ${bloqueantes.length} erro(s) de análise que deixam arquivo sem leitura confiável; o portão reprova.`);
+    for (const e of bloqueantes) console.error(`  - [${e.nivel}] ${e.tipo} em ${e.caminho}: ${e.mensagem}`);
     return 2;
   }
   const achados = normalizarAchados(json, lerLinhasDoDisco);

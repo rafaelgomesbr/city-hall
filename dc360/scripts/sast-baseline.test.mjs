@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { compararComBaseline, idCurto, normalizarAchados } from "./sast-baseline.mjs";
+import { classificarErrosDeAnalise, compararComBaseline, idCurto, normalizarAchados } from "./sast-baseline.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
@@ -135,4 +135,55 @@ test("CLI: achado novo de severidade WARNING avisa e não reprova", () => {
 test("CLI: análise com erro do Semgrep reprova (sem leitura confiável não há aprovação)", () => {
   const r = rodar({ results: [], errors: [{ level: "error", message: "Rule parse error" }] });
   assert.equal(r.status, 2, r.stdout + r.stderr);
+});
+
+// ---- DV-16: erro de análise de nível `warn` também deixa arquivo sem leitura ----
+//
+// O formato abaixo é o que o Semgrep 1.136.0 escreveu de verdade para um arquivo
+// com erro de sintaxe em dc360/apps/api/src (evidência da DV-16): nível `warn`,
+// código de saída 0, e a regra não rodou nesse arquivo.
+
+const ERRO_DE_SINTAXE = {
+  code: 3,
+  level: "warn",
+  type: "Syntax error",
+  message: "Syntax error at line dc360/apps/api/src/rotas/x.ts:1:\n `export function f(req: any) {\n  const x = ;;; { {` was unexpected",
+  path: "dc360/apps/api/src/rotas/x.ts",
+};
+
+test("DV-16: erro de sintaxe (warn) em dc360/apps/api/src reprova, e a mensagem não despeja o código", () => {
+  const r = rodar({ results: [], errors: [ERRO_DE_SINTAXE] });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stderr, /\[warn\] Syntax error em dc360\/apps\/api\/src\/rotas\/x\.ts/);
+  assert.doesNotMatch(r.stderr, /const x = ;;;/, "só a primeira linha da mensagem");
+});
+
+test("DV-16: parse parcial e tempo esgotado (type em lista, nível warn) em api/src também reprovam", () => {
+  const parcial = { level: "warn", type: ["PartialParsing", [{ file: "x" }]], message: "Partial parsing error", path: "dc360/apps/api/src/a.ts" };
+  const tempo = { level: "warn", type: ["Timeout", "dc360-regra"], message: "Timeout", path: "dc360/apps/api/src/b.ts" };
+  const r = rodar({ results: [], errors: [parcial, tempo] });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stderr, /PartialParsing em dc360\/apps\/api\/src\/a\.ts/);
+  assert.match(r.stderr, /Timeout em dc360\/apps\/api\/src\/b\.ts/);
+});
+
+test("DV-16: erro warn fora de api/src é listado como aviso e não reprova; sem caminho reprova", () => {
+  const fora = rodar({ results: [], errors: [{ ...ERRO_DE_SINTAXE, path: "dc360/packages/shared/src/y.ts" }] });
+  assert.equal(fora.status, 0, fora.stdout + fora.stderr);
+  assert.match(fora.stdout, /erro de análise fora de dc360\/apps\/api\/src\/ \(não reprova\): \[warn\] Syntax error em dc360\/packages\/shared\/src\/y\.ts/);
+  const semCaminho = rodar({ results: [], errors: [{ level: "warn", type: "Syntax error", message: "x" }] });
+  assert.equal(semCaminho.status, 2, semCaminho.stdout + semCaminho.stderr);
+});
+
+test("DV-16: classificarErrosDeAnalise separa bloqueantes e avisos e aceita lista vazia ou ausente", () => {
+  assert.deepEqual(classificarErrosDeAnalise(undefined), { bloqueantes: [], avisos: [] });
+  assert.deepEqual(classificarErrosDeAnalise([]), { bloqueantes: [], avisos: [] });
+  const c = classificarErrosDeAnalise([
+    ERRO_DE_SINTAXE,
+    { ...ERRO_DE_SINTAXE, path: "./dc360/apps/api/src/c.ts" },
+    { level: "error", type: "Fatal", message: "m", path: "mockup/z.js" },
+    { level: "warn", type: "Syntax error", message: "m", path: "dc360/apps/campo/App.tsx" },
+  ]);
+  assert.equal(c.bloqueantes.length, 3);
+  assert.deepEqual(c.avisos.map((a) => a.caminho), ["dc360/apps/campo/App.tsx"]);
 });
