@@ -8,7 +8,7 @@
 
 | Ramo | Ponta | O que é | Próximo passo |
 | --- | --- | --- | --- |
-| `v2/f00` | registro `ddff79a` (candidato `98879db`) | F00: 23 de 25 etapas validadas; E09 aceita por decisão do Rafael (H36, D-32); E19 com a correção 11 esperando validação | Lançar a rodada 10 (seção 4). O CI completo do registro passou (run 40203288208). A rodada NÃO chegou a começar |
+| `v2/f00` | `a65f733` (este checkpoint), sobre o registro `ddff79a` (candidato `98879db`) | F00: 23 de 25 etapas validadas; E09 aceita por decisão do Rafael (H36, D-32); E19 com a correção 11 esperando validação | Lançar a rodada 10 (seção 4). O CI completo do registro passou (run 40203288208). A rodada NÃO chegou a começar |
 | `v2/f01` | `e483a22` | F01: as 22 etapas implementadas, revisor Opus APROVADO com as correções aplicadas, 13 dívidas do G01 pagas, CI verde | Validar a F01 só depois do G00 (o G00 é dependência de entrada das etapas) |
 | `v2/f02` | `a643bff` | F02: lote 0 feito (módulos vazios do shared); texto do /progresso atualizado; CI verde | Retomar o lote 1 (seção 5) |
 | `trab/f02-1a-e01-rotas-v1` | `7515acc` | Trabalho em andamento da parte 1A, sem portões | Retomar |
@@ -45,7 +45,7 @@ Nada foi para a `master`. Merge e push em master continuam só com o Rafael.
 
 ## 4. Primeira ação: lançar a rodada 10 da F00 (sessão nova, em segundo plano)
 
-Numa janela separada do PowerShell, na raiz do clone, com o `v2/f00` em `ddff79a` e a árvore limpa:
+Numa janela separada do PowerShell, na raiz do clone, com o `v2/f00` em `a65f733` (ou depois) e a árvore limpa:
 
 ```
 claude -p "Valide a F00 no SHA 98879db (registro ddff79a). Rodada 10. Leia a seção 20 de docs/roadmap-v2/28-execucao-e-validacao.md (D-32, aprovada pelo Rafael em 2026-10-25) junto com a seção 19 (D-31). CI: o run do Verificar sobre ddff79a é o 40203288208, verde; o código de produto de 98879db é idêntico ao de a60be9a, cujo CI completo 40179451002 passou na tentativa 2 (a tentativa 1 falhou só num caso instável do WebKit do Linux, DV-45, tratado pelo item 2 da seção 20). Escopo POR DIFERENÇA desde a rodada 9 (dda7557): E19 (correção 11) na dimensão que reprovou; E16 e E22 só pela documentação tocada pelas dívidas DV-08 e DV-09; E09 NÃO é validada: está ACEITA por decisão do Rafael (H36, item 3 da seção 20); registre o aceite no VEREDITO dela sem validador e sem RISCO ACEITO. As demais 21 etapas herdam a rodada 9. Sonnet é o validador padrão; Opus só na consolidação. Validadores em PRIMEIRO PLANO e em sequência. CI lido com gh. Falsos positivos conhecidos de conferir-evidencia: segredo de teste JWT_SEGREDO em sondas/api.sh:5 da E09 (correções 6, 6b, 7, 8 e 8b) e E25 em VEREDITO.md e validacao/. Ao fim, diga se o gate G00 é RECOMENDADO e o que falta para o Rafael aprovar. Termine com os VEREDITO, o commit de registro e o push no v2/f00." --model claude-opus-5-5 --permission-mode auto
