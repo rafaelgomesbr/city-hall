@@ -7,6 +7,7 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9 | 2026-10-24 | dda7557 | d4683cc (run 40132234324, 12 de 12 verdes) | PASS | 8832367 | 0b32d38 | e7e1326 |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 5 | 2026-10-20 | 4ce0433 | 766bc0a | INTERROMPIDA, sem veredito (relatórios parciais em validacao/4ce0433/ quando houver) | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -14,6 +15,63 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | BLOCKED | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 9 (2026-10-24, SHA dda7557)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-24. Candidato `dda7557` (correção 7 da E09 e correção 10 da E19, com a migração do `zod` 3.25.76 para 4.6.7, `fastify` 5.12.7 e `fast-uri` 3.1.9 e 4.2.3); HEAD durante a validação `d4683cc`, que só difere em `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida). SHA no remoto (`origin/v2/f00`), árvore limpa no início. Política: D-31 (seção 19 de `28`), validação POR DIFERENÇA desde a rodada 8 (`60cbc2f`): E09 e E19 nas dimensões que reprovaram (E09 também QA e Red-team, que a rodada 8 mandou rodar de novo porque o código da etapa mudou), mais as etapas cujo código a migração do `zod` tocou, pela autoria dos patches arquivados: E06 (`pedidoDeEvidenciaSchema` em `packages/shared/src/evidencia.ts`, onde a E06 pôs `coletadaPor`, mais o UUID mais estrito) e E15 (dublê de UUID trocado num teste dela). `apps/api/src/config.ts`, `apps/api/src/rotas/aparelhos.ts`, `mensagens-do-zod.ts`, os `package.json` e os lockfiles só têm a E19 como autora na F00; o `schemas.ts` foi tocado pela E22 só num comentário (`correcao-4`), por isso a E22 herda; `baseline.mjs`, README e COLOCAR-DE-PE mudaram só em totais (conferidos por `conferir:numeros`, D-31 item 4) e no parágrafo da política do CP-03, que é da E19. As demais etapas herdam a rodada 8 (código delas não mudou). `impacto.mjs --herdavel` responde "NÃO herdável" a todo relatório anterior a `8832367` porque o diff inclui a própria emenda D-31; a rodada 8 já aplicou a D-31 e a herança aqui segue o item 4 dela (código da etapa). Validadores em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, com o prompt de `prompt-do-validador.md` preenchido mais as instruções comuns da rodada (scratchpad): o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` das correções (antes de `## Justificativa`), a evidência, os relatórios anteriores como pista, as decisões e o run do CI. Ordem: Infra e CI da E19, QA de E19, E06 e E15 (um validador, três relatórios), QA, UX e Acessibilidade da E09 (Sonnet) e Red-team da E09 (Opus, 45 minutos, no máximo 3 achados). Ambiente: Mac, Node 24.15.0 (o CI usa 22), PGlite e Postgres local, Chromium, Firefox e WebKit do Playwright; sem aparelho, emulador ou Windows local.
+
+Veredito da rodada: **PASS** (a etapa continua VALIDADA COM PENDÊNCIA HUMANA).
+
+Revalidada só porque um teste dela mudou: a correção 10 da E19 trocou o dublê `11111111-1111-1111-1111-111111111111` por `11111111-1111-4111-8111-111111111111` em `apps/campo/src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx` (e em mais 5 testes do aplicativo), porque o UUID do Zod 4 exige versão e variante.
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-sonnet-5-5 | PASS | media | E1, E2 | E1, E2 |  | validacao/dda7557/qa.md |
+| Segurança | seguranca-aplicacao (general-purpose) | claude-opus-5-5 | PASS | media | E1, E2 | E1 | herdado de fd17ff4, sem impacto (nenhum código de produto da etapa mudou) | validacao/fd17ff4/seguranca-aplicacao.md |
+| Red-team | red-team (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 | herdado de fd17ff4, sem impacto (idem) | validacao/fd17ff4/red-team.md |
+| LGPD | privacidade-lgpd (general-purpose) | claude-sonnet-5-5 | PASS | media | E1, E2, E3a | E1, E3a | herdado de 1ed0b71, sem impacto | validacao/1ed0b71/privacidade-lgpd.md |
+| Testes | testes (general-purpose) | claude-opus-5-5 | PASS | media | E1 | E1 | herdado de fd17ff4, sem impacto (a troca do dublê não muda o que o teste afirma, provado pelo QA) | validacao/fd17ff4/testes.md |
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 120986221218 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 120986221042; `auditar` 0, saída idêntica à do Linux |
+| Fluxo ponta a ponta no navegador | success | QA, UX, Acessibilidade | job 120986221122; inclui a seção 14 nova do `layout-estreito.e2e.mjs` |
+| Aplicativo de campo | success | QA | job 120986221030; typecheck e Jest com o `zod` 4 do topo |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 120986221110; `expo-doctor` 21 de 21 sem pular a checagem de versões |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 120986220910; repetido hoje pelo gatekeeper e pelo validador: código 0 |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 120986221063 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | Infra e CI | job 120986221244 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | Infra e CI | job 120986221105 |
+| A API sobe contra Postgres real | success | QA, Banco | job 120986221157; `fastify` 5.12.7 e `zod` 4.6.7 |
+| Pacote da demonstração | success | QA | job 120986221089 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 120986221090 |
+
+Run 40132234324 (workflow "Verificar", push com `[ci completo]`, criado em 2026-10-24T20:59Z) sobre `d4683cc`, registro do candidato: o diff `dda7557..d4683cc` só toca `STATUS.md` e `ESTADO-ATUAL.md`, então vale como run do candidato. Lido com `~/.local/bin/gh` e `GH_TOKEN` tirado de `git credential fill`, sem imprimir o token.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-Enn --sha dda7557` em E06, E09, E15 e E19, antes e depois dos relatórios: sem falha em E06, E15 e E19; na E09, uma FALHA de segredo, o falso positivo conhecido (`correcao-6/sondas/api.sh:5`, `correcao-6b/sondas/api.sh:5` e `correcao-7/sondas/api.sh:5`: o `JWT_SEGREDO` de teste do roteiro local, valor textual "segredo-...", conferido pelo gatekeeper sem imprimir o valor inteiro); nenhuma outra falha. Varredura dos relatórios novos por token, chave e travessão: nada.
+- Regressão base do gatekeeper na árvore (`d4683cc`, produto de `dda7557`): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0; `node scripts/auditar.mjs` código 0 ("Runtime limpo, e o aplicativo sem advisory nova"). O kit indicado por `impacto.mjs 60cbc2f..dda7557` (`apps/api/src/config.ts` sem regra no mapa, portanto kit completo) é o do CI completo deste SHA, 12 de 12 verdes (D-31, item 5).
+- Formato: os 8 relatórios desta rodada conferidos pelo gatekeeper (cabeçalho com os 14 campos, `sha_validado` dda7557, `rodada` 9, `ci_run` 40132234324, as nove seções, "Tentativas de reprovar" e "Não verificado" preenchidas); todos conferem.
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/dda7557/`; as mutações foram desfeitas com `git restore` e os worktrees temporários dos validadores removidos (os worktrees em `.claude/worktrees/` são da sessão paralela da F01).
+
+### Motivo do veredito
+
+- 193 de 193 nos testes do aplicativo ligados à etapa. O teste da E15 passa também com o dublê antigo (a troca só era necessária em 2 dos 6 arquivos), então ela não mascara regressão; os quatro mutantes (sessão vencida, piso do GPS, diálogo e isolamento) mordem. O aplicativo real nunca gera id não RFC (`Crypto.randomUUID()`, ids do servidor).
+- Não bloqueia (anotado): o FATO do implementador generaliza a justificativa da troca para os 6 arquivos; vale para 2. Herdado, sem mudança: `acolherNoAparelho` falha aberto quando a leitura do dono ou a limpeza falham (dono F14-E02).
+
+### Pendências humanas (E4 e E5)
+
+As da rodada 7, sem mudança (aparelho físico).
+
+### Métricas da rodada
+
+Achados: nenhum bloqueia; 1 anotado. Dimensões herdadas: Segurança, Red-team, LGPD e Testes.
 
 ## Rodada 7 (2026-10-20, SHA fd17ff4)
 

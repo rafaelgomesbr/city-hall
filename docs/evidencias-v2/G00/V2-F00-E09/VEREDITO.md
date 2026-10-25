@@ -7,6 +7,7 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 
 | Rodada | Data | SHA validado | SHA do CI | Veredito | politica_validacao_sha | mapa_impacto_sha | versao_gatekeeper |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 9 | 2026-10-24 | dda7557 | d4683cc (run 40132234324, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | e7e1326 |
 | 8 | 2026-10-24 | 60cbc2f | c680f8d (run 39524190207, 12 de 12 verdes) | FAIL | 8832367 | 0b32d38 | 60cbc2f |
 | 7 | 2026-10-20 | fd17ff4 | 55209ab (run 39420436042, 9 de 9 verdes) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 6 | 2026-10-20 | 1ed0b71 | ausente (run 39366804765 recusado, H32) | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
@@ -15,6 +16,83 @@ Política: docs/roadmap-v2/28-execucao-e-validacao.md
 | 3 | 2026-10-15 | 52952a1 | 7585801 | PASS | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 2 | 2026-10-13 | 4b96ea7 | c9895e9 | FAIL | 0b32d38 | 0b32d38 | 4e0ccd3 |
 | 1 | 2026-10-13 | 7005a60 | 7005a60 | FAIL | 0b32d38 | 0b32d38 | 7005a60 |
+
+## Rodada 9 (2026-10-24, SHA dda7557)
+
+Gatekeeper: sessão nova (skill `validar-etapa`), consolidação em Claude Opus 5.5 (claude-opus-5-5), por ser o gate crítico G00 (seção 12 de `28`), no Mac do Rafael, em 2026-10-24. Candidato `dda7557` (correção 7 da E09 e correção 10 da E19, com a migração do `zod` 3.25.76 para 4.6.7, `fastify` 5.12.7 e `fast-uri` 3.1.9 e 4.2.3); HEAD durante a validação `d4683cc`, que só difere em `STATUS.md` e `ESTADO-ATUAL.md` (lista permitida). SHA no remoto (`origin/v2/f00`), árvore limpa no início. Política: D-31 (seção 19 de `28`), validação POR DIFERENÇA desde a rodada 8 (`60cbc2f`): E09 e E19 nas dimensões que reprovaram (E09 também QA e Red-team, que a rodada 8 mandou rodar de novo porque o código da etapa mudou), mais as etapas cujo código a migração do `zod` tocou, pela autoria dos patches arquivados: E06 (`pedidoDeEvidenciaSchema` em `packages/shared/src/evidencia.ts`, onde a E06 pôs `coletadaPor`, mais o UUID mais estrito) e E15 (dublê de UUID trocado num teste dela). `apps/api/src/config.ts`, `apps/api/src/rotas/aparelhos.ts`, `mensagens-do-zod.ts`, os `package.json` e os lockfiles só têm a E19 como autora na F00; o `schemas.ts` foi tocado pela E22 só num comentário (`correcao-4`), por isso a E22 herda; `baseline.mjs`, README e COLOCAR-DE-PE mudaram só em totais (conferidos por `conferir:numeros`, D-31 item 4) e no parágrafo da política do CP-03, que é da E19. As demais etapas herdam a rodada 8 (código delas não mudou). `impacto.mjs --herdavel` responde "NÃO herdável" a todo relatório anterior a `8832367` porque o diff inclui a própria emenda D-31; a rodada 8 já aplicou a D-31 e a herança aqui segue o item 4 dela (código da etapa). Validadores em PRIMEIRO PLANO e em sequência estrita, um por vez, sobre a árvore principal, com o prompt de `prompt-do-validador.md` preenchido mais as instruções comuns da rodada (scratchpad): o bloco da etapa (`contexto.mjs`), só os FATOS dos `RESUMO.md` das correções (antes de `## Justificativa`), a evidência, os relatórios anteriores como pista, as decisões e o run do CI. Ordem: Infra e CI da E19, QA de E19, E06 e E15 (um validador, três relatórios), QA, UX e Acessibilidade da E09 (Sonnet) e Red-team da E09 (Opus, 45 minutos, no máximo 3 achados). Ambiente: Mac, Node 24.15.0 (o CI usa 22), PGlite e Postgres local, Chromium, Firefox e WebKit do Playwright; sem aparelho, emulador ou Windows local.
+
+Veredito da rodada: **FAIL** (D-31, item 3: quarta reprovação pela mesma classe; a rodada 10 não é automática, a decisão é do Rafael, H36).
+
+### Dimensões
+
+| Dimensão | Validador | Modelo | Veredito | Confiança | Nível exigido | Nível obtido | Herdado de | Relatório |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| QA | qa (general-purpose) | claude-sonnet-5-5 | PASS | media | E1, E2 | E1, E2 |  | validacao/dda7557/qa.md |
+| UX | ux (general-purpose) | claude-sonnet-5-5 | PASS | media | E2, E3a | E2, E3a |  | validacao/dda7557/ux.md |
+| Acessibilidade | acessibilidade (general-purpose) | claude-sonnet-5-5 | FAIL na consolidação (o relatório diz PASS; achado 2 bloqueia pela D-31, item 1 (b), ver Motivo) | media | E1, E2 | E1, E2 |  | validacao/dda7557/acessibilidade.md |
+| Red-team | red-team (general-purpose) | claude-opus-5-5 | PASS | alta | E1, E2 | E1, E2 |  | validacao/dda7557/red-team.md |
+| LGPD | privacidade-lgpd (general-purpose) | claude-sonnet-5-5 | PASS | alta | E1, E3a | E1, E2, E3a | herdado de 1ed0b71, sem impacto (a correção 7 só muda rolagem e foco em `Modal.tsx`, `usar-bordas-fixas.ts` e `MinhaConta.tsx`; nenhum dado pessoal novo, lido ou guardado) | validacao/1ed0b71/privacidade-lgpd.md |
+
+### CI (job a job)
+
+| Job | Resultado | Dimensão ligada | Observação |
+| --- | --- | --- | --- |
+| Testes, tipos e scripts | success | QA, Testes | job 120986221218 |
+| Windows (auditar, test:scripts e conferir:numeros) | success | Infra e CI | job 120986221042; `auditar` 0, saída idêntica à do Linux |
+| Fluxo ponta a ponta no navegador | success | QA, UX, Acessibilidade | job 120986221122; inclui a seção 14 nova do `layout-estreito.e2e.mjs` |
+| Aplicativo de campo | success | QA | job 120986221030; typecheck e Jest com o `zod` 4 do topo |
+| Linha de base (baseline.mjs) em Linux | success | Infra e CI | job 120986221110; `expo-doctor` 21 de 21 sem pular a checagem de versões |
+| Dependências com vulnerabilidade conhecida (auditar) | success | Infra e CI | job 120986220910; repetido hoje pelo gatekeeper e pelo validador: código 0 |
+| Ferramentas do roadmap e estado gerado | success | Infra e CI | job 120986221063 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ubuntu-latest | success | Infra e CI | job 120986221244 |
+| Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em windows-latest | success | Infra e CI | job 120986221105 |
+| A API sobe contra Postgres real | success | QA, Banco | job 120986221157; `fastify` 5.12.7 e `zod` 4.6.7 |
+| Pacote da demonstração | success | QA | job 120986221089 |
+| Restore do banco, Postgres 17 (CA-08) | success | Banco, Infra e CI | job 120986221090 |
+
+Run 40132234324 (workflow "Verificar", push com `[ci completo]`, criado em 2026-10-24T20:59Z) sobre `d4683cc`, registro do candidato: o diff `dda7557..d4683cc` só toca `STATUS.md` e `ESTADO-ATUAL.md`, então vale como run do candidato. Lido com `~/.local/bin/gh` e `GH_TOKEN` tirado de `git credential fill`, sem imprimir o token.
+
+### Conferência mecânica
+
+- Evidência: `node scripts/roadmap/conferir-evidencia.mjs V2-F00-Enn --sha dda7557` em E06, E09, E15 e E19, antes e depois dos relatórios: sem falha em E06, E15 e E19; na E09, uma FALHA de segredo, o falso positivo conhecido (`correcao-6/sondas/api.sh:5`, `correcao-6b/sondas/api.sh:5` e `correcao-7/sondas/api.sh:5`: o `JWT_SEGREDO` de teste do roteiro local, valor textual "segredo-...", conferido pelo gatekeeper sem imprimir o valor inteiro); nenhuma outra falha. Varredura dos relatórios novos por token, chave e travessão: nada.
+- Regressão base do gatekeeper na árvore (`d4683cc`, produto de `dda7557`): `npm run typecheck` código 0; `npm run test:isolamento` 345 aprovados e 3 pulados (14 arquivos), código 0; `npm run conferir:numeros` código 0; `node scripts/auditar.mjs` código 0 ("Runtime limpo, e o aplicativo sem advisory nova"). O kit indicado por `impacto.mjs 60cbc2f..dda7557` (`apps/api/src/config.ts` sem regra no mapa, portanto kit completo) é o do CI completo deste SHA, 12 de 12 verdes (D-31, item 5).
+- Formato: os 8 relatórios desta rodada conferidos pelo gatekeeper (cabeçalho com os 14 campos, `sha_validado` dda7557, `rodada` 9, `ci_run` 40132234324, as nove seções, "Tentativas de reprovar" e "Não verificado" preenchidas); todos conferem.
+- Árvore: conferida antes e depois de cada validador (`git status --porcelain` e `git diff --stat`): nenhum deixou mudança rastreada nem arquivo fora de `validacao/dda7557/`; as mutações foram desfeitas com `git restore` e os worktrees temporários dos validadores removidos (os worktrees em `.claude/worktrees/` são da sessão paralela da F01).
+
+### Motivo do veredito
+
+- Os dois defeitos da rodada 8 estão CONSERTADOS, medidos de forma independente por três dimensões nos três motores: a frase "A outra sessão foi encerrada. Esta continua aberta." inteira entre o topo fixo e a barra do pé depois de clique, toque e teclado (UX 171 de 171 em 19 tamanhos, com atraso de rede, iPhones emulados e tema escuro; A11y 57 de 57 por motor, com zoom até 400 por cento e `prefers-reduced-motion`); o foco inicial "Cancelar" dentro da área útil das três janelas de confirmação (UX 540 casos sem falha real; A11y 216 de 216 por motor). As sondas mordem: com o painel de `60cbc2f` reprovam (WebKit 0 de 6 na A11y; números da rodada 8 reproduzidos pelo UX). QA: `layout-estreito` 325, 325 e 324, `fluxo-api` 288, painel 737 de 737, 6 de 6 mutações do `correcao-7-da-e09.test.ts` vermelhas, `MutationObserver` sem vazamento nem laço em 40 aberturas, janela da senha temporária abrindo no topo com o título à vista (42 de 42), Tab nas 7 telas, nenhuma rolagem lateral a 320 px, axe 4.13 sem violação em 192 medidas. Red-team: 404 com corpo idêntico entre municípios (inclusive UUID nulo e máximo, que o Zod 4 aceita), 422 nas autoações, 403 de posto e de permissão, organização no corpo, na rota e no cabeçalho ignorada, tokens forjados recusados, senha temporária sem vazamento e sem reuso, trilha com o ator certo; a sonda morde (sem o controle de posto, 200).
+- **Bloqueia (Acessibilidade, achado 2), classificação do gatekeeper pela D-31, item 1 (b):** com a janela de confirmação ABERTA, quando o tamanho da janela do navegador muda (girar o celular de 320x568 para 568x320, ou dar zoom de 1280x720 até 320x256), "Cancelar" continua com o foco mas fica fora da parte visível do painel (botão 304..348 contra área útil 27..294; 424..468 contra 21..234), nos três motores, 12 de 12 casos. Causa: o ajuste do `Modal` da correção 7 roda na abertura e a cada mutação do conteúdo, nunca em `resize`. O validador classificou como dívida ("b só para quem muda o tamanho com a janela aberta") e devolveu a decisão ao gatekeeper por ser a classe da H36. O gatekeeper aplica a regra como está escrita: é alcançável por usuário comum (girar o celular com a janela aberta), está no código que a própria etapa escreveu para fechar exatamente este defeito (não é anterior à etapa) e é o mesmo sintoma do defeito 2 da rodada 8 (WCAG 2.4.7 e 2.4.11: o elemento focado fora da vista), agora por outro caminho. O próximo Tab traz o botão à vista e nada se perde; isso entra no modelo de ameaça que o Rafael pode aceitar. Conserto provável: um `ResizeObserver` no painel (ou `resize` da janela) chamando a mesma conta de rolagem, só enquanto o foco continua em "Cancelar".
+- **Mesma classe pela quarta vez (rodadas 6, 7, 8 e 9: foco ou confirmação encoberta ou fora da vista).** Pela D-31, item 3, a rodada 10 não é automática: a decisão sobe para o Rafael em `pendencias-humanas.md` (H36, a atualizar pelo próximo commit de implementador): consertar mais uma vez (o `resize`, e no mesmo lote os achados que corrigem junto, abaixo) ou aceitar com o modelo de ameaça documentado. A classe não cai na seção 7, então o aceite é possível; o gatekeeper não o emite.
+- Não bloqueia, e por quê:
+  - A11y 1 e QA 1 (dívida, corrige junto): depois de um erro do servidor na janela de confirmação, ou de um clique no fundo escurecido, o foco cai em `BODY` e o Esc deixa de fechar (o Esc e o Tab são ouvidos por `onKeyDown` no painel); em Chromium e Firefox um Tab recupera; no WebKit do Playwright, só com teclado e depois de erro 500, nem Tab nem Esc saem de `BODY`. O componente (`Modal` e `ConfirmarAcao`, `disabled={ocupado}` no "Cancelar") é de `eafc4ca` (2026-09-09), anterior à etapa, e já era assim em `60cbc2f`; nenhum critério escrito da DoD cobre o foco depois de uma falha; o erro é anunciado (`role=alert`). Pela D-31, item 1, defeito anterior à etapa vira dívida; como a etapa já volta para correção, recomenda-se consertar junto (ouvir Esc e Tab no `document` enquanto a janela está aberta, ou devolver o foco ao botão quando `ocupado` volta a falso).
+  - A11y 3 e UX A1 (anotado, contrapartida declarada pelo implementador): em janela baixa (320 px de largura com até 450 px de altura, e 568x320) o título e parte do texto saem por cima da parte visível do painel, sem pista de rolagem; o leitor de tela lê pelo `aria-labelledby` e `aria-describedby` (45 de 45) e o botão destrutivo repete ato e pessoa. Capturas para o Rafael: `validacao/dda7557/capturas/ux-06-contrapartida-redefinir-chromium-claro-320x256-clique.png` e `ux-07-contrapartida-redefinir-chromium-claro-568x320-clique.png`.
+  - Red-team 1 (dívida, condição (c) só em tese): o token de acesso de uma sessão encerrada (por "Encerrar sessões", "Encerrar minhas outras sessões" ou "Redefinir senha") continua LENDO até vencer (15 minutos), enquanto renovação e escrita já recusam. O assunto é o item 2 da seção 7 (vigência), mas o comportamento é anterior à etapa e fora do escopo dela (a F00 religou a vigência só na escrita, E04), está documentado e tem etapa própria, V2-F03-E03 ("Vigência em TODA requisição autenticada, leituras inclusive", P0); não é RISCO ACEITO (o item 2 não admite) e não reprova a E09, cuja DoD ("a sessão antiga cai") se cumpre pela renovação e pela escrita. O que é da E09: a frase da janela "{nome} sai de todos os navegadores e aparelhos agora" (`dc360/apps/web/src/paginas/Usuarios.tsx:650`) promete mais do que a API faz para a leitura; corrige junto (dizer que a leitura dura até 15 minutos) ou fica certa depois da F03-E03.
+  - Red-team 2 (dívida, dono V2-F02-E03): 414 `FST_ERR_MAX_PARAM_LENGTH` e 400 `FST_ERR_BAD_URL` saem do próprio Fastify, fora da guarda de códigos de erro, em inglês, sem `helmet` e ecoando o caminho; anterior (igual no 5.12.5 de `fd17ff4`), sem dado nem efeito prático (`application/json`). Conserto: `frameworkErrors` no `Fastify()`.
+  - UX A2: `papel` ausente devolve "Valor não reconhecido: undefined" só pela API: é o achado 1 da E19, que reprova lá.
+  - DV-10 (foco ao `<main>` no WebKit ao fechar janela aberta por clique) igual; DV-11, DV-12 e H35 sem mudança.
+
+### Pendências humanas (E4 e E5)
+
+| Item | Quem | Por que é humano |
+| --- | --- | --- |
+| D-31 item 3 (H36): a E09 reprovou pela quarta vez pela mesma classe (foco fora da vista; agora só ao girar ou dar zoom com a janela já aberta). Decidir em uma linha: consertar mais uma vez (o `resize` do `Modal`, mais o foco em `BODY` depois de erro ou clique no fundo e a frase "agora" de Usuários) ou aceitar com o modelo de ameaça documentado (o próximo Tab traz o botão à vista e nada se perde) | Rafael | decisão de produto exigida pela D-31, item 3 |
+| Olhar as capturas da contrapartida (título fora da vista em janela baixa) e aprovar ou pedir outro desenho: `validacao/dda7557/capturas/ux-06-*` e `ux-07-*` | Rafael | gatilho visual (seção 10 de `28`) |
+| H39: Safari de iPhone real e Android real na confirmação das sessões e nas janelas de Usuários; VoiceOver no fluxo de Minha conta | Rafael | aparelho físico e leitor de tela |
+| H35: confirmar 340 px ou voltar para 360 px (números da rodada 8) | Rafael | decisão de desenho |
+| A "Validação humana" da etapa: Rafael faz o fluxo no painel e confere a frase da senha única e as confirmações | Rafael | regra global da seção 4 de `28` |
+
+### Escalonamentos
+
+| Gatilho | Para | Resultado |
+| --- | --- | --- |
+| gate crítico G00 (seção 12 de `28`) e D-31 item 6 | consolidação em Opus; validadores em Sonnet, Red-team (AUTH, TENANT) em Opus com 45 minutos e no máximo 3 achados | feito |
+| D-31 item 3 (mesma classe pela quarta vez) | Rafael, H36 | aberto |
+| classificação pela D-31 item 1 contra o "PASS" do relatório de Acessibilidade | gatekeeper (Opus), sem arbitragem: o próprio validador mediu o defeito e devolveu a classificação ao gatekeeper; não há dois validadores em conflito sobre o mesmo caso (UX não mediu o caminho do `resize`) | FAIL |
+
+### Métricas da rodada
+
+Achados: 1 bloqueia (A11y 2); 3 corrigem junto (A11y 1 e QA 1, que são o mesmo; frase "agora" do Red-team 1); o resto é dívida ou anotado. Dimensões herdadas: LGPD. Gatilhos visuais: as capturas da contrapartida (ux-06 e ux-07). Tokens de subagente: QA 240 mil (42 min), UX 193 mil (47 min), Acessibilidade 258 mil (112 min), Red-team 151 mil (8 min, Opus).
 
 ## Rodada 8 (2026-10-24, SHA 60cbc2f)
 
