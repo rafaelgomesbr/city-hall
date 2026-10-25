@@ -407,6 +407,19 @@ describe("O segredo que viaja no caminho da URL", () => {
       .not.toContain(TOKEN);
   });
 
+  it("o token colado sob /v1 (a rota nao existe la) tambem nao sai no log", async () => {
+    // V2-F02-E01: o endereço do ofício fica sem prefixo, mas quem monta a URL
+    // pode errar e pôr o token depois de `/v1`. O pedido dá 404 e é
+    // registrado do mesmo jeito, então a redação vale para os dois endereços.
+    linhas = [];
+    const r = await app.inject({ method: "GET", url: `/v1/publico/oficio/${TOKEN}` });
+    expect(r.statusCode).toBe(404);
+    const saiu = tudo();
+    expect(saiu).toContain("/v1/publico/oficio/");
+    expect(saiu, "o segredo do ofício saiu no log, sob /v1").not.toContain(TOKEN);
+    expect(caminhoParaLog(`/v1/publico/oficio/${TOKEN}`)).toBe("/v1/publico/oficio/[removido]");
+  });
+
   it("o caminho registrado continua servindo para diagnosticar", () => {
     // Redigir não pode virar apagar: quem investiga precisa saber que alguém
     // bateu naquela rota, e quantas vezes.

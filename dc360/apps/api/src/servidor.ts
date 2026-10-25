@@ -10,6 +10,8 @@ import {
 import type { ZodError } from "zod";
 import type { Config } from "./config.js";
 import { versaoDoBuild } from "./versao-do-build.js";
+import { PREFIXO_V1, cabecalhosDeDepreciacao } from "./versao-v1.js";
+import { LimitePorRotaSemVersao } from "./limite-por-rota.js";
 import type { Banco } from "./banco/tipos.js";
 import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
@@ -175,6 +177,15 @@ export type Dependencias = {
    * coletor para afirmar o que sairia para um terceiro.
    */
   reportador?: ReportadorDeErros;
+  /**
+   * O teto do limitador GLOBAL, por balde e por minuto. Só o teste passa.
+   *
+   * Existe porque a prova dinâmica dos códigos de erro dispara cada rota com
+   * cada perfil, e com as rotas dobradas em `/v1` e no espelho (V2-F02-E01) o
+   * balde de cada pessoa, que é um só nos dois prefixos, passa de 300 antes de
+   * a prova terminar. Em produção vale sempre o padrão.
+   */
+  limitePorMinuto?: number;
 };
 
 /**
@@ -225,6 +236,9 @@ export function caminhoParaLog(url: string): string {
     // `startsWith` e não igualdade: o que vem depois do prefixo é o segredo, e
     // é justamente o que não pode sobrar na string.
     if (caminho.startsWith(prefixo)) return `${prefixo}[removido]`;
+    // O mesmo segredo colado sob `/v1` (engano de quem monta o endereço): a
+    // rota não existe lá, mas o pedido 404 também é registrado no log.
+    if (caminho.startsWith(`${PREFIXO_V1}${prefixo}`)) return `${PREFIXO_V1}${prefixo}[removido]`;
   }
   return caminho;
 }
@@ -278,7 +292,7 @@ export const CAMINHOS_REDIGIDOS = [
 export async function construirServidor(
   {
     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
-    push, modoDaGuarda, reportador: reportadorInjetado,
+    push, modoDaGuarda, reportador: reportadorInjetado, limitePorMinuto = 300,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -462,7 +476,10 @@ export async function construirServidor(
   });
 
   await app.register(rateLimit, {
-    max: 300,
+    // O armazém dá o MESMO balde à rota em `/v1` e ao espelho dela (o limite do
+    // login não dobra pela escolha do prefixo). Ver `limite-por-rota.ts`.
+    store: LimitePorRotaSemVersao,
+    max: limitePorMinuto,
     timeWindow: "1 minute",
     /*
       Balde por usuário quando há token verificado, por endereço quando não há.
@@ -816,6 +833,96 @@ export async function construirServidor(
     };
   });
 
+  /*
+    AS ROTAS DE NEGÓCIO, DUAS VEZES (V2-F02-E01).
+
+    A mesma função registra tudo sob `/v1` (o contrato novo) e no escopo
+    legado, sem prefixo, que é o que os aplicativos já instalados chamam. Uma
+    função só, e não duas listas: rota nova nasce nos dois lados ou em lado
+    nenhum, e `test/versao-v1.test.ts` confere a paridade pelas rotas que o
+    Fastify de fato registrou. O que existe só em `/v1` é declarado em
+    `ROTAS_SO_NO_V1` (ver `versao-v1.ts`).
+
+    O espelho é um plugin ENCAPSULADO (sem `fastify-plugin`) de propósito: o
+    `onSend` de depreciação vale só para as rotas dele, e as de infraestrutura
+    abaixo, que ficam na raiz, não ganham cabeçalho de depreciação. O limitador
+    de taxa, a guarda de acesso e a vigência são do `app` e valem nos dois.
+  */
+  const dependenciasDasRotas: DependenciasDasRotas = {
+    banco, config, armazenamento, notificador, pdf, push, autenticacao, segundoFator, rota, mapa,
+  };
+  await app.register(
+    async (v1) => { await registrarRotasDeNegocio(v1, dependenciasDasRotas, { espelho: false }); },
+    { prefix: PREFIXO_V1 },
+  );
+  await app.register(async (espelho) => {
+    espelho.addHook("onSend", async (req, resposta) => {
+      for (const [nome, valor] of Object.entries(
+        cabecalhosDeDepreciacao(config.ESPELHO_LEGADO_ATE, req.url),
+      )) {
+        resposta.header(nome, valor);
+      }
+    });
+    await registrarRotasDeNegocio(espelho, dependenciasDasRotas, { espelho: true });
+  });
+
+  /*
+    FORA DO `/v1` E DO ESPELHO, e por isso registrados uma vez, na raiz
+    (`ROTAS_FORA_DO_PREFIXO`, com a razão de cada um).
+
+    A ÚNICA rota de leitura sem autenticação que devolve dado de município, e
+    ela é assim de propósito: quem abre o ofício é uma pessoa do órgão
+    destinatário, sem conta no sistema. O que a protege não é token, é um
+    segredo de 32 bytes que só existe dentro do email enviado, que expira, que
+    abre uma vez só e cuja abertura fica registrada. O endereço vive em email
+    já enviado, então não ganha prefixo nem cabeçalho de depreciação. Ver
+    `rotas/oficios.ts`.
+  */
+  await app.register(rotasOficioPublico, {
+    prefix: "/publico", banco,
+    ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
+  });
+
+  // Só existe quando a própria API guarda os bytes, o que a configuração
+  // proíbe em produção. As URLs assinadas que a API devolve apontam para cá, e
+  // a assinatura cobre o caminho: por isso também não ganha prefixo.
+  if ("guardar" in armazenamento) {
+    await app.register(rotasArmazenamentoLocal, {
+      prefix: "/armazenamento",
+      armazenamento: armazenamento as ArmazenamentoEmMemoria,
+    });
+  }
+
+  return app;
+}
+
+/** O que as rotas de negócio precisam para ser registradas, nos dois prefixos. */
+type DependenciasDasRotas = Pick<
+  Dependencias, "banco" | "config" | "armazenamento" | "pdf" | "push" | "rota" | "mapa"
+> & {
+  notificador: Notificador;
+  autenticacao: ReturnType<typeof servicoDeAutenticacao>;
+  segundoFator: ReturnType<typeof servicoDeSegundoFator>;
+};
+
+/**
+ * Registra TODA rota de negócio da API (V2-F02-E01).
+ *
+ * Chamada duas vezes por `construirServidor`: dentro de `/v1` e no escopo do
+ * espelho legado. É o único lugar onde rota de negócio se registra, e por isso
+ * não há como uma existir só de um lado sem ser declarada:
+ *
+ *   `espelho: true`   o caminho sem prefixo, para o aplicativo já instalado.
+ *   `espelho: false`  `/v1`. O bloco `if (!espelho)` no fim é onde entra rota
+ *                     que só existe em `/v1`; ela TAMBÉM entra em `ROTAS_SO_NO_V1`
+ *                     (`versao-v1.ts`), ou a paridade reprova.
+ */
+async function registrarRotasDeNegocio(
+  app: FastifyInstance,
+  d: DependenciasDasRotas,
+  { espelho }: { espelho: boolean },
+): Promise<void> {
+  const { banco, config, armazenamento, notificador, pdf, push, autenticacao, segundoFator, rota, mapa } = d;
   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });
   /*
     A verificação em duas etapas da PRÓPRIA conta. Não tem prefixo `/auth`
@@ -893,17 +1000,6 @@ export async function construirServidor(
   // Única rota de escrita sem autenticação do produto. Ela grava pedido de
   // contato e NÃO cria município: provisionar continua por linha de comando.
   await app.register(rotasInteresse, { prefix: "/publico", banco });
-  /*
-    A ÚNICA rota de leitura sem autenticação que devolve dado de município, e
-    ela é assim de propósito: quem abre o ofício é uma pessoa do órgão
-    destinatário, sem conta no sistema. O que a protege não é token, é um
-    segredo de 32 bytes que só existe dentro do email enviado, que expira, que
-    abre uma vez só e cuja abertura fica registrada. Ver `rotas/oficios.ts`.
-  */
-  await app.register(rotasOficioPublico, {
-    prefix: "/publico", banco,
-    ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
-  });
   await app.register(rotasPrestacaoDeContas, { prefix: "/", banco });
   /*
     A saída de município: o pacote com tudo que é do município, em formato
@@ -930,16 +1026,10 @@ export async function construirServidor(
     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
   });
 
-  // Só existe quando a própria API guarda os bytes, o que a configuração
-  // proíbe em produção.
-  if ("guardar" in armazenamento) {
-    await app.register(rotasArmazenamentoLocal, {
-      prefix: "/armazenamento",
-      armazenamento: armazenamento as ArmazenamentoEmMemoria,
-    });
+  if (!espelho) {
+    // Rotas que só existem em `/v1` (as dos aplicativos novos) entram AQUI, e
+    // em `ROTAS_SO_NO_V1`. Nenhuma até a V2-F02-E01.
   }
-
-  return app;
 }
 
 /** Identifica um ZodError mesmo vindo de outra instalação do zod. */
@@ -961,6 +1051,7 @@ export class NaoAutenticado extends Error {}
  */
 export const ROTAS_ABERTAS_COM_SENHA_PROVISORIA: ReadonlySet<string> = new Set([
   "/auth/trocar-senha",
+  `${PREFIXO_V1}/auth/trocar-senha`,
   /*
     Encerrar as próprias sessões não é ato administrativo, é a mesma família
     de "/auth/sair" (que nem passa por aqui, por não exigir token de acesso):
@@ -968,6 +1059,7 @@ export const ROTAS_ABERTAS_COM_SENHA_PROVISORIA: ReadonlySet<string> = new Set([
     de senha, e às vezes é justamente o que a pessoa quer fazer ANTES dela.
   */
   "/auth/encerrar-sessoes",
+  `${PREFIXO_V1}/auth/encerrar-sessoes`,
 ]);
 
 /** A sessão nasceu de senha provisória e só serve para trocá-la. Vira 403. */
