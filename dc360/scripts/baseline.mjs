@@ -887,6 +887,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F01-E14": { total: 9, falhas: 0 },
   // V2-F00-E19, correção 11: `mensagens-em-portugues.test.ts` ganha 12 casos (campo obrigatório ausente em qualquer regra, 4; o mapa nunca imprime `undefined` nem `null` crus, 4; NaN com frase própria, 3; `tamanhoBytes` separa ausente de não numérico, 1). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
   "V2-F00-E19-correcao-11": { total: 12, falhas: 0 },
+  // V2-F02-E03 (parte do shared, 1D): `catalogo-de-erros.test.ts` (26 casos: forma de cada entrada, acesso e entrada dentro do catálogo, reservados, cobertura dos códigos literais de `apps/api/src` nos dois sentidos, `erroDaApiSchema`, funções do cliente e tabela gerada), `varredura-de-esquemas.test.ts` (17 casos: DV-20 e DV-37, comportamento do Zod 4 preso e varredura de todos os esquemas exportados e do texto do produto) e 5 casos de item de lista ausente em `mensagens-em-portugues.test.ts` (DV-44). Sem campo de puladas, pelo mesmo motivo das entradas anteriores.
+  "V2-F02-E03": { total: 48, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

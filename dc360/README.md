@@ -8,7 +8,7 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 245 testes do pacote compartilhado passando |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 293 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 439 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 791 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1869 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
@@ -141,6 +141,25 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 | Troca de senha | Exige a senha atual, e derruba as outras sessões, preservando a cadeia de onde a pessoa trocou (também com o token de antes de uma renovação). A gravação só vale se nada mudou desde a conferência: na transação que grava, a troca segura a linha da pessoa, toma a trava dela e relê a conta, a sessão, o prazo da provisória e o hash; mudou, recusa (403 `conta_desativada`, 401 `sessao_encerrada` ou a mesma recusa da senha atual errada) (V2-F00-E07, correção 4) | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques. E quem tinha a senha antiga e uma sessão, com a troca em voo, desfazia a redefinição por quem administra, o link do email, a desativação ou a troca pela própria pessoa que confirmasse no meio, e ficava com uma senha dele, definitiva |
 | Sessões e redefinição pelo painel (V2-F00-E09) | Em Usuários, quem administra redefine a senha (`POST /usuarios/:id/redefinir-senha`, senha temporária mostrada UMA vez, 72 horas) e encerra as sessões (`POST /usuarios/:id/encerrar-sessoes`) de quem está abaixo do posto dele, nunca da própria conta. Em Minha conta, a pessoa vê as sessões vivas (`GET /auth/sessoes`: quando entrou, até quando vale, o aparelho em uma frase e a marca "Esta sessão") e encerra as outras. `GET /usuarios/:id/sessoes` (ação `gerenciar_usuarios`, posto e 404 como nas outras duas) devolve só a quantidade e as datas | Com a recuperação por e-mail desligada, "esqueci a senha" e "perdi o celular" não tinham saída pelo painel. Nenhuma das leituras entrega IP nem o texto do user-agent (IDN-29 do REL:06); o modo de demonstração explica em vez de oferecer, porque lá não há senha nem token |
 | Segunda etapa | Código de seis dígitos do aplicativo de autenticação (TOTP), com segredo guardado cifrado, chave fora do banco | O administrador é o teto do município (ADR 0006): a conta dele estava protegida por senha e mais nada. SMS foi recusado (troca de chip, custo por mensagem, e depende da operadora justamente no dia do temporal) |
+
+#### Catálogo completo de erros e categoria (V2-F02-E03)
+
+`packages/shared/src/erros.ts` generaliza o catálogo de acesso abaixo para TODO
+código que a API devolve (92 hoje), com o status e uma categoria que diz o que
+fazer: `renovar` (o cliente pede credencial nova e repete uma vez), `reentrar`
+(a pessoa entra de novo), `corrigir` (muda o que enviou), `aguardar` (repetir
+mais tarde pode dar certo) e `permanente` (repetir nunca dá certo). Nenhum
+código mudou de nome (os 404 continuam mistos: `nao_encontrado` e
+`nao_encontrada`), e o status e o campo `erro` das respostas não mudam. O corpo
+tem a forma `erroDaApiSchema` (`{ erro, mensagem, campos?, requisicao?,
+categoria? }`), aberta a campos novos. `CODIGOS_RESERVADOS` guarda os códigos
+que etapas seguintes emitirão (`chave_ja_usada_em_outro_registro`,
+`versao_do_aplicativo_antiga`, `versao_do_aplicativo_ausente`), fora da lista
+emitida de propósito. `catalogo-de-erros.test.ts` confere o catálogo contra os
+códigos literais de `apps/api/src` nos dois sentidos, e
+`varredura-de-esquemas.test.ts` prende as armadilhas do Zod 4 (`.default()`
+dentro de `.optional()`, `z.record` com chaves de enum, `Date` em objeto só de
+opcionais).
 
 #### Códigos de erro de acesso
 
@@ -1661,7 +1680,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3921 testes em seis pacotes
+npm test                    # 3969 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 439 testes do banco
 npm run test:api            # 1869 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo

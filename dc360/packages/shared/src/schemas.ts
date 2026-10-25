@@ -295,13 +295,44 @@ const contagemDePessoas = z.number().int()
   .max(100000, "Confira o número: parece dedo escorregando no teclado")
   .optional();
 
-export const pessoasAtingidasSchema = z.object({
+/**
+ * O objeto de cinco contagens, sem a guarda de `Date`. Fica à parte porque a
+ * vistoria espalha a `.shape` dele (mais abaixo), e a `.shape` só existe no
+ * objeto, não no esquema com a guarda.
+ */
+const pessoasAtingidasObjeto = z.object({
   desalojados: contagemDePessoas,
   desabrigados: contagemDePessoas,
   feridos: contagemDePessoas,
   desaparecidos: contagemDePessoas,
   obitos: contagemDePessoas,
 });
+
+/**
+ * Esquema de OBJETO QUE SÓ TEM CAMPOS OPCIONAIS, com a guarda contra `Date`
+ * (DV-37).
+ *
+ * No Zod 4, um objeto `Date` é um objeto para `z.object`, e como não tem chave
+ * nenhuma que importe, passa por um esquema em que tudo é opcional e sai como
+ * `{}`. JSON e query string nunca produzem `Date`, então só um chamador em
+ * processo o alcança; mesmo assim "uma data passou por contagem de pessoas" é o
+ * tipo de erro silencioso que a validação existe para recusar. Com um campo
+ * obrigatório a recusa já acontece (falta o campo); o furo é só dos esquemas
+ * onde tudo é opcional. O teste `varredura-de-esquemas.test.ts` percorre todos
+ * os esquemas exportados e reprova o próximo que aparecer sem a guarda.
+ *
+ * A guarda é um passo antes do objeto (e não um `refine` depois dele), porque
+ * depois do objeto o `Date` já virou `{}` e não há mais o que conferir.
+ */
+function objetoSoDeOpcionais<T extends z.ZodType>(objeto: T) {
+  return z
+    .custom<unknown>((valor) => !(valor instanceof Date), {
+      message: "Era esperado um objeto, veio uma data",
+    })
+    .pipe(objeto);
+}
+
+export const pessoasAtingidasSchema = objetoSoDeOpcionais(pessoasAtingidasObjeto);
 export type PessoasAtingidas = z.infer<typeof pessoasAtingidasSchema>;
 
 /** O rótulo e a explicação de cada contagem, como aparecem na tela e no laudo. */
@@ -442,7 +473,7 @@ export const vistoriaSchema = z.object({
     existir, e a fila do aparelho antigo passaria a receber 422 numa coleta
     que já está guardada no morro.
   */
-  ...pessoasAtingidasSchema.shape,
+  ...pessoasAtingidasObjeto.shape,
 }).superRefine((v, ctx) => {
   /*
     A incoerência que o servidor recusa, e só ela.
