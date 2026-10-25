@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  aberturaOcorrenciaSchema,
   envelopeSincronizacaoSchema,
   pedidoDeEvidenciaSchema,
   uuidSchema,
@@ -207,5 +208,144 @@ describe("uuidSchema na linha 4 do Zod", () => {
       expect(r.success, ruim).toBe(false);
       expect(mensagem(r)).toBe("Não é um identificador válido (UUID)");
     }
+  });
+});
+
+/*
+  Campo ausente é "Campo obrigatório" em QUALQUER regra (V2-F00-E19, correção
+  11). No Zod 4 só `invalid_type` carregava essa frase de graça; enum, literal e
+  união obrigatórios reprovam com o código da própria regra, e a frase dessa
+  regra imprimia "Valor não reconhecido: undefined". O validador da rodada 9
+  reproduziu num 422 real de `POST /ocorrencias`.
+*/
+describe("campo obrigatório ausente, em qualquer regra", () => {
+  const ausente = (esquema: z.ZodType) => mensagem(z.object({ campo: esquema }).safeParse({}));
+
+  it("enum, literal, união, união discriminada e lista ausentes dizem 'Campo obrigatório'", () => {
+    expect(ausente(z.enum(["alta", "media"]))).toBe("Campo obrigatório");
+    expect(ausente(z.literal("x"))).toBe("Campo obrigatório");
+    expect(ausente(z.union([z.string(), z.number()]))).toBe("Campo obrigatório");
+    expect(ausente(z.array(z.string()).min(1))).toBe("Campo obrigatório");
+    expect(ausente(z.string().uuid())).toBe("Campo obrigatório");
+    expect(ausente(z.number().int().positive())).toBe("Campo obrigatório");
+    expect(ausente(z.discriminatedUnion("t", [
+      z.object({ t: z.literal("a") }), z.object({ t: z.literal("b") }),
+    ]))).toBe("Campo obrigatório");
+  });
+
+  it("enum explicitamente undefined também (o JSON não carrega undefined, mas o aparelho monta objeto)", () => {
+    expect(mensagem(z.object({ campo: z.enum(["a", "b"]) }).safeParse({ campo: undefined })))
+      .toBe("Campo obrigatório");
+  });
+
+  it("o esquema real de abertura de ocorrência, sem tipo e sem canal, diz 'Campo obrigatório' nos dois", () => {
+    const r = aberturaOcorrenciaSchema.safeParse({
+      solicitanteNome: "Marilda Souza Prado", endereco: "Rua das Acácias, 120",
+      descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
+    });
+    if (r.success) throw new Error("esperava reprovação");
+    for (const nome of ["tipo", "canalEntrada"]) {
+      const p = r.error.issues.find((i) => i.path[0] === nome);
+      expect(p?.message, nome).toBe("Campo obrigatório");
+    }
+  });
+
+  it("enum presente e errado continua dizendo o que veio e o que era aceito", () => {
+    expect(mensagem(z.enum(["alta", "media"]).safeParse("urgente")))
+      .toBe("Valor não reconhecido: \"urgente\". Os aceitos são: alta, media");
+  });
+});
+
+/*
+  Nenhuma frase do mapa imprime `undefined` nem `null` de JavaScript, e
+  nenhuma lança: o valor que veio de fora entra na frase dito em português.
+*/
+describe("o mapa nunca imprime undefined nem null crus", () => {
+  it("enum que recebe nulo, número, booleano, objeto e lista", () => {
+    const e = z.enum(["alta", "media"]);
+    expect(mensagem(e.safeParse(null))).toBe("Valor não reconhecido: nulo. Os aceitos são: alta, media");
+    expect(mensagem(e.safeParse(7))).toBe("Valor não reconhecido: 7. Os aceitos são: alta, media");
+    expect(mensagem(e.safeParse(true))).toBe("Valor não reconhecido: true. Os aceitos são: alta, media");
+    expect(mensagem(e.safeParse({ a: 1 }))).toBe("Valor não reconhecido: um objeto. Os aceitos são: alta, media");
+    expect(mensagem(e.safeParse([1]))).toBe("Valor não reconhecido: uma lista. Os aceitos são: alta, media");
+  });
+
+  it("BigInt, NaN e Infinity no enum não lançam nem viram 'null'", () => {
+    const e = z.enum(["alta", "media"]);
+    expect(mensagem(e.safeParse(10n))).toBe("Valor não reconhecido: 10. Os aceitos são: alta, media");
+    expect(mensagem(e.safeParse(Number.NaN)))
+      .toBe("Valor não reconhecido: um valor que não é número. Os aceitos são: alta, media");
+    expect(mensagem(e.safeParse(Infinity))).toBe("Valor não reconhecido: infinito. Os aceitos são: alta, media");
+  });
+
+  it("literal nulo e lista de aceitos com nulo", () => {
+    expect(mensagem(z.literal(null).safeParse("x"))).toBe("Era esperado exatamente nulo");
+    expect(mensagem(z.literal(["a", null]).safeParse("x")))
+      .toBe("Valor não reconhecido: \"x\". Os aceitos são: a, nulo");
+  });
+
+  it("nenhum caso acima deixa 'undefined' ou 'null' na frase", () => {
+    const casos = [
+      z.enum(["a", "b"]).safeParse(null),
+      z.enum(["a", "b"]).safeParse(undefined),
+      z.literal(null).safeParse(1),
+      z.literal(["a", null]).safeParse(1),
+      z.object({ a: z.enum(["a", "b"]) }).safeParse({}),
+      z.object({ a: z.enum(["a", "b"]) }).safeParse({ a: null }),
+      z.number().safeParse(Number.NaN),
+      z.string().safeParse(undefined),
+    ];
+    for (const c of casos) expect(mensagem(c)).not.toMatch(/\b(undefined|null)\b/);
+  });
+});
+
+/*
+  DV-19: `z.coerce.number()` sobre texto não numérico dá NaN, e a frase saía
+  "Era esperado um número, veio um número".
+*/
+describe("NaN tem frase própria", () => {
+  it("coerce.number sobre 'abc' diz 'Precisa ser um número'", () => {
+    expect(mensagem(z.coerce.number().safeParse("abc"))).toBe("Precisa ser um número");
+    expect(mensagem(z.object({ pagina: z.coerce.number().int() }).safeParse({ pagina: "abc" })))
+      .toBe("Precisa ser um número");
+  });
+
+  it("number sobre NaN direto também, e coerce de texto válido continua passando", () => {
+    expect(mensagem(z.number().safeParse(Number.NaN))).toBe("Precisa ser um número");
+    expect(z.coerce.number().safeParse("12").success).toBe(true);
+  });
+
+  it("NaN onde se esperava texto diz o que veio sem repetir 'número' como se fosse certo", () => {
+    expect(mensagem(z.string().safeParse(Number.NaN)))
+      .toBe("Era esperado um texto, veio um valor que não é número");
+  });
+});
+
+/*
+  Dívida de teste da rodada 9 (QA 3 e QA da E06 1): a função `error` de
+  `tamanhoBytes` separa "não foi informado" de "precisa ser um número", e o
+  mutante que apagava a distinção sobrevivia porque nenhum teste afirmava a
+  frase do ausente.
+*/
+describe("tamanhoBytes separa ausente de não numérico", () => {
+  const base = {
+    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    nomeArquivo: "foto.png",
+    tipoConteudo: "image/png",
+    capturadaEm: "2026-09-14T12:00:00.000Z",
+    ordem: 0,
+  };
+  const frase = (corpo: Record<string, unknown>) => {
+    const r = pedidoDeEvidenciaSchema.safeParse(corpo);
+    if (r.success) throw new Error("esperava reprovação");
+    return r.error.issues.find((i) => i.path[0] === "tamanhoBytes")?.message;
+  };
+
+  it("ausente: 'não foi informado'; texto: 'precisa ser um número de bytes'", () => {
+    expect(frase(base)).toBe("O tamanho do arquivo não foi informado.");
+    expect(frase({ ...base, tamanhoBytes: "12" }))
+      .toBe("O tamanho do arquivo precisa ser um número de bytes.");
+    expect(frase({ ...base, tamanhoBytes: null }))
+      .toBe("O tamanho do arquivo precisa ser um número de bytes.");
   });
 });

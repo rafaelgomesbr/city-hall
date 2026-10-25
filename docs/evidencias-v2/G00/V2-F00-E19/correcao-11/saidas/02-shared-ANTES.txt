@@ -1,0 +1,24 @@
+   ✓ o mapa de erros do pacote compartilhado fala português > too_small: número, texto e lista 2ms
+   ✓ o mapa de erros do pacote compartilhado fala português > too_big: número, texto e lista 0ms
+   ✓ o mapa de erros do pacote compartilhado fala português > invalid_type: ausente é obrigatório, presente é o tipo errado 1ms
+   ✓ o mapa de erros do pacote compartilhado fala português > invalid_string: uuid, datetime, email e regex 1ms
+   ✓ o mapa de erros do pacote compartilhado fala português > invalid_enum_value: diz o que veio e o que era aceito 0ms
+   ✓ o mapa de erros do pacote compartilhado fala português > os outros códigos também não escapam em inglês 1ms
+   ✓ o mapa de erros do pacote compartilhado fala português > a mensagem explícita escrita no esquema continua valendo 1ms
+   ✓ o mapa de erros do pacote compartilhado fala português > o 422 da vistoria 000009/2026 sai inteiro em português 1ms
+   ✓ uuidSchema na linha 4 do Zod > aceita o v4 de verdade e o nulo, e recusa o 8-4-4-4-12 que não é UUID 0ms
+   × campo obrigatório ausente, em qualquer regra > enum, literal, união, união discriminada e lista ausentes dizem 'Campo obrigatório' 4ms
+   × campo obrigatório ausente, em qualquer regra > enum explicitamente undefined também (o JSON não carrega undefined, mas o aparelho monta objeto) 1ms
+   × campo obrigatório ausente, em qualquer regra > o esquema real de abertura de ocorrência, sem tipo e sem canal, diz 'Campo obrigatório' nos dois 1ms
+   ✓ campo obrigatório ausente, em qualquer regra > enum presente e errado continua dizendo o que veio e o que era aceito 0ms
+   × o mapa nunca imprime undefined nem null crus > enum que recebe nulo, número, booleano, objeto e lista 0ms
+   × o mapa nunca imprime undefined nem null crus > BigInt, NaN e Infinity no enum não lançam nem viram 'null' 2ms
+   × o mapa nunca imprime undefined nem null crus > literal nulo e lista de aceitos com nulo 0ms
+   × o mapa nunca imprime undefined nem null crus > nenhum caso acima deixa 'undefined' ou 'null' na frase 1ms
+   × NaN tem frase própria > coerce.number sobre 'abc' diz 'Precisa ser um número' 0ms
+   × NaN tem frase própria > number sobre NaN direto também, e coerce de texto válido continua passando 0ms
+   × NaN tem frase própria > NaN onde se esperava texto diz o que veio sem repetir 'número' como se fosse certo 0ms
+   ✓ tamanhoBytes separa ausente de não numérico > ausente: 'não foi informado'; texto: 'precisa ser um número de bytes' 0ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  10 failed | 11 passed (21)

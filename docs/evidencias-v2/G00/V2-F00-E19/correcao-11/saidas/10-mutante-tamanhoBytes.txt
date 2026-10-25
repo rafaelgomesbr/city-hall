@@ -1,0 +1,3 @@
+Mutacao em dc360/packages/shared/src/evidencia.ts (a condicao "problema.input === undefined" da funcao error de tamanhoBytes trocada por "=== 42424242", o que apaga a distincao entre ausente e nao numerico), rodando mensagens-em-portugues.test.ts:
+  Tests  1 failed | 20 passed (21)
+O caso "tamanhoBytes separa ausente de nao numerico" reprova; antes da correcao 11 o mutante sobrevivia (224 de 224). Arquivo restaurado com git checkout depois.
