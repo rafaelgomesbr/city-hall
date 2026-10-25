@@ -314,8 +314,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     domínio de PROD, Node e Postgres divergentes; os nomes de `fly secrets list`
     contra a coluna do ambiente, incluindo o segredo exclusivo de PROD no app de
     HML; e o comando com código de saída 0, 1 e 2, sem nunca imprimir valor).
+    A correção da revisão 1 da F01 acrescenta 4 casos ao MESMO arquivo (46 no
+    total): as listas de papel de banco e de pedaço de host iguais às da API,
+    `problemaNaIdentidadeDoBanco` recusando papel, host do provedor, região e
+    palavra curta, e a matriz e os dois `fly*.toml` de PROD reprovando a
+    identidade genérica.
   */
-  "V2-F01-E09": 42,
+  "V2-F01-E09": 46,
   /*
     V2-F01-E17 (lint e formatação com baseline que só desce):
     `scripts/lint-teto.test.mjs` é novo, com 20 casos (o teto é exatamente a
@@ -780,6 +785,18 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     contagem. Nenhuma falha nem pulo novos.
   */
   "V2-F01-E09": { total: 60, falhas: 0, puladas: 0 },
+  /*
+    V2-F01-E09, correção da revisão 1: `IDENTIDADE_DO_BANCO` genérica (papel de
+    banco, pedaço de host do provedor, região, palavra curta) passa a recusar a
+    partida. 3 casos novos em `apps/api/test/contrato-de-ambiente.test.ts`
+    (as identidades recusadas com o motivo, a URL de PROD que "constava" e a
+    referência real continuando aceita). Os helpers de `config.test.ts`,
+    `banco-tls.test.ts`, `log.test.ts` e `recuperacao-em-producao.test.ts`
+    ganharam uma referência de projeto no lugar de identidades curtas, sem mudar
+    a contagem. O console ganha 1 caso (`contrato-de-ambiente.test.ts`), que está
+    no número do próprio passo (teste-console, +1: 338 para 339).
+  */
+  "V2-F01-E09-correcao-revisao-1": { total: 3, falhas: 0, puladas: 0 },
   // V2-F01-E14: `request-id.test.ts` (13), `reportador-de-erros.test.ts` (17), `rotinas-em-nivel-error.test.ts` (8) e `alerta-de-armazenamento.test.ts` (11).
   "V2-F01-E14": { total: 49, falhas: 0, puladas: 0 },
   /*
@@ -1091,7 +1108,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 338, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 339, falhas: 0 } }, // 338 + 1 da correção da revisão 1 da V2-F01-E09
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

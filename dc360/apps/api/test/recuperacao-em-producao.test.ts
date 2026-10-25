@@ -28,7 +28,7 @@ const FLY_TOML = readFileSync(join(AQUI, "..", "..", "..", "fly.toml"), "utf8");
 function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
   return {
     NODE_ENV: "production",
-    DATABASE_URL: "postgres://dc360:senha@banco.interno:5432/dc360?sslmode=verify-full",
+    DATABASE_URL: "postgres://dc360.refprodxxxxxxxx:senha@banco.interno:5432/dc360?sslmode=verify-full",
     JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
     ORIGENS_PERMITIDAS: "https://painel.serraalta.mg.gov.br",
     S3_ENDPOINT: "https://balde.exemplo.com",
@@ -40,7 +40,7 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
     RECUPERACAO_ATIVA: "nao",
     // O contrato de ambiente (V2-F01-E09): as três declarações não secretas.
     AMBIENTE_DC360: "prod",
-    IDENTIDADE_DO_BANCO: "dc360",
+    IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
     DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;

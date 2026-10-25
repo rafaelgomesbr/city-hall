@@ -31,7 +31,7 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
       autenticada, em silêncio. Ver o caso "recusa DATABASE_URL sem verificação
       de certificado" em `banco-tls.test.ts`.
     */
-    DATABASE_URL: "postgres://dc360:senha@banco.interno:5432/dc360?sslmode=verify-full",
+    DATABASE_URL: "postgres://dc360.refprodxxxxxxxx:senha@banco.interno:5432/dc360?sslmode=verify-full",
     JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
     ORIGENS_PERMITIDAS: "https://painel.serraalta.mg.gov.br",
     S3_ENDPOINT: "https://balde.exemplo.com",
@@ -77,7 +77,7 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
       Os casos do contrato em si estão em `contrato-de-ambiente.test.ts`.
     */
     AMBIENTE_DC360: "prod",
-    IDENTIDADE_DO_BANCO: "dc360",
+    IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
     DOMINIO_DO_AMBIENTE: "serraalta.mg.gov.br",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;
@@ -173,8 +173,8 @@ describe("Configuração de produção", () => {
 
     // A porta de sessão do mesmo pooler continua passando: a recusa é da porta, não do host.
     expect(() => carregarConfig(producao({
-      DATABASE_URL: "postgres://dc360_api:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
-      IDENTIDADE_DO_BANCO: "dc360_api",
+      DATABASE_URL: "postgres://dc360_api.refprodxxxxxxxx:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
+      IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
     }))).not.toThrow();
 
     // E a mensagem não repete a senha: ela é a única parte da URL que não pode ir para o log.

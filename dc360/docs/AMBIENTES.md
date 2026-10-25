@@ -90,6 +90,7 @@ Nenhuma repete a URL do banco, porque a senha está nela.
 | `dev` em produção | `AMBIENTE_DC360=dev não combina com NODE_ENV=production` | Usar `hml` ou `prod` |
 | `prod` fora de produção | `AMBIENTE_DC360=prod exige NODE_ENV=production` | Ajustar `NODE_ENV` |
 | Falta a identidade | `IDENTIDADE_DO_BANCO é obrigatória em HML` (ou PROD) | Declarar no `[env]` |
+| Identidade genérica | `IDENTIDADE_DO_BANCO=... é nome de papel do banco`, `... é um pedaço de host` ou `... tem N caracteres e precisa ter pelo menos 8` (o mesmo vale para `CONSOLE_IDENTIDADE_DO_BANCO` e para `scripts/ambientes.json`) | Usar a referência inteira do projeto, não o nome de um papel (`dc360_api`, `postgres`), nem `pooler`, `supabase` ou a região: eles constam na URL de todos os ambientes e anulariam a trava |
 | Banco de outro ambiente | `A DATABASE_URL não é do banco de HML` (ou PROD) | O caso típico é a credencial de PROD colada em HML. Conferir o segredo com `fly secrets list` (só nomes) e regravar a URL certa |
 | Falta o domínio | `DOMINIO_DO_AMBIENTE é obrigatório em HML` (ou PROD) | Declarar no `[env]` |
 | Domínio mal formado ou compartilhado | `DOMINIO_DO_AMBIENTE precisa ser só o nome do domínio` ou `... reparte com outros clientes` | Usar o nome inteiro do projeto |

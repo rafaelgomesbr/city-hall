@@ -3,6 +3,7 @@ import {
   hostNoDominio,
   identidadeConstaNaUrlDoBanco,
   listaDeDominios,
+  problemaNaIdentidadeDoBanco,
   problemaNaOrigem,
   problemaNoDominio,
   resolverAmbiente,
@@ -939,6 +940,13 @@ function conferirContratoDoAmbiente(
       `IDENTIDADE_DO_BANCO é obrigatória em ${rotulo}. É a palavra (no Supabase, a referência `
       + "do projeto) que o usuário ou o host da DATABASE_URL precisa conter; sem ela a partida "
       + "não tem como saber que o banco é o deste ambiente. Está no [env] do fly.toml.",
+    );
+  }
+  const problemaNaIdentidade = problemaNaIdentidadeDoBanco(c.IDENTIDADE_DO_BANCO);
+  if (problemaNaIdentidade) {
+    throw new Error(
+      `IDENTIDADE_DO_BANCO=${c.IDENTIDADE_DO_BANCO} ${problemaNaIdentidade}. Uma identidade que `
+      + "consta na URL de qualquer ambiente anula a trava contra a configuração cruzada.",
     );
   }
   if (c.DATABASE_URL && !identidadeConstaNaUrlDoBanco(c.DATABASE_URL, c.IDENTIDADE_DO_BANCO)) {

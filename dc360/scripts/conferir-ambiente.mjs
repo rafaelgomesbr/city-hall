@@ -89,6 +89,74 @@ export const DOMINIOS_COMPARTILHADOS = [
   "net.br",
 ];
 
+/**
+ * Nomes de papel de banco, pedaços de host do provedor e o tamanho mínimo de uma
+ * `IDENTIDADE_DO_BANCO`. Precisam ser IGUAIS aos de `apps/api/src/ambiente.ts`
+ * (`PAPEIS_DE_BANCO`, `SEGMENTOS_GENERICOS_DE_HOST`,
+ * `TAMANHO_MINIMO_DA_IDENTIDADE`): o teste `conferir-ambiente.test.mjs` compara.
+ */
+export const PAPEIS_DE_BANCO = [
+  "postgres",
+  "authenticator",
+  "authenticated",
+  "anon",
+  "service_role",
+  "supabase_admin",
+  "supabase_auth_admin",
+  "supabase_storage_admin",
+  "pgbouncer",
+  "dc360_api",
+  "dc360_app",
+  "dc360_setup",
+  "dc360_console",
+  "dc360_console_login",
+];
+export const SEGMENTOS_GENERICOS_DE_HOST = [
+  "pooler",
+  "supabase",
+  "database",
+  "postgres",
+  "postgresql",
+  "amazonaws",
+  "localhost",
+  "flycast",
+  "internal",
+  "pgbouncer",
+  "transaction",
+  "session",
+  "producao",
+  "production",
+  "homologacao",
+  "staging",
+  "desenvolvimento",
+  "development",
+];
+export const TAMANHO_MINIMO_DA_IDENTIDADE = 8;
+
+/**
+ * A identidade de banco é genérica a ponto de constar na URL de qualquer
+ * ambiente? Devolve o problema ou `null`. Mesma régua de `ambiente.ts`.
+ */
+export function problemaNaIdentidadeDoBanco(identidade) {
+  const id = String(identidade).trim().toLowerCase();
+  if (PAPEIS_DE_BANCO.includes(id) || /^dc360_/.test(id)) {
+    return "é nome de papel do banco, que aparece no usuário da URL de todos os ambientes";
+  }
+  const rotulosDosDominios = DOMINIOS_COMPARTILHADOS.flatMap((d) => d.split("."));
+  if (
+    SEGMENTOS_GENERICOS_DE_HOST.includes(id) ||
+    rotulosDosDominios.includes(id) ||
+    /^aws-\d+-[a-z]{2}-[a-z]+-\d+$/.test(id) ||
+    /^[a-z]{2}-[a-z]+-\d+$/.test(id)
+  ) {
+    return "é um pedaço de host que o provedor repete em todo projeto";
+  }
+  if (id.length < TAMANHO_MINIMO_DA_IDENTIDADE) {
+    return `tem ${id.length} caracteres e precisa ter pelo menos ${TAMANHO_MINIMO_DA_IDENTIDADE}`;
+  }
+  return null;
+}
+
 const NOME_DE_VARIAVEL = /^[A-Z][A-Z0-9_]*$/;
 const IDENTIDADE = /^[a-z0-9][a-z0-9_-]{2,62}$/i;
 const DOMINIO = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
@@ -182,6 +250,13 @@ export function validarMatriz(matriz) {
       p(
         `ambientes.${nome}.identidadeDoBanco fora do formato (3 a 63 letras, números, hífen ou sublinhado, sem ponto)`,
       );
+    }
+    if (amb.identidadeDoBanco != null) {
+      const generica = problemaNaIdentidadeDoBanco(amb.identidadeDoBanco);
+      if (generica)
+        p(
+          `ambientes.${nome}.identidadeDoBanco ${generica}: a trava de ambiente cruzado não separaria nada`,
+        );
     }
     if (amb.dominio != null) {
       if (!DOMINIO.test(amb.dominio)) p(`ambientes.${nome}.dominio fora do formato de domínio`);
@@ -334,6 +409,12 @@ export function conferirRepositorio({ raiz = RAIZ_DO_PRODUTO, matriz = lerMatriz
           p(
             `${arquivo}: ${v.nome} não é a identidade de banco que a matriz declara para ${amb.toUpperCase()}`,
           );
+        }
+        if (declarada && v.identidade) {
+          const generica = problemaNaIdentidadeDoBanco(env[v.nome]);
+          if (generica) {
+            p(`${arquivo}: ${v.nome} ${generica}: a trava de ambiente cruzado não separaria nada`);
+          }
         }
         if (declarada && v.dominio && dados.dominio != null && env[v.nome] !== dados.dominio) {
           p(`${arquivo}: ${v.nome} não é o domínio que a matriz declara para ${amb.toUpperCase()}`);

@@ -34,13 +34,13 @@ function ambienteDeProducao(alteracoes: Record<string, string> = {}): Record<str
     // da URL abaixo (`db.exemplo.com`). Os casos do contrato estão em
     // `contrato-de-ambiente.test.ts`.
     AMBIENTE_DC360: "prod",
-    CONSOLE_IDENTIDADE_DO_BANCO: "exemplo",
+    CONSOLE_IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
     CONSOLE_HOST: "0.0.0.0",
     CONSOLE_JWT_SEGREDO: randomBytes(32).toString("base64url"),
     CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE_DO_COFRE,
     CONSOLE_OPERADORES: "[]",
     CONSOLE_DATABASE_URL:
-      "postgres://dc360_console_login:s@db.exemplo.com:5432/postgres?sslmode=verify-full",
+      "postgres://dc360_console_login.refprodxxxxxxxx:s@db.exemplo.com:5432/postgres?sslmode=verify-full",
     ...alteracoes,
   };
 }

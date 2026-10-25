@@ -312,7 +312,7 @@ describe("O notificador de log", () => {
       NODE_ENV: "production",
       // Com `sslmode=verify-full` porque produção recusa subir sem ele desde
       // 09/09/2026. Ver `banco-tls.test.ts`.
-      DATABASE_URL: "postgres://u:s@localhost:5432/d?sslmode=verify-full",
+      DATABASE_URL: "postgres://u.refprodxxxxxxxx:s@localhost:5432/d?sslmode=verify-full",
       JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
       ORIGENS_PERMITIDAS: "https://painel.exemplo.gov.br",
       URL_PAINEL: "https://painel.exemplo.gov.br",
@@ -323,7 +323,7 @@ describe("O notificador de log", () => {
       S3_CHAVE_SECRETA: "segredo",
       // O contrato de ambiente (V2-F01-E09): as três declarações não secretas.
       AMBIENTE_DC360: "prod",
-      IDENTIDADE_DO_BANCO: "localhost",
+      IDENTIDADE_DO_BANCO: "refprodxxxxxxxx",
       DOMINIO_DO_AMBIENTE: "exemplo.gov.br",
     } as unknown as NodeJS.ProcessEnv;
 
