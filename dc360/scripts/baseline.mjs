@@ -688,6 +688,17 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     `FOR SHARE` só no login, DC367 e DC369 mantidos). Soma 18, de 327 para 345.
   */
   "V2-F00-E07-correcao-2": { total: 18, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-POS, suporte (decisão H06 B, migração 054):
+    `restauracao-de-acesso.test.ts` é novo, com 11 casos (o caminho feliz; as
+    recusas de operador comum, motivo, senha em texto claro, outro papel, outro
+    município, conta desativada, município suspenso e o teto, cada uma com o
+    caso-irmão que passa; o registro append-only e só do dono; a forma da
+    função no catálogo). `isolamento.test.ts` e `eliminacao-de-municipio.test.ts`
+    mudaram por dentro (exceções narradas, semeadura), sem caso novo. Soma 11,
+    de 345 para 356.
+  */
+  "V2-F00-POS-suporte": { total: 11, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
@@ -824,7 +835,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 307, falhas: 0 } },
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 320, falhas: 0 } }, // 307 + 13 da V2-F00-POS, suporte (H06 B): 9 em restaurar-acesso.test.ts e 4 em no-navegador-restaurar.test.ts
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

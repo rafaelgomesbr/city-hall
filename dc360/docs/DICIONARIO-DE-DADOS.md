@@ -337,13 +337,14 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 
 ---
 
-## As tabelas do fornecedor: `console_operadores`, `eliminacoes_de_municipio` e `console_codigos_de_recuperacao`
+## As tabelas do fornecedor: `console_operadores`, `eliminacoes_de_municipio`, `console_codigos_de_recuperacao` e `restauracoes_de_acesso`
 
-As duas primeiras entraram na migração 038 e a terceira na 039, e **não são de
-município nenhum**: são do fornecedor, e só o papel do console
-(`dc360_console`) as alcança. Nenhum município as lê, e o papel de aplicação
-não tem um privilégio sequer nelas. Nenhuma das três sai no pacote de saída de
-município.
+As duas primeiras entraram na migração 038, a terceira na 039 e a quarta na
+054, e **são do fornecedor**: só o papel do console (`dc360_console`) as
+alcança. Nenhum município as lê, e o papel de aplicação não tem um privilégio
+sequer nelas. Nenhuma das quatro sai no pacote de saída de município. A quarta
+carrega o município a que se refere e sai junto com ele na eliminação (ver
+abaixo).
 
 ### `console_operadores`
 
@@ -475,6 +476,40 @@ As três rodam com `row_security = off`: com um dono de tabelas sem
 `BYPASSRLS`, a escrita que alcançaria zero linha em silêncio vira erro
 (`DC362`) nomeando a causa, e senha e código ficam como estavam. Sem isso, o
 desfecho seria "senha redefinida" com a senha velha no lugar.
+
+### `restauracoes_de_acesso`
+
+O registro do console das restaurações de acesso de administrador (migração
+054, decisão H06 B de 26/10/2026). Enquanto a recuperação por email estiver
+desligada, o administrador único que perde a senha recebe uma senha temporária
+pelo dono do console, depois da verificação de identidade de
+`docs/IMPLANTACAO.md`, seção 6.5. Uma linha por restauração.
+
+| Coluna | Significado |
+| --- | --- |
+| `organizacao_id` | O município. Com chave estrangeira para `organizacoes`: ao contrário do livro de eliminações, esta tabela **sai junto** quando o município é eliminado (camada 0 da ordem de apagamento), porque o motivo é texto livre e pode citar a pessoa |
+| `operador_id`, `operador_email` | Quem do fornecedor agiu (sempre o dono do console). O email é copiado, como no livro de eliminações. Sem chave estrangeira para `console_operadores` |
+| `motivo` | Obrigatório, com pelo menos 10 caracteres: o chamado e como a identidade foi conferida |
+| `sessoes_encerradas` | Quantas sessões do administrador caíram |
+| `senha_provisoria_ate` | Até quando a senha temporária vale para entrar (72 horas) |
+| `registrado_em` | Quando |
+
+**Não guarda a senha, o hash, nem a conta restaurada.** Qual conta foi
+restaurada está na `trilha_administrativa` do próprio município, na mesma
+transação (ação `acesso_do_administrador_restaurado_pelo_fornecedor`, autor
+`operador_da_plataforma` com o email de quem agiu, e o motivo no `depois`).
+
+**Append-only por ausência de escrita.** O console só tem `SELECT`, e a policy
+só deixa o **dono** ler; operador comum lê zero linhas e o papel de aplicação
+não tem privilégio nenhum. Quem escreve é a função
+`console_restaurar_acesso_do_administrador(org, email, hash, motivo)`, só do
+console, que exige o dono ativo no contexto (`42501`), motivo de 10
+caracteres e hash do produto (`DC361`), município existente e não eliminado
+(`DC364`), município não suspenso e no máximo três restaurações por município
+em 24 horas (`DC365`), e procura a conta pelo email **dentro do município
+indicado**, aceitando só administrador ativo: conta de outro município, de
+outro papel ou desativada recebe a mesma mensagem (`DC364`). Não toca no
+segundo fator. Não sai no pacote de saída de município.
 
 ---
 

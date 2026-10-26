@@ -1000,6 +1000,108 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
   </div>
 </div>
 
+<!--
+  RESTAURAR O ACESSO DO ADMINISTRADOR (migração 054, decisão H06 B). Mesma
+  régua do modal de eliminar: senha atual e código novo de quem clica, e o
+  motivo escrito. O email é o que a pessoa DISSE ser o dela, digitado aqui:
+  não há lista de administradores, porque o console não lê \`usuarios\` e uma
+  lista seria o roteiro de quem liga se passando por um deles. A senha
+  temporária aparece no próprio cartão, uma vez, e Escape NÃO a fecha (só o
+  botão de concluir), pelo mesmo motivo da janela de senha temporária do
+  painel: fechar por acidente perde a senha e obriga a restaurar de novo.
+-->
+<div id="dialogo-restaurar" class="dialogo" hidden>
+  <div class="dialogo-fundo" id="restaurar-fundo"></div>
+  <div id="restaurar-cartao" class="cartao dialogo-cartao" role="dialog" aria-modal="true"
+       aria-labelledby="restaurar-titulo" aria-describedby="restaurar-texto" tabindex="-1">
+    <span class="emblema emblema-perigo"><svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg></span>
+    <h2 id="restaurar-titulo" tabindex="-1"></h2>
+    <p class="apoio" id="restaurar-texto">
+      Gera uma senha temporária para o administrador deste município e encerra
+      as sessões dele. Use só depois de conferir a identidade de quem pede por
+      canal verificado, como manda o procedimento do console. A senha aparece
+      uma única vez.
+    </p>
+    <p class="apoio" id="restaurar-historico" aria-live="polite"></p>
+
+    <div id="restaurar-entregue" hidden>
+      <p class="selo-bom">
+        <svg class="icone" aria-hidden="true"><use href="#i-confere"/></svg>
+        <span>Acesso restaurado</span>
+      </p>
+      <p class="rotulo-senha" id="rotulo-senha-restaurada">Senha temporária</p>
+      <p class="senha mono" id="senha-restaurada" aria-labelledby="rotulo-senha-restaurada"></p>
+      <p class="alerta">
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span>
+          <strong>Atenção:</strong> esta senha não fica guardada em lugar nenhum e
+          não será mostrada de novo. Repasse pelo canal verificado, nunca por
+          email nem por mensagem ao mesmo contato que fez o pedido.
+          <span id="restaurar-validade"></span>
+        </span>
+      </p>
+      <div class="dialogo-acoes">
+        <button type="button" id="restaurar-concluir" class="botao botao-forte botao-largo">
+          <span>Já repassei, concluir</span>
+          <svg class="icone" aria-hidden="true"><use href="#i-seta-direita"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <form id="forma-restaurar" autocomplete="off" novalidate>
+      <div class="campo">
+        <label for="restaurar-email">Email do administrador</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-arroba"/></svg>
+          <input id="restaurar-email" name="email" type="email" required maxlength="320"
+                 autocomplete="off" spellcheck="false">
+        </span>
+        <p class="ajuda">O email de entrada da pessoa, conferido com o cadastro do contrato.</p>
+      </div>
+      <div class="campo">
+        <label for="restaurar-senha">Sua senha atual</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-cadeado"/></svg>
+          <input id="restaurar-senha" name="senha" type="password" required autocomplete="current-password">
+        </span>
+      </div>
+      <div class="campo">
+        <label for="restaurar-codigo">Código novo do aplicativo de autenticação</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-digitos"/></svg>
+          <input id="restaurar-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" required placeholder="000000" class="mono entrada-codigo">
+        </span>
+        <p class="ajuda">Não o da entrada: um código já usado é recusado.</p>
+      </div>
+      <div class="campo">
+        <label for="restaurar-motivo">Motivo</label>
+        <span class="entrada entrada-area">
+          <textarea id="restaurar-motivo" name="motivo" rows="3" maxlength="2000" required></textarea>
+        </span>
+        <p class="ajuda">
+          Número do chamado e como a identidade foi conferida. Vai para a trilha
+          do município, que lê quem do fornecedor mexeu na conta e por quê.
+        </p>
+      </div>
+      <p id="recado-restaurar" class="recado" role="status" aria-live="polite" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span id="recado-restaurar-texto"></span>
+      </p>
+      <div class="dialogo-acoes">
+        <button type="submit" id="restaurar-agir" class="botao botao-perigo botao-largo">
+          <span class="roda" aria-hidden="true"></span>
+          <span id="restaurar-agir-texto">Restaurar o acesso</span>
+        </button>
+        <button type="button" id="restaurar-recusar" class="botao botao-discreto botao-largo">
+          <svg class="icone" aria-hidden="true"><use href="#i-fechar"/></svg>
+          <span>Voltar sem restaurar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <footer class="rodape" id="rodape">
   <p>
     Processo separado do produto, com sessão própria e sem acesso a tabela de
@@ -2028,6 +2130,8 @@ td.n .esqueleto { margin-left: auto; }
 .dialogo-cartao:focus-visible { box-shadow: var(--ds-shadow-3), var(--ds-focus-ring); }
 .dialogo-acoes { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-top: var(--ds-sp-4); }
 .dialogo-acoes .botao-largo { margin-top: 0; }
+/* O selo de "acesso restaurado" respira do título, como o de prefeitura cadastrada. */
+#restaurar-entregue .selo-bom { margin-top: var(--ds-sp-3); }
 
 .emblema-perigo { color: var(--ds-danger-fg); background: var(--ds-danger-bg); }
 
@@ -2310,6 +2414,7 @@ function dizerNoOperador(texto) { dizerEm("recado-operador", "recado-operador-te
 function dizerNaSenha(texto) { dizerEm("recado-senha", "recado-senha-texto", texto); }
 function dizerNoDialogo(texto) { dizerEm("recado-dialogo", "recado-dialogo-texto", texto); }
 function dizerNoEliminar(texto) { dizerEm("recado-eliminar", "recado-eliminar-texto", texto); }
+function dizerNoRestaurar(texto) { dizerEm("recado-restaurar", "recado-restaurar-texto", texto); }
 function dizerNosCodigos(texto) { dizerEm("recado-codigos", "recado-codigos-texto", texto); }
 
 /**
@@ -2651,6 +2756,7 @@ function sair(recado) {
   document.getElementById("codigos-restantes").textContent = "";
   fecharDialogo();
   fecharEliminar();
+  fecharRestaurar();
   formaSenhaNova.reset();
   document.getElementById("senha-trocada").hidden = true;
   mostrar("porta");
@@ -3029,6 +3135,142 @@ document.getElementById("forma-eliminar").addEventListener("submit", async funct
   await carregar();
 });
 
+/* ---------- O modal de restaurar o acesso do administrador (054) ---------- */
+
+var dialogoRestaurar = document.getElementById("dialogo-restaurar");
+var restaurarCartao = document.getElementById("restaurar-cartao");
+var restaurarAgir = document.getElementById("restaurar-agir");
+var formaRestaurar = document.getElementById("forma-restaurar");
+var restaurarEntregue = document.getElementById("restaurar-entregue");
+var alvoDaRestauracao = null;
+var quemAbriuRestaurar = null;
+
+/**
+ * Esquece tudo que o modal guardou: os campos, o recado, o histórico e, acima
+ * de tudo, a senha temporária mostrada. Ela entra por \`textContent\` e sai
+ * daqui, sem passar por variável de módulo nem armazenamento do navegador,
+ * como a senha inicial do cadastro.
+ */
+function limparRestaurar() {
+  document.getElementById("restaurar-email").value = "";
+  document.getElementById("restaurar-senha").value = "";
+  document.getElementById("restaurar-codigo").value = "";
+  document.getElementById("restaurar-motivo").value = "";
+  document.getElementById("senha-restaurada").textContent = "";
+  document.getElementById("restaurar-validade").textContent = "";
+  document.getElementById("restaurar-historico").textContent = "";
+  restaurarEntregue.hidden = true;
+  formaRestaurar.hidden = false;
+  document.getElementById("restaurar-texto").hidden = false;
+  document.getElementById("restaurar-historico").hidden = false;
+  dizerNoRestaurar("");
+}
+
+/** "Nenhuma restauração anterior", ou a última, com quem fez e por quê. */
+async function carregarHistoricoDeRestauracao(m) {
+  var historico = document.getElementById("restaurar-historico");
+  historico.textContent = "Consultando restaurações anteriores...";
+  var r = await pedirComSessao("/municipios/" + m.organizacao_id + "/restauracoes", "GET");
+  if (alvoDaRestauracao !== m) return;
+  if (!r.ok || !r.corpo || !r.corpo.restauracoes) {
+    historico.textContent = "Não foi possível consultar as restaurações anteriores.";
+    return;
+  }
+  var lista = r.corpo.restauracoes;
+  if (lista.length === 0) {
+    historico.textContent = "Nenhuma restauração anterior neste município.";
+    return;
+  }
+  var ultima = lista[0];
+  historico.textContent = (lista.length === 1 ? "1 restauração anterior" : lista.length + " restaurações anteriores")
+    + ". A última em " + diaEHora(ultima.registrado_em) + ", por " + ultima.operador_email
+    + ": " + ultima.motivo;
+}
+
+function abrirRestaurar(m, quemAbriu) {
+  alvoDaRestauracao = m;
+  quemAbriuRestaurar = quemAbriu;
+  limparRestaurar();
+  document.getElementById("restaurar-titulo").textContent = "Restaurar o acesso do administrador de " + nomeDe(m);
+  document.getElementById("restaurar-agir-texto").textContent =
+    "Restaurar o acesso do administrador de " + m.municipio;
+  dialogoRestaurar.hidden = false;
+  inerteAtras(true);
+  restaurarCartao.focus();
+  carregarHistoricoDeRestauracao(m);
+}
+
+function fecharRestaurar() {
+  if (dialogoRestaurar.hidden) return;
+  dialogoRestaurar.hidden = true;
+  inerteAtras(false);
+  limparRestaurar();
+  alvoDaRestauracao = null;
+  var abriu = quemAbriuRestaurar;
+  quemAbriuRestaurar = null;
+  if (abriu) abriu.focus();
+}
+
+document.getElementById("restaurar-recusar").addEventListener("click", function () { fecharRestaurar(); });
+document.getElementById("restaurar-concluir").addEventListener("click", function () { fecharRestaurar(); });
+restaurarCartao.addEventListener("keydown", function (evento) {
+  /* Com a senha à vista, Escape não fecha: só o botão de concluir. */
+  if (evento.key === "Escape" && restaurarEntregue.hidden) fecharRestaurar();
+});
+/* Sem "clique fora fecha", como no de eliminar. */
+
+formaRestaurar.addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  if (!alvoDaRestauracao) return;
+  dizerNoRestaurar("");
+
+  var email = document.getElementById("restaurar-email").value.trim();
+  var senha = document.getElementById("restaurar-senha").value;
+  var codigo = document.getElementById("restaurar-codigo").value;
+  var motivo = document.getElementById("restaurar-motivo").value.trim();
+
+  /* A ordem da conferência é a ordem dos campos; o servidor e o banco conferem de novo. */
+  if (!email) { dizerNoRestaurar("Informe o email do administrador."); document.getElementById("restaurar-email").focus(); return; }
+  if (!senha) { dizerNoRestaurar("Informe a sua senha atual."); return; }
+  if (!codigo) { dizerNoRestaurar("Informe um código novo do aplicativo de autenticação."); return; }
+  if (motivo.length < 10) {
+    dizerNoRestaurar("Escreva o motivo, com pelo menos 10 caracteres: o chamado e como a identidade foi conferida.");
+    document.getElementById("restaurar-motivo").focus();
+    return;
+  }
+
+  var devolver = esperar(restaurarAgir, "restaurar-agir-texto", "Restaurando o acesso...");
+  var r;
+  try {
+    r = await pedirComSessao("/municipios/" + alvoDaRestauracao.organizacao_id + "/restaurar-acesso", "POST", {
+      email: email, senha: senha, codigo: codigo, motivo: motivo
+    });
+  } finally {
+    devolver();
+    /* Senha e código saem dos campos assim que o pedido volta, deu certo ou não. */
+    document.getElementById("restaurar-senha").value = "";
+    document.getElementById("restaurar-codigo").value = "";
+  }
+
+  if (!r.ok || !r.corpo || !r.corpo.senhaTemporaria) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNoRestaurar(mensagemDe(r, "Não foi possível restaurar o acesso."));
+    return;
+  }
+
+  document.getElementById("senha-restaurada").textContent = r.corpo.senhaTemporaria;
+  document.getElementById("restaurar-validade").textContent =
+    "Vale até " + diaEHora(r.corpo.senhaProvisoriaAte) + " e exige senha nova na primeira entrada. "
+    + (r.corpo.sessoesEncerradas === 1 ? "1 sessão encerrada." : r.corpo.sessoesEncerradas + " sessões encerradas.")
+    + " O segundo fator, se estiver ativo, continua valendo.";
+  /* Com a senha à vista, o cartão fala só dela: a explicação e o histórico saem. */
+  formaRestaurar.hidden = true;
+  document.getElementById("restaurar-texto").hidden = true;
+  document.getElementById("restaurar-historico").hidden = true;
+  restaurarEntregue.hidden = false;
+  document.getElementById("restaurar-titulo").focus();
+});
+
 /* ======================================================================
    Os números
    ====================================================================== */
@@ -3138,6 +3380,8 @@ function acoesDe(m) {
     grupo.appendChild(botaoDeLinha("Reativar", "botao-discreto", function (b) { reativar(m, b); }));
   } else {
     grupo.appendChild(botaoDeLinha("Desativar acesso", "botao-discreto", function (b) { suspender(m, b); }));
+    /* Só com o acesso ativo: suspenso, ninguém entra, e o banco recusa. */
+    grupo.appendChild(botaoDeLinha("Restaurar acesso", "botao-discreto", function (b) { abrirRestaurar(m, b); }));
   }
   grupo.appendChild(botaoDeLinha("Eliminar", "botao-perigo", function (b) { abrirEliminar(m, b); }));
   return grupo;

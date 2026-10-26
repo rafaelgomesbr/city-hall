@@ -1,0 +1,633 @@
+$ npm run test:api
+SHA: 0e04c560c6fb3b51b4a4e4fd83d29e09e9291834
+
+
+> dc360@0.1.0 test:api
+> npm run test --workspace @dc360/api
+
+
+> @dc360/api@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a9535194f1887ba80/dc360/apps/api
+
+ ✓ test/guarda-de-codigos-de-erro.test.ts (140 tests) 15806ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota  611ms
+ ✓ test/orgaos-e-oficio.test.ts (24 tests) 19102ms
+ ✓ test/despacho-avisa.test.ts (16 tests) 20046ms
+   ✓ O despacho enfileira o aviso de tarefa nova, na mesma transação > uma linha pendente por aparelho vivo de cada usuário ativo da equipe  381ms
+   ✓ O despacho enfileira o aviso de tarefa nova, na mesma transação > redespacho para outra equipe avisa a equipe nova, e não repete para a antiga  302ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > envia a tarefa nova com o dado certo e marca entregue  328ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > iOS recebe despacho.wav sensível ao tempo; Android recebe o canal de despacho  835ms
+   ✓ O varredor envia as pendentes na mesma rodada, sob a mesma trava > redespachada para outra equipe antes da rodada, só a equipe nova recebe  331ms
+ ✓ test/sino-de-avisos.test.ts (19 tests) 20727ms
+   ✓ cada pessoa lê no seu tempo > uma pessoa marcar como lido não apaga o sino da colega  403ms
+   ✓ o teto aparece na resposta, e nada é pulado por causa dele > corta no teto, declara o teto e declara que cortou  837ms
+   ✓ o teto aparece na resposta, e nada é pulado por causa dele > o corte não pula aviso: a pergunta seguinte continua de onde esta parou  773ms
+ ✓ test/devolucao-de-tarefa.test.ts (20 tests) 22657ms
+   ✓ A devolução aceita > devolve a ocorrência para a triagem, sem equipe, e não encerra nada  359ms
+   ✓ A devolução aceita > NÃO mexe no prazo, para o atraso não sumir do painel  303ms
+   ✓ O reenvio da fila > recusa a tarefa cuja vistoria a equipe já registrou, e a já encerrada  492ms
+ ✓ test/saida-a-campo.test.ts (27 tests) 29474ms
+   ✓ Declarar a saída > grava o prazo com o relógio do SERVIDOR, e ignora o do aparelho  300ms
+   ✓ Declarar a saída > recusa a segunda saída aberta com uma frase que resolve, e não com erro de banco  358ms
+   ✓ Prorrogar > nunca encurta o prazo de quem está lá fora  301ms
+   ✓ Confirmar o retorno > aceita a confirmação tardia de uma saída que a coordenação já encerrou  379ms
+   ✓ A coordenação encerra > recusa o segundo encerramento da mesma saída  311ms
+   ✓ A tela de quem coordena > põe as vencidas primeiro, e quem foi sozinho na frente  519ms
+   ✓ O sino > toca de novo quando uma saída prorrogada vence outra vez  356ms
+   ✓ Isolamento entre municípios > a lista de um município não mostra saída de outro  1293ms
+   ✓ Isolamento entre municípios > encerrar saída de outro município responde 404, e nunca 403  1136ms
+ ✓ test/coleta-nao-reescreve-prova.test.ts (20 tests) 12839ms
+   ✓ 1. A fotografia amarrada a uma vistoria não muda de vistoria nem de legenda > um envelope novo que referencia a foto de outra vistoria é recusado, e nada muda  477ms
+   ✓ 1. A fotografia amarrada a uma vistoria não muda de vistoria nem de legenda > a primeira amarração continua funcionando: foto solta, do próprio agente, entra na vistoria  344ms
+ ✓ test/resolver-link.test.ts (37 tests) 33837ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  1576ms
+ ✓ test/campo-integracao.test.ts (17 tests) 34781ms
+   ✓ Fila de campo contra a API > uma coleta offline sobe e vira laudo com as duas marcas de tempo  542ms
+   ✓ Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só  732ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação  2824ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada  2635ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez  7334ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar  1296ms
+   ✓ Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez  1176ms
+   ✓ Foto de campo do aparelho ao banco > reenviar a coleta inteira não duplica a foto  488ms
+ ✓ test/evidencias.test.ts (21 tests) 12739ms
+   ✓ Envio e confirmação > confirmar duas vezes é inofensivo  314ms
+ ✓ test/documentos.test.ts (33 tests) 38600ms
+   ✓ Laudo de vistoria > traz o que o processo administrativo exige  478ms
+   ✓ Laudo de vistoria > mostra as DUAS marcas de tempo quando a coleta foi offline  328ms
+   ✓ Laudo de vistoria > não polui o documento com duas datas quando a coleta foi online  317ms
+   ✓ Pessoas atingidas no laudo > quando nada foi contado, imprime a frase única, não cinco zeros  307ms
+   ✓ Termo de interdição > tem identificador de emissão diferente do laudo da mesma vistoria  404ms
+   ✓ Fotografia no documento > a foto avulsa entra com URL assinada e legenda, e a imagem abre  408ms
+   ✓ Documento em PDF > gera um PDF valido a partir do mesmo HTML  12227ms
+   ✓ Assinatura da moradora no documento > com o arquivo enviado, o traço aparece acima da linha e a imagem abre  369ms
+   ✓ O termo exige a decisão que o autoriza > abrir o mesmo documento de novo não polui a trilha  430ms
+ ✓ test/saida-de-municipio.test.ts (37 tests) 40456ms
+   ✓ O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz  831ms
+   ✓ Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação  721ms
+   ✓ Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais  645ms
+   ✓ Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais  648ms
+   ✓ Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido  745ms
+   ✓ Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote  689ms
+   ✓ Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele  659ms
+   ✓ Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita  785ms
+   ✓ O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade  717ms
+   ✓ Isolamento entre municípios > o pacote de um município não carrega nada do outro  603ms
+   ✓ É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada  574ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos  742ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso  721ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe  705ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso  1176ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência  670ms
+   ✓ O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote  402ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção)  527ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem a seção das fotos avulsas que a rota tem  600ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a seção dos registros perdidos sai IGUAL nos dois laudos (consertada na correção 3)  564ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote  576ms
+   ✓ O laudo do pacote e o da rota, campo por campo > isolamento: a perda registrada em Vale Fundo não entra no pacote de Serra Alta (correção 3)  2420ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura COLETADA E PERDIDA no aparelho sai igual nos dois, no laudo e no termo de interdição (consertada na correção 3)  682ms
+   ✓ O laudo do pacote e o da rota, campo por campo > re-vistoria: a perda da ida anterior não entra no laudo da vigente, nos dois (correção 3)  782ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): depois da re-vistoria, o termo de interdição da rota sai da vistoria do ato e o do pacote sai da vigente  710ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: "Assinatura não coletada" (consertada na correção 2)  604ms
+   ✓ O laudo do pacote e o da rota, campo por campo > a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo  603ms
+   ✓ O laudo do pacote e o da rota, campo por campo > armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência  568ms
+   ✓ O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz "Assinatura não coletada" e o pacote diz que não conferiu  646ms
+ ✓ test/desinterdicao.test.ts (22 tests) 17664ms
+   ✓ Emitir o termo é interditar > o imóvel aparece na lista de interditados depois do termo  370ms
+   ✓ Emitir o termo é interditar > reimprimir o termo NÃO muda a data da interdição  355ms
+   ✓ Levantar a interdição > não levanta duas vezes  391ms
+   ✓ Quem pode levantar interdição > o operador de plantão não pode  313ms
+   ✓ O município vizinho não alcança > responde 404, e não 403, para imóvel de outro município  325ms
+   ✓ Reinterdição: o risco volta > volta para a lista de interditados, com data nova  498ms
+   ✓ Reinterdição: o risco volta > depois de reinterditar, pode levantar de novo  556ms
+   ✓ O termo de desinterdição > sai como HTML depois do levantamento, com o motivo e as duas datas  380ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição sai depois da re-vistoria que diz NÃO  411ms
+   ✓ A re-vistoria que atesta a cessação do risco > a segunda via do termo de interdição sai da vistoria que sustentou o ato  438ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição imprime a re-vistoria que motivou o levantamento  433ms
+   ✓ A re-vistoria que atesta a cessação do risco > sem re-vistoria, o termo de desinterdição DIZ que o levantamento foi sem nova vistoria  426ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição não afirma 'Assinatura não coletada' sobre quem assina de próprio punho  479ms
+ ✓ test/escrita-contra-desativacao.test.ts (16 tests | 10 skipped) 19564ms
+   ✓ Escrita em voo contra a perda do direito de escrever (PGlite) > 1. a Rita desativa a conta da Bruna entre a conferência e a gravação: a escrita é recusada (403 conta_desativada) e nada é gravado  2143ms
+   ✓ Escrita em voo contra a perda do direito de escrever (PGlite) > 2. a Rita encerra as sessões da Bruna entre a conferência e a gravação: a escrita é recusada (401 sessao_encerrada) e nada é gravado  2164ms
+   ✓ Escrita em voo contra a perda do direito de escrever (PGlite) > 3. a Rita rebaixa a Bruna a coordenadora entre a conferência e a gravação: a escrita é recusada (401 nao_autenticado) e nada é gravado  2263ms
+   ✓ Escrita em voo contra a perda do direito de escrever (PGlite) > 4. o município é suspenso entre a conferência e a gravação: a escrita é recusada (403 acesso_suspenso) e nada é gravado  1788ms
+   ✓ Escrita em voo contra a perda do direito de escrever (PGlite) > 5. sem reação nenhuma, a mesma escrita grava (o caso não reprova por outro motivo)  2472ms
+   ✓ Escrita em voo contra a perda do direito de escrever (PGlite) > 6. leitura pura não reconfere: nenhuma transação de GET chama a função  940ms
+ ✓ test/prova-perdida-e-ponto-da-vistoria.test.ts (9 tests) 11219ms
+   ✓ a vistoria sobe mesmo com a foto que o aparelho perdeu > aceita o envelope, grava a vistoria e grava a perda  404ms
+   ✓ a vistoria sobe mesmo com a foto que o aparelho perdeu > o laudo DIZ que houve registro capturado que não pôde ser recuperado  323ms
+   ✓ a coordenada da vistoria viaja, e o servidor faz uma coisa só com ela > chega ao banco arredondada em seis casas, e sai no laudo  350ms
+   ✓ a coordenada da vistoria viaja, e o servidor faz uma coisa só com ela > vistoria sem coordenada continua entrando, e o laudo diz que não foi registrada  331ms
+ ✓ test/api.test.ts (52 tests) 49119ms
+   ✓ Autenticação > recusa senha errada com a mesma resposta de email inexistente  2722ms
+   ✓ Autenticação > nunca devolve o hash da senha  1241ms
+   ✓ Autenticação > bloqueia a conta depois das tentativas configuradas  5416ms
+   ✓ Autenticação > rotaciona o token de renovação e derruba tudo se o antigo reaparecer  2085ms
+   ✓ Isolamento entre municípios pela API > não cadastra usuário carimbado para outro município  1054ms
+   ✓ Fluxo e trilha auditável > a troca de email de outra conta entra na trilha, de/para  1257ms
+   ✓ Superfície e respostas de erro > desativar usuário derruba as sessões dele na hora  2511ms
+   ✓ Limite de tentativas por endereço > recusa depois do teto configurado, com 429  3883ms
+   ✓ Resposta do orgao a providencia > registra o desfecho e entra na trilha  362ms
+   ✓ Resposta do orgao a providencia > nao sobrescreve uma resposta ja registrada  412ms
+   ✓ Resposta do orgao a providencia > recusa desfecho fora da lista e resposta vazia  411ms
+   ✓ Resposta do orgao a providencia > o agente de campo nao registra resposta de orgao  323ms
+   ✓ Resposta do orgao a providencia > encerrar avisa quais providencias ficaram sem resposta  465ms
+   ✓ Resposta do orgao a providencia > providencia respondida nao aparece como pendente no encerramento  373ms
+   ✓ Posto entre papeis > o administrador cria administrador  1220ms
+   ✓ Trilha dos atos administrativos > promover, rebaixar e desativar deixa os três registros  1220ms
+ ✓ test/acesso-suspenso.test.ts (20 tests) 26587ms
+   ✓ Entrar num municipio suspenso > recusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato  1118ms
+   ✓ Entrar num municipio suspenso > nunca responde 401: a credencial esta certa, o que falta e o contrato  1049ms
+   ✓ Entrar num municipio suspenso > senha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao  1282ms
+   ✓ Entrar num municipio suspenso > nao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou  1070ms
+   ✓ Entrar num municipio suspenso > o municipio vizinho continua entrando normalmente  1067ms
+   ✓ Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel  2239ms
+   ✓ Entrar num municipio suspenso > municipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra  1001ms
+   ✓ Sessao viva de municipio suspenso > renovar recusa com 403 mesmo com a sessao ainda de pe no banco  1243ms
+   ✓ Sessao viva de municipio suspenso > renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403  2103ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: escrita recusa na hora, com 403  1373ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: leitura continua ate o token vencer  1469ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD)  1442ms
+   ✓ A fila do aparelho num municipio suspenso > a sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario  1139ms
+   ✓ A fila do aparelho num municipio suspenso > as quatro rotas que a fila chama recusam com 503, e as demais escritas com 403  1264ms
+   ✓ A fila do aparelho num municipio suspenso > nada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso  1165ms
+ ✓ test/log.test.ts (16 tests) 6495ms
+   ✓ O que nunca pode aparecer no log > a senha de quem entra  1052ms
+ ✓ test/prestacao-de-contas.test.ts (20 tests) 12712ms
+ ✓ test/foto-do-agente.test.ts (23 tests) 15024ms
+   ✓ A equipe vê a foto e quem está em campo > meu trabalho traz a URL assinada do colega, e nunca a chave  2729ms
+   ✓ A foto conta no teto de armazenamento (migracao 045) > com o municipio alem da margem do teto, a autorizacao de envio da foto responde 507 e nada e gravado  413ms
+ ✓ test/notificador-http.test.ts (14 tests) 5778ms
+ ✓ test/orgaos-indicados-na-vistoria.test.ts (15 tests) 10344ms
+   ✓ a indicação do agente chega ao banco > grava um órgão por linha, do catálogo e por texto livre  337ms
+ ✓ test/contrato-do-painel.test.ts (12 tests) 4665ms
+ ✓ test/leitura-do-agente-oficios-e-avisos.test.ts (14 tests) 13952ms
+ ✓ test/busca.test.ts (56 tests) 29473ms
+   ✓ GET /busca, 'com pg_trgm (producao)' > teto por pessoa > a 61ª busca no minuto responde 429, e o colega continua servido  3123ms
+   ✓ GET /busca, 'sem pg_trgm (API sem DATABASE_URL)' > teto por pessoa > a 61ª busca no minuto responde 429, e o colega continua servido  3167ms
+ ✓ test/codigos-de-erro.test.ts (229 tests) 67859ms
+   ✓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde  1186ms
+   ✓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada  1313ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve  1124ms
+   ✓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada  1443ms
+   ✓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou  1121ms
+   ✓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto  2260ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município  1620ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo  1495ms
+   ✓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo  1270ms
+   ✓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum  1168ms
+   ✓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo  1275ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete  2057ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada  2358ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada  3690ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada  3135ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar  4183ms
+   ✓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token  4392ms
+   ✓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente  3462ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe  1218ms
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também  1048ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) do tratador global: `posto_insuficiente` vira `inativo`  304ms
+ ✓ test/segundo-fator.test.ts (23 tests) 70691ms
+   ✓ A entrada em duas etapas > administrador sem segundo fator não recebe sessão nenhuma, só o desafio  1131ms
+   ✓ A entrada em duas etapas > o desafio NÃO vale como token de acesso em rota nenhuma  1267ms
+   ✓ A entrada em duas etapas > quem não é administrador continua entrando em uma etapa  3757ms
+   ✓ A entrada em duas etapas > com a verificação ligada, a senha sozinha não abre sessão, e o código abre  2861ms
+   ✓ A entrada em duas etapas > o mesmo código não vale duas vezes dentro da mesma janela  3305ms
+   ✓ A entrada em duas etapas > a tolerância é de um passo para cada lado, e não mais  3395ms
+   ✓ A entrada em duas etapas > o teto de tentativas do código é separado do teto da senha  7642ms
+   ✓ A entrada em duas etapas > o código de recuperação entra uma vez, e só uma  5619ms
+   ✓ A entrada em duas etapas > o desafio emitido antes de a senha mudar não abre sessão, nem com o código certo  5581ms
+   ✓ Ligar a verificação > a ativação começada e não confirmada NÃO muda o login  2518ms
+   ✓ Ligar a verificação > código errado não liga a verificação  1177ms
+   ✓ Ligar a verificação > o administrador obrigado liga pelo desafio e sai daqui com sessão  1060ms
+   ✓ Ligar a verificação > a ativação pelo desafio não abre sessão se a senha mudou depois dele  2014ms
+   ✓ Ligar a verificação > a senha que muda entre a conferência do desafio e a ativação não liga o segundo fator  2260ms
+   ✓ Ligar a verificação > o segredo vai CIFRADO para o banco, e não em texto  1103ms
+   ✓ Ligar a verificação > ligar de novo, por cima de uma verificação ativa, é recusado  1216ms
+   ✓ Desligar a verificação > exige a senha atual  3406ms
+   ✓ Desligar a verificação > desligar apaga o segredo, derruba os códigos e deixa rastro  4286ms
+ ✓ test/teto-de-armazenamento.test.ts (11 tests) 10846ms
+ ✓ test/config.test.ts (19 tests) 59ms
+ ✓ test/coordenada-de-ocorrencia-aberta.test.ts (13 tests) 10348ms
+   ✓ A trilha guarda o antes, o depois e o porquê > a correção depois do documento emitido fica marcada como tal  363ms
+ ✓ test/eliminacao-de-municipio.test.ts (18 tests) 75003ms
+   ✓ O relogio que elimina municipio > sem eliminacao agendada, a rodada nao toca em nada e nao faz barulho  8249ms
+   ✓ O relogio que elimina municipio > eliminacao agendada para o futuro NAO acontece: os sete dias sao de arrependimento  2881ms
+   ✓ O relogio que elimina municipio > eliminacao vencida: banco limpo, armazenamento purgado, linha da organizacao fechada, e o vizinho intacto  2929ms
+   ✓ O relogio que elimina municipio > o log diz o identificador e quantos objetos foram apagados, por organizacao  4441ms
+   ✓ O relogio que elimina municipio > listagem que falha no meio NAO conclui: a linha fica, e a proxima rodada termina o servico  3825ms
+   ✓ O relogio que elimina municipio > um eliminador novo (processo reiniciado) REDESCOBRE a purga pendente e termina o trabalho  4234ms
+   ✓ O relogio que elimina municipio > um apagar que falha NAO conclui, os outros objetos saem, e a proxima rodada termina  3276ms
+   ✓ O relogio que elimina municipio > a retomada reconfere no banco: organizacao concluida pela outra maquina sai da memoria sem purgar nada  3249ms
+   ✓ O relogio que elimina municipio > o relogio do resumo nao escreve metrica de municipio eliminado: senao a conclusao bate na chave estrangeira  3835ms
+   ✓ O relogio que elimina municipio > purga alem de uma pagina de listagem: mil e um objetos, todos apagados  11608ms
+   ✓ O relogio que elimina municipio > recusa purgar um prefixo que nao e o da propria organizacao  3157ms
+   ✓ O relogio que elimina municipio > com a trava tomada por outra maquina, a rodada desiste sem tocar em nada  3471ms
+   ✓ O relogio que elimina municipio > a trava tem numero proprio, distinto das outras rotinas  2905ms
+   ✓ O relogio que elimina municipio > uma falha inteira no banco solta a trava para a proxima rodada  3167ms
+   ✓ O relogio que elimina municipio > a partida da API liga o relogio SEM chave de ambiente, e nao apenas o declara  2962ms
+   ✓ A rota de saude diz se o relogio tem trabalho > sem nada agendado, diz zero  3562ms
+   ✓ A rota de saude diz se o relogio tem trabalho > conta as agendadas e as vencidas, sem nome nenhum  3619ms
+   ✓ A rota de saude diz se o relogio tem trabalho > a eliminacao vencida some da conta quando o relogio conclui  3627ms
+ ✓ test/push-aparelhos.test.ts (21 tests) 17489ms
+   ✓ Sair do aplicativo cala o aparelho > a saída revoga o aparelho daquela sessão  1045ms
+   ✓ Sair do aplicativo cala o aparelho > sair de um aparelho não cala o outro da mesma pessoa  1221ms
+   ✓ Sair do aplicativo cala o aparelho > sair sem mandar ficha continua funcionando, para o painel e para versão antiga  1248ms
+   ✓ Sair do aplicativo cala o aparelho > a saída não alcança aparelho de outra pessoa, mesmo mandando a ficha dela  2020ms
+   ✓ Com PUSH_ATIVO=nao, as rotas recusam em vez de guardar > registrar responde 503 explicando, e a rota existe (não é 404)  1279ms
+   ✓ Com PUSH_ATIVO=nao, as rotas recusam em vez de guardar > revogar responde 503 do mesmo jeito  1158ms
+stderr | test/banco-tls.test.ts
+banco-tls: OPENSSL_CONF aponta para "C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+ ✓ test/rota.test.ts (17 tests) 9224ms
+   ✓ O teto por pessoa, porque cada chamada que passa da cache custa dinheiro > o trigésimo primeiro pedido no mesmo minuto leva 429, mesmo com a cache ajudando  1816ms
+ ✓ test/banco-tls.test.ts (13 tests) 544ms
+stderr | test/provisionar.test.ts
+DATABASE_URL ausente. Provisionar contra um banco efêmero não serviria para nada: o município sumiria junto com o processo.
+
+ ✓ test/get-com-efeito.test.ts (10 tests) 36981ms
+   ✓ Controle: quem está vigente continua emitindo, e as pegadas enxergam a escrita > termo de interdição interdita e grava; o CSV grava a exportação  3847ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > conta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  3702ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > papel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  3413ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > sessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  4426ms
+   ✓ Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > cadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD  4993ms
+   ✓ A lista de GET com efeito é a decisão, e o comportamento a obedece > com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista  1923ms
+   ✓ PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve > toda rota de escrita autenticada recusa com 403 conta_desativada, sem tocar no banco  2084ms
+   ✓ /auth/encerrar-sessoes com o token anterior à renovação > a mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu  3024ms
+ ✓ test/reserva-de-envio-por-pessoa.test.ts (10 tests | 2 skipped) 19606ms
+   ✓ Um agente não esgota o teto de envio dos colegas (PGlite) > 1. a rajada do achado: num município de 1 GiB, o Diego reserva seis fotos de 15 MB e a sétima leva 429; a Carla continua enviando  640ms
+   ✓ Um agente não esgota o teto de envio dos colegas (PGlite) > 2. no teto, repetir o pedido da MESMA foto (mesma chave) continua respondendo a mesma reserva  357ms
+   ✓ Um agente não esgota o teto de envio dos colegas (PGlite) > 3. reserva abandonada pela varredura de órfão deixa de contar  432ms
+   ✓ Um agente não esgota o teto de envio dos colegas (PGlite) > 4. município sem teto contratado (o estado de hoje): vale o configurado, 90 MB  360ms
+   ✓ Configurado acima de um décimo da margem, vale o décimo (PGlite, 1024 MB configurados) > 6. com 1 GiB de teto e 1024 MB configurados, ninguém segura mais que um décimo da margem (153,6 MB)  1102ms
+ ✓ test/pico-lista-e-mapa.test.ts (16 tests) 8465ms
+ ✓ test/prova-fotografica.test.ts (11 tests) 9677ms
+   ✓ A foto confirmada não se troca > repetir a autorização depois do envio não devolve URL de escrita  348ms
+ ✓ test/provisionar.test.ts (9 tests) 12415ms
+   ✓ Provisionar município > cria o município e o primeiro administrador  977ms
+   ✓ Provisionar município > o administrador recém-criado consegue entrar, e a primeira entrada exige definir a senha  3165ms
+   ✓ Provisionar município > o município nasce funcionando: dá para abrir ocorrência e sai protocolo  1285ms
+   ✓ Provisionar município > o novo município não enxerga o município que já existia  1055ms
+   ✓ Provisionar deixa linha espelho na trilha do município > o município recém-criado enxerga, na trilha dele, o próprio nascimento  1034ms
+ ✓ test/exportacao-em-dois-niveis.test.ts (18 tests) 9986ms
+   ✓ O teto de linhas do nível completo > recorte grande demais RECUSA, em vez de cortar em silêncio  470ms
+   ✓ O teto de linhas do nível completo > o mesmo volume passa no nível básico, que não leva pessoa  428ms
+ ✓ test/vigencia-na-escrita.test.ts (13 tests) 27399ms
+   ✓ Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte  1285ms
+   ✓ Token vivo de quem já não pode > papel rebaixado: a escrita com o token do papel antigo leva 401 nao_autenticado (vale o banco; renovar e repetir)  1472ms
+   ✓ Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive  3095ms
+   ✓ Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada  1525ms
+   ✓ Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão  1206ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro  1591ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  2068ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca  1056ms
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  2372ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  2148ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  2176ms
+   ✓ Token de renovação vencido não é reuso > H1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão  1355ms
+ ✓ test/encerrada-nao-recebe-ato.test.ts (9 tests) 10928ms
+   ✓ Encerrada não recebe ato > o termo de interdição NÃO interdita uma ocorrência encerrada  610ms
+   ✓ Encerrada não recebe ato > o levantamento da interdição NÃO entra numa ocorrência encerrada  591ms
+   ✓ Encerrada recebe cópia > a segunda via do termo de interdição continua saindo depois do encerramento  614ms
+   ✓ Encerrada recebe cópia > o termo de desinterdição continua saindo depois do encerramento  399ms
+   ✓ Encerrar com interdição ativa > é recusado com 409 interdicao_ativa, e nada muda: a interdição é levantada ANTES  541ms
+   ✓ Encerrar com interdição ativa > não avisa quando a interdição já foi levantada  465ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 8061ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 18069ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  4141ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  3219ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  895ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  4394ms
+ ✓ test/objeto-orfao.test.ts (19 tests) 62834ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > foto confirmada e em uso não é candidata  4033ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > envio não confirmado DENTRO da janela de graça não é candidato  3771ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > envio não confirmado FORA da janela vira candidato, e a espécie diz qual é  3935ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > objeto sem linha nenhuma vira candidato de outra espécie  3268ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > chave que não nomeia município nenhum é relatada e NUNCA descartada  3648ms
+   ✓ O que a varredura reconhece, e o que ela deixa em paz > a varredura não mistura municípios  2810ms
+   ✓ A varredura não apaga nada > depois de varrer, o objeto continua no armazenamento  3099ms
+   ✓ O descarte é ato deliberado, e confere de novo antes de apagar > apaga o que a varredura listou, e registra quem decidiu  2834ms
+   ✓ O descarte é ato deliberado, e confere de novo antes de apagar > se a linha apareceu entre a varredura e o descarte, o objeto NÃO é apagado  2988ms
+   ✓ O descarte é ato deliberado, e confere de novo antes de apagar > descarte de uma varredura não alcança candidato de outra  2658ms
+   ✓ A reserva que nunca virou byte > autorização velha sem objeto é marcada abandonada e para de consumir o teto  3094ms
+   ✓ A reserva que nunca virou byte > reserva recente não é tocada  3036ms
+   ✓ Sem a lista de municípios, que é como a API roda > o dono sai do prefixo da chave e é confirmado no banco  3703ms
+   ✓ Sem a lista de municípios, que é como a API roda > sem a lista, a reserva de um município sem objeto nenhum não é alcançada  3855ms
+   ✓ O descarte fecha a conta do teto > a linha da autorização é encerrada com motivo, e não apagada  3159ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > a foto de perfil viva NUNCA e candidata, por mais velha que seja  2913ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > a foto de perfil de OUTRO municipio nao justifica a chave: o dono e quem esta no prefixo  3185ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > a foto ANTERIOR, cujo apagamento falhou na troca, continua sendo orfa de verdade  3236ms
+   ✓ A foto de perfil (migracao 040) tem dono, e a varredura sabe disso > no descarte, a foto que virou perfil entre a varredura e a decisao e MANTIDA  3606ms
+ ✓ test/push-credenciais.test.ts (14 tests) 2525ms
+   ✓ FCM: a conta de serviço > troca a credencial por token de acesso uma vez e reaproveita  424ms
+   ✓ FCM: a conta de serviço > a chave privada da conta de serviço não sai no que é enviado  413ms
+   ✓ FCM: a conta de serviço > aparelho desconhecido do Google marca a ficha como inválida  700ms
+   ✓ FCM: a conta de serviço > erro de argumento NÃO revoga aparelho nenhum  945ms
+ ✓ test/familia-da-sessao.test.ts (20 tests) 62012ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > renovação normal: o token antigo escreve até vencer e o novo também  1289ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada  1409ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever  1306ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo  2774ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > sair encerra a cadeia: o token anterior à renovação deixa de escrever  1131ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai  1051ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > troca de senha em outra sessão encerra a cadeia das demais  5516ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login  2236ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > cada login abre família nova e cada renovação herda a família: o banco guarda isso  2130ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa  2231ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > depois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao  2115ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > promoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo  981ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > a troca de papel NÃO revoga as sessões da pessoa (decisão registrada)  2267ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > sessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar  2356ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > isolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404)  3195ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > coordenador do município B com o papel mudado não ganha nada no município A  1388ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > no prazo, a senha provisória troca  5395ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada  4509ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes  5511ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > senha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida  5189ms
+ ✓ test/minuta-nao-diverge.test.ts (8 tests) 49ms
+ ✓ test/agente-so-ve-a-equipe.test.ts (9 tests) 9940ms
+ ✓ test/sessoes-da-conta.test.ts (27 tests) 33396ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > lista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase  2988ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > não entrega IP, user-agent completo nem identificador de sessão  1282ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > a renovação não multiplica as linhas nem muda o 'entrou em'  1393ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > só a própria conta: a de outra pessoa e a de outro município não aparecem  3106ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > encerrar as outras deixa só esta na lista, e a lista reflete o banco  2325ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > sessão vencida ou encerrada não aparece  978ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a administradora vê a quantidade e as datas, e nada do aparelho  3627ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a coordenadora vê as de quem está abaixo do posto dela  1532ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > posto igual ou acima: 403 posto_insuficiente  1007ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > o operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas  2535ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > conta de outro município: 404, igual a id que não existe  2893ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > identificador que não é uuid: 422; sem token: 401  1086ms
+   ✓ as duas recusas que a tela não oferece e a API mantém > redefinir a própria senha e encerrar as próprias sessões por esta via: 422  1242ms
+ ✓ test/renovacao-contra-encerramento.test.ts (53 tests | 34 skipped) 107356ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  1613ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  3044ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  6581ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive  1321ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar  1167ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 6. o login com a senha antiga confere a senha enquanto a própria pessoa troca a senha em outro aparelho: a sessão do login não sobrevive  5425ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 7. o login com a senha antiga confere a senha enquanto quem administra redefine a senha da pessoa: a sessão do login não sobrevive  3447ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 8. o login com a senha antiga confere a senha enquanto quem administra desativa a conta: a sessão do login não sobrevive  1995ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 9. a renovação perde a trava para a desativação: 403 conta_desativada, e não 401  1938ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 10. o login abre a sessão antes de tomar a trava da pessoa, e relê a credencial depois dela  1216ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 11. a troca de senha do invasor conferiu a senha antiga quando quem administra redefine a senha da pessoa: a troca é recusada e a reação vale  8163ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 12. a troca de senha do invasor conferiu a senha antiga quando a pessoa redefine a senha pelo link do email: a troca é recusada e a reação vale  7949ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 13. a troca de senha do invasor conferiu a senha antiga quando quem administra desativa a conta: a troca é recusada e a reação vale  6591ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 14. a troca de senha do invasor conferiu a senha antiga quando a própria pessoa troca a senha em outro aparelho: a troca é recusada e a reação vale  9705ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 15. a troca de senha do invasor conferiu a senha antiga quando quem administra encerra as sessões da pessoa: a troca é recusada e a reação vale  8015ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 16. a troca do invasor conferiu a senha antiga quando a pessoa troca a senha com o mesmo token: 401 credenciais e a senha da pessoa vale  8737ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 17. a senha provisória vence entre a conferência e a gravação da troca: 401 e o hash fica  4640ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 18. trocar a senha com o token de antes da renovação: a própria cadeia continua de pé  5218ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 19. a troca segura a linha da pessoa antes de tomar a trava, e grava depois dela  5414ms
+ ✓ test/evidencia-so-do-autor.test.ts (11 tests) 13378ms
+   ✓ Autorizar o envio: o autor declarado é o do token > a reautorização com os bytes já no armazenamento não confirma em nome de outra pessoa  346ms
+ ✓ test/push-varredor.test.ts (23 tests) 78090ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > avisa o aparelho do agente da equipe designada  3927ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > o que sai na tela bloqueada é genérico, e o detalhe vai no dado  3425ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa quem saiu da equipe, nem quem foi desativado  3284ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa aparelho revogado  4322ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa prazo que já venceu  3332ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa prazo que ainda está longe da janela  3301ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > não avisa ocorrência encerrada  3533ms
+   ✓ A varredura acha o prazo e avisa a equipe responsável > o aparelho de outro município não recebe o prazo deste  3164ms
+   ✓ Idempotência: reiniciar não remanda > a segunda varredura não manda de novo o que já foi entregue  3214ms
+   ✓ Idempotência: reiniciar não remanda > o que falhou volta a ser tentado depois da espera, e conta a tentativa  2946ms
+   ✓ Idempotência: reiniciar não remanda > notificação presa em enviando é retomada, e não fica órfã para sempre  2882ms
+   ✓ Idempotência: reiniciar não remanda > desiste depois do teto de tentativas, em vez de martelar para sempre  3317ms
+   ✓ A trava impede duas máquinas de varrerem o mesmo prazo > sem a trava, a varredura não manda nada e diz que estava travada  3402ms
+   ✓ A trava impede duas máquinas de varrerem o mesmo prazo > a trava é solta mesmo quando a varredura estoura  3692ms
+   ✓ A trava impede duas máquinas de varrerem o mesmo prazo > a trava de aviso do Postgres é chamável pelo papel de aplicação  3839ms
+   ✓ Falha de envio não derruba o resto > um aparelho com problema não impede o aviso dos outros  3026ms
+   ✓ Falha de envio não derruba o resto > ficha recusada pelo provedor revoga o aparelho, e ele para de ser tentado  2807ms
+   ✓ Falha de envio não derruba o resto > o detalhe guardado não carrega a ficha do aparelho  3078ms
+   ✓ Retenção e conexão > aviso mais velho que a retenção é expurgado na própria varredura  3420ms
+   ✓ Retenção e conexão > a varredura pede pool próprio e pequeno, separado do das requisições  3462ms
+   ✓ o piso da retenção, que existe porque a policy do banco tem um > recusa retenção menor que o piso, em vez de apagar menos em silêncio  3640ms
+   ✓ o piso da retenção, que existe porque a policy do banco tem um > a recusa nomeia a migração, para quem lê saber onde se conserta  3380ms
+   ✓ o piso da retenção, que existe porque a policy do banco tem um > exatamente o piso é aceito  3684ms
+ ✓ test/autoria-da-coleta.test.ts (6 tests) 9774ms
+ ✓ test/saida-nao-declara-inexistente.test.ts (11 tests) 4640ms
+   ✓ O pacote inteiro, com o armazenamento engasgado > fotografia que nao pode ser lida nao sai declarada inexistente  587ms
+ ✓ test/minimizacao.test.ts (19 tests) 64339ms
+   ✓ Minimização por prazo > vencido o prazo, o nome e o contato saem e o ato administrativo fica  3835ms
+   ✓ Minimização por prazo > é marcador e não nulo, senão descarte e ausência ficam iguais  3489ms
+   ✓ Minimização por prazo > registra a remoção na trilha da própria ocorrência, com os campos  2955ms
+   ✓ Minimização por prazo > a trilha diz QUE saiu, e nunca o que saía  3252ms
+   ✓ Minimização por prazo > município sem prazo configurado não perde nada  2973ms
+   ✓ Minimização por prazo > ocorrência ainda aberta não é minimizada, mesmo velha  2979ms
+   ✓ Minimização por prazo > dentro do prazo, nada sai  3179ms
+   ✓ Minimização por prazo > a descrição de vulnerabilidade sai JUNTO com o nome, sem prazo próprio  3297ms
+   ✓ Minimização por prazo > com prazo próprio menor, a vulnerabilidade sai ANTES do nome  3320ms
+   ✓ Minimização por prazo > o banco recusa prazo de vulnerabilidade maior que o do nome  4110ms
+   ✓ Minimização por prazo > o banco recusa marcador incoerente: data de remoção com nome de verdade  3340ms
+   ✓ Minimização por prazo > a segunda passada não remove de novo nem duplica o evento  2948ms
+   ✓ Minimização por prazo > duas máquinas do Fly: a segunda desiste da rodada  3021ms
+   ✓ Minimização por prazo > o teto por rodada limita, e a rodada seguinte continua  3054ms
+   ✓ Minimização por prazo > não atravessa municípios: cada um segue o próprio prazo  3256ms
+   ✓ Minimização alcança a observação da devolução > vencido o prazo, o texto livre do agente sai junto com o nome do solicitante  3677ms
+   ✓ Minimização alcança a observação da devolução > o motivo de lista fechada FICA, porque ele não é dado pessoal  4234ms
+   ✓ Minimização alcança a observação da devolução > município sem prazo configurado não perde a observação  3734ms
+   ✓ Minimização alcança a observação da devolução > a trilha diz que a observação saiu, senão descarte e perda ficam iguais  3665ms
+ ✓ test/pacote-de-saida-contrato.test.ts (8 tests) 12704ms
+   ✓ O pacote traz só o município do token > toda linha de toda tabela é da organização de quem pediu, e a de Vale Fundo é só de Vale Fundo  1455ms
+   ✓ O pacote traz só o município do token > a organização continua vindo do token: parâmetro, cabeçalho e corpo não trocam de município  558ms
+   ✓ Coluna proibida não sai, nem o valor dela > nenhum cabeçalho de CSV nem chave de JSON traz coluna proibida, e o valor sentinela não aparece  618ms
+   ✓ A soma de verificação confere > SOMAS-SHA256.txt traz uma linha por arquivo (menos ela mesma) e cada soma é a do arquivo  631ms
+ ✓ test/bytes-confirmados-nao-se-trocam.test.ts (8 tests) 10120ms
+   ✓ A janela de escrita fecha quando os bytes chegam > o PUT repetido pela mesma URL, depois da confirmação, é recusado e os bytes ficam  420ms
+   ✓ O hash é o que o servidor mediu > sessenta e quatro zeros não entram: hash declarado que não bate é recusado  309ms
+ ✓ test/vistoria-em-corrida.test.ts (5 tests) 9994ms
+ ✓ test/prova-dinamica-dos-codigos-de-erro.test.ts (1 test) 43058ms
+   ✓ Prova dinâmica: nenhuma recusa de acesso do servidor real sai fora do catálogo > em toda rota registrada, com cada perfil, todo 401 e todo 403 traz um `erro` do catálogo e o status do catálogo  27406ms
+ ✓ test/vistoria-e-da-equipe.test.ts (7 tests) 9107ms
+   ✓ Coleta de agente de fora da equipe designada > o termo de interdição imprime o aviso, antes de alguém assinar  308ms
+ ✓ test/senha-e-sessoes.test.ts (17 tests) 46712ms
+   ✓ Quem administra redefine a senha de outra pessoa > troca a senha: a antiga morre e a temporaria entra  3323ms
+   ✓ Quem administra redefine a senha de outra pessoa > derruba TODAS as sessoes do alvo  3422ms
+   ✓ Quem administra redefine a senha de outra pessoa > conta de outro municipio responde 404, nunca 403, e nada la muda  3289ms
+   ✓ Quem administra redefine a senha de outra pessoa > nao redefine a propria senha por esta rota  1669ms
+   ✓ Quem administra redefine a senha de outra pessoa > coordenador nao redefine a senha do administrador  2405ms
+   ✓ Quem administra redefine a senha de outra pessoa > deixa o ato na trilha, e a trilha nao carrega a senha  1003ms
+   ✓ Quem administra redefine a senha de outra pessoa > a senha temporaria e sorteada de novo a cada vez  2939ms
+   ✓ Encerrar todas as minhas sessoes > encerra as outras e preserva a de onde a pessoa clicou  3654ms
+   ✓ Encerrar todas as minhas sessoes > nao mexe na senha, e qualquer papel alcanca  3538ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > derruba tudo do alvo, e a senha dele continua valendo  3521ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > conta de outro municipio responde 404, e a sessao de la sobrevive  1357ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > nao encerra as proprias sessoes por esta rota  1379ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > coordenador nao encerra as sessoes do administrador  1123ms
+   ✓ Quem administra encerra as sessoes de outra pessoa > deixa o ato na trilha  2690ms
+ ✓ test/configuracao-do-painel.test.ts (7 tests) 9588ms
+ ✓ test/laudo-depois-da-minimizacao.test.ts (5 tests) 7797ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 10400ms
+   ✓ Segunda via do termo depois do levantamento > não reinterdita, não apaga o motivo e não muda a data  598ms
+   ✓ Segunda via do termo depois do levantamento > o imóvel continua fora da lista de interditados  390ms
+   ✓ Segunda via do termo depois do levantamento > o termo de desinterdição continua podendo ser emitido depois da segunda via  524ms
+   ✓ Segunda via do termo depois do levantamento > o registro não se contradiz: a trilha do levantamento continua sozinha  404ms
+   ✓ A reinterdição legítima continua funcionando > com vistoria nova depois do levantamento, o termo interdita de novo  654ms
+   ✓ A reinterdição legítima continua funcionando > reimprimir enquanto a interdição está de pé continua sem mexer na data  369ms
+ ✓ test/teto-de-pendencias.test.ts (7 tests) 9948ms
+ ✓ test/senha-provisoria.test.ts (9 tests) 35047ms
+   ✓ A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera  5414ms
+   ✓ A senha temporária de quem administra > a senha atual errada na troca responde em português correto e diz o que fazer  5764ms
+   ✓ A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403  3758ms
+   ✓ A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha  5176ms
+   ✓ A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova  3629ms
+   ✓ A senha temporária de quem administra > a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403  3289ms
+   ✓ A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa  2384ms
+ ✓ test/push-ambiente-por-aparelho.test.ts (9 tests) 9156ms
+ ✓ test/cors-do-envio-de-evidencia.test.ts (8 tests) 5000ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 13676ms
+   ✓ FCM: a chamada que nao volta > a troca do token de acesso desiste no tempo limite  317ms
+   ✓ FCM: a chamada que nao volta > resposta dentro do tempo continua passando  1196ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  4423ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  3545ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  3914ms
+ ✓ test/registro-de-consulta.test.ts (11 tests) 9950ms
+ ✓ test/eventos-tem-rotulo.test.ts (5 tests) 144ms
+ ✓ test/fotos-do-documento.test.ts (4 tests) 9532ms
+   ✓ O laudo da re-vistoria > não imprime as fotos da vistoria anterior  699ms
+   ✓ O laudo da re-vistoria > uma vistoria sem foto nenhuma diz que não tem, mesmo com foto de outra vistoria no protocolo  407ms
+   ✓ A foto anexada fora da vistoria > sai em seção própria, com quem anexou, e não vira foto da vistoria  436ms
+   ✓ A foto anexada fora da vistoria > sem foto avulsa, a seção não existe  362ms
+ ✓ test/push-canal-e-som.test.ts (20 tests) 8055ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade critica: canal de despacho, som, prioridade alta  724ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade alta: canal de despacho, som, prioridade alta  347ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade media: canal de despacho, som, prioridade alta  395ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade baixa: canal de despacho, som, prioridade alta  322ms
+   ✓ Android: a tarefa nova vai para o canal de despacho em toda severidade > severidade ausente: canal de despacho, som, prioridade alta  601ms
+   ✓ Android: o prazo continua saindo da severidade > severidade critica vai para dc360.urgencia.v1  1029ms
+   ✓ Android: o prazo continua saindo da severidade > severidade alta vai para dc360.urgencia.v1  1858ms
+   ✓ Android: o prazo continua saindo da severidade > severidade media vai para dc360.comum.v1  513ms
+   ✓ Android: o prazo continua saindo da severidade > severidade baixa vai para dc360.comum.v1  1488ms
+   ✓ Android: o prazo continua saindo da severidade > severidade ausente vai para dc360.comum.v1  607ms
+ ✓ test/devolvidas-esperando-decisao.test.ts (6 tests) 7376ms
+ ✓ test/push-vitrine.test.ts (10 tests) 12ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 33410ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  4844ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  3758ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  3489ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  3681ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  3243ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  3614ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  3681ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  3632ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  3463ms
+ ✓ test/posto-abaixo-do-seu.test.ts (7 tests) 11482ms
+   ✓ Coordenador sobre coordenador: 403 em toda porta > não desativa, não edita, não redefine a senha nem derruba as sessões de outro coordenador  2258ms
+   ✓ Coordenador sobre coordenador: 403 em toda porta > o administrador administra outro administrador, e o próprio posto  1229ms
+ ✓ test/prosa-do-documento.test.ts (14 tests) 38ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 11009ms
+   ✓ O rodapé diz o que o código é > imprime 'Identificador da emissão', e não promete validação  344ms
+   ✓ O identificador é da emissão > a segunda via carrega o mesmo identificador, porque é o mesmo ato  316ms
+   ✓ O identificador é da emissão > laudo e termo da mesma vistoria têm identificadores diferentes  404ms
+   ✓ O identificador é da emissão > vistoria nova produz identificador novo  358ms
+ ✓ test/pdf-na-imagem.test.ts (5 tests) 4997ms
+   ✓ O gerador de PDF > usa o navegador apontado pelo ambiente, e uma falha nao envenena o gerador  4988ms
+ ✓ test/push-saude-e-despertar.test.ts (7 tests) 10987ms
+   ✓ GET /saude e o push > com o push desligado, `push` é nulo  1048ms
+   ✓ o despacho acorda o varredor > sem push ligado, o despacho segue igual e não estoura  2732ms
+ ✓ test/fuso-do-documento.test.ts (5 tests) 7898ms
+   ✓ O laudo inteiro, gerado pelo servidor em UTC > imprime a data da vistoria no fuso do município  314ms
+ ✓ test/retencao-do-municipio.test.ts (8 tests) 7814ms
+ ✓ test/openssl-do-teste.test.ts (10 tests) 1163ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente  503ms
+   ✓ O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado  638ms
+ ✓ test/rotacao-de-segredo.test.ts (8 tests) 8923ms
+   ✓ Rotação programada: o segredo gira e ninguém cai > o token emitido antes da troca continua valendo com o antigo na lista  1910ms
+   ✓ Rotação programada: o segredo gira e ninguém cai > assina sempre com o PRIMEIRO, e não com um qualquer da lista  1345ms
+   ✓ Revogação por vazamento: o segredo sai e todo mundo cai > tirar o segredo da lista invalida na hora o token assinado com ele  1270ms
+ ✓ test/recuperacao-em-producao.test.ts (10 tests) 25ms
+ ✓ test/push-partida-e-validade.test.ts (7 tests) 2493ms
+   ✓ a chave da Apple é conferida na partida, e não no primeiro envio > a conta de serviço do Google também é conferida na partida  582ms
+   ✓ a notificação leva prazo de validade > FCM: android.ttl é declarado, em segundos, com a mesma regra  1066ms
+   ✓ a notificação leva prazo de validade > prazo já passado (relógio fora de sincronia) não vira validade negativa  821ms
+ ✓ test/oficio-enviado-contra-desativacao.test.ts (2 tests) 10804ms
+   ✓ Ofício enviado enquanto quem enviou perde o direito de escrever > 1. a Rita desativa a conta da Helena enquanto o provedor responde: o desfecho e o oficio_enviado são gravados  1496ms
+   ✓ Ofício enviado enquanto quem enviou perde o direito de escrever > 2. a Rita encerra as sessões da Helena enquanto o provedor responde: o desfecho e o oficio_enviado são gravados  1348ms
+ ✓ test/resumo-do-municipio.test.ts (6 tests) 21340ms
+   ✓ O relogio que escreve a metrica do municipio > escreve o resumo de cada municipio, e a tabela deixa de estar vazia  4424ms
+   ✓ O relogio que escreve a metrica do municipio > cada numero e o do proprio municipio, e nao a soma de todos  3579ms
+   ✓ O relogio que escreve a metrica do municipio > municipio que falha nao impede o resumo dos outros  3189ms
+   ✓ O relogio que escreve a metrica do municipio > nao escreve duas vezes na mesma rodada de outra maquina  3416ms
+   ✓ O relogio que escreve a metrica do municipio > a segunda rodada dentro do frescor nao reescreve nada  3589ms
+   ✓ O relogio que escreve a metrica do municipio > a partida da API liga o relogio, e nao apenas o declara  3141ms
+ ✓ test/reconciliar-pendencias.test.ts (5 tests) 9221ms
+   ✓ reconciliação de pendências > diz que a tarefa saiu porque a coordenação encerrou, com o motivo  409ms
+ ✓ test/partida-nao-carrega-pglite.test.ts (4 tests) 10ms
+ ✓ test/recuperacao.test.ts (14 tests) 42506ms
+   ✓ Pedido de recuperação > pedir de novo invalida o link anterior  1516ms
+   ✓ Pedido de recuperação > conta desativada não recebe link  2527ms
+   ✓ Redefinição pelo link > troca a senha, e a nova funciona enquanto a antiga não  4112ms
+   ✓ Redefinição pelo link > o mesmo link não serve duas vezes  3441ms
+   ✓ Redefinição pelo link > redefinir derruba as sessões abertas  2463ms
+   ✓ Redefinição pelo link > token inventado é recusado, e a mensagem não confirma nada  1071ms
+   ✓ Redefinição pelo link > recusa senha curta antes de tocar no banco  1268ms
+   ✓ Redefinição pelo link > desbloqueia a conta que estava travada por tentativas  9808ms
+   ✓ Troca de senha por quem já está dentro > exige a senha atual  3953ms
+   ✓ Troca de senha por quem já está dentro > troca e encerra as outras sessões, preservando a atual  6601ms
+ ✓ test/listagem-do-armazenamento.test.ts (5 tests) 9ms
+ ✓ test/push-segredo.test.ts (6 tests) 22ms
+ ✓ test/superficie.test.ts (9 tests) 4981ms
+   ✓ Toda rota exige token > nenhuma rota nova responde sem autenticação  420ms
+ ✓ test/assinatura-ausente-no-documento.test.ts (4 tests) 7ms
+ ✓ test/assinatura.test.ts (1 test) 9ms
+ ✓ test/mensagens-visiveis-com-acento.test.ts (12 tests) 11041ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/api/src (mensagens)  835ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/web/src (tudo)  3878ms
+   ✓ Nenhuma frase de tela sai sem acento > packages/campo/src (tudo)  315ms
+   ✓ Nenhuma frase de tela sai sem acento > apps/campo/src (tudo)  4706ms
+   ✓ Nenhuma frase de tela sai sem acento > cada exceção ainda existe (lista velha esconde regressão)  982ms
+ ✓ test/prazo-do-despacho.test.ts (3 tests) 7257ms
+   ✓ o prazo pertence a triagem, nunca ao despacho > despachar NAO altera o prazo que a triagem calculou  306ms
+ ✓ test/recuperacao-morre-com-a-credencial.test.ts (7 tests) 37715ms
+   ✓ O link de recuperação pendente morre com a credencial > controle: sem nada no meio, o link redefine; a senha nova entra e a antiga não  3493ms
+   ✓ O link de recuperação pendente morre com a credencial > quem administra redefine a senha: o link pendente não vale mais, e a temporária entra  6372ms
+   ✓ O link de recuperação pendente morre com a credencial > a própria pessoa troca a senha: o link pendente não vale mais, e a senha nova dela entra  5960ms
+   ✓ O link de recuperação pendente morre com a credencial > quem administra desativa a conta: o link não vale mais, nem depois da reativação  6117ms
+   ✓ O link de recuperação pendente morre com a credencial > link vivo numa conta desativada: recusado, gasto, e a senha não muda (consumir_recuperacao confere a conta)  2438ms
+   ✓ O link de recuperação pendente morre com a credencial > dois links pendentes: usar um mata o outro  2014ms
+   ✓ O link de recuperação pendente morre com a credencial > o que não é senha nem desativação não mata o link: falha de login, edição do cadastro e reativação  4443ms
+ ✓ test/limite-por-usuario.test.ts (3 tests) 19339ms
+   ✓ limite de requisição por usuário > agente que estoura o próprio teto não derruba o colega atrás do mesmo NAT  3731ms
+   ✓ limite de requisição por usuário > token inventado a cada requisição não abre balde novo, cai no teto do endereço  3842ms
+   ✓ limite de requisição por usuário > o teto por endereço continua valendo para quem não tem token  2731ms
+ ✓ test/triagem-nao-devolve.test.ts (3 tests) 5674ms
+ ✓ test/campo-obrigatorio-ausente.test.ts (2 tests) 5149ms
+ ✓ test/corpo-ilegivel.test.ts (3 tests) 4816ms
+ ✓ test/precisao-do-gps-na-sincronizacao.test.ts (3 tests) 6279ms
+ ✓ test/recuperacao-desligada.test.ts (3 tests) 7624ms
+   ✓ recuperacao de senha desligada > recusa o pedido em vez de prometer um email que nao sai  4073ms
+   ✓ recuperacao de senha desligada > recusa tambem a redefinicao, para token aberto antes do desligamento  2008ms
+   ✓ recuperacao de senha desligada > com a recuperacao ligada, a rota volta a responder 202 sem revelar se a conta existe  1540ms
+ ✓ test/enumeracao-pelo-bloqueio.test.ts (2 tests) 10236ms
+   ✓ Email cadastrado e email inexistente respondem igual > do primeiro erro ao bloqueio, o par (status, erro) é o mesmo dos dois lados  4941ms
+   ✓ Email cadastrado e email inexistente respondem igual > o bloqueio continua valendo: a senha certa é recusada em silêncio, e volta depois  1028ms
+ ✓ test/id-da-propria-conta.test.ts (13 tests) 37144ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em minúsculas: 422 autoredefinicao (controle)  3903ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em maiúsculas: 422 autoredefinicao, e nada muda  3424ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id com caixa misturada: 422 autoredefinicao, e nada muda  3171ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  2763ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em minúsculas: 422 autoencerramento (controle)  3339ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em maiúsculas: 422 autoencerramento, e nada muda  2219ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id com caixa misturada: 422 autoencerramento, e nada muda  1789ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  1633ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em minúsculas: 422 autodesativacao (controle)  1610ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em maiúsculas: 422 autodesativacao, e nada muda  1694ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id com caixa misturada: 422 autodesativacao, e nada muda  1532ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda  1737ms
+   ✓ A própria conta com o id escrito de outro jeito > o id de outra pessoa em maiúsculas continua valendo: a redefinição da Helena responde 200  2109ms
+ ✓ test/endereco-de-origem.test.ts (6 tests) 33221ms
+   ✓ O teto de login nao se contorna por cabecalho > sem borda declarada, trocar Fly-Client-IP nao ganha balde novo  8651ms
+   ✓ O teto de login nao se contorna por cabecalho > com a borda declarada, o cabecalho do edge volta a valer  19820ms
+
+ Test Files  110 passed (110)
+      Tests  1735 passed | 46 skipped (1781)
+   Start at  19:19:54
+   Duration  180.87s (transform 17.57s, setup 42.44s, collect 139.69s, tests 2037.66s, environment 43ms, prepare 45.47s)
+
+
+codigo de saida: 0

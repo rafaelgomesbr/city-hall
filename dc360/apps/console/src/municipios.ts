@@ -1,4 +1,5 @@
 import type { EscritaDoConsole, LeituraDoConsole } from "./banco.js";
+import { derivarSenha, gerarSenhaTemporaria } from "../../api/src/auth/senha.js";
 
 /**
  * As duas ações perigosas por município, e a leitura que as precede.
@@ -112,4 +113,117 @@ export function cancelarEliminacao(
   escrita: EscritaDoConsole, operador: string, organizacaoId: string,
 ): Promise<unknown> {
   return escrita.executar(CHAMADAS.cancelarEliminacao, [organizacaoId], operador);
+}
+
+/* ======================================================================
+   Restaurar o acesso do administrador (migração 054, decisão H06 B)
+   ====================================================================== */
+
+/**
+ * O CAMINHO DE SUPORTE, e por que ele existe.
+ *
+ * Enquanto a recuperação de senha por email estiver desligada em produção, o
+ * administrador ÚNICO de um município que perde a senha não tem saída pelo
+ * painel: quem redefine senha de outra pessoa é quem administra, e não há
+ * outra pessoa. O dono do console, depois de verificar a identidade de quem
+ * pede por canal verificado (`docs/IMPLANTACAO.md`, seção 6.5), sorteia aqui
+ * uma senha temporária para aquele administrador.
+ *
+ * A SENHA É SORTEADA AQUI E NUNCA É GRAVADA, como a senha inicial do
+ * cadastro (`cadastro.ts`): a mesma `gerarSenhaTemporaria` da redefinição pelo
+ * painel, a derivação `scrypt` do produto antes de abrir a transação, e o que
+ * vai ao banco é o hash. A senha em texto claro sai desta função uma vez, até a
+ * tela do dono, e acabou. Não vai para o log, nem para a trilha, nem para o
+ * registro do console.
+ *
+ * QUEM DECIDE É O BANCO. A função `console_restaurar_acesso_do_administrador`
+ * recusa quem não é dono (42501), motivo curto e senha não derivada (DC361),
+ * município inexistente e conta que não seja de administrador ativo DAQUELE
+ * município (DC364, com a mesma frase para outro município, outro papel e
+ * conta desativada), município suspenso e o teto de três por município em
+ * vinte e quatro horas (DC365). A rota e a tela repetem o que for barato
+ * repetir para apontar o erro no campo certo, e nada além disso.
+ */
+export const CHAMADA_DE_RESTAURACAO =
+  "SELECT usuario_id, sessoes_encerradas, senha_provisoria_ate " +
+  "FROM console_restaurar_acesso_do_administrador($1, $2, $3, $4)";
+
+export type AcessoRestaurado = {
+  usuarioId: string;
+  sessoesEncerradas: number;
+  /** Até quando a senha temporária vale para entrar (72 h, como no painel). */
+  senhaProvisoriaAte: string;
+  /** Mostrada UMA vez ao dono do console. Não fica guardada em lugar nenhum. */
+  senhaTemporaria: string;
+};
+
+export async function restaurarAcessoDoAdministrador(
+  escrita: EscritaDoConsole,
+  operador: string,
+  organizacaoId: string,
+  emailDoAdministrador: string,
+  motivo: string,
+): Promise<AcessoRestaurado> {
+  const senhaTemporaria = gerarSenhaTemporaria();
+  /*
+    A derivação ANTES da transação, como no cadastro e na rota do painel:
+    cerca de 128 MB e uma fração de segundo de scrypt, e com a transação
+    aberta a linha do município ficaria travada esse tempo todo (a função
+    trava a linha para contar o teto, e o login do município espera por ela).
+  */
+  const hash = await derivarSenha(senhaTemporaria);
+
+  const linhas = await escrita.executar<{
+    usuario_id: string;
+    sessoes_encerradas: number;
+    senha_provisoria_ate: string | Date;
+  }>(CHAMADA_DE_RESTAURACAO, [organizacaoId, emailDoAdministrador, hash, motivo], operador);
+
+  const r = linhas[0];
+  if (!r) {
+    // Não deve acontecer: a função devolve uma linha ou levanta erro. Se
+    // acontecer, é defeito, e mostrar a senha de uma conta que não mudou
+    // mandaria o dono ditar uma senha que não entra.
+    throw new Error("O banco não devolveu a restauração.");
+  }
+
+  return {
+    usuarioId: r.usuario_id,
+    sessoesEncerradas: Number(r.sessoes_encerradas),
+    senhaProvisoriaAte: new Date(r.senha_provisoria_ate).toISOString(),
+    senhaTemporaria,
+  };
+}
+
+/** Uma linha do registro de restaurações, como a tela do dono mostra. */
+export type RestauracaoRegistrada = {
+  registrado_em: string;
+  operador_email: string;
+  motivo: string;
+  sessoes_encerradas: number;
+  senha_provisoria_ate: string;
+};
+
+/**
+ * As últimas restaurações de um município, para o dono ver antes de restaurar
+ * de novo. Pedido de restauração repetido em poucos dias é sinal de alguém
+ * tentando pelo telefone o que não conseguiu antes.
+ *
+ * A policy da 054 só deixa o DONO ler; um operador comum recebe lista vazia
+ * do banco mesmo que uma rota esqueça o gancho.
+ */
+export async function restauracoesDoMunicipio(
+  leitura: LeituraDoConsole,
+  organizacaoId: string,
+  operador: string,
+): Promise<RestauracaoRegistrada[]> {
+  return leitura.ler<RestauracaoRegistrada>(
+    `SELECT registrado_em, operador_email, motivo, sessoes_encerradas, senha_provisoria_ate
+       FROM restauracoes_de_acesso
+      WHERE organizacao_id = $1
+      ORDER BY registrado_em DESC
+      LIMIT 20`,
+    [organizacaoId],
+    operador,
+  );
 }

@@ -9,12 +9,12 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 236 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 356 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 815 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1735 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 307 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, restaura o acesso do administrador de um município (só o dono, migração 054), e não lê dado de cidadão | Pronto, 320 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -764,12 +764,14 @@ console consiga ler.
 
 `dc360_console` tem `SELECT` na tabela de métricas, no cadastro de organizações e
 na visão que junta as duas. Em tabela de negócio, é só isso: sem escrita, sem
-sequência, sem `BYPASSRLS`. O que ele tem a mais, desde as migrações 036, 038 e
-039, é por NOME e fica fora das tabelas de negócio: `EXECUTE` em funções
+sequência, sem `BYPASSRLS`. O que ele tem a mais, desde as migrações 036, 038,
+039 e 054, é por NOME e fica fora das tabelas de negócio: `EXECUTE` em funções
 `SECURITY DEFINER` que fazem um ato fechado cada (cadastrar prefeitura,
-suspender e reativar o acesso, agendar e cancelar a eliminação, e as do próprio
-login do fornecedor), e escrita nas tabelas do fornecedor (`console_operadores`,
-o livro `eliminacoes_de_municipio` e `console_codigos_de_recuperacao`). A lista
+suspender e reativar o acesso, agendar e cancelar a eliminação, restaurar o
+acesso do administrador de um município, e as do próprio login do fornecedor),
+escrita nas tabelas do fornecedor (`console_operadores`, o livro
+`eliminacoes_de_municipio` e `console_codigos_de_recuperacao`) e leitura, só do
+dono, do registro `restauracoes_de_acesso`. A lista
 de exceções é nomeada em `db/test/isolamento.test.ts`: uma função nova
 concedida ao console reprova o portão até alguém escrever o nome dela lá.
 
@@ -816,7 +818,11 @@ comprometida alcança: `POST /prefeituras` (cadastra prefeitura e o primeiro
 administrador, por `provisionar_municipio`, migração 036), `POST
 /municipios/:id/suspender` e `/reativar`, `POST /municipios/:id/eliminar` (agenda
 a eliminação para daqui a sete dias e suspende na hora) e
-`/eliminacao/cancelar`, mais as da própria conta (operadores, senha, códigos de
+`/eliminacao/cancelar`, `POST /municipios/:id/restaurar-acesso` (o caminho de
+suporte da decisão H06 B: senha temporária provisória para o administrador
+ativo daquele município, só o dono, com senha, código novo e motivo; o
+procedimento de verificação de identidade está em `docs/IMPLANTACAO.md`, seção
+6.5), mais as da própria conta (operadores, senha, códigos de
 recuperação). Nenhuma delas lê dado de cidadão, e nenhuma apaga na hora: quem
 executa a eliminação vencida é o relógio da API (`docs/SAIDA-DE-MUNICIPIO.md`,
 capítulo 5). O banco é o MESMO Postgres dos municípios, com papel próprio, e não
@@ -1619,8 +1625,8 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 3676 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+npm test                    # 3700 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 356 testes do banco
 npm run test:api            # 1735 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo

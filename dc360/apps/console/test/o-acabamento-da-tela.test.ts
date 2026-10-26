@@ -389,15 +389,16 @@ describe("A regua de design do produto vale nesta tela", () => {
 });
 
 describe("O dialogo do produto, com as regras do aplicativo de campo", () => {
-  /** Os dois diálogos da página, cada um como o trecho de HTML dele. */
+  /** Os três diálogos da página, cada um como o trecho de HTML dele. */
   function dialogos(): string[] {
     return [...PAGINA_DO_CONSOLE.matchAll(/<div id="[\w-]+-cartao"[\s\S]*?<\/form>\s*<\/div>/g)]
       .map((m) => m[0]!);
   }
 
-  it("existem dois dialogos, e cada um tem a amarracao de acessibilidade inteira", () => {
+  it("existem tres dialogos, e cada um tem a amarracao de acessibilidade inteira", () => {
+    /* O terceiro (054) é o de restaurar o acesso do administrador de um município. */
     const lista = dialogos();
-    expect(lista.length, "a pagina perdeu um dos dois dialogos").toBe(2);
+    expect(lista.length, "a pagina perdeu um dos tres dialogos").toBe(3);
     for (const d of lista) {
       expect(d).toContain('role="dialog"');
       expect(d).toContain('aria-modal="true"');
@@ -408,14 +409,15 @@ describe("O dialogo do produto, com as regras do aplicativo de campo", () => {
     }
   });
 
-  it("em cada dialogo a recusa vem DEPOIS da acao, e a de eliminar e do tipo destrutivo", () => {
+  it("em cada dialogo a recusa vem DEPOIS da acao, e a de eliminar e a de restaurar sao do tipo destrutivo", () => {
     for (const d of dialogos()) {
-      const agir = d.search(/id="(dialogo|eliminar)-agir"/);
-      const recusar = d.search(/id="(dialogo|eliminar)-recusar"/);
+      const agir = d.search(/id="(dialogo|eliminar|restaurar)-agir"/);
+      const recusar = d.search(/id="(dialogo|eliminar|restaurar)-recusar"/);
       expect(agir, "dialogo sem botao de agir").toBeGreaterThan(0);
       expect(recusar, "dialogo sem botao de recusa").toBeGreaterThan(agir);
     }
     expect(PAGINA_DO_CONSOLE).toMatch(/id="eliminar-agir" class="botao botao-perigo/);
+    expect(PAGINA_DO_CONSOLE).toMatch(/id="restaurar-agir" class="botao botao-perigo/);
     const css = semComentarios(componentes());
     expect(css, "o tipo destrutivo nao existe na folha").toMatch(/\.botao-perigo\s*\{[^}]*--ds-danger-fg/);
   });
@@ -426,6 +428,7 @@ describe("O dialogo do produto, com as regras do aplicativo de campo", () => {
       '"Reativar o acesso de " + m.municipio',
       '"Cancelar a eliminação de " + m.municipio',
       '"Agendar a eliminação de " + m.municipio',
+      '"Restaurar o acesso do administrador de " + m.municipio',
       '"Desativar " + o.email',
     ]) {
       expect(JS_DO_CONSOLE, `o dialogo perdeu o rotulo ${verbo}`).toContain(verbo);
@@ -452,6 +455,11 @@ describe("O dialogo do produto, com as regras do aplicativo de campo", () => {
     expect(JS_DO_CONSOLE).toContain('document.getElementById("eliminar-senha").value = "";');
     expect(JS_DO_CONSOLE).toContain('document.getElementById("eliminar-codigo").value = "";');
     expect(JS_DO_CONSOLE).toContain('document.getElementById("codigo-troca").value = "";');
+    expect(JS_DO_CONSOLE).toContain('document.getElementById("restaurar-senha").value = "";');
+    expect(JS_DO_CONSOLE).toContain('document.getElementById("restaurar-codigo").value = "";');
+    /* E a senha temporária mostrada sai do documento ao fechar e ao sair do console. */
+    expect(JS_DO_CONSOLE).toContain('document.getElementById("senha-restaurada").textContent = "";');
+    expect(JS_DO_CONSOLE).toContain("fecharRestaurar();");
   });
 
   it("o QR e desenhado por este script, sem imagem de fora e sem innerHTML", () => {

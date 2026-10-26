@@ -425,6 +425,104 @@ rm -f segredos-do-console.env
   API, não do console: o console suspende e agenda, e o que vence sem ser
   cancelado é executado pelo processo da API. Um console fora do ar não atrasa
   nem adianta um apagamento.
+- **Restaurar o acesso do administrador de um município é só do dono**, e o
+  procedimento está na seção 6.5. Ele não mexe no segundo fator do
+  administrador: quem perdeu a senha E o aparelho do autenticador precisa
+  também de um código de recuperação do próprio painel, e sem ele não há
+  caminho pelo console.
+
+### 6.5 Restaurar o acesso do administrador de um município
+
+Decisão H06 B do Rafael, em 26/10/2026. Enquanto a recuperação de senha por
+email estiver desligada em produção (`RECUPERACAO_ATIVA=nao`), o administrador
+**único** de um município que perde a senha não tem saída pelo painel: quem
+redefine a senha de outra pessoa é quem administra, e não há outra pessoa. O
+caminho de suporte é o dono do console sortear uma senha temporária para ele.
+
+**Quando usar.** Só quando o administrador não consegue entrar **e** não há
+outro administrador ativo no município que possa redefinir a senha pela tela
+de usuários do painel. Se houver, o caminho é o painel, e o suporte orienta
+a pessoa a procurá-lo. Coordenador, operador e agente de campo nunca são
+atendidos por aqui: quem redefine a senha deles é o administrador do
+município, e o console recusa qualquer conta que não seja de administrador.
+
+**Antes de clicar: verificar a identidade de quem pede.** A senha temporária
+abre o município inteiro por até 72 horas. O atacante mais provável deste
+caminho é alguém que liga se passando pelo administrador. Então:
+
+1. **Abra o chamado** com data, hora, canal por onde o pedido chegou, nome de
+   quem pede, município e o email de entrada que a pessoa diz ser o dela.
+   Nada além disso: número de documento não entra no chamado.
+2. **Quem pode pedir**: só o próprio administrador. Pedido feito por terceiro
+   (colega, secretário, assessor) não restaura nada; a resposta é pedir que o
+   administrador entre em contato.
+3. **Confira por canal verificado, nunca pelo canal do pedido.** Faça as duas
+   conferências abaixo, e as duas precisam bater:
+   - **Ligação de volta** para o telefone institucional da Defesa Civil ou da
+     prefeitura que consta no contrato ou na ficha de implantação (seção 4).
+     Nunca para o número que a pessoa informou no chamado, e nunca por
+     mensagem.
+   - **Confirmação com o gestor do contrato** (o contato da prefeitura
+     registrado na implantação), pelo canal registrado dele, de que a pessoa
+     é a administradora do sistema e de que o pedido é legítimo. Na falta do
+     gestor, vale **videochamada** com documento oficial com foto, conferindo
+     o nome com o do administrador cadastrado na implantação; o documento é
+     mostrado, não enviado, e nada dele é anotado.
+4. **Pare se houver sinal de golpe**: pressa ou ameaça, pedido para mandar a
+   senha por email, SMS ou aplicativo de mensagem, pedido para mandar a outro
+   número ou endereço, pessoa que não sabe dados básicos do próprio
+   município, ou restauração recente no histórico (o modal mostra a última).
+   Com qualquer sinal, não restaure: registre no chamado e avise o Rafael.
+5. **No console**: Municípios, a linha do município, **Restaurar acesso**.
+   Confira o histórico que aparece no topo do modal. Digite o email de entrada
+   conferido, a **sua** senha atual, um **código novo** do aplicativo de
+   autenticação (não o da entrada) e o **motivo**: número do chamado e como a
+   identidade foi conferida (por exemplo, "Chamado 118: ligação de volta ao
+   telefone do contrato e confirmação da gestora do contrato"). O motivo vai
+   para a trilha do município, que o lê.
+6. **Repasse a senha pelo canal verificado**: dite na ligação de volta ao
+   telefone institucional ou na videochamada. Nunca por email, SMS, aplicativo
+   de mensagem, nem por escrito no chamado. Ela aparece uma única vez e não
+   fica guardada em lugar nenhum; se fechar o modal sem repassar, é preciso
+   restaurar de novo.
+7. **Confirme a entrada**: a primeira entrada com a senha temporária exige
+   definir uma senha nova antes de qualquer tela. Se a pessoa não entrar em
+   72 horas, a senha vence e o procedimento recomeça do passo 1.
+8. **Feche o chamado** com a data e a hora da restauração, sem a senha.
+
+**O que o sistema faz, e quem decide é o banco** (função
+`console_restaurar_acesso_do_administrador`, migração 054):
+
+- grava a senha temporária como senha **provisória**, com a mesma validade da
+  redefinição pelo painel (72 horas), zera o castigo de tentativas, e a
+  sessão que nascer dela só alcança a troca de senha;
+- encerra **todas** as sessões do administrador e invalida os links de
+  recuperação pendentes dele;
+- grava na trilha administrativa do município a ação
+  `acesso_do_administrador_restaurado_pelo_fornecedor`, com o email de quem do
+  fornecedor agiu, o motivo, quantas sessões caíram e até quando a senha vale,
+  e grava o mesmo ato no registro do console (`restauracoes_de_acesso`), que
+  só o dono lê e ninguém altera. A senha e o hash não vão para nenhum dos
+  dois, nem para o log;
+- recusa: quem não é o dono do console; motivo com menos de 10 caracteres;
+  email que não seja de **administrador ativo daquele município** (conta de
+  outro município, de outro papel ou desativada recebem a mesma resposta,
+  para o console não confirmar quem existe onde); município suspenso
+  (reative antes); e mais de **3 restaurações por município em 24 horas**.
+
+**O que fica declarado como NÃO coberto.**
+
+- O segundo fator não é tocado. Administrador que perdeu também o aparelho e
+  não tem código de recuperação do painel continua sem entrar, e não há
+  caminho pelo console para isso.
+- A conferência de identidade é um procedimento humano. O sistema garante o
+  registro (quem, quando, por quê) e o limite de três por dia; ele não sabe se
+  a ligação de volta foi feita.
+- O registro do console sai junto com o município quando ele é eliminado
+  (o motivo pode citar a pessoa). Depois da eliminação, o que sobra do lado do
+  fornecedor é o rastro no log do console (`acao perigosa no console:
+  restaurar_acesso`, com operador, município e horário, sem motivo e sem
+  senha).
 
 ---
 

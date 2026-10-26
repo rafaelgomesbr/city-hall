@@ -1,7 +1,5 @@
 # INDEX
 
-Evidência da V2-F00-POS. O que cada arquivo prova está no RESUMO.md da subpasta (`api/`, `painel/`).
-
 | Arquivo | SHA-256 |
 | --- | --- |
 | api/01-h29-corrida-SEM-o-conserto.txt | 0fa080a29f878b05d15c32b8434050f90012278af38095e3009ad1394c31d98e |
@@ -72,3 +70,22 @@ Evidência da V2-F00-POS. O que cada arquivo prova está no RESUMO.md da subpast
 | painel/saidas/08-e2e-modo-local-chromium.txt | b6733a30feb95798e89ebfcabcc55dc8023bfd6f426bcf6aac1329aa28805aeb |
 | painel/sondas/capturas.mjs | 83b6666ce4f58c31b80a23004fd64bf3b99f3881e6a616d0ed4fc62d4807ad99 |
 | painel/sondas/mutacoes.py | 9a47abf2787e12d9406df0272f06e29482363b92ad938e6b92bc893bb90ac13a |
+| suporte/RESUMO.md | 8297c81d3f1bb81aced5437ab6c1858479f3ef302aa5b1d592cc80118c41fd41 |
+| suporte/capturas/01-claro-1280-linha-com-restaurar-acesso.png | 17659139218fe89bb7b59f9048c86020c8ecd035c6881d9ec1cb34f7c9856220 |
+| suporte/capturas/02-claro-1280-modal-com-recado.png | 6b6420d0ea2ed69032f3ad7f6ecfd139acb639567a2afdc181eb9dfa8ed95328 |
+| suporte/capturas/03-escuro-1280-modal-com-recado.png | a81d350afa14f70f0e9ae8ca52ecef92cfd0990d1195ac12c5496e5fd3a5a8d0 |
+| suporte/capturas/04-escuro-390-modal-com-recado.png | 77a7c91bd051cfd8f2360045ef9d4f487605d6b11fa1b5939281bca6ecbd49dd |
+| suporte/capturas/05-claro-390-modal-com-recado.png | 6d39fb7798aeeb5dc85910680f18d347b322f16acce9b96d69c22accc5f71578 |
+| suporte/capturas/06-claro-1280-senha-temporaria.png | 2c6cebb398ff2a1126c08ae96c9608f2f423a688236c37408faa0868ffb3205b |
+| suporte/capturas/07-escuro-1280-senha-temporaria.png | 0cfb18cc646db32cf7928d0edf305e02898701b0871bf4b363fbb30f24105c4a |
+| suporte/capturas/08-escuro-390-senha-temporaria.png | c52f3d7dc396dfede21de318f8a57dd11e3350eaa73d46e57d2175f514dcdeb0 |
+| suporte/capturas/09-claro-390-senha-temporaria.png | 734a130078b8481209a95226b7f5f4909039b5a3f354ba6e5ad2469d50f4136f |
+| suporte/capturas/10-claro-1280-historico.png | be2d6f36bc3949ceb089691db92607a424f498a3298cb7be40934006c89486f6 |
+| suporte/saidas/01-typecheck.txt | 8ef7ce0307bb4206ba584e94ac5145f9c2731c1be69685ea8c580a4898bfad5f |
+| suporte/saidas/02-test-isolamento.txt | 455a65d08fac02a1023afd97405bf03ba2b0de30dd582b79fda728aa5a642a39 |
+| suporte/saidas/03-mutacoes.txt | da3773daeffe74900d7c75c62f07df09277cf9bf571a5cdd9b3a6fbc01a04324 |
+| suporte/saidas/04-test-console.txt | bc89380bebf55071c58fb34295d81ff4eda75cb1fb9fe27b89841bdf165370bb |
+| suporte/saidas/05-test-api.txt | f18fdd83aa83c3b1da5f9f338f85c7090232f48a4a8015577df54d813bff927f |
+| suporte/saidas/06-test-scripts.txt | 4b21df1861276ae5bfc3c2bbc6ff1a778588e9ba48201fe362c985657a3630dd |
+| suporte/saidas/07-conferir-numeros.txt | 057e11abfb30f3039c254edbb99632ac919844ca3031c1913a4ad845a5159cf4 |
+| suporte/sondas/mutacoes.py | bbdd0fe5004c1a65588c16d7900b46502f364583824e94949269985f227584cd |

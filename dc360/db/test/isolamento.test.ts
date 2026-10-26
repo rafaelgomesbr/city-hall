@@ -275,6 +275,18 @@ describe("CA-06: isolamento entre organizações", () => {
     ["console_operadores", { escreve: ["INSERT", "UPDATE"], guarda: "console_operador_e_dono", naLeitura: false }],
     ["eliminacoes_de_municipio", { escreve: ["INSERT", "UPDATE"], guarda: "console_operador_e_dono", naLeitura: false }],
     ["console_codigos_de_recuperacao", { escreve: ["INSERT"], guarda: "console_operador_atual", naLeitura: true }],
+    /*
+      O registro das restaurações de acesso de administrador (migração 054,
+      decisão H06 B). Carrega `organizacao_id` (sai junto quando o município é
+      eliminado), mas a policy é do FORNECEDOR: nenhum município lê quem do
+      fornecedor restaurou o quê. NENHUMA policy de escrita, e é isso que o
+      torna append-only: só a função `console_restaurar_acesso_do_administrador`
+      escreve, como dona das tabelas. A leitura é só do DONO (`naLeitura`), e
+      uma policy de SELECT com `USING (true)` aqui reprova. O caso-irmão (o
+      console não insere, não altera nem apaga; operador comum lê zero linhas;
+      o papel de aplicação não lê) está em `db/test/restauracao-de-acesso.test.ts`.
+    */
+    ["restauracoes_de_acesso", { escreve: [], guarda: "console_operador_e_dono", naLeitura: true }],
   ]);
 
   async function tabelasDeNegocio(): Promise<string[]> {
@@ -648,9 +660,25 @@ describe("Funções privilegiadas", () => {
       irmã, e mais estreita na saída: sem município de parâmetro, sem filtro
       de quem chama, e não devolve protocolo nem endereço. O bloco "O aviso de
       despacho nasce na aplicacao, pela porta estreita da 042" guarda a forma.
+
+      Subiu de 27 para 28 em 26/10/2026, por
+      `console_restaurar_acesso_do_administrador` (migração 054, decisão H06 B
+      do Rafael), pela razão de `provisionar_municipio` e das quatro da 038:
+      quem chama não pode ter privilégio. Enquanto a recuperação por email
+      está desligada, o administrador único que perde a senha não tem saída
+      pelo painel, e a alternativa a esta porta seria dar UPDATE em `usuarios`
+      e em `sessoes` ao console (proibido pela decisão 3 da ADR 0008) ou abrir
+      `psql` na produção com a credencial de dono. A porta é estreita e a
+      conferência é explícita no corpo: só o dono do console, motivo escrito,
+      hash e não senha, conta procurada pelo email DENTRO do município
+      indicado e só se for de administrador ativo (outro município, outro
+      papel e conta desativada recebem a mesma mensagem), município não
+      suspenso, teto de três por município em 24 h, e nunca o segundo fator.
+      Devolve o id da conta, um inteiro e uma data. Os casos, cada um com o
+      caso-irmão que passa, estão em `db/test/restauracao-de-acesso.test.ts`.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(27);
+      .toBeLessThanOrEqual(28);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -3827,6 +3855,16 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     ["console_operadores", new Set(["SELECT", "INSERT", "UPDATE"])],
     ["eliminacoes_de_municipio", new Set(["SELECT", "INSERT"])],
     ["console_codigos_de_recuperacao", new Set(["SELECT", "INSERT"])],
+    /*
+      A QUINTA (migração 054): `restauracoes_de_acesso`, o registro do console
+      das restaurações de acesso de administrador. SÓ SELECT, e a policy só
+      deixa o DONO ler: a escrita é da função, e não há INSERT, UPDATE nem
+      DELETE concedido, que é o que a faz append-only. Carrega o município, o
+      operador do fornecedor, o motivo, quantas sessões caíram e o prazo da
+      senha provisória; nunca a senha, nunca o hash, e nem o id da conta
+      restaurada (esse fica na trilha do município, que o console não lê).
+    */
+    ["restauracoes_de_acesso", new Set(["SELECT"])],
   ]);
   const O_CONSOLE_ALCANCA_POR_COLUNA = new Map<string, Set<string>>([
     ["eliminacoes_de_municipio", new Set(["cancelada_em:UPDATE", "cancelada_por_email:UPDATE"])],
@@ -3882,6 +3920,16 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     "console_renovar_codigos()",
     "console_recuperacao_por_email()",
     "console_consumir_recuperacao()",
+    /*
+      O caminho de suporte da migração 054 (H06 B): o dono do console grava
+      senha provisória para o administrador ATIVO do município indicado e
+      derruba as sessões dele. É a única função concedida ao console que
+      escreve em `usuarios` de um município que já existe, e por isso a
+      conferência do município e do papel está no corpo dela, e não na rota.
+      Ver o teto de funções privilegiadas, acima, e
+      `db/test/restauracao-de-acesso.test.ts`.
+    */
+    "console_restaurar_acesso_do_administrador()",
   ]);
 
   async function sobras(): Promise<Achado[]> {
@@ -4503,6 +4551,20 @@ describe("Metricas escritas pelo proprio municipio", () => {
         ]);
         continue;
       }
+      /*
+        A quarta do fornecedor (054): o registro das restaurações de acesso de
+        administrador. O email é do OPERADOR do fornecedor que agiu, e o
+        motivo é escrito por ele; o id da conta restaurada, o nome e o email
+        do administrador NÃO estão aqui (ficam na trilha do município). Lista
+        fechada por nome: uma coluna nova reprova até alguém escrevê-la aqui.
+      */
+      if (relacao === "restauracoes_de_acesso") {
+        expect((await colunas(relacao)).map((c) => c.column_name)).toEqual([
+          "id", "organizacao_id", "operador_id", "operador_email", "motivo",
+          "sessoes_encerradas", "senha_provisoria_ate", "registrado_em",
+        ]);
+        continue;
+      }
 
       const problemas = (await colunas(relacao))
         .flatMap((c) => reprovacoes(c.column_name, c.data_type));
@@ -5073,6 +5135,9 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
       `eliminacoes_de_municipio`, cujo UPDATE e por coluna e nao aparece
       nesta visao do catalogo) e as duas da 039 (SELECT e INSERT em
       `console_codigos_de_recuperacao`). Nenhuma delas e tabela de municipio.
+      Onze desde a 054: SELECT em `restauracoes_de_acesso`, o registro do
+      console, cuja leitura so o dono alcanca pela policy e cuja escrita e so
+      da funcao.
     */
     expect(
       (await db.query<{ concessao: string }>(
@@ -5081,7 +5146,7 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
           WHERE table_schema = 'public' AND grantee = 'dc360_console'
           ORDER BY 1`,
       )).rows.map((l) => l.concessao),
-      "o console ganhou concessao de tabela alem das que a ADR 0008 e as migracoes 038 e 039 nomeiam",
+      "o console ganhou concessao de tabela alem das que a ADR 0008 e as migracoes 038, 039 e 054 nomeiam",
     ).toEqual([
       "console_codigos_de_recuperacao:INSERT",
       "console_codigos_de_recuperacao:SELECT",
@@ -5093,6 +5158,7 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
       "eliminacoes_de_municipio:SELECT",
       "metricas_municipio:SELECT",
       "organizacoes:SELECT",
+      "restauracoes_de_acesso:SELECT",
     ]);
   });
 

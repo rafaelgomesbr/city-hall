@@ -19,7 +19,8 @@ import {
 } from "./operadores.js";
 import {
   SEM_PODER, agendarEliminacao, cancelarEliminacao, municipioPorId, reativarMunicipio,
-  recusaEscritaParaGente, suspenderMunicipio,
+  recusaEscritaParaGente, restauracoesDoMunicipio, restaurarAcessoDoAdministrador,
+  suspenderMunicipio,
 } from "./municipios.js";
 import {
   emitirDesafio, emitirSessao, verificarDesafio, verificarSessao, versaoDaSenha,
@@ -54,6 +55,10 @@ import {
  *   - `POST /prefeituras` executa `provisionar_municipio` (migração 036).
  *   - As quatro ações perigosas por município executam as funções
  *     `console_*_municipio` (migração 038), que recusam quem não é dono.
+ *   - Restaurar o acesso do administrador de um município executa
+ *     `console_restaurar_acesso_do_administrador` (migração 054, decisão
+ *     H06 B), que recusa quem não é dono e confere no banco o município e o
+ *     papel da conta.
  *   - A área de usuários e a troca de senha escrevem em `console_operadores`,
  *     a tabela PRÓPRIA do console, sob policy. Nada disso toca tabela de
  *     negócio, e é o banco quem garante.
@@ -409,7 +414,7 @@ export async function construirConsole(
   };
 
   /** As rotas sob `LIMITE_DE_ACOES`, para o tratador de 429 dizer a espera certa. */
-  const ROTAS_DE_ACAO = /^\/(operadores|senha|codigos-de-recuperacao|municipios\/[^/]+\/(suspender|reativar|eliminar|eliminacao\/cancelar))/;
+  const ROTAS_DE_ACAO = /^\/(operadores|senha|codigos-de-recuperacao|municipios\/[^/]+\/(suspender|reativar|eliminar|eliminacao\/cancelar|restaurar-acesso))/;
 
   /**
    * Um tratador só, e ele nunca devolve a mensagem crua do erro.
@@ -980,6 +985,128 @@ export async function construirConsole(
       }
       rastro(quem(req), "cancelar_eliminacao", alvo.id);
       return resposta.send({ municipio: await municipioPorId(leitura, alvo.id, alvo.operador.id) });
+    },
+  );
+
+  /* ======================================================================
+     Restaurar o acesso do administrador de um município (só o dono, 054)
+     ====================================================================== */
+
+  /**
+   * O caminho de suporte da decisão H06 B: enquanto a recuperação por email
+   * estiver desligada, o administrador único que perde a senha não tem outra
+   * saída que não o banco aberto na mão.
+   *
+   * A MESMA RÉGUA DE ELIMINAR, porque o efeito é do mesmo tamanho para o
+   * município: quem tem a senha temporária do administrador tem o município
+   * inteiro por setenta e duas horas. Então, NESTA ORDEM: o dono (403), o
+   * município existe (404), o pedido bem formado (400), a senha atual de quem
+   * clica e um código NOVO do aplicativo (401; o código conta como tentativa e
+   * castiga a conta como na porta), e só então o banco, que confere o resto:
+   * motivo escrito, conta de administrador ATIVO daquele município (outro
+   * município, outro papel e conta desativada recebem a mesma frase),
+   * município não suspenso e o teto de três por município em 24 h.
+   *
+   * A IDENTIDADE DE QUEM PEDE é conferida ANTES, fora do sistema, pelo
+   * procedimento de `docs/IMPLANTACAO.md`, seção 6.5. O formulário pede o
+   * email que a pessoa DISSE ser o dela, e não oferece lista: o console não
+   * lê `usuarios` (ADR 0008), e uma lista de administradores seria o roteiro
+   * pronto para quem liga se passando por um deles.
+   *
+   * A RESPOSTA leva a senha temporária UMA vez, com `no-store`. Ela não vai
+   * para o log: o rastro leva quem agiu, em qual município, quantas sessões
+   * caíram e até quando a senha vale. Nem o motivo vai ao log (ele está na
+   * trilha do município e no registro do console, que é onde deve estar).
+   */
+  const RESTAURACAO = z.object({
+    senha: z.string().min(1, "Informe a sua senha").max(1024),
+    codigo: z.string().min(1, "Informe o código do aplicativo").max(32),
+    email: z.string().trim().toLowerCase().min(1, "Informe o email do administrador")
+      .email("Informe o email do administrador").max(320),
+    motivo: z.string().trim()
+      .min(10, "Escreva o motivo, com pelo menos 10 caracteres (chamado, como a identidade foi conferida)")
+      .max(2000),
+  });
+
+  app.post<{ Params: { id: string } }>(
+    "/municipios/:id/restaurar-acesso", LIMITE_DE_ACOES, async (req, resposta) => {
+      const alvo = await municipioDoDono(req);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      const corpo = RESTAURACAO.safeParse(req.body);
+      if (!corpo.success) {
+        return resposta.code(400).send({
+          erro: "pedido_invalido",
+          mensagem: corpo.error.issues[0]?.message ?? "Confira os campos.",
+        });
+      }
+
+      if (!(await conferirSenha(corpo.data.senha, alvo.operador.senhaHash))) {
+        rastro(quem(req), "restaurar_acesso_recusado", alvo.id, { motivo: "senha_incorreta" });
+        return resposta.code(401).send({
+          erro: "senha_incorreta", mensagem: "A senha não confere.",
+        });
+      }
+
+      const desfecho = await conferirCodigo(registro, alvo.operador, corpo.data.codigo, cofre, agora());
+      if (desfecho === "bloqueado") {
+        rastro(quem(req), "restaurar_acesso_recusado", alvo.id, { motivo: "conta_de_castigo" });
+        return resposta.code(429).send({
+          erro: "bloqueado", mensagem: "Códigos errados demais. Espere quinze minutos.",
+        });
+      }
+      if (desfecho !== "ok") {
+        rastro(quem(req), "restaurar_acesso_recusado", alvo.id, { motivo: "codigo_incorreto_ou_ja_usado" });
+        return resposta.code(401).send({
+          erro: "codigo_invalido",
+          mensagem: "Código incorreto ou já usado. Use um código novo, não o da entrada.",
+        });
+      }
+
+      let restaurado;
+      try {
+        restaurado = await restaurarAcessoDoAdministrador(
+          escrita, alvo.operador.id, alvo.id, corpo.data.email, corpo.data.motivo,
+        );
+      } catch (erro) {
+        const recusa = traduzirRecusaDoBanco(erro);
+        if (recusa) {
+          rastro(quem(req), "restaurar_acesso_recusado", alvo.id, {
+            motivo: "recusado_pelo_banco", codigo: (erro as { code?: string }).code,
+          });
+          return resposta.code(recusa.status).send(recusa.corpo);
+        }
+        throw erro;
+      }
+
+      rastro(quem(req), "restaurar_acesso", alvo.id, {
+        usuario_id: restaurado.usuarioId,
+        sessoes_encerradas: restaurado.sessoesEncerradas,
+        senha_provisoria_ate: restaurado.senhaProvisoriaAte,
+      });
+      return resposta
+        .header("cache-control", "no-store")
+        .send({
+          senhaTemporaria: restaurado.senhaTemporaria,
+          senhaProvisoriaAte: restaurado.senhaProvisoriaAte,
+          sessoesEncerradas: restaurado.sessoesEncerradas,
+          mensagem:
+            "Senha temporária do administrador. Ela aparece uma única vez: repasse pelo canal " +
+            "verificado, nunca por email nem por mensagem no mesmo número que pediu. Vale 72 horas " +
+            "para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela. " +
+            "O segundo fator, se estiver ativo, continua valendo.",
+        });
+    },
+  );
+
+  /** As últimas restaurações do município, para o dono conferir antes de restaurar de novo. */
+  app.get<{ Params: { id: string } }>(
+    "/municipios/:id/restauracoes", async (req, resposta) => {
+      const alvo = await municipioDoDono(req);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+      return resposta.send({
+        restauracoes: await restauracoesDoMunicipio(leitura, alvo.id, alvo.operador.id),
+      });
     },
   );
 
