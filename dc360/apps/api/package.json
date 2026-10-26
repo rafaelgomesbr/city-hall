@@ -14,7 +14,8 @@
     "start:env": "node --env-file=.env dist/index.js",
     "migrar:env": "node --env-file=.env ../../db/dist/cli.js",
     "provisionar:env": "npx tsx --env-file=.env src/provisionar.ts",
-    "armazenamento": "tsx src/armazenamento/cli.ts"
+    "armazenamento": "tsx src/armazenamento/cli.ts",
+    "openapi": "tsx src/contrato/cli.ts"
   },
   "dependencies": {
     "@dc360/db": "*",

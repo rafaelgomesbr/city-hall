@@ -858,6 +858,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E09": { total: 9, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 1C (DV-01 e DV-03): `apps/api/test/guarda-de-codigos-de-erro.test.ts` ganhou 18 casos (9 do retrato dos cabeçalhos, 2 de tempo linear e 7 da contagem de chaves `erro`). O console ganhou 18 no mesmo arquivo de teste (número do próprio passo teste-console, 339 para 357).
   "V2-F02-E03-parte-1C": { total: 18, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 2D: `apps/api/test/openapi.test.ts` e novo, com 24 casos (a paridade com as rotas que o Fastify registrou e os quatro defeitos que ela reprova, o teto das pendências, `nova` sem resposta, o relatório das existentes sem resposta, o `v1.json` igual ao regenerado, a forma OpenAPI 3.1, as referências, o gerador que falha com parâmetro de caminho sem esquema e o documento que não é rota).
+  "V2-F02-E04-parte-2D": { total: 24, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
