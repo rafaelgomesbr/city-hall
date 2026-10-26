@@ -1,0 +1,18 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa8726c982a4d19e5/dc360/apps/api[39m
+
+[90mstdout[2m | test/openapi.test.ts[2m > [22m[2mpendências declaradas, por grupo[2m > [22m[2mo número de rotas pendentes não passa do teto e só desce
+[22m[39mrotas pendentes (sem entrada): 40; por grupo: administracao=2 autenticacao=10 campo=3 conta=6 documentos=1 mapa-e-busca=3 ocorrencias=4 oficios-e-orgaos=7 prestacao-de-contas=4 publico=0
+
+[90mstdout[2m | test/openapi.test.ts[2m > [22m[2mresposta das rotas[2m > [22m[2mas existentes sem resposta saem num relatório e não reprovam
+[22m[39mentradas existentes sem resposta descrita: 49
+
+ [32m✓[39m test/openapi.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 10467[2mms[22m[39m
+   [33m[2m✓[22m[39m o documento não é rota[2m > [22m/v1/openapi.json não existe na API [33m 433[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m24 passed[39m[22m[90m (24)[39m
+[2m   Start at [22m 22:57:30
+[2m   Duration [22m 23.67s[2m (transform 2.41s, setup 2.11s, collect 9.92s, tests 10.47s, environment 0ms, prepare 360ms)[22m
+
+exit=0

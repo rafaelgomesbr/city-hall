@@ -1,0 +1,69 @@
+# 2) fusao de formas com a verificacao de handler DESLIGADA (mutacao: mesmo || true)
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa8726c982a4d19e5/dc360/apps/api[39m
+
+[90mstdout[2m | test/openapi.test.ts[2m > [22m[2mpendências declaradas, por grupo[2m > [22m[2mpendentes é IGUAL à lista congelada e ao teto exato (toda mudança aparece no diff)
+[22m[39mrotas pendentes (sem entrada): 40; por grupo: administracao=2 autenticacao=10 campo=3 conta=6 documentos=1 mapa-e-busca=3 ocorrencias=4 oficios-e-orgaos=7 prestacao-de-contas=4 publico=0
+
+[90mstdout[2m | test/openapi.test.ts[2m > [22m[2mresposta das rotas[2m > [22m[2mas existentes sem resposta saem num relatório e não reprovam
+[22m[39mentradas existentes sem resposta descrita: 49
+
+ [31m❯[39m test/openapi.test.ts [2m([22m[2m28 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 3055[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mlê rotas de verdade (âncora contra o teste que passa sem conferir)[32m 4[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mtoda rota sob /v1 tem entrada (ou está declarada em pendentes) e toda entrada tem rota[32m 1[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mo conjunto de entradas e pendentes cobre exatamente as rotas registradas[32m 0[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mreprova rota registrada sem entrada[32m 1[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mreprova entrada sem rota registrada[32m 0[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mreprova pendente que cita rota inexistente e a que já foi descrita[32m 0[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mo contrato só descreve o /v1: nenhuma entrada usa o caminho legado[32m 1[2mms[22m[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mas formas com e sem barra final fundidas são o mesmo handler (nas rotas reais)[32m 0[2mms[22m[39m
+[31m   [31m×[31m paridade com as rotas que o servidor registrou[2m > [22mduas rotas distintas (`/:id` e `/:id/` com handlers diferentes) NÃO se fundem em silêncio[39m[32m 21[2mms[22m[39m
+[31m     → expected [] to have a length of 1 but got +0[39m
+   [32m✓[39m paridade com as rotas que o servidor registrou[2m > [22mas duas formas do mesmo handler (plugin com prefixo e rota `/`) fundem sem problema[32m 5[2mms[22m[39m
+   [32m✓[39m pendências declaradas, por grupo[2m > [22mpendentes é IGUAL à lista congelada e ao teto exato (toda mudança aparece no diff)[32m 2[2mms[22m[39m
+   [32m✓[39m pendências declaradas, por grupo[2m > [22mreprova rota NOVA colocada em pendentes, a troca de uma por outra e a volta do teto[32m 0[2mms[22m[39m
+   [32m✓[39m pendências declaradas, por grupo[2m > [22mcada grupo tem nome único[32m 0[2mms[22m[39m
+   [32m✓[39m resposta das rotas[2m > [22mentrada nova sem resposta reprova[32m 1[2mms[22m[39m
+   [32m✓[39m resposta das rotas[2m > [22mnenhuma entrada real é nova sem resposta[32m 0[2mms[22m[39m
+   [32m✓[39m resposta das rotas[2m > [22mas existentes sem resposta saem num relatório e não reprovam[32m 1[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mo regenerado em memória é igual ao commitado (sem deriva)[32m 2[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mtem a forma do OpenAPI 3.1[32m 14[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mtoda referência $ref aponta para algo que existe no documento[32m 1[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mPOST /v1/ocorrencias descreve aberturaOcorrenciaSchema[32m 0[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mo erro da API é descrito uma vez e referenciado, com os códigos do catálogo[32m 0[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22moperação sem resposta descrita se declara pendente, não inventa status[32m 0[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mlista as rotas pendentes dentro do próprio documento[32m 0[2mms[22m[39m
+   [32m✓[39m o documento v1.json[2m > [22mparâmetro de caminho que o esquema não declara faz o gerador falhar[32m 2[2mms[22m[39m
+   [32m✓[39m o documento não é rota[2m > [22m/v1/openapi.json não existe na API[32m 34[2mms[22m[39m
+   [32m✓[39m o documento não é rota[2m > [22m/openapi/v1.json não existe na API[32m 2[2mms[22m[39m
+   [32m✓[39m o documento não é rota[2m > [22m/openapi.json não existe na API[32m 2[2mms[22m[39m
+   [32m✓[39m o documento não é rota[2m > [22m/v1/docs não existe na API[32m 3[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/openapi.test.ts[2m > [22mparidade com as rotas que o servidor registrou[2m > [22mduas rotas distintas (`/:id` e `/:id/` com handlers diferentes) NÃO se fundem em silêncio
+[31m[1mAssertionError[22m: expected [] to have a length of 1 but got +0[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m test/openapi.test.ts:[2m336:23[22m[39m
+    [90m334| [39m    [35mawait[39m sintetico[33m.[39m[34mready[39m()[33m;[39m
+    [90m335| [39m    [35mconst[39m { chaves[33m,[39m problemas } [33m=[39m [34mfundirFormas[39m(sintetico)[33m;[39m
+    [90m336| [39m    [34mexpect[39m(problemas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m337| [39m    [34mexpect[39m(problemas[[34m0[39m])[33m.[39m[34mtoContain[39m([32m"DIFERENTES"[39m)[33m;[39m
+    [90m338| [39m    expect(chaves).toEqual(["GET /v1/coisas/:id", "GET /v1/coisas/:id/…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m27 passed[39m[22m[90m (28)[39m
+[2m   Start at [22m 23:35:40
+[2m   Duration [22m 6.94s[2m (transform 949ms, setup 736ms, collect 2.57s, tests 3.06s, environment 0ms, prepare 181ms)[22m
+
+exit=1

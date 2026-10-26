@@ -524,3 +524,35 @@ fica em aberto:
    cabeçalho de depreciação já aparece nas respostas que eles recebem.
 4. **Nada mede o uso do espelho ainda.** Sem essa medição, a data de retirada não
    tem como ser decidida com dado. É escopo da E08.
+
+## O contrato OpenAPI do `/v1` (V2-F02-E04)
+
+O registro de rotas (`src/contrato/rotas.ts`) e o documento gerado
+(`openapi/v1.json`) existem, mas descrevem a API pela metade. O que fica em
+aberto, com o número de cada coisa no relatório
+(`docs/evidencias-v2/G02/V2-F02-E04/relatorio-de-rotas.txt`):
+
+1. **A dívida das respostas.** A maioria das entradas existentes ainda não tem
+   `resposta`: o documento as marca com `x-resposta-pendente` e o status
+   `default`, sem inventar um 200. Descrever a resposta de cada rota é a dívida,
+   e o relatório conta quantas faltam. Não reprova (as existentes sem resposta
+   saem num relatório); rota `nova` sem resposta reprova.
+2. **As rotas sem entrada (`pendentes`).** Quarenta rotas registradas ainda não
+   têm entrada, porque o corpo ou a query delas é validado por um esquema que
+   mora dentro de `src/rotas/*.ts` (`entradaSchema`, `consultaSchema`,
+   `emissaoSchema`...). Copiar esse esquema para o contrato criaria a segunda
+   fonte da verdade que a etapa quer evitar, então cada grupo declara a lista
+   (`pendentes`) e o teste conta e limita: o teto só desce. O lote 3 da F02
+   (partes 3C1 a 3C3) exporta cada esquema, descreve a rota e zera a lista.
+3. **Sem validador de OpenAPI.** A conferência é estrutural, escrita no teste
+   (versão 3.1.0, caminhos, parâmetros de caminho, referências). Um validador de
+   verdade seria dependência nova, e a escolha exige `npm audit` em zero.
+4. **A segurança por rota não está no documento.** Quais rotas aceitam token e
+   quais são públicas fica para a V2-F03-E12, que estende este mesmo registro
+   com ação, ator, plateia e escopo.
+5. **Regras `refine` só como texto.** O JSON Schema não expressa `refine` nem
+   `superRefine`; o documento as anota em `x-regras-adicionais` (campo e texto
+   da regra), não como `if/then`. Um cliente gerado do documento não as
+   valida sozinho. Traduzir as mais comuns (campo obrigatório quando outro tem
+   certo valor) para `if/then` é possível e fica para quando houver cliente
+   gerado (F08-E04).

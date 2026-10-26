@@ -1,0 +1,156 @@
+# 1) testes novos de regras condicionais e corpo opcional contra o gerador ANTIGO (HEAD 74b132d1)
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa8726c982a4d19e5/dc360/apps/api[39m
+
+ [31m❯[39m test/openapi-regras.test.ts [2m([22m[2m10 tests[22m[2m | [22m[31m7 failed[39m[2m)[22m[32m 32[2mms[22m[39m
+   [32m✓[39m regras condicionais que o JSON Schema perde[2m > [22mo Zod recusa os dois corpos que o JSON Schema, sozinho, deixaria passar[32m 6[2mms[22m[39m
+[31m   [31m×[31m regras condicionais que o JSON Schema perde[2m > [22ma abertura com tipo `outro` anota a regra da descrição do tipo[39m[32m 12[2mms[22m[39m
+[31m     → expected undefined to deeply equal [ ObjectContaining{…} ][39m
+[31m   [31m×[31m regras condicionais que o JSON Schema perde[2m > [22ma triagem com vulnerabilidade presente anota a regra da descrição[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to deeply equal [ ObjectContaining{…} ][39m
+[31m   [31m×[31m regras condicionais que o JSON Schema perde[2m > [22mtoda entrada real com refinamento nas entradas sai anotada, e a anotação cobre cada regra[39m[32m 1[2mms[22m[39m
+[31m     → (0 , refinamentosDe) is not a function[39m
+[31m   [31m×[31m regras condicionais que o JSON Schema perde[2m > [22machar refinamento aninhado: regra dentro de objeto interno também sai[39m[32m 1[2mms[22m[39m
+[31m     → (0 , refinamentosDe) is not a function[39m
+[31m   [31m×[31m regras condicionais que o JSON Schema perde[2m > [22mesquema sintético com superRefine sem texto sai anotado e sem a anotação o guarda reprova[39m[32m 4[2mms[22m[39m
+[31m     → Target cannot be null or undefined.[39m
+   [32m✓[39m regras condicionais que o JSON Schema perde[2m > [22mesquema sem refinamento não ganha anotação[32m 1[2mms[22m[39m
+[31m   [31m×[31m corpo opcional[2m > [22mcorpo `.optional()` sai com required false[39m[32m 2[2mms[22m[39m
+[31m     → expected true to be false // Object.is equality[39m
+[31m   [31m×[31m corpo opcional[2m > [22mcorpo com padrão de objeto vazio também é opcional[39m[32m 2[2mms[22m[39m
+[31m     → expected true to be false // Object.is equality[39m
+   [32m✓[39m corpo opcional[2m > [22mcorpo obrigatório continua com required true[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 7 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mregras condicionais que o JSON Schema perde[2m > [22ma abertura com tipo `outro` anota a regra da descrição do tipo
+[31m[1mAssertionError[22m: expected undefined to deeply equal [ ObjectContaining{…} ][39m
+
+[32m- Expected:[39m 
+[
+  ObjectContaining {
+    "campo": "tipoDescricao",
+    "em": "corpo",
+  },
+]
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m68:39[22m[39m
+    [90m 66| [39m  it("a abertura com tipo `outro` anota a regra da descrição do tipo",…
+    [90m 67| [39m    [35mconst[39m op [33m=[39m [34moperacao[39m([32m"/v1/ocorrencias"[39m[33m,[39m [32m"post"[39m)[33m;[39m
+    [90m 68| [39m    [34mexpect[39m(op[[32m"x-regras-adicionais"[39m])[33m.[39m[34mtoEqual[39m([
+    [90m   | [39m                                      [31m^[39m
+    [90m 69| [39m      expect[33m.[39m[34mobjectContaining[39m({ em[33m:[39m [32m"corpo"[39m[33m,[39m campo[33m:[39m [32m"tipoDescricao"[39m })[33m,[39m
+    [90m 70| [39m    ])[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mregras condicionais que o JSON Schema perde[2m > [22ma triagem com vulnerabilidade presente anota a regra da descrição
+[31m[1mAssertionError[22m: expected undefined to deeply equal [ ObjectContaining{…} ][39m
+
+[32m- Expected:[39m 
+[
+  ObjectContaining {
+    "campo": "vulnerabilidadeDescricao",
+    "em": "corpo",
+  },
+]
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m78:39[22m[39m
+    [90m 76| [39m  it("a triagem com vulnerabilidade presente anota a regra da descriçã…
+    [90m 77| [39m    [35mconst[39m op [33m=[39m [34moperacao[39m([32m"/v1/ocorrencias/{id}/triagem"[39m[33m,[39m [32m"post"[39m)[33m;[39m
+    [90m 78| [39m    [34mexpect[39m(op[[32m"x-regras-adicionais"[39m])[33m.[39m[34mtoEqual[39m([
+    [90m   | [39m                                      [31m^[39m
+    [90m 79| [39m      expect.objectContaining({ em: "corpo", campo: "vulnerabilidadeDe…
+    [90m 80| [39m    ])[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mregras condicionais que o JSON Schema perde[2m > [22mtoda entrada real com refinamento nas entradas sai anotada, e a anotação cobre cada regra
+[31m[1mTypeError[22m: (0 , refinamentosDe) is not a function[39m
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m88:60[22m[39m
+    [90m 86| [39m  it("toda entrada real com refinamento nas entradas sai anotada, e a …
+    [90m 87| [39m    [35mconst[39m comRegra [33m=[39m [33mROTAS_DO_CONTRATO[39m[33m.[39m[34mfilter[39m((r) [33m=>[39m
+    [90m 88| [39m      [r.corpo, r.consulta, r.parametros].some((e) => e && refinamento…
+    [90m   | [39m                                                           [31m^[39m
+    [90m 89| [39m    )[33m;[39m
+    [90m 90| [39m    [34mexpect[39m(comRegra[33m.[39mlength)[33m.[39m[34mtoBeGreaterThanOrEqual[39m([34m2[39m)[33m;[39m
+[90m [2m❯[22m test/openapi-regras.test.ts:[2m88:43[22m[39m
+[90m [2m❯[22m test/openapi-regras.test.ts:[2m87:40[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mregras condicionais que o JSON Schema perde[2m > [22machar refinamento aninhado: regra dentro de objeto interno também sai
+[31m[1mTypeError[22m: (0 , refinamentosDe) is not a function[39m
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m111:21[22m[39m
+    [90m109| [39m      })[33m;[39m
+    [90m110| [39m    [35mconst[39m externo [33m=[39m z[33m.[39m[34mobject[39m({ itens[33m:[39m z[33m.[39m[34marray[39m(interno) })[33m;[39m
+    [90m111| [39m    [35mconst[39m achadas [33m=[39m [34mrefinamentosDe[39m(externo)[33m;[39m
+    [90m   | [39m                    [31m^[39m
+    [90m112| [39m    [34mexpect[39m(achadas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m113| [39m    [34mexpect[39m(achadas[[34m0[39m])[33m.[39m[34mtoMatchObject[39m({
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mregras condicionais que o JSON Schema perde[2m > [22mesquema sintético com superRefine sem texto sai anotado e sem a anotação o guarda reprova
+[31m[1mAssertionError[22m: Target cannot be null or undefined.[39m
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m132:39[22m[39m
+    [90m130| [39m    [35mconst[39m doc [33m=[39m [34mgerarOpenApi[39m([sintetica][33m,[39m [])[33m;[39m
+    [90m131| [39m    const op = (doc.paths["/v1/sintetica"] as Record<string, Operacao>…
+    [90m132| [39m    [34mexpect[39m(op[[32m"x-regras-adicionais"[39m])[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                                      [31m^[39m
+    [90m133| [39m    [34mexpect[39m([35mtypeof[39m op[[32m"x-regras-adicionais"[39m][33m![39m[[34m0[39m][33m![39m[33m.[39mregra)[33m.[39m[34mtoBe[39m([32m"string"[39m)[33m;[39m
+    [90m134| [39m    expect(op["x-regras-adicionais"]![0]!.regra.length).toBeGreaterTha…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mcorpo opcional[2m > [22mcorpo `.optional()` sai com required false
+[31m[1mAssertionError[22m: expected true to be false // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m167:74[22m[39m
+    [90m165| [39m
+    [90m166| [39m  [34mit[39m([32m"corpo `.optional()` sai com required false"[39m[33m,[39m () [33m=>[39m {
+    [90m167| [39m    expect(requestBody(z.object({ a: z.string() }).optional()).require…
+    [90m   | [39m                                                                         [31m^[39m
+    [90m168| [39m  })[33m;[39m
+    [90m169| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/openapi-regras.test.ts[2m > [22mcorpo opcional[2m > [22mcorpo com padrão de objeto vazio também é opcional
+[31m[1mAssertionError[22m: expected true to be false // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+[36m [2m❯[22m test/openapi-regras.test.ts:[2m171:86[22m[39m
+    [90m169| [39m
+    [90m170| [39m  [34mit[39m([32m"corpo com padrão de objeto vazio também é opcional"[39m[33m,[39m () [33m=>[39m {
+    [90m171| [39m    expect(requestBody(z.object({ a: z.string().optional() }).default(…
+    [90m   | [39m                                                                                     [31m^[39m
+    [90m172| [39m  })[33m;[39m
+    [90m173| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m7 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 23:35:36
+[2m   Duration [22m 1.53s[2m (transform 291ms, setup 659ms, collect 290ms, tests 32ms, environment 0ms, prepare 167ms)[22m
+
+exit=1

@@ -1,0 +1,4144 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API do Defesa Civil 360",
+    "version": "1.0.0",
+    "description": "Contrato do /v1, gerado de apps/api/src/contrato. Documento derivado: não se edita à mão (npm run openapi --workspace @dc360/api). Rota registrada sem entrada aparece em `x-rotas-pendentes`; operação sem resposta descrita leva `x-resposta-pendente`."
+  },
+  "paths": {
+    "/v1/armazenamento/uso": {
+      "get": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Quanto o município ocupa do armazenamento e qual é o teto dele.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/auth/encerrar-sessoes": {
+      "post": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Encerra as OUTRAS sessões da própria conta; a atual continua aberta.",
+        "responses": {
+          "200": {
+            "description": "Quantas sessões foram encerradas e a frase para mostrar à pessoa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessoesEncerradas": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sessoesEncerradas",
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/eu": {
+      "get": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Quem sou eu, lido do token verificado.",
+        "responses": {
+          "200": {
+            "description": "A identidade da sessão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "nome": {
+                      "type": "string"
+                    },
+                    "papel": {
+                      "type": "string",
+                      "enum": [
+                        "coordenador",
+                        "operador",
+                        "agente_campo",
+                        "administrador"
+                      ]
+                    },
+                    "organizacaoId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nome",
+                    "papel",
+                    "organizacaoId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/recuperacao": {
+      "get": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Diz se a recuperação de senha por email está ligada neste servidor (pública).",
+        "responses": {
+          "200": {
+            "description": "Interruptor do servidor inteiro, igual para todos os municípios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ativa": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ativa"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/sessoes": {
+      "get": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Lista as sessões vivas da própria conta (sem IP e sem user-agent completo).",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/campo/meu-trabalho": {
+      "get": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "A tela do agente: a equipe dele, os chamados da equipe e as vistorias que ele já concluiu.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/configuracao": {
+      "get": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "O que o painel precisa saber do ambiente (a chave do mapa), igual para todos os municípios.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/documentos/{id}/laudo": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o laudo técnico de uma ocorrência.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/documentos/{id}/laudo.pdf": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o laudo técnico de uma ocorrência em PDF.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/documentos/{id}/termo-de-desinterdicao": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o termo de desinterdição de uma ocorrência.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/documentos/{id}/termo-de-interdicao": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o termo de interdição de uma ocorrência.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/documentos/{id}/termo-de-interdicao.pdf": {
+      "get": {
+        "tags": [
+          "documentos"
+        ],
+        "summary": "Emite o termo de interdição de uma ocorrência em PDF.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/equipes": {
+      "get": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Lista as equipes do município.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      },
+      "post": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Cadastra uma equipe.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "especialidade": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ativa": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "nome"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/equipes/{id}": {
+      "patch": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Edita uma equipe (equipe se desativa em vez de sumir).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "especialidade": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ativa": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "nome"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/evidencias/{id}/url": {
+      "get": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Devolve a URL assinada, de vida curta, para ver uma evidência do município.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/evidencias/ocorrencia/{id}": {
+      "get": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Lista as evidências de uma ocorrência.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Abre uma ocorrência a partir de uma solicitação, com protocolo gerado pelo servidor.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo tipoDescricao: Descreva em poucas palavras o que foi relatado, para a triagem poder classificar.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "solicitanteNome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "solicitanteContato": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "canalEntrada": {
+                    "type": "string",
+                    "enum": [
+                      "telefone",
+                      "whatsapp",
+                      "presencial",
+                      "oficio",
+                      "outro"
+                    ]
+                  },
+                  "endereco": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "coordenada": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "pontoReferencia": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "deslizamento",
+                      "inundacao",
+                      "alagamento",
+                      "enxurrada",
+                      "vendaval",
+                      "granizo",
+                      "colapso_edificacao",
+                      "incendio_urbano",
+                      "outro"
+                    ]
+                  },
+                  "tipoDescricao": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "descricao": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "vinculadaA": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "solicitanteNome",
+                  "canalEntrada",
+                  "endereco",
+                  "tipo",
+                  "descricao"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "tipoDescricao",
+                    "regra": "Descreva em poucas palavras o que foi relatado, para a triagem poder classificar"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "tipoDescricao",
+            "regra": "Descreva em poucas palavras o que foi relatado, para a triagem poder classificar"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}": {
+      "get": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Lê o dossiê de uma ocorrência do município (agente de campo só vê as da própria equipe).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}/coordenada": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Corrige a coordenada de abertura da ocorrência, sem tocar na medida em campo.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "coordenada": {
+                    "type": "object",
+                    "properties": {
+                      "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "lat",
+                      "lng"
+                    ]
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "minLength": 15,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "coordenada",
+                  "motivo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}/desinterdicao": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Levanta a interdição de uma ocorrência interditada.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "motivo": {
+                    "type": "string",
+                    "minLength": 15,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "motivo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}/despacho": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Despacha uma equipe para a ocorrência.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "equipeId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "prazoHoras": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 720
+                  },
+                  "instrucoes": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "equipeId",
+                  "prazoHoras"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}/encerramento": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Encerra a ocorrência com motivo (registro não se apaga, se encerra).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "motivo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "motivo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}/providencia/{providenciaId}/resposta": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Registra a resposta do órgão a uma providência encaminhada.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "providenciaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "desfecho": {
+                    "type": "string",
+                    "enum": [
+                      "atendida",
+                      "atendida_parcialmente",
+                      "recusada"
+                    ]
+                  },
+                  "resposta": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "respondidaPor": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "desfecho",
+                  "resposta",
+                  "respondidaPor"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/{id}/triagem": {
+      "post": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Registra a triagem: severidade, vulnerabilidade e, se mudar, o tipo COBRADE.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo vulnerabilidadeDescricao: Descreva a vulnerabilidade identificada.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "severidade": {
+                    "type": "string",
+                    "enum": [
+                      "baixa",
+                      "media",
+                      "alta",
+                      "critica"
+                    ]
+                  },
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "deslizamento",
+                      "inundacao",
+                      "alagamento",
+                      "enxurrada",
+                      "vendaval",
+                      "granizo",
+                      "colapso_edificacao",
+                      "incendio_urbano"
+                    ]
+                  },
+                  "vulnerabilidadePresente": {
+                    "type": "boolean"
+                  },
+                  "vulnerabilidadeDescricao": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "severidade",
+                  "vulnerabilidadePresente"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "vulnerabilidadeDescricao",
+                    "regra": "Descreva a vulnerabilidade identificada"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "vulnerabilidadeDescricao",
+            "regra": "Descreva a vulnerabilidade identificada"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrada: Recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrada"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/devolvidas": {
+      "get": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Lista as ocorrências cujas tarefas o agente devolveu e esperam decisão da coordenação.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/indicadores/painel": {
+      "get": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Os indicadores do painel do coordenador.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/interditados": {
+      "get": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Lista as ocorrências com interdição ativa (agente de campo só vê as da própria equipe).",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/ocorrencias/providencias/pendentes": {
+      "get": {
+        "tags": [
+          "ocorrencias"
+        ],
+        "summary": "Lista as providências encaminhadas que ainda esperam resposta do órgão.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/oficios/{id}": {
+      "get": {
+        "tags": [
+          "oficios-e-orgaos"
+        ],
+        "summary": "Lê um ofício emitido pelo município.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/oficios/{id}/documento": {
+      "get": {
+        "tags": [
+          "oficios-e-orgaos"
+        ],
+        "summary": "Abre o documento do ofício emitido.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/organizacao/retencao": {
+      "get": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Lê o prazo de retenção do município (nulo é valor: ainda não decidiu).",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/orgaos/{id}/reativacao": {
+      "post": {
+        "tags": [
+          "oficios-e-orgaos"
+        ],
+        "summary": "Reativa um órgão do catálogo (órgão se desativa em vez de sumir).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/publico/interesse": {
+      "post": {
+        "tags": [
+          "publico"
+        ],
+        "summary": "Formulário público de contato de um município interessado (sem token; não cria município).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 200
+                  },
+                  "cargo": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "telefone": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "municipio": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 200
+                  },
+                  "uf": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "pattern": "^[A-Za-z]{2}$"
+                  },
+                  "orgao": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "faixaPopulacao": {
+                    "type": "string",
+                    "enum": [
+                      "ate_50_mil",
+                      "de_50_a_200_mil",
+                      "acima_de_200_mil",
+                      "nao_sei"
+                    ]
+                  },
+                  "quantosAgentes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "mensagem": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "origem": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "nome",
+                  "email",
+                  "municipio",
+                  "uf"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sempre a mesma resposta, tenha o pedido sido gravado agora ou recusado pela janela de seis horas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recebido": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "mensagem": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "recebido",
+                    "mensagem"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/relatorios/exportacoes": {
+      "get": {
+        "tags": [
+          "prestacao-de-contas"
+        ],
+        "summary": "Quem exportou o quê e quando (registro de operações da LGPD).",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/saida-a-campo": {
+      "get": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Lista as saídas a campo abertas e as que estouraram o prazo, para a coordenação.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      },
+      "post": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "O agente declara que saiu a campo, com a duração prevista e se vai sozinho.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "ocorrenciaId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "agenteId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "duracaoMinutos": {
+                    "type": "integer",
+                    "minimum": 15,
+                    "maximum": 480
+                  },
+                  "sozinho": {
+                    "type": "boolean"
+                  },
+                  "declaradaEm": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "idempotencyKey",
+                  "ocorrenciaId",
+                  "agenteId",
+                  "duracaoMinutos",
+                  "sozinho",
+                  "declaradaEm"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/saida-a-campo/encerrar": {
+      "post": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "A coordenação encerra uma saída a campo, registrando o desfecho.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo observacao: Diga o que foi acionado (quem, e a que horas).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "saidaId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "desfecho": {
+                    "type": "string",
+                    "enum": [
+                      "contato_estabelecido",
+                      "retorno_a_base",
+                      "apoio_acionado",
+                      "registro_indevido"
+                    ]
+                  },
+                  "observacao": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "saidaId",
+                  "desfecho"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "observacao",
+                    "regra": "Diga o que foi acionado (quem, e a que horas)"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "observacao",
+            "regra": "Diga o que foi acionado (quem, e a que horas)"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/saida-a-campo/minha": {
+      "get": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Lê a saída a campo aberta do próprio agente.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/saida-a-campo/prorrogar": {
+      "post": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "O agente prorroga o prazo de retorno da saída aberta.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "saidaId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "minutosAdicionais": {
+                    "type": "integer",
+                    "minimum": 15,
+                    "maximum": 480
+                  },
+                  "pedidaEm": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "idempotencyKey",
+                  "saidaId",
+                  "minutosAdicionais",
+                  "pedidaEm"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/saida-a-campo/retorno": {
+      "post": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "O agente declara que voltou do campo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "saidaId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "confirmadoEm": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "idempotencyKey",
+                  "saidaId",
+                  "confirmadoEm"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/saida/pacote.zip": {
+      "post": {
+        "tags": [
+          "prestacao-de-contas"
+        ],
+        "summary": "Gera o pacote de saída do município: ato do administrador, que exige duas permissões.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/segundo-fator": {
+      "get": {
+        "tags": [
+          "autenticacao"
+        ],
+        "summary": "Lê a situação da verificação em duas etapas da própria conta.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/sincronizacao/devolucao": {
+      "post": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Recebe a devolução de uma tarefa pelo agente, de forma idempotente por chave.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo observacao: Com o motivo 'outro', escreva o que aconteceu.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "ocorrenciaId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "decididaEm": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "devolvidaPor": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "enum": [
+                      "endereco_nao_localizado",
+                      "morador_ausente",
+                      "acesso_impedido",
+                      "risco_para_a_equipe",
+                      "fora_da_area_da_equipe",
+                      "outro"
+                    ]
+                  },
+                  "observacao": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "idempotencyKey",
+                  "ocorrenciaId",
+                  "decididaEm",
+                  "devolvidaPor",
+                  "motivo"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "observacao",
+                    "regra": "Com o motivo 'outro', escreva o que aconteceu"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "observacao",
+            "regra": "Com o motivo 'outro', escreva o que aconteceu"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/sincronizacao/pendencias": {
+      "get": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Lista as ocorrências despachadas para as equipes do agente: o que o aparelho baixa para trabalhar sem sinal (limitada, com aviso de truncamento).",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/sincronizacao/vistoria": {
+      "post": {
+        "tags": [
+          "campo"
+        ],
+        "summary": "Recebe o envelope de uma vistoria feita em campo, de forma idempotente por chave.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo vistoria: regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam; corpo, campo vistoria.checklist: A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão.; corpo, campo vistoria.checklist: O checklist tem item que não existe no catálogo da vistoria..",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "ocorrenciaId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "coletadaEm": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "coletadaPor": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "vistoria": {
+                    "type": "object",
+                    "properties": {
+                      "checklist": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "chave": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 60
+                            },
+                            "resposta": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "chave",
+                            "resposta"
+                          ]
+                        }
+                      },
+                      "orgaosParaAcionar": {
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "orgaoId": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "nome": {
+                              "type": "string",
+                              "minLength": 2,
+                              "maxLength": 200
+                            }
+                          },
+                          "required": [
+                            "orgaoId",
+                            "nome"
+                          ]
+                        }
+                      },
+                      "fotos": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "chave": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "capturadaEm": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            },
+                            "coordenada": {
+                              "type": "object",
+                              "properties": {
+                                "lat": {
+                                  "type": "number",
+                                  "minimum": -90,
+                                  "maximum": 90
+                                },
+                                "lng": {
+                                  "type": "number",
+                                  "minimum": -180,
+                                  "maximum": 180
+                                }
+                              },
+                              "required": [
+                                "lat",
+                                "lng"
+                              ]
+                            },
+                            "legenda": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "chave",
+                            "capturadaEm"
+                          ]
+                        }
+                      },
+                      "evidenciasPerdidas": {
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "idempotencyKey": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "capturadaEm": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            },
+                            "papel": {
+                              "type": "string",
+                              "enum": [
+                                "foto",
+                                "assinatura"
+                              ]
+                            },
+                            "legenda": {
+                              "type": "string",
+                              "maxLength": 300
+                            },
+                            "coordenada": {
+                              "type": "object",
+                              "properties": {
+                                "lat": {
+                                  "type": "number",
+                                  "minimum": -90,
+                                  "maximum": 90
+                                },
+                                "lng": {
+                                  "type": "number",
+                                  "minimum": -180,
+                                  "maximum": 180
+                                }
+                              },
+                              "required": [
+                                "lat",
+                                "lng"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "idempotencyKey",
+                            "capturadaEm",
+                            "papel"
+                          ]
+                        }
+                      },
+                      "coordenada": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lng": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lng"
+                        ]
+                      },
+                      "gpsPrecisaoMetros": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "assinanteNome": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "assinaturaChave": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "coletadaEm": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                      },
+                      "observacoes": {
+                        "type": "string",
+                        "maxLength": 4000
+                      },
+                      "desalojados": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "desabrigados": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "feridos": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "desaparecidos": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "obitos": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      }
+                    },
+                    "required": [
+                      "checklist",
+                      "fotos",
+                      "gpsPrecisaoMetros",
+                      "assinanteNome",
+                      "assinaturaChave",
+                      "coletadaEm"
+                    ]
+                  }
+                },
+                "required": [
+                  "idempotencyKey",
+                  "ocorrenciaId",
+                  "coletadaEm",
+                  "vistoria"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "vistoria",
+                    "campo": "vistoria",
+                    "regra": "regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam"
+                  },
+                  {
+                    "caminho": "vistoria.checklist",
+                    "campo": "vistoria.checklist",
+                    "regra": "A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão."
+                  },
+                  {
+                    "caminho": "vistoria.checklist",
+                    "campo": "vistoria.checklist",
+                    "regra": "O checklist tem item que não existe no catálogo da vistoria."
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "vistoria",
+            "campo": "vistoria",
+            "regra": "regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam"
+          },
+          {
+            "em": "corpo",
+            "caminho": "vistoria.checklist",
+            "campo": "vistoria.checklist",
+            "regra": "A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão."
+          },
+          {
+            "em": "corpo",
+            "caminho": "vistoria.checklist",
+            "campo": "vistoria.checklist",
+            "regra": "O checklist tem item que não existe no catálogo da vistoria."
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/trilha/tipos": {
+      "get": {
+        "tags": [
+          "prestacao-de-contas"
+        ],
+        "summary": "Lista os tipos de evento da trilha de auditoria, para a tela montar o filtro.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/usuarios": {
+      "get": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Lista os usuários do município.",
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      },
+      "post": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Cadastra um usuário com senha inicial.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "matricula": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "email": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "papel": {
+                    "type": "string",
+                    "enum": [
+                      "coordenador",
+                      "operador",
+                      "agente_campo",
+                      "administrador"
+                    ]
+                  },
+                  "equipeId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "senha": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "nome",
+                  "matricula",
+                  "email",
+                  "papel",
+                  "senha"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/usuarios/{id}": {
+      "patch": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Edita o cadastro de um usuário, sem tocar na senha.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "matricula": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "email": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "papel": {
+                    "type": "string",
+                    "enum": [
+                      "coordenador",
+                      "operador",
+                      "agente_campo",
+                      "administrador"
+                    ]
+                  },
+                  "equipeId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "nome",
+                  "matricula",
+                  "email",
+                  "papel"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/usuarios/{id}/encerrar-sessoes": {
+      "post": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Encerra todas as sessões de OUTRO usuário.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/usuarios/{id}/redefinir-senha": {
+      "post": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Redefine a senha de OUTRO usuário e derruba as sessões dele (a própria conta não passa por aqui).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/usuarios/{id}/sessoes": {
+      "get": {
+        "tags": [
+          "administracao"
+        ],
+        "summary": "Lista as sessões vivas de OUTRO usuário do município.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "sem_permissao: Perfil sem permissão para a ação",
+            "x-codigos-de-erro": [
+              "sem_permissao"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "dados_invalidos: Campos do pedido precisam ser corrigidos",
+            "x-codigos-de-erro": [
+              "dados_invalidos"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Resposta ainda não descrita no contrato (dívida listada em apps/api/PENDENCIAS.md)."
+          }
+        },
+        "x-resposta-pendente": true
+      }
+    },
+    "/v1/usuarios/eu": {
+      "get": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Lê o cadastro da própria conta, com a URL de leitura da foto.",
+        "responses": {
+          "200": {
+            "description": "O cadastro da pessoa; `fotoUrl` é nula quando não há foto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "nome": {
+                      "type": "string"
+                    },
+                    "matricula": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "papel": {
+                      "type": "string",
+                      "enum": [
+                        "coordenador",
+                        "operador",
+                        "agente_campo",
+                        "administrador"
+                      ]
+                    },
+                    "equipeId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "fotoUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nome",
+                    "matricula",
+                    "email",
+                    "papel",
+                    "equipeId",
+                    "fotoUrl"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usuarios/eu/foto": {
+      "delete": {
+        "tags": [
+          "conta"
+        ],
+        "summary": "Remove a foto da própria conta (204 mesmo quando não havia foto).",
+        "responses": {
+          "204": {
+            "description": "Sem corpo."
+          },
+          "401": {
+            "description": "nao_autenticado: Token ausente, inválido ou vencido",
+            "x-codigos-de-erro": [
+              "nao_autenticado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErroDaApi": {
+        "type": "object",
+        "properties": {
+          "erro": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mensagem": {
+            "type": "string"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "mensagem": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "campo",
+                "mensagem"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "requisicao": {
+            "type": "string"
+          },
+          "categoria": {
+            "type": "string",
+            "enum": [
+              "renovar",
+              "reentrar",
+              "corrigir",
+              "aguardar",
+              "permanente"
+            ]
+          }
+        },
+        "required": [
+          "erro",
+          "mensagem"
+        ],
+        "additionalProperties": {}
+      }
+    }
+  },
+  "x-rotas-pendentes": [
+    "GET /v1/avisos",
+    "GET /v1/busca",
+    "GET /v1/documentos/validar/:codigo",
+    "GET /v1/ocorrencias",
+    "GET /v1/ocorrencias/duplicidades/consulta",
+    "GET /v1/ocorrencias/mapa",
+    "GET /v1/oficios",
+    "GET /v1/orgaos",
+    "GET /v1/relatorios/consultas",
+    "GET /v1/relatorios/ocorrencias.csv",
+    "GET /v1/relatorios/resumo",
+    "GET /v1/trilha",
+    "PATCH /v1/organizacao/retencao",
+    "PATCH /v1/orgaos/:id",
+    "PATCH /v1/usuarios/:id/situacao",
+    "POST /v1/aparelhos",
+    "POST /v1/aparelhos/revogar",
+    "POST /v1/auth/entrar",
+    "POST /v1/auth/recuperar",
+    "POST /v1/auth/redefinir",
+    "POST /v1/auth/renovar",
+    "POST /v1/auth/sair",
+    "POST /v1/auth/segundo-fator",
+    "POST /v1/auth/trocar-senha",
+    "POST /v1/avisos/lidos",
+    "POST /v1/evidencias/autorizar-envio",
+    "POST /v1/evidencias/confirmar-envio",
+    "POST /v1/mapa/resolver-link",
+    "POST /v1/ocorrencias/:id/providencia",
+    "POST /v1/oficios",
+    "POST /v1/oficios/:id/envio",
+    "POST /v1/orgaos",
+    "POST /v1/orgaos/:id/desativacao",
+    "POST /v1/rota",
+    "POST /v1/segundo-fator/confirmar",
+    "POST /v1/segundo-fator/desativar",
+    "POST /v1/segundo-fator/iniciar",
+    "POST /v1/sincronizacao/pendencias/reconciliar",
+    "POST /v1/usuarios/eu/foto/autorizar-envio",
+    "PUT /v1/usuarios/eu/foto"
+  ]
+}
