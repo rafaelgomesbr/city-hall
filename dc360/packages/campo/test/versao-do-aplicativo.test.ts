@@ -423,7 +423,11 @@ describe("depois do 426 o token é pedido sem renovação antecipada (correção
     ]);
 
     await expect(transporte.enviar(envelope())).rejects.toBeInstanceOf(FalhaDeSessao);
-    await transporte.enviarBytes("https://arquivos.exemplo/foto?assinatura=x", {}, new Uint8Array([1]));
+    await transporte.enviarBytes(
+      "https://arquivos.exemplo/foto?assinatura=x",
+      {},
+      new Uint8Array([1]),
+    );
     await transporte.enviar(envelope());
 
     expect(obterToken.mock.calls[1]?.[0]).toEqual({ semRenovar: true });

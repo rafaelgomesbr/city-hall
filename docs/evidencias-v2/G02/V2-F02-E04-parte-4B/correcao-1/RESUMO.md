@@ -15,6 +15,10 @@ Fecha o achado BLOQUEIA da revisão independente (Codex) dos lotes 3 e 4 (junç�
 - O teste contra o comportamento usa o servidor em memória (como os demais testes de contrato); não roda `test:e2e:api`, que é do CI.
 - O 426 só é declarado para o `/v1`. O espelho legado e as rotas fora do prefixo não fazem parte do contrato.
 
+## Portões da correção inteira (as três correções, mesma árvore; ficam aqui e valem para as pastas `V2-F02-E06-parte-3B/correcao-1` e `V2-F02-E05/correcao-1`)
+
+`04-typecheck.txt` (0), `05-lint.txt` (0), `06-lint-teto.txt` (431), `07-formato.txt` (0, depois de formatar os dois arquivos de teste tocados), `08-npm-test.txt` (campo 283 de 283; shared 433 de 434, a falha é o EPERM de symlink, DV-46; API 2257 passam, 2 falham em `semear-homologacao` e 34 pulados; console 379 de 379; web 824 de 824; db 440 passam e 8 falham, as do ambiente Windows: `desfazer-migracao` 5 e `guarda-da-semente` 3), `09-isolamento.txt` (db, as mesmas 8 do ambiente, CA-06 sem falha), `10-test-scripts.txt` (831 casos, 807 passam, 23 pulados; o 1 que falhou foi `conferir-indices-de-evidencia` com os arquivos desta pasta ainda sem entrada no `INDEX.md`, e fica verde depois de indexar, ver o registro da junção), `11-regras-de-conteudo.txt` (9 de 10, o EPERM), `12-auditar.txt` (0, runtime limpo), `13-conferir-numeros.txt` (0), `14-baseline-test.txt` (29 de 29). Jest do aplicativo de campo: 142 suítes, 2023 casos (`V2-F02-E06-parte-3B/correcao-1/saidas/02-item2-DEPOIS-jest-do-app.txt`). Não rodei `test:e2e:api` (é do CI).
+
 ## Para o orquestrador
 
 - Dívida paga: o achado BLOQUEIA da revisão dos lotes 3 e 4 sobre o OpenAPI sem o 426 (E04 com E06).

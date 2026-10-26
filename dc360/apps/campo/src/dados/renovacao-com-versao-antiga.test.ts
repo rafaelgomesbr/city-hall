@@ -26,10 +26,7 @@ import { criarObtentorDeToken, lerExpiracaoDoAcesso } from "./token";
 
 const AUTOR = { usuarioId: "agente-ana", nome: "Ana Ribeiro", organizacaoId: "serra-alta" };
 const OCORRENCIA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const CHAVES = [
-  "11111111-1111-4111-8111-111111111111",
-  "22222222-2222-4222-8222-222222222222",
-];
+const CHAVES = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
 const T0 = Date.parse("2026-10-26T14:00:00.000Z");
 const MINUTO = 60_000;
 
