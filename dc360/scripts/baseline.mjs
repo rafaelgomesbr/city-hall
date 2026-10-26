@@ -928,6 +928,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F03-0C": { total: 1, falhas: 0 },
   // V2-F04-0C (andaime do shared): `catalogo-de-erros.test.ts` ganha 1 caso (a F04 reserva `orgao_sem_gestor`, `encaminhamento_encerrado`, `devolucao_so_antes_do_aceite` e `cadeia_esgotada` no fim da lista, sem repetir `transicao_invalida` nem `ja_respondida`).
   "V2-F04-0C": { total: 1, falhas: 0 },
+  // V2-F04-E15 parte 0F (competência no shared, primeira versão pelo Codex e revisada pelo orquestrador): `competencia.test.ts` novo com 14 casos.
+  "V2-F04-E15-parte-0F": { total: 14, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

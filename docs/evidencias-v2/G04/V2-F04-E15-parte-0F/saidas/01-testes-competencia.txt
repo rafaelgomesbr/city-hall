@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/codex-0f/dc360
+
+ ✓ packages/shared/test/competencia.test.ts (14 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  09:18:35
+   Duration  1.70s (transform 251ms, setup 0ms, collect 950ms, tests 10ms, environment 0ms, prepare 222ms)
+
