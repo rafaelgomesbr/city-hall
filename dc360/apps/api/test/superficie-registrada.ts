@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { semPrefixoDeVersao } from "../src/versao-v1.js";
 
 /**
  * O que a API registrou de verdade, lido do servidor montado.
@@ -56,6 +57,16 @@ export const SEM_TOKEN = new Map<string, string>([
     + "leva o conteúdo do ofício",
   ],
 ]);
+
+/**
+ * A isenção é declarada UMA vez, na forma sem prefixo (`SEM_TOKEN`), e vale
+ * para o mesmo caminho sob `/v1` (V2-F02-E01): tira-se o `/v1` da chave antes
+ * de consultar. `GET /v1/saude` não existe, então não há isenção a herdar lá.
+ */
+export function ehSemToken(chave: string): boolean {
+  const [metodo, caminho] = chave.split(" ");
+  return SEM_TOKEN.has(`${metodo ?? ""} ${semPrefixoDeVersao(caminho ?? "")}`);
+}
 
 export type Rota = { metodo: string; caminho: string };
 

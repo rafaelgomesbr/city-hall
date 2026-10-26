@@ -1,0 +1,74 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a8bd7917e1e97e5a7/dc360/apps/api
+
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > uma coleta offline sobe e vira laudo com as duas marcas de tempo 158ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > uma coleta offline sobe e vira laudo com as duas marcas de tempo 163ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só 237ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > as fotos entram com a chave de storage prefixada pelo município 3ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > servidor fora do ar mantém a coleta na fila, e ela sobe quando ele volta 73ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só 228ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > as fotos entram com a chave de storage prefixada pelo município 2ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > servidor fora do ar mantém a coleta na fila, e ela sobe quando ele volta 50ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > token recusado e sem renovação possível pausa a fila: o item NÃO é bloqueado nem descartado 42ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > token recusado e sem renovação possível pausa a fila: o item NÃO é bloqueado nem descartado 48ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > papel sem permissão bloqueia sem gastar bateria repetindo 38ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > papel sem permissão bloqueia sem gastar bateria repetindo 43ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > âncora: a leitura da árvore enxerga as rotas dos dois lados 57ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > toda rota legada tem par em /v1, salvo as quatro de infraestrutura declaradas 23ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo contra a API > cada envio grava uma vez só no armazenamento local 70ms
+ ✓ test/campo-integracao.test.ts > Fila de campo contra a API > cada envio grava uma vez só no armazenamento local 70ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > toda rota de /v1 tem par legado, salvo as declaradas em ROTAS_SO_NO_V1 19ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > as exceções existem de verdade, não ganham par, e não há lista morta 19ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > as exceções do contrato (saúde, armazenamento assinado, ofício público: quatro rotas, três endereços) e nenhuma além 1ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > o mesmo número de rotas de negócio nos dois lados 12ms
+ ✓ test/versao-v1.test.ts > Paridade: o Fastify registrou as mesmas rotas nos dois endereços > o formulário público de contato vai a /v1 também 13ms
+ ✓ test/versao-v1.test.ts > Mesma resposta nos dois prefixos > GET /v1/ocorrencias com token responde o mesmo que o legado 22ms
+ ✓ test/versao-v1.test.ts > Mesma resposta nos dois prefixos > o dossiê de uma ocorrência também 39ms
+ ✓ test/versao-v1.test.ts > Mesma resposta nos dois prefixos > o erro de validação e o de autenticação têm o mesmo corpo 10ms
+ ✓ test/versao-v1.test.ts > Mesma resposta nos dois prefixos > token adulterado em /v1 devolve o mesmo que token ausente 3ms
+ ✓ test/versao-v1.test.ts > Mesma resposta nos dois prefixos > uma escrita pelo legado aparece na leitura por /v1 (é o mesmo banco) 23ms
+ ✓ test/versao-v1.test.ts > Isolamento entre municípios nos dois prefixos > o token do município B em /v1/ocorrencias/<id de A> responde 404, igual ao legado 10ms
+ ✓ test/versao-v1.test.ts > Isolamento entre municípios nos dois prefixos > a lista do município B, por /v1, não traz a ocorrência de A 9ms
+ ✓ test/versao-v1.test.ts > Isolamento entre municípios nos dois prefixos > a organização continua vindo só do token: cabeçalho e query com outra organização não mudam nada 7ms
+ ✓ test/versao-v1.test.ts > Fora do /v1: o que não ganha prefixo > /v1/saude e /v1/publico/oficio/x respondem 404 4ms
+ ✓ test/versao-v1.test.ts > Fora do /v1: o que não ganha prefixo > as rotas de infraestrutura seguem na raiz, sem cabeçalho de depreciação 17ms
+ ✓ test/versao-v1.test.ts > Cabeçalhos de depreciação: só no espelho > o legado traz Deprecation, Sunset (de ESPELHO_LEGADO_ATE) e Link para o sucessor 7ms
+ ✓ test/versao-v1.test.ts > Cabeçalhos de depreciação: só no espelho > o /v1 não traz nenhum dos três 9ms
+ ✓ test/versao-v1.test.ts > Cabeçalhos de depreciação: só no espelho > os cabeçalhos saem também nas respostas de erro e SEM token (401, 404, 422) 8ms
+ ✓ test/versao-v1.test.ts > Cabeçalhos de depreciação: só no espelho > o Link não devolve a query string (pode levar o endereço de um imóvel) 8ms
+ ✓ test/versao-v1.test.ts > Cabeçalhos de depreciação: só no espelho > o Link nunca fecha o <...> antes da hora, qualquer que seja o caminho pedido 0ms
+ ✓ test/versao-v1.test.ts > ESPELHO_LEGADO_ATE > existe com um padrão válido, e é uma data ISO 1ms
+ ✓ test/versao-v1.test.ts > ESPELHO_LEGADO_ATE > recusa o que não é data de calendário 5ms
+ ✓ test/versao-v1.test.ts > Senha provisória vale nos dois prefixos > a lista de rotas abertas tem os dois caminhos de cada rota 0ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação 1042ms
+ ✓ test/campo-integracao.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação 1046ms
+ ✓ test/campo-integracao.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada 1014ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada 1044ms
+ ✓ test/versao-v1.test.ts > Senha provisória vale nos dois prefixos > token provisório em /v1/ocorrencias recebe 403 troca_de_senha_obrigatoria, como no legado 1945ms
+ ✓ test/campo-integracao.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez 2860ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez 2973ms
+ ✓ test/campo-integracao.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar 586ms
+ ✓ test/campo-integracao.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido e a renovação não muda nada: a fila PAUSA, sem laço contra o servidor 43ms
+ ✓ test/campo-integracao.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > papel sem permissão (403 sem_permissao) continua BLOQUEANDO: só a sessão é poupada 45ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar 610ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido e a renovação não muda nada: a fila PAUSA, sem laço contra o servidor 35ms
+ ✓ test/campo-integracao-v1.test.ts > Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > papel sem permissão (403 sem_permissao) continua BLOQUEANDO: só a sessão é poupada 38ms
+ ✓ test/campo-integracao.test.ts > Foto de campo do aparelho ao banco > a foto sobe, é confirmada e fica amarrada à vistoria 99ms
+ ✓ test/campo-integracao.test.ts > Foto de campo do aparelho ao banco > o coordenador consegue ver a foto que o agente enviou 9ms
+ ✓ test/campo-integracao-v1.test.ts > Foto de campo do aparelho ao banco > a foto sobe, é confirmada e fica amarrada à vistoria 99ms
+ ✓ test/campo-integracao-v1.test.ts > Foto de campo do aparelho ao banco > o coordenador consegue ver a foto que o agente enviou 8ms
+ ✓ test/versao-v1.test.ts > Senha provisória vale nos dois prefixos > encerrar as próprias sessões também passa com a senha provisória, nos dois prefixos 3793ms
+ ✓ test/campo-integracao.test.ts > Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez 506ms
+ ✓ test/campo-integracao.test.ts > Foto de campo do aparelho ao banco > reenviar a coleta inteira não duplica a foto 137ms
+ ✓ test/campo-integracao-v1.test.ts > Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez 517ms
+ ✓ test/campo-integracao-v1.test.ts > Foto de campo do aparelho ao banco > reenviar a coleta inteira não duplica a foto 113ms
+ ✓ test/versao-v1.test.ts > A fila do campo (503) vale nos dois prefixos > município suspenso: as rotas da fila respondem 503 e as demais escritas 403, em /v1 e no legado 537ms
+ ✓ test/versao-v1.test.ts > O limitador vale nos dois prefixos > o balde global é um só: pedidos por /v1 e pelo legado contam juntos (429 no sexto) 88ms
+ ✓ test/versao-v1.test.ts > O limitador vale nos dois prefixos > o limite do login NÃO dobra pela escolha do prefixo: três tentativas no total, não três por prefixo 1448ms
+ ✓ test/versao-v1.test.ts > O limitador vale nos dois prefixos > rotas diferentes continuam com baldes diferentes (login e segundo fator não se somam) 863ms
+
+ Test Files  3 passed (3)
+      Tests  65 passed (65)
+   Start at  20:42:12
+   Duration  17.01s (transform 1.15s, setup 2.25s, collect 7.20s, tests 34.01s, environment 0ms, prepare 1.17s)
+

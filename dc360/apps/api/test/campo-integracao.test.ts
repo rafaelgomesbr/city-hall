@@ -32,6 +32,15 @@ const HASH_DA_SEMENTE =
   "scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk";
 const AGENTE = "diego.alves@serraalta.exemplo.gov.br";
 
+/**
+ * O prefixo com que a fila e as chamadas falam com a API: vazio (o caminho que
+ * o aplicativo já instalado usa, o espelho legado) ou `/v1`. O mesmo arquivo
+ * roda nos dois: `campo-integracao-v1.test.ts` só liga a variável e o importa
+ * (V2-F02-E01). A URL ASSINADA que a API devolve nunca ganha prefixo, e o
+ * `endereco` abaixo, sem `V`, é o que o armazenamento local usa para montá-la.
+ */
+const V = process.env["DC360_PREFIXO_DA_API_NO_TESTE"] ?? "";
+
 let mem: BancoEmMemoria;
 let app: FastifyInstance;
 let endereco: string;
@@ -74,7 +83,7 @@ function montarFila(loja: ChaveValor) {
   return criarFilaDeSincronizacao({
     deposito: depositoSobreChaveValor(loja),
     transporte: transporteHttp({
-      baseUrl: endereco,
+      baseUrl: endereco + V,
       obterToken: async () => tokenAcesso,
     }),
     sessaoAtual: () => SESSAO_DO_DIEGO,
@@ -96,7 +105,7 @@ async function prepararOcorrenciaEmCampo(
   const comCoordenador = { authorization: `Bearer ${tokenCoordenador}` };
 
   const criar = await app.inject({
-    method: "POST", url: "/ocorrencias", headers: comCoordenador,
+    method: "POST", url: `${V}/ocorrencias`, headers: comCoordenador,
     payload: {
       solicitanteNome: "Marilda Souza Prado", canalEntrada: "telefone",
       endereco, tipo: "deslizamento",
@@ -107,13 +116,13 @@ async function prepararOcorrenciaEmCampo(
   const { id, protocolo } = criar.json();
 
   const triagem = await app.inject({
-    method: "POST", url: `/ocorrencias/${id}/triagem`, headers: comCoordenador,
+    method: "POST", url: `${V}/ocorrencias/${id}/triagem`, headers: comCoordenador,
     payload: { severidade: "alta", vulnerabilidadePresente: false },
   });
   if (triagem.statusCode !== 200) throw new Error(`triagem falhou: ${triagem.body}`);
 
   const despacho = await app.inject({
-    method: "POST", url: `/ocorrencias/${id}/despacho`, headers: comCoordenador,
+    method: "POST", url: `${V}/ocorrencias/${id}/despacho`, headers: comCoordenador,
     payload: { equipeId: EQUIPE_ALFA, prazoHoras: 24 },
   });
   if (despacho.statusCode !== 200) throw new Error(`despacho falhou: ${despacho.body}`);
@@ -133,7 +142,7 @@ async function prepararOcorrenciaEmCampo(
 /** Confere que a ocorrência preparada realmente chega ao agente pelo app. */
 async function pendenciasDoAgente(): Promise<Array<{ id: string; protocolo: string }>> {
   const r = await app.inject({
-    method: "GET", url: "/sincronizacao/pendencias",
+    method: "GET", url: `${V}/sincronizacao/pendencias`,
     headers: { authorization: `Bearer ${tokenAcesso}` },
   });
   return r.json().itens;
@@ -190,13 +199,13 @@ beforeAll(async () => {
   enderecoTardio.valor = endereco;
 
   const entrada = await app.inject({
-    method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: SENHA },
+    method: "POST", url: `${V}/auth/entrar`, payload: { email: AGENTE, senha: SENHA },
   });
   if (entrada.statusCode !== 200) throw new Error(`login do agente falhou: ${entrada.body}`);
   tokenAcesso = entrada.json().acesso;
 
   const coordenador = await app.inject({
-    method: "POST", url: "/auth/entrar",
+    method: "POST", url: `${V}/auth/entrar`,
     payload: { email: "helena.coutinho@serraalta.exemplo.gov.br", senha: SENHA },
   });
   if (coordenador.statusCode !== 200) throw new Error(`login do coordenador falhou: ${coordenador.body}`);
@@ -314,7 +323,7 @@ describe("Fila de campo contra a API", () => {
     // O servidor volta. A coleta continua guardada, com a mesma chave.
     const filaComServidor = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
-      transporte: transporteHttp({ baseUrl: endereco, obterToken: async () => tokenAcesso }),
+      transporte: transporteHttp({ baseUrl: endereco + V, obterToken: async () => tokenAcesso }),
       sessaoAtual: () => SESSAO_DO_DIEGO,
       dormir: async () => undefined,
       // O item ficou com janela de espera: no aparelho isso é minutos, aqui
@@ -345,7 +354,7 @@ describe("Fila de campo contra a API", () => {
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaEmMemoria()),
       transporte: transporteHttp({
-        baseUrl: endereco,
+        baseUrl: endereco + V,
         obterToken: async () => "token.completamente.invalido",
       }),
       sessaoAtual: () => SESSAO_DO_DIEGO,
@@ -369,7 +378,7 @@ describe("Fila de campo contra a API", () => {
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaEmMemoria()),
       transporte: transporteHttp({
-        baseUrl: endereco,
+        baseUrl: endereco + V,
         obterToken: async () => tokenCoordenador,
       }),
       sessaoAtual: () => SESSAO_DO_DIEGO,
@@ -431,7 +440,7 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
   function filaCom(loja: ChaveValor, obterToken: ObterToken) {
     return criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
-      transporte: transporteHttp({ baseUrl: endereco, obterToken }),
+      transporte: transporteHttp({ baseUrl: endereco + V, obterToken }),
       sessaoAtual: () => SESSAO_DO_DIEGO,
       dormir: async () => undefined,
     });
@@ -439,7 +448,7 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
 
   async function entrarComoAgente(): Promise<string> {
     const r = await app.inject({
-      method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: SENHA },
+      method: "POST", url: `${V}/auth/entrar`, payload: { email: AGENTE, senha: SENHA },
     });
     if (r.statusCode !== 200) throw new Error(`login do agente falhou: ${r.body}`);
     return r.json().acesso as string;
@@ -536,7 +545,7 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
 
     try {
       const redefinicao = await app.inject({
-        method: "POST", url: `/usuarios/${SESSAO_DO_DIEGO.usuarioId}/redefinir-senha`,
+        method: "POST", url: `${V}/usuarios/${SESSAO_DO_DIEGO.usuarioId}/redefinir-senha`,
         headers: { authorization: `Bearer ${tokenCoordenador}` },
       });
       expect(redefinicao.statusCode, redefinicao.body).toBe(200);
@@ -549,7 +558,7 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
 
       // (b) O agente entra com a senha provisória. O dreno recebe o 403 do servidor de verdade.
       const entrada = await app.inject({
-        method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: provisoria },
+        method: "POST", url: `${V}/auth/entrar`, payload: { email: AGENTE, senha: provisoria },
       });
       expect(entrada.statusCode, entrada.body).toBe(200);
       expect(entrada.json().trocaDeSenhaObrigatoria).toBe(true);
@@ -570,7 +579,7 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
 
       // (c) A senha é trocada (no painel). A MESMA coleta sobe, uma vez só.
       const troca = await app.inject({
-        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${tokenAtual}` },
+        method: "POST", url: `${V}/auth/trocar-senha`, headers: { authorization: `Bearer ${tokenAtual}` },
         payload: { senhaAtual: provisoria, senha: SENHA },
       });
       expect(troca.statusCode, troca.body).toBe(200);
@@ -677,7 +686,7 @@ describe("Foto de campo do aparelho ao banco", () => {
     return criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       transporte: transporteHttp({
-        baseUrl: endereco,
+        baseUrl: endereco + V,
         obterToken: async () => tokenAcesso,
       }),
       sessaoAtual: () => SESSAO_DO_DIEGO,
@@ -737,7 +746,7 @@ describe("Foto de campo do aparelho ao banco", () => {
 
   it("o coordenador consegue ver a foto que o agente enviou", async () => {
     const listagem = await app.inject({
-      method: "GET", url: "/evidencias/ocorrencia/" + (await ultimaOcorrenciaComFoto()),
+      method: "GET", url: `${V}/evidencias/ocorrencia/` + (await ultimaOcorrenciaComFoto()),
       headers: { authorization: `Bearer ${tokenCoordenador}` },
     });
 
@@ -771,7 +780,7 @@ describe("Foto de campo do aparelho ao banco", () => {
       [ANA, SESSAO_DO_DIEGO.usuarioId],
     );
     const entradaDaAna = await app.inject({
-      method: "POST", url: "/auth/entrar",
+      method: "POST", url: `${V}/auth/entrar`,
       payload: { email: "ana.gouveia@serraalta.exemplo.gov.br", senha: SENHA },
     });
     expect(entradaDaAna.statusCode, entradaDaAna.body).toBe(200);
@@ -780,7 +789,7 @@ describe("Foto de campo do aparelho ao banco", () => {
     const alvo = await prepararOcorrenciaEmCampo("Rua da Troca de Turno, 300");
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaEmMemoria()),
-      transporte: transporteHttp({ baseUrl: endereco, obterToken: async () => tokenDaAna }),
+      transporte: transporteHttp({ baseUrl: endereco + V, obterToken: async () => tokenDaAna }),
       sessaoAtual: () => SESSAO_DO_DIEGO,
       arquivos,
       dormir: async () => undefined,

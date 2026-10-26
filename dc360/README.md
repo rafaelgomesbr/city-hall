@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 293 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 439 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 791 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1869 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1918 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 339 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
@@ -113,6 +113,28 @@ contextos de tenant ao mesmo tempo.**
 Fastify com TypeScript. Ela existe para que o aplicativo de campo tenha com
 quem falar, e para que a regra de isolamento passe a valer também do lado do
 servidor, não só dentro da aba do navegador.
+
+### A versão no caminho: `/v1` e o espelho sem prefixo (V2-F02-E01)
+
+Toda rota de negócio existe sob `/v1` (o contrato novo) e, enquanto houver
+aplicativo instalado que não sabe da versão, também sem prefixo: o espelho
+legado. As duas cópias nascem da MESMA função, `registrarRotasDeNegocio`
+(`apps/api/src/servidor.ts`), então rota nova existe nos dois lados ou em
+lado nenhum; `apps/api/test/versao-v1.test.ts` confere a paridade pelas rotas
+que o Fastify de fato registrou. Toda resposta do espelho carrega `Deprecation`,
+`Sunset` (a data de `ESPELHO_LEGADO_ATE`, hoje provisória e só um aviso: nada
+deixa de responder nela) e `Link` com `rel="successor-version"` para o mesmo
+caminho sob `/v1`. A política de depreciação é da V2-F02-E08 e a retirada do
+espelho, da V2-F28-E11.
+
+Ficam sem prefixo, e a razão de cada uma está em `ROTAS_FORA_DO_PREFIXO`
+(`apps/api/src/versao-v1.ts`): `GET /saude` (sonda de infraestrutura),
+`GET` e `PUT /armazenamento/objeto` (URL assinada, e a assinatura cobre o
+caminho) e `GET /publico/oficio/:token` (endereço que vive em e-mail já
+enviado). `POST /publico/interesse` vai a `/v1`. Senha provisória, redação do
+segredo no log, marca da fila do campo e limitador valem nos dois prefixos; o
+balde do limitador é um só por rota, para o limite do login não dobrar pela
+escolha do prefixo.
 
 ### De onde vem o município, e de onde nunca vem
 
@@ -1682,7 +1704,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ```bash
 npm test                    # 3969 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 439 testes do banco
-npm run test:api            # 1869 testes da API
+npm run test:api            # 1918 testes da API
 npm run test --workspace @dc360/campo   # 238 testes do motor de campo
 npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

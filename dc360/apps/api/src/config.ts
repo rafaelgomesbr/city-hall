@@ -104,6 +104,31 @@ const esquema = z.object({
   MARCA_DAGUA: z.string().default("DOCUMENTO DE VALIDAÇÃO"),
 
   /**
+   * Até quando o caminho SEM prefixo (o espelho legado de `/v1`) responde
+   * (V2-F02-E01). Data ISO (`AAAA-MM-DD`), anunciada no cabeçalho `Sunset` de
+   * toda resposta do espelho.
+   *
+   * Hoje é só um aviso: nada deixa de responder nesta data. Quem decide
+   * quando o espelho sai, com dado de uso e versão mínima de cada aplicativo,
+   * é a V2-F02-E08 (política de depreciação) e quem o retira é a V2-F28-E11.
+   * O padrão é PROVISÓRIO e serve para o cabeçalho existir desde já; o Rafael
+   * confirma ou troca a data na E08.
+   *
+   * Validada como data de calendário de verdade: `2027-02-31` casa com o
+   * formato e não existe, e um `Sunset` inventado a partir dela enganaria o
+   * integrador que confia no cabeçalho.
+   */
+  ESPELHO_LEGADO_ATE: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "use AAAA-MM-DD")
+    .refine(
+      (v) => {
+        const d = new Date(`${v}T00:00:00Z`);
+        return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v);
+      },
+      "data inexistente no calendário",
+    )
+    .default("2027-12-31"),
+
+  /**
    * Para onde sai o link de redefinição de senha.
    *
    * Vazias, o servidor cai no notificador que só anuncia no log. Isso é

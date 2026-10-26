@@ -4,7 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { rotasRegistradas, SEM_TOKEN } from "./superficie-registrada.js";
+import { ehSemToken, rotasRegistradas, SEM_TOKEN } from "./superficie-registrada.js";
 
 /**
  * A superfície da API, descoberta e não listada.
@@ -62,7 +62,7 @@ describe("Toda rota exige token", () => {
 
     for (const rota of rotasRegistradas(app)) {
       const chave = `${rota.metodo} ${rota.caminho}`;
-      if (SEM_TOKEN.has(chave)) continue;
+      if (ehSemToken(chave)) continue;
 
       const r = await app.inject({
         method: rota.metodo as "GET",

@@ -41,12 +41,13 @@ const SEGREDO = "segredo-da-prova-dinamica-com-mais-de-32-bytes";
 const PISO: {
   passamDaAutorizacao: number; comSucesso: number; porPerfil: Record<string, number>; nuncaPassam: string[];
 } = {
-  passamDaAutorizacao: 112,
-  comSucesso: 48,
+  // Dobrados pela V2-F02-E01: cada rota de negócio existe em /v1 e no espelho sem prefixo.
+  passamDaAutorizacao: 222,
+  comSucesso: 94,
   porPerfil: {
-    semToken: 10, lixo: 10, vencido: 10, outraAssinatura: 10,
-    coordA: 93, agenteA: 62, operadorA: 61, adminA: 100,
-    desativadoA: 47, provisoriaA: 49, coordB: 96, suspensoC: 54,
+    semToken: 18, lixo: 18, vencido: 18, outraAssinatura: 18,
+    coordA: 180, agenteA: 122, operadorA: 120, adminA: 198,
+    desativadoA: 92, provisoriaA: 96, coordB: 190, suspensoC: 106,
   },
   /*
     As duas rotas do armazenamento local autenticam pela ASSINATURA da URL, que o pedido do teste não tem,
@@ -82,6 +83,8 @@ beforeAll(async () => {
   app = await construirServidor({
     banco: mem.banco, config,
     armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
+    // As rotas dobradas em /v1 e no espelho passam o balde de cada pessoa (um só nos dois prefixos) de 300 pedidos por minuto.
+    limitePorMinuto: 100_000,
   });
   await app.ready();
 

@@ -498,3 +498,22 @@ aplicação.
    passa 15 espaços e uma letra. O painel não tem esse furo, porque apara antes de
    validar (`apps/web/src/paginas/Ocorrencia.tsx`, `desinterdicaoSchema.safeParse({
    motivo: motivo.trim() })`); o guia do coordenador descreve a tela. Anotado.
+
+## O espelho legado sem prefixo (V2-F02-E01)
+
+A API responde toda rota de negócio sob `/v1` e, ainda, sem prefixo, para o
+aplicativo de campo já instalado (ver o README, "A versão no caminho"). O que
+fica em aberto:
+
+1. **`ESPELHO_LEGADO_ATE` é uma data PROVISÓRIA** (`2027-12-31`). Ela só
+   alimenta o cabeçalho `Sunset`; nada deixa de responder nela. Quem fixa a data
+   de verdade, com o dado de uso e a versão mínima de cada aplicativo, é a
+   V2-F02-E08, e quem retira o espelho é a V2-F28-E11. O Rafael confirma ou troca
+   a data na E08.
+2. **`Deprecation` sai com o valor `true`**, a forma do rascunho que o RFC 9745
+   substituiu por uma data. A data de início da depreciação é decisão da E08.
+3. **O painel, o campo e o console ainda falam o caminho sem prefixo.** Migrá-los
+   para `/v1` é a V2-F02-E02; até lá o espelho é o caminho vivo dos três, e o
+   cabeçalho de depreciação já aparece nas respostas que eles recebem.
+4. **Nada mede o uso do espelho ainda.** Sem essa medição, a data de retirada não
+   tem como ser decidida com dado. É escopo da E08.

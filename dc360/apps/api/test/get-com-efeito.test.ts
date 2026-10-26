@@ -6,7 +6,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { rotasRegistradas, SEM_TOKEN } from "./superficie-registrada.js";
+import { ehSemToken, rotasRegistradas } from "./superficie-registrada.js";
 
 /**
  * A vigência vale para a ESCRITA, e escrita não é só o método (V2-F00-E04,
@@ -340,6 +340,8 @@ describe("A lista de GET com efeito é a decisão, e o comportamento a obedece",
     const existentes = new Set(rotasRegistradas(app).map((r) => `${r.metodo} ${r.caminho}`));
     for (const chave of COM_EFEITO) {
       expect(existentes.has(chave), `rota da lista que não existe: ${chave}`).toBe(true);
+      const [metodo, caminho] = chave.split(" ");
+      expect(existentes.has(`${metodo} /v1${caminho}`), `rota da lista sem par em /v1: ${chave}`).toBe(true);
     }
   });
 
@@ -350,7 +352,7 @@ describe("A lista de GET com efeito é a decisão, e o comportamento a obedece",
       const marcadas: string[] = [];
       for (const rota of rotasRegistradas(app)) {
         const chave = `${rota.metodo} ${rota.caminho}`;
-        if (rota.metodo !== "GET" || SEM_TOKEN.has(chave)) continue;
+        if (rota.metodo !== "GET" || ehSemToken(chave)) continue;
         const r = await app.inject({
           method: "GET", url: rota.caminho.replace(/:[A-Za-z]+/g, ID_FALSO), headers: com(token),
         });
@@ -358,7 +360,17 @@ describe("A lista de GET com efeito é a decisão, e o comportamento a obedece",
         try { erro = r.json().erro; } catch { erro = undefined; }
         if (r.statusCode === 403 && erro === "conta_desativada") marcadas.push(chave);
       }
-      expect(marcadas.sort()).toEqual([...COM_EFEITO].sort());
+      /*
+        A lista é declarada uma vez, na forma sem prefixo, e vale nos DOIS
+        prefixos (V2-F02-E01): a marca é da configuração da rota, e a função
+        única de registro a dá igual ao `/v1` e ao espelho. Conferir os dois
+        lados separados é o que pega um GET com efeito sem a marca só num
+        deles.
+      */
+      const doV1 = marcadas.filter((k) => k.includes(" /v1/")).map((k) => k.replace(" /v1/", " /"));
+      const doEspelho = marcadas.filter((k) => !k.includes(" /v1/"));
+      expect(doEspelho.sort()).toEqual([...COM_EFEITO].sort());
+      expect(doV1.sort()).toEqual([...COM_EFEITO].sort());
     } finally {
       await restaurarHelena();
     }
@@ -409,7 +421,7 @@ describe("PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve", () =>
       const metodos = new Set<string>();
       for (const rota of rotasRegistradas(app)) {
         const chave = `${rota.metodo} ${rota.caminho}`;
-        if (rota.metodo === "GET" || SEM_TOKEN.has(chave)) continue;
+        if (rota.metodo === "GET" || ehSemToken(chave)) continue;
         metodos.add(rota.metodo);
         const r = await app.inject({
           method: rota.metodo as "POST",
