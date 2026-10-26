@@ -194,6 +194,11 @@ export function montarDecisoes({ dados, css, script = null, glossario = null, li
   const problemas = [...conferirEstrutura(dados), ...conferirTextos({ editorial: { ...dados, glossario }, linha: { marcos: [] }, concluidas: 0 })];
   const pecasDoG00 = dados.decisoes.filter((d) => d.grupo === "agora").length;
   const comPrazo = dados.decisoes.filter((d) => d.grupo === "prazo").length;
+  /* Com o G00 fechado (26/10/2026) o "0 fecham o gate" virou ruído: sem peça de gate aberta, o
+     contador passa a dizer quantas podem esperar. */
+  const segundoContador = pecasDoG00 > 0
+    ? `<b>${pecasDoG00}</b><span>fecham o gate G00</span>`
+    : `<b>${dados.decisoes.filter((d) => d.grupo === "pode-esperar").length}</b><span>podem esperar</span>`;
   const topo = `<header class="top">
   <div class="marca"><div class="brasao" aria-hidden="true">DC</div> Defesa Civil 360</div>
   <p class="eyebrow">Pendências humanas · posição em ${esc(dados.posicao)}</p>
@@ -202,7 +207,7 @@ export function montarDecisoes({ dados, css, script = null, glossario = null, li
   ${linkDoRelatorio ? `<p><a class="voltar" href="${esc(linkDoRelatorio)}">← Voltar ao relatório de progresso</a></p>` : ""}
   <div class="kpis">
     <div class="card kpi acc"><b>${dados.decisoes.length}</b><span>decisões a tomar</span></div>
-    <div class="card kpi"><b>${pecasDoG00}</b><span>fecham o gate G00</span></div>
+    <div class="card kpi">${segundoContador}</div>
     <div class="card kpi"><b>${comPrazo}</b><span>com risco ou prazo definido</span></div>
     <div class="card kpi"><b>${dados.conferencias.itens.length}</b><span>conferências a fazer</span></div>
   </div>

@@ -179,10 +179,13 @@ test("decisoes.json REAL: estrutura em ordem, texto aprovado na conferência e o
   const { problemas, html } = montarDecisoes({ dados, css: "", glossario });
   assert.deepEqual(problemas, []);
   assert.ok(glossario.completo.length >= 15 && glossario.destaque.length === 4);
-  assert.ok(dados.decisoes.length >= 10);
-  assert.ok(dados.conferencias.itens.length >= 10);
-  // Só H44, H09 e H33 têm recomendação escrita no pendencias-humanas.md ou no roteiro do G00.
+  assert.ok(dados.decisoes.length >= 1);
+  assert.ok(dados.conferencias.itens.length >= 1);
+  // Desde as respostas de 26/10 nenhuma decisão aberta tem recomendação escrita no pendencias-humanas.md:
+  // marcar uma opção como recomendada aqui seria inventá-la.
   const recomendadas = dados.decisoes.filter((d) => d.opcoes.some((o) => o.recomendada)).map((d) => d.codigo);
-  assert.deepEqual(recomendadas.sort(), ["H09", "H33", "H44"]);
-  assert.match(html, /id="H44"/);
+  assert.deepEqual(recomendadas, []);
+  for (const d of dados.decisoes) assert.match(html, new RegExp(`id="${d.codigo}"`));
+  // Sem peça de gate aberta, o segundo contador diz quantas podem esperar, e não "0 fecham o gate".
+  assert.doesNotMatch(html, /<b>0<\/b><span>fecham o gate/);
 });
