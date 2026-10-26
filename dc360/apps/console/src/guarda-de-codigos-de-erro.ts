@@ -345,14 +345,27 @@ export type OpcoesDaGuarda = {
 
 type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
 
-/** Os cabeçalhos do `writeHead` sem `content-length`, `content-type` e `transfer-encoding`. */
+/**
+ * Os cabeçalhos que descrevem o CORPO da resposta trocada (a representação):
+ * quando a guarda põe outro corpo no lugar, nenhum deles vale mais. Restaurá-los
+ * anunciaria, por exemplo, `content-encoding: gzip` sobre JSON puro, e o
+ * cliente falharia ao ler a resposta do desvio.
+ */
+const CABECALHOS_DO_CORPO: readonly string[] = [
+  "content-length", "content-type", "transfer-encoding", "content-encoding", "trailer",
+  "content-range", "content-md5", "content-digest", "repr-digest", "digest",
+  "content-language", "content-location", "content-disposition", "accept-ranges", "etag", "last-modified",
+];
+function ehCabecalhoDoCorpo(nome: string): boolean {
+  const b = aplicar(paraMinusculas, nome, []) as string;
+  for (let i = 0; i < CABECALHOS_DO_CORPO.length; i += 1) if (CABECALHOS_DO_CORPO[i] === b) return true;
+  return false;
+}
+
+/** Os cabeçalhos do `writeHead` sem os que descrevem o corpo (`CABECALHOS_DO_CORPO`). */
 function semCabecalhosDoCorpo(cabecalhos: Cabecalhos): Record<string, unknown> {
   const saida: Record<string, unknown> = {};
-  const fora = (k: string) => {
-    const b = aplicar(paraMinusculas, k, []) as string;
-    return b === "content-length" || b === "content-type" || b === "transfer-encoding" || b === "content-encoding"
-      || b === "trailer";
-  };
+  const fora = ehCabecalhoDoCorpo;
   if (ehArray(cabecalhos)) {
     for (let i = 0; i + 1 < cabecalhos.length; i += 2) {
       const k = `${cabecalhos[i] as string}`;
@@ -927,10 +940,12 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     return mensagemDeStatus !== undefined || typeof r.frase !== "string" || casa(VALOR_DE_CABECALHO_INVALIDO, r.frase) === null;
   }
   /** Devolve à resposta o retrato (só as linhas aceitas): o Node passa a ler texto, e não o objeto da rota. */
-  function regravarRetrato(r: Retrato): void {
+  function regravarRetrato(r: Retrato, semCorpo = false): void {
     for (let i = 0; i < r.armazenadas.length; i += 1) {
       const l = r.armazenadas[i]!;
-      if (linhaAceita(l)) raw.setHeader(l.nome as string, l.valor as string);
+      // Na resposta do desvio o corpo é outro: o que descrevia o corpo trocado não volta.
+      if (semCorpo && ehCabecalhoDoCorpo(`${l.nome as string}`)) raw.removeHeader(`${l.nome as string}`);
+      else if (linhaAceita(l)) raw.setHeader(l.nome as string, l.valor as string);
       else raw.removeHeader(`${l.nome as string}`);
     }
     if (mensagemDeStatus === undefined && typeof r.frase === "string" && casa(VALOR_DE_CABECALHO_INVALIDO, r.frase) === null) {
@@ -1026,12 +1041,11 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
     const { statusFinal, novo } = registrarDesvio(statusSegurado, achado.erroVisto, achado.motivo, provisorioComoFinal);
     liberado = statusFinal;
     try {
-      const doCorpo = ["content-length", "content-type", "transfer-encoding", "content-encoding", "trailer"];
-      for (let i = 0; i < doCorpo.length; i += 1) raw.removeHeader(doCorpo[i]!);
+      for (let i = 0; i < CABECALHOS_DO_CORPO.length; i += 1) raw.removeHeader(CABECALHOS_DO_CORPO[i]!);
       // O trailer de `addTrailers` só sai em `chunked`; com content-length o Node recusaria a cabeça.
       (raw as unknown as { _trailer: string })._trailer = "";
       const cabecalhos = retrato === null ? {} : semCabecalhosDoCorpo(objetoDeLinhas(retrato.segurados));
-      if (retrato !== null) regravarRetrato(retrato);
+      if (retrato !== null) regravarRetrato(retrato, true);
       cabecalhos["content-type"] = "application/json; charset=utf-8";
       cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
       aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);

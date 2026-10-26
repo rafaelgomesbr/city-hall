@@ -538,6 +538,23 @@ function plantarDv01(app: FastifyInstance): void {
     x._header = "HTTP/1.1 200 OK\r\ncontent-length: 19\r\n\r\nz: 1\r\n\r\n";
     x.end("0123456789");
   });
+  /*
+    A resposta de desvio não herda os cabeçalhos do corpo que foi trocado. O
+    código fora do catálogo sai em JSON puro; um `content-encoding: gzip` posto
+    pela rota (pela resposta crua ou pelo Fastify) anunciaria um corpo que não
+    existe, e o cliente falharia ao ler. Valor inofensivo: nenhum corpo é
+    comprimido de verdade aqui.
+  */
+  app.get(r("desvio-gzip-cru"), async (_q, rep) => {
+    crua(rep).setHeader("content-encoding", "gzip");
+    crua(rep).setHeader("content-disposition", 'attachment; filename="laudo.pdf"');
+    return rep.code(403).send({ erro: "fora_do_catalogo_gzip", mensagem: "x" });
+  });
+  app.get(r("desvio-gzip-fastify"), async (_q, rep) => {
+    return rep.code(403).header("content-encoding", "gzip").header("content-range", "bytes 0-1/2")
+      .header("content-disposition", 'attachment; filename="laudo.pdf"').header("accept-ranges", "bytes")
+      .header("x-segue", "sim").send({ erro: "fora_do_catalogo_gzip", mensagem: "x" });
+  });
   // Early Hints: o Node recebe um objeto novo, e cada valor é lido uma vez.
   app.get(r("early-contado"), async (_q, rep) => {
     leituras.n = 0;
@@ -648,6 +665,8 @@ beforeAll(async () => {
       banco: mem.banco, config,
       armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
       modoDaGuarda: modo,
+      // As rotas plantadas aqui emitem códigos fora do catálogo DE PROPÓSITO: quem as pega é a guarda de acesso.
+      conferirCatalogoDeErros: false,
       ...(modo === "corrigir" ? { destinoDeLog: { write: (linha: string) => { log.push(linha); } } } : {}),
     });
     plantarFormas(app);
@@ -1362,6 +1381,30 @@ describe("DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere
     }
     expect(lerDesviosDaGuarda()).toEqual([]);
   });
+});
+
+describe("o desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)", () => {
+  it.each(["desvio-gzip-cru", "desvio-gzip-fastify"])(
+    "%s: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado",
+    async (n) => {
+      for (const modo of ["falhar", "corrigir"] as const) {
+        try {
+          const resp = await fetch(`${await enderecoDe(modo)}/dv01/${n}`, { headers: { connection: "close" } });
+          expect(resp.headers.get("content-encoding"), modo).toBeNull();
+          expect(resp.headers.get("content-range"), modo).toBeNull();
+          expect(resp.headers.get("content-disposition"), modo).toBeNull();
+          expect(resp.headers.get("accept-ranges"), modo).toBeNull();
+          expect(resp.headers.get("content-type"), modo).toContain("application/json");
+          const corpo = await resp.json() as { erro: string };
+          expect(corpo.erro, modo).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "sem_permissao");
+          expect(resp.status, modo).toBe(modo === "falhar" ? 500 : 403);
+          if (n === "desvio-gzip-fastify") expect(resp.headers.get("x-segue"), modo).toBe("sim");
+        } finally {
+          lerDesviosDaGuarda();
+        }
+      }
+    },
+  );
 });
 
 describe("DV-03: a conferência do corpo é linear no tamanho do texto", () => {

@@ -54,11 +54,12 @@ describe("a forma de cada entrada do catálogo", () => {
 
   it("o código é minúsculo, com sublinhado, e o catálogo tem o tamanho esperado", () => {
     for (const [codigo] of entradas) expect(codigo, codigo).toMatch(/^[a-z][a-z_0-9]{1,63}$/);
-    /* 93 códigos (92 do levantamento de `apps/api/src` de 2026-10-25, mais
-       `chave_ja_usada_em_outro_registro`, que a V2-F02-E07 passou a emitir).
+    /* 95 códigos (92 do levantamento de `apps/api/src` de 2026-10-25, mais
+       `chave_ja_usada_em_outro_registro`, que a V2-F02-E07 passou a emitir, e
+       `url_invalida` e `parametro_longo_demais`, da V2-F02-E03 parte 2C).
        Subir é normal; cair significa que alguém tirou código que clientes
        instalados leem. */
-    expect(entradas.length).toBeGreaterThanOrEqual(93);
+    expect(entradas.length).toBeGreaterThanOrEqual(95);
   });
 
   it("status é inteiro de 400 a 599, categoria é uma das cinco e o título não tem travessão", () => {

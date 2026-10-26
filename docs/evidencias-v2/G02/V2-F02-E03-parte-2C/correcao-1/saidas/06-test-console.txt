@@ -1,0 +1,149 @@
+
+> dc360@0.1.0 test:console
+> npm run test --workspace @dc360/console
+
+
+> @dc360/console@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa685a25f05f5cd7c/dc360/apps/console[39m
+
+ [32m✓[39m test/contrato-de-ambiente.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m test/a-tela-responde.test.ts [2m([22m[2m65 tests[22m[2m)[22m[33m 779[2mms[22m[39m
+ [32m✓[39m test/plateia-nao-atravessa.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m test/subir-em-producao.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 14177[2mms[22m[39m
+   [33m[2m✓[22m[39m a armadilha das aspas no hash da senha[2m > [22mum hash de verdade passa [33m 531[2mms[22m[39m
+   [33m[2m✓[22m[39m a armadilha das aspas no hash da senha[2m > [22muma semente inteira bem formada continua sendo aceita [33m 930[2mms[22m[39m
+{"level":30,"time":1792984035191,"pid":36232,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","operador_id":"30ad9156-1d5b-451c-a1f0-e54aea8bb9cd","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792984035328,"pid":36232,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792984035360,"pid":36232,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador coordenacao@fornecedor.com.br é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792984035446,"pid":36232,"hostname":"Rafa_Laptop","reqId":"61faef21-bddd-4dd4-8011-3afdd365e82a","req":{"method":"POST","url":"/entrar","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+ [32m✓[39m test/o-acabamento-da-tela.test.ts [2m([22m[2m26 tests[22m[2m)[22m[33m 15660[2mms[22m[39m
+ [32m✓[39m test/fly-hml.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+{"level":30,"time":1792984037194,"pid":36232,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","msg":"senha conferida, aguardando o codigo"}
+{"level":30,"time":1792984037219,"pid":36232,"hostname":"Rafa_Laptop","reqId":"61faef21-bddd-4dd4-8011-3afdd365e82a","res":{"statusCode":200},"responseTime":1767.573199999999,"msg":"request completed"}
+{"level":30,"time":1792984037224,"pid":36232,"hostname":"Rafa_Laptop","reqId":"46c209d0-7550-46d0-9769-d0596557ec3f","req":{"method":"POST","url":"/entrar/codigo","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037259,"pid":36232,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador entrou no console"}
+{"level":30,"time":1792984037276,"pid":36232,"hostname":"Rafa_Laptop","reqId":"46c209d0-7550-46d0-9769-d0596557ec3f","res":{"statusCode":200},"responseTime":52.39900000000125,"msg":"request completed"}
+{"level":30,"time":1792984037284,"pid":36232,"hostname":"Rafa_Laptop","reqId":"8e34ff47-10de-48b8-98b2-2dcd7cc04df4","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037321,"pid":36232,"hostname":"Rafa_Laptop","reqId":"8e34ff47-10de-48b8-98b2-2dcd7cc04df4","res":{"statusCode":200},"responseTime":37.181799999998475,"msg":"request completed"}
+{"level":30,"time":1792984037352,"pid":36232,"hostname":"Rafa_Laptop","reqId":"dc206749-6511-45d9-a181-398e06c5c335","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037383,"pid":36232,"hostname":"Rafa_Laptop","reqId":"dc206749-6511-45d9-a181-398e06c5c335","res":{"statusCode":200},"responseTime":31.107299999999668,"msg":"request completed"}
+{"level":30,"time":1792984037384,"pid":36232,"hostname":"Rafa_Laptop","reqId":"cff69a26-d859-4aeb-aea5-7f5b80e75679","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037414,"pid":36232,"hostname":"Rafa_Laptop","reqId":"cff69a26-d859-4aeb-aea5-7f5b80e75679","res":{"statusCode":200},"responseTime":29.37250000000131,"msg":"request completed"}
+{"level":30,"time":1792984037419,"pid":36232,"hostname":"Rafa_Laptop","reqId":"c478e1df-3bc5-463a-8fa8-4c2b4956cf50","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037453,"pid":36232,"hostname":"Rafa_Laptop","reqId":"c478e1df-3bc5-463a-8fa8-4c2b4956cf50","res":{"statusCode":200},"responseTime":33.647000000000844,"msg":"request completed"}
+{"level":30,"time":1792984037454,"pid":36232,"hostname":"Rafa_Laptop","reqId":"f02c45b9-4ecd-4df5-90a3-ee4e44d431ac","req":{"method":"GET","url":"/municipios/11111111-1111-4111-8111-000000000001/serie?dias=30","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037498,"pid":36232,"hostname":"Rafa_Laptop","reqId":"f02c45b9-4ecd-4df5-90a3-ee4e44d431ac","res":{"statusCode":200},"responseTime":43.889899999998306,"msg":"request completed"}
+{"level":30,"time":1792984037505,"pid":36232,"hostname":"Rafa_Laptop","reqId":"46759215-13ca-4dff-8e48-0c19a1ae6393","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037538,"pid":36232,"hostname":"Rafa_Laptop","reqId":"46759215-13ca-4dff-8e48-0c19a1ae6393","res":{"statusCode":200},"responseTime":32.24360000000161,"msg":"request completed"}
+{"level":30,"time":1792984037546,"pid":36232,"hostname":"Rafa_Laptop","reqId":"4f14d9ac-81d8-42c2-a3da-5170dbd0cc6d","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037588,"pid":36232,"hostname":"Rafa_Laptop","reqId":"4f14d9ac-81d8-42c2-a3da-5170dbd0cc6d","res":{"statusCode":200},"responseTime":41.72270000000208,"msg":"request completed"}
+{"level":30,"time":1792984037595,"pid":36232,"hostname":"Rafa_Laptop","reqId":"ef0e0371-e0ee-4de9-a4b7-46be3b9ff6e5","req":{"method":"GET","url":"/municipios/d150d08b-5121-4384-9d7a-b6f192bfa480/serie","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984037603,"pid":36232,"hostname":"Rafa_Laptop","reqId":"ef0e0371-e0ee-4de9-a4b7-46be3b9ff6e5","res":{"statusCode":401},"responseTime":8.288899999999558,"msg":"request completed"}
+ [32m✓[39m test/ponta-a-ponta.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 17311[2mms[22m[39m
+ [32m✓[39m test/o-qr-e-o-do-produto.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m test/request-id.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 3941[2mms[22m[39m
+{"level":30,"time":1792984041993,"pid":15384,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","operador_id":"1c4b60ec-5c70-43b7-b922-253b9cc3f5f6","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792984042092,"pid":15384,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792984042117,"pid":15384,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792984042170,"pid":15384,"hostname":"Rafa_Laptop","reqId":"d7a26fcd-b189-4ade-911b-c16b9254f66a","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984042198,"pid":15384,"hostname":"Rafa_Laptop","reqId":"d7a26fcd-b189-4ade-911b-c16b9254f66a","res":{"statusCode":200},"responseTime":27.656699999999546,"msg":"request completed"}
+ [32m✓[39m test/guarda-de-codigos-de-erro.test.ts [2m([22m[2m68 tests[22m[2m)[22m[33m 22340[2mms[22m[39m
+{"level":40,"time":1792984043396,"pid":15384,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792984043448,"pid":15384,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792984043471,"pid":15384,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792984043483,"pid":15384,"hostname":"Rafa_Laptop","reqId":"680c0391-18bf-45f1-b50a-6f5b02f133d0","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984043485,"pid":15384,"hostname":"Rafa_Laptop","reqId":"680c0391-18bf-45f1-b50a-6f5b02f133d0","res":{"statusCode":200},"responseTime":1.40099999999984,"msg":"request completed"}
+{"level":40,"time":1792984044790,"pid":15384,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792984044840,"pid":15384,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792984044865,"pid":15384,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792984044872,"pid":15384,"hostname":"Rafa_Laptop","reqId":"c14bd0f6-8188-4626-9b14-91cc6d9cde16","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792984044875,"pid":15384,"hostname":"Rafa_Laptop","reqId":"c14bd0f6-8188-4626-9b14-91cc6d9cde16","res":{"statusCode":200},"responseTime":3.1781000000009954,"msg":"request completed"}
+ [32m✓[39m test/saude-versao.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 7148[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22mrepete a versão e o commit que o build gravou [33m 2513[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22msem as variáveis (fora de uma imagem) diz desconhecida, e segue 200 [33m 1276[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22mnegativo: valor fora do formato não é ecoado pela rota pública [33m 1391[2mms[22m[39m
+ [32m✓[39m test/superficie.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 25052[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda rota do console exige sessao, menos as isentas por escrito[2m > [22mnenhuma rota fechada responde sem token [33m 310[2mms[22m[39m
+   [33m[2m✓[22m[39m O limite por endereco cobre a porta, e so a porta[2m > [22ma porta trava depois do teto [33m 3884[2mms[22m[39m
+ [32m✓[39m test/dono-sem-codigos.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 26555[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada diz quantos codigos a conta tem[2m > [22mo dono recem-semeado entra com zero, e a resposta traz o numero [33m 2348[2mms[22m[39m
+   [33m[2m✓[22m[39m Depois de gerar o lote, as duas bocas se calam[2m > [22ma entrada devolve oito, e um segundo processo sobre o mesmo banco sobe sem o warn [33m 16067[2mms[22m[39m
+ [32m✓[39m test/v1-e-mensagens.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 28229[2mms[22m[39m
+   [33m[2m✓[22m[39m O console responde sob /v1 e no espelho sem prefixo[2m > [22ma porta inteira funciona sob /v1 (senha, codigo e sessao) [33m 1787[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de tentativas e UM so, nos dois prefixos[2m > [22malternar /v1/entrar e /entrar nao dobra o teto da porta [33m 3980[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de tentativas e UM so, nos dois prefixos[2m > [22mo 429 do cadastro sob /v1 diz a espera do cadastro, e nao a da porta [33m 5410[2mms[22m[39m
+ [32m✓[39m test/cadastro-de-prefeitura.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 29218[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22mcria o municipio, o administrador e a linha de nascimento, e devolve a senha [33m 1794[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22ma senha que a tela mostra abre a conta que acabou de nascer [33m 4003[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22ma senha inicial nao fica guardada em texto claro em lugar nenhum [33m 1339[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22mrecusa municipio duplicado, diz qual ja existe, e nao cria o segundo [33m 2510[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22mrecusa o email que ja tem conta em outro municipio, e nao diz em qual [33m 2357[2mms[22m[39m
+ [32m✓[39m test/segundo-fator-obrigatorio.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 35235[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22ma senha certa NAO devolve sessao, devolve desafio [33m 1882[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mo desafio da primeira etapa e recusado pelas rotas de leitura [33m 1604[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22ma senha errada nao passa da primeira etapa, e a resposta e igual a de email desconhecido [33m 2939[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mcom o codigo certo, a sessao nasce e ela vale nas rotas de leitura [33m 1293[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mo mesmo codigo nao serve duas vezes [33m 2622[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mcodigos errados demais poem a conta de castigo [33m 9976[2mms[22m[39m
+ [32m✓[39m test/area-de-usuarios.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 40393[2mms[22m[39m
+   [33m[2m✓[22m[39m O dono cria operadores, e a credencial deles aparece uma vez[2m > [22mcriar operador devolve senha, segredo, endereco otpauth, o desenho do QR e os codigos de recuperacao, uma vez [33m 11829[2mms[22m[39m
+   [33m[2m✓[22m[39m O dono cria operadores, e a credencial deles aparece uma vez[2m > [22ma senha e o segredo mostrados abrem a conta criada [33m 1023[2mms[22m[39m
+   [33m[2m✓[22m[39m O dono cria operadores, e a credencial deles aparece uma vez[2m > [22memail repetido e recusado com mensagem, e nao com falha interna [33m 924[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22mexige a senha atual E um codigo novo do autenticador [33m 3051[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22mo codigo da entrada, ja usado, nao serve para trocar a senha [33m 1953[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22mcom senha atual e codigo novo, troca, e devolve uma sessao nova [33m 3411[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22me a senha nova abre a conta [33m 699[2mms[22m[39m
+ [32m✓[39m test/acoes-perigosas.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 41939[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar, com prazo de arrependimento de sete dias[2m > [22ma rota exige senha atual, codigo novo, nome exato e motivo, nessa ordem [33m 3105[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar, com prazo de arrependimento de sete dias[2m > [22mo codigo que abriu a sessao (ja usado) nao serve para eliminar [33m 1843[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar, com prazo de arrependimento de sete dias[2m > [22mcom tudo certo, suspende na hora e agenda para sete dias, e a lista mostra [33m 977[2mms[22m[39m
+   [33m[2m✓[22m[39m Nada que sirva para entrar cai no log das acoes perigosas[2m > [22mas linhas de warn carregam quem, qual municipio por id e a acao, e nunca senha nem codigo [33m 893[2mms[22m[39m
+   [33m[2m✓[22m[39m Limite por endereco nas rotas de acao perigosa[2m > [22mdepois do teto, a rota responde 429 com a espera certa, e a de numeros nao [33m 2652[2mms[22m[39m
+ [32m✓[39m test/no-navegador.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 47852[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22ma pagina abre com a politica no cabecalho, e o script e a folha passam por ela [33m 5828[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mo dono entra pela porta de duas etapas e ve a linha de Serra Alta com as acoes [33m 1875[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mcom senha, codigo novo, nome exato e motivo, agenda; a linha mostra o prazo e o cancelar [33m 1863[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mcancelar durante o prazo passa pelo dialogo, e a linha volta a suspensa, sem reativar sozinha [33m 637[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador[2m > [22mem Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda [33m 9215[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador[2m > [22msair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele [33m 7067[2mms[22m[39m
+ [32m✓[39m test/operadores-no-banco.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 50207[2mms[22m[39m
+   [33m[2m✓[22m[39m A semente do dono, na partida[2m > [22mcom a tabela vazia e SEM a variavel, o console nao sobe, e diz o que fazer [33m 5182[2mms[22m[39m
+   [33m[2m✓[22m[39m A semente do dono, na partida[2m > [22ma semente com mais de um operador e recusada: so o dono nasce por ela [33m 4316[2mms[22m[39m
+   [33m[2m✓[22m[39m A semente do dono, na partida[2m > [22ma semente continua recusando hash estragado pelo shell, antes de tocar no banco [33m 3936[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22mo dono semeado entra com a senha e o segredo da semente [33m 1150[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22ma entrada devolve o papel, para a tela saber o que mostrar [33m 936[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22mum segundo processo sobre o mesmo banco recusa o codigo que o primeiro ja queimou [33m 2043[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22mcodigos errados contam na tabela, e o quinto poe a conta de castigo tambem na tabela [33m 8586[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22moperador desativado nao entra, e a resposta e a mesma de senha errada [33m 8584[2mms[22m[39m
+{"level":40,"time":1792984070535,"pid":34476,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792984070551,"pid":34476,"hostname":"Rafa_Laptop","operadores":2,"msg":"console do fornecedor pronto, com 2 operador(es) no banco"}
+ [32m✓[39m test/diagnostico-da-porta.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 50499[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22msenha errada escreve uma linha, com o email tentado e um motivo [33m 1846[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22memail desconhecido tambem escreve, e com o MESMO motivo generico da senha errada [33m 3084[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22mnem a senha nem o corpo do pedido entram na linha da recusa [33m 1403[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22mcodigo errado escreve uma linha, e o codigo NAO entra nela [33m 1241[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22ma conta de castigo tem motivo proprio, e nao se confunde com codigo errado [33m 5505[2mms[22m[39m
+   [33m[2m✓[22m[39m Nada que sirva para entrar cai no log[2m > [22muma entrada inteira, com as rotas novas depois dela, nao deixa segredo nenhum escrito [33m 22317[2mms[22m[39m
+ [32m✓[39m test/recuperacao-de-senha.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 104131[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mgerar exige a senha atual e um codigo NOVO do autenticador, como a troca de senha [33m 3140[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mcom senha e codigo novo, saem oito codigos de dez simbolos, e nada em texto claro no banco nem no log [33m 10507[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mgerar de novo invalida os anteriores: os oito antigos ficam usados, e sobram exatamente oito [33m 8366[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mum codigo do lote invalidado nao recupera nada [33m 4613[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22mum codigo valido redefine a senha E o segundo fator, devolve o segredo novo uma vez, e NAO devolve sessao [33m 4823[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22ma senha antiga e o autenticador antigo nao abrem mais nada [33m 1039[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22ma senha nova com o autenticador novo entram, e a sessao e a de sempre [33m 547[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22mo codigo usado nao serve de novo, e a resposta e a generica [33m 3970[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado[2m > [22memail inexistente, operador inativo, codigo errado e codigo ja usado: uma resposta so [33m 16582[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado[2m > [22memail inexistente gasta o mesmo trabalho de uma conta com oito codigos [33m 8060[2mms[22m[39m
+   [33m[2m✓[22m[39m Ao criar operador, os codigos dele saem junto com senha, segredo e QR[2m > [22ma resposta traz oito codigos, gravados como hash na linha do operador novo [33m 5323[2mms[22m[39m
+   [33m[2m✓[22m[39m Ao criar operador, os codigos dele saem junto com senha, segredo e QR[2m > [22mo operador novo recupera a propria conta com um dos codigos, sem precisar do dono [33m 5254[2mms[22m[39m
+   [33m[2m✓[22m[39m A rota de recuperar esta sob o limite da porta[2m > [22mdepois do teto, responde 429 com a espera da porta [33m 14588[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m22 passed[39m[22m[90m (22)[39m
+[2m      Tests [22m [1m[32m379 passed[39m[22m[90m (379)[39m
+[2m   Start at [22m 00:06:57
+[2m   Duration [22m 107.02s[2m (transform 3.28s, setup 2.60s, collect 28.19s, tests 560.82s, environment 7ms, prepare 6.26s)[22m
+

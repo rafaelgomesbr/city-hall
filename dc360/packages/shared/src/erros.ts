@@ -191,6 +191,16 @@ export const CODIGOS_DE_ERRO = {
     categoria: "corrigir",
     titulo: "Corpo do pedido ilegível, grande demais ou de tipo não aceito",
   },
+  url_invalida: {
+    status: 400,
+    categoria: "corrigir",
+    titulo: "Endereço do pedido malformado",
+  },
+  parametro_longo_demais: {
+    status: 414,
+    categoria: "corrigir",
+    titulo: "Valor do endereço longo demais",
+  },
   corpo_vazio: { status: 400, categoria: "corrigir", titulo: "Nenhum conteúdo recebido" },
   tipo_recusado: { status: 415, categoria: "corrigir", titulo: "Tipo de arquivo não aceito" },
   excesso_de_requisicoes: { status: 429, categoria: "aguardar", titulo: "Requisições demais" },

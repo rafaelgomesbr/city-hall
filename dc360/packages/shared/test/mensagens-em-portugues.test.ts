@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   aberturaOcorrenciaSchema,
   envelopeSincronizacaoSchema,
+  numeroDoTexto,
   pedidoDeEvidenciaSchema,
   uuidSchema,
   vistoriaSchema,
@@ -392,5 +393,50 @@ describe("item de lista ausente diz qual item", () => {
       .toBe("Era esperado um texto, veio um número");
     expect(mensagem(z.array(z.string()).safeParse(["a", null])))
       .toBe("Era esperado um texto, veio nulo");
+  });
+});
+
+/*
+  DV-47. Duas frases imprecisas para o campo AUSENTE:
+
+  - União discriminada sem o discriminador: o Zod entrega o objeto inteiro como
+    `input` (não é `undefined`), e a frase dizia "Tipo não reconhecido". O que
+    falta é o campo `t`, e a frase é "Campo obrigatório". Discriminador presente
+    e desconhecido continua dizendo "Tipo não reconhecido".
+  - `z.coerce.number()` ausente: o Zod converte ANTES de montar o problema
+    (`Number(undefined)` é `NaN`), e o mapa só vê `NaN`, igual ao de "abc". Não
+    há como separar os dois dentro do mapa. `numeroDoTexto` não converte o
+    ausente: ele chega ao `z.number()` como `undefined` e diz "Campo
+    obrigatório"; "abc" continua dizendo "Precisa ser um número".
+*/
+describe("DV-47: campo ausente em união discriminada e em número vindo de texto", () => {
+  const uniao = z.discriminatedUnion("t", [
+    z.object({ t: z.literal("a") }), z.object({ t: z.literal("b") }),
+  ]);
+
+  it("união discriminada sem o discriminador diz 'Campo obrigatório', no campo e na raiz", () => {
+    expect(mensagem(z.object({ campo: uniao }).safeParse({ campo: {} }))).toBe("Campo obrigatório");
+    expect(mensagem(uniao.safeParse({}))).toBe("Campo obrigatório");
+    expect(mensagem(uniao.safeParse({ t: undefined }))).toBe("Campo obrigatório");
+  });
+
+  it("com o discriminador presente e desconhecido, continua 'Tipo não reconhecido'", () => {
+    expect(mensagem(uniao.safeParse({ t: "c" })))
+      .toBe("Tipo não reconhecido. Os aceitos são: \"a\", \"b\"");
+    expect(mensagem(uniao.safeParse("texto"))).not.toBe("Campo obrigatório");
+  });
+
+  it("numeroDoTexto: ausente diz 'Campo obrigatório'; texto não numérico, 'Precisa ser um número'", () => {
+    const esquema = z.object({ pagina: numeroDoTexto(z.number().int().min(1)) });
+    expect(mensagem(esquema.safeParse({}))).toBe("Campo obrigatório");
+    expect(mensagem(esquema.safeParse({ pagina: "abc" }))).toBe("Precisa ser um número");
+    expect(mensagem(esquema.safeParse({ pagina: "0" }))).toBe("Precisa ser maior ou igual a 1");
+  });
+
+  it("numeroDoTexto converte como o coerce (texto, número) e aceita default", () => {
+    const esquema = z.object({ pagina: numeroDoTexto(z.number().int().min(1)).default(1) });
+    expect(esquema.parse({})).toEqual({ pagina: 1 });
+    expect(esquema.parse({ pagina: "7" })).toEqual({ pagina: 7 });
+    expect(esquema.parse({ pagina: 3 })).toEqual({ pagina: 3 });
   });
 });

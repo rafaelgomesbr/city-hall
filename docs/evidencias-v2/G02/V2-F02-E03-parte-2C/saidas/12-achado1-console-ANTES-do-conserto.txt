@@ -1,0 +1,268 @@
+
+> dc360@0.1.0 test:console
+> npm run test --workspace @dc360/console
+
+
+> @dc360/console@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa685a25f05f5cd7c/dc360/apps/console[39m
+
+ [32m✓[39m test/subir-em-producao.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 15908[2mms[22m[39m
+   [33m[2m✓[22m[39m a armadilha das aspas no hash da senha[2m > [22mum hash de verdade passa [33m 587[2mms[22m[39m
+   [33m[2m✓[22m[39m a armadilha das aspas no hash da senha[2m > [22muma semente inteira bem formada continua sendo aceita [33m 1244[2mms[22m[39m
+ [32m✓[39m test/o-acabamento-da-tela.test.ts [2m([22m[2m26 tests[22m[2m)[22m[33m 16533[2mms[22m[39m
+{"level":30,"time":1792980656435,"pid":2564,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","operador_id":"ee56c94f-c689-45a9-aab3-3d00d94ec62d","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792980656580,"pid":2564,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792980656621,"pid":2564,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador coordenacao@fornecedor.com.br é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792980656715,"pid":2564,"hostname":"Rafa_Laptop","reqId":"ef623231-af91-4018-b0fc-151e1bbdb90b","req":{"method":"POST","url":"/entrar","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658321,"pid":2564,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","msg":"senha conferida, aguardando o codigo"}
+{"level":30,"time":1792980658347,"pid":2564,"hostname":"Rafa_Laptop","reqId":"ef623231-af91-4018-b0fc-151e1bbdb90b","res":{"statusCode":200},"responseTime":1631.7483999999968,"msg":"request completed"}
+{"level":30,"time":1792980658348,"pid":2564,"hostname":"Rafa_Laptop","reqId":"8f6563a6-d34e-4b7c-8057-db9dde488ef9","req":{"method":"POST","url":"/entrar/codigo","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658397,"pid":2564,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador entrou no console"}
+{"level":30,"time":1792980658413,"pid":2564,"hostname":"Rafa_Laptop","reqId":"8f6563a6-d34e-4b7c-8057-db9dde488ef9","res":{"statusCode":200},"responseTime":65.07099999999991,"msg":"request completed"}
+{"level":30,"time":1792980658420,"pid":2564,"hostname":"Rafa_Laptop","reqId":"23f9cba0-5b9f-432f-93e0-70a03062105c","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658466,"pid":2564,"hostname":"Rafa_Laptop","reqId":"23f9cba0-5b9f-432f-93e0-70a03062105c","res":{"statusCode":200},"responseTime":45.95629999999801,"msg":"request completed"}
+{"level":30,"time":1792980658494,"pid":2564,"hostname":"Rafa_Laptop","reqId":"65dc7295-3c72-4bd5-88ba-5d27e4d44deb","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658531,"pid":2564,"hostname":"Rafa_Laptop","reqId":"65dc7295-3c72-4bd5-88ba-5d27e4d44deb","res":{"statusCode":200},"responseTime":36.290899999999965,"msg":"request completed"}
+{"level":30,"time":1792980658531,"pid":2564,"hostname":"Rafa_Laptop","reqId":"31b6956b-32a1-4a84-a6cd-d7a404700f7e","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658561,"pid":2564,"hostname":"Rafa_Laptop","reqId":"31b6956b-32a1-4a84-a6cd-d7a404700f7e","res":{"statusCode":200},"responseTime":29.078300000001036,"msg":"request completed"}
+{"level":30,"time":1792980658566,"pid":2564,"hostname":"Rafa_Laptop","reqId":"8c1e3c66-44a7-4740-a18c-90113faa1b03","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658599,"pid":2564,"hostname":"Rafa_Laptop","reqId":"8c1e3c66-44a7-4740-a18c-90113faa1b03","res":{"statusCode":200},"responseTime":33.46240000000034,"msg":"request completed"}
+{"level":30,"time":1792980658601,"pid":2564,"hostname":"Rafa_Laptop","reqId":"aac3d4f4-3bf4-4a67-8f1f-9a99ca2897de","req":{"method":"GET","url":"/municipios/11111111-1111-4111-8111-000000000001/serie?dias=30","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658645,"pid":2564,"hostname":"Rafa_Laptop","reqId":"aac3d4f4-3bf4-4a67-8f1f-9a99ca2897de","res":{"statusCode":200},"responseTime":44.61700000000201,"msg":"request completed"}
+{"level":30,"time":1792980658652,"pid":2564,"hostname":"Rafa_Laptop","reqId":"a7d77323-5d73-44a4-a587-3c9e598f7234","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658681,"pid":2564,"hostname":"Rafa_Laptop","reqId":"a7d77323-5d73-44a4-a587-3c9e598f7234","res":{"statusCode":200},"responseTime":28.307800000002317,"msg":"request completed"}
+{"level":30,"time":1792980658687,"pid":2564,"hostname":"Rafa_Laptop","reqId":"85f2ece6-ee6c-49cc-9e8d-9b39442f3955","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658723,"pid":2564,"hostname":"Rafa_Laptop","reqId":"85f2ece6-ee6c-49cc-9e8d-9b39442f3955","res":{"statusCode":200},"responseTime":36.55709999999817,"msg":"request completed"}
+{"level":30,"time":1792980658724,"pid":2564,"hostname":"Rafa_Laptop","reqId":"b8dc4d50-f9a1-414b-95cc-6b71638cf121","req":{"method":"GET","url":"/municipios/2cdeadee-f1ae-4282-acc3-4d520a4dd1d9/serie","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980658742,"pid":2564,"hostname":"Rafa_Laptop","reqId":"b8dc4d50-f9a1-414b-95cc-6b71638cf121","res":{"statusCode":401},"responseTime":12.124400000000605,"msg":"request completed"}
+ [32m✓[39m test/ponta-a-ponta.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 18813[2mms[22m[39m
+ [32m✓[39m test/a-tela-responde.test.ts [2m([22m[2m65 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+{"level":30,"time":1792980660280,"pid":31588,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","operador_id":"7c7a4162-0440-46c3-8c1f-b4c8bc8ef593","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1792980660384,"pid":31588,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792980660417,"pid":31588,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792980660482,"pid":31588,"hostname":"Rafa_Laptop","reqId":"747527a8-cf04-4c93-b8aa-d848a457ab94","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980660516,"pid":31588,"hostname":"Rafa_Laptop","reqId":"747527a8-cf04-4c93-b8aa-d848a457ab94","res":{"statusCode":200},"responseTime":33.805199999999786,"msg":"request completed"}
+ [32m✓[39m test/o-qr-e-o-do-produto.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+ [32m✓[39m test/request-id.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 3452[2mms[22m[39m
+ [32m✓[39m test/contrato-de-ambiente.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m test/plateia-nao-atravessa.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m test/fly-hml.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+{"level":40,"time":1792980662025,"pid":31588,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792980662071,"pid":31588,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792980662087,"pid":31588,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792980662097,"pid":31588,"hostname":"Rafa_Laptop","reqId":"35b2ac35-fc86-4fdf-9bd9-dc780b0ffa3c","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980662098,"pid":31588,"hostname":"Rafa_Laptop","reqId":"35b2ac35-fc86-4fdf-9bd9-dc780b0ffa3c","res":{"statusCode":200},"responseTime":0.8154999999997017,"msg":"request completed"}
+ [31m❯[39m test/guarda-de-codigos-de-erro.test.ts [2m([22m[2m68 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 23751[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, m07 sai 500 e o desvio fica registrado com a rota[32m 121[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, m10 sai 500 e o desvio fica registrado com a rota[32m 6[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, m11 sai 500 e o desvio fica registrado com a rota[32m 11[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, m16 sai 500 e o desvio fica registrado com a rota[32m 6[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, eab/x sai 500 e o desvio fica registrado com a rota[32m 6[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, eag/x sai 500 e o desvio fica registrado com a rota[32m 28[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, eaf sai 500 e o desvio fica registrado com a rota[32m 7[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, frac sai 500 e o desvio fica registrado com a rota[32m 11[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, frac-401 sai 500 e o desvio fica registrado com a rota[32m 11[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, frac-texto sai 500 e o desvio fica registrado com a rota[32m 6[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mem teste, hijack-grande sai 500 e o desvio fica registrado com a rota[32m 5[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, m07 sai com o código genérico do console e vai para o log[32m 6[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, m10 sai com o código genérico do console e vai para o log[32m 5[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, m11 sai com o código genérico do console e vai para o log[32m 2[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, m16 sai com o código genérico do console e vai para o log[32m 5[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, eab/x sai com o código genérico do console e vai para o log[32m 3[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, eag/x sai com o código genérico do console e vai para o log[32m 3[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, eaf sai com o código genérico do console e vai para o log[32m 4[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, frac sai com o código genérico do console e vai para o log[32m 5[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, frac-401 sai com o código genérico do console e vai para o log[32m 1[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, frac-texto sai com o código genérico do console e vai para o log[32m 4[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mfora de teste, hijack-grande sai com o código genérico do console e vai para o log[32m 1[2mms[22m[39m
+   [32m✓[39m a guarda do console[2m > [22mcontrole: o código do contrato passa intacto, com a frase da rota[32m 6[2mms[22m[39m
+   [32m✓[39m correção 4: o status torto, por HTTP de verdade (porta efêmera)[2m > [22m403.5 não sai 403 com o código fora do contrato, nos dois modos[32m 153[2mms[22m[39m
+   [32m✓[39m correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade[2m > [22mpor-baixo-store não sai 403 com o código inventado, nos dois modos[32m 42[2mms[22m[39m
+   [32m✓[39m correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade[2m > [22mpor-baixo-header não sai 401 com o código inventado, nos dois modos[32m 34[2mms[22m[39m
+   [32m✓[39m correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade[2m > [22mpor-baixo-writeraw não sai 403 com o código inventado, nos dois modos[32m 28[2mms[22m[39m
+   [32m✓[39m correção 6: a moldura do corpo e o trailer, por socket cru em pipeline[2m > [22mcl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado[32m 43[2mms[22m[39m
+   [32m✓[39m correção 6: a moldura do corpo e o trailer, por socket cru em pipeline[2m > [22mtrailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada[32m 30[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mc-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente[32m 28[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mi-cl0-stream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente[32m 18[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mi-cl0-response: sai só o corpo declarado e nenhum 403 inventado chega ao cliente[32m 29[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mi-cl0-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente[32m 22[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22m403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado)[32m 31[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22maddTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada[32m 25[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-100: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 18[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-101: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 20[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 17[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-103: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 17[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-199: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 14[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 20[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 16[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele[32m 22[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22m1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão[32m 31[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcorreção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24[32m 26[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcorreção 7b: o 103 legítimo antes do 403 do contrato passa intacto[32m 21[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcorreção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte[32m 5[2mms[22m[39m
+   [32m✓[39m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcontrole: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele[32m 13[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22m403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido[32m 21[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mcabeçalho posto por setHeader da resposta crua: o Node lê uma vez ao receber, a guarda uma ao entregar (duas no total)[32m 15[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mlista de objetos e frase da linha de status: cada elemento é lido uma vez[32m 32[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mo desvio também lê o valor uma vez, e a resposta trocada leva o texto lido[32m 26[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mvalor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda[32m 19[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mvalor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta[32m 20[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22msegunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio[32m 25[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22msegunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle)[32m 39[2mms[22m[39m
+   [32m✓[39m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mEarly Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto[32m 42[2mms[22m[39m
+[31m   [31m×[31m o desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-cru: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado[39m[32m 52[2mms[22m[39m
+[31m     → falhar: expected 'gzip' to be null[39m
+[31m   [31m×[31m o desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-fastify: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado[39m[32m 31[2mms[22m[39m
+[31m     → falhar: expected 'bytes 0-1/2' to be null[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22m60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado[32m 40[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mmuitas chaves curtas e uma cadeia sem chave também ficam em tempo curto[32m 141[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","mensagem":"texto com \"erro\": 1 dentro"}[32m 0[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"a\"b":"x","erro":"so_o_dono"}[32m 0[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: { "erro"
+	: "so_o_dono" }[32m 0[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","\u0065rro":"x"}[32m 0[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","\u0065\u0072\u0072\u006f"
+:"x"}[32m 0[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","a":{"b":[{"erro" :1}]}}[32m 0[2mms[22m[39m
+   [32m✓[39m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","errou":1,"err":2,"erros":3}[32m 0[2mms[22m[39m
+{"level":40,"time":1792980663454,"pid":31588,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792980663505,"pid":31588,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1792980663521,"pid":31588,"hostname":"Rafa_Laptop","operador":"dono@fornecedor.exemplo.com","papel":"dono","msg":"operador dono@fornecedor.exemplo.com é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1792980663533,"pid":31588,"hostname":"Rafa_Laptop","reqId":"486e1551-d4c5-49e7-9cdc-63657be57d4c","req":{"method":"GET","url":"/saude","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792980663534,"pid":31588,"hostname":"Rafa_Laptop","reqId":"486e1551-d4c5-49e7-9cdc-63657be57d4c","res":{"statusCode":200},"responseTime":0.6844999999993888,"msg":"request completed"}
+ [32m✓[39m test/saude-versao.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 7278[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22mrepete a versão e o commit que o build gravou [33m 2543[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22msem as variáveis (fora de uma imagem) diz desconhecida, e segue 200 [33m 1578[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude do console[2m > [22mnegativo: valor fora do formato não é ecoado pela rota pública [33m 1436[2mms[22m[39m
+ [32m✓[39m test/superficie.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 26319[2mms[22m[39m
+   [33m[2m✓[22m[39m O limite por endereco cobre a porta, e so a porta[2m > [22ma porta trava depois do teto [33m 3923[2mms[22m[39m
+ [32m✓[39m test/cadastro-de-prefeitura.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 34936[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22mcria o municipio, o administrador e a linha de nascimento, e devolve a senha [33m 1560[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22ma senha que a tela mostra abre a conta que acabou de nascer [33m 4257[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22ma senha inicial nao fica guardada em texto claro em lugar nenhum [33m 1261[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22mrecusa municipio duplicado, diz qual ja existe, e nao cria o segundo [33m 4782[2mms[22m[39m
+   [33m[2m✓[22m[39m O console cadastra a prefeitura e o primeiro administrador dela[2m > [22mrecusa o email que ja tem conta em outro municipio, e nao diz em qual [33m 4379[2mms[22m[39m
+ [32m✓[39m test/dono-sem-codigos.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 37803[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada diz quantos codigos a conta tem[2m > [22mo dono recem-semeado entra com zero, e a resposta traz o numero [33m 1793[2mms[22m[39m
+   [33m[2m✓[22m[39m Depois de gerar o lote, as duas bocas se calam[2m > [22ma entrada devolve oito, e um segundo processo sobre o mesmo banco sobe sem o warn [33m 19437[2mms[22m[39m
+ [32m✓[39m test/v1-e-mensagens.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 39464[2mms[22m[39m
+   [33m[2m✓[22m[39m O console responde sob /v1 e no espelho sem prefixo[2m > [22ma porta inteira funciona sob /v1 (senha, codigo e sessao) [33m 1570[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de tentativas e UM so, nos dois prefixos[2m > [22malternar /v1/entrar e /entrar nao dobra o teto da porta [33m 6835[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de tentativas e UM so, nos dois prefixos[2m > [22mo 429 do cadastro sob /v1 diz a espera do cadastro, e nao a da porta [33m 7723[2mms[22m[39m
+ [32m✓[39m test/segundo-fator-obrigatorio.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 43783[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22ma senha certa NAO devolve sessao, devolve desafio [33m 1730[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mo desafio da primeira etapa e recusado pelas rotas de leitura [33m 1435[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22ma senha errada nao passa da primeira etapa, e a resposta e igual a de email desconhecido [33m 3027[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mcom o codigo certo, a sessao nasce e ela vale nas rotas de leitura [33m 1411[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mo mesmo codigo nao serve duas vezes [33m 2628[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar no console exige o segundo fator, sem excecao[2m > [22mcodigos errados demais poem a conta de castigo [33m 17025[2mms[22m[39m
+ [32m✓[39m test/area-de-usuarios.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 49723[2mms[22m[39m
+   [33m[2m✓[22m[39m O dono cria operadores, e a credencial deles aparece uma vez[2m > [22mcriar operador devolve senha, segredo, endereco otpauth, o desenho do QR e os codigos de recuperacao, uma vez [33m 16199[2mms[22m[39m
+   [33m[2m✓[22m[39m O dono cria operadores, e a credencial deles aparece uma vez[2m > [22ma senha e o segredo mostrados abrem a conta criada [33m 1844[2mms[22m[39m
+   [33m[2m✓[22m[39m O dono cria operadores, e a credencial deles aparece uma vez[2m > [22memail repetido e recusado com mensagem, e nao com falha interna [33m 1561[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22mexige a senha atual E um codigo novo do autenticador [33m 3673[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22mo codigo da entrada, ja usado, nao serve para trocar a senha [33m 2540[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22mcom senha atual e codigo novo, troca, e devolve uma sessao nova [33m 3913[2mms[22m[39m
+   [33m[2m✓[22m[39m Trocar a minha senha[2m > [22me a senha nova abre a conta [33m 1038[2mms[22m[39m
+ [32m✓[39m test/acoes-perigosas.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 53009[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar, com prazo de arrependimento de sete dias[2m > [22ma rota exige senha atual, codigo novo, nome exato e motivo, nessa ordem [33m 3900[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar, com prazo de arrependimento de sete dias[2m > [22mo codigo que abriu a sessao (ja usado) nao serve para eliminar [33m 2221[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar, com prazo de arrependimento de sete dias[2m > [22mcom tudo certo, suspende na hora e agenda para sete dias, e a lista mostra [33m 1129[2mms[22m[39m
+   [33m[2m✓[22m[39m Nada que sirva para entrar cai no log das acoes perigosas[2m > [22mas linhas de warn carregam quem, qual municipio por id e a acao, e nunca senha nem codigo [33m 1025[2mms[22m[39m
+   [33m[2m✓[22m[39m Limite por endereco nas rotas de acao perigosa[2m > [22mdepois do teto, a rota responde 429 com a espera certa, e a de numeros nao [33m 4488[2mms[22m[39m
+ [32m✓[39m test/operadores-no-banco.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 63940[2mms[22m[39m
+   [33m[2m✓[22m[39m A semente do dono, na partida[2m > [22mcom a tabela vazia e SEM a variavel, o console nao sobe, e diz o que fazer [33m 5107[2mms[22m[39m
+   [33m[2m✓[22m[39m A semente do dono, na partida[2m > [22ma semente com mais de um operador e recusada: so o dono nasce por ela [33m 4329[2mms[22m[39m
+   [33m[2m✓[22m[39m A semente do dono, na partida[2m > [22ma semente continua recusando hash estragado pelo shell, antes de tocar no banco [33m 8285[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22mo dono semeado entra com a senha e o segredo da semente [33m 2147[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22ma entrada devolve o papel, para a tela saber o que mostrar [33m 1577[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22mum segundo processo sobre o mesmo banco recusa o codigo que o primeiro ja queimou [33m 2507[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22mcodigos errados contam na tabela, e o quinto poe a conta de castigo tambem na tabela [33m 11278[2mms[22m[39m
+   [33m[2m✓[22m[39m A porta le o banco, e grava no banco o que antes ficava na memoria[2m > [22moperador desativado nao entra, e a resposta e a mesma de senha errada [33m 12084[2mms[22m[39m
+{"level":40,"time":1792980703739,"pid":7456,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1792980703764,"pid":7456,"hostname":"Rafa_Laptop","operadores":2,"msg":"console do fornecedor pronto, com 2 operador(es) no banco"}
+ [32m✓[39m test/diagnostico-da-porta.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 64124[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22msenha errada escreve uma linha, com o email tentado e um motivo [33m 1679[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22memail desconhecido tambem escreve, e com o MESMO motivo generico da senha errada [33m 3010[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22mnem a senha nem o corpo do pedido entram na linha da recusa [33m 1515[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22mcodigo errado escreve uma linha, e o codigo NAO entra nela [33m 1388[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda tentativa recusada deixa rastro suficiente para diagnosticar[2m > [22ma conta de castigo tem motivo proprio, e nao se confunde com codigo errado [33m 9812[2mms[22m[39m
+   [33m[2m✓[22m[39m Nada que sirva para entrar cai no log[2m > [22muma entrada inteira, com as rotas novas depois dela, nao deixa segredo nenhum escrito [33m 29997[2mms[22m[39m
+ [32m✓[39m test/no-navegador.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 65588[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22ma pagina abre com a politica no cabecalho, e o script e a folha passam por ela [33m 3176[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mo dono entra pela porta de duas etapas e ve a linha de Serra Alta com as acoes [33m 1789[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mcom senha, codigo novo, nome exato e motivo, agenda; a linha mostra o prazo e o cancelar [33m 4300[2mms[22m[39m
+   [33m[2m✓[22m[39m Eliminar e cancelar, no navegador, com a politica de seguranca valendo[2m > [22mcancelar durante o prazo passa pelo dialogo, e a linha volta a suspensa, sem reativar sozinha [33m 852[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador[2m > [22mem Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda [33m 13472[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador[2m > [22msair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele [33m 11422[2mms[22m[39m
+ [32m✓[39m test/recuperacao-de-senha.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 116938[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mgerar exige a senha atual e um codigo NOVO do autenticador, como a troca de senha [33m 3017[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mcom senha e codigo novo, saem oito codigos de dez simbolos, e nada em texto claro no banco nem no log [33m 16205[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mgerar de novo invalida os anteriores: os oito antigos ficam usados, e sobram exatamente oito [33m 10406[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mum codigo do lote invalidado nao recupera nada [33m 7415[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22mum codigo valido redefine a senha E o segundo fator, devolve o segredo novo uma vez, e NAO devolve sessao [33m 6202[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22ma senha antiga e o autenticador antigo nao abrem mais nada [33m 1163[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22ma senha nova com o autenticador novo entram, e a sessao e a de sempre [33m 686[2mms[22m[39m
+   [33m[2m✓[22m[39m Gerar codigos de recuperacao, na propria conta[2m > [22mEsqueci a senha, sem sessao: ate o dono recupera a propria conta[2m > [22mo codigo usado nao serve de novo, e a resposta e a generica [33m 4269[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado[2m > [22memail inexistente, operador inativo, codigo errado e codigo ja usado: uma resposta so [33m 16997[2mms[22m[39m
+   [33m[2m✓[22m[39m Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado[2m > [22memail inexistente gasta o mesmo trabalho de uma conta com oito codigos [33m 8100[2mms[22m[39m
+   [33m[2m✓[22m[39m Ao criar operador, os codigos dele saem junto com senha, segredo e QR[2m > [22ma resposta traz oito codigos, gravados como hash na linha do operador novo [33m 5320[2mms[22m[39m
+   [33m[2m✓[22m[39m Ao criar operador, os codigos dele saem junto com senha, segredo e QR[2m > [22mo operador novo recupera a propria conta com um dos codigos, sem precisar do dono [33m 4984[2mms[22m[39m
+   [33m[2m✓[22m[39m A rota de recuperar esta sob o limite da porta[2m > [22mdepois do teto, responde 429 com a espera da porta [33m 13538[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/guarda-de-codigos-de-erro.test.ts[2m > [22mo desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-cru: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado
+[31m[1mAssertionError[22m: falhar: expected 'gzip' to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+"gzip"
+
+[36m [2m❯[22m test/guarda-de-codigos-de-erro.test.ts:[2m651:62[22m[39m
+    [90m649| [39m        [35mtry[39m {
+    [90m650| [39m          const resp = await fetch(`${await enderecoDe(modo)}/dv01/${n…
+    [90m651| [39m          expect(resp.headers.get("content-encoding"), modo).toBeNull(…
+    [90m   | [39m                                                             [31m^[39m
+    [90m652| [39m          [34mexpect[39m(resp[33m.[39mheaders[33m.[39m[35mget[39m([32m"content-range"[39m)[33m,[39m modo)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m653| [39m          expect(resp.headers.get("content-type"), modo).toContain("ap…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/guarda-de-codigos-de-erro.test.ts[2m > [22mo desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-fastify: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado
+[31m[1mAssertionError[22m: falhar: expected 'bytes 0-1/2' to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+"bytes 0-1/2"
+
+[36m [2m❯[22m test/guarda-de-codigos-de-erro.test.ts:[2m652:59[22m[39m
+    [90m650| [39m          const resp = await fetch(`${await enderecoDe(modo)}/dv01/${n…
+    [90m651| [39m          expect(resp.headers.get("content-encoding"), modo).toBeNull(…
+    [90m652| [39m          [34mexpect[39m(resp[33m.[39mheaders[33m.[39m[35mget[39m([32m"content-range"[39m)[33m,[39m modo)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m                                                          [31m^[39m
+    [90m653| [39m          expect(resp.headers.get("content-type"), modo).toContain("ap…
+    [90m654| [39m          [35mconst[39m corpo [33m=[39m [35mawait[39m resp[33m.[39m[34mjson[39m() [35mas[39m { erro[33m:[39m string }[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m21 passed[39m[22m[90m (22)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m377 passed[39m[22m[90m (379)[39m
+[2m   Start at [22m 23:10:37
+[2m   Duration [22m 119.54s[2m (transform 3.53s, setup 3.38s, collect 26.23s, tests 681.70s, environment 6ms, prepare 5.74s)[22m
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\.claude\worktrees\agent-aa685a25f05f5cd7c\dc360\apps\console
+npm error workspace @dc360/console@0.1.0
+npm error location C:\Projetos\city-hall\.claude\worktrees\agent-aa685a25f05f5cd7c\dc360\apps\console
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

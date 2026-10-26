@@ -201,6 +201,16 @@ function traduzir(issue: Problema): string {
       {
         const opcoes = Array.isArray(issue.options) ? (issue.options as unknown[]) : [];
         if (issue.discriminator !== undefined && opcoes.length > 0) {
+          /* O discriminador ausente (DV-47): o Zod entrega o objeto inteiro como
+             `input`, e o que falta é o campo dele. Presente e desconhecido segue
+             sendo "Tipo não reconhecido". */
+          const objeto = issue.input;
+          if (
+            typeof objeto === "object" && objeto !== null && !Array.isArray(objeto)
+            && (objeto as Record<string, unknown>)[issue.discriminator as string] === undefined
+          ) {
+            return "Campo obrigatório";
+          }
           return `Tipo não reconhecido. Os aceitos são: ${opcoes.map((o) => valorDito(o)).join(", ")}`;
         }
       }

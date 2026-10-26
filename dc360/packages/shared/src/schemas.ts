@@ -23,6 +23,17 @@ import { CASAS_DE_COORDENADA } from "./localizacao.js";
 export const uuidSchema = z.string().uuid();
 
 /**
+ * Número que chega como texto (a query string), com a frase certa para o campo
+ * ausente (DV-47). `z.coerce.number()` converte ANTES de o Zod montar o
+ * problema, e `Number(undefined)` é `NaN`: ausente e "abc" ficam iguais, e o
+ * mapa de mensagens não tem como separá-los. Aqui o ausente passa adiante como
+ * `undefined` e o `z.number()` de dentro diz "Campo obrigatório". O resto
+ * converte como o `coerce`. Aceita `.default(...)` por fora, como ele.
+ */
+export const numeroDoTexto = <T extends z.ZodType<number>>(esquema: T) =>
+  z.preprocess((v) => (v === undefined ? undefined : Number(v)), esquema);
+
+/**
  * Protocolo no formato NNNNNN/AAAA, único por organização e ano.
  * O formato é o que o servidor público já reconhece no papel.
  */

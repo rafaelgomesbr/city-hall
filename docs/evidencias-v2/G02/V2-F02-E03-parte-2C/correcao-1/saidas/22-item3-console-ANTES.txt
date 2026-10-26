@@ -1,0 +1,105 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa685a25f05f5cd7c/dc360/apps/console[39m
+
+ [31m❯[39m test/guarda-de-codigos-de-erro.test.ts [2m([22m[2m68 tests[22m[2m | [22m[31m2 failed[39m[2m | [22m[33m66 skipped[39m[2m)[22m[33m 4646[2mms[22m[39m
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, m07 sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, m10 sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, m11 sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, m16 sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, eab/x sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, eag/x sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, eaf sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, frac sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, frac-401 sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, frac-texto sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mem teste, hijack-grande sai 500 e o desvio fica registrado com a rota
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, m07 sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, m10 sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, m11 sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, m16 sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, eab/x sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, eag/x sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, eaf sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, frac sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, frac-401 sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, frac-texto sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mfora de teste, hijack-grande sai com o código genérico do console e vai para o log
+   [2m[90m↓[39m[22m a guarda do console[2m > [22mcontrole: o código do contrato passa intacto, com a frase da rota
+   [2m[90m↓[39m[22m correção 4: o status torto, por HTTP de verdade (porta efêmera)[2m > [22m403.5 não sai 403 com o código fora do contrato, nos dois modos
+   [2m[90m↓[39m[22m correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade[2m > [22mpor-baixo-store não sai 403 com o código inventado, nos dois modos
+   [2m[90m↓[39m[22m correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade[2m > [22mpor-baixo-header não sai 401 com o código inventado, nos dois modos
+   [2m[90m↓[39m[22m correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade[2m > [22mpor-baixo-writeraw não sai 403 com o código inventado, nos dois modos
+   [2m[90m↓[39m[22m correção 6: a moldura do corpo e o trailer, por socket cru em pipeline[2m > [22mcl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado
+   [2m[90m↓[39m[22m correção 6: a moldura do corpo e o trailer, por socket cru em pipeline[2m > [22mtrailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mc-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mi-cl0-stream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mi-cl0-response: sai só o corpo declarado e nenhum 403 inventado chega ao cliente
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mi-cl0-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22m403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado)
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22maddTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-100: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-101: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-103: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-199: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mg-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22m1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcorreção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcorreção 7b: o 103 legítimo antes do 403 do contrato passa intacto
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcorreção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte
+   [2m[90m↓[39m[22m correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline[2m > [22mcontrole: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22m403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mcabeçalho posto por setHeader da resposta crua: o Node lê uma vez ao receber, a guarda uma ao entregar (duas no total)
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mlista de objetos e frase da linha de status: cada elemento é lido uma vez
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mo desvio também lê o valor uma vez, e a resposta trocada leva o texto lido
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mvalor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mvalor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22msegunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22msegunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle)
+   [2m[90m↓[39m[22m DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve[2m > [22mEarly Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto
+[31m   [31m×[31m o desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-cru: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado[39m[32m 78[2mms[22m[39m
+[31m     → falhar: expected 'attachment; filename="laudo.pdf"' to be null[39m
+[31m   [31m×[31m o desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-fastify: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado[39m[32m 9[2mms[22m[39m
+[31m     → falhar: expected 'attachment; filename="laudo.pdf"' to be null[39m
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22m60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mmuitas chaves curtas e uma cadeia sem chave também ficam em tempo curto
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","mensagem":"texto com \"erro\": 1 dentro"}
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"a\"b":"x","erro":"so_o_dono"}
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: { "erro"
+	: "so_o_dono" }
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","\u0065rro":"x"}
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","\u0065\u0072\u0072\u006f"
+:"x"}
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","a":{"b":[{"erro" :1}]}}
+   [2m[90m↓[39m[22m DV-03: a conferência do corpo é linear no tamanho do texto[2m > [22mcontagem de chaves `erro`: {"erro":"so_o_dono","errou":1,"err":2,"erros":3}
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/guarda-de-codigos-de-erro.test.ts[2m > [22mo desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-cru: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado
+[41m[1m FAIL [22m[49m test/guarda-de-codigos-de-erro.test.ts[2m > [22mo desvio não restaura os cabeçalhos do corpo trocado (regressão da DV-01)[2m > [22mdesvio-gzip-fastify: o corpo do desvio sai legível pelo fetch, sem content-encoding anunciado
+[31m[1mAssertionError[22m: falhar: expected 'attachment; filename="laudo.pdf"' to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+"attachment; filename=\"laudo.pdf\""
+
+[36m [2m❯[22m test/guarda-de-codigos-de-erro.test.ts:[2m655:65[22m[39m
+    [90m653| [39m          expect(resp.headers.get("content-encoding"), modo).toBeNull(…
+    [90m654| [39m          [34mexpect[39m(resp[33m.[39mheaders[33m.[39m[35mget[39m([32m"content-range"[39m)[33m,[39m modo)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m655| [39m          expect(resp.headers.get("content-disposition"), modo).toBeNu…
+    [90m   | [39m                                                                [31m^[39m
+    [90m656| [39m          [34mexpect[39m(resp[33m.[39mheaders[33m.[39m[35mget[39m([32m"accept-ranges"[39m)[33m,[39m modo)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m657| [39m          expect(resp.headers.get("content-type"), modo).toContain("ap…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[33m66 skipped[39m[90m (68)[39m
+[2m   Start at [22m 23:49:28
+[2m   Duration [22m 6.92s[2m (transform 488ms, setup 211ms, collect 1.57s, tests 4.65s, environment 0ms, prepare 178ms)[22m
+

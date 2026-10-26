@@ -56,6 +56,28 @@
  *    dezesseis formas que a varredura não lia e os escapes da primeira guarda,
  *    e prova os dois modos.
  *
+ * ## O modelo de ameaça da guarda (V2-F02-E03, DV-02; D-31, item 2)
+ *
+ * A guarda é defesa em profundidade contra ERRO DE PROGRAMAÇÃO numa rota (código
+ * fora do catálogo, corpo ou cabeçalho mal formado) e contra o que um cliente
+ * externo consegue provocar. Cobre o que uma rota escreve por engano com os
+ * valores comuns: texto, número, `Buffer`, fluxo e `Response`. Desde a DV-01,
+ * cada valor de cabeçalho é lido UMA vez e a guarda confere o texto que o Node
+ * vai escrever, então o valor que muda a cada leitura também não abre mais a
+ * cabeça da resposta.
+ *
+ * O que ela NÃO cobre é CÓDIGO HOSTIL dentro da própria rota ou do repositório:
+ * quem consegue rodar código no servidor pode trocar a própria guarda, a resposta
+ * do Node (`ServerResponse`) ou os primitivos de que ela depende (monkey-patch,
+ * `Proxy`, escrita no socket). Isso é código malicioso no repositório, e quem o
+ * pega é a revisão de código e o CI, não esta guarda. Não prometa a quem lê
+ * "nenhum 401 ou 403 sai fora do catálogo" sem esta ressalva.
+ *
+ * Fora do acesso (401 e 403), o catálogo completo está em
+ * `packages/shared/src/erros.ts`: em teste o tratador de erros da API LANÇA para
+ * código fora dele em qualquer status, e `RegraDeNegocio` só aceita código do
+ * catálogo em compilação (V2-F02-E03).
+ *
  * Os testes abaixo são as linhas ANTERIORES, que apontam o defeito antes de ele
  * chegar à guarda, e nenhum dos dois é garantia sozinho.
  *

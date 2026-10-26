@@ -8,13 +8,13 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 413 testes do pacote compartilhado passando |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 417 testes do pacote compartilhado passando |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 448 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2002 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2041 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2010 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 377 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 379 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -197,7 +197,7 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 #### Catálogo completo de erros e categoria (V2-F02-E03)
 
 `packages/shared/src/erros.ts` generaliza o catálogo de acesso abaixo para TODO
-código que a API devolve (93 hoje), com o status e uma categoria que diz o que
+código que a API devolve (95 hoje), com o status e uma categoria que diz o que
 fazer: `renovar` (o cliente pede credencial nova e repete uma vez), `reentrar`
 (a pessoa entra de novo), `corrigir` (muda o que enviou), `aguardar` (repetir
 mais tarde pode dar certo) e `permanente` (repetir nunca dá certo). Nenhum
@@ -208,8 +208,20 @@ categoria? }`), aberta a campos novos. `CODIGOS_RESERVADOS` guarda os códigos
 que etapas seguintes emitirão (`versao_do_aplicativo_antiga`,
 `versao_do_aplicativo_ausente`; `chave_ja_usada_em_outro_registro` passou à
 lista emitida na V2-F02-E07), fora da lista
-emitida de propósito. `catalogo-de-erros.test.ts` confere o catálogo contra os
-códigos literais de `apps/api/src` nos dois sentidos, e
+emitida de propósito. `RegraDeNegocio` recebe o código TIPADO pelo catálogo (texto
+fora dele não compila), e em `NODE_ENV=test` o tratador de erros da API lança
+para código fora do catálogo em qualquer status (a guarda de acesso, abaixo,
+só vê 401 e 403); fora de teste essa conferência não existe, qualquer que seja a
+opção, e a resposta sai normal, sem vazar caminho interno. Os erros que o próprio Fastify escreve antes de qualquer rota
+(endereço malformado, parâmetro de rota acima de 100 caracteres) saem na mesma
+forma, em português e sem repetir o caminho pedido (`url_invalida` 400,
+`parametro_longo_demais` 414; `frameworkErrors`, DV-36).
+`apps/api/test/catalogo-de-erros.test.ts` confere o catálogo contra tudo o que
+`apps/api/src` emite, pela árvore sintática, nos dois sentidos (código emitido
+fora do catálogo reprova; código do catálogo que ninguém emite reprova, a não
+ser que seja reservado), reprova todo envio `.code(N).send(...)` com N a partir de 400 cujo `erro` não seja literal do catálogo ou cujo corpo não seja `{ erro, mensagem, ... }` (exceções nomeadas no teste), prova a recusa em compilação chamando o compilador, e
+prova que `PATCH /orgaos/<id de outro município>` é 404 e nunca 403.
+`packages/shared/test/catalogo-de-erros.test.ts` prende a forma do catálogo, e
 `varredura-de-esquemas.test.ts` prende as armadilhas do Zod 4 (`.default()`
 dentro de `.optional()`, `z.record` com chaves de enum, `Date` em objeto só de
 opcionais).
@@ -231,6 +243,17 @@ não recebe esse 409 em uso normal. O padrão e o que ficou aberto estão em
 `apps/api/PENDENCIAS.md`.
 
 #### Códigos de erro de acesso
+
+**Modelo de ameaça da guarda** (V2-F02-E03, DV-02; D-31, item 2 de
+`docs/roadmap-v2/28-execucao-e-validacao.md`): a guarda é defesa em
+profundidade contra ERRO DE PROGRAMAÇÃO numa rota e contra o que um cliente
+externo consegue provocar. Cobre o que uma rota escreve por engano com valores
+comuns (texto, número, `Buffer`, fluxo, `Response`); desde a DV-01 cada valor de
+cabeçalho é lido uma vez, e a guarda confere o texto que o Node vai escrever.
+NÃO cobre código hostil dentro da própria rota ou do repositório (monkey-patch
+do `ServerResponse`, `Proxy`, escrita no socket): isso é código malicioso no
+repositório, e quem o pega é a revisão de código e o CI. Nenhuma frase deste
+README quer dizer "nenhum 401 ou 403 sai fora do catálogo" sem esta ressalva.
 
 O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
 código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
@@ -1763,9 +1786,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4321 testes em seis pacotes
+npm test                    # 4366 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 448 testes do banco
-npm run test:api            # 2002 testes da API
+npm run test:api            # 2041 testes da API
 npm run test --workspace @dc360/campo   # 261 testes do motor de campo
 npm run test:campo          # tipos e os 2010 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

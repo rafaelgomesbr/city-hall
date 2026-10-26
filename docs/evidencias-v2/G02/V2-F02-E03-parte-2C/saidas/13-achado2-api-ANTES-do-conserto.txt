@@ -1,0 +1,226 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa685a25f05f5cd7c/dc360/apps/api[39m
+
+ [31m❯[39m test/catalogo-de-erros.test.ts [2m([22m[2m27 tests[22m[2m | [22m[31m9 failed[39m[2m)[22m[33m 9963[2mms[22m[39m
+   [32m✓[39m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22ma leitura enxerga as emissões (não ficou cega)[32m 4[2mms[22m[39m
+   [32m✓[39m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código emitido está no catálogo (fora dele reprova; reservado emitido também)[32m 1[2mms[22m[39m
+[31m   [31m×[31m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código do catálogo é emitido por alguém, senão é reservado (sem código morto)[39m[32m 33[2mms[22m[39m
+[31m     → expected [ 'parametro_longo_demais', …(1) ] to deeply equal [][39m
+   [32m✓[39m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22ma lista reservada guarda códigos que NINGUÉM emite ainda, e nenhum está no catálogo emitido[32m 1[2mms[22m[39m
+   [32m✓[39m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código emitido com status conhecido sai com o status do catálogo (ou um dos seus desvios declarados)[32m 3[2mms[22m[39m
+   [32m✓[39m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código CALCULADO em `new RegraDeNegocio(...)` é um repasse declarado (helper novo reprova)[32m 2[2mms[22m[39m
+   [32m✓[39m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22ma varredura enxerga um código fora do catálogo e o do catálogo (a prova de que não é cega)[32m 1[2mms[22m[39m
+[31m   [31m×[31m RegraDeNegocio só aceita código do catálogo, em compilação[2m > [22mo compilador recusa texto fora do catálogo, texto solto e aceita o código do catálogo[39m[33m 5058[2mms[22m[39m
+[31m     → expected [ …(2) ] to deeply equal [][39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 404: o tratador lança em teste, e o código inventado não chega ao cliente[39m[32m 6[2mms[22m[39m
+[31m     → {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 404 to be 500 // Object.is equality[39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 409: o tratador lança em teste, e o código inventado não chega ao cliente[39m[32m 3[2mms[22m[39m
+[31m     → {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 409 to be 500 // Object.is equality[39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 422: o tratador lança em teste, e o código inventado não chega ao cliente[39m[32m 3[2mms[22m[39m
+[31m     → {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 422 to be 500 // Object.is equality[39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 429: o tratador lança em teste, e o código inventado não chega ao cliente[39m[32m 2[2mms[22m[39m
+[31m     → {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 429 to be 500 // Object.is equality[39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 503: o tratador lança em teste, e o código inventado não chega ao cliente[39m[32m 2[2mms[22m[39m
+[31m     → {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 503 to be 500 // Object.is equality[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mcom a conferência desligada (o teste da guarda), o código sai como veio[32m 3[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mo código do catálogo passa, com o status que a rota escolheu[32m 5[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22m422 do esquema segue { erro: dados_invalidos, campos }[32m 7[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22mregra de negócio com campos devolve os campos, sem requisição[32m 3[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22m500 devolve a requisição (igual ao X-Request-Id) e nada da causa[32m 6[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22m401, 404 de rota e 404 de recurso seguem a forma[32m 6[2mms[22m[39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mendereço malformado: 400 url_invalida, em português, sem eco do caminho e com X-Request-Id[39m[32m 2[2mms[22m[39m
+[31m     → expected undefined to be 'url_invalida' // Object.is equality[39m
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mparâmetro de rota acima de 100 caracteres: 414 parametro_longo_demais, sem eco do caminho[39m[32m 2[2mms[22m[39m
+[31m     → expected undefined to be 'parametro_longo_demais' // Object.is equality[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mos dois códigos novos estão no catálogo, com status e categoria[32m 1[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mPATCH /orgaos/<id de B> por coordenador de A: 404 e o mesmo corpo de um id que não existe[32m 39[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mPATCH /v1/orgaos/<id de B> por coordenador de A: 404 e o mesmo corpo de um id que não existe[32m 29[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mo órgão de B continua intacto depois da tentativa de A[32m 2[2mms[22m[39m
+   [32m✓[39m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mo coordenador de B edita o próprio órgão (controle: a rota funciona)[32m 21[2mms[22m[39m
+   [32m✓[39m a tabela do catálogo[2m > [22mé gerada, ordenada por código, com uma linha por código emitido e por reservado[32m 2[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 9 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código do catálogo é emitido por alguém, senão é reservado (sem código morto)
+[31m[1mAssertionError[22m: expected [ 'parametro_longo_demais', …(1) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "parametro_longo_demais",[39m
+[31m+   "url_invalida",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m127:25[22m[39m
+    [90m125| [39m      [33m.[39m[34mfilter[39m((c) [33m=>[39m [33m![39mlidos[33m.[39mtodos[33m.[39m[34mhas[39m(c))
+    [90m126| [39m      [33m.[39m[34msort[39m()[33m;[39m
+    [90m127| [39m    [34mexpect[39m(naoEmitidos)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m128| [39m  })[33m;[39m
+    [90m129| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mRegraDeNegocio só aceita código do catálogo, em compilação[2m > [22mo compilador recusa texto fora do catálogo, texto solto e aceita o código do catálogo
+[31m[1mAssertionError[22m: expected [ …(2) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "2578: Unused '@ts-expect-error' directive.",[39m
+[31m+   "2578: Unused '@ts-expect-error' directive.",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m231:19[22m[39m
+    [90m229| [39m    // Zero: os dois `@ts-expect-error` foram CONSUMIDOS (houve erro) …
+    [90m230| [39m    // Se o tipo voltasse a aceitar `string`, apareceria o TS2578 ("di…
+    [90m231| [39m    [34mexpect[39m(texto)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                  [31m^[39m
+    [90m232| [39m  }[33m,[39m [34m180_000[39m)[33m;[39m
+    [90m233| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 404: o tratador lança em teste, e o código inventado não chega ao cliente
+[31m[1mAssertionError[22m: {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 404 to be 500 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 500[39m
+[31m+ 404[39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m340:38[22m[39m
+    [90m338| [39m      [35masync[39m (status) [33m=>[39m {
+    [90m339| [39m        const r = await app.inject({ method: "GET", url: `/teste-do-ca…
+    [90m340| [39m        [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m500[39m)[33m;[39m
+    [90m   | [39m                                     [31m^[39m
+    [90m341| [39m        expect(r.body).not.toContain('"erro":"inventado_por_variavel"'…
+    [90m342| [39m        [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39mmessage)[33m.[39m[34mtoContain[39m([32m"fora do catálogo"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 409: o tratador lança em teste, e o código inventado não chega ao cliente
+[31m[1mAssertionError[22m: {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 409 to be 500 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 500[39m
+[31m+ 409[39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m340:38[22m[39m
+    [90m338| [39m      [35masync[39m (status) [33m=>[39m {
+    [90m339| [39m        const r = await app.inject({ method: "GET", url: `/teste-do-ca…
+    [90m340| [39m        [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m500[39m)[33m;[39m
+    [90m   | [39m                                     [31m^[39m
+    [90m341| [39m        expect(r.body).not.toContain('"erro":"inventado_por_variavel"'…
+    [90m342| [39m        [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39mmessage)[33m.[39m[34mtoContain[39m([32m"fora do catálogo"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 422: o tratador lança em teste, e o código inventado não chega ao cliente
+[31m[1mAssertionError[22m: {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 422 to be 500 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 500[39m
+[31m+ 422[39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m340:38[22m[39m
+    [90m338| [39m      [35masync[39m (status) [33m=>[39m {
+    [90m339| [39m        const r = await app.inject({ method: "GET", url: `/teste-do-ca…
+    [90m340| [39m        [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m500[39m)[33m;[39m
+    [90m   | [39m                                     [31m^[39m
+    [90m341| [39m        expect(r.body).not.toContain('"erro":"inventado_por_variavel"'…
+    [90m342| [39m        [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39mmessage)[33m.[39m[34mtoContain[39m([32m"fora do catálogo"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 429: o tratador lança em teste, e o código inventado não chega ao cliente
+[31m[1mAssertionError[22m: {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 429 to be 500 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 500[39m
+[31m+ 429[39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m340:38[22m[39m
+    [90m338| [39m      [35masync[39m (status) [33m=>[39m {
+    [90m339| [39m        const r = await app.inject({ method: "GET", url: `/teste-do-ca…
+    [90m340| [39m        [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m500[39m)[33m;[39m
+    [90m   | [39m                                     [31m^[39m
+    [90m341| [39m        expect(r.body).not.toContain('"erro":"inventado_por_variavel"'…
+    [90m342| [39m        [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39mmessage)[33m.[39m[34mtoContain[39m([32m"fora do catálogo"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 503: o tratador lança em teste, e o código inventado não chega ao cliente
+[31m[1mAssertionError[22m: {"erro":"inventado_por_variavel","mensagem":"mensagem"}: expected 503 to be 500 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 500[39m
+[31m+ 503[39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m340:38[22m[39m
+    [90m338| [39m      [35masync[39m (status) [33m=>[39m {
+    [90m339| [39m        const r = await app.inject({ method: "GET", url: `/teste-do-ca…
+    [90m340| [39m        [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m500[39m)[33m;[39m
+    [90m   | [39m                                     [31m^[39m
+    [90m341| [39m        expect(r.body).not.toContain('"erro":"inventado_por_variavel"'…
+    [90m342| [39m        [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39mmessage)[33m.[39m[34mtoContain[39m([32m"fora do catálogo"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mendereço malformado: 400 url_invalida, em português, sem eco do caminho e com X-Request-Id
+[31m[1mAssertionError[22m: expected undefined to be 'url_invalida' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"url_invalida"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m419:29[22m[39m
+    [90m417| [39m      const r = await app.inject({ method: "GET", url: "/ocorrencias/%…
+    [90m418| [39m      [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m400[39m)[33m;[39m
+    [90m419| [39m      [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m([32m"url_invalida"[39m)[33m;[39m
+    [90m   | [39m                            [31m^[39m
+    [90m420| [39m      [34mexpect[39m(r[33m.[39mbody)[33m.[39mnot[33m.[39m[34mtoContain[39m([32m"E0%A4"[39m)[33m;[39m
+    [90m421| [39m      [34mexpect[39m(r[33m.[39mbody)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/is not a valid url|Bad Request/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mparâmetro de rota acima de 100 caracteres: 414 parametro_longo_demais, sem eco do caminho
+[31m[1mAssertionError[22m: expected undefined to be 'parametro_longo_demais' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"parametro_longo_demais"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m437:29[22m[39m
+    [90m435| [39m      })[33m;[39m
+    [90m436| [39m      [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m414[39m)[33m;[39m
+    [90m437| [39m      [34mexpect[39m(r[33m.[39m[34mjson[39m()[33m.[39merro)[33m.[39m[34mtoBe[39m([32m"parametro_longo_demais"[39m)[33m;[39m
+    [90m   | [39m                            [31m^[39m
+    [90m438| [39m      [34mexpect[39m(r[33m.[39mbody)[33m.[39mnot[33m.[39m[34mtoContain[39m(longo)[33m;[39m
+    [90m439| [39m      [34mexpect[39m(r[33m.[39mbody)[33m.[39mnot[33m.[39m[34mtoMatch[39m([36m/exceeding|Bad Request/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m18 passed[39m[22m[90m (27)[39m
+[2m   Start at [22m 23:13:13
+[2m   Duration [22m 18.32s[2m (transform 994ms, setup 698ms, collect 7.07s, tests 9.96s, environment 0ms, prepare 139ms)[22m
+
