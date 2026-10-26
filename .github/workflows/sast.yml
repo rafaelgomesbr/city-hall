@@ -7,13 +7,15 @@
 #   não é montado por interpolação e o cabeçalho Authorization não vai para log.
 #   Ficam em `.semgrep/regras/`, com casos positivos e negativos em
 #   `.semgrep/test/`, rodados por `semgrep --test` ANTES da varredura: regra que
-#   não passa no próprio teste não tem autoridade para reprovar um PR. SÃO AS
-#   ÚNICAS que bloqueiam, porque são autoria do projeto.
-# - Os pacotes do registro (TypeScript, Node, React e JWT) rodam só como RELATÓRIO,
-#   num passo com `continue-on-error`, baixados na hora (`--config p/...`). O
-#   repositório é público e essas regras são da Semgrep Rules License v1.0 (uso
-#   interno, sem redistribuição): nenhuma cópia delas mora aqui. E o registro muda
-#   sem aviso, o que quebraria o CI por culpa dele, não do código.
+#   não passa no próprio teste não tem autoridade para reprovar um PR.
+# - As regras do registro (TypeScript, Node, React e JWT) TAMBÉM bloqueiam, mas
+#   fixadas: vêm de um commit exato de `semgrep/semgrep-rules` (SEMGREP_RULES_SHA,
+#   conferido por `git rev-parse` depois do download), nunca dos pacotes móveis
+#   `p/...`, que mudam sem aviso. ERROR novo reprova pelo mesmo mecanismo de baseline
+#   das regras próprias (`.semgrep/baseline-registro.json`). O repositório é público
+#   e essas regras são da Semgrep Rules License v1.0 (uso interno, sem
+#   redistribuição): são baixadas no runner, e nenhuma cópia delas mora aqui.
+#   (Correção 1 da F01: antes rodavam num passo com `continue-on-error`/`|| true`.)
 # - Nenhum código sai do runner: versão fixa do Semgrep (e das dependências dele,
 #   por hash, em `.semgrep/requirements.txt`), `--metrics=off`, sem login,
 #   sem token (`SEMGREP_APP_TOKEN` não existe aqui e o teste de política reprova se
@@ -57,6 +59,14 @@ jobs:
       SEMGREP_SEND_METRICS: "off"
       SEMGREP_ENABLE_VERSION_CHECK: "0"
       PYTHONWARNINGS: "ignore"
+      # Regras do registro: commit fixo de semgrep/semgrep-rules (develop em 2026-10-21)
+      # e as pastas usadas, no lugar dos pacotes móveis p/typescript, p/nodejs,
+      # p/react e p/jwt. Ver o passo "Baixar as regras do registro".
+      SEMGREP_RULES_SHA: "16b9e6d45f10649f6a531ec4838ed9924372c3bc"
+      SEMGREP_RULES_PASTAS: >-
+        typescript/lang typescript/react javascript/lang javascript/express
+        javascript/node-crypto javascript/audit javascript/jsonwebtoken javascript/jose
+        javascript/jwt-simple javascript/passport-jwt javascript/react
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -100,16 +110,43 @@ jobs:
           node dc360/scripts/sast-baseline.mjs conferir sast-artefatos/semgrep.json 2>&1 \
             | tee sast-artefatos/03-baseline.txt
 
-      # SÓ RELATÓRIO: nunca reprova (continue-on-error e `|| true`). O registro
-      # é baixado na hora e muda sem aviso; o resultado é para a revisão humana.
-      - name: Relatório dos pacotes do registro (não reprova)
-        if: always()
-        continue-on-error: true
+      # As regras do registro (TypeScript, Node, React e JWT) rodam FIXADAS num
+      # commit de `semgrep/semgrep-rules` (SEMGREP_RULES_SHA), baixado na hora e
+      # conferido por `git rev-parse`. Os pacotes `p/...` do registro são
+      # móveis (mudam sem aviso, sem versão), por isso não servem de portão: este
+      # commit é a versão fixa. É USO, não redistribuição: nenhuma cópia das regras
+      # mora no repositório (Semgrep Rules License v1.0, repositório público).
+      # Subir o commit é um PR próprio, com a baseline do registro refeita.
+      - name: Baixar as regras do registro no commit fixado
         run: |
+          set -euo pipefail
+          git init --quiet "${RUNNER_TEMP}/semgrep-rules"
+          cd "${RUNNER_TEMP}/semgrep-rules"
+          git remote add origin https://github.com/semgrep/semgrep-rules.git
+          git fetch --quiet --depth 1 origin "${SEMGREP_RULES_SHA}"
+          git checkout --quiet --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "${SEMGREP_RULES_SHA}"
+          for pasta in ${SEMGREP_RULES_PASTAS}; do test -d "${pasta}"; done
+          echo "regras do registro em ${SEMGREP_RULES_SHA}" | tee "${GITHUB_WORKSPACE}/sast-artefatos/04-registro-versao.txt"
+
+      # BLOQUEIA, pelo mesmo mecanismo de baseline das regras próprias: ERROR novo
+      # do registro reprova, o que já existia está em `.semgrep/baseline-registro.json`
+      # (triado, com classe, motivo, dono e prazo). Sem `continue-on-error`, sem `|| true`.
+      - name: Varredura com as regras do registro fixadas
+        run: |
+          set -euo pipefail
+          configs=()
+          for pasta in ${SEMGREP_RULES_PASTAS}; do configs+=(--config "${RUNNER_TEMP}/semgrep-rules/${pasta}"); done
           semgrep scan --metrics=off --disable-version-check \
-            --config p/typescript --config p/nodejs --config p/react --config p/jwt \
-            --json --output sast-artefatos/04-registro-relatorio.json \
-            dc360 > sast-artefatos/04-registro-relatorio.txt 2>&1 || true
+            "${configs[@]}" \
+            --json --output sast-artefatos/04-registro.json \
+            dc360 2>&1 | tee sast-artefatos/04-registro-scan.txt
+
+      - name: Achado novo do registro reprova, o antigo fica na baseline triada
+        run: |
+          set -o pipefail
+          node dc360/scripts/sast-baseline.mjs conferir --baseline .semgrep/baseline-registro.json sast-artefatos/04-registro.json 2>&1 \
+            | tee sast-artefatos/05-baseline-registro.txt
 
       - name: Publicar a saída
         if: always()
