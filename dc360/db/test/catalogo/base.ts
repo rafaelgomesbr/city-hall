@@ -20,6 +20,7 @@ import type {
   ContribuicaoDoCatalogo,
   ExcecaoAoIsolamento,
   FuncaoPrivilegiada,
+  PreparoDeTabela,
 } from "./tipos.js";
 
 const APP = ["dc360_app"] as const;
@@ -141,9 +142,8 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O hash do token é a chave. Hoje devolve o `usuario_id` sem o município; a E08 passa a " +
       "devolver também `organizacao_id`.",
-    semProva:
-      "Exercitada só por dentro da rota de renovação (reuso de token, em " +
-      "apps/api/test/senha-e-sessoes.test.ts); nenhum teste chama a função pelo nome.",
+    // Até a parte 0D era `semProva` (exercitada só por dentro da rota de renovação).
+    provas: ["db/test/funcoes-antes-do-tenant.test.ts"],
   },
   {
     nome: "trocar_senha",
@@ -176,9 +176,8 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "O e-mail é o único caminho (índice único global); a recuperação nasce já presa ao " +
       "usuário e ao município da conta achada.",
-    semProva:
-      "Exercitada só por dentro da rota de recuperação (apps/api/test/recuperacao.test.ts e " +
-      "vizinhos); nenhum teste chama a função pelo nome.",
+    // Até a parte 0D era `semProva` (exercitada só por dentro da rota de recuperação).
+    provas: ["db/test/funcoes-antes-do-tenant.test.ts"],
   },
   {
     nome: "consumir_recuperacao",
@@ -212,9 +211,8 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
     confere:
       "Não há município: a tabela é anterior a qualquer município. A rota NÃO repassa o " +
       "booleano ao cliente (resposta idêntica nos dois casos).",
-    semProva:
-      "Nenhum teste chama a função pelo nome: a rota pública de interesse ainda não tem teste " +
-      "de API, e a prova de que a tabela escreve e não lê está em isolamento.test.ts.",
+    // Até a parte 0D era `semProva` (nenhum teste a chamava pelo nome).
+    provas: ["db/test/funcoes-antes-do-tenant.test.ts"],
   },
   {
     nome: "abrir_oficio",
@@ -237,7 +235,8 @@ const funcoes: readonly FuncaoPrivilegiada[] = [
   {
     nome: "varrer_prazos",
     assinatura: "public.varrer_prazos(interval,interval,integer,integer,interval)",
-    migracao: "016",
+    // Era "016" até a parte 0D: a 045 mudou a forma por `ALTER FUNCTION ... SET row_security = off`.
+    migracao: "045",
     etapa: "base",
     executavelPor: APP,
     motivo:
@@ -684,8 +683,89 @@ const colunasComUpdate: readonly ColunaComUpdate[] = [
   },
 ];
 
+/**
+ * Como montar a linha das tabelas que a fábrica genérica da prova
+ * comportamental (`comportamental.ts`, parte 0D) não sabe semear sozinha:
+ * cada uma tem um CHECK de formato que nenhum valor genérico satisfaz. O
+ * preparo só diz o valor de uma coluna; a policy, o privilégio e o resto da
+ * linha continuam os do banco. Conferido nos dois sentidos: sem o preparo a
+ * fábrica falha, e com ele a tabela é semeada e provada.
+ */
+const SCRYPT = "'scrypt$131072$8$1$' || repeat('s', 80) || ':n'";
+
+const preparos: readonly PreparoDeTabela[] = [
+  {
+    tabela: "console_codigos_de_recuperacao",
+    colunas: { codigo_hash: SCRYPT },
+    etapa: "base",
+    motivo:
+      "O CHECK `codigo_chega_derivado` exige o hash no formato scrypt com 80 caracteres ou mais.",
+  },
+  {
+    tabela: "console_operadores",
+    colunas: { senha_hash: SCRYPT, segundo_fator: "'v1.semente-:n'" },
+    etapa: "base",
+    motivo:
+      "Os CHECKs `senha_chega_derivada` e `segundo_fator_vem_cifrado` exigem a senha em scrypt e o " +
+      "segundo fator no envelope `v1.`.",
+  },
+  {
+    tabela: "eliminacoes_de_municipio",
+    colunas: { uf: "'MG'", executar_em: "now() + interval '8 days'" },
+    etapa: "base",
+    motivo:
+      "O CHECK da UF exige duas letras maiúsculas, e `prazo_de_arrependimento_de_sete_dias` exige " +
+      "a execução sete dias ou mais depois do pedido.",
+  },
+  {
+    tabela: "oficios",
+    colunas: { numero: "lpad(':n', 6, '0') || '/2026'" },
+    etapa: "base",
+    motivo: "O CHECK `oficios_numero_check` exige o número no formato 000000/AAAA.",
+  },
+  {
+    tabela: "saidas_a_campo",
+    colunas: { duracao_minutos: "60" },
+    etapa: "base",
+    motivo: "O CHECK da duração declarada exige de 15 a 480 minutos.",
+  },
+  {
+    tabela: "segundo_fator",
+    colunas: { segredo_cifrado: "'v1.semente-:n'" },
+    etapa: "base",
+    motivo:
+      "O CHECK `segredo_coerente_com_a_situacao` exige o segredo cifrado quando o fator está ligado, " +
+      "e a fábrica deixa nula a coluna que aceita nulo.",
+  },
+  {
+    tabela: "segundo_fator_recuperacao",
+    colunas: { codigo_hash: "rpad('semente:n', 43, 'x')" },
+    etapa: "base",
+    motivo:
+      "O CHECK `codigo_guardado_como_resumo` exige o resumo com exatamente 43 caracteres base64url.",
+  },
+];
+
 export const BASE: ContribuicaoDoCatalogo = {
   funcoes,
   excecoes,
   colunasComUpdate,
+  preparos,
+  semProvaComportamental: [],
+  policiesRestritivas: [],
+  visoesSemInvoker: [],
+  tiposProprios: [],
+  sequencias: [],
+  leiturasDeExtensao: [
+    {
+      extensao: "postgis",
+      relacao: "extensions.spatial_ref_sys",
+      papel: "dc360_app",
+      etapa: "base",
+      motivo:
+        "A tabela de sistemas de referência do PostGIS, que as funções de distância em metros leem; " +
+        "o `supabase-endurecer.sql` dá SELECT ao papel de aplicação e tira de todo o resto. Não tem " +
+        "dado de município.",
+    },
+  ],
 };

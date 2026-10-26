@@ -1,0 +1,20 @@
+### D2 (antes)
+--- migracao 999 temporaria:
+-- D2 (item 2): uma segunda policy PERMISSIVA, que menciona o contexto, mas soma por OR
+-- um ramo que nao depende do municipio. Cada texto parece certo; a composicao vaza.
+CREATE POLICY sabotagem_d2 ON equipes FOR SELECT
+  USING (organizacao_id = app_organizacao_atual() OR nome IS NOT NULL);
+--- vitest (test/isolamento.test.ts):
+
+ RUN  v3.2.7 C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b/dc360/db
+
+ ✓ test/isolamento.test.ts (140 tests) 38753ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1358ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1313ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  33310ms
+
+ Test Files  1 passed (1)
+      Tests  140 passed (140)
+   Start at  05:24:35
+   Duration  39.79s (transform 231ms, setup 0ms, collect 479ms, tests 38.75s, environment 0ms, prepare 210ms)
+

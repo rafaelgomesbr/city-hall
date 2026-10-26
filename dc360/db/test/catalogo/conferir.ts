@@ -529,7 +529,7 @@ export async function conferirExcecoes(
  * de privilégio, a de DELETE, a de chave estrangeira. Em vez de reescrever
  * cada uma, esta conferência garante que fora de `public` não há o que varrer:
  *
- *   - objeto (tabela, visão, sequência, tabela estrangeira, função) num
+ *   - objeto (tabela, visão, sequência, tabela estrangeira, tipo, função) num
  *     esquema que não é do sistema nem `public`, e que não pertence a uma
  *     extensão, reprova;
  *   - CREATE do papel de aplicação ou do console em qualquer esquema que não
@@ -543,11 +543,19 @@ export async function conferirExcecoes(
 export async function conferirEsquemas(db: ConsultaSql): Promise<string[]> {
   const problemas: string[] = [];
 
+  /*
+    Os TIPOS próprios também (parte 0D, item 7 da auditoria): enum, domínio,
+    tipo composto avulso e intervalo. Ficam de fora o tipo de linha de uma
+    relação (a relação já está na lista) e o tipo vetor de outro tipo (o tipo
+    do elemento já está).
+  */
+  const TIPO_PROPRIO = (t: string) =>
+    `${t}.typrelid = 0 AND NOT EXISTS (SELECT 1 FROM pg_type e WHERE e.typarray = ${t}.oid)`;
   const objetos = await db.query<{ objeto: string; tipo: string }>(`
     SELECT n.nspname || '.' || c.relname AS objeto, c.relkind::text AS tipo
       FROM pg_class c
       JOIN pg_namespace n ON n.oid = c.relnamespace
-     WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+     WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S', 'c')
        AND ${FORA_DO_SISTEMA} AND n.nspname <> 'public'
        AND NOT ${DE_EXTENSAO("pg_class", "c.oid")}
     UNION ALL
@@ -557,6 +565,13 @@ export async function conferirEsquemas(db: ConsultaSql): Promise<string[]> {
       JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE ${FORA_DO_SISTEMA} AND n.nspname <> 'public'
        AND NOT ${DE_EXTENSAO("pg_proc", "p.oid")}
+    UNION ALL
+    SELECT n.nspname || '.' || t.typname, 'tipo'
+      FROM pg_type t
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+     WHERE ${FORA_DO_SISTEMA} AND n.nspname <> 'public'
+       AND ${TIPO_PROPRIO("t")}
+       AND NOT ${DE_EXTENSAO("pg_type", "t.oid")}
      ORDER BY 1
   `);
   for (const o of objetos.rows) {
@@ -577,11 +592,15 @@ export async function conferirEsquemas(db: ConsultaSql): Promise<string[]> {
            has_schema_privilege(r.oid, n.oid, 'USAGE') AS usage,
            has_schema_privilege(r.oid, n.oid, 'CREATE') AS criar,
            (EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid)
-              OR EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid))
+              OR EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid)
+              OR EXISTS (SELECT 1 FROM pg_type t WHERE t.typnamespace = n.oid))
            AND NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid
                              AND NOT ${DE_EXTENSAO("pg_class", "c.oid")})
            AND NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid
-                             AND NOT ${DE_EXTENSAO("pg_proc", "p.oid")}) AS so_de_extensao
+                             AND NOT ${DE_EXTENSAO("pg_proc", "p.oid")})
+           AND NOT EXISTS (SELECT 1 FROM pg_type t WHERE t.typnamespace = n.oid
+                             AND ${TIPO_PROPRIO("t")}
+                             AND NOT ${DE_EXTENSAO("pg_type", "t.oid")}) AS so_de_extensao
       FROM pg_namespace n
       CROSS JOIN pg_roles r
      WHERE ${FORA_DO_SISTEMA}
@@ -621,12 +640,27 @@ function semComentariosDeTs(ts: string): string {
   return ts.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
 }
 
+/**
+ * A migração CRIA a função (`CREATE [OR REPLACE] FUNCTION nome(`) ou a ALTERA
+ * na forma (`ALTER FUNCTION nome(...) SET ...`, `SECURITY ...`, volatilidade).
+ *
+ * A segunda forma entrou na parte 0D: a conferência pela definição instalada
+ * (item 5) mostrou que `varrer_prazos` ganhou `SET row_security = off` na 045
+ * por `ALTER FUNCTION`, e a regra só por `CREATE` dizia que a forma atual
+ * vinha da 016. Mudar dono, nome, esquema ou dependência não muda a forma
+ * (`pg_get_functiondef`) e não conta.
+ */
 function criaFuncao(sql: string, nome: string, soReplace = false): boolean {
-  const re = new RegExp(
+  const limpo = semComentarios(sql);
+  const cria = new RegExp(
     `CREATE\\s+${soReplace ? "OR\\s+REPLACE\\s+" : "(OR\\s+REPLACE\\s+)?"}FUNCTION\\s+(public\\.)?"?${nome}"?\\s*\\(`,
     "i",
   );
-  return re.test(semComentarios(sql));
+  const altera = new RegExp(
+    `ALTER\\s+FUNCTION\\s+(public\\.)?"?${nome}"?\\s*\\([^)]*\\)\\s+(?!OWNER\\b|RENAME\\b|SET\\s+SCHEMA\\b|(NO\\s+)?DEPENDS\\b)`,
+    "i",
+  );
+  return cria.test(limpo) || altera.test(limpo);
 }
 
 /**
@@ -634,11 +668,12 @@ function criaFuncao(sql: string, nome: string, soReplace = false): boolean {
  * o que a entrada diz sobre a origem da função também precisa ser verdade:
  *
  *   - `migracao` é a ÚLTIMA migração que cria a função (`CREATE [OR REPLACE]
- *     FUNCTION nome(`). Uma migração nova que reescreve o corpo de uma função
+ *     FUNCTION nome(`) ou a altera na forma (`ALTER FUNCTION nome(...) SET`,
+ *     parte 0D). Uma migração nova que reescreve o corpo de uma função
  *     catalogada sem a etapa declarar a entrada nova (`redefine`) reprova;
  *   - toda entrada com `redefine: true` tem `migracao` MAIOR que a da entrada
- *     que substitui, e essa migração contém `CREATE OR REPLACE FUNCTION` da
- *     função. Redefinir só no catálogo (apagar uma dívida de tenant sem
+ *     que substitui, e essa migração contém `CREATE OR REPLACE FUNCTION` (ou
+ *     o `ALTER FUNCTION` de forma) da função. Redefinir só no catálogo (apagar uma dívida de tenant sem
  *     mudar o SQL, a sabotagem S5a) reprova;
  *   - `provas` aponta para teste que existe e chama a função pelo nome, ou
  *     `semProva` diz por quê; nunca os dois, nunca nenhum.

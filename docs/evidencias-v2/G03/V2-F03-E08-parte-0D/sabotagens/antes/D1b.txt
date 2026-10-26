@@ -1,0 +1,34 @@
+### D1b (antes)
+--- migracao 999 temporaria:
+-- D1b (item 1): tabela NOVA, com organizacao_id, RLS forcada, grants ao app e uma
+-- policy com OR true. Nenhuma lista a conhece; so a descoberta pelo catalogo a acha.
+CREATE TABLE sabotagem_d1b (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organizacao_id uuid NOT NULL REFERENCES organizacoes(id),
+  nota text NOT NULL
+);
+ALTER TABLE sabotagem_d1b ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sabotagem_d1b FORCE ROW LEVEL SECURITY;
+-- Policies comando a comando (sem FOR ALL, que o portao contra apagar ja pegava).
+CREATE POLICY sabotagem_d1b_leitura ON sabotagem_d1b FOR SELECT
+  USING (organizacao_id = app_organizacao_atual() OR true);
+CREATE POLICY sabotagem_d1b_insercao ON sabotagem_d1b FOR INSERT
+  WITH CHECK (organizacao_id = app_organizacao_atual() OR true);
+CREATE POLICY sabotagem_d1b_atualizacao ON sabotagem_d1b FOR UPDATE
+  USING (organizacao_id = app_organizacao_atual() OR true)
+  WITH CHECK (organizacao_id = app_organizacao_atual() OR true);
+GRANT SELECT, INSERT, UPDATE ON sabotagem_d1b TO dc360_app;
+--- vitest (test/isolamento.test.ts):
+
+ RUN  v3.2.7 C:/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b/dc360/db
+
+ ✓ test/isolamento.test.ts (140 tests) 34400ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  1337ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  1599ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  29037ms
+
+ Test Files  1 passed (1)
+      Tests  140 passed (140)
+   Start at  05:34:50
+   Duration  35.44s (transform 219ms, setup 0ms, collect 461ms, tests 34.40s, environment 0ms, prepare 146ms)
+

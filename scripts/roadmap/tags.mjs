@@ -102,8 +102,14 @@ export function tagsPorCaminho(caminhoBruto) {
   if (/^db\//.test(c)) tags.add("DB");
   if (/^db\/migrations\//.test(c)) tags.add("MIGRATION");
   // O portão de isolamento E o catálogo nominal que ele confere (V2-F03-E08, parte 0B): uma
-  // etapa que só mexe no `catalogo/f03-eNN.ts` muda o que o CA-06 aceita.
-  if (/^db\/test\/(isolamento|catalogo\/|catalogo-nominal\.test\.ts$)/.test(c)) tags.add("TENANT");
+  // etapa que só mexe no `catalogo/f03-eNN.ts` muda o que o CA-06 aceita. A parte 0D
+  // acrescenta as sondas da prova comportamental, a prova direta das funções de antes do
+  // município e o ACL de extensão da suíte espacial.
+  if (
+    /^db\/test\/(isolamento|catalogo\/|(catalogo-nominal|portao-comportamental|funcoes-antes-do-tenant|extensoes\.espacial)\.test\.ts$)/.test(c)
+  ) {
+    tags.add("TENANT");
+  }
   if (/^apps\/api\/src\/rotas\//.test(c)) tags.add("API");
   if (/^apps\/api\/src\/rotas\/(interesse|publico|publica|validacao)/.test(c)) tags.add("PUBLIC_API");
   if (NAO_E_TESTE(c) && (/(laudo|termo|montador)/i.test(semAcento(nome)) || /(^|\/)saida\//.test(c))) tags.add("DOCUMENTO");

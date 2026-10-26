@@ -1,0 +1,50 @@
+== D1
+ ✓ test/isolamento.test.ts (140 tests) 40852ms
+      Tests  140 passed (140)
+== D1b
+ ❯ test/isolamento.test.ts (140 tests | 4 failed) 50972ms
+ ❯ test/isolamento.test.ts:1232:7
+      Tests  4 failed | 136 passed (140)
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo
+   × O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT
+== D2
+ ✓ test/isolamento.test.ts (140 tests) 38753ms
+      Tests  140 passed (140)
+== D2b
+ ✓ test/isolamento.test.ts (140 tests) 48780ms
+      Tests  140 passed (140)
+== D3
+ ✓ test/isolamento.test.ts (140 tests) 37482ms
+      Tests  140 passed (140)
+== D4
+ ✓ test/isolamento.test.ts (140 tests) 30031ms
+      Tests  140 passed (140)
+== D4b
+ ✓ test/isolamento.test.ts (140 tests) 63124ms
+      Tests  140 passed (140)
+== D5
+ ✓ test/isolamento.test.ts (140 tests) 73936ms
+      Tests  140 passed (140)
+== D6
+ ✓ test/isolamento.test.ts (140 tests) 47642ms
+      Tests  140 passed (140)
+== D6b
+ ✓ test/isolamento.test.ts (140 tests) 36528ms
+      Tests  140 passed (140)
+== D7
+ ✓ test/isolamento.test.ts (140 tests) 49319ms
+      Tests  140 passed (140)
+== D8
+ ✓ test/isolamento.test.ts (140 tests) 32782ms
+      Tests  140 passed (140)
+== D8b
+ ✓ test/isolamento.test.ts (140 tests) 40914ms
+      Tests  140 passed (140)
+== D1b
+ ✓ test/isolamento.test.ts (140 tests) 34400ms
+      Tests  140 passed (140)
+== D9
+ ✓ test/isolamento.test.ts (140 tests) 30815ms
+      Tests  140 passed (140)

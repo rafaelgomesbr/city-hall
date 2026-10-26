@@ -1,0 +1,31 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ae754d26ce687168e/dc360/db
+
+ ❯ test/extensoes.espacial.test.ts (5 tests | 1 failed | 4 skipped) 5ms
+   × ACL de extensão com o PostGIS: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa 4ms
+     → DC360_EXIGE_POSTGIS=1 e DC360_POSTGRES_DE_PROVA não está definida. No CI isto reprova de propósito: pular aqui esconderia que a prova espacial não rodou.
+   ↓ ACL de extensão com o PostGIS instalado e endurecido > endurecido, o ACL é exatamente o declarado, e a leitura de spatial_ref_sys é conferida (não pulada)
+   ↓ ACL de extensão com o PostGIS instalado e endurecido > uma migração que dá INSERT em spatial_ref_sys ao papel de aplicação reprova
+   ↓ ACL de extensão com o PostGIS instalado e endurecido > EXECUTE com opção de concessão numa função do PostGIS reprova
+   ↓ ACL de extensão com o PostGIS instalado e endurecido > um tipo que não é do PostGIS no esquema dele tira o 'só de extensão', e o USAGE do papel de aplicação reprova
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/extensoes.espacial.test.ts > ACL de extensão com o PostGIS: o ambiente tem o que a execução exige > reprova se o CI exige PostGIS e o servidor não o oferece; local, só avisa
+Error: DC360_EXIGE_POSTGIS=1 e DC360_POSTGRES_DE_PROVA não está definida. No CI isto reprova de propósito: pular aqui esconderia que a prova espacial não rodou.
+ ❯ test/extensoes.espacial.test.ts:55:44
+     53| describe("ACL de extensão com o PostGIS: o ambiente tem o que a execuç…
+     54|   it("reprova se o CI exige PostGIS e o servidor não o oferece; local,…
+     55|     if (decisao.acao === "reprovar") throw new Error(decisao.motivo);
+       |                                            ^
+     56|     if (decisao.acao === "pular") console.warn(decisao.aviso);
+     57|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  06:40:05
+   Duration  951ms (transform 169ms, setup 0ms, collect 531ms, tests 5ms, environment 0ms, prepare 175ms)
+

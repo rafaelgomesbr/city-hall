@@ -1,0 +1,53 @@
+#!/bin/bash
+# Roda sabotagens contra o portao de isolamento real (parte 0D).
+# uso: rodar.sh <fase> <S...>   (fase: antes = arvore da 0B exportada | depois = arvore da 0D)
+# Cada sabotagem e uma migracao 999 TEMPORARIA (nunca commitada), mais, nas da correcao 1
+# que mexem no catalogo, a troca de f03-e04.ts ou base.ts; tudo restaurado no fim de cada uma.
+set -u
+S=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/sab0d
+FASE=$1; shift
+case $FASE in
+  antes) W=/c/Users/Rfasg/AppData/Local/Temp/claude/c--Projetos-city-hall/4d4810ee-58ca-4e55-b3cf-f3f1dbed1b8e/scratchpad/antes-0b
+         TESTES="test/isolamento.test.ts" ;;
+  depois) W=/c/Projetos/city-hall/.claude/worktrees/agent-ae754d26ce687168e
+          TESTES="test/isolamento.test.ts test/catalogo-nominal.test.ts test/portao-comportamental.test.ts test/funcoes-antes-do-tenant.test.ts" ;;
+esac
+CAT=$W/dc360/db/test/catalogo
+MIG=$W/dc360/db/migrations/999_sabotagem.sql
+OUT=$S/$FASE
+mkdir -p "$OUT/bak"
+cp "$CAT/base.ts" "$OUT/bak/base.ts"
+cp "$CAT/f03-e04.ts" "$OUT/bak/f03-e04.ts"
+restaurar() {
+  cp "$OUT/bak/base.ts" "$CAT/base.ts"
+  cp "$OUT/bak/f03-e04.ts" "$CAT/f03-e04.ts"
+  rm -f "$MIG"
+}
+for s in "$@"; do
+  restaurar
+  if [ -f "$S/sql/$s.sql" ]; then cp "$S/sql/$s.sql" "$MIG"; fi
+  if [ -f "$S/sql-c1/$s.sql" ]; then cp "$S/sql-c1/$s.sql" "$MIG"; fi
+  case $s in
+    S5a|S5c|S8b|S8d|L1) cp "$S/e04/$s.ts.txt" "$CAT/f03-e04.ts" ;;
+    S8) cp "$S/e04/S8b.ts.txt" "$CAT/f03-e04.ts" ;;
+    S1) perl -0pi -e 's/(nome: "revogar_sessao",.*?executavelPor: )APP/$1CONSOLE/s' "$CAT/base.ts" ;;
+    S4) perl -0pi -e 's/  \{\n    tabela: "console_codigos_de_recuperacao",.*?\n  \},\n//s' "$CAT/base.ts" ;;
+  esac
+  {
+    echo "### $s ($FASE)"
+    if [ -f "$MIG" ]; then echo "--- migracao 999 temporaria:"; cat "$MIG"; fi
+    case $s in S5a|S5c|S8|S8b|S8d|L1) echo "--- f03-e04.ts:"; cat "$CAT/f03-e04.ts" ;; esac
+    case $s in S1|S4) echo "--- base.ts (diff):"; diff "$OUT/bak/base.ts" "$CAT/base.ts" ;; esac
+    echo "--- vitest ($TESTES):"
+  } > "$OUT/$s.txt"
+  (cd "$W/dc360/db" && npx vitest run $TESTES 2>&1) | sed 's/\x1b\[[0-9;]*m//g' >> "$OUT/$s.txt"
+  restaurar
+  {
+    echo "== $s"
+    grep -E "^ +(✓|❯|×) test/isolamento\.test\.ts" "$OUT/$s.txt" | head -2
+    grep -E "^ +Tests " "$OUT/$s.txt"
+    grep -E "^ +× " "$OUT/$s.txt" | sed 's/ [0-9]*ms$//' | head -30
+  } >> "$OUT/RESUMO.txt"
+done
+restaurar
+ls "$W/dc360/db/migrations" | grep -c 999 || true

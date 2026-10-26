@@ -28,11 +28,41 @@ import {
   CONTRIBUICOES_DO_CATALOGO,
   EXCECOES_AO_ISOLAMENTO,
   FUNCOES_PRIVILEGIADAS,
+  LEITURAS_DE_EXTENSAO,
+  POLICIES_DO_FORNECEDOR,
+  POLICIES_RESTRITIVAS,
+  PREPAROS,
+  SEM_PROVA_COMPORTAMENTAL,
+  SEQUENCIAS_DO_PRODUTO,
+  TIPOS_PROPRIOS,
+  VISOES_SEM_INVOKER,
+  HistoricoDasDefinicoes,
+  comoAtor,
+  composicoesDePolicies,
+  conferirAclDeExtensoes,
+  conferirCorpoDasFuncoes,
+  conferirDefinicaoInstalada,
   conferirEsquemas,
   conferirExcecoes,
   conferirFontes,
   conferirFuncoesPrivilegiadas,
+  conferirGatilhoForaDoAlcance,
+  conferirMarcaDeLiberacao,
+  conferirModoDasPolicies,
+  conferirPoliciesDoFornecedor,
+  conferirQuemCitaOrigensDeConta,
+  conferirSequenciasETipos,
+  conferirVisoes,
   fontesDoRepositorio,
+  provarIsolamento,
+  semear,
+  tabelasDaProva,
+  visoesLegiveis,
+  type Ator,
+  type BancoDaProva,
+  type RelatorioDaProva,
+  type Semeadura,
+  type TransacaoSql,
 } from "./catalogo/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -487,6 +517,23 @@ describe("CA-06: isolamento entre organizações", () => {
     for (const t of doFornecedor) {
       expect(DO_FORNECEDOR.has(t), `${t} se diz do fornecedor e não está no bloco DO_FORNECEDOR`).toBe(true);
     }
+  });
+
+  it("cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4)", async () => {
+    /*
+      O caso acima cobra que cada policy de escrita CONTENHA a guarda, lendo
+      USING e WITH CHECK juntos. `console_operador_e_dono() OR true` contém a
+      guarda, e uma guarda no USING escondia um WITH CHECK irrestrito no
+      UPDATE (auditoria de cobertura da parte 0B, item 4). Aqui cada cláusula
+      bate com o texto declarado em `catalogo/fornecedor.ts`, por inteiro. As
+      tentativas reais do operador sem autorização estão no bloco da prova
+      comportamental, no fim deste arquivo.
+    */
+    expect(
+      [...new Set(POLICIES_DO_FORNECEDOR.map((p) => p.tabela))].sort(),
+      "POLICIES_DO_FORNECEDOR e o bloco DO_FORNECEDOR falam das mesmas tabelas",
+    ).toEqual([...DO_FORNECEDOR.keys()].sort());
+    expect(await conferirPoliciesDoFornecedor(db, POLICIES_DO_FORNECEDOR, [...DO_FORNECEDOR.keys()])).toEqual([]);
   });
 
   it("nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema", async () => {
@@ -5130,5 +5177,302 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
       mensagem.toLowerCase(),
       "o papel de aplicacao executou a funcao que cria municipio",
     ).toMatch(/permission denied|permissão negada/);
+  });
+});
+
+/**
+ * A PROVA COMPORTAMENTAL, tabela por tabela (V2-F03-E08, parte 0D).
+ *
+ * Tudo o que vem acima confere o catálogo do banco e prova o comportamento em
+ * tabelas escolhidas à mão. A auditoria de cobertura da parte 0B mostrou o
+ * que isso deixa passar: uma policy `USING (organizacao_id =
+ * app_organizacao_atual() OR true)` numa tabela nova satisfaz o texto, e
+ * nenhum caso tentava ler a linha do vizinho nela. Este bloco não lê texto de
+ * policy: descobre as tabelas pelo catálogo, semeia uma linha de cada
+ * município em CADA uma (`catalogo/comportamental.ts`, com a fábrica genérica
+ * e os `PREPAROS` nominais) e tenta cruzar a fronteira como o papel de
+ * aplicação, pelo contexto de A e sem contexto.
+ *
+ * Roda num PGlite só dele, para a semeadura (feita com gatilhos e chaves
+ * estrangeiras desligados, como dono) não tocar o banco dos casos acima, e
+ * aplica as migrações uma a uma, para registrar em qual delas a definição
+ * instalada de cada função privilegiada mudou por último (item 5).
+ */
+describe("Prova comportamental entre municípios, tabela por tabela (parte 0D)", () => {
+  let banco: PGlite;
+  let a: string;
+  let b: string;
+  let semeadura: Semeadura;
+  let relatorio: RelatorioDaProva;
+  const historico = new HistoricoDasDefinicoes();
+  const prova = () => banco as unknown as BancoDaProva;
+
+  beforeAll(async () => {
+    banco = new PGlite();
+    const arquivos = readdirSync(pastaDeMigracoes).filter((f) => f.endsWith(".sql")).sort();
+    for (const arquivo of arquivos) {
+      await banco.exec(readFileSync(join(pastaDeMigracoes, arquivo), "utf8"));
+      await historico.registrar(banco, arquivo.slice(0, 3));
+    }
+    a = (await banco.query<{ id: string }>(
+      "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('Defesa Civil de Serra Alta','Serra Alta','MG') RETURNING id",
+    )).rows[0]!.id;
+    b = (await banco.query<{ id: string }>(
+      "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('Defesa Civil de Vale Fundo','Vale Fundo','MG') RETURNING id",
+    )).rows[0]!.id;
+    semeadura = await semear(prova(), a, b, PREPAROS, SEM_PROVA_COMPORTAMENTAL);
+    relatorio = await provarIsolamento(prova(), semeadura, { a, b });
+  });
+
+  afterAll(async () => {
+    await banco?.close();
+  });
+
+  it("item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada", () => {
+    /*
+      Cada tentativa e o resultado aceito estão em `catalogo/comportamental.ts`.
+      Em resumo: a leitura é medida pela contagem visível com e sem a linha de
+      B (assim não importa quais colunas o papel pode ler); o UPDATE e o
+      DELETE vão sem WHERE e às cegas, e o dono confere depois que a linha de
+      B está no mesmo lugar; o INSERT é a cópia exata da linha de B, e só a
+      recusa por policy ou privilégio (42501) é aceita; e mover a própria
+      linha para B também é tentado. As sondas que fazem esta prova reprovar
+      (policy com OR true, permissiva somada, visão sem security_invoker...)
+      estão em `db/test/portao-comportamental.test.ts`.
+    */
+    expect(relatorio.problemas).toEqual([]);
+  });
+
+  it("item 1: a prova cobriu TODA tabela que o catálogo do banco tem, e a lista nominal do que não deu para semear confere nos dois sentidos", async () => {
+    const tabelas = (await tabelasDaProva(banco)).map((t) => t.qualificado).sort();
+    const cobertas = relatorio.tabelas.map((t) => t.tabela);
+    const semProva = SEM_PROVA_COMPORTAMENTAL.map((s) => s.tabela);
+    expect(tabelas.length, "a descoberta de tabelas voltou vazia: ela quebrou").toBeGreaterThanOrEqual(30);
+    expect([...cobertas, ...semProva].sort(), "tabela sem prova comportamental e fora da lista nominal").toEqual(tabelas);
+    for (const t of relatorio.tabelas) {
+      expect(semeadura.linhas.get(t.tabela), `${t.tabela} sem linha semeada`).toBeDefined();
+    }
+  });
+
+  it("item 1, a âncora: em toda tabela em que o papel de aplicação lê a coluna do município, a prova ENXERGOU a linha de A no contexto de A", async () => {
+    /*
+      Sem âncora, uma prova que não enxerga nada (semeadura vazia, contexto
+      que não pega) passaria verde dizendo que "B não aparece". Aqui ela
+      mostra que vê o que deve: a linha do próprio município.
+    */
+    const r = await banco.query<{ tabela: string }>(`
+      SELECT CASE WHEN n.nspname = 'public' THEN c.relname::text ELSE n.nspname || '.' || c.relname END AS tabela
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_attribute a ON a.attrelid = c.oid
+             AND a.attname = CASE WHEN n.nspname = 'public' AND c.relname = 'organizacoes' THEN 'id' ELSE 'organizacao_id' END
+       WHERE c.relkind IN ('r', 'p') AND n.nspname NOT LIKE 'pg\\_%' AND n.nspname <> 'information_schema'
+         AND has_column_privilege('dc360_app', c.oid, a.attnum, 'SELECT')
+       ORDER BY 1`);
+    expect(r.rows.length, "a âncora não achou tabela legível: a consulta quebrou").toBeGreaterThanOrEqual(20);
+    const leram = new Set(relatorio.tabelas.filter((t) => t.leuOProprio).map((t) => t.tabela));
+    const semProva = new Set(SEM_PROVA_COMPORTAMENTAL.map((s) => s.tabela));
+    const naoLeram = r.rows.map((l) => l.tabela).filter((t) => !leram.has(t) && !semProva.has(t));
+    expect(naoLeram, "a prova não enxergou a linha do próprio município nestas tabelas").toEqual([]);
+  });
+
+  it("item 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role)", async () => {
+    const ator: Ator = { papel: "dc360_app", variavel: "app.organizacao_atual", valor: a };
+    const r = await comoAtor(prova(), ator, { replica: false }, async () => 0, "SET LOCAL session_replication_role = replica");
+    expect(r.tentativa.ok ? "aceitou" : r.tentativa.codigo, "o papel de aplicação mudou session_replication_role").toBe("42501");
+  });
+
+  it("item 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos", async () => {
+    expect(await conferirModoDasPolicies(db, POLICIES_RESTRITIVAS)).toEqual([]);
+  });
+
+  it("item 2: toda composição de policies que vale para o papel de aplicação está coberta pela prova comportamental", async () => {
+    /*
+      Duas policies permissivas para o mesmo comando SOMAM por OR; uma
+      restritiva CORTA por AND. O texto de cada uma pode estar certo e a soma
+      não: quem mede a soma é a prova comportamental, e este caso confere que
+      toda tabela com composição passou por ela.
+    */
+    const composicoes = await composicoesDePolicies(banco, "dc360_app");
+    const cobertas = new Set(relatorio.tabelas.map((t) => t.tabela));
+    expect(composicoes.filter((c) => !cobertas.has(c.slice(0, c.lastIndexOf(":"))))).toEqual([]);
+  });
+
+  it("item 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER", async () => {
+    expect(await conferirVisoes(db, VISOES_SEM_INVOKER)).toEqual([]);
+  });
+
+  it("item 3: toda visão que o papel de aplicação lê passou pela prova de leitura cruzada", async () => {
+    const legiveis = (await visoesLegiveis(banco, "dc360_app")).map((v) => v.qualificado);
+    expect(legiveis.filter((v) => !relatorio.visoes.includes(v))).toEqual([]);
+  });
+
+  it("item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele", async () => {
+    expect(await conferirSequenciasETipos(db, SEQUENCIAS_DO_PRODUTO, TIPOS_PROPRIOS)).toEqual([]);
+  });
+
+  it("item 7: o ACL dos objetos de extensão instalada é só o declarado, e o que não está instalado aqui é dito, não pulado em silêncio", async () => {
+    const r = await conferirAclDeExtensoes(db, LEITURAS_DE_EXTENSAO);
+    expect(r.problemas).toEqual([]);
+    /*
+      O PGlite deste portão não tem PostGIS: a leitura declarada de
+      `spatial_ref_sys` não é conferida AQUI. Quem a confere, com a extensão
+      instalada e endurecida, é `db/test/extensoes.espacial.test.ts`, na suíte
+      espacial do CI (`DC360_EXIGE_POSTGIS=1`, onde faltar o PostGIS reprova).
+      Se um dia o PostGIS entrar aqui, este caso muda de propósito.
+    */
+    expect(r.naoInstaladas).toEqual(["postgis"]);
+  });
+
+  it("correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role", async () => {
+    expect(await conferirGatilhoForaDoAlcance(db)).toEqual([]);
+  });
+
+  it("correção 2 da ADR 0009: o corpo de toda função privilegiada fica no modelo (sem DDL, sem session_replication_role, EXECUTE só de DML constante)", async () => {
+    expect(await conferirCorpoDasFuncoes(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém)", async () => {
+    expect(await conferirQuemCitaOrigensDeConta(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("correção 2 da ADR 0009: a forma da marca \"recusada depois da liberação\" (antes da liberação, a marcada é do papel de aplicação)", () => {
+    expect(conferirMarcaDeLiberacao(FUNCOES_PRIVILEGIADAS, false)).toEqual([]);
+  });
+
+  it("item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último", () => {
+    /*
+      `conferirFontes` (acima) lê o TEXTO das migrações e não enxerga uma
+      função recriada por `EXECUTE format(...)` com o nome montado. Esta
+      conferência pergunta ao banco: depois de cada migração, a definição de
+      cada função (`pg_get_functiondef`) mudou? A última que mudou é a que o
+      catálogo tem de dizer.
+    */
+    expect(conferirDefinicaoInstalada(historico, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  describe("item 4: o operador do console sem autorização tentando, de verdade", () => {
+    let dono: string;
+    let operador: string;
+    const comoConsole = (valor: string | null): Ator => ({ papel: "dc360_console", variavel: "app.console_operador", valor });
+    const contar = (sql: string, params: unknown[] = []) => async (tx: TransacaoSql) =>
+      (await tx.query<{ n: number }>(sql, params)).rows[0]!.n;
+    const HASH = "'scrypt$131072$8$1$' || repeat('h', 80)";
+    const ELIMINACAO = `INSERT INTO eliminacoes_de_municipio
+        (organizacao_id, municipio_nome, uf, executar_em, solicitada_por_email, motivo)
+      VALUES ($1, 'Serra Alta', 'MG', now() + interval '8 days', 'quem@exemplo.gov.br', 'motivo de teste')`;
+    const ELIMINACOES = "SELECT count(*)::int AS n FROM eliminacoes_de_municipio";
+
+    let semEliminacao: string;
+
+    beforeAll(async () => {
+      // Um município sem eliminação semeada: a de A e a de B já ocupam a vaga de "uma ativa por município".
+      semEliminacao = (await banco.query<{ id: string }>(
+        "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('Defesa Civil de Pedra Lisa','Pedra Lisa','MG') RETURNING id",
+      )).rows[0]!.id;
+      dono = (await banco.query<{ id: string }>("SELECT id FROM console_operadores WHERE papel = 'dono'")).rows[0]!.id;
+      operador = (await banco.query<{ id: string }>(
+        `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel, criado_por)
+         VALUES ('operador.sem.poder@exemplo.gov.br', ${HASH}, 'v1.operador', 'operador', $1) RETURNING id`,
+        [dono],
+      )).rows[0]!.id;
+      await banco.query(
+        `INSERT INTO console_codigos_de_recuperacao (operador_id, codigo_hash) VALUES ($1, ${HASH})`,
+        [dono],
+      );
+    });
+
+    it("a âncora: o DONO agenda a eliminação, então o que recusa o operador é a guarda, e não falta de privilégio", async () => {
+      const r = await comoAtor(prova(), comoConsole(dono), { replica: true }, contar(ELIMINACOES), ELIMINACAO, [semEliminacao]);
+      expect(r.tentativa.ok, JSON.stringify(r.tentativa)).toBe(true);
+      expect(r.depois).toBe(r.antes + 1);
+    });
+
+    it("o operador não agenda eliminação, nem sem sessão", async () => {
+      for (const quem of [operador, null]) {
+        const r = await comoAtor(prova(), comoConsole(quem), { replica: true }, contar(ELIMINACOES), ELIMINACAO, [semEliminacao]);
+        expect(r.depois, `o operador ${quem ?? "sem sessão"} agendou eliminação`).toBe(r.antes);
+        expect(r.tentativa.ok ? "aceitou" : r.tentativa.codigo).toBe("42501");
+      }
+    });
+
+    it("o operador não cancela eliminação (UPDATE às cegas), nem sem sessão", async () => {
+      const ctids = (await banco.query<{ c: string }>("SELECT ctid::text AS c FROM eliminacoes_de_municipio")).rows.map((l) => l.c);
+      expect(ctids.length).toBeGreaterThan(0);
+      for (const quem of [operador, null]) {
+        const r = await comoAtor(
+          prova(),
+          comoConsole(quem),
+          { replica: true },
+          contar("SELECT count(*)::int AS n FROM eliminacoes_de_municipio WHERE ctid = ANY($1::tid[])", [ctids]),
+          "UPDATE eliminacoes_de_municipio SET cancelada_em = now(), cancelada_por_email = 'quem@exemplo.gov.br'",
+        );
+        expect(r.depois, `o operador ${quem ?? "sem sessão"} cancelou eliminação`).toBe(ctids.length);
+      }
+    });
+
+    it("o operador não cria outro operador nem outro dono, e sem sessão também não", async () => {
+      const OPERADORES = "SELECT count(*)::int AS n FROM console_operadores";
+      for (const [quem, papel, criador] of [
+        [operador, "operador", operador],
+        [operador, "dono", null],
+        [null, "dono", null],
+        [null, "operador", dono],
+      ] as const) {
+        const r = await comoAtor(
+          prova(),
+          comoConsole(quem),
+          { replica: true },
+          contar(OPERADORES),
+          `INSERT INTO console_operadores (email, senha_hash, segundo_fator, papel, criado_por)
+           VALUES ('intruso@exemplo.gov.br', ${HASH}, 'v1.intruso', $1, $2)`,
+          [papel, criador],
+        );
+        expect(r.depois, `${quem ?? "sem sessão"} criou ${papel}`).toBe(r.antes);
+        expect(r.tentativa.ok ? "aceitou" : r.tentativa.codigo).toBe("42501");
+      }
+    });
+
+    it("o operador não altera o dono (UPDATE às cegas)", async () => {
+      const ctid = (await banco.query<{ c: string }>("SELECT ctid::text AS c FROM console_operadores WHERE id = $1", [dono])).rows[0]!.c;
+      const r = await comoAtor(
+        prova(),
+        comoConsole(operador),
+        { replica: true },
+        contar("SELECT count(*)::int AS n FROM console_operadores WHERE ctid = $1::tid", [ctid]),
+        "UPDATE console_operadores SET falhas_login = 0, ativo = false",
+      );
+      expect(r.depois, "o operador alterou a linha do dono").toBe(1);
+    });
+
+    it("o operador não lê nem grava código de recuperação do dono, e sem sessão não lê código nenhum", async () => {
+      const leitura = await comoAtor(
+        prova(),
+        comoConsole(operador),
+        { replica: false },
+        async () => 0,
+        "SELECT count(*)::int AS n FROM console_codigos_de_recuperacao WHERE operador_id = $1",
+        [dono],
+      );
+      expect(leitura.tentativa.ok ? leitura.tentativa.linhas[0]!.n : leitura.tentativa.codigo, "o operador leu código do dono").toBe(0);
+      const semSessao = await comoAtor(
+        prova(),
+        comoConsole(null),
+        { replica: false },
+        async () => 0,
+        "SELECT count(*)::int AS n FROM console_codigos_de_recuperacao",
+      );
+      expect(semSessao.tentativa.ok ? semSessao.tentativa.linhas[0]!.n : semSessao.tentativa.codigo, "sem sessão, leu código").toBe(0);
+      const CODIGOS = "SELECT count(*)::int AS n FROM console_codigos_de_recuperacao";
+      const grava = await comoAtor(
+        prova(),
+        comoConsole(operador),
+        { replica: true },
+        contar(CODIGOS),
+        `INSERT INTO console_codigos_de_recuperacao (operador_id, codigo_hash) VALUES ($1, ${HASH})`,
+        [dono],
+      );
+      expect(grava.depois, "o operador gravou código no nome do dono").toBe(grava.antes);
+      expect(grava.tentativa.ok ? "aceitou" : grava.tentativa.codigo).toBe("42501");
+    });
   });
 });

@@ -1,0 +1,591 @@
+test/ambiente-do-aparelho.test.ts :: as linhas que já existiam quando a coluna nasceu e producao quando ninguém pôs nada, que é o padrão da própria variável :: passed
+test/ambiente-do-aparelho.test.ts :: as linhas que já existiam quando a coluna nasceu recebem o APNS_AMBIENTE posto na sessão pelo aplicador :: passed
+test/ambiente-do-aparelho.test.ts :: com a 044 aplicada aceita teste, e recusa sandbox (a palavra da Apple) em vez de cair no padrão :: passed
+test/ambiente-do-aparelho.test.ts :: com a 044 aplicada linha nova sem o campo nasce em producao :: passed
+test/ancora-de-confianca.test.ts :: a âncora de confiança do migrador URL que não pede verificação sai como entrou :: passed
+test/ancora-de-confianca.test.ts :: a âncora de confiança do migrador URL que pede verificação ganha a raiz do repositório :: passed
+test/ancora-de-confianca.test.ts :: a âncora de confiança do migrador não atropela quem já disse onde está a raiz :: passed
+test/ancora-de-confianca.test.ts :: a âncora de confiança do migrador o certificado do repositório existe, senão nada abaixo significa coisa alguma :: passed
+test/ancora-de-confianca.test.ts :: a âncora de confiança do migrador string que não é URL sai como entrou, em vez de estourar :: passed
+test/ancora-de-confianca.test.ts :: a âncora de confiança do migrador vale para os três modos que este pg verifica :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' a chave de busca de cada tabela acompanha a minimização por prazo: o nome removido sai da chave sozinho :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' a chave de busca de cada tabela é gerada pelo banco a partir das colunas buscáveis, já normalizada :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' isolamento: a tolerância a erro não atravessa o município a busca de A nunca devolve linha de B, mesmo com texto idêntico nos dois :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' isolamento: a tolerância a erro não atravessa o município o protocolo exato do vizinho não acha nada em A, e em B acha por prefixo na frente dos parecidos :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' isolamento: a tolerância a erro não atravessa o município o teto corta e a ordem é estável :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' isolamento: a tolerância a erro não atravessa o município sem município no contexto, a busca não devolve nada :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' normalizar_busca baixa a caixa, tira acento e cedilha, e reduz pontuação a espaço :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' normalizar_busca engole os curingas do LIKE, então o termo nunca precisa de escape :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' normalizar_busca é IMMUTABLE, PARALLEL SAFE e NÃO é SECURITY DEFINER, como as irmãs :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' normalizar_busca é nula para entrada nula, e vazia para entrada sem letra nem número :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' registro de consulta aceita o recurso 'busca' e continua recusando recurso desconhecido :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' tolerância a erro: os quatro exemplos combinados '00012' acha '000123/2026', e por prefixo, na frente do que só se parece :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' tolerância a erro: os quatro exemplos combinados 'Servidao Boa Esperansa' acha 'Servidão Boa Esperança' :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' tolerância a erro: os quatro exemplos combinados 'bombeiro' acha 'Corpo de Bombeiros Militar' entre os órgãos :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' tolerância a erro: os quatro exemplos combinados 'joana silv' acha 'Joana da Silva Prado' entre os usuários :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' tolerância a erro: os quatro exemplos combinados o que não se parece com nada não acha nada :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' tolerância a erro: os quatro exemplos combinados pontua exato > prefixo > começo de palavra > substring > parecido :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' índice de trigramas existe sobre a chave de busca das quatro tabelas :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' índice de trigramas o EXPLAIN mostra o índice de trigramas atendendo o predicado da busca :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'com pg_trgm (producao)' índice de trigramas sem a extensão, a migração segue sem índice e sem quebrar :: skipped
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' a chave de busca de cada tabela acompanha a minimização por prazo: o nome removido sai da chave sozinho :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' a chave de busca de cada tabela é gerada pelo banco a partir das colunas buscáveis, já normalizada :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' isolamento: a tolerância a erro não atravessa o município a busca de A nunca devolve linha de B, mesmo com texto idêntico nos dois :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' isolamento: a tolerância a erro não atravessa o município o protocolo exato do vizinho não acha nada em A, e em B acha por prefixo na frente dos parecidos :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' isolamento: a tolerância a erro não atravessa o município o teto corta e a ordem é estável :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' isolamento: a tolerância a erro não atravessa o município sem município no contexto, a busca não devolve nada :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' normalizar_busca baixa a caixa, tira acento e cedilha, e reduz pontuação a espaço :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' normalizar_busca engole os curingas do LIKE, então o termo nunca precisa de escape :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' normalizar_busca é IMMUTABLE, PARALLEL SAFE e NÃO é SECURITY DEFINER, como as irmãs :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' normalizar_busca é nula para entrada nula, e vazia para entrada sem letra nem número :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' registro de consulta aceita o recurso 'busca' e continua recusando recurso desconhecido :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' tolerância a erro: os quatro exemplos combinados '00012' acha '000123/2026', e por prefixo, na frente do que só se parece :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' tolerância a erro: os quatro exemplos combinados 'Servidao Boa Esperansa' acha 'Servidão Boa Esperança' :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' tolerância a erro: os quatro exemplos combinados 'bombeiro' acha 'Corpo de Bombeiros Militar' entre os órgãos :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' tolerância a erro: os quatro exemplos combinados 'joana silv' acha 'Joana da Silva Prado' entre os usuários :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' tolerância a erro: os quatro exemplos combinados o que não se parece com nada não acha nada :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' tolerância a erro: os quatro exemplos combinados pontua exato > prefixo > começo de palavra > substring > parecido :: passed
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' índice de trigramas existe sobre a chave de busca das quatro tabelas :: skipped
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' índice de trigramas o EXPLAIN mostra o índice de trigramas atendendo o predicado da busca :: skipped
+test/busca.test.ts :: Busca com tolerancia a erro, 'sem pg_trgm (navegador e API sem DATA…' índice de trigramas sem a extensão, a migração segue sem índice e sem quebrar :: passed
+test/carga.test.ts :: Cinco aparelhos sincronizando ao mesmo tempo a chave de idempotência é por município, e não global :: passed
+test/carga.test.ts :: Cinco aparelhos sincronizando ao mesmo tempo chave repetida num INSERT simples é RECUSADA pelo banco, e não ignorada :: passed
+test/carga.test.ts :: Cinco aparelhos sincronizando ao mesmo tempo cinco vistorias chegando juntas: nenhuma se perde e nenhuma duplica :: passed
+test/carga.test.ts :: Cinco aparelhos sincronizando ao mesmo tempo o mesmo aparelho reenviando a mesma coleta não cria segunda vistoria :: passed
+test/carga.test.ts :: Dois municípios sob concorrência, agora com volume escrita em volume de um município não alcança o outro :: passed
+test/carga.test.ts :: Dois municípios sob concorrência, agora com volume paginação concorrente dos dois municípios não mistura ocorrência :: passed
+test/carga.test.ts :: Dois municípios sob concorrência, agora com volume sob disputa da mesma conexão, cada município conta só as próprias :: passed
+test/carga.test.ts :: Forma da consulta: EXPLAIN mostra índice, e não varredura completa a lista paginada entra pelo índice do município, e não varre a tabela :: passed
+test/carga.test.ts :: Forma da consulta: EXPLAIN mostra índice, e não varredura completa a trilha de auditoria de uma ocorrência entra pelo índice, e não varre a trilha :: passed
+test/carga.test.ts :: Forma da consulta: EXPLAIN mostra índice, e não varredura completa o filtro de atrasadas entra pelo índice parcial, com prazo_em dentro da condição :: passed
+test/carga.test.ts :: Volume: 200 ocorrências atravessando a paginação a contagem total bate com o que as páginas entregaram :: passed
+test/carga.test.ts :: Volume: 200 ocorrências atravessando a paginação a semeadura montou a noite de temporal que o teste precisa :: passed
+test/carga.test.ts :: Volume: 200 ocorrências atravessando a paginação as 200 aparecem uma vez cada ao longo das páginas, nenhuma repete e nenhuma some :: passed
+test/carga.test.ts :: Volume: 200 ocorrências atravessando a paginação nenhuma ocorrência se perde quando alguém tria entre uma página e a outra :: passed
+test/carga.test.ts :: Volume: 200 ocorrências atravessando a paginação o mapa devolve todos os pontos ao longo das páginas e conta os que não desenha :: passed
+test/catalogo-nominal.test.ts :: a BASE congelada (só ela é fixada aqui) a dívida de tenant da base está declarada, com a etapa que a paga :: passed
+test/catalogo-nominal.test.ts :: a BASE congelada (só ela é fixada aqui) as 16 colunas com UPDATE do papel de aplicação :: passed
+test/catalogo-nominal.test.ts :: a BASE congelada (só ela é fixada aqui) as 27 funções de hoje, pela assinatura completa, sem teto numérico :: passed
+test/catalogo-nominal.test.ts :: a BASE congelada (só ela é fixada aqui) as quatro exceções de hoje, com o que cada uma dispensa e se é do fornecedor :: passed
+test/catalogo-nominal.test.ts :: a FORMA das contribuições das etapas (e não a lista de nomes) a base vem primeiro, e é a BASE :: passed
+test/catalogo-nominal.test.ts :: a FORMA das contribuições das etapas (e não a lista de nomes) cada contribuição tem as três listas, e cada entrada diz a etapa do arquivo de onde veio :: passed
+test/catalogo-nominal.test.ts :: a FORMA das contribuições das etapas (e não a lista de nomes) todo `f03-eNN.ts` da pasta está na junção, com o rótulo da etapa dele, e nada sobra :: passed
+test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) a origem de cada função bate com as migrações e com os testes que a provam :: passed
+test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) as exceções ao isolamento listadas são exatamente as do banco, invariante por invariante :: passed
+test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) as funções privilegiadas listadas são exatamente as do banco :: passed
+test/catalogo-nominal.test.ts :: o catálogo de hoje bate com o banco de hoje (a linha de base) nada fora do esquema public, e nenhum papel do produto noutro esquema :: passed
+test/catalogo-nominal.test.ts :: sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos S5a: redefinir com a mesma migração da entrada substituída é recusado na junção :: passed
+test/catalogo-nominal.test.ts :: sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos S5a: redefinir com uma migração que não existe reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos S5a: redefinir com uma migração que não recria a função reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos a prova precisa existir, chamar a função fora de comentário, e prova e semProva não andam juntas :: passed
+test/catalogo-nominal.test.ts :: sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos com a migração que recria a função de verdade, a origem passa (e o corpo é conferido à parte, sonda 5) :: passed
+test/catalogo-nominal.test.ts :: sonda 10 (S5a): a origem declarada de cada função é conferida contra os arquivos uma migração nova que recria uma função catalogada, sem a etapa redefinir a entrada, reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 11: a junção das contribuições das etapas a mesma exceção ou a mesma coluna em duas etapas é erro, e coluna com motivo curto também :: passed
+test/catalogo-nominal.test.ts :: sonda 11: a junção das contribuições das etapas a mesma função em duas etapas, sem redefine, é erro :: passed
+test/catalogo-nominal.test.ts :: sonda 11: a junção das contribuições das etapas assinatura que não é da função nomeada é erro :: passed
+test/catalogo-nominal.test.ts :: sonda 11: a junção das contribuições das etapas entrada que diz outra etapa que não a do arquivo é erro :: passed
+test/catalogo-nominal.test.ts :: sonda 11: a junção das contribuições das etapas redefine: true com migração maior substitui a entrada anterior :: passed
+test/catalogo-nominal.test.ts :: sonda 11: a junção das contribuições das etapas redefine: true sem entrada anterior é erro (nome errado) :: passed
+test/catalogo-nominal.test.ts :: sonda 1: função SECURITY DEFINER fora da lista reprova a função de uma etapa que o catálogo ainda não conhece reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 1: função SECURITY DEFINER fora da lista reprova uma função nova com SECURITY DEFINER e search_path fixo, sem entrada na lista :: passed
+test/catalogo-nominal.test.ts :: sonda 2: sobrecarga de uma função listada reprova mesmo nome de `credenciais_para_login`, outros argumentos: a chave é a assinatura :: passed
+test/catalogo-nominal.test.ts :: sonda 3: entrada na lista que o banco não confirma reprova tirar a função da lista (o caminho inverso) também reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 3: entrada na lista que o banco não confirma reprova uma função listada que deixou de ser SECURITY DEFINER :: passed
+test/catalogo-nominal.test.ts :: sonda 3: entrada na lista que o banco não confirma reprova uma função que não existe no banco :: passed
+test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados EXECUTE concedido a PUBLIC :: passed
+test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados EXECUTE concedido ao console numa função que só a aplicação executa :: passed
+test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados S11: EXECUTE com opção de concessão reprova (o app repassaria o EXECUTE ao console) :: passed
+test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados S12: trocar o dono de uma função privilegiada reprova no catálogo :: passed
+test/catalogo-nominal.test.ts :: sonda 4: o EXECUTE e o dono têm de ser exatamente os declarados quemExecuta lê a ACL: o dono fora (pelo nome do dono), PUBLIC como PUBLIC, X* como opção de concessão :: passed
+test/catalogo-nominal.test.ts :: sonda 5: o que a entrada diz precisa ser verdade e ter dono S5a: declarar `tenant: "contexto"` numa função cujo corpo não chama app_organizacao_atual reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 5: o que a entrada diz precisa ser verdade e ter dono dívida de tenant sem a etapa que a paga :: passed
+test/catalogo-nominal.test.ts :: sonda 5: o que a entrada diz precisa ser verdade e ter dono motivo de enchimento :: passed
+test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova declarar a tabela como exceção, dizendo o que dispensa e o que mantém, é o caminho certo e passa :: passed
+test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova tirar uma exceção de hoje da lista reprova (`interesse_municipio` volta a ser tabela sem a coluna) :: passed
+test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova uma tabela com `organizacao_id` que aceita nulo conta como sem a coluna :: passed
+test/catalogo-nominal.test.ts :: sonda 6: tabela sem organizacao_id fora das exceções reprova uma tabela nova sem a coluna :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova dispensar o que não se dispensa (RLS forçada, grants declarados) é recusado na junção :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova entrada que não dispensa nem a coluna nem a policy :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova entrada que não diz se dispensa ou mantém um invariante :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova o que a exceção MANTÉM é conferido: RLS não forçada reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova o que a exceção MANTÉM é conferido: um GRANT SELECT a mais em `interesse_municipio` reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova o que a exceção MANTÉM é conferido: uma policy DELETE em `organizacoes` reprova `sem_delete` :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova tabela que TEM `organizacao_id`: dispensa desnecessária (era o caso de `protocolo_sequencias`) :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova tabela que TEM policy de tenant: dispensa de policy desnecessária :: passed
+test/catalogo-nominal.test.ts :: sonda 7: exceção que o banco não confirma reprova tabela que não existe :: passed
+test/catalogo-nominal.test.ts :: sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse S8b: a mesma isenção declarada como do fornecedor num arquivo de etapa é recusada na junção :: passed
+test/catalogo-nominal.test.ts :: sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse S8b: isentar de policy `eliminacoes_de_municipio`, que TEM organizacao_id, reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse S8d: redefinir `console_operadores` dispensando mais do que a base dispensava é recusado :: passed
+test/catalogo-nominal.test.ts :: sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse S8d: redefinir `console_operadores` sem a regra do fornecedor (pela etapa) reprova no banco :: passed
+test/catalogo-nominal.test.ts :: sonda 8 (S8b e S8d): a isenção de policy não nasce só porque um arquivo de etapa disse tabela do fornecedor que o papel de aplicação alcança reprova :: passed
+test/catalogo-nominal.test.ts :: sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão S3: função SECURITY DEFINER noutro esquema, que lê `organizacoes`, com EXECUTE ao app :: passed
+test/catalogo-nominal.test.ts :: sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão S3b: tabela noutro esquema, sem RLS, com SELECT, INSERT, UPDATE e DELETE ao app :: passed
+test/catalogo-nominal.test.ts :: sonda 9 (S3 e S3b): nenhum esquema fora do alcance do portão USAGE num esquema vazio, e CREATE em public, também reprovam :: passed
+test/chave-de-criacao-migracao.test.ts :: a 052 sobre dado que já existia antes: nenhuma linha antiga repete (organização, ocorrência, chave): nada a limpar :: passed
+test/chave-de-criacao-migracao.test.ts :: a 052 sobre dado que já existia aplica sem erro sobre esses dados, e o chamado antigo fica com a chave nula :: passed
+test/chave-de-criacao-migracao.test.ts :: a volta da 052 aplicar, desfazer e reaplicar: colunas, índices, RLS e funções idênticos :: passed
+test/chave-de-criacao-migracao.test.ts :: os índices da 052, com a base inteira a coluna é uuid, opcional, e os dois índices são únicos e PARCIAIS :: passed
+test/chave-de-criacao-migracao.test.ts :: os índices da 052, com a base inteira a mesma chave duas vezes no mesmo município: 23505 no índice certo :: passed
+test/chave-de-criacao-migracao.test.ts :: os índices da 052, com a base inteira a mesma chave em dois municípios é aceita (a chave não cruza a parede) :: passed
+test/chave-de-criacao-migracao.test.ts :: os índices da 052, com a base inteira chave nula repete à vontade: cliente sem chave e chamado antigo não colidem :: passed
+test/chave-de-criacao-migracao.test.ts :: os índices da 052, com a base inteira evidência, com os dois índices: a mesma chave em outra ocorrência do mesmo município é recusada pelo da 004 :: passed
+test/chave-de-criacao-migracao.test.ts :: os índices da 052, com a base inteira evidência: o índice da 052 SOZINHO recusa repetir (município, ocorrência, chave) e aceita outra ocorrência :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) HML declarado com a referência certa na URL pode desfazer (inclusive com NODE_ENV=production, que é o runtime do HML) :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) NODE_ENV=production sem hml declarado recusa, e prod recusa sempre, mesmo com a identidade de HML :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) PROD restaurado num projeto novo, com outra referência e sem variável nenhuma, recusa sem tocar no banco nem repetir a senha :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) URL que não dá para analisar recusa sem repetir o texto :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) a identidade de HML genérica (papel, pedaço de host, curta) não libera, mesmo constando na URL :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) a identidade de HML igual à de PROD, ou a URL de PROD com o HML declarado, recusa como PRODUÇÃO :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) a lista de identidades genéricas cobre as da API (papéis de banco e pedaços de host) :: passed
+test/desfazer-migracao.test.ts :: FAIL-CLOSED: banco hospedado só desfaz se for o HML declarado (revisão 1 da F01) declarar hml sem a identidade, ou com a de outro banco, ainda recusa :: passed
+test/desfazer-migracao.test.ts :: com as migrações de verdade: o isolamento sobrevive ao ciclo a última das 51 existentes não tem volta e recusa com a explicação, sem alterar nada :: passed
+test/desfazer-migracao.test.ts :: com as migrações de verdade: o isolamento sobrevive ao ciclo uma migração de prova (a próxima depois da última real) com tabela de negócio e RLS forçada: desfazer devolve o estado exato :: passed
+test/desfazer-migracao.test.ts :: em PRODUÇÃO: recusa antes de tocar no banco AMBIENTE_DC360=prod :: passed
+test/desfazer-migracao.test.ts :: em PRODUÇÃO: recusa antes de tocar no banco NODE_ENV=production, mesmo sem AMBIENTE_DC360 :: passed
+test/desfazer-migracao.test.ts :: em PRODUÇÃO: recusa antes de tocar no banco URL com a identidade de um banco de PRODUÇÃO, sem variável nenhuma, sem repetir a senha :: passed
+test/desfazer-migracao.test.ts :: em PRODUÇÃO: recusa antes de tocar no banco a identidade declarada pelo processo (IDENTIDADE_DO_BANCO) também protege :: passed
+test/desfazer-migracao.test.ts :: em PRODUÇÃO: recusa antes de tocar no banco banco descartável (a própria máquina, serviço do Docker, ou nenhum) pode desfazer em hml, dev e sem variável :: passed
+test/desfazer-migracao.test.ts :: em PRODUÇÃO: recusa antes de tocar no banco descartável também recusa se o usuário traz a identidade de PROD (túnel para o banco de verdade) :: passed
+test/desfazer-migracao.test.ts :: negativos: o que o desfazer recusa migração aplicada cujo arquivo não existe nesta versão do código :: passed
+test/desfazer-migracao.test.ts :: negativos: o que o desfazer recusa migração declarada IRREVERSIVEL :: passed
+test/desfazer-migracao.test.ts :: negativos: o que o desfazer recusa volta que falha: desfaz inteira ou não desfaz nada, e o registro continua :: passed
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) --desfazer com --semear: código 2 :: failed
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco efêmero vazio: nada a desfazer, código 0 :: failed
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar :: failed
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com AMBIENTE_DC360=prod: código 1, sem conectar :: failed
+test/desfazer-migracao.test.ts :: o comando de verdade (`npm run migrar -- --desfazer`) com a porta 6543 (pooler): código 2, sem conectar :: failed
+test/desfazer-migracao.test.ts :: o número da migração de prova é calculado (a última real mais um) vai depois da última real, qualquer que seja ela, sem depender do CLI :: passed
+test/desfazer-migracao.test.ts :: positivos: desfaz só a última, e o ciclo deixa o esquema idêntico aplicar, desfazer e reaplicar: information_schema, índices e RLS idênticos :: passed
+test/desfazer-migracao.test.ts :: positivos: desfaz só a última, e o ciclo deixa o esquema idêntico desfaz UMA só: a anterior continua aplicada :: passed
+test/desfazer-migracao.test.ts :: positivos: desfaz só a última, e o ciclo deixa o esquema idêntico larga a trava de migração no fim :: passed
+test/desfazer-migracao.test.ts :: positivos: desfaz só a última, e o ciclo deixa o esquema idêntico sem nada aplicado, diz que não há o que desfazer :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo agendar de novo recusa, e nao escreve segunda linha :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo agendar exige motivo :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo agendar suspende na hora e escreve no livro com sete dias :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo cancelar dentro do prazo impede a execucao, e NAO reativa o acesso sozinho :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo escrever no livro por fora da funcao nao aciona o relogio: ele exige o estado na organizacao :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo executar antes do prazo nao faz nada :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo o console so cancela pelo UPDATE direto, e so para o estado cancelado :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo o livro nao tem chave estrangeira para a organizacao, de proposito :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo operador nao agenda nem cancela :: passed
+test/eliminacao-de-municipio.test.ts :: Agendar a eliminacao, e cancelar dentro do prazo reativar com eliminacao pendente e recusado :: passed
+test/eliminacao-de-municipio.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, a funcao estoura em vez de apagar pela metade a ancora: uma funcao privilegiada ingenua apaga ZERO em silencio nesse cenario :: passed
+test/eliminacao-de-municipio.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, a funcao estoura em vez de apagar pela metade a funcao de eliminar ESTOURA nomeando a tabela, e nenhuma linha sai :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica a ordem de apagamento cobre toda tabela com organizacao_id, perguntada ao catalogo :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica a rota de saude conta agendadas e vencidas, so numeros, e o console nao a executa :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica a semeadura cobre toda tabela de negocio, senao o caso nao prova nada :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica cancelar depois do banco apagado e tarde demais :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica concluir apaga a linha da organizacao, e o livro fica com a historia inteira :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica concluir exige o banco apagado: no vizinho intacto, recusa e nao toca em nada :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica executar de novo devolve o mesmo municipio ate a purga concluir, sem apagar nada de novo :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica o papel de aplicacao continua sem DELETE direto e sem ler o livro :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica o papel do console nao executa o relogio, e o papel de aplicacao nao executa os atos do console :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica o relogio do resumo nao enxerga municipio eliminado :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica tabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica uma metrica que entra na janela entre as fases nao trava a conclusao :: passed
+test/eliminacao-de-municipio.test.ts :: Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica vencido o prazo, o relogio apaga todas as linhas do municipio e grava as contagens :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe antes de haver sessao, o console le a linha pelo email e grava a tentativa nela :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe o dono cria operador pela porta do console, e a linha nasce abaixo dele :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe o dono nao se desativa; operador se desativa e nao se apaga :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe operador nao altera o dono, dono altera operador, operador altera so a si mesmo :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe operador nao cria ninguem, e ninguem cria um segundo dono :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe papel, criador e data de criacao nao mudam, nem pela mao do dono :: passed
+test/eliminacao-de-municipio.test.ts :: Os operadores do console, e o teto que a primeira conta impoe senha em texto claro e segredo de TOTP cru nao entram, nem pela mao do dono do banco :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio municipio que nao existe e recusado com nome, e nao com silencio :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio municipio suspenso nao abre sessao nova, e o vizinho continua abrindo :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio o dono suspende, e todas as sessoes daquele municipio caem na hora :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio o papel de aplicacao nao limpa a propria suspensao, nem toca nas colunas do fornecedor :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio operador nao reativa; o dono reativa, e a sessao volta a abrir :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio operador nao suspende, e sem operador no contexto ninguem suspende :: passed
+test/eliminacao-de-municipio.test.ts :: Suspender e reativar o acesso de um municipio suspender de novo nao reescreve a data nem estoura: e idempotente :: passed
+test/endurecer-extensao.test.ts :: o endurecimento de extensão, com pg_trgm no lugar do PostGIS antes: PUBLIC alcança as funções da extensão (a premissa do defeito) :: passed
+test/endurecer-extensao.test.ts :: o endurecimento de extensão, com pg_trgm no lugar do PostGIS dc360_app executa a função da extensão e tem USAGE no schema :: passed
+test/endurecer-extensao.test.ts :: o endurecimento de extensão, com pg_trgm no lugar do PostGIS depois: nenhum papel do provedor executa a função da extensão :: passed
+test/endurecer-extensao.test.ts :: o endurecimento de extensão, com pg_trgm no lugar do PostGIS não tira o USAGE do schema dos papéis do provedor (o Supabase depende dele) :: passed
+test/endurecer-extensao.test.ts :: o endurecimento de extensão, com pg_trgm no lugar do PostGIS o que não é da extensão não é tocado: a função alheia segue para PUBLIC :: passed
+test/endurecer-extensao.test.ts :: o endurecimento de extensão, com pg_trgm no lugar do PostGIS rodar de novo não muda nada e não dá erro :: passed
+test/endurecer-extensao.test.ts :: o texto do bloco de PostGIS procura a extensão por nome, nos dois lugares, e não por schema :: passed
+test/endurecer-extensao.test.ts :: o texto do bloco de PostGIS usa ROUTINE, para alcançar as funções de agregação :: passed
+test/endurecer-extensao.test.ts :: sem a extensão instalada o arquivo inteiro roda num Postgres comum, sem os papéis do provedor :: passed
+test/familia-da-sessao.test.ts :: A função, o teto e as permissões continua SECURITY DEFINER com search_path fixo, e só o papel de aplicação executa :: passed
+test/familia-da-sessao.test.ts :: A função, o teto e as permissões existe UMA abrir_sessao, de sete argumentos: a assinatura antiga saiu em vez de ficar ao lado :: passed
+test/familia-da-sessao.test.ts :: A função, o teto e as permissões o número de funções SECURITY DEFINER não mudou :: passed
+test/familia-da-sessao.test.ts :: O isolamento não mudou: a família não cruza a parede do RLS o papel de aplicação, no contexto do município A, só vê as famílias do A :: passed
+test/familia-da-sessao.test.ts :: O isolamento não mudou: a família não cruza a parede do RLS sem contexto de município, o papel de aplicação não vê sessão nenhuma :: passed
+test/familia-da-sessao.test.ts :: O que a migração faz com o que já existia a coluna não aceita NULL, e INSERT que não diz a família abre uma nova :: passed
+test/familia-da-sessao.test.ts :: O que a migração faz com o que já existia existe o índice parcial das famílias vivas :: passed
+test/familia-da-sessao.test.ts :: O que a migração faz com o que já existia o backfill dá a cada sessão antiga a família dela mesma (familia_id = id) :: passed
+test/familia-da-sessao.test.ts :: abrir_sessao com a família opcional a chamada de seis argumentos (a forma da 002 e da 038) continua funcionando e abre família nova :: passed
+test/familia-da-sessao.test.ts :: abrir_sessao com a família opcional com a família do mesmo usuário e do mesmo município, herda :: passed
+test/familia-da-sessao.test.ts :: abrir_sessao com a família opcional município suspenso continua sem abrir sessão (a recusa da 038 não regrediu) :: passed
+test/familia-da-sessao.test.ts :: abrir_sessao com a família opcional recusa a família de OUTRO usuário, de OUTRO município e a que não existe, com a mesma mensagem :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail abrir de novo invalida a anterior da MESMA conta, e não a de outra conta :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail e-mail de conta ativa, em qualquer caixa: devolve a conta e grava a recuperação no município DELA :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail e-mail desconhecido, parecido ou de conta desativada não devolve linha e não grava nada :: passed
+test/funcoes-antes-do-tenant.test.ts :: abrir_recuperacao: a recuperação nasce presa à conta e ao município do e-mail o contexto de outro município não muda a conta achada nem o município da recuperação :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele conta desativada aparece como desativada :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele devolve só o que a renovação decide: nada de e-mail, nome, município ou hash :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele token desconhecido, vazio ou parecido não devolve linha :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele token revogado de outro município devolve o dono dele e o motivo, e não o de quem pergunta :: passed
+test/funcoes-antes-do-tenant.test.ts :: dono_do_token: de quem era um token, pelo hash, e só dele token válido devolve o dono, viva a sessão, e a conta ativa :: passed
+test/funcoes-antes-do-tenant.test.ts :: interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais o contexto de um município não muda a resposta, e o papel de aplicação continua sem ler a tabela :: passed
+test/funcoes-antes-do-tenant.test.ts :: interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais o mesmo e-mail, em qualquer caixa, dentro de seis horas: verdadeiro :: passed
+test/funcoes-antes-do-tenant.test.ts :: interesse_recente: um booleano sobre o mesmo e-mail nas últimas seis horas, e nada mais pedido de mais de seis horas, e-mail desconhecido ou parecido: falso :: passed
+test/funcoes-antes-do-tenant.test.ts :: quem não é o papel de aplicação não chama nenhuma das três o papel do console recebe permissão negada :: passed
+test/guarda-da-semente.test.ts :: a identidade de PROD da guarda é a mesma da matriz de ambientes scripts/ambientes.json declara a identidade que a guarda protege :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa AMBIENTE_DC360=hml recusa e manda usar a semente própria :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa AMBIENTE_DC360=prod recusa mesmo apontando para a própria máquina :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa NODE_ENV=production recusa, com qualquer URL ou nenhuma :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa URL que não dá para analisar recusa (fail-closed), sem repetir o texto :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa a URL de PRODUÇÃO pela identidade no host (conexão direta) :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa a URL de PRODUÇÃO sem NODE_ENV (o caso do defeito): pela identidade no usuário :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa a identidade DECLARADA em IDENTIDADE_DO_BANCO também protege (outro projeto de PROD) :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa a identidade de PROD em maiúsculas não escapa :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa host público que não é da máquina recusa :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa nenhum motivo repete a senha da URL :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa o túnel local para a PRODUÇÃO (127.0.0.1 com o usuário do projeto) recusa :: passed
+test/guarda-da-semente.test.ts :: negativos: o que a guarda recusa um banco de HML hospedado recusa: a semente de desenvolvimento tem senha pública :: passed
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a URL de um banco hospedado de HML: código 1 :: failed
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha :: failed
+test/guarda-da-semente.test.ts :: o comando de verdade: `--semear` recusa ANTES de conectar sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento) :: failed
+test/guarda-da-semente.test.ts :: positivos: banco descartável semeia o Postgres local (loopback) e o serviço do compose (um rótulo, sem ponto) :: passed
+test/guarda-da-semente.test.ts :: positivos: banco descartável semeia sem DATABASE_URL (o banco em WebAssembly que morre com o processo) :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler a saida sao dois identificadores, e nao ha como devolver linha de tabela :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler depois de criar o municipio, o console continua sem enxergar o que criou :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler nenhum parametro dela vira consulta, e o corpo nao alcanca tabela de negocio :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler o municipio, o administrador e a linha de nascimento nascem juntos :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler o papel de aplicacao de um municipio nao alcanca esta porta :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler recusa municipio duplicado ANTES de escrever, e diz qual ja existe :: passed
+test/isolamento.test.ts :: A porta de criar municipio, e por que ela nao serve para ler recusa senha em texto claro, e recusa cadastro sem o nome de quem cadastrou :: passed
+test/isolamento.test.ts :: Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT com um GRANT DELETE a mais, as linhas continuam lá :: passed
+test/isolamento.test.ts :: Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT nenhuma tabela de prova tem policy que alcance DELETE :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo a mesma ficha registrada duas vezes no mesmo municipio atualiza, nao duplica :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo a mesma ficha registrada por dois municipios nao denuncia a existencia da outra :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo a varredura nao aceita municipio de quem chama e nao devolve dado de pessoa :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo aparelho nao se apaga, se revoga :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo nao le a ficha de push do aparelho de outro municipio :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo nao le o aviso enviado por outro municipio :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo nao registra aparelho no nome de servidor de outro municipio :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo nao registra aviso apontando para ocorrencia de outro municipio :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo nao revoga o aparelho de outro municipio :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo o papel de aplicacao nao apaga aviso enviado: quem expurga e a varredura, por idade :: passed
+test/isolamento.test.ts :: Aparelho de push e aviso de prazo revogar aparelho sem motivo e recusado pelo banco :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações cada município enxerga apenas as próprias ocorrências :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações cada policy das tabelas do fornecedor é exatamente a declarada, USING e WITH CHECK separados (parte 0D, item 4) :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações nada do produto mora fora do esquema public, e nenhum papel do produto entra noutro esquema :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações não altera ocorrência de outro município :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações não cria registro carimbado com o id de outro município :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações não lê ocorrência de outro município nem pedindo pelo id exato :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações o formulário público escreve e NÃO lê :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações sem contexto de organização, não enxerga nada :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações toda exceção do fornecedor no catálogo é tabela do bloco DO_FORNECEDOR, e é a regra dele que vale :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações toda referência entre tabelas de negócio inclui a organização :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações toda tabela de negócio carrega a coluna organizacao_id, ou consta nominalmente em EXCECOES_AO_ISOLAMENTO :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações toda tabela de negócio tem policy amarrada na organização do contexto :: passed
+test/isolamento.test.ts :: CA-06: isolamento entre organizações toda tabela do esquema tem RLS ativada E forçada :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico a numeracao de oficio recusa rodar sem contexto de municipio :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico a trilha de aberturas e append-only: o papel de aplicacao le e nao escreve :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico link desconhecido nao registra nada e nao conta se o municipio existe :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico link expirado nao entrega o oficio, e a recusa fica registrada :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico nao emite dois oficios para a mesma providencia :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico nao encaminha providencia para orgao de outro municipio :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico nao le o oficio nem o envio de outro municipio :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico nao le o orgao de outro municipio nem pedindo pelo id exato :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico numera oficio por municipio e por ano, sem colidir entre municipios :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico o email so sai para dominio de orgao ativo do proprio municipio :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico o link abre uma vez, e a segunda abertura e recusada e registrada :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico o mesmo nome de orgao nao entra duas vezes so por causa da caixa :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico o uso unico e do banco, e nao da aplicacao :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico oficio emitido nao se corrige: sem UPDATE e sem DELETE :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico orgao nao se apaga, se desativa com motivo :: passed
+test/isolamento.test.ts :: Catalogo de orgaos, oficio numerado e link de uso unico providencia sem orgao_id cai no catalogo do proprio municipio, e nao no do vizinho :: passed
+test/isolamento.test.ts :: Chave estrangeira nao atravessa municipio nao assina evento da trilha com servidor de outro municipio :: passed
+test/isolamento.test.ts :: Chave estrangeira nao atravessa municipio nao coloca servidor em equipe de outro municipio :: passed
+test/isolamento.test.ts :: Chave estrangeira nao atravessa municipio nao despacha para equipe de outro municipio :: passed
+test/isolamento.test.ts :: Chave estrangeira nao atravessa municipio nao grava vistoria apontando para ocorrencia de outro municipio :: passed
+test/isolamento.test.ts :: Chave estrangeira nao atravessa municipio nao vincula ocorrencia a chamado de outro municipio :: passed
+test/isolamento.test.ts :: Chave estrangeira nao atravessa municipio o vinculo dentro do proprio municipio continua funcionando :: passed
+test/isolamento.test.ts :: Funções privilegiadas existem, e cada uma consta nominalmente em FUNCOES_PRIVILEGIADAS (e a lista não tem nome sobrando) :: passed
+test/isolamento.test.ts :: Funções privilegiadas nenhuma função privilegiada é executável por PUBLIC :: passed
+test/isolamento.test.ts :: Funções privilegiadas o catálogo diz a verdade sobre a origem de cada função: a migração que a cria por último, a redefinição e o teste que a exercita :: passed
+test/isolamento.test.ts :: Funções privilegiadas o papel de aplicação não é superusuário nem dono das tabelas :: passed
+test/isolamento.test.ts :: Funções privilegiadas toda função privilegiada fixa o search_path :: passed
+test/isolamento.test.ts :: Isolamento sob concorrência na mesma conexão duas leituras concorrentes de municípios diferentes não trocam de contexto :: passed
+test/isolamento.test.ts :: Isolamento sob concorrência na mesma conexão escrita concorrente de um município não escapa para o outro :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio a marca de tempo da ultima escrita existe e e obrigatoria :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio a regra de coluna proibida reprova de verdade quando ha o que reprovar :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio chamar duas vezes no mesmo dia corrige a linha, nao empilha outra :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio municipio que nao escreveu aparece como sinal, e nao como linha faltando :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio nada que identifique pessoa ou imovel entra no que o console le :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio nao escreve resumo carimbado com o id de outro municipio :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio o municipio escreve o proprio resumo, e ele bate com o que o municipio ve :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio o municipio nao apaga o proprio historico de metricas :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio o resumo conta o proprio municipio, e nao enxerga o vizinho :: passed
+test/isolamento.test.ts :: Metricas escritas pelo proprio municipio sem contexto de municipio, a escrita nao acontece :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta a minimizacao nao aceita municipio nem prazo de quem chama :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta a minimizacao nao devolve dado de pessoa :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta nao carimba o registro com o id de outro municipio :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta nao le nem altera o prazo de retencao do municipio vizinho :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta nao le o registro de acesso do municipio vizinho :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta nao registra consulta apontando para ocorrencia de outro municipio :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta nao registra consulta no nome de servidor de outro municipio :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta nem PUBLIC nem uma conta qualquer executa a minimizacao :: passed
+test/isolamento.test.ts :: Minimizacao por prazo e registro de consulta o registro de acesso nao se reescreve nem se apaga :: passed
+test/isolamento.test.ts :: Nenhum papel alem do de aplicacao e do dono tem privilegio a varredura acusa cada um dos seis caminhos de privilegio :: passed
+test/isolamento.test.ts :: Nenhum papel alem do de aplicacao e do dono tem privilegio a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio :: passed
+test/isolamento.test.ts :: Nenhum papel alem do de aplicacao e do dono tem privilegio nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio :: passed
+test/isolamento.test.ts :: Nenhum papel alem do de aplicacao e do dono tem privilegio nenhum papel do produto e superusuario ou ignora RLS :: passed
+test/isolamento.test.ts :: O aviso de despacho nasce na aplicacao, pela porta estreita da 042 a aplicacao so enfileira: nao registra entrega nem cria aviso de prazo :: passed
+test/isolamento.test.ts :: O aviso de despacho nasce na aplicacao, pela porta estreita da 042 a varredura de tarefa nova nao aceita municipio de quem chama e nao devolve dado de pessoa :: passed
+test/isolamento.test.ts :: O aviso de despacho nasce na aplicacao, pela porta estreita da 042 a varredura reivindica a pendente uma vez so, e a devolve com a ficha do aparelho :: passed
+test/isolamento.test.ts :: O aviso de despacho nasce na aplicacao, pela porta estreita da 042 enfileira a tarefa nova pendente para aparelho e ocorrencia do proprio municipio :: passed
+test/isolamento.test.ts :: O aviso de despacho nasce na aplicacao, pela porta estreita da 042 nao enfileira aviso carimbado com o id de outro municipio :: passed
+test/isolamento.test.ts :: O aviso de despacho nasce na aplicacao, pela porta estreita da 042 nao enfileira aviso para aparelho de outro municipio, nem carimbado com o proprio id :: passed
+test/isolamento.test.ts :: O console le metrica e nao alcanca dado de municipio a visao que ele le roda com os privilegios DELE, e nao com os do dono :: passed
+test/isolamento.test.ts :: O console le metrica e nao alcanca dado de municipio le o resumo de mais de um municipio, que e o motivo de ele existir :: passed
+test/isolamento.test.ts :: O console le metrica e nao alcanca dado de municipio nao escreve nada, nem na tabela que ele le :: passed
+test/isolamento.test.ts :: O console le metrica e nao alcanca dado de municipio nao le ocorrencia, vistoria, usuario nem trilha, de municipio nenhum :: passed
+test/isolamento.test.ts :: O link do oficio nao se estende, se reenvia o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token :: passed
+test/isolamento.test.ts :: O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado a ancora: a varredura enxerga as duas excecoes nomeadas, entao ela le o catalogo de verdade :: passed
+test/isolamento.test.ts :: O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo :: passed
+test/isolamento.test.ts :: O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT :: passed
+test/isolamento.test.ts :: O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma :: passed
+test/isolamento.test.ts :: O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada :: passed
+test/isolamento.test.ts :: O relogio que descobre para quem chamar o resumo descobre quem esta sem resumo fresco, sem contexto de municipio nenhum :: passed
+test/isolamento.test.ts :: O relogio que descobre para quem chamar o resumo nao aceita municipio de parametro, e nao devolve nome de prefeitura :: passed
+test/isolamento.test.ts :: O relogio que descobre para quem chamar o resumo o papel do console nao executa o relogio :: passed
+test/isolamento.test.ts :: O relogio que descobre para quem chamar o resumo some da fila assim que o municipio escreve, e volta quando o resumo envelhece :: passed
+test/isolamento.test.ts :: O tipo a classificar, e ate onde ele pode ir aceita o chamado que entrou sem classificacao, com o relato junto :: passed
+test/isolamento.test.ts :: O tipo a classificar, e ate onde ele pode ir encerrar sem nunca classificar continua permitido :: passed
+test/isolamento.test.ts :: O tipo a classificar, e ate onde ele pode ir reclassificar limpa a descricao e libera o despacho :: passed
+test/isolamento.test.ts :: O tipo a classificar, e ate onde ele pode ir recusa 'outro' sem dizer o que foi relatado :: passed
+test/isolamento.test.ts :: O tipo a classificar, e ate onde ele pode ir recusa descricao pendurada em tipo da COBRADE :: passed
+test/isolamento.test.ts :: O tipo a classificar, e ate onde ele pode ir recusa despachar equipe para chamado que continua 'outro' :: passed
+test/isolamento.test.ts :: Orgaos indicados pela vistoria a coleta de campo nao se reescreve nem se apaga :: passed
+test/isolamento.test.ts :: Orgaos indicados pela vistoria grava a indicacao do proprio municipio, do catalogo e por texto livre :: passed
+test/isolamento.test.ts :: Orgaos indicados pela vistoria nao indica orgao do catalogo de outro municipio :: passed
+test/isolamento.test.ts :: Orgaos indicados pela vistoria nao pendura indicacao em vistoria de outro municipio :: passed
+test/isolamento.test.ts :: Orgaos indicados pela vistoria o mesmo orgao do catalogo nao entra duas vezes na mesma vistoria :: passed
+test/isolamento.test.ts :: Orgaos indicados pela vistoria o vizinho nao le as indicacoes de quem esta ao lado :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 2 da ADR 0009: a forma da marca "recusada depois da liberação" (antes da liberação, a marcada é do papel de aplicação) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 2 da ADR 0009: nenhum papel do produto tem TRIGGER em relação nenhuma, nem pode mudar session_replication_role :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 2 da ADR 0009: o corpo de toda função privilegiada fica no modelo (sem DDL, sem session_replication_role, EXECUTE só de DML constante) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1, a âncora: em toda tabela em que o papel de aplicação lê a coluna do município, a prova ENXERGOU a linha de A no contexto de A :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1: a prova cobriu TODA tabela que o catálogo do banco tem, e a lista nominal do que não deu para semear confere nos dois sentidos :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1: em toda tabela, o papel de aplicação no contexto de A não lê, não altera, não apaga nem insere linha de B, e sem contexto não lê nada :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 1: o papel de aplicação não desliga gatilho nem chave estrangeira pela sessão (session_replication_role) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 2: toda composição de policies que vale para o papel de aplicação está coberta pela prova comportamental :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 2: toda policy tem o modo declarado (PERMISSIVE, salvo as restritivas nominais), nos dois sentidos :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 3: toda visão lida por papel do produto que alcança tabela roda como quem consulta (security_invoker), ou consta em VISOES_SEM_INVOKER :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 3: toda visão que o papel de aplicação lê passou pela prova de leitura cruzada :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade a âncora: o DONO agenda a eliminação, então o que recusa o operador é a guarda, e não falta de privilégio :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não agenda eliminação, nem sem sessão :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não altera o dono (UPDATE às cegas) :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não cancela eliminação (UPDATE às cegas), nem sem sessão :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não cria outro operador nem outro dono, e sem sessão também não :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 4: o operador do console sem autorização tentando, de verdade o operador não lê nem grava código de recuperação do dono, e sem sessão não lê código nenhum :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 5: a migração declarada de cada função privilegiada é aquela em que a definição INSTALADA mudou por último :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 6: sequências e tipos próprios têm só o privilégio declarado, nenhum objeto é de papel do produto, e nenhum privilégio padrão concede a ele :: passed
+test/isolamento.test.ts :: Prova comportamental entre municípios, tabela por tabela (parte 0D) item 7: o ACL dos objetos de extensão instalada é só o declarado, e o que não está instalado aqui é dito, não pulado em silêncio :: passed
+test/isolamento.test.ts :: Regras de negócio garantidas pelo banco a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040) :: passed
+test/isolamento.test.ts :: Regras de negócio garantidas pelo banco gera protocolo sequencial por organização e ano, sem colidir entre municípios :: passed
+test/isolamento.test.ts :: Regras de negócio garantidas pelo banco protocolo pode repetir entre municípios, mas não dentro do mesmo :: passed
+test/isolamento.test.ts :: Regras de negócio garantidas pelo banco recusa a mesma coleta enviada duas vezes com a mesma chave de idempotência :: passed
+test/isolamento.test.ts :: Regras de negócio garantidas pelo banco recusa encerrar sem motivo :: passed
+test/isolamento.test.ts :: Regras de negócio garantidas pelo banco recusa evidência cuja chave de storage não tem o prefixo do tenant :: passed
+test/isolamento.test.ts :: Segundo fator guarda o codigo como resumo e recusa apagar o que ja foi gasto :: passed
+test/isolamento.test.ts :: Segundo fator recusa desligar o segundo fator deixando o segredo guardado :: passed
+test/isolamento.test.ts :: Segundo fator recusa o codigo de recuperacao gravado em texto :: passed
+test/isolamento.test.ts :: Segundo fator recusa o segredo do TOTP gravado em texto :: passed
+test/isolamento.test.ts :: Segundo fator um municipio nao alcanca o segundo fator do outro, nem pelo id exato :: passed
+test/isolamento.test.ts :: Sino de avisos a retencao e do banco: nem o proprio municipio apaga aviso que ainda vale :: passed
+test/isolamento.test.ts :: Sino de avisos aviso nao se edita, e leitura nao se desfaz :: passed
+test/isolamento.test.ts :: Sino de avisos nao apaga aviso de outro municipio, nem o velho :: passed
+test/isolamento.test.ts :: Sino de avisos nao cria aviso apontando para ocorrencia de outro municipio :: passed
+test/isolamento.test.ts :: Sino de avisos nao cria aviso carimbado com o id de outro municipio :: passed
+test/isolamento.test.ts :: Sino de avisos nao le o aviso de outro municipio :: passed
+test/isolamento.test.ts :: Sino de avisos nao le quem leu o que no outro municipio :: passed
+test/isolamento.test.ts :: Sino de avisos nao registra leitura de aviso de outro municipio :: passed
+test/isolamento.test.ts :: Sino de avisos nao registra leitura no nome de servidor de outro municipio :: passed
+test/isolamento.test.ts :: Sino de avisos o expurgo por idade leva junto quem leu, em vez de travar :: passed
+test/isolamento.test.ts :: Sino de avisos o mesmo fato nao vira dois avisos :: passed
+test/isolamento.test.ts :: Sino de avisos os gatilhos do sino nao sao privilegiados :: passed
+test/isolamento.test.ts :: Trilha auditável é append-only aceita inserção mas recusa alteração e exclusão :: passed
+test/login-e-suspensao-na-mesma-linha.test.ts :: A migração 050 sobre um banco que já tem sessões não toca em sessão nenhuma, e rodar o texto de novo não falha nem muda nada :: passed
+test/login-e-suspensao-na-mesma-linha.test.ts :: A migração 050 sobre um banco que já tem sessões o número de funções SECURITY DEFINER não mudou, e abrir_sessao continua só do papel de aplicação :: passed
+test/login-e-suspensao-na-mesma-linha.test.ts :: O login trava a linha do município; a renovação não a recusa da 049 continua: família encerrada não é herdada (DC369) :: passed
+test/login-e-suspensao-na-mesma-linha.test.ts :: O login trava a linha do município; a renovação não município suspenso: o login e a renovação continuam recusados com DC367, sem gravar nada :: passed
+test/login-e-suspensao-na-mesma-linha.test.ts :: O login trava a linha do município; a renovação não o login (família nula) lê a suspensão com FOR SHARE, e a renovação lê sem trava de linha :: passed
+test/login-e-suspensao-na-mesma-linha.test.ts :: O login trava a linha do município; a renovação não o login abre família nova normalmente, e a renovação herda a família só rotacionada :: passed
+test/migracoes-regras.test.ts :: cabecalhoIrreversivel aceita fim de linha do Windows e linhas em branco antes do cabeçalho :: passed
+test/migracoes-regras.test.ts :: cabecalhoIrreversivel lê motivo, aprovador e data :: passed
+test/migracoes-regras.test.ts :: cabecalhoIrreversivel sem cabeçalho devolve null :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova apagar uma migração isenta reprova (registro não se apaga) :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova cabeçalho incompleto vale como ausente: sem aprovador, sem data, data impossível :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova declarar IRREVERSIVEL e ainda entregar desfazer é ambíguo :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova desfazer órfão (sem a migração) e desfazer vazio :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova migração nova numerada abaixo da última isenta: rodaria fora de ordem :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova migração nova sem desfazer e sem cabeçalho :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova nome fora do padrão :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova número repetido com uma das isentas (arquivo novo com número velho) :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova número repetido, mesmo com o nome diferente :: passed
+test/migracoes-regras.test.ts :: negativos: o que a regra reprova o cabeçalho só vale no topo: depois do primeiro comando é comentário comum :: passed
+test/migracoes-regras.test.ts :: o repositório de hoje obedece à regra a lista de isentas tem as 51 que existiam quando a regra nasceu, e ainda existem :: passed
+test/migracoes-regras.test.ts :: o repositório de hoje obedece à regra carregarMigracoes não lê a subpasta desfazer (uma volta nunca é aplicada como migração) :: passed
+test/migracoes-regras.test.ts :: o repositório de hoje obedece à regra nenhuma violação nas migrações e voltas que existem :: passed
+test/migracoes-regras.test.ts :: positivos: o que a regra aceita migração nova com o desfazer de mesmo nome :: passed
+test/migracoes-regras.test.ts :: positivos: o que a regra aceita migração nova que declara a irreversibilidade no topo, com motivo, aprovador e data :: passed
+test/migracoes-regras.test.ts :: positivos: o que a regra aceita o cabeçalho pode vir depois de outros comentários, mas antes do primeiro comando :: passed
+test/migrar.test.ts :: Aplicação aplica na ordem, mesmo recebendo fora de ordem :: passed
+test/migrar.test.ts :: Aplicação aplica só o que falta quando uma migração nova aparece :: passed
+test/migrar.test.ts :: Aplicação registra quando cada uma foi aplicada :: passed
+test/migrar.test.ts :: Aplicação rodar de novo não faz nada :: passed
+test/migrar.test.ts :: As migrações reais do produto aplicam do zero, na ordem, sem erro :: passed
+test/migrar.test.ts :: As migrações reais do produto aplicar duas vezes é seguro, que é o caso de todo redeploy :: passed
+test/migrar.test.ts :: As migrações reais do produto os nomes começam com número, senão a ordem alfabética não serve :: passed
+test/migrar.test.ts :: Conferência sem aplicar diz o que falta e não muda nada :: passed
+test/migrar.test.ts :: Conferência sem aplicar esquema em dia devolve lista vazia :: passed
+test/migrar.test.ts :: Falha no meio a mensagem diz qual migração falhou :: passed
+test/migrar.test.ts :: Falha no meio desfaz a migração que falhou e mantém as anteriores :: passed
+test/migrar.test.ts :: Falha no meio retoma da que falhou depois que ela é corrigida :: passed
+test/migrar.test.ts :: Histórico não se reescreve a mensagem explica o que fazer, não só que deu erro :: passed
+test/migrar.test.ts :: Histórico não se reescreve para quando uma migração já aplicada muda de conteúdo :: passed
+test/migrar.test.ts :: Histórico não se reescreve reindentar não conta como alterar :: passed
+test/migrar.test.ts :: Migrar com o papel errado explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres :: passed
+test/migrar.test.ts :: Migrar com o papel errado o papel certo continua migrando sem nenhum aviso novo :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares a observação do agente na vistoria vira marcador, e o nome de quem deu ciência FICA :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares a ocorrência aberta do mesmo município não perde nada, nem na trilha :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares a segunda passada não remove de novo, não redige de novo e não duplica o evento :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares a trilha deixa de guardar o nome do assinante: o evento vistoria é redigido, e o resto dele fica :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares a varredura alcançou a ocorrência encerrada, e só ela :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares depois da passada, o nome da moradora e a saúde do filho não estão em lugar nenhum da trilha :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares o evento de minimização diz QUAIS campos saíram, inclusive os três novos, e nunca o que continham :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A sondagem virando teste: um dia de prazo, e a mesma pessoa em quatro lugares o relato do solicitante vira o mesmo marcador do nome, com a data do descarte :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A trilha continua append-only para a aplicação: a única escrita é a da função do dono a função de minimização fixa o search_path e desliga o row_security, como as da 038 e da 039 :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A trilha continua append-only para a aplicação: a única escrita é a da função do dono não nasceu policy de UPDATE nem de DELETE em trilha_eventos :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: A trilha continua append-only para a aplicação: a única escrita é a da função do dono o papel de aplicação continua sem conseguir redigir a trilha por conta própria :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, a minimização estoura em vez de minimizar pela metade estoura nomeando BYPASSRLS, e nada sai: nem o nome, nem o relato, nem a trilha :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: As bordas: vistoria sem observação, município sem prazo, e o banco cobrando coerência município sem prazo configurado não perde relato, observação nem nome na trilha :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: As bordas: vistoria sem observação, município sem prazo, e o banco cobrando coerência o banco recusa marcador incoerente: data de descarte com relato de verdade, nos dois lados :: passed
+test/minimizacao-do-relato-e-da-trilha.test.ts :: As bordas: vistoria sem observação, município sem prazo, e o banco cobrando coerência vistoria que nunca teve observação continua sem observação: marcador só onde havia texto :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (a) função privilegiada com DDL no corpo reprova; declarada com corpoForaDoModelo passa; a declaração que sobra reprova :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (a) o modelo aceita o DELETE e o SELECT montados da 038, e recusa o resto :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (b) TRIGGER ao papel de aplicação, e SET de session_replication_role a ele, reprovam :: passed
+test/portao-comportamental.test.ts :: correção 2 da ADR 0009: corpo, gatilho e a marca da liberação (c) a forma da marca: antes da liberação a marcada é do papel de aplicação; depois, não; e a redefinição não a tira :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta aceite fora de aceitar_convite, marca em duas funções e marca que sobra reprovam; citar só em comentário não conta :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta função COMUM (não privilegiada) que cita a tabela também reprova: seria o atalho chamado de dentro de uma privilegiada :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta função privilegiada que cita a tabela sem a marca reprova; com a marca criador, passa :: passed
+test/portao-comportamental.test.ts :: correção 3 da ADR 0009: quem cita origens_de_conta hoje ninguém cita, e passa :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela GRANT DELETE e policy de DELETE com OR true: apaga a linha de B :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela PREPAROS e SEM_PROVA_COMPORTAMENTAL conferem nos dois sentidos :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela USING certo e WITH CHECK (true) no UPDATE: a guarda do USING não esconde o WITH CHECK aberto :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela a raiz também: OR true na leitura de `organizacoes` :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela policy de INSERT com OR true: a cópia da linha de B passa pelo RLS e só para na unicidade :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela policy de UPDATE com OR true no USING e no WITH CHECK: altera B às cegas e move a própria linha para B :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela policy de leitura com OR true (permissiva somada à de contexto): A lê B, e sem contexto lê tudo :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela tabela sem município (exceção nominal) que o papel de aplicação passa a ler :: passed
+test/portao-comportamental.test.ts :: item 1: a prova comportamental morde, tabela por tabela uma tabela NOVA, que nenhuma lista conhece, é descoberta, semeada e reprovada com OR true; com a policy certa, passa :: passed
+test/portao-comportamental.test.ts :: item 2: o modo de cada policy, e a composição composição: a restrição de município como RESTRICTIVE com uma permissiva aberta isola; a mesma como PERMISSIVE vaza, e a prova mede :: passed
+test/portao-comportamental.test.ts :: item 2: o modo de cada policy, e a composição policy RESTRICTIVE fora da lista reprova; declarada e que virou PERMISSIVE reprova :: passed
+test/portao-comportamental.test.ts :: item 3: visões com security_invoker, a mesma visão passa nas duas :: passed
+test/portao-comportamental.test.ts :: item 3: visões visão materializada lida pelo console, e entrada de VISOES_SEM_INVOKER que sobra, reprovam :: passed
+test/portao-comportamental.test.ts :: item 3: visões visão que só CONTA (sem identificador nenhum) também é pega pela prova: o número muda quando B some :: passed
+test/portao-comportamental.test.ts :: item 3: visões visão sem security_invoker lida pelo papel de aplicação reprova na conferência e na prova de leitura cruzada :: passed
+test/portao-comportamental.test.ts :: item 4: as policies do fornecedor, cláusula a cláusula OR true na guarda do dono reprova (o toContain antigo aceitava) :: passed
+test/portao-comportamental.test.ts :: item 4: as policies do fornecedor, cláusula a cláusula WITH CHECK irrestrito atrás de um USING com a guarda reprova, conferido separado :: passed
+test/portao-comportamental.test.ts :: item 4: as policies do fornecedor, cláusula a cláusula policy nova numa tabela do fornecedor reprova :: passed
+test/portao-comportamental.test.ts :: item 5: a função recriada por SQL dinâmico a definição instalada mostra: a função mudou na 999 e o catálogo diz 046 :: passed
+test/portao-comportamental.test.ts :: item 5: a função recriada por SQL dinâmico e o histórico do banco de hoje bate com o catálogo :: passed
+test/portao-comportamental.test.ts :: item 5: a função recriada por SQL dinâmico o texto da migração não mostra a recriação (é o que a 0B deixava passar) :: passed
+test/portao-comportamental.test.ts :: item 6: sequências, tipos, dono e privilégio padrão enum próprio fora de TIPOS_PROPRIOS reprova, e entrada sem tipo também :: passed
+test/portao-comportamental.test.ts :: item 6: sequências, tipos, dono e privilégio padrão objeto de papel do produto e privilégio padrão que concede a ele reprovam :: passed
+test/portao-comportamental.test.ts :: item 6: sequências, tipos, dono e privilégio padrão sequência com USAGE ao papel de aplicação reprova; declarada com o mesmo privilégio, passa :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) EXECUTE com opção de concessão numa função da extensão reprova :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) SELECT declarado passa; SELECT declarado que o banco não tem reprova; INSERT nunca :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) esquema só de extensão (funções, tipos e a relação da extensão) aceita o USAGE do papel de aplicação :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) extensão declarada que não está instalada é DITA, e não conferida em silêncio :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão com uma extensão de verdade (pg_trgm no esquema extensions, como o PostGIS no provedor) um tipo que NÃO é da extensão no esquema dela tira o 'só de extensão' (antes da 0D, tipo não contava) :: passed
+test/portao-comportamental.test.ts :: item 7: tipos fora de public e o ACL de extensão tipo próprio noutro esquema reprova, e esquema com tipo próprio deixa de ser 'só de extensão' :: passed
+test/portao-comportamental.test.ts :: linha de base: o banco de hoje passa por tudo a prova comportamental inteira não acha nada no banco de hoje :: passed
+test/portao-comportamental.test.ts :: linha de base: o banco de hoje passa por tudo a semeadura cobre toda tabela, sem problema :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais com PostGIS no servidor, roda, exija ou não :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais exigindo PostGIS, inacessivel reprova :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais exigindo PostGIS, sem-extensao reprova :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais exigindo PostGIS, sem-url reprova :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais o Postgres simples (sem a extensão) reprova no CI e pula local, com aviso que ensina a rodar :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais sem exigir, inacessivel pula com aviso :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais sem exigir, sem-url pula com aviso :: passed
+test/postgis-decisao.test.ts :: decisão dos testes espaciais só o valor 1 liga a exigência :: passed
+test/recuperacao-do-console.test.ts :: A tabela e as tres funcoes existem, com a forma do contrato a tabela existe com as colunas do contrato, nesta ordem, e nada mais :: passed
+test/recuperacao-do-console.test.ts :: A tabela e as tres funcoes existem, com a forma do contrato as tres funcoes existem, sao privilegiadas, fixam o search_path e desligam o row_security :: passed
+test/recuperacao-do-console.test.ts :: A tabela vista do console: cada operador so alcanca os proprios codigos hash cru nao entra nem pela mao do dono do banco :: passed
+test/recuperacao-do-console.test.ts :: A tabela vista do console: cada operador so alcanca os proprios codigos o console nao marca usado nem apaga por conta propria: so as funcoes escrevem isso :: passed
+test/recuperacao-do-console.test.ts :: A tabela vista do console: cada operador so alcanca os proprios codigos o papel de aplicacao de um municipio nao alcanca a tabela nem as funcoes :: passed
+test/recuperacao-do-console.test.ts :: A tabela vista do console: cada operador so alcanca os proprios codigos operador com codigos nao se apaga: a chave estrangeira e RESTRICT :: passed
+test/recuperacao-do-console.test.ts :: A tabela vista do console: cada operador so alcanca os proprios codigos operador nao insere codigo em nome de outro, e sem contexto ninguem insere :: passed
+test/recuperacao-do-console.test.ts :: A tabela vista do console: cada operador so alcanca os proprios codigos operador nao ve codigo de outro, nem pedindo pelo id exato :: passed
+test/recuperacao-do-console.test.ts :: Achar os codigos pelo email: console_recuperacao_por_email a saida tem tres colunas e nada mais: nem senha_hash, nem nome, nem papel :: passed
+test/recuperacao-do-console.test.ts :: Achar os codigos pelo email: console_recuperacao_por_email email inexistente e operador inativo devolvem vazio, sem erro, e com a mesma forma :: passed
+test/recuperacao-do-console.test.ts :: Achar os codigos pelo email: console_recuperacao_por_email operador ativo SEM codigo vivo tambem devolve vazio, sem erro :: passed
+test/recuperacao-do-console.test.ts :: Achar os codigos pelo email: console_recuperacao_por_email roda sem operador no contexto e devolve so os codigos vivos do operador ativo daquele email :: passed
+test/recuperacao-do-console.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, as funcoes estouram em vez de gravar zero a ancora: uma funcao privilegiada ingenua grava ZERO em silencio nesse cenario :: passed
+test/recuperacao-do-console.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, as funcoes estouram em vez de gravar zero a porta por email ESTOURA em vez de dizer 'nao ha codigos' :: passed
+test/recuperacao-do-console.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, as funcoes estouram em vez de gravar zero consumir ESTOURA nomeando a causa, e senha, segundo fator e codigo ficam como estavam :: passed
+test/recuperacao-do-console.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, as funcoes estouram em vez de gravar zero renovar ESTOURA tambem, e nenhum codigo velho e marcado nem novo e gravado :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao codigo de operador inativo e recusado com DC365, e o codigo nao e gasto :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao codigo inexistente e recusado com DC365, com a mesma mensagem do ja usado :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao consumir marca so aquele codigo: os outros continuam vivos :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao depois de usados, os codigos somem da porta por email :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao o mesmo codigo de novo e recusado com DC365, e nada muda :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao papel, criador e data de criacao nao mudam com a recuperacao, e o dono recupera a propria senha :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao senha em texto claro e segundo fator cru sao recusados com DC361, e o codigo continua vivo :: passed
+test/recuperacao-do-console.test.ts :: Consumir: console_consumir_recuperacao um codigo vivo troca a senha E o segundo fator, zera o teto e o passo, e fica gasto :: passed
+test/recuperacao-do-console.test.ts :: Gerar os codigos: console_renovar_codigos gerar de novo marca os velhos como usados em vez de apaga-los: o livro conta :: passed
+test/recuperacao-do-console.test.ts :: Gerar os codigos: console_renovar_codigos lista vazia, curta, repetida ou com hash cru e recusada com DC361, e nada e escrito :: passed
+test/recuperacao-do-console.test.ts :: Gerar os codigos: console_renovar_codigos o dono gera os dele, e os do operador nao sao tocados :: passed
+test/recuperacao-do-console.test.ts :: Gerar os codigos: console_renovar_codigos o operador gera os proprios codigos, e a funcao devolve quantos entraram :: passed
+test/recuperacao-do-console.test.ts :: Gerar os codigos: console_renovar_codigos operador inativo no contexto nao gera: 42501 :: passed
+test/recuperacao-do-console.test.ts :: Gerar os codigos: console_renovar_codigos sem operador no contexto, ninguem gera: 42501, e nada e escrito :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A migração 049 sobre um banco que já tem sessões não toca em sessão nenhuma :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A migração 049 sobre um banco que já tem sessões é idempotente: rodar o texto de novo não falha nem muda nada :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões as quatro funções recriadas continuam executáveis só pelo papel de aplicação :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões cada encerramento em massa do banco toma a MESMA trava da renovação, e ela some no COMMIT :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões o número de funções SECURITY DEFINER não mudou :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões quem atualiza a linha de usuarios o faz ANTES de tomar a trava (sem impasse com a redefinição por quem administra) :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: A trava e as permissões travar_sessoes_do_usuario não é privilegiada, fixa o search_path e só o papel de aplicação a executa :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: abrir_sessao recusa herdar família encerrada a família encerrada por qualquer outro motivo é recusada com a mesma mensagem da família que não existe, e nada é gravado :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: abrir_sessao recusa herdar família encerrada a família só rotacionada (a renovação no mesmo instante) é herdada :: passed
+test/renovacao-e-encerramento-na-mesma-trava.test.ts :: abrir_sessao recusa herdar família encerrada login (sem família) continua abrindo família nova, mesmo com cadeias encerradas da pessoa :: passed
+test/teto-de-coordenada.test.ts :: A declaração de prova perdida é append-only, como a trilha a mesma perda não entra duas vezes na mesma vistoria :: passed
+test/teto-de-coordenada.test.ts :: A declaração de prova perdida é append-only, como a trilha o papel de aplicação pode inserir e ler, e não pode apagar nem reescrever :: passed
+test/teto-de-coordenada.test.ts :: A declaração de prova perdida é append-only, como a trilha papel fora do catálogo não entra :: passed
+test/teto-de-coordenada.test.ts :: Nenhuma porta grava mais de seis casas decimais a evidência recusa: é por aqui que o GPS do aparelho entrava :: passed
+test/teto-de-coordenada.test.ts :: Nenhuma porta grava mais de seis casas decimais a ocorrência recusa, e é por CHECK e não por condição em TypeScript :: passed
+test/teto-de-coordenada.test.ts :: Nenhuma porta grava mais de seis casas decimais a vistoria recusa, e a coluna nasceu junto com a restrição :: passed
+test/teto-de-coordenada.test.ts :: Nenhuma porta grava mais de seis casas decimais latitude fora da faixa não entra: 190 graus não é um ponto, é erro de digitação :: passed
+test/teto-de-coordenada.test.ts :: Nenhuma porta grava mais de seis casas decimais meia coordenada não entra: latitude sem longitude não desenha nada :: passed
+test/teto-de-coordenada.test.ts :: Nenhuma porta grava mais de seis casas decimais seis casas passam, e nulo passa :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite a trava é a PRIMEIRA coisa que o aplicador faz, antes até de criar a tabela de controle :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite a trava é larga mesmo quando a migração falha :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite a trava é larga quando o histórico foi alterado :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite aplica, e a trava é largada no fim :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite avisa uma vez, no registro, que está esperando :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite com esperaMs 0 é uma tentativa só :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite migrar com o papel errado continua dando a mensagem do papel, e larga a trava :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite trava ocupada o prazo todo: código 3, mensagem em português e NADA foi alterado :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite trava ocupada: espera, tenta de novo e aplica quando a outra termina :: passed
+test/trava-de-migracao.test.ts :: a decisão, em PGlite usa a chave fixa do produto :: passed
+test/trava-de-migracao.test.ts :: a disputa de verdade, em Postgres real (dois pg.Client) o outro, sem esperar o bastante, sai com código 3 e a primeira termina intacta :: skipped
+test/trava-de-migracao.test.ts :: a disputa de verdade, em Postgres real (dois pg.Client) se o migrador que segura a trava morre, a trava solta com a conexão :: skipped
+test/trava-de-migracao.test.ts :: a disputa de verdade, em Postgres real (dois pg.Client) um espera e aplica sem duplicar: o segundo encontra tudo aplicado :: skipped
+test/trava-de-migracao.test.ts :: o pooler não serve a porta 6543 (pooler em modo transação) é recusada com a explicação :: passed
+test/trava-de-migracao.test.ts :: o pooler não serve conexão direta, sem URL e URL ilegível não recusam aqui :: passed
+test/varredura-de-prazo-sem-bypassrls.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, a varredura estoura em vez de calar a ancora: o mesmo DELETE da 016, numa funcao ingenua sem a guarda, apaga ZERO em silencio nesse dono :: passed
+test/varredura-de-prazo-sem-bypassrls.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, a varredura estoura em vez de calar de volta ao dono de verdade, a mesma chamada escreve: nada ficou preso :: passed
+test/varredura-de-prazo-sem-bypassrls.test.ts :: Armadilha 1: com o dono sem BYPASSRLS, a varredura estoura em vez de calar varrer_prazos ESTOURA nomeando a seguranca em nivel de linha, nao expurga e nao reivindica nada :: passed
+test/varredura-de-prazo-sem-bypassrls.test.ts :: No dono de verdade, a varredura escreve: expurga o vencido, respeita o piso, e reivindica o aviso expurga a notificacao alem da retencao, deixa a recente, e insere prazo_vencendo para o aparelho vivo :: passed
+test/varredura-de-prazo-sem-bypassrls.test.ts :: No dono de verdade, a varredura escreve: expurga o vencido, respeita o piso, e reivindica o aviso o piso de trinta dias da policy (037) nao e o que limita o dono: e o parametro de retencao :: passed
+test/varredura-de-prazo-sem-bypassrls.test.ts :: O catalogo: a opcao esta na funcao varrer_prazos e SECURITY DEFINER, fixa o search_path e desliga o row_security :: passed
