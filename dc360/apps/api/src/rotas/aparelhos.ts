@@ -19,7 +19,7 @@ import { AMBIENTES_APNS } from "../push/envio.js";
  * pessoa não é um caso de uso, é um ataque.
  */
 
-const registroSchema = z.object({
+export const registroSchema = z.object({
   plataforma: z.enum(["ios", "android"], {
     error: "Plataforma precisa ser ios ou android",
   }),
@@ -43,7 +43,7 @@ const registroSchema = z.object({
   }).optional(),
 });
 
-const revogacaoSchema = z.object({
+export const revogacaoSchema = z.object({
   ficha: z.string().min(1).max(4096),
 });
 

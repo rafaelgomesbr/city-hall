@@ -22,7 +22,7 @@ import { enderecoDoCliente } from "../rede.js";
  * do administrador.
  */
 
-const codigoSchema = z.object({
+export const codigoSchema = z.object({
   /*
     Aceita o código de seis dígitos E o código de recuperação no mesmo campo.
     O teto de 64 caracteres cobre o segundo com folga; separar em dois campos
@@ -34,11 +34,11 @@ const codigoSchema = z.object({
   desafio: z.string().min(1).max(4096).optional(),
 });
 
-const desativacaoSchema = z.object({
+export const desativacaoSchema = z.object({
   senhaAtual: z.string().min(1, "Informe a sua senha atual").max(200),
 });
 
-const inicioSchema = z.object({
+export const inicioSchema = z.object({
   desafio: z.string().min(1).max(4096).optional(),
 });
 

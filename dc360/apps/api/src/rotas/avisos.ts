@@ -97,7 +97,7 @@ const LOTE_DE_PRAZOS = 200;
  */
 const MARGEM_DE_COMMIT_SEGUNDOS = 10;
 
-const consultaSchema = z.object({
+export const consultaSchema = z.object({
   /**
    * O instante devolvido pela resposta ANTERIOR, ecoado sem alteração.
    *
@@ -121,7 +121,7 @@ const consultaSchema = z.object({
   desdeId: z.string().uuid().optional(),
 });
 
-const leituraSchema = z.object({
+export const leituraSchema = z.object({
   /*
     A pessoa marca como lido o que ela RECEBEU, e a lista dos identificadores
     é como ela diz isso. Não existe "marcar tudo como lido até tal hora", e a

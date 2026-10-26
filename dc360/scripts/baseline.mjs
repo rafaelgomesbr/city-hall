@@ -874,6 +874,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E06-parte-3A": { total: 41, falhas: 0, puladas: 0 },
   // V2-F02-E08: `apps/api/test/versao-v1.test.ts` ganhou 19 casos (o espelho encerrado responde 426 com Link, antes do 401 e igual para todo municipio, data futura e chave desligada atendem com os cabecalhos, o fim do dia vale inteiro, a infraestrutura fica fora; a chave e a data na configuracao e na partida em producao; o contador de uso sem usuario, municipio, token, IP, corpo nem consulta).
   "V2-F02-E08": { total: 19, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 3C1: `apps/api/test/contrato-auth-respostas.test.ts` (7 casos) e `contrato-conta-administracao-respostas.test.ts` (8 casos) sao novos: cada resposta descrita no contrato dos grupos autenticacao, conta e administracao confere com a que a API devolve por `inject`, e os tres grupos nao tem rota pendente nem sem resposta.
+  "V2-F02-E04-parte-3C1": { total: 15, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
