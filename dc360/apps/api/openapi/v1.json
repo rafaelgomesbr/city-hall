@@ -122,7 +122,8 @@
                         "coordenador",
                         "operador",
                         "agente_campo",
-                        "administrador"
+                        "administrador",
+                        "usuario_orgao"
                       ]
                     },
                     "organizacaoId": {
@@ -3657,7 +3658,8 @@
                       "coordenador",
                       "operador",
                       "agente_campo",
-                      "administrador"
+                      "administrador",
+                      "usuario_orgao"
                     ]
                   },
                   "equipeId": {
@@ -3959,7 +3961,8 @@
                         "coordenador",
                         "operador",
                         "agente_campo",
-                        "administrador"
+                        "administrador",
+                        "usuario_orgao"
                       ]
                     },
                     "equipeId": {

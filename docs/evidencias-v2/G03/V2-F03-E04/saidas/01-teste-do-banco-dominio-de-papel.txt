@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aad9f3acc17a05798/dc360/db
+
+ ✓ test/dominio-de-papel.test.ts (36 tests) 9248ms
+   ✓ a volta da 053 > aplicar, desfazer e reaplicar: colunas, constraints, domínios, gatilhos, ACL de coluna, RLS e funções idênticos  1670ms
+   ✓ a volta da 053 > a volta RECUSA, sem apagar nada, quando já existe conta usuario_orgao  1465ms
+   ✓ a volta da 053 > a volta RECUSA, sem apagar nada, quando já existe ato administrativo de usuario_orgao  1578ms
+   ✓ a volta da 053 > a volta RECUSA quando já existe evento com origem `portal`  1798ms
+
+ Test Files  1 passed (1)
+      Tests  36 passed (36)
+   Start at  07:12:05
+   Duration  10.04s (transform 93ms, setup 0ms, collect 228ms, tests 9.25s, environment 0ms, prepare 142ms)
+

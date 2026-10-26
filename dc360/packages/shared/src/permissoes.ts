@@ -1,4 +1,4 @@
-import { PAPEIS, ROTULO_PAPEL, type Papel } from "./dominio.js";
+import { PAPEIS_DE_SERVIDOR, ROTULO_PAPEL, type Papel, type PapelDeServidor } from "./dominio.js";
 
 /**
  * Quem pode fazer o quê.
@@ -56,6 +56,15 @@ export const ROTULO_ACAO: Record<Acao, string> = {
 };
 
 const PERMISSOES: Record<Papel, readonly Acao[]> = {
+  /*
+    O `usuario_orgao` NÃO TEM AÇÃO NENHUMA (V2-F03-E04, ADR 0009 decisão 5).
+    Não é lista a preencher depois por descuido: é a lista vazia de propósito.
+    O que essa conta faz vem do vínculo com o órgão (gestor, executor, leitor)
+    e das ações do encaminhamento da F04, e nunca de uma ação de servidor. Uma
+    ação nova que alguém acrescente a `ACOES` e esqueça de negar a esse papel
+    não o alcança, porque aqui o padrão é negar.
+  */
+  usuario_orgao: [],
   /*
     O operador registra a resposta porque é quem atende o telefone quando a
     secretaria liga de volta. Ele continua sem decidir o fluxo.
@@ -160,6 +169,7 @@ export function acoesDoPapel(papel: Papel): readonly Acao[] {
  * que é a regra número um deste produto.
  */
 export const POSTO: Record<Papel, number> = {
+  usuario_orgao: 1,
   agente_campo: 1,
   operador: 1,
   coordenador: 2,
@@ -214,9 +224,14 @@ export function exigirPostoParaGerir(quem: Papel, alvo: Papel): void {
   }
 }
 
-/** Os papéis que `quem` consegue conceder. Serve para montar o formulário. */
-export function papeisQuePodeConceder(quem: Papel): readonly Papel[] {
-  return PAPEIS.filter((p) => podeGerirPapel(quem, p));
+/**
+ * Os papéis que `quem` consegue conceder. Serve para montar o formulário.
+ *
+ * Só papel de SERVIDOR: o `usuario_orgao` nasce por convite e não se concede
+ * por formulário nem por troca de papel (ADR 0009, decisão 5).
+ */
+export function papeisQuePodeConceder(quem: Papel): readonly PapelDeServidor[] {
+  return PAPEIS_DE_SERVIDOR.filter((p) => podeGerirPapel(quem, p));
 }
 
 /** Erro de autorização, distinguível de erro de validação e de erro de banco. */

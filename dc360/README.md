@@ -9,9 +9,9 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 418 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 510 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 546 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2041 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2067 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 2010 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 379 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
@@ -1322,6 +1322,16 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
 | Operador de plantão | registrar ocorrência, registrar a resposta de uma providência, consultar os ofícios de encaminhamento, acompanhar quem está em campo agora |
 | Agente de campo | registrar vistoria |
 | Administrador da organização | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, levantar a interdição de um imóvel, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+| Usuário de órgão externo |  |
+
+A última linha está vazia DE PROPÓSITO (V2-F03-E04, ADR 0009 decisão 5): o
+`usuario_orgao` é o papel genérico de quem representa outro órgão no município,
+com posto 1 e nenhuma ação de servidor. O que essa conta faz vem do vínculo com o
+órgão e das ações do encaminhamento (F04), nunca desta tabela. Ela nasce só por
+convite, nunca se converte de ou para papel de servidor (`PATCH /usuarios/:id`
+responde 409 `papel_nao_se_converte`, e um gatilho do banco recusa o mesmo por
+fora da API) e o login dela fica fechado até o G03 (responde credenciais
+inválidas).
 
 O administrador NÃO é um coordenador com outro nome. Ele é o único que altera
 os dados do município, e o sistema de postos impede que qualquer pessoa
@@ -1786,9 +1796,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4429 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 510 testes do banco
-npm run test:api            # 2041 testes da API
+npm test                    # 4491 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 546 testes do banco
+npm run test:api            # 2067 testes da API
 npm run test --workspace @dc360/campo   # 261 testes do motor de campo
 npm run test:campo          # tipos e os 2010 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

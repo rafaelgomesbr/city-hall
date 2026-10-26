@@ -170,7 +170,6 @@ describe("a lista reservada", () => {
 
   it("a F03 reserva os códigos de identidade, sem repetir o que o catálogo já emite", () => {
     for (const codigo of [
-      "papel_nao_se_converte",
       "convite_invalido",
       "escolha_de_municipio_obrigatoria",
       "termo_nao_aceito",
@@ -178,6 +177,12 @@ describe("a lista reservada", () => {
       expect(ehCodigoReservado(codigo), codigo).toBe(true);
       expect(ehCodigoDeErro(codigo), codigo).toBe(false);
     }
+    /* Já emitido desde a V2-F03-E04 (PATCH /usuarios/:id): saiu da reserva. */
+    expect(ehCodigoReservado("papel_nao_se_converte")).toBe(false);
+    expect(CODIGOS_DE_ERRO.papel_nao_se_converte).toMatchObject({
+      status: 409,
+      categoria: "permanente",
+    });
     /* A ADR 0009 corrigida eliminou o 409: o código não é reservado. */
     expect(ehCodigoReservado("pessoa_em_varios_municipios")).toBe(false);
     /* Já emitidos: reservar de novo duplicaria. */

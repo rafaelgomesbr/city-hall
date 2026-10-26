@@ -870,6 +870,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E03-parte-2C": { total: 29, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 2C, correção 1: `catalogo-de-erros.test.ts` ganhou 10 casos (a conferência que lança só existe em `NODE_ENV=test` mesmo com a opção ligada; a varredura de `.code(N).send(...)`: árvore real, erro por variável, corpo em texto, `message` no lugar de `mensagem`, código fora do catálogo, corpo por constante, status calculado, controles e a exceção nomeada). Content-Disposition e Accept-Ranges entraram nos casos que já existiam das guardas.
   "V2-F02-E03-parte-2C-correcao-1": { total: 10, falhas: 0, puladas: 0 },
+  // V2-F03-E04: `apps/api/test/papeis-batem-com-o-banco.test.ts` e novo, com 26 casos (o shared e o banco falam a mesma lista de papeis e de origens; `usuario_orgao` tem posto 1 e nenhuma acao; PATCH recusa converter nos dois sentidos com 409; POST nao cria a conta; o login dela responde igual a email inexistente, sem contar falha; a conta de A nao aparece para B).
+  "V2-F03-E04": { total: 26, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -1093,6 +1095,16 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     novos.
   */
   "V2-F03-E08-parte-0B-correcao-1": { total: 33, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E04 (dominio de papel e usuario_orgao): `db/test/dominio-de-papel.test.ts`
+    e novo, com 36 casos (a 053 sobre dado antigo, os tres dominios, positivos e
+    negativos nas quatro colunas e na origem `portal`, o gatilho que impede a
+    conversao nos dois sentidos, o isolamento intacto e a volta, que recusa quando
+    ja existe dado que os CHECKs antigos nao aceitam). `migracoes-regras.test.ts`
+    e `chave-de-criacao-migracao.test.ts` trocaram numeros e uma fatia no lugar
+    (a 053 de mentira virou 900; a prova da 052 para na 052), sem caso novo.
+  */
+  "V2-F03-E04": { total: 36, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
