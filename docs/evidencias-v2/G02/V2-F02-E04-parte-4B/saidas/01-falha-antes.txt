@@ -1,0 +1,349 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aa134fb0d47c3393e/dc360/apps/api
+
+ ❯ test/openapi-regras.test.ts (21 tests | 9 failed) 57ms
+   ✓ regras condicionais que o JSON Schema perde > o Zod recusa os dois corpos que o JSON Schema, sozinho, deixaria passar 7ms
+   ✓ regras condicionais que o JSON Schema perde > a abertura com tipo `outro` anota a regra da descrição do tipo 1ms
+   ✓ regras condicionais que o JSON Schema perde > a triagem com vulnerabilidade presente anota a regra da descrição 1ms
+   ✓ regras condicionais que o JSON Schema perde > toda entrada real com refinamento nas entradas sai anotada, e a anotação cobre cada regra 7ms
+   ✓ regras condicionais que o JSON Schema perde > achar refinamento aninhado: regra dentro de objeto interno também sai 3ms
+   ✓ regras condicionais que o JSON Schema perde > esquema sintético com superRefine sem texto sai anotado e sem a anotação o guarda reprova 2ms
+   ✓ regras condicionais que o JSON Schema perde > esquema sem refinamento não ganha anotação 1ms
+   ✓ corpo opcional > corpo `.optional()` sai com required false 1ms
+   ✓ corpo opcional > corpo com padrão de objeto vazio também é opcional 1ms
+   ✓ corpo opcional > corpo obrigatório continua com required true 1ms
+   × regras anotadas por caminho (V2-F02-E04, parte 4B) > o mesmo esquema em dois campos gera duas anotações, uma por caminho 11ms
+     → expected [ 'origem' ] to deeply equal [ 'destino', 'origem' ]
+   × regras anotadas por caminho (V2-F02-E04, parte 4B) > o mesmo esquema em dois itens de uma lista e numa união não duplica o mesmo caminho 1ms
+     → expected [ 'a' ] to deeply equal [ 'a', 'b', 'c' ]
+   ✓ regras anotadas por caminho (V2-F02-E04, parte 4B) > esquema recursivo termina e anota a regra do nível raiz uma vez 1ms
+   ✓ regras anotadas por caminho (V2-F02-E04, parte 4B) > recursão por referência de outro campo também termina 0ms
+   × regras anotadas por caminho (V2-F02-E04, parte 4B) > POST /v1/rota anota a coordenada 0,0 na origem E no destino, no documento e no guarda 1ms
+     → expected [ 'origem' ] to deeply equal [ 'destino', 'origem' ]
+   × mais de um status de sucesso (`tambemResponde`, parte 4B) > sai uma resposta por status, com o esquema da principal quando não declara outro 1ms
+     → expected [ '201' ] to deeply equal [ '200', '201' ]
+   × mais de um status de sucesso (`tambemResponde`, parte 4B) > usa o esquema próprio quando a resposta adicional declara um 1ms
+     → Cannot read properties of undefined (reading 'content')
+   × mais de um status de sucesso (`tambemResponde`, parte 4B) > falha quando repete o status principal, repete outro adicional ou colide com um erro 5ms
+     → expected [Function] to throw an error
+   × mais de um status de sucesso (`tambemResponde`, parte 4B) > falha quando a entrada não tem resposta principal 1ms
+     → expected [Function] to throw an error
+   × mais de um status de sucesso (`tambemResponde`, parte 4B) > as quatro rotas idempotentes listam o 200 do reenvio ao lado do 201 7ms
+     → POST /v1/ocorrencias: expected [ '201', '401', '403', '422' ] to deeply equal ArrayContaining ["200", "201"]
+   × mais de um status de sucesso (`tambemResponde`, parte 4B) > nenhuma outra rota ganha `tambemResponde` sem querer (só as quatro idempotentes) 1ms
+     → expected [] to deeply equal [ 'POST /v1/ocorrencias', …(3) ]
+ ❯ test/contrato-3c2-respostas.test.ts (15 tests | 5 failed) 3913ms
+   × ocorrências: o fluxo da coordenação > abre, repete a abertura com a mesma chave e lê o que abriu 46ms
+     → POST /v1/ocorrencias: {"id":"00eaca94-e148-4c80-87cd-3793ed960201","protocolo":"000479/2026"}: expected [ 201 ] to include 200
+   ✓ ocorrências: o fluxo da coordenação > triagem, despacho, mapa, lista, duplicidades e painel de uma ocorrência em campo 69ms
+   ✓ ocorrências: o fluxo da coordenação > providência, resposta, correção de coordenada, interdição e encerramento 131ms
+   ✓ campo: o trabalho do agente > sem equipe, a tela do agente vem vazia e sem os totais 7ms
+   ✓ campo: o trabalho do agente > baixa as tarefas e lê a tela do agente com equipe 26ms
+   ✓ campo: o trabalho do agente > autoriza o envio da foto, guarda os bytes, confirma, lista e lê a URL 44ms
+   × campo: o trabalho do agente > declara, prorroga, lista, encerra pela coordenação e confirma o retorno 37ms
+     → POST /v1/saida-a-campo: {"saida":{"id":"0443691a-51fd-4430-9543-7ab18886fca5","ocorrenciaId":"00eaca94-e148-4c80-87cd-3793ed960201","protocolo":"000479/2026","endereco":"Rua do Talude, 10","severidade":"critica","agenteId":"11111111-1111-4111-8111-0000000000d3","agenteNome":"Diego Nakamura Alves","equipeNome":"Equipe Alfa","sozinho":true,"duracaoMinutos":120,"declaradaEm":"2026-10-26T08:16:58.570Z","registradaEm":"2026-10-26T08:16:58.576Z","retornoPrevistoInicial":"2026-10-26T10:16:58.576Z","retornoPrevistoEm":"2026-10-26T10:16:58.576Z","prorrogacoes":0,"vencida":false,"atrasoEmMinutos":0},"duplicada":true,"aviso":"A coordenação vê que você saiu e vê o prazo. Se ninguém confirmar o retorno até lá, sua saída aparece como prazo estourado no painel. Isto não é botão de apoio: ninguém é acionado automaticamente."}: expected [ 201 ] to include 200
+   × campo: o trabalho do agente > sincroniza a vistoria (e o reenvio) e reconcilia o que saiu da lista do aparelho 27ms
+     → POST /v1/sincronizacao/vistoria: {"vistoriaId":"3f754e64-3c9a-4b9c-bac3-6d1c81ca04d7","duplicada":true,"foraDaEquipeDesignada":false}: expected [ 201 ] to include 200
+   × campo: o trabalho do agente > devolve a tarefa vencida, e a coordenação a vê na lista de devolvidas e no dossiê 47ms
+     → POST /v1/sincronizacao/devolucao: {"devolucaoId":"4b62e6f9-36ee-4892-bc51-ae4f8226ac6a","duplicada":true,"status":"triagem"}: expected [ 201 ] to include 200
+   ✓ campo: o trabalho do agente > o dossiê traz trilha, vistoria, providências, ligações e a devolução 91ms
+   ✓ mapa e busca > resolve o link curto do mapa 11ms
+   ✓ mapa e busca > traça o caminho por ruas 8ms
+   ✓ mapa e busca > busca ocorrências (e, para quem administra, usuários, equipes e órgãos) 34ms
+   × cobertura > toda rota dos três grupos foi chamada contra o esquema de resposta 3ms
+     → expected [ 'GET /v1/busca', …(26) ] to deeply equal [ 'GET /v1/busca', …(33) ]
+   ✓ cobertura > os três grupos não deixam rota pendente 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/contrato-3c2-respostas.test.ts > ocorrências: o fluxo da coordenação > abre, repete a abertura com a mesma chave e lê o que abriu
+AssertionError: POST /v1/ocorrencias: {"id":"00eaca94-e148-4c80-87cd-3793ed960201","protocolo":"000479/2026"}: expected [ 201 ] to include 200
+ ❯ conferir test/contrato-3c2-respostas.test.ts:88:89
+     86|   const adicionais = entrada!.tambemResponde ?? [];
+     87|   const adicional = adicionais.find((x) => x.status === r.statusCode);
+     88|   expect([resposta!.status, ...adicionais.map((x) => x.status)], `${ch…
+       |                                                                                         ^
+     89|     r.statusCode,
+     90|   );
+ ❯ test/contrato-3c2-respostas.test.ts:237:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  test/contrato-3c2-respostas.test.ts > campo: o trabalho do agente > declara, prorroga, lista, encerra pela coordenação e confirma o retorno
+AssertionError: POST /v1/saida-a-campo: {"saida":{"id":"0443691a-51fd-4430-9543-7ab18886fca5","ocorrenciaId":"00eaca94-e148-4c80-87cd-3793ed960201","protocolo":"000479/2026","endereco":"Rua do Talude, 10","severidade":"critica","agenteId":"11111111-1111-4111-8111-0000000000d3","agenteNome":"Diego Nakamura Alves","equipeNome":"Equipe Alfa","sozinho":true,"duracaoMinutos":120,"declaradaEm":"2026-10-26T08:16:58.570Z","registradaEm":"2026-10-26T08:16:58.576Z","retornoPrevistoInicial":"2026-10-26T10:16:58.576Z","retornoPrevistoEm":"2026-10-26T10:16:58.576Z","prorrogacoes":0,"vencida":false,"atrasoEmMinutos":0},"duplicada":true,"aviso":"A coordenação vê que você saiu e vê o prazo. Se ninguém confirmar o retorno até lá, sua saída aparece como prazo estourado no painel. Isto não é botão de apoio: ninguém é acionado automaticamente."}: expected [ 201 ] to include 200
+ ❯ conferir test/contrato-3c2-respostas.test.ts:88:89
+     86|   const adicionais = entrada!.tambemResponde ?? [];
+     87|   const adicional = adicionais.find((x) => x.status === r.statusCode);
+     88|   expect([resposta!.status, ...adicionais.map((x) => x.status)], `${ch…
+       |                                                                                         ^
+     89|     r.statusCode,
+     90|   );
+ ❯ test/contrato-3c2-respostas.test.ts:464:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  test/contrato-3c2-respostas.test.ts > campo: o trabalho do agente > sincroniza a vistoria (e o reenvio) e reconcilia o que saiu da lista do aparelho
+AssertionError: POST /v1/sincronizacao/vistoria: {"vistoriaId":"3f754e64-3c9a-4b9c-bac3-6d1c81ca04d7","duplicada":true,"foraDaEquipeDesignada":false}: expected [ 201 ] to include 200
+ ❯ conferir test/contrato-3c2-respostas.test.ts:88:89
+     86|   const adicionais = entrada!.tambemResponde ?? [];
+     87|   const adicional = adicionais.find((x) => x.status === r.statusCode);
+     88|   expect([resposta!.status, ...adicionais.map((x) => x.status)], `${ch…
+       |                                                                                         ^
+     89|     r.statusCode,
+     90|   );
+ ❯ test/contrato-3c2-respostas.test.ts:563:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  test/contrato-3c2-respostas.test.ts > campo: o trabalho do agente > devolve a tarefa vencida, e a coordenação a vê na lista de devolvidas e no dossiê
+AssertionError: POST /v1/sincronizacao/devolucao: {"devolucaoId":"4b62e6f9-36ee-4892-bc51-ae4f8226ac6a","duplicada":true,"status":"triagem"}: expected [ 201 ] to include 200
+ ❯ conferir test/contrato-3c2-respostas.test.ts:88:89
+     86|   const adicionais = entrada!.tambemResponde ?? [];
+     87|   const adicional = adicionais.find((x) => x.status === r.statusCode);
+     88|   expect([resposta!.status, ...adicionais.map((x) => x.status)], `${ch…
+       |                                                                                         ^
+     89|     r.statusCode,
+     90|   );
+ ❯ test/contrato-3c2-respostas.test.ts:616:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  test/contrato-3c2-respostas.test.ts > cobertura > toda rota dos três grupos foi chamada contra o esquema de resposta
+AssertionError: expected [ 'GET /v1/busca', …(26) ] to deeply equal [ 'GET /v1/busca', …(33) ]
+
+- Expected
++ Received
+
+@@ -3,18 +3,15 @@
+    "GET /v1/campo/meu-trabalho",
+    "GET /v1/evidencias/:id/url",
+    "GET /v1/evidencias/ocorrencia/:id",
+    "GET /v1/ocorrencias",
+    "GET /v1/ocorrencias/:id",
+-   "GET /v1/ocorrencias/devolvidas",
+    "GET /v1/ocorrencias/duplicidades/consulta",
+    "GET /v1/ocorrencias/indicadores/painel",
+    "GET /v1/ocorrencias/interditados",
+    "GET /v1/ocorrencias/mapa",
+    "GET /v1/ocorrencias/providencias/pendentes",
+-   "GET /v1/saida-a-campo",
+-   "GET /v1/saida-a-campo/minha",
+    "GET /v1/sincronizacao/pendencias",
+    "POST /v1/evidencias/autorizar-envio",
+    "POST /v1/evidencias/confirmar-envio",
+    "POST /v1/mapa/resolver-link",
+    "POST /v1/ocorrencias",
+@@ -25,12 +22,8 @@
+    "POST /v1/ocorrencias/:id/providencia",
+    "POST /v1/ocorrencias/:id/providencia/:providenciaId/resposta",
+    "POST /v1/ocorrencias/:id/triagem",
+    "POST /v1/rota",
+    "POST /v1/saida-a-campo",
+-   "POST /v1/saida-a-campo/encerrar",
+-   "POST /v1/saida-a-campo/prorrogar",
+-   "POST /v1/saida-a-campo/retorno",
+    "POST /v1/sincronizacao/devolucao",
+-   "POST /v1/sincronizacao/pendencias/reconciliar",
+    "POST /v1/sincronizacao/vistoria",
+  ]
+
+ ❯ test/contrato-3c2-respostas.test.ts:750:37
+    748|       .sort();
+    749|     expect(esperadas.length).toBe(34);
+    750|     expect([...exercitadas].sort()).toEqual(esperadas);
+       |                                     ^
+    751|   });
+    752| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > regras anotadas por caminho (V2-F02-E04, parte 4B) > o mesmo esquema em dois campos gera duas anotações, uma por caminho
+AssertionError: expected [ 'origem' ] to deeply equal [ 'destino', 'origem' ]
+
+- Expected
++ Received
+
+  [
+-   "destino",
+    "origem",
+  ]
+
+ ❯ test/openapi-regras.test.ts:188:50
+    186|   it("o mesmo esquema em dois campos gera duas anotações, uma por cami…
+    187|     const achadas = refinamentosDe(z.object({ origem: ponto, destino: …
+    188|     expect(achadas.map((a) => a.caminho).sort()).toEqual(["destino", "…
+       |                                                  ^
+    189|     expect(achadas.every((a) => a.regra === "A coordenada 0,0 não é um…
+    190|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > regras anotadas por caminho (V2-F02-E04, parte 4B) > o mesmo esquema em dois itens de uma lista e numa união não duplica o mesmo caminho
+AssertionError: expected [ 'a' ] to deeply equal [ 'a', 'b', 'c' ]
+
+- Expected
++ Received
+
+  [
+    "a",
+-   "b",
+-   "c",
+  ]
+
+ ❯ test/openapi-regras.test.ts:196:50
+    194|       z.object({ a: z.union([ponto, ponto]), b: z.array(ponto), c: pon…
+    195|     );
+    196|     expect(achadas.map((a) => a.caminho).sort()).toEqual(["a", "b", "c…
+       |                                                  ^
+    197|   });
+    198| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > regras anotadas por caminho (V2-F02-E04, parte 4B) > POST /v1/rota anota a coordenada 0,0 na origem E no destino, no documento e no guarda
+AssertionError: expected [ 'origem' ] to deeply equal [ 'destino', 'origem' ]
+
+- Expected
++ Received
+
+  [
+-   "destino",
+    "origem",
+  ]
+
+ ❯ test/openapi-regras.test.ts:227:47
+    225|     const op = operacao("/v1/rota", "post");
+    226|     const regras = op["x-regras-adicionais"]!;
+    227|     expect(regras.map((x) => x.campo).sort()).toEqual(["destino", "ori…
+       |                                               ^
+    228|     expect(regras.every((x) => x.em === "corpo")).toBe(true);
+    229|     expect(operacoesSemAnotacaoDeRegras(ROTAS_DO_CONTRATO, documento))…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > mais de um status de sucesso (`tambemResponde`, parte 4B) > sai uma resposta por status, com o esquema da principal quando não declara outro
+AssertionError: expected [ '201' ] to deeply equal [ '200', '201' ]
+
+- Expected
++ Received
+
+  [
+-   "200",
+    "201",
+  ]
+
+ ❯ test/openapi-regras.test.ts:256:43
+    254|       tambemResponde: [{ status: 200, descricao: "Reenvio: a mesma coi…
+    255|     });
+    256|     expect(Object.keys(respostas).sort()).toEqual(["200", "201"]);
+       |                                           ^
+    257|     expect(respostas["200"]!.description).toBe("Reenvio: a mesma coisa…
+    258|     expect(respostas["200"]!.content).toEqual(respostas["201"]!.conten…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > mais de um status de sucesso (`tambemResponde`, parte 4B) > usa o esquema próprio quando a resposta adicional declara um
+TypeError: Cannot read properties of undefined (reading 'content')
+ ❯ test/openapi-regras.test.ts:269:25
+    267|     });
+    268|     const schema = (
+    269|       respostas["202"]!.content as Record<string, { schema: { properti…
+       |                         ^
+    270|     )["application/json"]!.schema;
+    271|     expect(Object.keys(schema.properties)).toEqual(["fila"]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > mais de um status de sucesso (`tambemResponde`, parte 4B) > falha quando repete o status principal, repete outro adicional ou colide com um erro
+AssertionError: expected [Function] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ test/openapi-regras.test.ts:277:7
+    275|     expect(() =>
+    276|       respostasDe({ ...base, tambemResponde: [{ status: 201, descricao…
+    277|     ).toThrow(/201/);
+       |       ^
+    278|     expect(() =>
+    279|       respostasDe({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > mais de um status de sucesso (`tambemResponde`, parte 4B) > falha quando a entrada não tem resposta principal
+AssertionError: expected [Function] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ test/openapi-regras.test.ts:300:7
+    298|     expect(() =>
+    299|       respostasDe({ ...sem, tambemResponde: [{ status: 200, descricao:…
+    300|     ).toThrow(/resposta/);
+       |       ^
+    301|   });
+    302| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > mais de um status de sucesso (`tambemResponde`, parte 4B) > as quatro rotas idempotentes listam o 200 do reenvio ao lado do 201
+AssertionError: POST /v1/ocorrencias: expected [ '201', '401', '403', '422' ] to deeply equal ArrayContaining ["200", "201"]
+
+- Expected
++ Received
+
+- ArrayContaining [
+-   "200",
++ [
+    "201",
++   "401",
++   "403",
++   "422",
+  ]
+
+ ❯ test/openapi-regras.test.ts:312:44
+    310|       const respostas = (documento.paths[caminho] as Record<string, Op…
+    311|         .responses;
+    312|       expect(Object.keys(respostas), nome).toEqual(expect.arrayContain…
+       |                                            ^
+    313|       expect(respostas["200"]!.description as string, nome).toMatch(/r…
+    314|       expect(respostas["200"]!.content, nome).toEqual(respostas["201"]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/14]⎯
+
+ FAIL  test/openapi-regras.test.ts > mais de um status de sucesso (`tambemResponde`, parte 4B) > nenhuma outra rota ganha `tambemResponde` sem querer (só as quatro idempotentes)
+AssertionError: expected [] to deeply equal [ 'POST /v1/ocorrencias', …(3) ]
+
+- Expected
++ Received
+
+- [
+-   "POST /v1/ocorrencias",
+-   "POST /v1/saida-a-campo",
+-   "POST /v1/sincronizacao/devolucao",
+-   "POST /v1/sincronizacao/vistoria",
+- ]
++ []
+
+ ❯ test/openapi-regras.test.ts:322:17
+    320|       .map((r) => `${r.metodo} ${r.caminho}`)
+    321|       .sort();
+    322|     expect(com).toEqual([
+       |                 ^
+    323|       "POST /v1/ocorrencias",
+    324|       "POST /v1/saida-a-campo",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/14]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  14 failed | 22 passed (36)
+   Start at  05:16:51
+   Duration  7.75s (transform 767ms, setup 1.52s, collect 5.25s, tests 3.97s, environment 0ms, prepare 402ms)
+

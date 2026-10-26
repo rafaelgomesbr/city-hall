@@ -82,7 +82,7 @@ export const grupo: GrupoDoContrato = {
       metodo: "POST",
       caminho: "/v1/rota",
       resumo:
-        "Traça o caminho por ruas entre dois pontos pelo Google, sem a chave sair do servidor (com cache de 24 horas). A coordenada 0,0 não vale, nem na origem nem no destino.",
+        "Traça o caminho por ruas entre dois pontos pelo Google, sem a chave sair do servidor (com cache de 24 horas).",
       corpo: pedidoDeRota,
       resposta: {
         status: 200,

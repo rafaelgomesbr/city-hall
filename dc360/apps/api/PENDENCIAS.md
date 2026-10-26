@@ -563,17 +563,22 @@ fica em aberto, com o número de cada coisa no relatório
    certo valor) para `if/then` é possível e fica para quando houver cliente
    gerado (F08-E04).
 
-6. **Um só status de sucesso por entrada (limite do gerador).** O registro
-   (`RespostaDoContrato.status`) comporta um status, e `POST
-   /v1/sincronizacao/vistoria`, `/devolucao` e `POST /v1/saida-a-campo`
-   respondem 201 na primeira vez e 200 no reenvio idempotente. O contrato declara
-   o 201 e a descrição conta o 200, mas o documento não lista os dois. Uma
-   extensão possível é `tambemResponde?: readonly { status; descricao }[]`.
+6. **Um só status de sucesso por entrada (limite do gerador). RESOLVIDO na
+   parte 4B (SHA_4B).** A entrada ganhou `tambemResponde?: readonly { status;
+   descricao; resposta? }[]` (`src/contrato/tipos.ts`), e o gerador a lista como
+   resposta adicional (com o esquema da principal quando não declara outro).
+   `POST /v1/ocorrencias`, `POST /v1/sincronizacao/vistoria`, `/devolucao` e
+   `POST /v1/saida-a-campo` declaram o 200 do reenvio idempotente ao lado do 201,
+   e `test/contrato-3c2-respostas.test.ts` confere por `inject` que o corpo do 200
+   casa com o esquema. O gerador falha se o status adicional repete outro, colide
+   com um status de erro da entrada ou aparece numa entrada sem `resposta`.
 7. **A anotação de regras adicionais visita cada esquema uma vez (limite do
-   gerador).** `refinamentosDe`, em `src/contrato/openapi.ts`, usa um `WeakSet`
-   e anota a regra de um esquema só na primeira vez que o encontra. Em `POST
-   /v1/rota`, o mesmo `pontoSchema` serve a `origem` e a `destino`, e só `origem`
-   aparece em `x-regras-adicionais`; a regra do `destino` ficou dita no texto.
+   gerador). RESOLVIDO na parte 4B (SHA_4B).** `refinamentosDe`
+   (`src/contrato/openapi.ts`) agora visita por CAMINHO: o mesmo esquema em dois
+   campos gera uma anotação por caminho (`POST /v1/rota` anota a coordenada 0,0
+   em `origem` e em `destino`), o mesmo par (esquema, caminho) não repete, e o
+   esquema que já está na cadeia de quem o contém é pulado, então um esquema
+   recursivo termina. O `resumo` da rota voltou a ser só descritivo.
 8. **Respostas que são a linha do banco entregam colunas internas (decisão da
    F03).** `GET /v1/ocorrencias` devolve `organizacao_id` e `chave_de_criacao`, e
    o dossiê devolve também `busca` (a chave de busca normalizada). O contrato

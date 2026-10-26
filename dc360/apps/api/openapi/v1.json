@@ -4761,6 +4761,31 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Reenvio com a mesma `chaveDeCriacao`: o mesmo corpo, do chamado que já nasceu, sem gastar protocolo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "protocolo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "protocolo"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "201": {
             "description": "O chamado criado. Com `chaveDeCriacao` repetida, a rota responde 200 com o mesmo corpo (o chamado que já nasceu, sem gastar protocolo).",
             "content": {
@@ -9877,8 +9902,8 @@
         "tags": [
           "mapa-e-busca"
         ],
-        "summary": "Traça o caminho por ruas entre dois pontos pelo Google, sem a chave sair do servidor (com cache de 24 horas). A coordenada 0,0 não vale, nem na origem nem no destino.",
-        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo origem: A coordenada 0,0 não é um lugar..",
+        "summary": "Traça o caminho por ruas entre dois pontos pelo Google, sem a chave sair do servidor (com cache de 24 horas).",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo origem: A coordenada 0,0 não é um lugar.; corpo, campo destino: A coordenada 0,0 não é um lugar..",
         "requestBody": {
           "required": true,
           "content": {
@@ -9934,6 +9959,11 @@
                     "caminho": "origem",
                     "campo": "origem",
                     "regra": "A coordenada 0,0 não é um lugar."
+                  },
+                  {
+                    "caminho": "destino",
+                    "campo": "destino",
+                    "regra": "A coordenada 0,0 não é um lugar."
                   }
                 ]
               }
@@ -9945,6 +9975,12 @@
             "em": "corpo",
             "caminho": "origem",
             "campo": "origem",
+            "regra": "A coordenada 0,0 não é um lugar."
+          },
+          {
+            "em": "corpo",
+            "caminho": "destino",
+            "campo": "destino",
             "regra": "A coordenada 0,0 não é um lugar."
           }
         ],
@@ -10276,6 +10312,135 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Reenvio com a mesma chave: a saída que já foi aberta, com `duplicada: true`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "saida": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "ocorrenciaId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "protocolo": {
+                          "type": "string"
+                        },
+                        "endereco": {
+                          "type": "string"
+                        },
+                        "severidade": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "baixa",
+                                "media",
+                                "alta",
+                                "critica"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "agenteId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "agenteNome": {
+                          "type": "string"
+                        },
+                        "equipeNome": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "sozinho": {
+                          "type": "boolean"
+                        },
+                        "duracaoMinutos": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "declaradaEm": {
+                          "type": "string"
+                        },
+                        "registradaEm": {
+                          "type": "string"
+                        },
+                        "retornoPrevistoInicial": {
+                          "type": "string"
+                        },
+                        "retornoPrevistoEm": {
+                          "type": "string"
+                        },
+                        "prorrogacoes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "vencida": {
+                          "type": "boolean"
+                        },
+                        "atrasoEmMinutos": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "ocorrenciaId",
+                        "protocolo",
+                        "endereco",
+                        "severidade",
+                        "agenteId",
+                        "agenteNome",
+                        "equipeNome",
+                        "sozinho",
+                        "duracaoMinutos",
+                        "declaradaEm",
+                        "registradaEm",
+                        "retornoPrevistoInicial",
+                        "retornoPrevistoEm",
+                        "prorrogacoes",
+                        "vencida",
+                        "atrasoEmMinutos"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "duplicada": {
+                      "type": "boolean"
+                    },
+                    "aviso": {
+                      "type": "string",
+                      "description": "A frase que o aparelho mostra: o que a coordenação vê e o que o produto não faz."
+                    }
+                  },
+                  "required": [
+                    "saida",
+                    "duplicada",
+                    "aviso"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "201": {
             "description": "A saída aberta, com o prazo calculado pelo servidor. Com a mesma chave de novo, a rota responde 200 com `duplicada: true`.",
             "content": {
@@ -11682,6 +11847,37 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Reenvio com a mesma chave, ou devolução que um colega da equipe já fez: o mesmo corpo, com `duplicada: true` e o `devolucaoId` já gravado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "devolucaoId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "duplicada": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "triagem",
+                      "description": "Para onde a ocorrência foi."
+                    }
+                  },
+                  "required": [
+                    "devolucaoId",
+                    "duplicada",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "201": {
             "description": "A tarefa voltou para a triagem, sem equipe. Com a mesma chave de novo, ou quando um colega da equipe já devolveu, a rota responde 200 com `duplicada: true`.",
             "content": {
@@ -12469,6 +12665,37 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Reenvio com a mesma `idempotencyKey`: o mesmo corpo, com `duplicada: true` e o `vistoriaId` já gravado, sem gravar nada de novo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vistoriaId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "duplicada": {
+                      "type": "boolean",
+                      "description": "Verdadeiro quando a chave já tinha sido recebida: nada foi gravado de novo."
+                    },
+                    "foraDaEquipeDesignada": {
+                      "type": "boolean",
+                      "description": "Verdadeiro quando o agente não é da equipe designada ou a ocorrência não tinha despacho: a coleta entra, marcada."
+                    }
+                  },
+                  "required": [
+                    "vistoriaId",
+                    "duplicada",
+                    "foraDaEquipeDesignada"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "201": {
             "description": "A vistoria foi gravada. Com a mesma `idempotencyKey` de novo, a rota responde 200 com `duplicada: true` e o mesmo `vistoriaId`, sem gravar nada.",
             "content": {

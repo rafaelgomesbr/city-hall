@@ -882,6 +882,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E04-parte-3C1": { total: 15, falhas: 0, puladas: 0 },
   // V2-F02-E04, parte 3C3 (contrato de documentos, ofícios e órgãos, prestação de contas e público): `apps/api/test/contrato-respostas-3c3.test.ts` é novo, com 14 casos (cada rota dos quatro grupos chamada de verdade por `/v1` e a resposta conferida contra a `resposta` que o registro do contrato declara: status, esquema sem chave de sobra ou o tipo de mídia dos arquivos HTML, PDF, CSV e ZIP; mais o guarda de que nenhuma entrada dos quatro grupos fica sem resposta).
   "V2-F02-E04-parte-3C3": { total: 14, falhas: 0, puladas: 0 },
+  // V2-F02-E04, parte 4B (limites do gerador do contrato): `apps/api/test/openapi-regras.test.ts` ganhou 11 casos (a regra repetida sai uma vez por caminho, sem duplicar o mesmo caminho e sem laço em esquema recursivo; a coordenada 0,0 de `POST /v1/rota` anotada na origem e no destino; o status de sucesso adicional `tambemResponde` com o esquema da principal ou o próprio, a recusa de status repetido, de colisão com erro e de entrada sem resposta principal, o 200 do reenvio nas quatro rotas idempotentes e a trava de que só elas o declaram). `contrato-3c2-respostas.test.ts` passou a ler o status do reenvio de `tambemResponde`, sem caso novo.
+  "V2-F02-E04-parte-4B": { total: 11, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

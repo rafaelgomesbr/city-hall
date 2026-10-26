@@ -46,8 +46,8 @@ import { rota, type GrupoDoContrato } from "../tipos.js";
  * contra o esquema (e que nenhum campo é cortado).
  *
  * Quando a rota responde 200 numa repetição e 201 na primeira vez
- * (`POST /v1/ocorrencias`), o registro só comporta um status de sucesso: vai o
- * 201 e a frase da descrição conta o 200.
+ * (`POST /v1/ocorrencias`), o 201 é a `resposta` e o 200 do reenvio sai em
+ * `tambemResponde`.
  */
 
 const uuid = z.string().uuid();
@@ -321,6 +321,13 @@ export const grupo: GrupoDoContrato = {
           "O chamado criado. Com `chaveDeCriacao` repetida, a rota responde 200 com o mesmo corpo (o chamado que já nasceu, sem gastar protocolo).",
         esquema: z.object({ id: uuid, protocolo: z.string() }),
       },
+      tambemResponde: [
+        {
+          status: 200,
+          descricao:
+            "Reenvio com a mesma `chaveDeCriacao`: o mesmo corpo, do chamado que já nasceu, sem gastar protocolo.",
+        },
+      ],
       erros: [...ERROS_AUTORIZADA, "dados_invalidos"],
     }),
     rota({
