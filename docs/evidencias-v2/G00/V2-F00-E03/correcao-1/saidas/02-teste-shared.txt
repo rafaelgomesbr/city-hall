@@ -1,0 +1,36 @@
+$ npm run test --workspace @dc360/shared   (em .)
+codigo=0 duracao=3s situacao=confere
+
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/shared
+
+ ✓ test/telefone.test.ts (10 tests) 7ms
+ ✓ src/localizacao.test.ts (16 tests) 24ms
+ ✓ src/pessoas.test.ts (11 tests) 9ms
+ ✓ test/csv.test.ts (8 tests) 8ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 14ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 11ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 15ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 12ms
+ ✓ test/permissoes.test.ts (16 tests) 14ms
+ ✓ test/evidencia.test.ts (10 tests) 17ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 19ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 21ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 19ms
+ ✓ test/campos.test.ts (7 tests) 7ms
+ ✓ test/dominio.test.ts (14 tests) 421ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  410ms
+ ✓ test/regras-de-conteudo.test.ts (8 tests) 1499ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  414ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  471ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  426ms
+
+ Test Files  16 passed (16)
+      Tests  168 passed (168)
+   Start at  07:15:25
+   Duration  2.22s (transform 883ms, setup 0ms, collect 5.35s, tests 2.12s, environment 5ms, prepare 4.14s)
+

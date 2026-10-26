@@ -500,10 +500,56 @@ describe("Teclado e leitor de tela", () => {
       .not.toMatch(/position:\s*"fixed"/);
     const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
     expect(css).toMatch(/\.toast\s*\{[^}]*position:\s*fixed/);
-    // A altura é a mesma conta que desenha a barra, e não um número escolhido.
+    // A altura é a mesma conta que desenha a barra, e não um número escolhido:
+    // `--barra-altura` é o ladrilho mais o respiro de cima e de baixo, e a
+    // barra usa as MESMAS duas medidas (`height` do item e `padding` da barra).
     expect(css).toMatch(
-      /\.toast\s*\{\s*bottom:\s*calc\(var\(--ds-sp-4\)\s*\+\s*var\(--ds-touch\)\s*\+\s*var\(--ds-sp-5\)\s*\*\s*2\)/,
+      /\.toast\s*\{\s*bottom:\s*calc\(var\(--ds-sp-4\)\s*\+\s*var\(--barra-altura\)\)/,
     );
+    expect(css).toMatch(/--barra-altura:\s*calc\(var\(--barra-item-altura\)\s*\+\s*var\(--ds-sp-2\)\s*\*\s*2\)/);
+    expect(css).toMatch(/\.lateral__item\s*\{[^}]*height:\s*var\(--barra-item-altura\)/);
+    expect(css).toMatch(/\.lateral\s*\{[^}]*padding:\s*var\(--ds-sp-2\)\s+var\(--ds-sp-4\)/);
+  });
+
+  it("a barra do rodapé tem ladrilhos que cabem inteiros e o rótulo quebra em vez de cortar", () => {
+    /*
+      A reprovação da V2-F00-E09: "Mapa da cidade" aparecia cortado na borda da
+      barra a 390 px. A prova de geometria é `test/layout-estreito.e2e.mjs`
+      (mede os retângulos no navegador, a 320, 390 e 768 px); este portão
+      guarda a causa na folha, que é o que dá para ler sem navegador: o rótulo
+      NÃO pode voltar a ser `nowrap` na barra, e a largura do ladrilho é a
+      conta de quantos cabem inteiros.
+    */
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+    const bloco = css.slice(css.indexOf("@media (max-width: 900px)"));
+    const regraDoItem = bloco.match(/\.lateral__item\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(regraDoItem).toMatch(/white-space:\s*normal/);
+    expect(regraDoItem).not.toMatch(/nowrap/);
+    expect(regraDoItem).toMatch(/flex:\s*0 0 calc\(\(100% - \(var\(--barra-visiveis\) - 1\)/);
+    expect(css).toMatch(/\.lateral__grupo,\s*\.lateral__rodape\s*\{\s*display:\s*contents/);
+    // Em tela de celular o número de ladrilhos inteiros diminui, nunca cresce.
+    const visiveis = [...css.matchAll(/--barra-visiveis:\s*(\d+)/g)].map((m) => Number(m[1]));
+    expect(visiveis).toEqual([6, 4, 3]);
+  });
+
+  it("o rodapé de toda janela quebra o rótulo e empilha os botões no celular", () => {
+    /*
+      O botão de `ConfirmarAcao` repete o objeto ("Encerrar sessões de Marcos
+      Vinicius Teles") e `.botao` é `nowrap`: a 390 px o rótulo passava da
+      janela e o botão perdia a borda. A conta está em
+      `test/layout-estreito.e2e.mjs`; aqui fica a causa.
+    */
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+    const regra = css.match(/\.modal__rodape \.botao\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(regra).toMatch(/white-space:\s*normal/);
+    expect(regra).toMatch(/max-width:\s*100%/);
+    expect(css).toMatch(/\.modal__rodape\s*\{\s*flex-direction:\s*column/);
+  });
+
+  it("o painel do sino se ancora na tela, e não no botão, no celular", () => {
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+    expect(css).toMatch(/\.sino\s*\{\s*position:\s*static;\s*\}/);
+    expect(css).toMatch(/\.sino__painel\s*\{[^}]*left:\s*var\(--ds-sp-4\);\s*right:\s*var\(--ds-sp-4\)/);
   });
 
   it("existe um atalho para pular direto ao conteúdo", () => {

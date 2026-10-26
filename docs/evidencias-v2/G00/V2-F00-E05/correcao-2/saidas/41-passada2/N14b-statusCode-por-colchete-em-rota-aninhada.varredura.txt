@@ -1,0 +1,151 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/codigos-de-erro.test.ts (116 tests | 1 failed | 22 skipped) 1905ms
+   ↓ Cada código do catálogo sai do servidor real > token vencido, adulterado ou ausente responde 401 nao_autenticado: o cliente renova e repete
+   ↓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde
+   ↓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada
+   ↓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve
+   ↓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada
+   ↓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou
+   ↓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > URL assinada sem assinatura responde 403 assinatura, sem token: a assinatura é a credencial
+   ↓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum
+   ↓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token
+   ↓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir 8ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console do fornecedor só responde 401 e 403 com os códigos do contrato dele 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo e a lista da entrada não carregam código morto: o servidor emite cada um 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > ninguém escreve `erro: "sessao"` à mão em lugar nenhum da API 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo tem os dez códigos e cada um tem ação e mensagem 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > o original passa 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > M9 { status: 403, corpo: variavel } reprova 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > M9b { status: calculado, corpo: { erro } } reprova 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > { status: 403, corpo: { erro: novo } } reprova 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > N13 { status: 403, corpo } abreviado reprova 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > { status: 403, corpo: { mensagem } } sem erro reprova 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .code(403) e código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .status(401) e o nome antigo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send no meio de uma cadeia com header 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send pelo corpo numa constante 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: tratador global 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 403 em várias linhas 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 401 e o nome antigo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: FalhaAutenticacao com código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com codigo literal 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: recusa montada em função (status e corpo) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo com o status trocado 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo na regra de negócio sem status (vira 409) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 401 sem o campo erro 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 sem send na mesma cadeia 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 com corpo que não é objeto nem constante 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: código calculado em resposta 403 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status calculado com código fora do catálogo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode escrito à mão 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status atribuído fora de code() 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por httpErrors 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por createError 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode declarado na classe 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: Error enviado direto num 403 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse de RegraDeNegocio com super(codigo, mensagem, 403) 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse da subclasse 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse de FalhaAutenticacao com código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse que repassa o código do chamador (calculado, com status de acesso) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: importação com outro nome 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: importação como espaço de nomes 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: reexportação com outro nome, usada depois 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe guardada em variável 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.construct com a classe 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo atribuído no construtor (literal) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo atribuído no construtor (calculado) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por getter 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por getter calculado 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por propriedade de parâmetro com valor 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por propriedade de parâmetro sem valor 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: escrita direta na resposta do Node (raw.writeHead) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: resposta tomada pelo hijack 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: status numa constante, corpo no return 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: status 403 sozinho, corpo no return 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por chave computada (N02/N03) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por colchete (N14) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por defineProperty (N20) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: remendo de erro de negócio por Object.assign (N17) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: auxiliar com code(s) calculado e corpo em string (N06) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: spread depois de erro sobrescreve o código (N10) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: gancho onSend que reescreve o corpo (N12) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: gancho que lança erro de negócio 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com argumentos espalhados (N15) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse que sobrescreve o status (N16) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com status 403 literal 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: S1 reatribui o parâmetro do tratador global 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: S3 atribui o codigo depois de construir 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: atribuição ao codigo num método da classe, fora do construtor 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.set do codigo (B1) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.defineProperty 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: par { status, corpo } abreviado fora da chamada conferida do APNs 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > subclasse e apelido com código do catálogo passam; o mesmo código num status de acesso diferente do catálogo não 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > a classe rastreada em OUTRO arquivo também vale: a pasta inteira é varrida de uma vez 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > não reprova o que é do catálogo, da entrada ou de outro status (controles negativos da mordida) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > um repasse só vale para o arquivo, a expressão E a origem que foram conferidos 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) do tratador global: `posto_insuficiente` vira `inativo` 21ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403: `email_so_por_administrador` vira o nome antigo `sessao` 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403 em outra rota: `posto_insuficiente_para_dado_pessoal` vira `inativo` 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) de rota: `assinatura` vira `url_vencida` 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > FalhaAutenticacao: `nao_autenticado` vira `token_vencido` 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > classe de erro: `acesso_suspenso` vira `contrato_suspenso` 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > o tratador global: `sem_permissao` com o status trocado para 401 20ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M1b subclasse de RegraDeNegocio com super("x", .., 403) 22ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M3 importação com outro nome 21ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M6 importação como espaço de nomes 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c classe com codigo atribuído no construtor, enviada pelo tratador como erro.codigo 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c' o mesmo, com o código vindo do chamador 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M7 classe com getter codigo 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M8 classe com codigo como propriedade de parâmetro 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N18 corpo_invalido com status que não é o do Fastify 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N19 erro.codigo com `erro` sombreado no tratador 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M4 escrita direta com raw.writeHead(403) 20ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M11 resposta.code(CONSTANTE_403) e o corpo no return 19ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo sem `posto_insuficiente`: o servidor emite um código que a lista não tem 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo com código que ninguém emite: aponta como morto 1ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 93 passed | 22 skipped (116)
+   Start at  02:26:28
+   Duration  2.66s (transform 248ms, setup 15ms, collect 563ms, tests 1.90s, environment 0ms, prepare 29ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/rotas/avisos.ts:150: atribuição por colchete (`[statusCode]`) de statusCode: a varredura não vê o código dessa resposta",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:630:45
+    628|   it("toda resposta 401 ou 403 da API carrega um código do catálogo ou…
+    629|     expect(api.emissoes.length, "a varredura leu alguma coisa").toBeGr…
+    630|     expect(reprovacoes(api, REGRAS_DA_API)).toEqual([]);
+       |                                             ^
+    631|   });
+    632| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,3 @@
+Gravados em CRLF: 119 arquivos de apps/web/src, apps/web/test.
+apps/web/src/paginas/Ocorrencia.tsx: 2485 linhas CRLF, 0 LF sozinho, agulha antiga "\n}\n" presente: não.
+apps/web/test/ocorrencia-encerramento.test.ts: 177 linhas CRLF, 0 LF sozinho, agulha antiga "\n}\n" presente: não.

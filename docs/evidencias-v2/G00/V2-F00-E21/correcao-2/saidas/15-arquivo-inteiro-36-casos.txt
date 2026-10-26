@@ -1,0 +1,62 @@
+warning: in the working copy of 'docs/evidencias-v2/G00/V2-F00-E99/MISTO.md', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'docs/evidencias-v2/G00/V2-F00-E99/NOTA.md', CRLF will be replaced by LF the next time Git touches it
+fatal: not a git repository (or any of the parent directories): .git
+▶ conferir-indices-de-evidencia: o que passa
+  ✔ índice correto sobre os bytes do disco passa (1.877667ms)
+  ✔ lê a tabela mesmo com nota em citação acima dela e ignora cabeçalho e separador (0.11225ms)
+  ✔ VEREDITO.md, RISCO-ACEITO.md e validacao/ são do gatekeeper: não entram na conferência (0.686042ms)
+✔ conferir-indices-de-evidencia: o que passa (3.112334ms)
+▶ conferir-indices-de-evidencia: o que morde
+  ✔ INDEX adulterado: hash trocado por outro reprova e nomeia o arquivo e a linha (0.680792ms)
+  ✔ arquivo editado depois de indexado reprova (0.668875ms)
+  ✔ arquivo listado e faltando reprova (0.727625ms)
+  ✔ fim de linha trocado (índice de LF, arquivo em CRLF) reprova e diz a causa (0.607166ms)
+  ✔ fim de linha trocado no outro sentido (índice de CRLF, arquivo em LF) reprova e diz a causa (0.610959ms)
+  ✔ fim de linha misto no disco, índice de outro conteúdo: reprova e avisa que mistura (0.70625ms)
+  ✔ o índice não normaliza: um CRLF a mais num arquivo que o índice guardou com LF reprova mesmo que o texto seja o mesmo (0.527875ms)
+  ✔ hash que não é 64 hexadecimais, linha repetida e caminho que sai da pasta reprovam (0.560458ms)
+  ✔ índice sem nenhuma linha de tabela reprova (não passa por vazio) (0.547875ms)
+✔ conferir-indices-de-evidencia: o que morde (5.841666ms)
+▶ conferir-indices-de-evidencia: falsos verdes que a revisão achou
+  ✔ arquivo dentro da pasta que o índice não lista reprova (0.696458ms)
+  ✔ o INDEX.md aninhado, o VEREDITO.md, o RISCO-ACEITO.md e validacao/ não precisam estar no índice (1.003375ms)
+  ✔ só validacao/ é do gatekeeper: um nome que apenas contém 'validacao' precisa estar no índice e bater (1.087417ms)
+  ✔ pasta de etapa sem INDEX.md reprova (a pasta da fase, sem V2-, não conta) (1.569667ms)
+  ✔ pasta de topo (CP-xx) sem INDEX.md reprova; arquivo solto em G00/ não conta (1.388709ms)
+  ✔ índice que só lista VEREDITO.md (ou nada) reprova, em vez de passar por vazio (0.660084ms)
+✔ conferir-indices-de-evidencia: falsos verdes que a revisão achou (6.503667ms)
+▶ conferir-indices-de-evidencia: CRLF no índice do git
+  ✔ arquivo de evidência com CRLF que entra no índice do git (-text) reprova (38.233208ms)
+  ✔ com o .gitattributes do produto o git guarda LF no índice (inclusive .ps1): o que sobra é só o aviso do disco (36.462208ms)
+  ✔ falso verde local: arquivo com CRLF no disco que o git devolve em LF (eol=lf) reprova, mesmo com o índice do git em LF (45.189041ms)
+  ✔ fora de um repositório git é falha (fail-closed), não passa em silêncio (8.965333ms)
+  ✔ o repositório real não tem nenhum arquivo com CRLF ou fim de linha misto no índice do git (1282.668917ms)
+✔ conferir-indices-de-evidencia: CRLF no índice do git (1411.659208ms)
+▶ conferir-indices-de-evidencia: varredura
+  ✔ acha INDEX.md em qualquer profundidade e reprova o aninhado (1.7715ms)
+✔ conferir-indices-de-evidencia: varredura (1.824792ms)
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (32.998292ms)
+  ✔ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (30.031125ms)
+  ✔ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (30.726791ms)
+  ✔ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (59.640083ms)
+  ✔ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (37.273667ms)
+  ✔ com `node --preserve-symlinks-main <link>` confere do mesmo jeito (o Node não resolve o link em import.meta.url) (31.641209ms)
+  ✔ com --preserve-symlinks-main em NODE_OPTIONS também (29.87825ms)
+  ✔ pasta que não existe, como argumento, sai 1 e diz que não existe (antes saía 0 com RESULTADO: OK) (30.063ms)
+  ✔ pasta que existe e não tem nenhum INDEX.md também sai 1 (nada conferido não é tudo certo) (29.529792ms)
+  ✔ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (111.558458ms)
+✔ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (423.721792ms)
+▶ conferir-indices-de-evidencia: a evidência real
+  ✔ todo INDEX.md real bate, em todas as pastas, sem lista de tolerância (226.713333ms)
+  ✔ o script não tem lista de pendentes nem de exceções (uma lista dessas seria brecha) (0.282791ms)
+✔ conferir-indices-de-evidencia: a evidência real (227.050958ms)
+ℹ tests 36
+ℹ suites 7
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2152.909208
+saida=0

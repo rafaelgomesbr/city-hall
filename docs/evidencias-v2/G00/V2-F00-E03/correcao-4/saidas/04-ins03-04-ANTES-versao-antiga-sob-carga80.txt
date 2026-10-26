@@ -1,0 +1,18 @@
+As duas versões antigas (git show HEAD) de dominio.test.ts e regras-de-conteudo.test.ts, 3 rodadas, sob 80 laços de CPU.
+NÃO reproduziu o estouro de 5 s (o pior foi 3,06 s): a causa do Windows segue sem medida; vale o fator medido.
+
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  2911ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  1503ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  2269ms
+      Tests  22 passed (22)
+-- rodada 1
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  3056ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  1722ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  2488ms
+      Tests  22 passed (22)
+-- rodada 2
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  2961ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  1603ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  2350ms
+      Tests  22 passed (22)
+-- rodada 3

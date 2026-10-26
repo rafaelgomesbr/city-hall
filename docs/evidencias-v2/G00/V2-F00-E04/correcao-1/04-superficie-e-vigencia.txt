@@ -1,0 +1,74 @@
+$ npx vitest run test/superficie.test.ts test/vigencia-na-escrita.test.ts test/familia-da-sessao.test.ts test/acesso-suspenso.test.ts test/sessoes-da-conta.test.ts (em dc360/apps/api)
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/superficie.test.ts (9 tests) 2699ms
+ ✓ test/acesso-suspenso.test.ts (18 tests) 9526ms
+   ✓ Entrar num municipio suspenso > recusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato  457ms
+   ✓ Entrar num municipio suspenso > nunca responde 401: a credencial esta certa, o que falta e o contrato  434ms
+   ✓ Entrar num municipio suspenso > senha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao  409ms
+   ✓ Entrar num municipio suspenso > nao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou  451ms
+   ✓ Entrar num municipio suspenso > o municipio vizinho continua entrando normalmente  456ms
+   ✓ Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel  980ms
+   ✓ Entrar num municipio suspenso > municipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra  519ms
+   ✓ Sessao viva de municipio suspenso > renovar recusa com 403 mesmo com a sessao ainda de pe no banco  464ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: escrita recusa na hora, com 403  463ms
+   ✓ Sessao viva de municipio suspenso > token de acesso vivo: leitura continua ate o token vencer  469ms
+   ✓ A fila do aparelho num municipio suspenso > a sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario  452ms
+   ✓ A fila do aparelho num municipio suspenso > as quatro rotas que a fila chama recusam com 503, e as demais escritas com 403  475ms
+   ✓ A fila do aparelho num municipio suspenso > nada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso  477ms
+ ✓ test/vigencia-na-escrita.test.ts (13 tests) 10941ms
+   ✓ Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte  451ms
+   ✓ Token vivo de quem já não pode > papel rebaixado escreve como o papel NOVO, não como o do token  447ms
+   ✓ Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive  918ms
+   ✓ Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada  468ms
+   ✓ Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão  534ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro  500ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  938ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca  465ms
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  891ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  930ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  874ms
+   ✓ Token de renovação vencido não é reuso > H1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão  474ms
+ ✓ test/sessoes-da-conta.test.ts (27 tests) 12820ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > lista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase  866ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > não entrega IP, user-agent completo nem identificador de sessão  458ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > a renovação não multiplica as linhas nem muda o 'entrou em'  474ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > só a própria conta: a de outra pessoa e a de outro município não aparecem  1491ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > encerrar as outras deixa só esta na lista, e a lista reflete o banco  903ms
+   ✓ GET /auth/sessoes: as sessões da própria conta > sessão vencida ou encerrada não aparece  472ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a administradora vê a quantidade e as datas, e nada do aparelho  1378ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a coordenadora vê as de quem está abaixo do posto dela  467ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > posto igual ou acima: 403 posto_insuficiente  444ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > o operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas  866ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > conta de outro município: 404, igual a id que não existe  877ms
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > identificador que não é uuid: 422; sem token: 401  441ms
+   ✓ as duas recusas que a tela não oferece e a API mantém > redefinir a própria senha e encerrar as próprias sessões por esta via: 422  387ms
+ ✓ test/familia-da-sessao.test.ts (20 tests) 21878ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > renovação normal: o token antigo escreve até vencer e o novo também  463ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada  531ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever  502ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo  1021ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > sair encerra a cadeia: o token anterior à renovação deixa de escrever  523ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai  533ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > troca de senha em outra sessão encerra a cadeia das demais  2304ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login  916ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > cada login abre família nova e cada renovação herda a família: o banco guarda isso  852ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa  899ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > depois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao  860ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > promoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo  363ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > a troca de papel NÃO revoga as sessões da pessoa (decisão registrada)  715ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > sessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar  713ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > isolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404)  742ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > coordenador do município B com o papel mudado não ganha nada no município A  354ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > no prazo, a senha provisória troca  1834ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada  1432ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes  1413ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > senha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida  1401ms
+
+ Test Files  5 passed (5)
+      Tests  87 passed (87)
+   Start at  04:57:45
+   Duration  24.51s (transform 578ms, setup 154ms, collect 10.77s, tests 57.86s, environment 1ms, prepare 862ms)
+

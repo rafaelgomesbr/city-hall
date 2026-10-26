@@ -1,0 +1,3 @@
+$ npx tsc --noEmit -p . (em dc360/apps/api)
+
+codigo=0

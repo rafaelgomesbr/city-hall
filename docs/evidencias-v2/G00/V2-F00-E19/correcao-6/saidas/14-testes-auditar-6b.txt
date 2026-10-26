@@ -1,0 +1,72 @@
+$ node --test scripts/auditar.test.mjs   (em dc360, DEPOIS da 6b)
+▶ auditar.mjs
+  ✔ passa quando runtime e aplicativo estão limpos (365.935708ms)
+  ✔ reprova vulnerabilidade de runtime (111.698167ms)
+  ✔ só avisa de vulnerabilidade apenas de desenvolvimento (192.656541ms)
+  ✔ dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono' (189.836833ms)
+  ✔ dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo (200.209125ms)
+  ✔ reprova advisory nova no aplicativo de campo (124.98975ms)
+  ✔ aceita o nomeado, com o id da advisory, dono e prazo na saída (186.700833ms)
+  ✔ reprova advisory NOVA em pacote já aceito (node-forge com outro GHSA) (131.441792ms)
+  ✔ reprova advisory sem GHSA (só o número do npm) em pacote aceito, como o modo forge-nova do validador (134.649208ms)
+  ✔ aceita as três advisories nomeadas de brace-expansion e reprova a quarta (346.050291ms)
+  ✔ reprova aceita que tem correção disponível e não está marcada como inaplicável (131.490125ms)
+  ✔ tolera correção disponível quando a exceção é marcada como inaplicável (CP-03) (192.119709ms)
+  ✔ sai 2 e diz que NÃO auditou quando o runtime da raiz volta com erro do registro (69.093458ms)
+  ✔ sai 2 quando a auditoria completa da raiz volta com erro do registro (91.043375ms)
+  ✔ sai 2 quando o aplicativo de campo volta com erro do registro (124.381042ms)
+  ✔ sai 2 quando o npm devolve JSON vazio (sem metadata) na raiz ou no aplicativo (276.420125ms)
+  ✔ sai 2 quando o npm não devolve nem JSON (139.774708ms)
+  ✔ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (204.256125ms)
+  ✔ com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo' (134.255917ms)
+  ✔ com offline=true e tudo limpo, aprova com os números da consulta real (a consulta de controle passou) (199.393084ms)
+  ✔ sai 2 quando o npm devolve o relatório vazio e bem formado em toda pasta, inclusive no controle (espelho que responde {}) (124.087666ms)
+  ✔ sai 2 quando a consulta de controle volta vazia, com erro, sem JSON ou com outra advisory que não a conhecida (819.567958ms)
+  ✔ sai 2 quando um relatório real não diz que olhou dependência nenhuma (dependencies.total 0 ou ausente) (395.611542ms)
+  ✔ achado não precisa de prova para reprovar: runtime vulnerável sai 1 mesmo com o controle vazio (93.409292ms)
+  ✔ sai 2 quando as consultas reais voltam vazias e só a de controle volta de verdade (o proxy da revisão) (132.614791ms)
+  ✔ sai 2 quando só a auditoria completa da raiz volta vazia (os pacotes aceitos do vitest sumiram) (124.114792ms)
+  ✔ sai 2 quando UMA advisory aceita some (lista velha ou resposta mexida), e diz qual (129.089458ms)
+  ✔ runtime forjado vazio não esconde o que a auditoria completa acusa em pacote que o lockfile não marca como dev (99.424208ms)
+  ✔ advisory aceita que muda de gravidade (para cima ou para baixo) deixa de valer sem decisão: sai 1 e diz a mudança (264.340167ms)
+✔ auditar.mjs (5729.703458ms)
+▶ regras puras do portão: advisory por id e prova de consulta
+  ✔ idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA (0.259625ms)
+  ✔ advisoriesNaoAceitas casa por GHSA, aceita a URL na lista, ignora arrasto e não repete o mesmo GHSA de faixas diferentes (0.658083ms)
+  ✔ defeitoDoControle só aceita o relatório com a advisory conhecida do pacote de controle (0.078625ms)
+  ✔ mudancasDeGravidade compara com a maior gravidade do mesmo GHSA entre as faixas, e ignora o que não é aceito (0.143875ms)
+  ✔ aceitasAusentes e pacotesAceitosAusentes listam o que sabíamos existir e não voltou (0.129666ms)
+  ✔ pacotesDeRuntimeNoCompleto: só fica de fora o nó que o lockfile marca dev; nó desconhecido conta como runtime (0.089875ms)
+  ✔ defeitoDaArvore exige dependencies.total maior que zero (0.0675ms)
+  ✔ a lista do aplicativo exige advisories: sem a lista, lista vazia ou id inválido reprova (0.943125ms)
+✔ regras puras do portão: advisory por id e prova de consulta (2.485459ms)
+▶ exceções do CP-03: nome, dono e prazo
+  ✔ aceita exceção com motivo, dono e prazo no futuro (0.078667ms)
+  ✔ aceita exceção que vence hoje (o prazo vale até o fim do dia) (0.035125ms)
+  ✔ reprova exceção sem prazo (0.048166ms)
+  ✔ reprova prazo em branco, fora do formato ou que não existe no calendário (0.082209ms)
+  ✔ reprova exceção sem dono ou com dono em branco (0.070459ms)
+  ✔ reprova exceção sem motivo ou com motivo em branco (0.055709ms)
+  ✔ reprova exceção vencida e diz a data (0.041084ms)
+  ✔ aponta todos os defeitos de uma vez, de todas as exceções (0.052792ms)
+  ✔ a lista REAL tem advisories, motivo, dono e prazo válidos e no futuro (0.056042ms)
+  ✔ a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos (0.048458ms)
+✔ exceções do CP-03: nome, dono e prazo (0.664959ms)
+▶ auditar.mjs com a lista de exceções adulterada
+  ✔ a cópia sem adulteração passa (controle do próprio teste) (207.900584ms)
+  ✔ reprova a exceção sem prazo, mesmo que o pacote esteja no relatório (30.618583ms)
+  ✔ reprova a exceção sem dono (30.94025ms)
+  ✔ a consulta de controle usa o .npmrc de cada projeto (o único ajuste do npm que muda de pasta para pasta) (214.71125ms)
+  ✔ reprova a exceção do aplicativo sem a lista de advisories (voltaria a aceitar pelo nome do pacote) (32.971459ms)
+  ✔ sai 2 quando não consegue ler o package-lock.json da raiz (não dá para separar runtime de desenvolvimento) (110.548958ms)
+  ✔ reprova a exceção vencida (31.928625ms)
+✔ auditar.mjs com a lista de exceções adulterada (659.791167ms)
+ℹ tests 54
+ℹ suites 4
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6440.901166
+codigo=0

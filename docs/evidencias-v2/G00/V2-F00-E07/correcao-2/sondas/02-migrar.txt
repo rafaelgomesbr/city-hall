@@ -1,0 +1,38 @@
+$ (sonda-049.mjs copiada para o scratchpad, DC360_RAIZ=<dc360 de hoje>, Postgres 17.5 descartavel; o comando de cada passo esta na linha seguinte)
+
+== DATABASE_URL=<dc360_setup> npm run migrar -- --conferir
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --conferir
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --conferir
+Faltam 1 migração(ões): 049_renovacao_e_encerramento_na_mesma_trava.sql
+npm error Lifecycle script `migrar` failed with error:
+npm error code 1
+npm error path /Users/[usuario]/Documents/city-hall/dc360/db
+npm error workspace @dc360/db@0.1.0
+npm error location /Users/[usuario]/Documents/city-hall/dc360/db
+npm error command failed
+npm error command sh -c tsx src/cli.ts --conferir
+codigo de saida: 1
+== DATABASE_URL=<dc360_setup> npm run migrar -- 
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db --
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts
+aplicando 049_renovacao_e_encerramento_na_mesma_trava.sql
+Aplicadas: 049_renovacao_e_encerramento_na_mesma_trava.sql
+codigo de saida: 0
+== DATABASE_URL=<dc360_setup> npm run migrar -- --conferir
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --conferir
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --conferir
+Esquema em dia.
+codigo de saida: 0
+== DATABASE_URL=<dc360_setup> npm run migrar -- 
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db --
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts
+Nada a fazer: 49 migração(ões) já aplicada(s).
+codigo de saida: 0

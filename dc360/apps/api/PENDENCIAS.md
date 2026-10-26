@@ -8,21 +8,28 @@ investigação. Item que já tem correção sai daqui e vira teste.
 escritas por várias etapas e deixava de fora pendências que só estavam no
 STATUS do roadmap ou no README. Cada item abaixo foi conferido contra o código
 nesta data; as seções antigas ficaram, e o que faltava entrou no fim, em "O que
-estava fora daqui". O que resta, numa linha cada:
+estava fora daqui".
+
+**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A validação
+de 7005a60 reprovou a conferência acima por restos falsos. Reconferido contra o
+código de hoje: a vigência (escrita por método OU por `ROTA_GET_COM_EFEITO`), a
+fila do campo diante de `troca_de_senha_obrigatoria` (agora pausa) e a lista de
+diferenças entre o laudo da rota e o do pacote. Saiu o item da dependência de
+execução com aviso (`fastify`, `fast-uri`): `npm audit --omit=dev` na raiz dá 0
+e `npm run auditar` fecha com saída 0 pela política do CP-03 (V2-F00-E19). O
+que resta, numa linha cada:
 
 | O que resta | Seção | Quem fecha |
 | --- | --- | --- |
 | O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
-| A vigência (conta, papel, sessão) só vale na escrita; a leitura confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
-| A janela de milissegundos entre revogar e abrir sessão na renovação | "A vigência de conta, papel e sessão" | F03-E02 |
-| `GET /avisos` escreve dentro de um GET, com o token de qualquer papel | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
-| A senha temporária é conhecida por quem a sorteia; "encerrar as outras" preserva por id | "Sessões no painel" | F03-E10, F03-E02 |
+| A vigência (conta, papel, sessão) vale na escrita e nos GET marcados como com efeito; a LEITURA PURA confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
+| `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
+| A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
 | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
-| Dois montadores de dados do laudo; o do pacote não lê a coordenada da vistoria | "Dois montadores de dados do documento" | F09-E02 |
+| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias, não imprime a seção das fotos avulsas, e o termo de interdição dele sai da vistoria vigente em vez da vistoria do ato | "Dois montadores de dados do documento" | F09-E02 |
 | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
 | Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
 | Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
-| Dependência de execução com aviso conhecido (`fastify`, `fast-uri`) | "O que estava fora daqui", 4 | V2-F00-E19 (CP-03) |
 
 ## O pacote de saída lê TODAS as tabelas em memória, e a rota promete o contrário
 
@@ -75,12 +82,28 @@ e observar o processo.
 
 **Onde:** `src/servidor.ts` (`exigirAutenticacao`) e `src/auth/vigencia.ts`.
 
-**O que acontece:** desde V2-F00-E04 toda escrita (método que não é GET nem HEAD)
-confere no banco se a conta está ativa, se o papel é o do token, se a sessão do
-token não foi encerrada por alguém e se a senha provisória não venceu. A LEITURA
-continua confiando só na assinatura do token, por até `ACESSO_MINUTOS` (15 por
-padrão, 60 no máximo): conta desativada ainda lê até o token vencer. Pior, as
-leituras que escrevem (`GET /avisos`) seguem fora da vigência.
+**O que acontece:** desde V2-F00-E04 toda escrita confere no banco se a conta
+está ativa, se o papel é o do token, se a sessão do token não foi encerrada por
+alguém e se a senha provisória não venceu. Escrita é todo método que não é GET
+nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` (`servidor.ts`),
+com o HEAD delas: o laudo, o termo de interdição, o termo de desinterdição e os
+PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`. Foi a correção 1 da E04: até ela a decisão era só pelo método, e
+conta desativada, papel rebaixado e cadeia encerrada interditavam imóvel e
+exportavam dado pessoal por GET. A lista é fixada por
+`test/get-com-efeito.test.ts`, que reprova GET novo que escreve sem a marca. A
+LEITURA PURA continua confiando só na assinatura do token, por até
+`ACESSO_MINUTOS` (15 por padrão, 60 no máximo): conta desativada ainda lê, nas
+rotas que só leem, até o token vencer.
+
+**Decisão da correção 1, para não ser reaberta por engano:** o critério da marca
+é "o GET pratica um ato (emite documento, interdita, exporta) ou muda dado do
+município". `GET /ocorrencias/:id` (o dossiê) e `GET /busca` também escrevem,
+mas só o registro de que foram lidos (`registrarConsulta`, a auditoria da
+própria leitura); ficam como LEITURA e NÃO levam a marca. Marcá-los antecipa a
+F03-E03: o dossiê passaria a conferir a vigência no banco, o que contradiz as
+decisões fixadas em `acesso-suspenso.test.ts` ("leitura continua até o token
+vencer") e em `familia-da-sessao.test.ts`. Quando a F03-E03 centralizar a
+vigência em `comTenant`, eles entram junto com o resto da leitura.
 
 **Decisões da V2-F00-E07, para não serem reabertas por engano:**
 
@@ -92,19 +115,124 @@ leituras que escrevem (`GET /avisos`) seguem fora da vigência.
   coleta na fila.
 - **Cadeia da sessão:** o token de acesso emitido antes de uma renovação só
   escreve enquanto a família (`sessoes.familia_id`, migração 047) tem sessão
-  não revogada. Limite conhecido: entre `revogar_sessao` (a antiga) e
-  `abrir_sessao` (a nova) da própria renovação a família não tem sessão viva
-  por alguns milissegundos, e uma escrita com o token antigo nessa janela leva
-  401 `sessao_encerrada`. A fila do campo (E06) mantém o item pendente e a
-  pessoa entra de novo; fechar a janela exige renovar numa só transação
-  (F03-E02, claims enxutas e rotação).
+  não revogada.
+- **Renovação contra encerramento (correção 2 da E07, migração 049):** até
+  aqui a renovação revogava a antiga e abria a nova em DUAS transações, e o
+  instante entre elas tinha dois efeitos. O grave: quem administra (ou a
+  própria pessoa, a troca de senha, o reuso de token) encerrava as sessões
+  nesse instante, não achava nada da cadeia para encerrar, e a renovação abria
+  a nova herdando a família encerrada (a validação de 4b96ea7 viu sessão viva
+  sobrar em 5 de 60 corridas). O benigno: a escrita com o token antigo nesse
+  instante levava 401 `sessao_encerrada`. Uma transação só fecha o benigno,
+  mas NÃO o grave: em READ COMMITTED o UPDATE de quem encerra não enxerga a
+  linha que a renovação inseriu e ainda não confirmou. Por isso a renovação é
+  uma transação só E toma `travar_sessoes_do_usuario` antes de revogar, e
+  todo encerramento em massa toma a mesma trava num comando anterior ao UPDATE
+  (`auth/sessoes.ts`, `revogar_sessoes_do_usuario`, `trocar_senha`,
+  `consumir_recuperacao` e a suspensão do município pelo console,
+  `console_suspender_municipio`, que toma a trava de cada pessoa com sessão
+  de pé). `abrir_sessao` também recusa herdar família encerrada. A ordem das
+  travas é uma só em todo caminho: quem atualiza a linha de `usuarios` o faz
+  antes de tomar a trava; sem isso, a troca de senha pela própria pessoa no
+  mesmo instante da redefinição por quem administra terminava em impasse
+  (`deadlock detected`, um 500), provado em Postgres 17. Provado em
+  `test/renovacao-contra-encerramento.test.ts`: o bloco de PGlite roda
+  sempre; o de Postgres real só com `DC360_POSTGRES_DE_PROVA`, que o job
+  `implantavel` do CI define contra o Postgres 16 do serviço (e reprova se o
+  bloco sair pulado). As disputas seguradas desse bloco só soltam a renovação
+  depois de VER a outra conexão parada na trava (`pg_locks`), e reprovam se
+  ela não parar.
+- **Entrar no mesmo instante da suspensão (consertado na migração 050):** o
+  login abria sessão sem família e (até a correção 3 da E07, abaixo) não passava
+  pela trava por pessoa, e `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
+  real nas duas ordens (o login primeiro, a suspensão primeiro): a sessão do
+  login escapava da suspensão e, depois da reativação, renovava. A 050 faz o
+  login (só ele) ler a suspensão com `FOR SHARE`, que conflita com o UPDATE de
+  `organizacoes` da suspensão: quem chega segundo espera, e o login ou é
+  recusado (DC367) ou tem a sessão revogada pela suspensão. A renovação
+  continua lendo sem trava de linha, porque ela já segura a trava por pessoa
+  e a linha depois dela fecharia ciclo com a suspensão (que toma a linha
+  antes da trava). Provado no caso 9 de `test/renovacao-contra-encerramento.test.ts`
+  e em `db/test/login-e-suspensao-na-mesma-linha.test.ts`.
+- **Entrar no mesmo instante de uma mudança de credencial (correção 3 da E07,
+  sem migração nova):** o login lia o hash, gastava o scrypt (cerca de 230 ms)
+  e abria a sessão em outra transação, sem trava e sem reler nada; a troca de
+  senha pela própria pessoa, a redefinição por quem administra ou a
+  desativação que confirmasse nesse intervalo deixava viva a sessão do login
+  com a senha antiga (a validação de 52952a1 mediu 13 de 30, 30 de 60 e 18 de
+  30). Agora `emitirPar` (`auth/servico.ts`) abre a sessão, toma
+  `travar_sessoes_do_usuario` e relê `senha_hash` e `ativo`, nessa ordem e
+  numa transação só; se a credencial não é mais a conferida, tudo volta atrás
+  e a resposta é a recusa genérica. A ordem é linha do município (o FOR
+  SHARE da 050) antes da trava, igual à da suspensão; trava antes da linha
+  fecharia ciclo com ela. O segundo fator e a ativação pelo desafio fazem o
+  mesmo com a impressão da credencial que o desafio carrega (`cr`, HMAC do
+  hash com o segredo de assinatura), e as rotas de ligar o segundo fator
+  recusam o desafio cuja senha já mudou; a confirmação da ativação pelo
+  desafio confere de novo DENTRO da transação que liga o recurso, sob a
+  trava da pessoa (`credencialDoDesafioValeSobTrava`), e a senha que muda
+  entre a conferência de `quemEsta` e essa transação não deixa o recurso
+  ligado. Provado nos casos 6 a 8 e 10 do primeiro bloco e 10 a 20 do segundo
+  de `test/renovacao-contra-encerramento.test.ts` (o 10 do primeiro e o 20 do
+  segundo prendem a ordem: trava antes da linha do município faz a suspensão
+  parar na trava e fecha ciclo, 40P01 medido) e em três casos de
+  `test/segundo-fator.test.ts`.
+- **Renovação que perde a trava para a desativação:** responde 403
+  `conta_desativada` (pergunta a `dono_do_token`, como o token recusado),
+  e não 401 `sessao_encerrada`. A mesma pergunta trata o reúso: quem perde
+  para outra renovação com o MESMO token cai como reúso e encerra TODAS as
+  sessões da pessoa (`revogar_sessoes_do_usuario`, motivo "reuso de token de
+  renovacao"), e não só a família daquele token, que é o que já acontecia
+  quando o segundo pedido chegava um instante depois.
 - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
-  Entrar e renovar já recusavam.
-- **`troca_de_senha_obrigatoria` na fila do campo:** continua recusa permanente
-  no transporte (ver `apps/campo/PENDENCIAS.md`, item 14). Não é tratada aqui:
-  a E07 só mexe na vigência da API, e o aplicativo leva a pessoa à troca de
-  senha antes de ela chegar à fila.
+  Entrar e renovar já recusavam. O ramo do prazo em `exigirVigencia` tem caso
+  próprio desde o complemento da correção 3 (achado 3 do red-team de
+  52952a1): a escrita comum com a provisória vencida responde 401
+  `sessao_encerrada`, e não 403 `troca_de_senha_obrigatoria`
+  (`test/senha-provisoria.test.ts`).
+- **Trocar a senha no mesmo instante de uma reação (correção 4 da E07, sem
+  migração nova):** `trocarSenha` conferia a senha atual numa transação,
+  gastava os dois scrypt fora do banco e chamava `trocar_senha` em outra, que
+  grava sem conferir nada. Quem tinha a senha antiga e uma sessão, com a troca
+  em voo, desfazia a redefinição por quem administra, o link do email, a
+  desativação ou a troca pela própria pessoa que confirmasse no meio, e ficava
+  com a senha DELE, definitiva, e sessão viva (a validação de bb0f654 mediu 20
+  de 30 sem grampo na redefinição). Agora a gravação é uma transação só, sob o
+  município: a linha da pessoa com FOR NO KEY UPDATE, depois a trava da
+  pessoa, depois a releitura (conta ativa, senão 403 `conta_desativada`;
+  sessão de pé na cadeia de quem pede e provisória no prazo, senão 401
+  `sessao_encerrada`; hash igual ao que o scrypt conferiu, senão a recusa da
+  senha atual errada), e só então `trocar_senha`. A ordem é linha de
+  `usuarios` antes da trava, a mesma da 049; trava antes da linha fecha ciclo
+  com a redefinição (40P01 medido pela mutação). A sessão preservada é a VIVA
+  da cadeia, e não o `sid` do token: com o token de antes de uma renovação a
+  troca derrubava a própria cadeia (achado 2 da mesma validação). O token
+  devolvido leva o `sid` da sessão viva e o papel relido sob a trava. Provado
+  nos casos 11 a 19 do primeiro bloco e 7 e 21 a 31 do segundo de
+  `test/renovacao-contra-encerramento.test.ts`.
+- **Outros caminhos varridos na correção 4, sem o mesmo defeito:** a
+  redefinição por quem administra, a desativação, a troca de papel e o link de
+  recuperação conferem e gravam na MESMA transação, e não conferem segredo de
+  quem pede (o link é conferido e gasto dentro de `consumir_recuperacao`, com
+  FOR UPDATE na linha do link); a autoridade de quem administra vem da
+  vigência do começo do pedido, e o ato dele é serializável antes de qualquer
+  mudança que confirme depois (nenhuma delas lê o que ele grava). Desligar o
+  segundo fator confere a senha e grava `segundo_fator` na mesma transação, e
+  nenhuma reação lê ou grava `segundo_fator`: o resultado é o de desligar um
+  instante antes da reação. Ligar o segundo fator pelo desafio já confere sob a
+  trava desde a correção 3. **Fica anotado, fora desta correção:** desativar e
+  rebaixar conferem "não é o último administrador" com uma contagem sem trava;
+  dois administradores que se desativam (ou se rebaixam) no mesmo instante
+  podem deixar o município sem administrador ativo. Lido no código, não
+  medido; não é credencial nem sessão, e não entrou nesta correção.
+- **`troca_de_senha_obrigatoria` na fila do campo:** PAUSA a fila (correção 1
+  da E06, 2026-10-13), e não é mais recusa permanente. A decisão da E07, de deixar
+  esse 403 bloquear a coleta porque o aparelho "praticamente não chega a ele",
+  foi derrubada: redefinir a senha derruba as sessões, o agente entra com a
+  provisória, e o dreno recebia 403 em toda escrita. A matriz do transporte está
+  em `apps/campo/PENDENCIAS.md`, item 14. A API não mudou aqui: continua
+  respondendo 403 `troca_de_senha_obrigatoria` a toda rota fora da lista aberta.
 
 **Como atacar:** F03-E03 (vigência em toda requisição autenticada, centralizada em
 `comTenant`). Os códigos de erro já estão separados desde a V2-F00-E05
@@ -136,9 +264,11 @@ precisaria de função `SECURITY DEFINER`, e o teto de definers do isolamento
 município consulta o sino.
 
 **Por que isto continua sendo dívida:** GET com efeito colateral foge do que
-cache, prefetch e repetição automática supõem, e a vigência (E04) só cobre
-métodos de escrita, então a conta desativada ainda dispara essas escritas até o
-token vencer.
+cache, prefetch e repetição automática supõem. A vigência já vale nesta rota
+(ela carrega `ROTA_GET_COM_EFEITO` desde a correção 1 da E04, então conta
+desativada, papel rebaixado e sessão encerrada não disparam mais essas
+escritas), mas a rota continua sendo um GET que escreve. A marca sai quando a
+rota virar só leitura.
 
 **Como atacar:** F07-E03 (trabalhador que materializa o fato) e F04-E11 (avisos
 e sino do órgão sem vazamento): a rota vira só leitura, a materialização e o
@@ -155,13 +285,31 @@ sobra:
 
 1. **A senha temporária é conhecida por quem a sorteou** (IDN-18 do REL:06). Vale
    72 horas e a primeira entrada exige troca. O fim é o convite por link (F03-E10).
-2. **`encerrarMinhasSessoes` preserva por id de sessão**, e a lista marca "esta"
-   por família. Com um token de acesso anterior à última renovação, o botão
-   "encerrar as outras" derruba a sessão viva da própria cadeia. Alinhar a
-   preservação à família é da F03-E02 (renovação numa transação só).
+2. **`encerrarMinhasSessoes` preservava por id de sessão** (a lista marca "esta"
+   por família). Com um token de acesso anterior à última renovação, o botão
+   "encerrar as outras" derrubava a sessão viva da própria cadeia, e a mensagem
+   dizia que ela continuava aberta. Corrigido na correção 1 da E04: a
+   preservação é pela família (`encerrarSessoes` em `auth/sessoes.ts`), travada
+   em `test/get-com-efeito.test.ts`. Sem pendência.
 3. **O resumo do aparelho** (`auth/aparelho.ts`) é uma lista curta de padrões de
    user-agent. O que não reconhece vira "Aparelho não identificado" em vez de
    palpite; ampliar a lista é barato e fica para quando houver caso real.
+4. **A própria conta com o id em outra caixa** (achado 1 da validação de
+   bb0f654). As recusas de redefinir a própria senha, encerrar as próprias
+   sessões e desativar a si mesma comparavam o id da rota com o do token como
+   texto, e o Postgres lê o uuid sem caixa: o próprio id em maiúsculas passava
+   (a administradora redefinia a própria senha sem a atual). Corrigido na
+   correção 3 da E09: o esquema do id em `rotas/administracao.ts` devolve o id
+   em minúsculas antes de qualquer comparação; os formatos alternativos de uuid
+   (chaves, sem hífens, `urn:uuid:`) o `uuid()` do zod já recusa com 422.
+   Travado em `test/id-da-propria-conta.test.ts`. As outras comparações de id
+   do corpo com o do token (`agenteId` em `saida-a-campo.ts`, `coletadaPor` em
+   `evidencias.ts` e `sincronizacao.ts`, `devolvidaPor` em `sincronizacao.ts`)
+   usam `!==` para RECUSAR: um id em outra caixa é recusado (`autor_divergente`),
+   nunca aceito, e o aplicativo manda o id do próprio token. Sem pendência de
+   segurança; a recusa falsa de um cliente que mandasse maiúsculas não existe
+   hoje. A redefinição que perdia para a troca de senha em voo (achado 2 da
+   mesma validação) foi fechada pela correção 4 da E07.
 
 ## Recuperação de senha por e-mail (V2-F00-E10)
 
@@ -188,6 +336,39 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
    O `NOTIFICADOR_ARQUIVO` só é recusado quando `NODE_ENV=production`: em
    `staging` ou em qualquer outro valor ele funciona, e a F01 (ambientes) decide se
    o HML precisa da mesma trava.
+5. **O link pendente morre com a credencial** (correção 3 da E10, migração 051;
+   bloqueava o CP-19 pela rodada 4 da validação). Toda mudança de senha (a
+   redefinição por quem administra, a troca pela própria pessoa, o próprio link e
+   qualquer caminho futuro) e toda desativação marcam `usada_em` nos links
+   pendentes da pessoa, por gatilho em `usuarios`, na mesma transação; a
+   reativação não ressuscita nenhum. `consumir_recuperacao` confere a conta ativa
+   (conta desativada: o link é gasto e nada mais muda) e segura a linha da pessoa
+   antes da linha do link, a mesma ordem do gatilho (a ordem inversa fecha ciclo
+   com a redefinição; 40P01 medido pela mutação). Travado em
+   `test/recuperacao-morre-com-a-credencial.test.ts` e no caso 32 de
+   `test/renovacao-contra-encerramento.test.ts`. Efeito aceito, escrito para não
+   virar surpresa: quem tem uma sessão e a senha atual e troca a senha também mata
+   o link que a pessoa acabou de pedir; a pessoa vê "este link não vale mais" e o
+   remédio que vence sempre é a redefinição por quem administra, que derruba as
+   sessões. A redefinição pelo link que perdia para a troca em voo (o FAIL do QA na
+   rodada 4) foi fechada pela correção 4 da E07.
+6. **O gatilho da 051 roda sob RLS forçada, com o papel de quem atualizou
+   `usuarios`** (anotado pela revisão do complemento, sem defeito hoje). A função
+   `invalidar_recuperacoes_pendentes` é comum (SECURITY INVOKER) para não gastar
+   vaga no teto de 27 funções SECURITY DEFINER, e `recuperacoes_senha` tem RLS
+   forçada (034). Hoje todo caminho que muda senha ou desativa conta passa por
+   uma de duas portas que funcionam: a rota com `dc360_app` e o município no
+   contexto (a policy de UPDATE deixa marcar os links do município), ou uma
+   função SECURITY DEFINER cujo dono ignora RLS. O risco é de um caminho FUTURO:
+   um UPDATE de `senha_hash` ou `ativo` sem município no contexto (um relógio,
+   um script de operação, o console) feito por um papel sem BYPASSRLS. O
+   UPDATE do gatilho não estoura: enxerga zero linhas e marca zero links, em
+   silêncio, e o link pendente sobrevive à mudança. É o mesmo risco que a 037
+   descreve para o expurgo de `notificacoes_enviadas` (o que funciona depende
+   de um atributo do papel, que nada no produto garante). Quem escrever um
+   caminho assim precisa pôr o município no contexto antes do UPDATE, ou fazer a
+   mudança por uma função SECURITY DEFINER; e um teste que mude a senha por esse
+   caminho e confira o link morto.
 
 ## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
 
@@ -209,7 +390,7 @@ e `equipes ea` por `v.equipe_do_agente_id`) entraram na consulta do pacote, igua
 toda vistoria anterior à migração 024, e junção interna apagaria essas vistorias
 do pacote em vez de só deixar o aviso de fora.
 
-**O que sobra:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
+**O que sobra, medido em 2026-10-13:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
 tendo de entrar nas duas consultas, e esquecer uma delas volta a produzir dois
 documentos que se contradizem. A unificação num montador só é a **V2-F09-E02**, e
 até ela existir a defesa é o teste que compara os dois documentos ENTRE SI, e não
@@ -218,10 +399,64 @@ equipe divergente igual ao laudo da rota" em `test/saida-de-municipio.test.ts` e
 seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
 mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
 
-**O que a consulta do pacote ainda não lê, e por que não entrou aqui:** ela não
-seleciona `v.latitude` nem `v.longitude`, que `documentos.ts` seleciona. O laudo
-não deixou de sair por isso, então não é o defeito desta etapa e não foi tocado;
-a F09-E02 resolve junto com a unificação.
+**As diferenças entre os documentos da rota e os do pacote, para a MESMA vistoria**
+(a validação de 7005a60 gerou os dois laudos e comparou, a de 4b96ea7 achou a
+assinatura declarada e ausente, a de 52952a1 achou a assinatura coletada e
+perdida, e a varredura da correção 3, com a API rodando, achou o termo de
+interdição depois de re-vistoria; o bloco "campo por campo" de
+`test/saida-de-municipio.test.ts` trava as diferenças abaixo, e reprova se uma
+das que continuam some, se a deliberada muda ou se uma das consertadas volta,
+para este texto e o de `docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto. Ele
+NÃO compara os documentos inteiros: olha os títulos das seções, a coordenada, a
+posição da foto avulsa, a seção dos registros perdidos e o bloco da assinatura
+de quem estava no local, no laudo e, nos casos da assinatura perdida e da
+re-vistoria, no termo de interdição, e uma diferença nova noutro campo passa
+por ele):
+
+| Campo | Rota | Pacote | Estado |
+| --- | --- | --- | --- |
+| Aviso de equipe | imprime | imprime, igual | igual (E12) |
+| Coordenada da vistoria (`v.latitude`, `v.longitude`) | imprime | imprimia "não registrada" | **consertada na correção 1 da E12**: duas colunas a mais na consulta do pacote |
+| Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
+| Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
+| Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime, só as perdas da vistoria vigente | não existia (o pacote não lia a tabela); agora lê `vistoria_evidencias_perdidas` sob o tenant e entrega a cada documento só as perdas da vistoria vigente, e a seção sai igual no laudo e no termo de interdição | **consertada na correção 3 da E12** |
+| Assinatura coletada e perdida no aparelho (`assinatura_chave` nula e uma perda com `papel = 'assinatura'`) | "Assinatura coletada em campo e não recuperada do aparelho" (`ausenciaDaAssinatura`), no laudo e no termo de interdição | imprimia "Assinatura não coletada" nos dois documentos, contra o `tabelas/vistoria_evidencias_perdidas.csv` do próprio pacote; com as perdas lidas, imprime a mesma frase da rota | **consertada na correção 3 da E12** |
+| Termo de interdição de protocolo que recebeu re-vistoria depois da interdição | a segunda via sai da vistoria do ato (`vistoria_do_ato`, a gravada na emissão do termo) | sai da vistoria vigente, a re-vistoria, como todos os documentos do pacote | **continua**, F09-E02 ("vistoria do ato") |
+| Assinatura presente no armazenamento, ou vistoria sem assinatura e sem perda registrada | imagem; "Assinatura não coletada" | o mesmo | igual |
+| Assinatura declarada (`assinatura_chave`) e AUSENTE no armazenamento | confere o prefixo do município, descreve o objeto e imprime "Assinatura não coletada" | imprimia uma imagem quebrada em cima do nome de quem estava no local (montava o caminho só pela chave); agora faz as mesmas duas conferências (`conferirAssinatura`) e imprime "Assinatura não coletada", e a falta continua registrada em `PENDENCIAS-DA-EXTRACAO.txt` | **consertada na correção 2 da E12** |
+| Assinatura declarada e o armazenamento SEM RESPOSTA na conferência (`descrever` lança) | trata como ausente (`.catch(() => ({ existe: false }))`) e imprime "Assinatura não coletada" | imprime "Não foi possível conferir a assinatura no armazenamento ao montar este pacote", sem imagem; leva o arquivo se a cópia funcionar, senão o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO | **diferente de propósito** (correção 2 da E12, revisão): a primeira versão mantinha a imagem, e com o provedor caído a cópia falhava junto e o quadro quebrado voltava; afirmar "não coletada" contradiria o próprio pacote, que diz que falta de resposta não é arquivo inexistente |
+
+A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
+pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
+defeito que a rota já tinha consertado), e o termo de interdição do pacote, num
+protocolo que recebeu re-vistoria depois da interdição, imprime embaixo de "Fica
+INTERDITADO" a re-vistoria, que pode ser justamente a que atestou a cessação do
+risco: um papel que se contradiz, o mesmo defeito que a segunda via da rota já
+tinha consertado. Por isso `docs/SAIDA-DE-MUNICIPIO.md` não afirma que os
+documentos do pacote dizem o mesmo que os emitidos: só o aviso de equipe, a
+coordenada, a seção dos registros perdidos e os quatro estados da assinatura
+(presente, ausente sem registro, declarada sem arquivo e coletada e perdida)
+estão provados iguais, e a do armazenamento sem resposta difere de propósito,
+com a tabela pública dizendo isso.
+
+Até a correção 3 havia uma quarta, mais grave do que as outras: o pacote não
+lia `vistoria_evidencias_perdidas`, e quando a assinatura tinha sido coletada e
+se perdido no aparelho, o laudo e o termo de interdição dele afirmavam
+"Assinatura não coletada" (no termo, embaixo de "Responsável pelo imóvel,
+ciente"), contra o registro do banco que o próprio pacote exporta. Não era só
+um documento incompleto: afirmava o contrário do fato.
+
+Depois da correção 3, o pacote imprime "Assinatura não coletada" em três casos,
+e só neles: o banco não registra assinatura nem a perda dela; o armazenamento
+respondeu que o arquivo da assinatura declarada não existe; ou a chave gravada
+não começa por `tenant/<município>/`, e `conferirAssinatura`
+(`src/saida/pacote.ts`) responde "ausente" sem perguntar ao armazenamento, como
+`enderecoDaAssinatura` faz na rota. O terceiro não acontece pela API: a
+sincronização remonta a chave a partir do município do token e aproveita do
+aparelho só o nome do arquivo (`src/rotas/sincronizacao.ts`), e o banco recusa
+chave fora do prefixo (`assinatura_com_prefixo_do_tenant`, migração 009). A
+conferência no pacote é a camada seguinte, para um registro gravado por fora da
+aplicação.
 
 ## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
 
@@ -246,8 +481,20 @@ a F09-E02 resolve junto com a unificação.
    Quem perdeu o telefone usa os códigos de recuperação; quem perdeu o telefone
    E os códigos não tem caminho pela tela. É uma porta para retirar a proteção
    de uma conta alheia e merece etapa própria (F03-E11).
-4. **Dependência de execução com aviso conhecido.** Em 2026-10-07,
-   `npm audit --omit=dev` na raiz acusa um aviso alto no `fastify` (o servidor
-   desta API) e um moderado no `fast-uri`, ambos com correção por
-   `npm audit fix`. Pela regra do produto, vulnerabilidade em execução é bug; a
-   correção é da V2-F00-E19, que espera a política do CP-03.
+4. **Encerrar sem triagem é regra só da tela.** `POST /ocorrencias/:id/encerramento`
+   (`src/rotas/ocorrencias.ts`) exige a permissão `encerrar_ocorrencia` e a
+   transição, e `TRANSICOES_PERMITIDAS` (`packages/shared/src/dominio.ts`) deixa
+   `rascunho` e `registrada` irem para `encerrada`. Quem esconde o botão antes
+   da triagem é `apps/web/src/paginas/ocorrencia-regras.ts`. Isso contraria a
+   regra do projeto de que regra de negócio mora no banco e no pacote
+   compartilhado, não na tela: ou a máquina de estados passa a exigir a
+   triagem, ou o documento assume que encerrar cedo é permitido (o comentário
+   da máquina diz que é, para o chamado improcedente). Achado da V2-F00-E22,
+   correção 4; decisão de produto (a F10, consolidação do painel, é uma sugestão de
+   dono, não decisão).
+5. **A API mede o motivo da desinterdição antes do `trim`.**
+   `desinterdicaoSchema` (`packages/shared/src/schemas.ts`) exige 15 caracteres
+   sobre o texto bruto, e a rota grava `motivo.trim()`: quem chamar a API direto
+   passa 15 espaços e uma letra. O painel não tem esse furo, porque apara antes de
+   validar (`apps/web/src/paginas/Ocorrencia.tsx`, `desinterdicaoSchema.safeParse({
+   motivo: motivo.trim() })`); o guia do coordenador descreve a tela. Anotado.

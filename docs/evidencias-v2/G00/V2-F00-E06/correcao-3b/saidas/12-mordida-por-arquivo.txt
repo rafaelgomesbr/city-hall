@@ -1,0 +1,6 @@
+motor: fila.ts (geracao da credencial) sem o conserto:  Tests 5 failed | 2 passed (7)
+app: dados/fila.ts (passa a geracao ao motor) sem o conserto: Tests: 1 failed, 1 passed, 2 total
+app: sessao.tsx (login sobe a geracao) sem o conserto: Tests: 1 failed, 10 passed, 11 total
+perfil.tsx (aviso e chip) sem o conserto: Tests: 9 failed, 7 passed, 16 total
+index.tsx (acesso suspenso) sem o conserto: Tests: 1 failed, 7 passed, 8 total
+vistoria/[id].tsx (aviso da coletada) sem o conserto: Tests: 3 failed, 5 passed, 8 total

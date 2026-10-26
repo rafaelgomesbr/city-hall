@@ -387,9 +387,11 @@ Observações que precisam ir junto, e que a Google aceita no campo de texto:
 - **"Pode ser apagado: sim, ao sair da conta"** nas duas linhas de push: o
   logout manda a ficha ao servidor, que a revoga
   (`apps/campo/src/dados/sessao.tsx#sair`, que chama
-  `apps/campo/src/dados/api.ts#revogarAparelho`; do lado do servidor,
-  `apps/api/src/rotas/aparelhos.ts#revogar` e a rota `/auth/sair` em
-  `apps/api/src/rotas/autenticacao.ts#sair`), e apaga a cópia local
+  `apps/campo/src/dados/api.ts#sair`, que manda a ficha junto a `POST /auth/sair`;
+  do lado do servidor, a rota `/auth/sair` em
+  `apps/api/src/rotas/autenticacao.ts#sair`, que revoga a ficha. A rota
+  `POST /aparelhos/revogar`, de `apps/api/src/rotas/aparelhos.ts`, existe mas o
+  aplicativo não a chama hoje), e apaga a cópia local
   (`apps/campo/src/push/ficha-do-aparelho.ts#esquecerFicha`).
 
 **A pergunta sobre criptografia em repouso**, quando aparecer: o dado no

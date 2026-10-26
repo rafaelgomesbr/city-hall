@@ -8,13 +8,13 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1267 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 187 testes de unidade do motor de campo e 15 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1861 testes do aplicativo passando. **NÃO fecha hoje** o `expo-doctor` (em 2026-10-07, 20 de 21: dez pacotes do Expo com versão de correção atrás do SDK) nem o `npm audit` (em 2026-10-07, dezenas de avisos altos e um crítico na árvore do aplicativo); os dois são da V2-F00-E19, bloqueada pelo CP-03. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 236 testes do pacote compartilhado passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 778 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1719 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 307 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -36,7 +36,7 @@ voz alta em vez de fingir que tem.
 ## A decisão que explica o resto: o banco é real desde o primeiro dia
 
 O painel web não fala com nenhum dado falso em memória. Ele executa
-`db/migrations/001_base.sql`, o mesmo arquivo que vai para o servidor, dentro de
+as migrações de `db/migrations/` (todas, na ordem), os mesmos arquivos que vão para o servidor, dentro de
 um PostgreSQL 16 compilado para WebAssembly (PGlite) que roda na própria aba e
 persiste em IndexedDB.
 
@@ -79,8 +79,9 @@ A: SELECT ...              <- fora de transação, de volta ao superusuário
 Os dois desfechos foram reproduzidos: dado de um município aparecendo para
 outro, e o papel voltando de `dc360_app` para `postgres`, que ignora RLS.
 `db.transaction()` retém o mutex do início ao fim do bloco, o que torna o par
-`SET LOCAL` mais consulta indivisível. Os dois últimos testes de CA-06 cobrem
-exatamente esse caso, e reprovam se alguém trocar de volta.
+`SET LOCAL` mais consulta indivisível. Os testes do bloco "Isolamento sob concorrência na mesma conexão", em
+`db/test/isolamento.test.ts`, cobrem exatamente esse caso, e reprovam se alguém
+trocar de volta.
 
 Num servidor com pool, cada requisição tem a sua conexão e o problema não
 existe. A regra que fica: **uma conexão nunca é compartilhada entre dois
@@ -91,8 +92,11 @@ contextos de tenant ao mesmo tempo.**
 - Toda tabela de negócio tem `ENABLE` e `FORCE ROW LEVEL SECURITY`, com policy
   em `organizacao_id = app_organizacao_atual()`.
 - `trilha_eventos` tem policy de SELECT e de INSERT, e nenhuma de UPDATE ou
-  DELETE. Com RLS forçada, a ausência nega: a trilha é append-only, e nem a
-  aplicação reescreve histórico.
+  DELETE. Com RLS forçada, a ausência nega: a trilha é append-only para a aplicação
+  e para quem administra. As duas exceções são funções do banco, definidas nas
+  migrações: a minimização por prazo (043) troca o nome do assinante dentro do
+  evento `vistoria` por "removido por prazo", e a eliminação do município (038)
+  apaga o município inteiro, trilha inclusa, depois de sete dias de arrependimento.
 - Encerrar ocorrência sem motivo é recusado por CHECK constraint.
 - Marcar vulnerabilidade sem descrever é recusado por CHECK constraint.
 - Protocolo é único por município e ano, gerado por
@@ -126,15 +130,15 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 
 | Peça | Escolha | Por quê |
 | --- | --- | --- |
-| Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
-| Token de acesso | JWT HS256, 15 minutos por padrão (`ACESSO_MINUTOS`, teto de 60) | Na LEITURA (GET e HEAD), verificado só pela assinatura: conta, papel e sessão NÃO são consultados, então conta desativada ainda lê até o token vencer, e o `GET /avisos`, que escreve, também aceita esse token (a F03-E03 fecha a leitura; a escrita dentro do GET está em `apps/api/PENDENCIAS.md`). Na ESCRITA (todo método que não é GET nem HEAD), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
+| Senha | scrypt do `node:crypto`, N=2^17, r=8, p=1 (cerca de 128 MB por verificação; o hash guarda o N usado, então senha derivada antes com N=2^16 continua valendo) | Aprovado no ASVS 4.0 (2.4.1), sem dependência nova e sem módulo nativo para compilar |
+| Token de acesso | JWT HS256, 15 minutos por padrão (`ACESSO_MINUTOS`, teto de 60) | Na LEITURA PURA (GET e HEAD de rota que só lê), verificado só pela assinatura: conta, papel e sessão NÃO são consultados, então conta desativada ainda lê até o token vencer (a F03-E03 fecha a leitura). Na ESCRITA, que é todo método que não é GET nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` e o HEAD delas (laudo, termo de interdição, termo de desinterdição e PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`, porque praticam um ato ou mudam dado do município; o dossiê e a busca, que só gravam o registro da própria leitura, seguem como leitura até a F03-E03; a lista é fixada por `apps/api/test/get-com-efeito.test.ts`), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
 | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
 | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
-| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação |
+| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo, e depois toma a mesma trava da pessoa e relê a senha e a conta antes de a sessão existir: se a senha foi trocada ou redefinida, ou a conta desativada, enquanto o scrypt rodava, a sessão volta atrás e a resposta é a recusa genérica (V2-F00-E07, correção 3; a ordem é linha do município, depois trava, para não fechar ciclo com a suspensão) |
 | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
 | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
-| Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
-| Troca de senha | Exige a senha atual, e derruba as outras sessões | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques |
+| Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). O link pendente morre com toda mudança de senha e com a desativação, por gatilho no banco, e a conta desativada não troca a senha pelo link (migração 051, V2-F00-E10, correção 3). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
+| Troca de senha | Exige a senha atual, e derruba as outras sessões, preservando a cadeia de onde a pessoa trocou (também com o token de antes de uma renovação). A gravação só vale se nada mudou desde a conferência: na transação que grava, a troca segura a linha da pessoa, toma a trava dela e relê a conta, a sessão, o prazo da provisória e o hash; mudou, recusa (403 `conta_desativada`, 401 `sessao_encerrada` ou a mesma recusa da senha atual errada) (V2-F00-E07, correção 4) | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques. E quem tinha a senha antiga e uma sessão, com a troca em voo, desfazia a redefinição por quem administra, o link do email, a desativação ou a troca pela própria pessoa que confirmasse no meio, e ficava com uma senha dele, definitiva |
 | Sessões e redefinição pelo painel (V2-F00-E09) | Em Usuários, quem administra redefine a senha (`POST /usuarios/:id/redefinir-senha`, senha temporária mostrada UMA vez, 72 horas) e encerra as sessões (`POST /usuarios/:id/encerrar-sessoes`) de quem está abaixo do posto dele, nunca da própria conta. Em Minha conta, a pessoa vê as sessões vivas (`GET /auth/sessoes`: quando entrou, até quando vale, o aparelho em uma frase e a marca "Esta sessão") e encerra as outras. `GET /usuarios/:id/sessoes` (ação `gerenciar_usuarios`, posto e 404 como nas outras duas) devolve só a quantidade e as datas | Com a recuperação por e-mail desligada, "esqueci a senha" e "perdi o celular" não tinham saída pelo painel. Nenhuma das leituras entrega IP nem o texto do user-agent (IDN-29 do REL:06); o modo de demonstração explica em vez de oferecer, porque lá não há senha nem token |
 | Segunda etapa | Código de seis dígitos do aplicativo de autenticação (TOTP), com segredo guardado cifrado, chave fora do banco | O administrador é o teto do município (ADR 0006): a conta dele estava protegida por senha e mais nada. SMS foi recusado (troca de chip, custo por mensagem, e depende da operadora justamente no dia do temporal) |
 
@@ -142,10 +146,177 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 
 O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
 código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
-servidor, o painel e o aplicativo importam, e `apps/api/test/codigos-de-erro.test.ts`
-confere que o servidor emite exatamente ela (código novo fora da lista reprova).
-Até a V2-F00-E05 os três primeiros eram um só, `401 sessao`, e o cliente não
-distinguia token vencido de conta desativada.
+servidor, o painel e o aplicativo importam. O catálogo cobre os erros de ACESSO
+(autenticação, vigência e permissão): toda resposta 401 ou 403 do servidor tem
+código nele, salvo pelos caminhos que a guarda não vê (escrita direta no socket
+e afins, listados em "O que a guarda NÃO vê", abaixo). Quem GARANTE isto é uma
+guarda em tempo de execução; dois testes apontam o defeito antes, e nenhum deles
+é garantia sozinho:
+
+- **Guarda em tempo de execução** (`apps/api/src/guarda-de-codigos-de-erro.ts`, e
+  a cópia em `apps/console/src/` com o contrato do console): um `onRequest`
+  instalado antes de qualquer plugin e rota troca, na resposta do Node de cada
+  pedido, `writeHead`, `write` e `end` por versões que seguram o cabeçalho e o
+  corpo de toda resposta 401 ou 403 (fora HEAD) até o fim e só então escrevem. Os
+  ganchos do Fastify, o tratador de erro, o 404, o tratador de reserva que escreve
+  sozinho, `hijack` e `raw` terminam todos nesses três métodos. O corpo tem de ser
+  JSON com UMA chave `erro` (repetida é recusada) do catálogo (ou da entrada) e o
+  status do catálogo; corpo acima de 64 KiB é desvio. Fora disso, em teste ela
+  vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o `afterAll`) que passou por
+  ali reprova (`test/guarda-falha-alto.ts`, carregado em toda a suíte); fora de
+  teste ela sai com o código genérico do catálogo para o status (401
+  `nao_autenticado`, 403 `sem_permissao`) e o desvio vai para o log com o método,
+  a rota e o código que tentou sair, este só se tiver a forma de um código
+  (`^[a-z_]{1,64}$`; o resto vira um marcador, para não gravar e-mail ou CPF).
+  `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como rotas quinze
+  das dezesseis formas que a varredura não lia (todas menos a M08, a escrita
+  direta no socket, que a guarda não vê; ver "O que a guarda NÃO vê", abaixo)
+  e os dezesseis escapes que a revisão achou na primeira versão da guarda (um
+  `onSend`), e prova os dois modos.
+- **Varredura do código-fonte** (`apps/api/test/codigos-de-erro.test.ts`, árvore
+  sintática do TypeScript, na API, no pacote compartilhado e no console do
+  fornecedor). É HEURÍSTICA, a primeira linha: a lista do que ela não lê não é
+  fechada, e a cada regra nova a revisão achou a forma seguinte. Reprova resposta
+  401 ou 403, ou de status que o texto não resolve,
+  com código fora do catálogo e da lista da entrada. Lê `send({ erro })` literal
+  ou por constante (só um `const` não exportado com objeto literal, resolvido pelo
+  escopo, e que no arquivo só é lido: `let`, `var`, parâmetro homônimo,
+  exportação, escrita em campo, passar a uma função ou apelidar deixam o corpo sem
+  leitura, e isso reprova), `new RegraDeNegocio(...)` e `new FalhaAutenticacao(...)`
+  (inclusive com outro nome de importação ou por `import * as`), o `super(...)` de
+  qualquer subclasse delas, classe de erro com `codigo` literal, atribuído no
+  construtor, por getter ou por propriedade de parâmetro, o tratador global e a
+  recusa `{ status, corpo: { erro } }` do console. Formas que ela reconhece como
+  ilegíveis, e reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
+  corpo que não resolve (inclusive texto, com status calculado), `{ erro: "x",
+  ...extra }` com spread depois de `erro`, `erro` por getter, setter ou método,
+  escrita em `erro` ou `corpo` de qualquer objeto (ponto, colchete, operador
+  composto, `delete`, `++`, desestruturação), colchete com chave literal nos nomes
+  que ela lê com ponto (`resposta["code"](403)`, `["send"]`), chamada por chave
+  calculada (`resposta[m](403)`), `.send` sem ser chamado, `.call`, `.apply` e
+  `.bind` (salvo `Object.prototype.hasOwnProperty.call`), chave calculada que não
+  resolve a um `const` de texto, texto com `FST_` (forja o código do Fastify cujo
+  status o tratador repassa), `Object.setPrototypeOf`, `Object.create`,
+  `__proto__` e `extends` de expressão (forjam a classe de um erro), `toJSON`, o
+  serializador da resposta, `eval`, `Function`, `.redirect(url, status)` fora de
+  3xx, `statusCode`/`status` escritos à mão (propriedade, abreviação, método,
+  acessor, chave computada, colchete, operador composto, `Object.defineProperty`),
+  `Object.assign`, `.raw`, `.hijack()`, `.writeHead()`, ganchos `onSend` que
+  recebem o corpo ou que enviam resposta ou lançam erro de negócio, argumentos
+  espalhados em `new RegraDeNegocio(...)`, `status` declarado em classe de erro,
+  classe de erro guardada em variável ou passada a `Reflect.construct`, código
+  calculado, classe nova com `codigo` calculado, qualquer `Reflect`, atribuição ao
+  `codigo` de um erro fora do construtor, reatribuição do parâmetro do tratador
+  global. Só passam os repasses conferidos
+  à mão e listados no teste, cada um com o porquê e preso à origem conferida (o
+  `erro` do tratador global é o parâmetro do `setErrorHandler`; o status do
+  `corpo_invalido` vem de `doLeitorDeCorpo.statusCode`). Reprova ainda código do
+  catálogo emitido com status diferente do escrito e código do catálogo que
+  nenhum ponto do servidor emite.
+- **Prova dinâmica** (`apps/api/test/prova-dinamica-dos-codigos-de-erro.test.ts`),
+  que é a SEGUNDA linha, depois da varredura: sobe o servidor, lê as rotas que ELE
+  registrou (a árvore do Fastify concatenada, a mesma leitura de
+  `superficie.test.ts`) e pede cada uma, com 12 perfis em estados negativos (sem
+  token, token lixo, vencido, de outra assinatura, perfil errado, conta
+  desativada, senha provisória, município suspenso, município de fora). Cada
+  pedido sai de um endereço de rede distinto, para não esbarrar no limitador de
+  300 por minuto (que continua ligado no resto da suíte), e o teste exige zero
+  429. Exige que o número de pares método + caminho pedidos seja o de pares
+  registrados (conferido por uma segunda contagem da árvore), que nenhum pedido
+  caia fora das rotas, e que todo 401 e todo 403 traga um `erro` do catálogo ou
+  da entrada com o status do catálogo. O que ela EXERCITA de verdade, medido e
+  com piso declarado no teste (rodar com `SAIDA_ALCANCE=arquivo.json` grava a
+  matriz status por rota e por perfil): dos 114 pares, 112 chegam ao handler com
+  algum perfil (status que não é 401, 403 nem 429), 48 recebem 2xx de algum
+  perfil, e **66 nunca recebem 2xx de perfil nenhum** (só 422, 404, 409 ou 503
+  além das recusas de acesso), isto é, o corpo mínimo que a prova manda não leva
+  esses handlers até o fim e a autorização DELES é exercitada só até a validação;
+  2 (as do armazenamento local, que autenticam pela assinatura da URL) só recebem
+  403 `assinatura`. Por perfil, as rotas que chegam ao handler: sem token, token
+  lixo, vencido e de outra assinatura 10 cada (as públicas), coordenador 93,
+  agente 62, operador 61, administrador 100, conta desativada 47, senha
+  provisória 49, coordenador de outro município 96, município suspenso 54. Ou
+  seja, a prova dinâmica NÃO é "todas as rotas com todos os perfis até o fim": a
+  garantia de que nenhuma recusa de acesso sai fora do catálogo é a guarda em
+  tempo de execução (o primeiro item desta lista). A varredura do fonte é a
+  primeira linha dos testes, heurística, e a prova dinâmica é a segunda: ela
+  fecha o que o texto esconde só onde chega, com os perfis e os corpos mínimos
+  que usa. Nenhuma das duas é garantia sozinha.
+- **Execução por código** (no mesmo arquivo da varredura): cada um dos dez códigos sai do servidor real, por
+  requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
+  padrão).
+
+A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
+`"403"` saem 403) e lê a linha de status nos bytes que a resposta manda ao socket
+(`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
+`writeHead` (`_storeHeader`, `_header` reescrito) também é conferida. Ela também
+confere o CORPO contra a moldura que a cabeça declarou (correção 6): toda resposta
+sai com `strictContentLength` ligado e a guarda conta os bytes de cada pedaço
+(texto, Buffer ou fluxo) contra o `content-length`, então nenhum byte além do
+declarado sai, nem pela API pública do Fastify (`header("content-length", "2")`
+com um fluxo maior) nem por baixo; com `chunked`, os pedaços são lidos e nada sai
+depois do terminador; `transfer-encoding` que não termina em `chunked`, ou corpo
+sem moldura, fecha a conexão no fim; `content-length` junto de
+`transfer-encoding` troca a resposta inteira. Excesso é desvio, sai só o que
+cabia e a conexão fecha. O caminho do desvio não lança (o trailer, que o Node
+recusa junto de `content-length`, sai da resposta trocada).
+
+O status 1xx como resposta FINAL (`reply.code(102).send(...)`, `code(101)`,
+`writeHead(103)` ou `statusCode = 102` antes do `end`) fazia o Node escrever só a
+linha provisória e dar a resposta por terminada, e o cliente lia a resposta do
+pedido SEGUINTE da conexão como a deste. Desde a correção 7 isso é desvio, HEAD
+inclusive, e sai 500 nos dois modos (`desvio_do_catalogo_de_erro` em teste;
+fora de teste, `erro_interno` na API e `falha_interna` no console). O 101
+escrito por baixo, que a porta dos bytes lê como cabeça final, também vira 500,
+e a resposta que termina só com cabeça provisória, sem a final, fecha a conexão.
+Os 1xx legítimos (`writeContinue`, `writeProcessing`, `writeEarlyHints`) não
+passam por `writeHead` e seguem intactos. Também na correção 7: quando o `end`
+do Node lança no meio (o `content-length` estrito que não bate com o corpo de um
+401 ou 403 do catálogo), o socket ficava arrolhado e o cliente ficava sem
+resposta até o tempo esgotar; a guarda o desarrolha e manda a resposta do
+desvio. O que os testes da guarda provam (por socket cru com dois pedidos em
+pipeline, nos dois modos, rodados em Node 22 e em Node 24): na API, cada forma dos
+relatórios da rodada 7 (fluxo do Node, `Response` e `ReadableStream` da web com
+`content-length` menor que o corpo ou `0`, 403 do catálogo com `content-length`
+errado, `transfer-encoding: identity`, `reply.trailer`, `addTrailers`,
+`writeHead(403)` mais `flushHeaders` e 1xx final) não leva código fora do
+catálogo ao fio e não dessincroniza a conexão, e os casos de trailer vigiam
+exceção não tratada; no console, as mesmas formas, menos `transfer-encoding:
+identity` e `writeHead(403)` mais `flushHeaders`, que não têm caso no teste
+dele (`apps/console/test/guarda-de-codigos-de-erro.test.ts`). O proxy da borda
+diante dessas formas não foi medido.
+
+As Early Hints (correção 7b): o Node 22, que é o de produção, não confere o valor
+de `writeEarlyHints`, e CR ou LF nele põe uma cabeça HTTP inteira no fio (o Node
+24 recusa). A guarda aplica a regra do Node 24 nas duas versões: nome que não é
+token, ou valor com caractere de controle, lança `ERR_INVALID_CHAR` antes de
+qualquer byte sair, e a rota responde o 500 do tratador de erro. O 103 legítimo
+antes de um 403 do catálogo passa intacto (caso na API e no console), e a porta
+dos bytes continua de segunda rede.
+
+O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
+Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
+`.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
+servidor HTTP que entregam o socket ou o pedido antes do Fastify
+(`app.server.on("connection", (s) => s.end("HTTP/1.1 403 ..."))`, e `request`,
+`upgrade`, `secureConnection`, `clientError`, por `on`, `once`, `addListener` ou
+`prependListener`). Contra isso NÃO há garantia em tempo de execução: só a
+varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
+desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
+método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
+`Reflect`), que a varredura reprova. Corpo MENOR que o `content-length`
+declarado, em resposta que não é 401 nem 403, derruba a conexão sem resposta: o
+cliente vê a conexão cair, não uma resposta trocada. E nenhuma
+linha prende código no mesmo processo que troque, antes de a guarda carregar, as
+primitivas que ela usa para decidir (ela guarda as suas na carga e, ao decidir, só
+usa essas cópias: trocar `JSON`, `includes` ou `hasOwnProperty` depois não a
+engana, e o teste prova), nem o que troque o próprio Node ou o registrador de log.
+Fora do escopo: erros de outros status (404, 409, 422, 429,
+5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
+cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
+código (isso é dos testes do painel e do aplicativo). Até a V2-F00-E05 os três
+primeiros eram um só, `401 sessao`, e o cliente não distinguia token vencido de
+conta desativada.
 
 | Código | Status | O que o cliente faz | Quando sai |
 | --- | --- | --- | --- |
@@ -155,6 +326,10 @@ distinguia token vencido de conta desativada.
 | `acesso_suspenso` | 403 (503 nas rotas da fila) | Espera: quem resolve é quem administra o contrato | Município suspenso pelo fornecedor |
 | `troca_de_senha_obrigatoria` | 403 | Leva à troca de senha | Sessão nascida de senha provisória |
 | `sem_permissao` | 403 | Nada a repetir | O perfil não pode fazer isto |
+| `posto_insuficiente` | 403 | Nada a repetir | A pessoa administra usuários, mas não aquela conta (de posto acima do dela; de posto igual, para quem não é administrador). É 403 e não 404 porque a conta é do próprio município |
+| `posto_insuficiente_para_dado_pessoal` | 403 | Nada a repetir | Exportação com dados pessoais por quem não administra o município |
+| `email_so_por_administrador` | 403 | Nada a repetir | Troca do email de outra pessoa por quem não é administrador |
+| `assinatura` | 403 | Nada a repetir | URL assinada de envio ou de download de arquivo sem assinatura, adulterada ou vencida (não há sessão: a assinatura é a credencial) |
 
 Três regras que não mudam com os códigos:
 
@@ -170,9 +345,20 @@ Três regras que não mudam com os códigos:
   as sessões dela; se a ordem fosse outra, o cliente leria `sessao_encerrada` e
   mandaria entrar de novo, que não resolve.
 
-O código antigo `sessao` deixou de existir. O esquema de erro único da API, com
-o catálogo inteiro (validação, regra de negócio, conflito), é da V2-F02-E03, que
-generaliza esta tabela.
+O código antigo `sessao` deixou de existir. Os da **entrada** (`credenciais` 401,
+`senha_provisoria_vencida` 401, `bloqueado` 429) ficam numa lista própria,
+`CODIGOS_DA_ENTRADA`, fora do catálogo de acesso: respondem a outra pergunta e o
+cliente nunca os lê como sessão morta. O console do fornecedor (`apps/console`) é
+outro processo, com contrato de erro próprio, e o teste o varre contra a lista
+dele. O esquema de erro único da API, com o catálogo inteiro (validação, regra de
+negócio, conflito), é da V2-F02-E03, que generaliza esta tabela.
+
+Um caso fora da tabela, porque não é de acesso: pedido cujo corpo o Fastify não
+consegue ler (JSON vazio com `content-type: application/json`, JSON torto, corpo
+grande demais, tipo de conteúdo que nenhuma rota aceita) responde o 4xx do próprio
+Fastify (400, 413 ou 415) com `erro: "corpo_invalido"` e uma frase em português, e
+não mais 500 com "informe o código ao suporte" (V2-F00-E07, correção 3;
+`apps/api/test/corpo-ilegivel.test.ts`).
 
 Trocar o papel de uma pessoa **não revoga as sessões dela** (decisão da
 V2-F00-E07): a escrita seguinte com o token velho responde 401 `nao_autenticado`,
@@ -216,9 +402,9 @@ Hoje o cliente fala o contrato publicado do **Resend**
 (`POST https://api.resend.com/emails`, com `from`, `to`, `subject` e `text`), e
 `apps/api/test/notificador-http.test.ts` confere o corpo campo a campo, além de
 afirmar que os cinco nomes inventados **não** aparecem nele. Sem SDK, pela mesma
-razão que a assinatura S3 é escrita à mão: o `npm audit` deste produto precisa
-fechar em zero (hoje não fecha, por dependência que não é esta: ver "Como
-testar").
+razão que a assinatura S3 é escrita à mão: o `npm audit --omit=dev` da raiz
+precisa fechar em zero (o aplicativo de campo só passa com exceções nomeadas, ver
+"Como testar").
 
 Três decisões que vale registrar:
 
@@ -257,6 +443,7 @@ que deixa entrar com um aviso é exigência de mentira.
 | Teto | Contador próprio, separado do da senha | O da senha zera a cada acerto de senha: com um contador só, adivinhar seis dígitos teria tentativas infinitas |
 | Códigos de recuperação | Oito, 80 bits cada, mostrados uma vez, guardados como resumo, cada um vale uma vez | Sem eles, telefone perdido vira SQL na produção com o papel que ignora o isolamento |
 | Ativação | Confere um código ANTES de ligar | Relógio de telefone errado ou leitura que não guardou nada trancariam a pessoa do lado de fora |
+| Desafio e senha trocada | O desafio leva uma impressão da senha conferida na primeira etapa (HMAC com o segredo de assinatura, campo `cr`), e a segunda etapa só abre sessão, ou liga o recurso, se a senha ainda for a mesma (V2-F00-E07, correção 3) | O desafio vale cinco minutos. Sem isto, quem tinha a senha antiga e o código abria sessão depois de uma troca ou redefinição feita nesse intervalo, ou ligava o segundo fator com o aparelho dele na conta de quem acabara de trocar a senha. Desafio emitido antes dessa versão não traz a impressão e é recusado como expirado |
 | Desligar | Exige a senha atual, apaga o segredo e derruba os códigos | O painel esquecido aberto na recepção não desliga a proteção de ninguém |
 
 O código QR da ativação é desenhado pelo próprio painel
@@ -305,9 +492,11 @@ exatamente o que alguém vai querer auditar depois. O registro é escrito em
 transação própria, senão o ROLLBACK da recusa o levaria junto.
 
 O campo é **opcional**, e a razão tem data de validade escrita no esquema: há
-aparelho em campo com coleta gravada antes dele, e não existe tela para
-desbloquear item recusado. Obrigatório agora, essas coletas virariam 422 para
-sempre, e uma vistoria de morro seria destruída por uma mudança de esquema. Ele
+aparelho em campo com coleta gravada antes dele, e a fila não reenvia o item
+recusado por causa do dado (o botão "Tentar de novo" some; sobram "Esta coleta é
+minha", a correção e o descarte, em `apps/campo/src/app/(agente)/fila.tsx`).
+Obrigatório agora, essas coletas virariam 422 para sempre, e uma vistoria de
+morro seria destruída por uma mudança de esquema. Ele
 passa a obrigatório quando não restar coleta antiga em nenhum aparelho.
 
 ### Rodar
@@ -353,7 +542,9 @@ Decisões que o código toma, e por quê:
 
 Desde a V2-F00-E06 a fila distingue os códigos de acesso do catálogo
 (`packages/shared/src/codigos-de-erro.ts`) pelo código, e não pelo status:
-`FalhaDeSessao` (motivo `sessao_encerrada` ou `conta_desativada`) é diferente de
+`FalhaDeSessao` (motivo `sessao_encerrada`, `conta_desativada` ou
+`troca_de_senha_obrigatoria`; `acesso_suspenso` não entra aqui: é temporário, o item
+fica pendente e a fila tenta de novo mais tarde) é diferente de
 `FalhaPermanente` e de `FalhaTemporaria`. O dreno devolve `paradaPor`, o resumo
 da fila devolve `pausadaPor`, e o aparelho mostra a frase de cada caso: sessão
 encerrada, entre de novo; conta desativada, procure a coordenação. Em ambos a
@@ -367,7 +558,7 @@ temporal voltam no mesmo instante e derrubam o servidor de novo justo na hora
 em que ele está subindo.
 
 A persistência é uma porta (`ChaveValor`), não um SQLite direto: no aparelho
-será `expo-sqlite`, nos testes é um mapa. A lógica não muda.
+é `expo-sqlite` (`packages/campo/src/deposito-sqlite.ts`), nos testes é um mapa. A lógica não muda.
 
 ## Evidência fotográfica
 
@@ -401,8 +592,11 @@ regras por CHECK, para valerem mesmo se outra ponta gravar direto.
 
 `src/armazenamento/assinatura.ts` implementa AWS Signature Version 4 sobre
 `node:crypto`, sem o SDK da AWS: o SDK traz dezenas de pacotes transitivos
-para uma conta que precisa fechar em zero no `npm audit`, e o provedor
-escolhido é S3-compatível (Cloudflare R2, por causa do egress), não a AWS.
+para uma conta que precisa fechar em zero no `npm audit --omit=dev` da raiz (o
+que `npm run auditar` prende; o `npm audit` puro não fecha, ver "Como testar"), e o provedor
+escolhido é S3-compatível, não a AWS (o levantamento apontava Cloudflare R2 por
+causa do egress; o `fly.toml` de hoje usa o Supabase Storage por S3, ver
+`docs/ARMAZENAMENTO.md`).
 
 A correção não é opinião. O teste confere a saída contra o **vetor oficial da
 AWS**, e ela bate byte a byte. Uma assinatura de 256 bits não coincide por
@@ -423,7 +617,7 @@ HTML pronto para impressão.
 **Gerados no servidor, não montados na tela.** O mesmo laudo precisa sair
 igual no navegador do coordenador, na impressora da recepção e no PDF anexado
 ao processo. Montar em três lugares produziria três documentos com o mesmo
-número de protocolo. Quando a geração de PDF entrar, ela renderiza exatamente
+número de protocolo. O PDF (adiante) renderiza exatamente
 estas páginas: o template é um só, versionado com o código.
 
 Duas regras de conteúdo que não são estéticas:
@@ -513,7 +707,7 @@ coluna só no Excel em português.
 
 ### Quem exportou fica registrado
 
-Um CSV de ocorrências carrega nome, contato e relato de cidadãos, e sai do
+O CSV de ocorrências no nível completo (só o administrador) carrega nome, contato e relato de cidadãos, e sai do
 sistema para viver num pen drive ou num email. A Lei 13.709/2018 exige registro
 do tratamento de dado pessoal, e exportação é tratamento. A tabela `exportacoes`
 guarda quem levou, qual recorte e quantos registros, é append-only como a
@@ -687,6 +881,18 @@ Sobre artigo, a varredura é mais estreita e mais dura: nos geradores de
 documento oficial, nenhum número de artigo passa. Comentário de código pode
 falar de artigo; papel com o brasão do município, não.
 
+Outra regra de conteúdo que roda no `npm test`: enquanto o aplicativo do agente não
+declara a saída a campo (V2-F14-E01), nenhum texto do município promete que
+alguém "acompanha quem está em campo" sem dizer que o recurso está em
+construção. `packages/shared/test/ressalva-saida-a-campo.test.ts` confere
+nove arquivos. Em seis (este README, privacidade, papéis, `docs/LEIA-ME.md` e
+as duas apresentações), todo parágrafo, linha de tabela ou item de lista que
+fala do assunto tem de trazer a ressalva (no README e na privacidade, as
+linhas de tabela ficam de fora). Em quatro (os quadros de estado de
+`SEGURANCA-DO-AGENTE.md`, `GUIA-DO-COORDENADOR.md`, `CARTAO-DO-AGENTE.md` e
+deste README, que entra nas duas listas) o quadro tem de existir, trazer a
+ressalva e dizer o que falta. O teste morde se a ressalva sair.
+
 ## O design system é verificado por máquina
 
 `CLAUDE.md` diz que cor, sombra ou duração escritos direto no componente são
@@ -702,8 +908,9 @@ mudar, como já mudou uma vez aqui (laranja para violeta).
 `apps/web/test/design-system.test.ts` varre o CSS e os estilos escritos dentro
 dos componentes. Exceção deliberada é possível, escrevendo um comentário com o
 marcador e a razão na linha de cima: assim ela é uma decisão registrada, e não
-um valor que ninguém percebeu. O teste tem dois casos que provam as expressões
-funcionando e não produzindo falso positivo, para não depender de o código
+um valor que ninguém percebeu. O teste tem casos que provam as expressões
+funcionando e não produzindo falso positivo ("a varredura pega o que deveria
+pegar" e "a varredura não reclama do que está certo"), para não depender de o código
 estar errado para descobrir que a varredura quebrou.
 
 ## Acessibilidade também deixou de depender de lembrança
@@ -718,7 +925,7 @@ some sem nada reclamar.
 `apps/web/test/acessibilidade.test.ts` calcula. Ele lê `tokens.css`, resolve as
 cadeias de `var()`, achata a transparência dos selos sobre a superfície de
 baixo (senão o número do tema escuro seria ficção, porque o selo tem 12% de
-opacidade) e aplica a fórmula de luminância da WCAG a dezessete pares de
+opacidade) e aplica a fórmula de luminância da WCAG a 21 pares de
 frente e fundo, **nos dois temas**. Onde o alvo não é texto, o mínimo cai para
 3:1, e a razão está escrita ao lado do par.
 
@@ -730,8 +937,10 @@ no portão do design system.
 
 O que a varredura encontrou na primeira execução, e foi corrigido:
 
-- **Não havia atalho para pular a navegação.** Quem usa teclado atravessava os
-  onze itens da lateral a cada troca de tela. Agora o primeiro Tab cai num
+- **Não havia atalho para pular a navegação.** Quem usa teclado atravessava
+  todos os itens da lateral (a navegação do código tem doze controles: dez
+  destinos mais "Tema" e "Sair"; o administrador alcança onze, porque "Meu
+  trabalho" é do agente) a cada troca de tela. Agora o primeiro Tab cai num
   atalho que aparece ao receber foco.
 - **A foto ampliada era uma armadilha de teclado.** Abria sem levar o foco
   junto, não fechava com Escape, e ao fechar o foco voltava para o início da
@@ -760,9 +969,11 @@ escrito: dizia que os valores eram cópia de `apps/web/src/estilos/tokens.css` e
 que "um teste reprova se divergirem". Promessa de portão é mais perigosa que
 portão nenhum, porque quem lê para de conferir à mão.
 
-Os três portões moram em `scripts/`, ao lado de
-`entitlements-do-ios.test.mjs`, e não dentro de `apps/campo`. A razão é de
-ambiente: o pacote do aplicativo roda em `jest-expo`, que não tem os tipos de
+Os três portões da tabela moram em `scripts/`, ao lado de
+`entitlements-do-ios.test.mjs` e de outros portões do aplicativo
+(`portao-densidade-do-aplicativo`, `portao-do-mapa-do-aplicativo`,
+`portao-sem-promessa-de-segundo-plano-do-aplicativo`), e não dentro de
+`apps/campo`. A razão é de ambiente: o pacote do aplicativo roda em `jest-expo`, que não tem os tipos de
 Node, então varredura de arquivo lá dentro significaria empurrar `node:fs` e
 `__dirname` para um pacote que não os tem. `npm run test:scripts` já os roda,
 e ele está dentro de `npm run verificar`.
@@ -784,9 +995,12 @@ ensina a apagar a explicação.
 A segunda é que toda exceção e toda pendência **sabem morrer**. A dispensa de
 peso de fonte valia enquanto não existisse token de peso, e um caso reprova no
 dia em que ele passar a existir. A pendência de contraste da borda de controle
-(1.30:1 no claro e 1.33:1 no escuro, contra os 3:1 da WCAG 1.4.11) aparece na
-saída da execução e some obrigatoriamente quando o número passar. Exceção
-temporária que ninguém poda é exceção permanente.
+(era 1.30:1 no claro e 1.33:1 no escuro, contra os 3:1 da WCAG 1.4.11) fechou:
+hoje `PENDENTES` em `scripts/portao-acessibilidade-do-aplicativo.test.mjs` está
+vazio e os dois pares da borda passam. O mecanismo continua: a pendência que
+voltar a entrar na lista aparece na saída da execução e some obrigatoriamente
+quando o número passar. Exceção temporária que ninguém poda é exceção
+permanente.
 
 A rodada de mutação reintroduziu cada defeito e viu cada portão morder com
 mensagem precisa: alvo de 32, rótulo removido, os sete literais de design de
@@ -819,7 +1033,8 @@ O que a regra impede, imposto pelo servidor e não pela tela:
 - o coordenador não desativa administrador;
 - o coordenador não se promove a administrador pela edição;
 - **o município não fica sem administrador ativo**, nem por desativação nem por
-  rebaixamento.
+  rebaixamento (a conferência é por contagem sem trava: dois administradores, um
+  desativando ou rebaixando o outro no mesmo instante, ainda podem furá-la, ver `apps/api/PENDENCIAS.md`).
 
 A última merece explicação, porque parecia coberta e não estava. Existia a
 regra de não desativar a própria conta, e ela dava a impressão de garantir o
@@ -869,7 +1084,8 @@ não encerra. Ele via tudo o que não é da conta dele e nada do que é.
 
 E a tela diz, em destaque, o que seria desastroso deixar implícito: **este
 painel precisa de conexão.** O trabalho sem sinal é o do aplicativo de campo,
-que guarda no aparelho e envia sozinho quando o sinal volta. Um agente que
+que guarda no aparelho e envia sozinho quando o sinal volta, com o aplicativo
+aberto (não há envio em segundo plano). Um agente que
 descobrisse isso no barranco perderia a vistoria inteira.
 
 O menu dele também mudou: começa em "Meu trabalho" e não oferece painel nem a
@@ -880,7 +1096,7 @@ envio.
 
 ## O agente que sobe o morro sozinho
 
-> **Estado em 07/10/2026: pela metade, e a metade que falta é a do agente.** A
+> **Estado em 07/10/2026: recurso em construção, pela metade, e a metade que falta é a do agente.** A
 > API (`apps/api/src/rotas/saida-a-campo.ts`, prefixo `/saida-a-campo`) e a tela
 > da coordenação (`apps/web/src/paginas/QuemEstaEmCampo.tsx`) estão prontas e
 > testadas. O aplicativo de campo **não chama** declarar, prorrogar, retorno nem
@@ -929,7 +1145,7 @@ definição: **você voltou quando o sistema soube que você voltou.**
 
 | Peça | Decisão | Por quê |
 | --- | --- | --- |
-| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o portão CA-06 reprova a décima sexta. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
+| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O teto é de 27 funções e hoje está cheio (27 de 27, contadas no catálogo depois de aplicar as migrações: 50 em 2026-10-15 e 51 em 2026-10-19, a 051 não acrescenta função privilegiada): o portão CA-06 (`db/test/isolamento.test.ts`) reprova a vigésima oitava. Cada subida do teto tem a razão escrita no próprio teste, e a mais recente foi justamente `varrer_tarefas_novas` (migração 042), que também é função de relógio. Não há vaga para gastar com um canal que o sino já cobre. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
 | Prorrogar | Existe, e é contado | Sem isso, todo serviço que demora mais que o previsto vira alarme falso, e alarme falso repetido é o único jeito conhecido de matar o recurso: a coordenação aprende a ignorar a tela. O novo prazo conta a partir de AGORA, senão uma saída vencida há duas horas continuaria vencida depois de prorrogada |
 | "O agente confirmou o retorno" | A coordenação **não** consegue marcar isso | Quem diz "voltei" é quem voltou. Se ela pudesse, a linha afirmaria que o agente confirmou quando outra pessoa decidiu por ele, e é essa a linha que alguém vai ler depois de um acidente |
 
@@ -959,11 +1175,17 @@ na mensagem de falha.
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
 condicional de tela. A tela consulta a tabela para decidir o que desenhar; toda
 função de escrita do repositório começa por `exigirPermissao`, porque esconder
-um botão não impede nada de quem tem o console do navegador aberto. Quando a
-API entrar, ela importa a mesma função em vez de redescobrir a regra.
+um botão não impede nada de quem tem o console do navegador aberto. A
+API importa a mesma função em vez de redescobrir a regra.
 
-Esta tabela é gerada a partir de `acoesDoPapel`, e um teste reprova se ela
-divergir do código. Ela já mentiu antes: dizia que o administrador fazia "o
+Esta tabela é conferida contra o código por
+`packages/shared/test/permissoes-no-readme.test.ts`, que gera a tabela esperada
+em memória a partir de `acoesDoPapel`, `ROTULO_ACAO` e `ROTULO_PAPEL` (o README
+não é reescrito por script: quem altera as permissões cola a linha que a
+mensagem de falha traz) e reprova se ela divergir do código: ação que falta, ação que sobra, papel sem linha, ordem trocada ou marcador
+removido (a mensagem de falha traz a linha certa, para colar). Ela já mentiu antes
+(a rodada 4 da validação achou `levantar_interdicao` fora dela, porque o teste
+que esta frase prometia não existia): dizia que o administrador fazia "o
 mesmo que o coordenador", o que deixou de ser verdade no dia em que o sistema
 de postos entrou, e ninguém percebeu porque documentação não quebra build.
 
@@ -971,10 +1193,10 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
 
 | Papel | Pode |
 | --- | --- |
+| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, levantar a interdição de um imóvel, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
 | Operador de plantão | registrar ocorrência, registrar a resposta de uma providência, consultar os ofícios de encaminhamento, acompanhar quem está em campo agora |
 | Agente de campo | registrar vistoria |
-| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
-| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+| Administrador da organização | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, levantar a interdição de um imóvel, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
 
 O administrador NÃO é um coordenador com outro nome. Ele é o único que altera
 os dados do município, e o sistema de postos impede que qualquer pessoa
@@ -984,8 +1206,8 @@ administrador, e ninguém se promove.
 Consultar a trilha e exportar a base ficam com coordenação e administração: são
 as ações que alcançam o município inteiro de uma vez. Emitir laudo e termo de
 interdição entrou na mesma lista, e por motivo parecido: o documento reúne numa
-página só o nome, o contato, o endereço, a vulnerabilidade da família e todas
-as fotos da casa. Cada pedaço já circula em algum lugar; a concentração é que
+página só o nome do solicitante, o endereço, a vulnerabilidade da família e todas
+as fotos da casa (o contato não é impresso). Cada pedaço já circula em algum lugar; a concentração é que
 muda a natureza da coisa.
 
 O operador também registra a resposta de uma providência: é ele quem atende o
@@ -1014,6 +1236,9 @@ recurso é alguém enxergar o prazo estourado, e quem está na sala às três da
 de uma noite de temporal é o operador de plantão. Restringir à coordenação seria
 escolher a elegância da tabela contra a finalidade da coisa, e o custo do erro é
 um agente no morro sem ninguém olhando.
+Esse acompanhamento está em construção: a tela existe, mas o aplicativo do agente
+ainda não declara a saída (V2-F14-E01, ver o quadro de estado da seção "O agente
+que sobe o morro sozinho"), e por isso hoje ela fica vazia.
 
 ## Como rodar
 
@@ -1079,12 +1304,19 @@ npm run test:e2e:api            # painel contra a API
 ```
 
 `npm run verificar` encadeia typecheck, testes, `test:scripts`, `test:campo`,
-`auditar` e `conferir:numeros`. O CI roda menos do que isso: não roda `auditar`,
-`test:scripts` nem `test:campo`, então esses três só aparecem vermelhos na
-máquina de quem rodar.
+`auditar` e `conferir:numeros`. O CI roda esses passos em jobs separados
+(`test:scripts` e `conferir:numeros` no job de testes, o `auditar` no job
+`dependencias`, `test:campo` no job do aplicativo); a diferença é que o CI não
+roda o `verificar` inteiro de uma vez, e sim cada passo no seu job. O CI chama
+o portão do `auditar` direto pelo `node` (`node scripts/auditar.mjs`), e não
+pelo `npm run`, para que nenhuma configuração do npm decida se ele roda; antes,
+o job `dependencias` reprova se houver `.npmrc` versionado no repositório. O
+job `windows` repete em `windows-latest` o `auditar` (também pelo `node`),
+`test:scripts` e `conferir:numeros`.
 
 **Portabilidade dos scripts.** `test:scripts` e `conferir:numeros` precisam
-fechar verdes no Windows e no Linux, e os três casos que só reprovavam no
+fechar verdes no Windows e no Linux (o job `windows` do CI os roda a cada
+push), e os três casos que só reprovavam no
 Windows ensinaram três regras para quem escrever um caso novo em `scripts/`:
 chamar `npm` com `shell: process.platform === "win32"` (lá ele é `npm.cmd`, e
 sem shell a chamada morre com ENOENT antes de rodar qualquer coisa); montar
@@ -1097,7 +1329,7 @@ literal de uma linha que pode mudar de forma sem mudar de sentido.
 eram da máquina, e não do código, foram fechados no próprio repositório:
 
 - *Fim de linha.* O `.gitattributes` da raiz fixa LF no índice e no checkout
-  para todo texto (`* text=auto eol=lf`), CRLF só para `.ps1`, e marca imagem,
+  para todo texto (`* text=auto eol=lf`), CRLF só para `.ps1`, `.bat` e `.cmd`, e marca imagem,
   fonte, PDF e dump como `binary`. Teste do painel que confere fonte lê com
   `apps/web/test/ler-fonte.ts`, que normaliza `\r\n`, porque árvore clonada
   antes do `.gitattributes` continua CRLF até ser renormalizada. Conferência:
@@ -1110,25 +1342,84 @@ eram da máquina, e não do código, foram fechados no próprio repositório:
   existente é respeitada. O `openssl` vem do PATH; no Windows, quando o PATH
   não o tem (o caso do PowerShell), o teste o procura ao lado do `git` (Git for
   Windows). Sem `openssl` em lugar nenhum a suíte reprova dizendo o que
-  instalar, em vez de pular.
+  instalar, em vez de pular. **No macOS o `openssl` do sistema é o LibreSSL**
+  (3.3.6 medido em 2026-10-19), e o caso "respeita OPENSSL_CONF válido" de
+  `apps/api/test/openssl-do-teste.test.ts` reprovava lá (medido em 2026-10-14):
+  ele esperava que o autoassinado, sem a variável, saísse marcado como CA. Quem
+  marca é o `openssl.cnf` padrão da máquina (`x509_extensions = v3_ca`), e não a
+  família do `openssl`; o do macOS não manda, e com `v3_ca` o próprio LibreSSL
+  marca. Foi uma falha do teste, não do produto (o produto não chama `openssl`;
+  só a suíte de TLS do banco, para gerar o certificado do impostor). Consertado
+  em 2026-10-19 (V-API-3 do registro da E03, seção 10): a asserção do `ca` sem
+  configuração saiu, e a prova de que a configuração foi lida passou a ser um
+  uso estendido de chave que ela pede (aparece com a variável válida, não
+  aparece sem ela). O arquivo passa no LibreSSL do Mac e num OpenSSL 3.0.7
+  osx-arm64. O caso do `OPENSSL_CONF` inexistente pressupõe que a instalação do
+  `openssl` tenha o seu `openssl.cnf` padrão, como toda instalação normal tem.
 - *Cache do Expo.* `npm run test:campo` apaga `apps/campo/.expo/types` quando o
   `router.d.ts` gerado ali não conhece alguma rota de `src/app` (ver
   `apps/campo/LEIA-ME.md`).
 
-| Comando | Windows 11 com Git Bash (Node 22.17.0) | Linux |
-| --- | --- | --- |
-| `npm run typecheck` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
-| `npm test` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
-| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | não provado nesta máquina |
-| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | não provado nesta máquina |
-| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | não provado nesta máquina |
-| `npm run test:scripts` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
-| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+| Comando | Windows 11 com Git Bash (Node 22.17.0) | macOS (Node 24), 2026-10-14 | Linux |
+| --- | --- | --- | --- |
+| `npm run typecheck` | rodado em 2026-10-07, código 0 | código 0 (passo `typecheck` do roteiro) | CI, ver abaixo |
+| `npm test` | rodado em 2026-10-07, código 0 | não rodado como comando único; cada pacote rodou no roteiro, ver a linha seguinte | CI, ver abaixo |
+| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | 2026-10-14: código 1, 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`"); **2026-10-19, depois do conserto V-API-3: código 0**, nenhuma falha e 20 pulados por ambiente (o Postgres real, sem `DC360_POSTGRES_DE_PROVA`); depois das correções da E07 e da E10 do mesmo dia o total passou a 1485 casos (a E07 e a E10 e também a correção 3 da E09, que acrescentou 13), com 34 pulados pelo mesmo motivo e 0 falhas | CI, ver abaixo |
+| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | código 0 | CI, ver abaixo |
+| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | código 0 | CI, ver abaixo |
+| `npm run test:scripts` | rodado em 2026-10-07, código 0 | código 0, 260 de 260, 0 pulados (existe `apps/campo/ios/`) | CI, ver abaixo |
+| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | código 0 | CI, ver abaixo |
 
-A coluna Linux fica "não provado" até existir um run de verdade, do CI
-(F01-E03) ou de contêiner: esta máquina não tem WSL nem Docker, e o código foi
-escrito para não depender da plataforma, o que não é o mesmo que ter rodado
-nela. A evidência está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+A coluna Linux ficou "não provado" até existir um run de verdade do CI, e agora
+existe: o trabalho "Linha de base (baseline.mjs) em Linux" rodou o roteiro
+inteiro (19 de 19 passos, código 0) no run 38445527075, do SHA `c9895e9`, que o
+gatekeeper da V2-F00-E25 leu (`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`);
+o mesmo run passou os demais trabalhos. Depois dele, o run 38618369218, do SHA
+`7585801` (candidato `52952a1`, de 2026-10-15), repetiu o roteiro (19 de 19,
+código 0) e fechou 9 de 9 trabalhos verdes, lido pelo gatekeeper em
+`docs/evidencias-v2/G00/V2-F00-E22/VEREDITO.md`. Isso cobre o roteiro, não cada
+comando da tabela um a um, e é anterior às correções 3 da E07 e da E12, à
+correção 1 da E21 e à correção 1 da E25. Depois delas houve o run 39143791434
+(2026-10-18, sobre o registro `ecaad76`, candidato `bb0f654`), 9 de 9 verdes
+segundo o STATUS, que o gatekeeper da rodada 4 NÃO conseguiu ler (o `gh` estava
+sem login); o run 39241470718 (2026-10-19, sobre o registro `766bc0a`,
+candidato `4ce0433`), 9 de 9 verdes segundo o STATUS, com as correções de E03,
+E05, E07, E09, E10, E15 e E25 posteriores ao anterior; o run 39366804765 (do
+candidato `1ed0b71`, SHA do run `7644420`), cuja tentativa 1 o GitHub recusou
+antes de começar, por faturamento (H32), e cuja tentativa 2 (2026-10-20, depois
+de o repositório virar público) rodou 9 de 9 trabalhos verdes; e o run
+39420436042 (2026-10-20, sobre o registro `55209ab`, candidato `fd17ff4`), 9 de
+9 verdes, linha de base em Linux inclusive, lido pelo
+gatekeeper da rodada 7 pela API pública do GitHub (`VEREDITO.md` da E22). As
+correções posteriores a `fd17ff4` não estão nesse run; o run delas é o do
+candidato seguinte, registrado no `VEREDITO.md` de cada etapa. A
+coluna do macOS vem do roteiro rodado nesta máquina
+(`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
+da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+
+**O que prova Windows, e a condição hostil em Linux (correção 3 da E21).** A
+coluna do Windows acima é a máquina do autor, e a validação não a aceita como
+prova independente. Quem prova Windows no CI são dois jobs de
+`.github/workflows/verificar.yml`, que rodam em push para `main`, `master` e
+`v2/**` e em pull request: o `windows`, com o
+`auditar`, `test:scripts` e `conferir:numeros` (ver "Portabilidade dos
+scripts"), e o `plataformas`, para os três casos acima, em matriz
+`windows-latest` e `ubuntu-latest`, e publica o artefato
+`plataformas-<sistema>-<sha>`. Ele faz o checkout com `core.autocrlf=true` e
+roda os três casos sob a condição hostil de verdade, cada um depois de um
+controle que reprova o job se a condição não se reproduzir: (1) `git ls-files
+--eol` sem `i/crlf` e com CRLF no disco só onde o `.gitattributes` pede, depois
+`apps/web/src` e `apps/web/test` gravados em CRLF (a árvore de antes do
+`.gitattributes`) e a suíte do painel inteira sobre eles; (2) `OPENSSL_CONF`
+apontando para o arquivo inexistente do driver ODBC, com o `openssl` cru
+reprovando antes e `banco-tls.test.ts` mais `openssl-do-teste.test.ts` verdes
+depois, no bash (Git Bash, no Windows) e, só no Windows, também no Windows
+PowerShell 5.1; (3) o `router.d.ts` velho de `scripts/fixtures/router.d.ts.velho`
+em `apps/campo/.expo/types`, com o `tsc` direto dando TS2345, o
+`npm run test:campo` apagando o cache e passando, e o typecheck sem cache em
+zero. Roda também o conferidor de índices de evidência sobre esse checkout. A
+montagem e o controle das condições ficam em `scripts/ambiente-hostil.mjs`. O
+`npm run verificar` inteiro no Windows continua sendo validação humana.
 
 Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
 sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
@@ -1152,19 +1443,50 @@ mínima: só o painel e só a existência da rota. A F02-E05 a generaliza para o
 aplicativo de campo e o console e a liga ao OpenAPI (F02-E04); corpo e resposta
 não são conferidos aqui.
 
-**A linha de base de hoje é vermelha de propósito.** Os vermelhos foram medidos
-em 2026-09-30 e são consertados um a um na fase F00 do Roadmap V2
-(`docs/roadmap-v2/03-fase-00-estabilizacao.md`). Para repetir a medição e
-arquivar a saída, sem segredo, em qualquer máquina:
+**O roteiro da linha de base.** Em 2026-09-30 a linha de base era vermelha de
+propósito (a medição original segue arquivada em `docs/auditoria-v2/`), e a
+fase F00 do Roadmap V2 (`docs/roadmap-v2/03-fase-00-estabilizacao.md`) a
+consertou. Desde a correção 1 da V2-F00-E01, o roteiro espera o que a árvore
+verde produz hoje. Para repetir a medição e arquivar a saída, sem segredo, em
+qualquer máquina:
 
 ```bash
 node scripts/baseline.mjs --so-listar   # mostra o roteiro, sem executar nada
 node scripts/baseline.mjs               # roda tudo e arquiva em docs/evidencias-v2/G00/V2-F00-E01/saidas
 ```
 
-Cada passo diz se o resultado "confere" com o esperado de 2026-09-30 ou se
-está "divergente". Divergente nunca é escondido: sai com código 1 e pede
-explicação. O passo a passo para uma segunda pessoa está em
+Cada passo diz se o resultado "confere", se está "divergente-explicada" (um
+achado nomeado, com o registro onde está descrito, e que só vale quando a saída
+bate com a descrição inteira) ou "divergente" (sem explicação). O código de
+saída é 0 (tudo confere), 1 (só divergência explicada) ou 3 (divergência sem
+explicação, que reprova); 2 é o roteiro quebrado. Nenhum passo carrega hoje
+uma divergência explicada. Na árvore validada de `4b96ea7` o roteiro conferiu
+todos os passos com código 0 (17 de 17 com `--sem-instalar` no Windows, 19 de 19
+no Linux do CI; o roteiro de hoje tem 20 passos, 18 sem instalar, porque a
+correção 4 da E03 acrescentou o `e2e-firefox`; o run 39420436042, do candidato `fd17ff4`, lido pelo gatekeeper da rodada 7, rodou o roteiro de 20 passos com o job verde), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
+com a atualização dos patches do Expo. **Medido em 2026-10-14 num Mac (Node 24,
+`--sem-instalar`): 15 de 17**, e as duas divergências são de ambiente, nenhuma
+de teste de produto: `teste-api` (a falha do LibreSSL descrita acima, com 1319
+casos impressos, 9 deles pulados por ambiente porque o bloco de Postgres real
+só roda com `DC360_POSTGRES_DE_PROVA`) e `test-scripts` (existe `apps/campo/ios/`,
+saída do `expo prebuild` desta máquina, então os casos que pulam sem ela
+rodam e passam: 0 pulados contra 4 esperados). O `expo-doctor` deu 20 de 21 na
+manhã desse dia (cinco patches novos do Expo) e **21 de 21 depois da correção 4
+da E19**, no mesmo dia; a medição de 15 de 17 é a da árvore final, com ele já
+verde (premissa e limites no item 17 de `apps/campo/PENDENCIAS.md`). As saídas
+estão em `docs/evidencias-v2/G00/V2-F00-E22/correcao-2/` (medição da manhã, 14 de
+17) e em `docs/evidencias-v2/G00/V2-F00-E19/correcao-4/saidas/linha-de-base-final/`
+(árvore final, 15 de 17, com as 17 saídas brutas).
+Desde 2026-10-19 o passo `teste-api` deixou de divergir num Mac: a falha do
+LibreSSL era do teste e foi consertada (V-API-3, seção 10 do registro da E03).
+A divergência de `teste-api` descrita acima é, portanto, a de 2026-10-14.
+Os dois `npm audit` crus são os únicos passos esperados como "falha", e só
+conferem se a saída trouxer o relatório (`# npm audit report`): `npm audit` que
+sai diferente de zero porque o registro estava fora do ar não audita nada e
+diverge. O total de casos que o roteiro espera de
+cada suíte é conferido contra a árvore por `npm run conferir:numeros`:
+acrescentar teste sem declarar a diferença em `scripts/baseline.mjs` reprova ali.
+O passo a passo para uma segunda pessoa está em
 `docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md`.
 
 **Teste pulado tem regra (política T42).** Nenhum vermelho conhecido fica na base
@@ -1204,8 +1526,14 @@ Na ordem, e nenhum passo é opcional:
 #
 #    CREATE ROLE dc360_setup LOGIN PASSWORD '...' CREATEROLE BYPASSRLS NOSUPERUSER;
 #    CREATE ROLE dc360_api   LOGIN PASSWORD '...' NOSUPERUSER;
-#    -- como dono do banco/schema:
+#    -- como dono do banco/schema (ou como o administrador do provedor):
 #    ALTER SCHEMA public OWNER TO dc360_setup;
+#    -- A migracao 041 cria a extensao pg_trgm. Ela e extensao confiavel, mas
+#    -- "confiavel" exige o privilegio CREATE no BANCO, e um banco criado por
+#    -- outro papel nao o da ao dc360_setup: sem esta linha a 041 para com
+#    -- `permission denied to create extension "pg_trgm"`. Em Postgres
+#    -- gerenciado o banco ja existe e o dono nao se troca, entao e conceder:
+#    GRANT CREATE ON DATABASE dc360 TO dc360_setup;
 #    -- depois de migrar (passo 2), o papel dc360_app ja existe:
 #    GRANT dc360_app TO dc360_api WITH SET TRUE;
 
@@ -1233,8 +1561,8 @@ DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run provisionar --   --mu
 
 O que a pessoa faz na primeira entrada, e é o passo que se esquece: abrir
 **Minha conta**, pelo nome dela no topo do painel, e trocar a senha ditada por
-telefone. A troca derruba as outras sessões e não depende de email, que é o
-que ainda não existe.
+telefone. A troca derruba as outras sessões e não depende de email (o cliente de
+email existe, mas está desligado em produção até o CP-19).
 
 A partir daí o administrador cria o resto do município pela tela de usuários.
 Ele é o teto: ninguém acima dele existe como papel, e provisionar outro
@@ -1278,38 +1606,102 @@ juntos não podem migrar em paralelo.
 
 ### Contêiner
 
-`Dockerfile` e `compose.yaml` estão no repositório. **Nenhum dos dois foi
-construído ou executado**: o ambiente onde foram escritos não tem Docker. São
-proposta revisável, não receita comprovada, e o primeiro deploy tem que
-começar por subir os dois uma vez.
+`Dockerfile` (a imagem da API), `Dockerfile.console` (a do console), `fly.toml`,
+`fly.console.toml` e `compose.yaml` estão no repositório. O `Dockerfile` é a
+imagem de produção: o `fly.toml` (`[build] dockerfile`) manda o `fly deploy`
+construí-lo, e o próprio `Dockerfile` registra o 503 dos PDFs que a imagem deu em
+produção: o Chromium estava nela, mas o pacote `playwright` não, porque estava
+em `devDependencies` e a etapa `--omit=dev` não o instalava. O que não existe é prova arquivada: o CI não constrói
+a imagem (o trabalho `implantavel` sobe a API direto no Node) e não há log de
+build no repositório. Não há registro de execução do `compose.yaml`. Ver a
+Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 
 ## Como testar
 
 ```bash
-npm test                    # 2851 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
-npm run test:api            # 1267 testes da API
-npm run test --workspace @dc360/campo   # 187 testes do motor de campo
-npm run test:campo          # tipos e os 1861 testes do aplicativo de campo
+npm test                    # 3623 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+npm run test:api            # 1719 testes da API
+npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
-npm audit                   # precisa fechar em zero, e HOJE NÃO FECHA
+npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
 ```
 
-**O `npm audit` não está em zero.** Medido em 2026-10-07: na raiz, só com as
-dependências de execução (`npm audit --omit=dev`), um aviso alto no `fastify`
-e um moderado no `fast-uri`, ambos com correção por `npm audit fix`; no
-aplicativo de campo, dezenas de avisos (altos e um crítico) na árvore do Expo.
-A regra do produto diz que vulnerabilidade em execução é bug, e a correção é a
-V2-F00-E19, que espera a política do CP-03. Nesta máquina `npm run auditar`
-nem chega a auditar: no Windows ele morre com `spawnSync npm ENOENT` antes da
-primeira consulta (o `npm` de lá é `npm.cmd`), então quem roda o portão aqui
-precisa ler o erro, e não concluir nada sobre vulnerabilidade a partir dele.
+**A política do `npm audit` (CP-03, decidido por Rafael em 2026-10-07).**
+Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
+de campo (`npm run auditar`, que também roda no Windows; no CI, o job
+`windows` o chama a cada push para `main`, `master` e `v2/**` e em pull request,
+como `node scripts/auditar.mjs`). Na raiz,
+o que sobra é só de desenvolvimento (`vitest`, `@vitest/mocker` e `tinypool`, que
+pedem salto de versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
+dentro do Expo (`brace-expansion`, `node-forge`, `shell-quote`,
+`decode-uri-component` e a cópia do `zod` 3 que o `@expo/cli` carrega) estão em
+`ACEITAS_NO_APLICATIVO`, cada um com motivo, dono e prazo de 2027-01-05; depois
+do prazo o portão reprova até alguém reavaliar. (`braces` e `sprintf-js` saíram
+da lista em 2026-10-24: o registro retirou as duas advisories.) A exceção do
+`zod` tem `somenteEm: ["node_modules/expo/node_modules/"]`: ela só vale para a
+cópia que o Expo carrega por dentro. O `zod` do próprio produto está na linha
+4 (4.6.7, corrige a GHSA-mrhx-c7xc-m3w5, que na linha 3 não tem correção) e, se
+voltasse a uma versão vulnerável, o portão reprovaria. O `npm audit fix` no aplicativo foi descartado porque
+reembaralha a árvore do Expo; a saída definitiva é subir o SDK por inteiro, o
+que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
+quem quer a resposta do portão roda `npm run auditar`. O portão nunca aprova sem
+ter auditado: se o registro de avisos estiver fora do ar, ou o `npm audit`
+devolver erro ou relatório sem contagem, na raiz ou no aplicativo, ele sai com
+código 2 e diz em português que NÃO auditou (código 1 é "auditei e achei").
+
+Antes de auditar, o portão confere a configuração do npm: lê o que o próprio npm
+diz que carregou (`npm config list`: o npmrc embutido, o global, o do usuário, o
+do projeto e as `npm_config_*` do ambiente), o `.npmrc` da raiz e o do aplicativo
+direto do disco, e as `npm_config_*` do ambiente, e só aceita as chaves de
+`CHAVES_PERMITIDAS` (`scripts/auditar-excecoes.mjs`): as que só mexem no terminal
+(`loglevel`, `color`, `progress`, `fund`, `update-notifier`), as pastas `cache`
+e `prefix`, a credencial do registro oficial, e as que toda chamada anula na
+linha de comando, que vence configuração (`registry`, `offline`,
+`prefer-offline`, `prefer-online`, `dry-run`, `package-lock`,
+`package-lock-only`, `audit-level`, `json`). Qualquer outra chave, venha de onde
+vier, faz o portão sair 2 com o nome dela e o arquivo de origem: a rodada 7 achou
+`package-lock=false` num `.npmrc`, que faz o npm auditar a árvore ideal das
+faixas do `package.json` em vez do lockfile, e o portão aprovava um lockfile com
+runtime vulnerável. Por isso toda chamada passa `--package-lock=true`, e as
+consultas reais `--package-lock-only=false`. As variáveis que o `npm run` exporta
+para o script (`cache`, `prefix`, `userconfig`, `globalconfig`, `local-prefix` e
+afins) e as de workspace saem do ambiente das chamadas. O escopo também não
+depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
+do aplicativo no aplicativo), e o npm tem de confirmar a pasta (`npm local
+prefix`, comparado também com a máscara `***` que o npm 11 põe em trecho de
+caminho com cara de UUID). Um `npm-shrinkwrap.json` na raiz, no aplicativo ou
+num workspace faz o portão sair 2 antes de auditar: o npm o lê no lugar do
+`package-lock.json`, e é o `package-lock.json` que o Dockerfile instala. `workspace`, `workspaces` e `include-workspace-root` não estão na lista,
+e a bandeira `--workspaces=false` saiu na correção 8: com uma dependência direta
+na raiz ela descarta do relatório tudo o que só os workspaces usam. O que ele
+exige antes de aprovar: cada relatório diz quantas dependências olhou; as
+advisories aceitas do aplicativo (por GHSA) e os pacotes aceitos de
+desenvolvimento voltam DENTRO das próprias consultas (se uma some, a resposta foi
+forjada no caminho ou a lista está velha, e o portão sai 2); o que a auditoria
+completa acusa em pacote que o `package-lock.json` não marca como só de
+desenvolvimento conta como runtime; e uma consulta de controle à parte (`lodash`
+4.17.20, com o `.npmrc` de cada projeto) volta com a advisory conhecida. As
+exceções do aplicativo casam pelo id da advisory e pela gravidade aceita:
+advisory nova num pacote já aceito reprova, e advisory aceita que muda de
+gravidade também. O prazo das exceções vale até o fim do dia escrito no fuso de
+São Paulo. O que continua FORA do alcance: um `npm` falso no `PATH` (o portão
+confia no programa que executa); um proxy de inspeção TLS que reescreve a
+resposta tirando só a advisory nova e deixando as conhecidas (as variáveis de
+proxy do sistema, como `HTTPS_PROXY`, não são configuração do npm e não passam
+pela lista); o dia em que as duas listas de aceitas ficarem vazias (aí a única
+prova é a consulta de controle à parte); e um `package-lock.json` adulterado que
+marca um pacote de runtime como `dev: true`, porque o portão confia nessa marca
+para separar runtime de desenvolvimento (o `npm ci --omit=dev` do Dockerfile usa
+a mesma marca e não instala o pacote, então a imagem não leva a versão
+vulnerável; anotado na rodada 7).
 
 ### O aplicativo de campo precisa de um comando próprio
 
 `apps/campo` fica fora do `workspaces` de propósito (o motivo está em "O que
 falta", mais abaixo), e o efeito colateral é que `npm test` na raiz não o
-alcança: nada do que os cinco workspaces somam vem do aplicativo. Por isso
+alcança: nada do que os seis workspaces somam (`packages/campo`, `packages/shared`, `apps/api`, `apps/console`, `apps/web` e `db`) vem do aplicativo. Por isso
 existe `npm run test:campo`, que compila os pacotes compartilhados de que o
 aplicativo depende, roda o TypeScript estrito dele e executa os testes.
 
@@ -1339,8 +1731,10 @@ vitest de dentro do vitest pendura o processo.
 
 O aplicativo de campo é contado de outro jeito, e a diferença é honesta: ele
 roda no jest, que não tem equivalente de `vitest list` (`--listTests` lista
-arquivos, não casos), e o trabalho de integração contínua que confere os
-números nem instala as dependências dele. Então o script lê o código e conta
+arquivos, não casos), e conferir os números não deveria depender de instalar as dependências dele
+(o trabalho "Testes, tipos e scripts" do CI as instala por outro motivo, para os
+testes de `scripts/` que leem `apps/campo/node_modules`, mas o conferidor não
+conta com isso). Então o script lê o código e conta
 `it(` e `test(` abrindo linha, resolvendo `it.each` pela tabela para não
 contar uma linha onde o jest conta duas. Quando não consegue resolver uma
 tabela, ele **estoura** em vez de devolver um número menor.
@@ -1441,7 +1835,7 @@ local no Chromium e no Firefox e, contra a API, o arquivo inteiro de ponta a
 ponta nos dois motores, sem cópia aparada. Antes disso a suíte contra a API
 morria na seção 13, e as seções seguintes nunca tinham sido alcançadas juntas.
 
-São 251 verificações no navegador que só existem neste caminho: entrada por senha, senha
+São 258 verificações no navegador que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -1536,7 +1930,7 @@ E das funções `SECURITY DEFINER`, que são portas abertas na parede do RLS:
 | --- | --- |
 | Todas fixam `search_path` | Sem isso, quem controla o search_path faz a função chamar código dele com privilégio de dono. É a escalada clássica, e não precisa de bug no SQL |
 | Nenhuma executável por `PUBLIC` | O padrão do Postgres é conceder `EXECUTE` a PUBLIC: esquecer o `REVOKE` abre a função para qualquer papel conectado |
-| No máximo doze | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto |
+| No máximo 27 | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto. Começou em doze e subiu por razão escrita, uma a uma, no próprio teste (a última, de 26 para 27, foi `varrer_tarefas_novas`, migração 042) |
 | `dc360_app` não é superusuário, não ignora RLS e não é dono de tabela | Se fosse, todo o resto viraria enfeite |
 
 Verifiquei o portão contra migrações descuidadas de propósito: uma tabela nova
@@ -1553,27 +1947,44 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## Integração contínua
 
-`.github/workflows/verificar.yml` roda a cada push e a cada pull request, em
-cinco trabalhos paralelos:
+`.github/workflows/verificar.yml` roda a cada push em `main`, `master` ou `v2/**`
+e a cada pull request, em
+trabalhos paralelos (os cinco principais abaixo; há ainda o de dependências,
+`node scripts/auditar.mjs`, que antes recusa `.npmrc` versionado; o `windows`,
+que repete o `auditar`, `test:scripts` e `conferir:numeros` em `windows-latest`;
+o `plataformas`, com os três casos de ambiente da E21 em Windows e em Linux (ver
+"O que prova Windows", na primeira seção "Como testar"); o da linha de base em Linux
+(`baseline.mjs`), o do restore do banco e o de ferramentas do roadmap, que
+também confere os `INDEX.md` da evidência com
+`scripts/conferir-indices-de-evidencia.mjs`: onze ao todo, doze execuções por
+causa da matriz do `plataformas`; os
+dois longos, linha de base e restore, hoje só rodam em push cujo commit traga
+`[ci completo]`: o disparo manual e a agenda de segunda-feira estão escritos no
+arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
+`origin/master` ainda não os tem):
 
 <!-- numeros: nao sao contagem -->
 | Trabalho | O que ele impõe |
 | --- | --- |
-| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm audit` em zero (hoje esse passo reprova: ver "Como testar") e os números do README conferidos |
-| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
+| Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`node scripts/auditar.mjs`, o mesmo portão do `npm run auditar`, política do CP-03, ver "Como testar") |
+| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API em Chromium, Firefox e WebKit (`npm run test:e2e:api`, `node scripts/e2e-api.mjs firefox` e, no WebKit, só a geometria e o foco da tela estreita: `node scripts/e2e-api.mjs webkit --so-layout`, porque a suíte principal supõe que clicar num botão o foca e o WebKit não faz isso; os três rodam no CI desde a correção 5 da V2-F00-E09, porque o foco depois da senha errada falhava só no Firefox) |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
-| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` (hoje 20 de 21) e auditoria própria (hoje reprova) |
+| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
 
-O CA-06 roda separado e antes de tudo de propósito: isolamento entre
-municípios é a regra número um, e se ela quebrar nada mais importa.
+O CA-06 roda separado e antes da suíte inteira de propósito (o TypeScript
+estrito vem antes dele no job): isolamento entre municípios é a regra número
+um, e se ela quebrar nada mais importa.
 
 A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
-do CI foi conferida durante a F00 (é validação humana pendente da V2-F00-E01),
-e pelo menos o `npm audit` dos dois trabalhos e o `expo-doctor` reprovam hoje.
+do CI foi conferida por uma pessoa durante a F00 (é validação humana pendente
+da V2-F00-E01); o gatekeeper leu o run 37739535524 do SHA 7005a60, com 9 jobs
+verdes, depois o 38618369218 do SHA 7585801, também com 9 de 9, e o 39420436042 do SHA 55209ab (candidato fd17ff4), 9 de 9, na rodada 7, antes de existirem os jobs `windows` e `plataformas`. O CI decide dependência por `node scripts/auditar.mjs` (jobs `dependencias` e `windows`; é o mesmo portão do `npm run auditar`), e não por
+`npm audit` puro; o `npm audit` puro ainda lista os avisos aceitos pelo CP-03,
+e os relatórios brutos dele só são arquivados como evidência.
 
-Na máquina, o mesmo se pede com `npm run verificar` e
-`scripts/conferir-demo.ps1`. O `verificar` inclui `npm run test:campo`: por um
+Na máquina, o mesmo se pede com `npm run verificar` (em `dc360/`) e
+`scripts/conferir-demo.ps1` (na raiz do repositório, não em `dc360/`). O `verificar` inclui `npm run test:campo`: por um
 bom tempo ele não incluía, e o aplicativo era medido só no runner. Portão que
 existe apenas na integração contínua é portão que se descobre quebrado depois
 do push, e a essa altura o conserto custa uma volta inteira.
@@ -1588,19 +1999,28 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
   código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
   envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
-  aplicativo; NÃO passa hoje no `expo-doctor` (20 de 21) nem no `npm audit`
-  (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
-  de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
+  aplicativo; deu 21 de 21 no `expo-doctor` em 2026-10-13 (os seis patches do Expo foram
+  aplicados então), 20 de 21 na manhã de 2026-10-14 (cinco patches novos) e
+  21 de 21 de novo no mesmo dia, depois da correção 4 da E19 (pendência 17 de
+  `apps/campo/PENDENCIAS.md`, com a premissa de que o Rafael ainda não confirmou
+  a analogia com a D1 para esses cinco pacotes), 20 de 21 em 2026-10-18 (`expo` e
+  `expo-router` um patch atrás) e 21 de 21 de novo no mesmo dia, depois da correção 5
+  da E19, com a mesma premissa; passa no
+  `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
+  aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+  de aparelho físico está arquivado**, e relato não é prova (as capturas de
+  emulador Android de E06, E15 e E16 estão listadas em `apps/campo/LEIA-ME.md`). O que falta é o que só o
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
   aparelho fica sem sinal (V2-F14-E12).
 
-  Essa última já tem 187 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 238 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
-  próprio lockfile e a própria auditoria, que hoje NÃO fecha em zero. O preço
+  próprio lockfile e a própria auditoria, que NÃO fecha em zero no `npm audit` puro
+  (fecha em `npm run auditar`, com as exceções nomeadas do CP-03: cinco pacotes e sete advisories). O preço
   dessa separação é que nenhum comando da raiz o enxerga de graça: quem o
   alcança é `npm run test:campo`, e ele está dentro de `npm run verificar`.
 - **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play
@@ -1609,8 +2029,9 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   prazo longo e independem de código: a verificação de identidade da
   organização na Google e o número D-U-N-S exigido pela Apple.
 - **Conta no provedor de armazenamento.** O código está pronto e testado
-  contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
-  isso só se comprova com credencial em mão.
+  contra o vetor oficial da AWS, mas a varredura de órfãos (`ListObjectsV2`) nunca
+  falou com o provedor de verdade (`docs/ARMAZENAMENTO.md`); o armazenamento de
+  produção é o Supabase Storage por S3 (`fly.toml`).
 - **Conta no provedor de email.** O provedor foi escolhido (Resend) e o cliente
   fala o contrato publicado dele, com teste conferindo o corpo do pedido campo
   a campo. O que falta é a conta: criar, verificar um domínio da prefeitura no
@@ -1634,7 +2055,9 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   chave, com o custo por carregamento e o envio da coordenada ao Google que
   `docs/SUBPROCESSADORES.md` declara.
 - **Armazenamento de evidência.** A regra de chave por tenant já está no banco;
-  falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
+  o bucket de produção é o Supabase Storage por S3 (`fly.toml`, `docs/ARMAZENAMENTO.md`).
+  O levantamento apontava Cloudflare R2 por causa do egress; a troca de provedor
+  é só configuração.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
 - **Desligar o segundo fator de OUTRA pessoa.** Hoje cada um cuida do próprio:

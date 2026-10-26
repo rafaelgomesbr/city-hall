@@ -1,0 +1,14 @@
+workflow:         Verificar (simulado)
+job:              plataformas
+evento:           ?
+run:              ? (tentativa ?)
+repositorio:      ?
+ref:              ?
+sha do run:       ?
+sha da ponta (PR): (nao e pull_request)
+git HEAD:         f37bdacb715d00bb83b52f511775258caadef776
+runner:           macOS ? (imagem ? ?)
+node:             v24.15.0
+npm:              11.12.1
+uname:            Darwin 25.4.0 arm64
+inicio (UTC):     2026-10-20T14:55:46Z

@@ -327,6 +327,16 @@ export type Transporte = {
   autorizarFoto(pedido: {
     ocorrenciaId: string;
     foto: FotoLocal;
+    /**
+     * Quem fez a coleta a que a foto pertence. Vai no pedido para o SERVIDOR
+     * conferir com o token (409 `autor_divergente`): sem isto, a conta que
+     * trocasse com a foto em voo gravava a autoria da foto no nome de outra
+     * pessoa, na trilha append-only. Opcional por causa da coleta gravada por
+     * versão anterior, que não tem autor: nesse caso o campo sai ausente, e
+     * nunca com o dono da sessão (seria escrever a mentira que ele existe para
+     * impedir).
+     */
+    coletadaPor?: string;
   }): Promise<AutorizacaoFoto>;
   /** Manda os bytes direto ao armazenamento, sem passar pela API. */
   enviarBytes(
@@ -385,10 +395,21 @@ export class FalhaPermanente extends Error {
  * `conta_desativada`: a conta da pessoa foi desativada. Entrar de novo NÃO
  * resolve, e quem resolve é a coordenação.
  *
- * Os dois nomes são os códigos do catálogo de `@dc360/shared`
+ * `troca_de_senha_obrigatoria`: a pessoa entrou com a senha provisória que
+ * quem administra sorteou, e o servidor só aceita a troca de senha até ela
+ * definir a própria (403 em toda escrita). Entrar de novo NÃO resolve, e quem
+ * resolve é a própria pessoa, no painel. Entrou na correção 1 da E06: este
+ * código caía em `FalhaPermanente`, e a rodada 1 da validação provou que todas
+ * as coletas do agente viravam `bloqueado`, com "Descartar" ao lado, sobre
+ * coleta que o servidor nunca recebeu.
+ *
+ * Os três nomes são os códigos do catálogo de `@dc360/shared`
  * (`codigos-de-erro.ts`), de propósito: o texto do servidor muda, o código não.
  */
-export type MotivoDeSessao = "sessao_encerrada" | "conta_desativada";
+export type MotivoDeSessao =
+  | "sessao_encerrada"
+  | "conta_desativada"
+  | "troca_de_senha_obrigatoria";
 
 /**
  * A falha que não é nem de rede nem do dado: é da sessão.

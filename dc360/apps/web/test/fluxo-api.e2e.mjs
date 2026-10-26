@@ -897,11 +897,45 @@ console.log("\n== 23. Sessão encerrada e conta desativada: a frase certa na tel
 const API_E05 = process.env.BASE_API ?? "http://127.0.0.1:3333";
 const SENHA_DO_MARCOS = "senha-inicial-do-marcos";
 
+/*
+  Espera o painel ACEITAR CONEXAO neste navegador, com limite, antes de abrir
+  o segundo contexto (V-INS-06 do registro da E03).
+
+  Em 2026-10-13, no Firefox do Windows, 1 de 4 rodadas caiu AQUI com
+  `CONNECTION_REFUSED` ao navegar pela primeira vez no segundo contexto que a
+  secao 23 abre; a recusa foi da conexao e nao do conteudo. Duas hipoteses: o painel nao aceitava
+  conexao naquele instante, ou o Firefox resolveu `localhost` por um caminho
+  (IPv6) em que o servidor nao escuta. Nao deu para medir qual (a falha nao
+  reproduziu depois); o conserto nao depende da resposta. A espera tenta a
+  navegacao de verdade, no navegador sob teste, e so repete quando o erro e de
+  conexao recusada; qualquer outro erro (pagina 500, certificado, rede caida)
+  sobe na hora. Se o painel nao responder em 30 s, o teste reprova com a
+  ultima mensagem do navegador, e nao fica pendurado nem passa em silencio.
+*/
+const ERRO_DE_CONEXAO = /CONNECTION_REFUSED|ERR_CONNECTION_REFUSED|NS_ERROR_CONNECTION_REFUSED|ECONNREFUSED|NS_ERROR_NET_RESET/i;
+
+async function irParaQuandoOPainelResponder(pagina, url, opcoes = {}, limiteMs = 30_000) {
+  const fim = Date.now() + limiteMs;
+  let ultima = null;
+  for (;;) {
+    try {
+      return await pagina.goto(url, opcoes);
+    } catch (erro) {
+      if (!ERRO_DE_CONEXAO.test(String(erro?.message ?? erro))) throw erro;
+      ultima = erro;
+      if (Date.now() >= fim) {
+        throw new Error(`o painel nao aceitou conexao em ${limiteMs / 1000} s (${url}): ${ultima.message}`);
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+}
+
 async function abrirComoMarcos() {
   const contextoDele = await navegador.newContext();
   const paginaDele = await contextoDele.newPage();
   registrar(paginaDele);
-  await paginaDele.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+  await irParaQuandoOPainelResponder(paginaDele, `${BASE}/entrar`, { waitUntil: "networkidle" });
   await paginaDele.waitForSelector("#entrada-email", { timeout: 30_000 });
   await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
   await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
@@ -980,6 +1014,78 @@ const idDoMarcos = await page.evaluate(async ({ api }) => {
 
   // E entrar de novo de fato nao resolve: a entrada recusa com a frase generica
   // da senha errada, sem contar que a conta existe nem que foi desativada.
+  await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
+  await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
+  await paginaDele.getByRole("button", { name: "Entrar", exact: true }).click();
+  await paginaDele.waitForSelector(".campo__erro", { timeout: 20_000 });
+  const recusa = (await paginaDele.locator(".campo__erro").first().textContent()) ?? "";
+  ok("a entrada continua com a recusa generica", /inv[áa]lidos/i.test(recusa) && !/desativ/i.test(recusa),
+     `(${recusa.slice(0, 80)})`);
+  await contextoDele.close();
+}
+
+// 23c. Conta desativada pelo painel e a pessoa so volta DEPOIS de o token de
+// acesso vencer (correcao 1 da E05). E o caminho comum: o aparelho ou a aba
+// parada passa dos 15 minutos, o pedido leva 401 `nao_autenticado`, o painel
+// renova, e a renovacao tem de dizer `conta_desativada`. Desativar pelo painel
+// REVOGA as sessoes, e foi ai que a renovacao respondia "sessao encerrada".
+{
+  // O Marcos foi desativado em 23b: a coordenacao o reativa (rota do produto) para ele entrar de novo.
+  const reativou = await page.evaluate(async ({ api, id }) => {
+    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+    const r = await fetch(`${api}/usuarios/${id}/situacao`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${tokens.acesso}`, "content-type": "application/json" },
+      body: JSON.stringify({ ativo: true }),
+    });
+    return r.status;
+  }, { api: API_E05, id: idDoMarcos });
+  ok("a coordenacao reativa o Marcos", reativou === 200, `(${reativou})`);
+
+  const { contextoDele, paginaDele } = await abrirComoMarcos();
+  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+  await page.waitForSelector("#usuario-nome", { timeout: 20_000 });
+  const linha = page.locator("tbody tr", { hasText: "marcos.teles@serraalta.exemplo.gov.br" });
+  await linha.getByRole("button", { name: "Desativar" }).click();
+  await page.getByRole("button", { name: /^Desativar Marcos/ }).click();
+  await linha.getByRole("button", { name: "Reativar" }).waitFor({ timeout: 20_000 });
+  ok("a coordenacao desativa o Marcos pelo painel (as sessoes dele caem junto)", true);
+
+  // Passam os 15 minutos: o token de acesso dele vence, e o de renovacao e o que o painel usa.
+  await paginaDele.evaluate(() => {
+    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+    sessionStorage.setItem("dc360:tokens", JSON.stringify({ ...tokens, acesso: "token.vencido.invalido" }));
+  });
+  await tentarTrocarSenha(paginaDele);
+  const aviso = (await paginaDele.locator(".aviso").first().textContent()) ?? "";
+  ok("token vencido + conta desativada leva a tela de entrada", paginaDele.url().includes("/entrar"));
+  ok("e diz que a conta foi desativada, e nao que a sessao foi encerrada ou expirou",
+     /sua conta foi desativada/i.test(aviso) && !/sess[ãa]o foi encerrada/i.test(aviso) && !/expirou/i.test(aviso),
+     `(${aviso.slice(0, 80)})`);
+  ok("e manda procurar a coordenacao, e nao entrar de novo",
+     /procure a coordena[çc][ãa]o do seu munic[íi]pio/i.test(aviso) && /n[ãa]o\s+resolve/i.test(aviso));
+  ok("com aviso de perigo", (await paginaDele.locator(".aviso--perigo").count()) === 1);
+  ok("os tokens nao ficam guardados",
+     (await paginaDele.evaluate(() => sessionStorage.getItem("dc360:tokens"))) === null);
+
+  if (process.env.CAPTURAS_E05C) {
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(process.env.CAPTURAS_E05C, { recursive: true });
+    for (const [largura, altura] of [[1280, 900], [390, 844]]) {
+      for (const tema of ["claro", "escuro"]) {
+        await paginaDele.setViewportSize({ width: largura, height: altura });
+        await paginaDele.evaluate((t) => {
+          document.documentElement.dataset.theme = t === "escuro" ? "dark" : "light";
+        }, tema);
+        await paginaDele.waitForTimeout(150);
+        await paginaDele.screenshot({
+          path: `${process.env.CAPTURAS_E05C}/entrada-renovacao-recusada-${largura}-${tema}.png`, fullPage: true,
+        });
+      }
+    }
+  }
+
+  // Entrar de novo continua com a recusa generica, para quem nao tem credencial.
   await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
   await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
   await paginaDele.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -1630,6 +1736,24 @@ const respostaDeQuemTemConta = (await paginaE10.locator(".aviso--sucesso").textC
 // O link do alvo e lido AGORA, antes dos outros pedidos: o arquivo e o mesmo para todos.
 const linkDoAlvoE10 = await esperarLinkNovoE10(paginaE10, antesDoPedidoE10);
 await capturarE10(paginaE10, "pedido-enviado");
+/*
+  Foco depois do envio (WCAG 2.4.3): o formulário sumiu, e o foco tem de estar na
+  confirmação, e não em BODY. UM mecanismo só: a confirmação com foco não é região
+  viva (nem status nem alert), senão o leitor a diria duas vezes.
+*/
+const focoDoEnviadoE10 = await paginaE10.evaluate(() => {
+  const a = document.activeElement;
+  return { classe: a?.className ?? "", tab: a?.getAttribute("tabindex") ?? null, papel: a?.getAttribute("role") ?? null,
+           vivas: document.querySelectorAll(".entrada [role=status], .entrada [role=alert]").length };
+});
+ok("depois de enviar o pedido o foco está na confirmação, sem ser região viva",
+   focoDoEnviadoE10.classe.includes("aviso--sucesso") && focoDoEnviadoE10.tab === "-1"
+   && focoDoEnviadoE10.papel === null && focoDoEnviadoE10.vivas === 0,
+   JSON.stringify(focoDoEnviadoE10));
+await paginaE10.getByRole("button", { name: "Pedir de novo" }).click();
+await paginaE10.waitForSelector("#recuperar-email", { timeout: 10_000 });
+ok("e ao pedir de novo o foco volta para o campo do email",
+   (await paginaE10.evaluate(() => document.activeElement?.id)) === "recuperar-email");
 
 await paginaE10.goto(`${BASE}/recuperar-senha`, { waitUntil: "networkidle" });
 await paginaE10.locator("#recuperar-email").fill("ninguem-existe-aqui@exemplo.gov.br");
@@ -1695,10 +1819,77 @@ await paginaE10.getByRole("button", { name: "Definir nova senha" }).click();
 await paginaE10.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
 ok("redefine a senha e confirma",
    (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."));
-ok("a tela oferece ir para a entrada agora",
-   (await paginaE10.getByRole("link", { name: "Ir para a entrada" }).count()) === 1);
-await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 }).catch(() => {});
-ok("e leva sozinha para a entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");
+/*
+  Foco e anúncio (WCAG 2.4.3 e 4.1.3): o formulário sumiu, o foco tem de estar na
+  confirmação (tabindex -1) e ela NÃO é região viva: o foco é o único mecanismo, e
+  uma região inserida já com o texto nem sempre é anunciada.
+*/
+const focoDoProntoE10 = await paginaE10.evaluate(() => {
+  const a = document.activeElement;
+  return { classe: a?.className ?? "", tab: a?.getAttribute("tabindex") ?? null, papel: a?.getAttribute("role") ?? null,
+           vivas: document.querySelectorAll(".entrada [role=status], .entrada [role=alert]").length,
+           acoes: document.querySelectorAll(".entrada a, .entrada button").length };
+});
+ok("depois de redefinir o foco está na confirmação, que não é região viva",
+   focoDoProntoE10.classe.includes("aviso--sucesso") && focoDoProntoE10.tab === "-1"
+   && focoDoProntoE10.papel === null && focoDoProntoE10.vivas === 0,
+   JSON.stringify(focoDoProntoE10));
+ok("a tela oferece o botão Entrar",
+   (await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).count()) === 1);
+ok("e é a única ação: sem o segundo link 'Voltar para a entrada' para o mesmo lugar",
+   focoDoProntoE10.acoes === 1 && (await paginaE10.getByRole("link", { name: "Voltar para a entrada" }).count()) === 0,
+   `(${focoDoProntoE10.acoes} ações)`);
+ok("e o texto não se repete: sem a frase de apoio",
+   !(await paginaE10.locator(".entrada").textContent()).includes("Quando quiser, vá para a entrada"));
+/*
+  V2-F00-E10, correção 2 (WCAG 2.2.1): a tela NÃO redireciona por tempo. Antes
+  ela levava sozinha para a entrada em cerca de 2,5 s, e a entrada não repetia a
+  confirmação. Espera quase o dobro disso, e a confirmação tem de continuar lá,
+  na mesma página, até a pessoa clicar.
+*/
+const inicioDaEspera = Date.now();
+await paginaE10.waitForTimeout(5_000);
+ok("passados 5 s a tela continua a de redefinir, sem redirecionamento por tempo",
+   new URL(paginaE10.url()).pathname === "/redefinir-senha", paginaE10.url());
+ok("e a confirmação de sucesso continua na tela",
+   (await paginaE10.locator(".aviso--sucesso").count()) === 1
+   && (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."),
+   `(${Date.now() - inicioDaEspera} ms depois)`);
+await capturarE10(paginaE10, "definir-sucesso");
+/*
+  O botão Entrar é um link, e `a:hover` já fez o texto dele ficar da cor do
+  fundo (rótulo invisível ao passar o mouse, nos dois temas). Mede nos dois temas:
+  com o ponteiro em cima, a razão de contraste entre texto e fundo (luminância
+  relativa da WCAG 2.x) tem de ser de pelo menos 4,5. "Diferente do fundo" não
+  basta: duas cores quase iguais passariam.
+*/
+const botaoEntrarE10 = paginaE10.getByRole("link", { name: "Entrar com a nova senha" });
+for (const [tema, atributo] of [["claro", "light"], ["escuro", "dark"]]) {
+  await paginaE10.evaluate((t) => { document.documentElement.dataset.theme = t; }, atributo);
+  await botaoEntrarE10.hover();
+  await paginaE10.waitForTimeout(400);
+  const sobre = await botaoEntrarE10.evaluate((e) => {
+    const c = getComputedStyle(e);
+    // O navegador devolve `rgb()`/`rgba()` ou `color(srgb r g b)`; os dois viram canais 0..1.
+    const canais = (css) => {
+      const n = css.match(/-?\d*\.?\d+/g).map(Number);
+      return css.startsWith("color(") ? n.slice(0, 3) : n.slice(0, 3).map((v) => v / 255);
+    };
+    const lum = (css) => {
+      const [r, g, b] = canais(css).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const [a, b] = [lum(c.color), lum(c.backgroundColor)];
+    return { texto: c.color, fundo: c.backgroundColor, razao: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
+  });
+  ok(`o botão Entrar não perde o rótulo com o mouse em cima (tema ${tema}): contraste >= 4,5`,
+     sobre.razao >= 4.5, `(texto ${sobre.texto} sobre fundo ${sobre.fundo}, razão ${sobre.razao.toFixed(2)})`);
+}
+await paginaE10.mouse.move(2, 2);
+await paginaE10.evaluate(() => { document.documentElement.dataset.theme = "light"; });
+await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).click();
+await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 });
+ok("o botão Entrar leva à entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");
 
 const antigaDoAlvoE10 = await viaApiE07("/auth/entrar", { metodo: "POST", corpo: { email: ALVO_E10, senha: SENHA } });
 const novaDoAlvoE10 = await viaApiE07("/auth/entrar", { metodo: "POST", corpo: { email: ALVO_E10, senha: SENHA_NOVA_E10 } });

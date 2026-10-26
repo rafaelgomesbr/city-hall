@@ -1,0 +1,69 @@
+mutação M2: o esquema aceita qualquer texto (sem o uuid() do zod), com a normalização
+-const idSchema = z.object({ id: z.string().uuid() });
++const idSchema = z.object({ id: z.string().min(1).transform((id) => id.toLowerCase()) });
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ❯ test/id-da-propria-conta.test.ts (13 tests | 3 failed) 21432ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em minúsculas: 422 autoredefinicao (controle)  778ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em maiúsculas: 422 autoredefinicao, e nada muda  766ms
+   ✓ A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id com caixa misturada: 422 autoredefinicao, e nada muda  806ms
+   × A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda 853ms
+     → redefinir a senha, id entre chaves: {"senhaTemporaria":"j5ie-8q26-cwcz","sessoesEncerradas":7,"mensagem":"Senha temporária de Rita Sampaio Lopes. Ela aparece uma única vez: entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela."}: expected 200 not to be 200 // Object.is equality
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em minúsculas: 422 autoencerramento (controle)  820ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em maiúsculas: 422 autoencerramento, e nada muda  903ms
+   ✓ A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id com caixa misturada: 422 autoencerramento, e nada muda  1135ms
+   × A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda 935ms
+     → encerrar as sessões, id entre chaves: {"id":"{11111111-1111-4111-8111-0000000000d4}","sessoesEncerradas":7}: expected 200 not to be 200 // Object.is equality
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em minúsculas: 422 autodesativacao (controle)  1318ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em maiúsculas: 422 autodesativacao, e nada muda  4652ms
+   ✓ A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id com caixa misturada: 422 autodesativacao, e nada muda  2341ms
+   × A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda 1941ms
+     → desativar a conta, id entre chaves: {"id":"{11111111-1111-4111-8111-0000000000d4}","ativo":false}: expected 200 not to be 200 // Object.is equality
+   ✓ A própria conta com o id escrito de outro jeito > o id de outra pessoa em maiúsculas continua valendo: a redefinição da Helena responde 200  2944ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > redefinir a senha com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda
+AssertionError: redefinir a senha, id entre chaves: {"senhaTemporaria":"j5ie-8q26-cwcz","sessoesEncerradas":7,"mensagem":"Senha temporária de Rita Sampaio Lopes. Ela aparece uma única vez: entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a primeira entrada exige definir uma senha nova antes de qualquer tela."}: expected 200 not to be 200 // Object.is equality
+ ❯ test/id-da-propria-conta.test.ts:180:78
+    178|         for (const [formato, id] of formatosAlternativos) {
+    179|           const r = await rota.pedir(encodeURIComponent(id));
+    180|           expect(r.statusCode, `${rota.nome}, id ${formato}: ${r.body}…
+       |                                                                              ^
+    181|           expect([400, 404, 422], `${rota.nome}, id ${formato}: ${r.bo…
+    182|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > encerrar as sessões com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda
+AssertionError: encerrar as sessões, id entre chaves: {"id":"{11111111-1111-4111-8111-0000000000d4}","sessoesEncerradas":7}: expected 200 not to be 200 // Object.is equality
+ ❯ test/id-da-propria-conta.test.ts:180:78
+    178|         for (const [formato, id] of formatosAlternativos) {
+    179|           const r = await rota.pedir(encodeURIComponent(id));
+    180|           expect(r.statusCode, `${rota.nome}, id ${formato}: ${r.body}…
+       |                                                                              ^
+    181|           expect([400, 404, 422], `${rota.nome}, id ${formato}: ${r.bo…
+    182|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/id-da-propria-conta.test.ts > A própria conta com o id escrito de outro jeito > desativar a conta com o próprio id em formatos alternativos de uuid: nunca 200, e nada muda
+AssertionError: desativar a conta, id entre chaves: {"id":"{11111111-1111-4111-8111-0000000000d4}","ativo":false}: expected 200 not to be 200 // Object.is equality
+ ❯ test/id-da-propria-conta.test.ts:180:78
+    178|         for (const [formato, id] of formatosAlternativos) {
+    179|           const r = await rota.pedir(encodeURIComponent(id));
+    180|           expect(r.statusCode, `${rota.nome}, id ${formato}: ${r.body}…
+       |                                                                              ^
+    181|           expect([400, 404, 422], `${rota.nome}, id ${formato}: ${r.bo…
+    182|           expect(r.body).not.toContain("senhaTemporaria");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 10 passed (13)
+   Start at  00:35:14
+   Duration  22.20s (transform 257ms, setup 20ms, collect 517ms, tests 21.43s, environment 0ms, prepare 52ms)
+
+codigo de saida: 1

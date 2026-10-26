@@ -1,0 +1,999 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index cdec787..046dd5c 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -12,8 +12,8 @@ build) valem lá, não aqui.
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1590 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1983 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 274 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -1512,11 +1512,11 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3351 testes em seis pacotes
++npm test                    # 3358 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1590 testes da API
+-npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+-npm run test:campo          # tipos e os 1983 testes do aplicativo de campo
++npm run test --workspace @dc360/campo   # 238 testes do motor de campo
++npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
+ ```
+@@ -1849,7 +1849,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+   aparelho fica sem sinal (V2-F14-E12).
+ 
+-  Essa última já tem 231 testes do motor de campo cobrindo a lógica fora do
++  Essa última já tem 238 testes do motor de campo cobrindo a lógica fora do
+   celular, inclusive retomada arquivo a arquivo.
+   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
+   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index f43febc..7efe3f2 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -42,7 +42,7 @@ O que É verificável daqui, e está verificado:
+ | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+ | Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
+ | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-13: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as seis exceções nomeadas do CP-03 (`decode-uri-component`, `brace-expansion`, `braces`, `node-forge`, `shell-quote`, `sprintf-js`), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
+-| A fila que ele consome | `npm test --workspace @dc360/campo` | 231 testes do motor de campo |
++| A fila que ele consome | `npm test --workspace @dc360/campo` | 238 testes do motor de campo |
+ 
+ **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
+ o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
+@@ -115,7 +115,7 @@ na chuva.
+    de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
+ 
+ Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
+-231 testes do motor de campo cobrindo a lógica fora do celular, inclusive
++238 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+ retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
+ quando o sistema mata o processo.
+ 
+@@ -132,7 +132,7 @@ src/ui/              tokens e componentes
+ ```
+ 
+ **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
+-feita sem sinal vive em `packages/campo`, com 231 testes de unidade do motor de campo, e a
++feita sem sinal vive em `packages/campo`, com 238 testes de unidade do motor de campo, e a
+ integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.test.ts`). Este diretório liga os
+ fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
+ isso que ele é fino de propósito.
+diff --git a/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx b/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+index 21ff9f9..f9046a9 100644
+--- a/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
++++ b/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+@@ -100,10 +100,12 @@ jest.mock("../dados/fila", () => ({
+       /* O contrato de `drenar` é devolver o resultado do dreno; a tela lê
+          `paradaPor` dele (V2-F00-E06, correção 3). */
+       return {
+-        fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
+-        interrompido: false,
++        fotosEnviadas: 0, enviados: mockDrenarConfirma ? 1 : 0, duplicados: 0,
++        adiados: 0, bloqueados: 0, interrompido: false,
+       };
+     },
++    /* A tela assina a fila para saber da pausa; aqui a fila nunca está pausada. */
++    assinar: () => () => undefined,
+   }),
+ }));
+ 
+diff --git a/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx b/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+index 3909fbd..64e4e20 100644
+--- a/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
++++ b/dc360/apps/campo/src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+@@ -111,6 +111,7 @@ jest.mock("../dados/api", () => {
+ });
+ 
+ import { ProvedorDeSessao, useSessao } from "../dados/sessao";
++import { geracaoDaSessao } from "../dados/geracao-da-sessao";
+ import { bancoLocal, donoDosDadosLocais, esquecerConexao } from "../dados/banco-local";
+ import { listarRascunhos, salvarRascunho, type Rascunho } from "../dados/rascunho";
+ 
+@@ -381,3 +382,24 @@ describe("a credencial e a identidade saem do cofre do aparelho", () => {
+     expect(mockCofre.get("dc360.identidade")).toContain(BRUNO);
+   });
+ });
++
++/*
++  A pausa da fila cai quando a pessoa entra de novo (V2-F00-E06, correção 3):
++  o login é quem sobe a geração da credencial que a fila compara.
++*/
++describe("a geração da credencial, que derruba a pausa velha da fila", () => {
++  it("cada `entrar` bem-sucedido sobe a geração, mesmo sendo a mesma pessoa voltando", async () => {
++    await act(async () => { render(<ProvedorDeSessao><Sonda /></ProvedorDeSessao>); });
++    await criarATabelaDaFila();
++    const antes = geracaoDaSessao();
++
++    await entrarComo("ana@teste.gov.br");
++    const aposPrimeira = geracaoDaSessao();
++    await act(async () => { await sessao!.encerrarSessaoVencida(); });
++    expect(geracaoDaSessao()).toBe(aposPrimeira); // sair não é entrar
++    await entrarComo("ana@teste.gov.br");
++
++    expect(aposPrimeira).toBe(antes + 1);
++    expect(geracaoDaSessao()).toBe(antes + 2);
++  });
++});
+diff --git a/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx b/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx
+index 21960b0..681b120 100644
+--- a/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx
++++ b/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx
+@@ -42,10 +42,15 @@ jest.mock("../dados/api", () => ({
+ }));
+ 
+ let mockTarefas: Pendencia[] = [];
++/* O fornecedor suspendeu o acesso: a baixa da lista responde 403 `acesso_suspenso`. */
++let mockAcessoSuspenso = false;
+ jest.mock("../dados/pendencias", () => ({
+   pendenciasGuardadas: jest.fn(async () => mockTarefas),
+   baixadasEm: jest.fn(async () => "2026-09-13T13:00:00.000Z"),
+-  atualizarPendencias: jest.fn(async () => mockTarefas),
++  atualizarPendencias: jest.fn(async () => {
++    if (mockAcessoSuspenso) throw Object.assign(new Error("suspenso"), { status: 403, codigo: "acesso_suspenso" });
++    return mockTarefas;
++  }),
+   tetoAtingido: jest.fn(async () => null),
+   esquecerPendencia: jest.fn(async () => {}),
+ }));
+@@ -156,6 +161,7 @@ beforeEach(() => {
+   mockColetas = [{ ocorrenciaId: ID, situacao: "na_fila" }];
+   mockPausadaNoResumo = null;
+   mockParadaPor = undefined;
++  mockAcessoSuspenso = false;
+   mockDrenar.mockClear();
+ });
+ 
+@@ -200,3 +206,23 @@ describe("Enviar agora com a fila pausada", () => {
+     expect(screen.queryByText(/houver sinal/)).toBeNull();
+   });
+ });
++
++/*
++  O ACESSO SUSPENSO não é pausa da fila: o motor trata o 403 como falha
++  temporária e o item espera. Quem sabe dele é a lista desta mesma tela, que diz
++  "Acesso suspenso pelo fornecedor". A tarja de "Enviar agora" dizia "sai quando
++  ... houver sinal" ao lado disso, e sinal não resolve suspensão de contrato
++  (V2-F00-E06, correção 3).
++*/
++describe("Enviar agora com o acesso suspenso pelo fornecedor", () => {
++  it("a tarja diz o mesmo que a lista, e não manda esperar sinal", async () => {
++    mockAcessoSuspenso = true;
++
++    await tocarEmEnviarAgora();
++
++    expect(screen.getAllByText("Acesso suspenso pelo fornecedor").length).toBeGreaterThanOrEqual(2);
++    expect(screen.getByText(/quem resolve é quem administra o contrato/)).toBeTruthy();
++    expect(screen.queryByText("Ainda não deu para enviar")).toBeNull();
++    expect(screen.queryByText(/houver sinal/)).toBeNull();
++  });
++});
+diff --git a/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx b/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx
+index ef71c96..b7d67e5 100644
+--- a/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx
++++ b/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx
+@@ -229,7 +229,7 @@ async function abrirAColetada(): Promise<void> {
+   mockColeta = COLETA_NA_FILA;
+   await render(<TelaDeVistoria />);
+   await act(async () => {});
+-  await screen.findByText(/já foi coletada neste aparelho/);
++  await screen.findByText(/Esta ocorrência já foi coletada/);
+ }
+ 
+ beforeEach(() => {
+@@ -280,5 +280,7 @@ describe("a ocorrência que o aparelho já coletou, ainda na fila", () => {
+       frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+     ))).toBeTruthy();
+     expect(screen.queryByText(/houver sinal|horas sem sinal/)).toBeNull();
++    /* Não repete "neste aparelho" na mesma frase: o `detalhe` já o diz. */
++    expect(screen.queryByText(/já foi coletada neste aparelho/)).toBeNull();
+   });
+ });
+diff --git a/dc360/apps/campo/src/app/(agente)/index.tsx b/dc360/apps/campo/src/app/(agente)/index.tsx
+index 41c58f7..aee45a8 100644
+--- a/dc360/apps/campo/src/app/(agente)/index.tsx
++++ b/dc360/apps/campo/src/app/(agente)/index.tsx
+@@ -909,6 +909,22 @@ export default function Tarefas() {
+             titulo: frases.faixaTitulo,
+             texto: frases.doCartao,
+           });
++        } else if (falhaDeRede === "acesso-suspenso") {
++          /*
++            ACESSO SUSPENSO PELO FORNECEDOR: o motor trata o 403 como falha
++            temporária (o item espera, sem pausa), então nem `paradaPor` nem a
++            pausa da fila sabem dele. Quem sabe é a lista desta mesma tela, que
++            já diz "Acesso suspenso pelo fornecedor"; a tarja diz a mesma
++            coisa, com a mesma frase, em vez de mandar esperar sinal que não
++            resolve (V2-F00-E06, correção 3).
++          */
++          const frase = comoContarAFalha("acesso-suspenso", "");
++          setEnvio({
++            ocorrenciaId: alvo.id,
++            tom: "alerta",
++            titulo: frase.resumo,
++            texto: frase.detalhe,
++          });
+         } else {
+           setEnvio({
+             ocorrenciaId: alvo.id,
+diff --git a/dc360/apps/campo/src/app/(agente)/perfil.tsx b/dc360/apps/campo/src/app/(agente)/perfil.tsx
+index ab0035f..b2f4e57 100644
+--- a/dc360/apps/campo/src/app/(agente)/perfil.tsx
++++ b/dc360/apps/campo/src/app/(agente)/perfil.tsx
+@@ -15,6 +15,7 @@ import {
+ import { listarColetas } from "../../dados/coletas";
+ import { coletadasNoAparelho } from "../../dados/ordem-do-dia";
+ import { useResumoDaFila } from "../../dados/resumo-da-fila";
++import { frasesDaPausa } from "../../dados/pausa-da-fila";
+ import { listarRascunhos } from "../../dados/rascunho";
+ import { avisoDaSaida, contarRascunhos, type RascunhosNaSaida } from "../../dados/aviso-da-saida";
+ import { useSessao } from "../../dados/sessao";
+@@ -350,6 +351,8 @@ export default function Perfil() {
+   const pendentes = resumoDaFila === null
+     ? null
+     : resumoDaFila.pendentes + resumoDaFila.enviando + resumoDaFila.bloqueados;
++  /** A fila parada pela sessão, quando está (ver `pausa-da-fila.ts`). */
++  const pausadaPor = resumoDaFila?.pausadaPor ?? null;
+   /** O que a saída apagaria, conferido no toque em "Sair da conta". */
+   const [rascunhosNaSaida, setRascunhosNaSaida] = useState<RascunhosNaSaida>(null);
+   /** Quantas tarefas o aparelho tem para hoje e ainda não vistoriou. Nulo: não deu para ler. */
+@@ -545,7 +548,7 @@ export default function Perfil() {
+     : null;
+ 
+   /* O que a saída apaga e o que ela guarda, dito antes do toque que confirma. */
+-  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida, resumoDaFila?.pausadaPor ?? null);
++  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida, pausadaPor);
+ 
+   /* As contas dos números, memoizadas: mudam com os dados e com o relógio. */
+   const concluidas = dados?.concluidas ?? [];
+@@ -1268,10 +1271,15 @@ export default function Perfil() {
+               ) : (
+                 <Chip
+                   testID="coletas-esperando"
+-                  texto={`${pendentes} esperando`}
++                  texto={pausadaPor ? `${pendentes} guardada${pendentes === 1 ? "" : "s"}` : `${pendentes} esperando`}
+                   simbolo="↑"
+                   tom="alerta"
+-                  descricao={`${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
++                  descricao={pausadaPor
++                    /* Com a fila pausada pela sessão, "esperam sinal" é a
++                       promessa errada (V2-F00-E06, correção 3): o rótulo falado
++                       diz o fato da pausa, com a frase da fonte única. */
++                    ? `${pendentes} ${pendentes === 1 ? "coleta guardada" : "coletas guardadas"} neste aparelho. ${frasesDaPausa(pausadaPor).titulo}`
++                    : `${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
+                 />
+               )}
+             </LinhaDeEstado>
+@@ -1446,13 +1454,23 @@ export default function Perfil() {
+ 
+             <Separador />
+ 
+-            {pendentes !== null && pendentes > 0 && (
++            {pendentes !== null && pendentes > 0 && (pausadaPor ? (
++              /* Com a fila pausada pela sessão, esperar a fila esvaziar não
++                 acontece: sinal não destrava nenhum dos três casos. O aviso diz
++                 o que destrava (a frase da pausa) e mantém a parte que continua
++                 verdadeira (V2-F00-E06, correção 3). */
++              <Aviso tom="alerta" peso="leve" titulo={frasesDaPausa(pausadaPor).titulo}>
++                {frasesDaPausa(pausadaPor).detalhe} Enquanto você estiver fora da
++                conta, estas coletas não são enviadas, nem por quem entrar depois
++                neste aparelho.
++              </Aviso>
++            ) : (
+               <Aviso tom="alerta" titulo="Espere a fila esvaziar antes de sair">
+                 Procure sinal e espere a fila esvaziar. Enquanto você estiver fora da
+                 conta, estas coletas não são enviadas, nem por quem entrar depois
+                 neste aparelho.
+               </Aviso>
+-            )}
++            ))}
+ 
+             <Botao
+               titulo="Sair da conta"
+diff --git a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+index c5ba708..c474b57 100644
+--- a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
++++ b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+@@ -2192,14 +2192,21 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+           }
+         />
+ 
+-        <Aviso tom="info">
+-          Esta ocorrência já foi coletada neste aparelho.
+-          {jaColetada.situacao === "enviada"
+-            ? " A vistoria já foi enviada ao servidor."
+-            : pausadaPor
+-              ? ` ${frasesDaPausa(pausadaPor).detalhe}`
++        {/* Com a fila pausada o aviso deixa de ser informativo (é um alerta, como
++            o da tela de depois de guardar) e não repete "neste aparelho": o
++            `detalhe` da pausa já diz que as coletas ficam guardadas aqui. */}
++        {jaColetada.situacao !== "enviada" && pausadaPor ? (
++          <Aviso tom="alerta" peso="leve">
++            {`Esta ocorrência já foi coletada. ${frasesDaPausa(pausadaPor).detalhe}`}
++          </Aviso>
++        ) : (
++          <Aviso tom="info">
++            Esta ocorrência já foi coletada neste aparelho.
++            {jaColetada.situacao === "enviada"
++              ? " A vistoria já foi enviada ao servidor."
+               : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
+-        </Aviso>
++          </Aviso>
++        )}
+ 
+         <Txt variante="corpoP" discreto>
+           {jaColetada.situacao !== "enviada" && pausadaPor
+diff --git a/dc360/apps/campo/src/dados/fila.ts b/dc360/apps/campo/src/dados/fila.ts
+index 293d667..c7a2012 100644
+--- a/dc360/apps/campo/src/dados/fila.ts
++++ b/dc360/apps/campo/src/dados/fila.ts
+@@ -12,6 +12,7 @@ import {
+ import { bancoLocal } from "./banco-local";
+ import { arquivosDoAparelho } from "./evidencia-no-disco";
+ import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
++import { geracaoDaSessao } from "./geracao-da-sessao";
+ 
+ /**
+  * Onde a parte testada encontra o aparelho.
+@@ -135,6 +136,8 @@ async function criarFila(
+         organizacaoId: eu.organizacaoId,
+       };
+     },
++    /* A pausa por sessão cai quando a pessoa entra de novo (correção 3 da E06). */
++    geracaoDaSessao,
+     /*
+       A leitura dos bytes, com o cuidado de dizer em português (e como falha
+       permanente) quando o arquivo não está mais no aparelho. Ver
+diff --git a/dc360/apps/campo/src/dados/geracao-da-sessao.ts b/dc360/apps/campo/src/dados/geracao-da-sessao.ts
+new file mode 100644
+index 0000000..3a6bdc2
+--- /dev/null
++++ b/dc360/apps/campo/src/dados/geracao-da-sessao.ts
+@@ -0,0 +1,31 @@
++/**
++ * A "geração" da credencial deste aparelho: sobe cada vez que a pessoa ENTRA
++ * de novo (V2-F00-E06, correção 3).
++ *
++ * A fila de envio guarda a pausa por sessão (`sessao_encerrada`,
++ * `conta_desativada`, `troca_de_senha_obrigatoria`) como uma observação sobre a
++ * credencial que levou o 401 ou o 403. A pessoa só tem um ato que muda essa
++ * credencial: entrar de novo, depois de a coordenação reativar a conta, de ela
++ * definir a senha no painel, ou só porque a sessão caiu. A fila compara a
++ * geração do pedido com a de agora, e a pausa velha cai sozinha, sem esperar
++ * um envio dar certo (que, com a rede ruim de quem acabou de entrar, pode
++ * demorar). Ver `OpcoesFila.geracaoDaSessao` em `packages/campo`.
++ *
++ * Mora fora do React e fora de `sessao.tsx` porque a fila, que vive fora das
++ * telas, precisa lê-la sem importar o provedor. Vive na memória: reabrir o
++ * aplicativo também zera a pausa da fila, que é igualmente só de memória.
++ *
++ * Renovar o token em silêncio NÃO sobe a geração: não é a pessoa agindo, e a
++ * pausa por sessão encerrada nasce justamente de a renovação ter sido recusada.
++ */
++
++let geracao = 0;
++
++export function geracaoDaSessao(): number {
++  return geracao;
++}
++
++/** Chamada pelo login bem-sucedido, depois de guardar a credencial nova. */
++export function novaGeracaoDaSessao(): void {
++  geracao += 1;
++}
+diff --git a/dc360/apps/campo/src/dados/sessao.tsx b/dc360/apps/campo/src/dados/sessao.tsx
+index ed55474..8203f67 100644
+--- a/dc360/apps/campo/src/dados/sessao.tsx
++++ b/dc360/apps/campo/src/dados/sessao.tsx
+@@ -5,6 +5,7 @@ import { acolherNoAparelho, apagarDadosLocais, marcarDonoDosDadosLocais } from "
+ import { esquecerFicha, fichaGuardada } from "../push/ficha-do-aparelho";
+ import type { ObterToken } from "@dc360/campo";
+ import { criarObtentorDeToken } from "./token";
++import { novaGeracaoDaSessao } from "./geracao-da-sessao";
+ 
+ /**
+  * A sessão do agente, guardada no cofre do aparelho.
+@@ -189,6 +190,8 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
+       guardar(CHAVE_CREDENCIAIS, r.credenciais),
+       guardar(CHAVE_IDENTIDADE, r.identidade),
+     ]);
++    /* A pessoa entrou: a pausa da fila, se havia, era da credencial anterior. */
++    novaGeracaoDaSessao();
+     setIdentidade(r.identidade);
+   }, []);
+ 
+diff --git a/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx b/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
+index 6d2e1e6..8a90b82 100644
+--- a/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
++++ b/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
+@@ -191,9 +191,10 @@ describe("a pergunta antes de sair", () => {
+     await tocar("Sair da conta");
+ 
+     expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
+-    expect(screen.getByText(new RegExp(
++    /* A frase da pausa está no aviso do Perfil e na pergunta: duas vezes. */
++    expect(screen.getAllByText(new RegExp(
+       frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+-    ))).toBeTruthy();
++    ))).toHaveLength(2);
+     expect(screen.queryByText(/entrar de novo, com sinal|entrar de novo,\s+com sinal/)).toBeNull();
+   });
+ 
+@@ -208,6 +209,53 @@ describe("a pergunta antes de sair", () => {
+   });
+ });
+ 
++/*
++  O Perfil, ANTES do toque em "Sair da conta" (V2-F00-E06, correção 3): o aviso
++  acima do botão mandava "procurar sinal e esperar a fila esvaziar", e o rótulo
++  falado do chip dizia "esperam sinal para serem enviadas", com a fila pausada
++  pela sessão. Sinal não destrava nenhum dos três casos.
++*/
++describe("o Perfil com a fila pausada pela sessão", () => {
++  const MOTIVOS = ["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const;
++
++  it("controle: com a fila andando, o aviso e o chip são os de sempre", async () => {
++    mockPendentes = 2;
++    await abrirATela();
++
++    expect(screen.getByText("Espere a fila esvaziar antes de sair")).toBeTruthy();
++    expect(screen.getByTestId("coletas-esperando").props.accessibilityLabel).toBe(
++      "2 coletas esperam sinal para serem enviadas",
++    );
++  });
++
++  it.each(MOTIVOS)("%s: o aviso acima de 'Sair da conta' diz a pausa e não manda procurar sinal", async (motivo) => {
++    mockPendentes = 2;
++    mockPausadaPor = motivo;
++    await abrirATela();
++
++    expect(screen.queryByText("Espere a fila esvaziar antes de sair")).toBeNull();
++    expect(screen.queryByText(/Procure sinal/)).toBeNull();
++    expect(screen.getByText(frasesDaPausa(motivo).titulo)).toBeTruthy();
++    expect(screen.getByText(new RegExp(
++      frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
++    ))).toBeTruthy();
++    /* O que continua verdade fica: fora da conta, ninguém envia estas coletas. */
++    expect(screen.getByText(/estas coletas não são enviadas, nem por quem entrar depois/)).toBeTruthy();
++  });
++
++  it.each(MOTIVOS)("%s: o rótulo falado do chip não diz que a coleta espera sinal", async (motivo) => {
++    mockPendentes = 2;
++    mockPausadaPor = motivo;
++    await abrirATela();
++
++    const chip = screen.getByTestId("coletas-esperando");
++    expect(chip.props.accessibilityLabel).toBe(
++      `2 coletas guardadas neste aparelho. ${frasesDaPausa(motivo).titulo}`,
++    );
++    expect(chip.props.accessibilityLabel).not.toMatch(/sinal/);
++  });
++});
++
+ describe("as duas respostas", () => {
+   it("'Continuar conectado' fecha a pergunta e a sessão segue de pé", async () => {
+     mockPendentes = 2;
+diff --git a/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx b/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx
+index c18b247..8db2cf8 100644
+--- a/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx
++++ b/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx
+@@ -183,6 +183,25 @@ describe("fila pausada", () => {
+   });
+ });
+ 
++/*
++  A pausa é de QUEM ESTÁ LOGADO. Uma devolução sem autor registrado (de uma
++  versão antiga do aplicativo) não é dessa pessoa: a frase da pausa, que fala de
++  "sua sessão" e "sua conta", não é dela, e o cartão fica como estava. Sem a
++  guarda de autoria no cartão da devolução, esta pessoa leria a pausa dela sobre
++  uma devolução que nunca foi dela.
++*/
++describe("fila pausada e a devolução que não é da pessoa logada", () => {
++  it.each(MOTIVOS)("%s: devolução sem autor registrado não ganha a frase da pausa", async (motivo) => {
++    const semAutor = { ...devolucao("s", "2026/000481"), autor: null } as unknown as ItemFila;
++    mockItens = [semAutor];
++
++    await abrirComPausa(motivo);
++
++    expect(screen.queryByText("Devolução guardada")).toBeNull();
++    expect(screen.queryByText(new RegExp(escapar(frasesDaPausa(motivo).doCartao)))).toBeNull();
++  });
++});
++
+ /* O controle: as quatro frases de antes continuam valendo quando a fila anda. */
+ describe("fila andando", () => {
+   it("devolução aguardando, tarja de sem sinal, legenda e retorno do reenvio são os de sempre", async () => {
+diff --git a/dc360/apps/campo/src/ui/pausa-cai-ao-entrar-de-novo.test.tsx b/dc360/apps/campo/src/ui/pausa-cai-ao-entrar-de-novo.test.tsx
+new file mode 100644
+index 0000000..a655b34
+--- /dev/null
++++ b/dc360/apps/campo/src/ui/pausa-cai-ao-entrar-de-novo.test.tsx
+@@ -0,0 +1,171 @@
++/**
++ * A pausa da fila cai quando a pessoa ENTRA DE NOVO, no aplicativo de verdade
++ * (V2-F00-E06, correção 3).
++ *
++ * Fila, transporte, depósito, `obterFila` e a geração da credencial são os
++ * REAIS; só o `fetch` é falso. É o que prova a ligação do aplicativo com o
++ * motor: o motor tem o seu teste (`packages/campo/test/pausa-velha.test.ts`),
++ * mas se `dados/fila.ts` não passasse `geracaoDaSessao`, aquele teste ficaria
++ * verde e o aparelho continuaria mandando "entre de novo" a quem acabou de
++ * entrar. O login que sobe a geração tem o seu teste em
++ * `__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx`.
++ */
++
++import { DatabaseSync } from "node:sqlite";
++import { act, render, screen, waitFor } from "@testing-library/react-native";
++import type { EnvelopeSincronizacao } from "@dc360/shared";
++import type { Identidade } from "../dados/api";
++import { esquecerConexao } from "../dados/banco-local";
++import { esquecerFila, obterFila } from "../dados/fila";
++import { novaGeracaoDaSessao } from "../dados/geracao-da-sessao";
++import { ProvedorDeTema } from "./componentes";
++import { FaixaDeSincronizacaoLigada } from "./FaixaDeSincronizacao";
++
++const AGENTE = {
++  usuarioId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
++  nome: "Ana Ribeiro",
++  organizacaoId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
++} as unknown as Identidade;
++
++jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
++  __esModule: true, default: () => "light",
++}));
++
++let mockBanco: DatabaseSync | null = null;
++function mockAbrir(): DatabaseSync {
++  mockBanco ??= new DatabaseSync(":memory:");
++  return mockBanco;
++}
++
++jest.mock("expo-sqlite", () => ({
++  openDatabaseAsync: async () => {
++    // O banco real demora para abrir: é aqui que as chamadas se atropelam.
++    await new Promise((r) => setTimeout(r, 5));
++    const db = mockAbrir();
++    return {
++      async execAsync(sql: string) { db.exec(sql); },
++      async runAsync(sql: string, params: unknown[] = []) { db.prepare(sql).run(...params); },
++      async getAllAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).all(...params); },
++      async getFirstAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).get(...params) ?? null; },
++    };
++  },
++}));
++
++jest.mock("expo-file-system", () => ({
++  Paths: { document: "file:///documentos" },
++  File: class {},
++  Directory: class { list() { return []; } },
++}));
++
++jest.mock("../dados/api", () => ({ enderecoDaApi: () => "http://api.exemplo" }));
++jest.mock("../dados/conectividade", () => ({ useSinal: () => ({ temSinal: true, tipo: "Wi-Fi" }) }));
++
++/* O MESMO objeto a cada renderização: um novo refaz o efeito de abertura em laço. */
++const mockSessao = {
++  obterToken: async () => "token-da-ana",
++  lerIdentidade: () => AGENTE,
++  identidade: AGENTE,
++};
++jest.mock("../dados/sessao", () => ({ useSessao: () => mockSessao }));
++
++let mockFetch: (url: string, init: RequestInit) => Promise<Response> = async () => {
++  throw new Error("fetch nao configurado");
++};
++(globalThis as unknown as { fetch: unknown }).fetch = (url: string, init: RequestInit) => mockFetch(url, init);
++
++function resposta(status: number, corpo: Record<string, unknown>): Response {
++  return { ok: status >= 200 && status < 300, status, json: async () => corpo } as Response;
++}
++
++function envelope(chave: string): EnvelopeSincronizacao {
++  const momento = new Date(Date.now() - 3_600_000).toISOString();
++  return {
++    idempotencyKey: chave,
++    ocorrenciaId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
++    coletadaEm: momento,
++    vistoria: {
++      checklist: [
++        { chave: "risco_iminente", resposta: true },
++        { chave: "evacuacao_necessaria", resposta: false },
++        { chave: "interdicao_indicada", resposta: false },
++        { chave: "acionar_outro_orgao", resposta: false },
++      ],
++      fotos: [],
++      gpsPrecisaoMetros: 6,
++      assinanteNome: "Moradora",
++      assinaturaChave: null,
++      coletadaEm: momento,
++    },
++  };
++}
++
++beforeEach(() => {
++  // Fila e banco do zero a cada caso (a fila do aplicativo é um singleton).
++  mockBanco = null;
++  esquecerConexao();
++  esquecerFila();
++});
++
++/**
++ * Monta a faixa e, NO MESMO INSTANTE, pede a fila como o laço de fundo do
++ * layout faz. Devolve a fila do "laço" e o espião das assinaturas dela.
++ *
++ * O espião é posto na instância do laço assim que ela nasce, ANTES de a faixa
++ * assinar (o `.then` abaixo é registrado antes do efeito da faixa na mesma
++ * promessa, e as reações rodam na ordem em que foram registradas). Se a faixa
++ * assinasse uma fila própria, o espião da fila do laço nunca seria chamado.
++ */
++async function montarFaixaEPedirAFila() {
++  // Sem `await`: a faixa monta enquanto a criação da fila ainda está em curso.
++  const doLaco = obterFila("http://api.exemplo", mockSessao.obterToken, mockSessao.lerIdentidade);
++  let assinaturas: jest.SpyInstance | null = null;
++  void doLaco.then((f) => { assinaturas = jest.spyOn(f, "assinar"); });
++  await act(async () => {
++    await render(
++      <ProvedorDeTema><FaixaDeSincronizacaoLigada aoTocar={() => {}} /></ProvedorDeTema>,
++    );
++  });
++  // Deixa a assinatura da faixa terminar dentro do `act`, antes de o caso mexer na fila.
++  await act(async () => { await doLaco; await new Promise((r) => setTimeout(r, 20)); });
++  return { fila: await doLaco, assinaturas: assinaturas as jest.SpyInstance | null };
++}
++
++
++describe("a pausa velha da fila real", () => {
++  async function pausarPelaSessao() {
++    mockFetch = async () => resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
++    const { fila } = await montarFaixaEPedirAFila();
++    await act(async () => { await fila.enfileirar(envelope("11111111-1111-4111-8111-111111111111"), { protocolo: "000471/2026" }); });
++    await act(async () => { await fila.drenar(); });
++    await waitFor(() => expect(screen.getByText("Sessão encerrada")).toBeTruthy());
++    expect((await fila.resumo()).pausadaPor).toBe("sessao_encerrada");
++    return fila;
++  }
++
++  /*
++    O caso do defeito: a pessoa entra de novo, o primeiro envio falha por rede
++    ruim (nem chega ao servidor), e a faixa continuava dizendo "Sessão
++    encerrada" sobre a credencial que ela acabou de criar.
++  */
++  it("entrar de novo derruba a pausa: a falha de rede seguinte não traz 'Sessão encerrada' de volta", async () => {
++    const fila = await pausarPelaSessao();
++
++    novaGeracaoDaSessao(); // a pessoa entrou de novo
++    mockFetch = async () => { throw new TypeError("Network request failed"); };
++    await act(async () => { await fila.drenar(); });
++
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++    await waitFor(() => expect(screen.queryByText("Sessão encerrada")).toBeNull());
++    expect(screen.queryByText(/Entre de novo/)).toBeNull();
++  });
++
++  it("controle: sem entrar de novo, a falha de rede seguinte não derruba a pausa", async () => {
++    const fila = await pausarPelaSessao();
++
++    mockFetch = async () => { throw new TypeError("Network request failed"); };
++    await act(async () => { await fila.drenar(); });
++
++    expect((await fila.resumo()).pausadaPor).toBe("sessao_encerrada");
++    expect(screen.getByText("Sessão encerrada")).toBeTruthy();
++  });
++});
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 3c56ec7..46753b9 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5334 testes somando o aplicativo** (contagem estática de `npm run
++- **5355 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5334 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5355 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/campo/src/fila.ts b/dc360/packages/campo/src/fila.ts
+index dfc6c67..fd62782 100644
+--- a/dc360/packages/campo/src/fila.ts
++++ b/dc360/packages/campo/src/fila.ts
+@@ -190,6 +190,24 @@ export type OpcoesFila = {
+    * sem token o transporte falharia de todo jeito.
+    */
+   sessaoAtual: () => AutorDaColeta | null;
++  /**
++   * A "geração" da credencial: um número que sobe cada vez que a pessoa ENTRA
++   * de novo (V2-F00-E06, correção 3).
++   *
++   * Existe porque a pausa da fila (`sessao_encerrada`, `conta_desativada`,
++   * `troca_de_senha_obrigatoria`) é uma observação sobre a credencial que
++   * levou o 401 ou o 403, e a pessoa tem um único ato que a muda: entrar de
++   * novo (depois de a coordenação reativar a conta, de definir a senha no
++   * painel, ou só porque a sessão caiu). Sem isto a pausa só caía quando um
++   * envio dava certo ou a fila esvaziava, e quem acabava de entrar, com a
++   * rede ruim, continuava lendo "entre de novo" sobre a credencial nova.
++   *
++   * Renovar o token em silêncio NÃO sobe a geração: não é a pessoa agindo, e a
++   * pausa por sessão encerrada nasce justamente de a renovação ter sido
++   * recusada. Opcional: sem ela a geração é sempre a mesma e a pausa se
++   * comporta como antes.
++   */
++  geracaoDaSessao?: () => number;
+   /** De onde saem os bytes das fotos. So necessario se houver foto na coleta. */
+   arquivos?: Arquivos;
+   /** Injetáveis para o teste poder controlar o tempo em vez de esperar por ele. */
+@@ -240,6 +258,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+     deposito,
+     transporte,
+     sessaoAtual,
++    geracaoDaSessao = () => 0,
+     arquivos,
+     agora = () => new Date(),
+     dormir = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
+@@ -272,10 +291,20 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+    * da manha (conta desativada) nao pode aparecer para o agente da noite, que
+    * entrou com outra conta e nao tem nada a ver com ela.
+    */
+-  let pausa: { motivo: MotivoDeSessao; usuarioId: string | null } | null = null;
++  let pausa: { motivo: MotivoDeSessao; usuarioId: string | null; geracao: number } | null = null;
+ 
++  /**
++   * A pausa só vale para a credencial que a causou. Se a pessoa entrou de novo
++   * desde então (a geração mudou), a causa pode ter acabado, e quem decide é a
++   * próxima tentativa, não uma marca velha: a pausa cai aqui, na leitura, sem
++   * esperar um dreno (que pode nem rodar, por falta de sinal).
++   */
+   function pausadaPeloUsuarioAtual(): MotivoDeSessao | null {
+     if (!pausa) return null;
++    if (pausa.geracao !== geracaoDaSessao()) {
++      pausa = null;
++      return null;
++    }
+     return pausa.usuarioId === (sessaoAtual()?.usuarioId ?? null) ? pausa.motivo : null;
+   }
+ 
+@@ -644,6 +673,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+          * de idempotência é a mesma: se chegou, o servidor devolve o recibo
+          * antigo em vez de gravar de novo.
+          */
++        // A credencial com que ESTE pedido sai: se a pessoa entrar de novo
++        // enquanto ele voa, a recusa que voltar é da credencial velha.
++        const geracaoDoPedido = geracaoDaSessao();
+         await deposito.salvar({
+           ...item,
+           estado: "enviando",
+@@ -724,7 +756,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+             o mesmo 401 ou 403. Os itens seguintes nem sao tocados.
+           */
+           if (erro instanceof FalhaDeSessao) {
+-            await guardarPausaDeSessao(item, erro, minhaMarca);
++            await guardarPausaDeSessao(item, erro, minhaMarca, geracaoDoPedido);
+             resultado.paradaPor = erro.motivo;
+             resultado.interrompido = true;
+             await avisar();
+@@ -1076,9 +1108,10 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+     item: ItemFila,
+     erro: FalhaDeSessao,
+     minhaMarca: number,
++    geracao: number,
+   ): Promise<void> {
+     if (!(await devolverAoEstadoAnterior(item, minhaMarca))) return;
+-    pausa = { motivo: erro.motivo, usuarioId: item.autor?.usuarioId ?? null };
++    pausa = { motivo: erro.motivo, usuarioId: item.autor?.usuarioId ?? null, geracao };
+   }
+ 
+   async function tratarFalha(
+diff --git a/dc360/packages/campo/test/pausa-velha.test.ts b/dc360/packages/campo/test/pausa-velha.test.ts
+new file mode 100644
+index 0000000..31d9963
+--- /dev/null
++++ b/dc360/packages/campo/test/pausa-velha.test.ts
+@@ -0,0 +1,162 @@
++import { describe, expect, it, vi } from "vitest";
++import type { EnvelopeSincronizacao } from "@dc360/shared";
++import {
++  FalhaDeSessao,
++  FalhaTemporaria,
++  criarFilaDeSincronizacao,
++  depositoSobreChaveValor,
++  lojaEmMemoria,
++  type AutorDaColeta,
++  type Transporte,
++} from "../src/index.js";
++
++/**
++ * A pausa da fila cai quando a pessoa ENTRA DE NOVO (V2-F00-E06, correção 3).
++ *
++ * O defeito, achado pela revisão independente: o motor só limpava a pausa
++ * quando um envio dava certo ou a fila esvaziava. A pessoa entrava de novo (o
++ * que a coordenação reativou, o que a senha definida no painel, o que a sessão
++ * nova resolvem), o primeiro envio falhava por rede ruim, e `pausadaPor`
++ * continuava `sessao_encerrada`: a faixa, a fila, "Enviar agora" e a vistoria
++ * mandavam entrar de novo quem tinha acabado de entrar.
++ *
++ * A fila ganhou a "geração da credencial" (`geracaoDaSessao`), um número que o
++ * aplicativo sobe a cada login. Aqui ela é um contador do teste.
++ */
++
++const MOMENTO = new Date("2026-10-06T14:00:00.000Z");
++const OCORRENCIA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
++const CHAVE_A = "11111111-1111-4111-8111-111111111111";
++
++const AGENTE_A: AutorDaColeta = {
++  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
++};
++
++function envelope(chave: string, ocorrencia = OCORRENCIA): EnvelopeSincronizacao {
++  return {
++    idempotencyKey: chave,
++    ocorrenciaId: ocorrencia,
++    coletadaEm: MOMENTO.toISOString(),
++    vistoria: {
++      checklist: [
++        { chave: "risco_iminente", resposta: true },
++        { chave: "evacuacao_necessaria", resposta: false },
++        { chave: "interdicao_indicada", resposta: false },
++        { chave: "acionar_outro_orgao", resposta: false },
++      ],
++      fotos: [],
++      gpsPrecisaoMetros: 6,
++      assinanteNome: "Moradora",
++      assinaturaChave: "assinatura.png",
++      coletadaEm: MOMENTO.toISOString(),
++    },
++  };
++}
++
++function transporteFalso(parcial: Partial<Transporte>): Transporte {
++  return {
++    enviar: async () => ({ vistoriaId: "v", duplicada: false }),
++    devolver: async () => { throw new Error("devolver nao esperado neste teste"); },
++    autorizarFoto: async () => { throw new Error("autorizarFoto nao esperado neste teste"); },
++    enviarBytes: async () => { throw new Error("enviarBytes nao esperado neste teste"); },
++    confirmarFoto: async () => { throw new Error("confirmarFoto nao esperado neste teste"); },
++    ...parcial,
++  };
++}
++
++function montarComGeracao(transporte: Partial<Transporte>) {
++  const loja = lojaEmMemoria();
++  const estado = { geracao: 0, sessao: AGENTE_A as AutorDaColeta | null };
++  let agora = MOMENTO.getTime();
++  const fila = criarFilaDeSincronizacao({
++    deposito: depositoSobreChaveValor(loja),
++    transporte: transporteFalso(transporte),
++    sessaoAtual: () => estado.sessao,
++    geracaoDaSessao: () => estado.geracao,
++    agora: () => new Date(agora),
++    dormir: async () => undefined,
++    ruido: () => 0.5,
++  });
++  return { fila, estado, avancar: (ms: number) => { agora += ms; } };
++}
++
++const MOTIVOS = ["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const;
++
++describe("a pausa velha cai quando a credencial muda", () => {
++  it.each(MOTIVOS)("%s: entrar de novo derruba a pausa, mesmo sem nenhum dreno e sem sinal", async (motivo) => {
++    const enviar = vi.fn(async () => { throw new FalhaDeSessao("A sessão não vale.", motivo); });
++    const { fila, estado } = montarComGeracao({ enviar });
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++    await fila.drenar();
++    expect((await fila.resumo()).pausadaPor).toBe(motivo);
++
++    estado.geracao += 1; // a pessoa entrou de novo
++
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++    // A coleta continua guardada e pendente: só a marca caiu.
++    expect((await fila.itens()).map((i) => i.estado)).toEqual(["pendente"]);
++  });
++
++  it("depois de entrar de novo, a falha de rede NÃO traz a pausa de volta", async () => {
++    let falha: Error = new FalhaDeSessao("A sessão não vale.", "sessao_encerrada");
++    const { fila, estado, avancar } = montarComGeracao({ enviar: async () => { throw falha; } });
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++    await fila.drenar();
++    estado.geracao += 1;
++    falha = new FalhaTemporaria("Sem conexão.");
++    avancar(60_000);
++
++    const r = await fila.drenar();
++
++    expect(r.paradaPor).toBeUndefined();
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++  });
++
++  it("a recusa que volta de um pedido feito com a credencial VELHA não pausa a credencial nova", async () => {
++    const estadoDoPedido: { geracao: () => void } = { geracao: () => undefined };
++    const { fila, estado } = montarComGeracao({
++      enviar: async () => {
++        estadoDoPedido.geracao();
++        throw new FalhaDeSessao("A sessão não vale.", "sessao_encerrada");
++      },
++    });
++    estadoDoPedido.geracao = () => { estado.geracao += 1; }; // entrou de novo com o pedido no ar
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++
++    await fila.drenar();
++
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++    expect((await fila.itens()).map((i) => i.estado)).toEqual(["pendente"]);
++  });
++
++  it("controle: sem login novo a pausa continua, e a nova recusa da credencial nova pausa de novo", async () => {
++    const enviar = vi.fn(async () => { throw new FalhaDeSessao("A conta foi desativada.", "conta_desativada"); });
++    const { fila, estado, avancar } = montarComGeracao({ enviar });
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++    await fila.drenar();
++    expect((await fila.resumo()).pausadaPor).toBe("conta_desativada");
++    expect((await fila.resumo()).pausadaPor).toBe("conta_desativada");
++
++    estado.geracao += 1;
++    avancar(60_000);
++    await fila.drenar(); // a credencial nova também é recusada: a pausa é dela agora
++
++    expect((await fila.resumo()).pausadaPor).toBe("conta_desativada");
++  });
++
++  it("sem `geracaoDaSessao`, a pausa se comporta como antes", async () => {
++    const enviar = vi.fn(async () => { throw new FalhaDeSessao("A sessão não vale.", "sessao_encerrada"); });
++    const fila = criarFilaDeSincronizacao({
++      deposito: depositoSobreChaveValor(lojaEmMemoria()),
++      transporte: transporteFalso({ enviar }),
++      sessaoAtual: () => AGENTE_A,
++      agora: () => MOMENTO,
++      dormir: async () => undefined,
++      ruido: () => 0.5,
++    });
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++    await fila.drenar();
++
++    expect((await fila.resumo()).pausadaPor).toBe("sessao_encerrada");
++  });
++});
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index e4a05ea..54c2df4 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -640,6 +640,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
+   "V2-F00-E06-correcao-1": { total: 35, falhas: 0 },
+   // V2-F00-E05, correção 2: a matriz de `pausa-por-senha-provisoria.test.ts` ganha 4 linhas (403 de cada código novo do catálogo é recusa permanente), com 2 casos por linha.
+   "V2-F00-E05-correcao-2": { total: 8, falhas: 0 },
++  // V2-F00-E06, correção 3b: `pausa-velha.test.ts` (7 casos: a pausa cai quando a pessoa entra de novo).
++  "V2-F00-E06-correcao-3b": { total: 7, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoPacote() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
+@@ -683,6 +685,14 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
+     e 3 em `dialogo-na-conta.test.tsx`; os `it.each` entram com uma linha por motivo.
+   */
+   "V2-F00-E06-correcao-3": { total: 41, falhas: 0 },
++  /*
++    V2-F00-E06, correção 3b (14 casos): `pausa-cai-ao-entrar-de-novo.test.tsx` (2),
++    1 em `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` (a geração sobe no
++    login), 1 em `enviar-agora-com-a-fila-pausada.test.tsx` (acesso suspenso),
++    7 em `dialogo-na-conta.test.tsx` (o Perfil pausado: controle, aviso e chip por
++    motivo) e 3 em `fila-pausada-nao-promete-sinal.test.tsx` (devolução sem autor).
++  */
++  "V2-F00-E06-correcao-3b": { total: 14, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoApp() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

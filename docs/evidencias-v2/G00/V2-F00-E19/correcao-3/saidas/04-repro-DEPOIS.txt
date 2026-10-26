@@ -1,0 +1,5 @@
+
+ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+Motivo: o npm audit devolveu erro (request to http://127.0.0.1:9/-/npm/v1/security/audits/quick failed, reason: connect ECONNREFUSED 127.0.0.1:9)
+Isto não é 'zero vulnerabilidades': é 'não consegui olhar'. Confira a rede e o registro (npm config get registry), rode de novo, e só então confie no resultado.
+CODIGO=2

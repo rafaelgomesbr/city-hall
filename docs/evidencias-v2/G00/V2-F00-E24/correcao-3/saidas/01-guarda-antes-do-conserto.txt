@@ -1,0 +1,6 @@
+SEM RESSALVA  dc360/docs/PAPEIS_E_RESPONSABILIDADES.md  (paragrafo 43): | Ação | Operador | Agente | Coordenador | Administrador |
+| --- | :---: | :---: | :---: | :---: |
+| Registrar
+
+11 ocorrência(s) conferida(s), 1 sem a ressalva "em construção".
+codigo de saida: 1

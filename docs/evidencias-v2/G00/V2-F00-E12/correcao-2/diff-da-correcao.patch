@@ -1,0 +1,428 @@
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index 9e2d411..c548bce 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -23,7 +23,6 @@ que resta, numa linha cada:
+ | --- | --- | --- |
+ | O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
+ | A vigência (conta, papel, sessão) vale na escrita e nos GET marcados como com efeito; a LEITURA PURA confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
+-| A janela de milissegundos entre revogar e abrir sessão na renovação | "A vigência de conta, papel e sessão" | F03-E02 |
+ | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
+ | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
+ | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
+@@ -116,12 +115,45 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
+   coleta na fila.
+ - **Cadeia da sessão:** o token de acesso emitido antes de uma renovação só
+   escreve enquanto a família (`sessoes.familia_id`, migração 047) tem sessão
+-  não revogada. Limite conhecido: entre `revogar_sessao` (a antiga) e
+-  `abrir_sessao` (a nova) da própria renovação a família não tem sessão viva
+-  por alguns milissegundos, e uma escrita com o token antigo nessa janela leva
+-  401 `sessao_encerrada`. A fila do campo (E06) mantém o item pendente e a
+-  pessoa entra de novo; fechar a janela exige renovar numa só transação
+-  (F03-E02, claims enxutas e rotação).
++  não revogada.
++- **Renovação contra encerramento (correção 2 da E07, migração 049):** até
++  aqui a renovação revogava a antiga e abria a nova em DUAS transações, e o
++  instante entre elas tinha dois efeitos. O grave: quem administra (ou a
++  própria pessoa, a troca de senha, o reuso de token) encerrava as sessões
++  nesse instante, não achava nada da cadeia para encerrar, e a renovação abria
++  a nova herdando a família encerrada (a validação de 4b96ea7 viu sessão viva
++  sobrar em 5 de 60 corridas). O benigno: a escrita com o token antigo nesse
++  instante levava 401 `sessao_encerrada`. Uma transação só fecha o benigno,
++  mas NÃO o grave: em READ COMMITTED o UPDATE de quem encerra não enxerga a
++  linha que a renovação inseriu e ainda não confirmou. Por isso a renovação é
++  uma transação só E toma `travar_sessoes_do_usuario` antes de revogar, e
++  todo encerramento em massa toma a mesma trava num comando anterior ao UPDATE
++  (`auth/sessoes.ts`, `revogar_sessoes_do_usuario`, `trocar_senha`,
++  `consumir_recuperacao` e a suspensão do município pelo console,
++  `console_suspender_municipio`, que toma a trava de cada pessoa com sessão
++  de pé). `abrir_sessao` também recusa herdar família encerrada. A ordem das
++  travas é uma só em todo caminho: quem atualiza a linha de `usuarios` o faz
++  antes de tomar a trava; sem isso, a troca de senha pela própria pessoa no
++  mesmo instante da redefinição por quem administra terminava em impasse
++  (`deadlock detected`, um 500), provado em Postgres 17. Provado em
++  `test/renovacao-contra-encerramento.test.ts`: o bloco de PGlite roda
++  sempre; o de Postgres real só com `DC360_POSTGRES_DE_PROVA`, que o job
++  `implantavel` do CI define contra o Postgres 16 do serviço (e reprova se o
++  bloco sair pulado). As disputas seguradas desse bloco só soltam a renovação
++  depois de VER a outra conexão parada na trava (`pg_locks`), e reprovam se
++  ela não parar.
++- **Entrar no mesmo instante da suspensão (consertado na migração 050):** o
++  login abre sessão sem família e não passa pela trava por pessoa, e
++  `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
++  real nas duas ordens (o login primeiro, a suspensão primeiro): a sessão do
++  login escapava da suspensão e, depois da reativação, renovava. A 050 faz o
++  login (só ele) ler a suspensão com `FOR SHARE`, que conflita com o UPDATE de
++  `organizacoes` da suspensão: quem chega segundo espera, e o login ou é
++  recusado (DC367) ou tem a sessão revogada pela suspensão. A renovação
++  continua lendo sem trava de linha, porque ela já segura a trava por pessoa
++  e a linha depois dela fecharia ciclo com a suspensão (que toma a linha
++  antes da trava). Provado no caso 9 de `test/renovacao-contra-encerramento.test.ts`
++  e em `db/test/login-e-suspensao-na-mesma-linha.test.ts`.
+ - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
+   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
+   Entrar e renovar já recusavam.
+@@ -250,10 +282,13 @@ seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
+ mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
+ 
+ **As diferenças entre os dois laudos, para a MESMA vistoria** (a validação de
+-7005a60 gerou os dois e comparou; o bloco "campo por campo" de
+-`test/saida-de-municipio.test.ts` trava o estado abaixo, e reprova se uma
+-diferença some ou se aparece outra, para este texto e o de
+-`docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto):
++7005a60 gerou os dois e comparou, e a de 4b96ea7 achou a assinatura; o bloco
++"campo por campo" de `test/saida-de-municipio.test.ts` trava as diferenças
++abaixo, e reprova se uma das que continuam some, se a deliberada muda ou se
++uma das consertadas volta, para este texto e o de `docs/SAIDA-DE-MUNICIPIO.md` serem atualizados
++junto. Ele NÃO compara o laudo inteiro: olha os títulos das seções, a
++coordenada, a posição da foto avulsa e o bloco da assinatura de quem estava no
++local, e uma diferença nova noutro campo passa por ele):
+ 
+ | Campo | Rota | Pacote | Estado |
+ | --- | --- | --- | --- |
+@@ -262,14 +297,17 @@ diferença some ou se aparece outra, para este texto e o de
+ | Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
+ | Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
+ | Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime | não existe | **continua**, F09-E02 |
+-| Assinatura | confere o prefixo do município e descreve no armazenamento | usa só a chave (a falta vira `PENDENCIAS-DA-EXTRACAO.txt`) | diferença de mecanismo, sem efeito no papel |
++| Assinatura declarada (`assinatura_chave`) e AUSENTE no armazenamento | confere o prefixo do município, descreve o objeto e imprime "Assinatura não coletada" | imprimia uma imagem quebrada em cima do nome de quem estava no local (montava o caminho só pela chave); agora faz as mesmas duas conferências (`conferirAssinatura`) e imprime "Assinatura não coletada", e a falta continua registrada em `PENDENCIAS-DA-EXTRACAO.txt` | **consertada na correção 2 da E12** |
++| Assinatura declarada e o armazenamento SEM RESPOSTA na conferência (`descrever` lança) | trata como ausente (`.catch(() => ({ existe: false }))`) e imprime "Assinatura não coletada" | imprime "Não foi possível conferir a assinatura no armazenamento ao montar este pacote", sem imagem; leva o arquivo se a cópia funcionar, senão o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO | **diferente de propósito** (correção 2 da E12, revisão): a primeira versão mantinha a imagem, e com o provedor caído a cópia falhava junto e o quadro quebrado voltava; afirmar "não coletada" contradiria o próprio pacote, que diz que falta de resposta não é arquivo inexistente |
+ 
+ A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
+ pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
+ defeito que a rota já tinha consertado), e a seção dos registros perdidos
+ some, então o laudo do pacote parece completo sendo incompleto. Por isso
+-`docs/SAIDA-DE-MUNICIPIO.md` não afirma mais que o laudo do pacote diz o mesmo
+-que o emitido: só o aviso de equipe e a coordenada estão provados iguais.
++`docs/SAIDA-DE-MUNICIPIO.md` não afirma que o laudo do pacote diz o mesmo
++que o emitido: só o aviso de equipe, a coordenada e a assinatura que falta no
++armazenamento estão provados iguais, e a do armazenamento sem resposta difere
++de propósito, com a tabela pública dizendo isso.
+ 
+ ## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
+ 
+diff --git a/dc360/apps/api/src/documentos/laudo.ts b/dc360/apps/api/src/documentos/laudo.ts
+index 303565a..195c7a2 100644
+--- a/dc360/apps/api/src/documentos/laudo.ts
++++ b/dc360/apps/api/src/documentos/laudo.ts
+@@ -87,6 +87,20 @@ export type DadosDocumento = {
+      * DIZ que não foi coletada, em vez de deixar espaço em branco.
+      */
+     assinaturaUrl?: string | null;
++    /**
++     * O armazenamento não respondeu quando o montador foi conferir se o traço
++     * existe (V2-F00-E12, correção 2).
++     *
++     * Só o pacote de saída marca isto. Ali o laudo é o registro que fica com o
++     * município depois que as nossas cópias são eliminadas, e o próprio pacote
++     * avisa, em `PENDENCIAS-DA-EXTRACAO.txt`, que falta de resposta não é o
++     * mesmo que arquivo inexistente. Imprimir "Assinatura não coletada" seria
++     * afirmar uma ausência que ninguém viu; imprimir a imagem seria um quadro
++     * quebrado se a cópia também falhar. A rota de emissão não marca: lá a
++     * falta de resposta vira ausência, e a diferença está na tabela de
++     * `docs/SAIDA-DE-MUNICIPIO.md`.
++     */
++    assinaturaNaoConferida?: boolean;
+     /**
+      * Quem a vistoria mandou acionar, um por linha, na ordem em que o agente
+      * escolheu no local.
+@@ -658,9 +672,12 @@ function blocoFotosAvulsas(d: DadosDocumento, fuso: string): string {
+  */
+ function ausenciaDaAssinatura(d: DadosDocumento): string | undefined {
+   const perdida = (d.evidenciasPerdidas ?? []).some((p) => p.papel === "assinatura");
+-  return perdida
+-    ? "Assinatura coletada em campo e não recuperada do aparelho"
+-    : undefined;
++  if (perdida) return "Assinatura coletada em campo e não recuperada do aparelho";
++  // Ver `assinaturaNaoConferida`: não saber não é saber que não houve.
++  if (d.vistoria.assinaturaNaoConferida) {
++    return "Não foi possível conferir a assinatura no armazenamento ao montar este pacote";
++  }
++  return undefined;
+ }
+ 
+ export function laudoDeVistoria(d: DadosDocumento): string {
+diff --git a/dc360/apps/api/src/saida/pacote.ts b/dc360/apps/api/src/saida/pacote.ts
+index dfb800d..c14f854 100644
+--- a/dc360/apps/api/src/saida/pacote.ts
++++ b/dc360/apps/api/src/saida/pacote.ts
+@@ -345,6 +345,43 @@ function citar(nome: string): string {
+   return `"${nome.replace(/"/g, '""')}"`;
+ }
+ 
++/**
++ * A assinatura declarada entra no laudo do pacote só se o arquivo existe
++ * (V2-F00-E12, correção 2).
++ *
++ * A chave diz que o aparelho colheu o traço; o envio do arquivo é outro passo,
++ * que pode ter falhado. Montar o caminho só pela chave imprimia um quadro
++ * quebrado em cima do nome de quem estava no local, que no papel pode ser lido
++ * como assinatura que houve, enquanto o laudo da rota, para a mesma vistoria,
++ * dizia "Assinatura não coletada". As duas conferências são as de
++ * `enderecoDaAssinatura` (`rotas/documentos.ts`): o prefixo do município antes
++ * de tocar o armazenamento, e o objeto descrito.
++ *
++ * UMA DIFERENÇA, de propósito: se o armazenamento não responde (a descrição
++ * LANÇA), o pacote não afirma que não há assinatura, e também não imprime a
++ * imagem. A primeira versão desta correção mantinha a imagem nesse caso, e
++ * com o provedor caído a cópia do arquivo falha junto: o pacote voltava a
++ * imprimir o quadro quebrado. Agora o bloco diz o que houve, "Não foi possível
++ * conferir a assinatura no armazenamento ao montar este pacote"
++ * (`assinaturaNaoConferida` em `documentos/laudo.ts`), e a cópia mais abaixo
++ * leva o arquivo ou o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO.
++ * A rota, no mesmo caso, imprime "Assinatura não coletada"; a diferença está na
++ * tabela de `docs/SAIDA-DE-MUNICIPIO.md`. Só a resposta "não existe" vira
++ * "Assinatura não coletada" aqui.
++ */
++async function conferirAssinatura(
++  armazenamento: Armazenamento,
++  organizacaoId: string,
++  chave: string,
++): Promise<"presente" | "ausente" | "nao_conferida"> {
++  if (!chave.startsWith(`tenant/${organizacaoId}/`)) return "ausente";
++  try {
++    return (await armazenamento.descrever(chave)).existe ? "presente" : "ausente";
++  } catch {
++    return "nao_conferida";
++  }
++}
++
+ export async function* montarPacoteDeSaida(
+   opcoes: OpcoesDoPacote,
+ ): AsyncGenerator<EntradaZip> {
+@@ -520,11 +557,17 @@ export async function* montarPacoteDeSaida(
+ 
+       A COORDENADA DA VISTORIA (`v.latitude`, `v.longitude`) também vem daqui,
+       como em `rotas/documentos.ts`: sem ela o laudo do pacote imprimia "não
+-      registrada" para uma vistoria que tem ponto. As DUAS consultas continuam
+-      diferindo em três pontos que a V2-F09-E02 resolve com o montador único
+-      (fotos de todas as vistorias, sem a seção das avulsas, sem a seção dos
+-      registros perdidos); `test/saida-de-municipio.test.ts` (bloco "campo por
+-      campo") trava essa lista, e reprova se ela mudar sem a documentação.
++      registrada" para uma vistoria que tem ponto. A assinatura declarada que
++      falta no armazenamento também sai igual desde a correção 2 da E12
++      (`conferirAssinatura`, acima). Os DOIS laudos continuam diferindo em três
++      pontos que a V2-F09-E02 resolve com o montador único (fotos de todas as
++      vistorias, sem a seção das avulsas, sem a seção dos registros perdidos),
++      e num quarto que é deliberado: com o armazenamento sem resposta na
++      conferência da assinatura, a rota diz "Assinatura não coletada" e o
++      pacote diz que não conseguiu conferir.
++      `test/saida-de-municipio.test.ts` (bloco "campo por campo") trava as
++      quatro e reprova se uma delas mudar sem a documentação. Ele não compara
++      o laudo inteiro: diferença nova em outro campo passa por ele.
+     */
+ 
+     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(
+@@ -696,7 +739,10 @@ export async function* montarPacoteDeSaida(
+       capturadaEm: e.capturada_em,
+     }));
+ 
+-    const assinaturaUrl = vistoria.assinatura_chave
++    const assinatura = vistoria.assinatura_chave
++      ? await conferirAssinatura(armazenamento, organizacaoId, vistoria.assinatura_chave)
++      : "ausente";
++    const assinaturaUrl = vistoria.assinatura_chave && assinatura === "presente"
+       ? `../../evidencias/${item.pasta}/${nomeDoArquivo(vistoria.assinatura_chave, "assinatura.png")}`
+       : null;
+ 
+@@ -706,6 +752,7 @@ export async function* montarPacoteDeSaida(
+       vistoria: {
+         ...vistoria,
+         assinaturaUrl,
++        ...(assinatura === "nao_conferida" ? { assinaturaNaoConferida: true } : {}),
+         orgaosIndicados: indicadosPorVistoria.get(vistoria.id) ?? [],
+       },
+       fotos,
+diff --git a/dc360/apps/api/test/saida-de-municipio.test.ts b/dc360/apps/api/test/saida-de-municipio.test.ts
+index 6dcc4fd..512706e 100644
+--- a/dc360/apps/api/test/saida-de-municipio.test.ts
++++ b/dc360/apps/api/test/saida-de-municipio.test.ts
+@@ -752,22 +752,33 @@ describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", (
+ });
+ 
+ /* ==========================================================================
+-   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correção 1).
++   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correções 1 e 2).
+ 
+    Existem DOIS montadores de dados do laudo (`rotas/documentos.ts` e
+    `saida/pacote.ts`), e a documentação chegou a responder "Sim" a "o laudo do
+    pacote diz o mesmo que o laudo emitido" porque só o aviso de equipe tinha
+    sido comparado. A validação de 7005a60 gerou os dois laudos da mesma vistoria
+-   e achou quatro diferenças. Este bloco prende o estado REAL:
+-
+-     - a coordenada da vistoria foi consertada (era trivial: duas colunas na
+-       consulta do pacote) e tem de ser igual nos dois;
+-     - as outras três diferenças continuam, são da V2-F09-E02 (montador único),
+-       e estão TRAVADAS como diferenças conhecidas. Se alguém as conserta, o
+-       teste reprova de propósito: é o aviso para apagar a ressalva de
+-       `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md` no mesmo
+-       commit, em vez de a documentação envelhecer sozinha. Se alguém abre uma
+-       diferença NOVA, reprova do mesmo jeito.
++   e achou quatro diferenças, e a de 4b96ea7 achou a quinta (a assinatura
++   declarada e ausente no armazenamento). Este bloco prende o estado REAL:
++
++     - a coordenada da vistoria (correção 1) e a assinatura declarada e ausente
++       no armazenamento (correção 2) foram consertadas e têm de sair iguais
++       nos dois;
++     - as outras três diferenças continuam, são da V2-F09-E02 (montador
++       único), e estão TRAVADAS como diferenças conhecidas. Se alguém conserta
++       uma delas, o teste reprova de propósito: é o aviso para apagar a
++       ressalva de `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md`
++       no mesmo commit, em vez de a documentação envelhecer sozinha;
++     - uma quarta é deliberada (correção 2, revisão): com o armazenamento sem
++       resposta na conferência da assinatura, a rota imprime "Assinatura não
++       coletada" e o pacote imprime que não conseguiu conferir, sem imagem
++       quebrada. Também está TRAVADA e na tabela da documentação.
++
++   O QUE ESTE BLOCO NÃO FAZ: comparar o laudo inteiro. Ele olha os títulos das
++   seções, a coordenada, a posição da foto avulsa e o bloco da assinatura de
++   quem estava no local. Uma diferença nova em outro campo passa por ele sem
++   reprovar; quem acrescenta campo ao laudo acrescenta o caso aqui (até a
++   V2-F09-E02 unificar os montadores).
+ 
+    Fica depois do bloco do aviso de equipe e limpa o que cria.
+    ========================================================================== */
+@@ -857,4 +868,105 @@ describe("O laudo do pacote e o da rota, campo por campo", () => {
+     // foto da vistoria, e o documento atribui ao agente uma imagem que ele não fez.
+     expect(secao(doPacote, "Registro fotográfico")).toContain("Avulsa do Joao");
+   }, 60_000);
++
++  /** O bloco da assinatura de quem estava no local (a que o aparelho coleta). */
++  function assinaturaNoLocal(html: string): string {
++    const papel = html.indexOf('<div class="papel">Presente no local</div>');
++    expect(papel, "o laudo não tem o bloco da assinatura de quem estava no local").toBeGreaterThan(0);
++    return html.slice(html.lastIndexOf('<div class="assinatura">', papel), papel);
++  }
++
++  it("a assinatura declarada e AUSENTE no armazenamento sai igual nos dois: \"Assinatura não coletada\" (consertada na correção 2)", async () => {
++    // A vistoria diz que há traço, e o armazenamento não tem o arquivo (envio
++    // interrompido, objeto apagado). Os dois laudos conferem o objeto antes de
++    // imprimir (`enderecoDaAssinatura` na rota, `conferirAssinatura` no pacote).
++    // Antes da correção 2 o pacote montava o caminho só pela chave e imprimia
++    // um quadro quebrado em cima do nome da pessoa.
++    const fantasma = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/assinatura-fantasma.png`;
++    await mem.bruto.exec(`UPDATE vistorias SET assinatura_chave = '${fantasma}' WHERE id = '${VISTORIA_F1}'`);
++    try {
++      const daRota = assinaturaNoLocal(await laudoDaRota());
++      const pacote = await baixarPacote(tokenAdministradora);
++      const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
++
++      expect(daRota).toContain('<div class="traco-ausente">Assinatura não coletada</div>');
++      expect(daRota).not.toContain('<img class="traco"');
++      expect(doPacote, "o laudo do pacote imprime imagem para uma assinatura que ele não leva").not.toContain('<img class="traco"');
++      expect(doPacote).toBe(daRota);
++      expect(pacote.has("evidencias/000473-2026/assinatura-fantasma.png")).toBe(false);
++      // A falta continua escrita no arquivo de pendências do pacote.
++      expect(pacote.get("PENDENCIAS-DA-EXTRACAO.txt")!.toString("utf8"))
++        .toContain(`Assinatura ausente no armazenamento: protocolo 000473/2026, chave ${fantasma}`);
++    } finally {
++      await mem.bruto.exec(`UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}' WHERE id = '${VISTORIA_F1}'`);
++    }
++  }, 60_000);
++
++  it("a assinatura PRESENTE no armazenamento continua saindo como imagem nos dois, e o pacote leva o arquivo", async () => {
++    // O controle positivo do caso acima: a conferência não pode apagar a
++    // assinatura que existe.
++    const daRota = assinaturaNoLocal(await laudoDaRota());
++    const pacote = await baixarPacote(tokenAdministradora);
++    const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
++    expect(daRota).toContain('<img class="traco"');
++    expect(doPacote).toContain('<img class="traco" src="../../evidencias/000473-2026/assinatura-f1.png"');
++    expect(pacote.get("evidencias/000473-2026/assinatura-f1.png")).toEqual(BYTES_DA_ASSINATURA);
++  }, 60_000);
++
++  /** A frase do pacote quando o armazenamento não respondeu à conferência. */
++  const NAO_CONFERIDA = "Não foi possível conferir a assinatura no armazenamento ao montar este pacote";
++
++  it("armazenamento FORA DO AR (conferência e cópia falham): o pacote não imprime quadro quebrado nem afirma ausência", async () => {
++    // O caso que a revisão da correção 2 achou: com o provedor caído, a
++    // conferência lança e a cópia do arquivo também falha. A primeira versão
++    // desta correção mantinha a imagem quando a conferência lançava, e o
++    // pacote voltava a imprimir `<img class="traco">` para um arquivo que ele
++    // não leva, o mesmo defeito da rodada 2. Agora o bloco diz o que houve:
++    // ninguém conferiu. E não diz "não coletada", porque o próprio pacote, em
++    // `PENDENCIAS-DA-EXTRACAO.txt`, avisa que não ter resposta não é o mesmo
++    // que o arquivo não existir.
++    const descrever = armazenamento.descrever;
++    const baixar = armazenamento.baixar;
++    armazenamento.descrever = async () => { throw new Error("provedor fora do ar na conferência"); };
++    armazenamento.baixar = async (chave: string) => {
++      if (chave === CHAVE_ASSINATURA) throw new Error("provedor fora do ar na cópia");
++      return baixar(chave);
++    };
++    try {
++      const pacote = await baixarPacote(tokenAdministradora);
++      const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
++      expect(doPacote, "o laudo do pacote imprime imagem para uma assinatura que ele não leva").not.toContain('<img class="traco"');
++      expect(doPacote).toContain(`<div class="traco-ausente">${NAO_CONFERIDA}</div>`);
++      expect(doPacote).not.toContain("Assinatura não coletada");
++      expect(pacote.has("evidencias/000473-2026/assinatura-f1.png")).toBe(false);
++      expect(pacote.get("PENDENCIAS-DA-EXTRACAO.txt")!.toString("utf8"))
++        .toContain(`Assinatura NÃO LIDA: protocolo 000473/2026, chave ${CHAVE_ASSINATURA}`);
++    } finally {
++      armazenamento.descrever = descrever;
++      armazenamento.baixar = baixar;
++    }
++  }, 60_000);
++
++  it("DIFERENÇA CONHECIDA (correção 2): com a conferência sem resposta, a rota diz \"Assinatura não coletada\" e o pacote diz que não conferiu", async () => {
++    // A rota trata a exceção da conferência como ausência
++    // (`enderecoDaAssinatura`, `.catch(() => ({ existe: false }))`); o pacote
++    // não, porque é o registro que fica com o município depois que as nossas
++    // cópias são eliminadas. Aqui só a conferência falha e a cópia funciona:
++    // o pacote leva o arquivo e o laudo dele continua sem imagem, porque o
++    // laudo é montado antes da cópia. A diferença está na tabela de
++    // `docs/SAIDA-DE-MUNICIPIO.md`; quem a mudar reprova aqui de propósito.
++    const descrever = armazenamento.descrever;
++    armazenamento.descrever = async () => { throw new Error("provedor fora do ar na conferência"); };
++    try {
++      const daRota = assinaturaNoLocal(await laudoDaRota());
++      const pacote = await baixarPacote(tokenAdministradora);
++      const doPacote = assinaturaNoLocal(pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8"));
++      expect(daRota).toContain('<div class="traco-ausente">Assinatura não coletada</div>');
++      expect(doPacote).toContain(`<div class="traco-ausente">${NAO_CONFERIDA}</div>`);
++      expect(doPacote).not.toContain('<img class="traco"');
++      expect(pacote.get("evidencias/000473-2026/assinatura-f1.png")).toEqual(BYTES_DA_ASSINATURA);
++    } finally {
++      armazenamento.descrever = descrever;
++    }
++  }, 60_000);
+ });
+diff --git a/dc360/docs/SAIDA-DE-MUNICIPIO.md b/dc360/docs/SAIDA-DE-MUNICIPIO.md
+index 0f14dcb..00dd7ae 100644
+--- a/dc360/docs/SAIDA-DE-MUNICIPIO.md
++++ b/dc360/docs/SAIDA-DE-MUNICIPIO.md
+@@ -92,7 +92,7 @@ município.
+ | Exportação das tabelas em `CSV` e `JSON` | **Existe.** Uma planilha e um `JSON` por tabela, e são TODAS as tabelas do município, inclusive as que o banco ganhou depois (órgão, ofício, aviso, aparelho, registro de consulta). Um teste compara a lista com o que o banco tem, então tabela nova de migração futura obriga alguém a decidir se ela sai |
+ | Exportação das fotografias e assinaturas | **Existe.** Arquivos originais, em pastas por protocolo. O que o banco promete e o armazenamento não tem vai para `PENDENCIAS-DA-EXTRACAO.txt` em vez de sumir |
+ | Exportação dos documentos gerados | **Existe** para laudo, termo de interdição, termo de desinterdição e ofício, em `HTML` autossuficiente (estilo dentro do arquivo, imagens apontando para a pasta do próprio pacote). **Não sai em `PDF`**: o `HTML` imprime, e gerar milhares de `PDF` numa requisição só derrubaria o servidor |
+-| O laudo do pacote diz o mesmo que o laudo emitido | **Só em parte. O aviso de equipe divergente e a coordenada da vistoria saem iguais (provado); três diferenças continuam até a V2-F09-E02.** No pacote, a seção de fotografias mistura as fotos de todas as vistorias do protocolo (inclusive a foto avulsa, que o laudo da rota separa), e faltam duas seções que o laudo da rota imprime: "Fotografias anexadas ao protocolo" e "Registros capturados que não puderam ser recuperados". Quem usar o laudo do pacote como substituto do laudo emitido, sem conferir, pode ler um documento com foto atribuída à vistoria errada ou sem a ressalva de que um registro de campo se perdeu. O aviso de equipe passou a ser provado em 2026-10-06: até então a consulta de vistorias do montador do pacote juntava só `usuarios`, nunca as duas equipes da vistoria: o laudo que ia DENTRO do pacote saía sem o aviso de equipe divergente, enquanto o laudo que a rota `GET /documentos/:id/laudo` emitia, para a mesma vistoria, saía com ele. O município que levasse o pacote embora levaria o papel limpo, e é esse o papel que fica no processo depois de o contrato acabar. Agora as duas junções existem nos dois montadores, e o teste compara os dois documentos entre si: a seção 29 de `apps/web/test/fluxo-api.e2e.mjs` monta a divergência pela API de verdade (a coordenação despacha para a Equipe Bravo, o agente da Equipe Alfa envia a coleta), baixa o pacote pelo botão do painel e confere que o trecho do aviso é idêntico nos dois. Em 2026-10-13 a coordenada passou a sair igual também (duas colunas que a consulta do pacote não lia), e o bloco "campo por campo" de `apps/api/test/saida-de-municipio.test.ts` prende as três diferenças que restam: ele reprova se alguma delas for consertada ou se aparecer uma diferença nova, para este texto ser atualizado junto |
++| O laudo do pacote diz o mesmo que o laudo emitido | **Só em parte. O aviso de equipe divergente, a coordenada da vistoria e a assinatura declarada cujo arquivo falta no armazenamento saem iguais (provado); três diferenças continuam até a V2-F09-E02, e uma quarta é deliberada: com o armazenamento sem resposta na hora de conferir a assinatura, o laudo da rota imprime "Assinatura não coletada" e o do pacote imprime "Não foi possível conferir a assinatura no armazenamento ao montar este pacote".** No pacote, a seção de fotografias mistura as fotos de todas as vistorias do protocolo (inclusive a foto avulsa, que o laudo da rota separa), e faltam duas seções que o laudo da rota imprime: "Fotografias anexadas ao protocolo" e "Registros capturados que não puderam ser recuperados". Quem usar o laudo do pacote como substituto do laudo emitido, sem conferir, pode ler um documento com foto atribuída à vistoria errada ou sem a ressalva de que um registro de campo se perdeu. O aviso de equipe passou a ser provado em 2026-10-06: até então a consulta de vistorias do montador do pacote juntava só `usuarios`, nunca as duas equipes da vistoria: o laudo que ia DENTRO do pacote saía sem o aviso de equipe divergente, enquanto o laudo que a rota `GET /documentos/:id/laudo` emitia, para a mesma vistoria, saía com ele. O município que levasse o pacote embora levaria o papel limpo, e é esse o papel que fica no processo depois de o contrato acabar. Agora as duas junções existem nos dois montadores, e o teste compara os dois documentos entre si: a seção 29 de `apps/web/test/fluxo-api.e2e.mjs` monta a divergência pela API de verdade (a coordenação despacha para a Equipe Bravo, o agente da Equipe Alfa envia a coleta), baixa o pacote pelo botão do painel e confere que o trecho do aviso é idêntico nos dois. Em 2026-10-13 a coordenada passou a sair igual também (duas colunas que a consulta do pacote não lia), e em 2026-10-14 a assinatura que falta no armazenamento (o pacote imprimia uma imagem quebrada em cima do nome de quem estava no local, onde o da rota imprime "Assinatura não coletada"; agora os dois conferem o arquivo antes de imprimir). Na mesma data ficou decidido o caso do armazenamento que não responde à conferência: a rota trata a falta de resposta como ausência, e o pacote, que é o registro que fica com o município depois que as nossas cópias são eliminadas, não afirma ausência que ninguém viu e também não imprime a imagem, que sairia quebrada se a cópia do arquivo falhasse junto (a falta de leitura vai para `PENDENCIAS-DA-EXTRACAO.txt` como arquivo NÃO LIDO). O bloco "campo por campo" de `apps/api/test/saida-de-municipio.test.ts` prende as três diferenças que restam, a deliberada e as duas consertadas: ele reprova se alguma das três for consertada, se a deliberada mudar, ou se uma das consertadas voltar, para este texto ser atualizado junto. Ele não compara o laudo inteiro (olha os títulos das seções, a coordenada, a posição da foto avulsa e o bloco da assinatura de quem estava no local), então uma diferença nova noutro campo passa por ele sem reprovar |
+ | Índice ligando protocolo a arquivo | **Existe.** `INDICE.html` (abre por duplo clique, sem internet) e `INDICE.csv` na raiz, ligando protocolo, pasta, documentos e a linha correspondente de `tabelas/ocorrencias.csv` |
+ | Esquema do banco | **Existe.** `esquema/`, com as próprias migrações comentadas, que explicam o que cada coluna significa |
+ | Soma de verificação | **Existe.** `SOMAS-SHA256.txt`, um `SHA-256` por arquivo do pacote (menos ele mesmo) |
+@@ -147,11 +147,11 @@ produziu o defeito do aviso de equipe. Um conserto numa delas continua podendo
+ não chegar à outra. A unificação está planejada para a V2-F09-E02; até ela
+ existir, campo novo que o laudo imprima tem de entrar nas duas consultas, e o
+ teste que compara os dois documentos entre si (seção 29 do e2e, mais os casos de
+-`apps/api/test/saida-de-municipio.test.ts`) é o que avisa quando isso é
++`apps/api/test/saida-de-municipio.test.ts`) é o que avisa, nos campos que ele compara, quando isso é
+ esquecido. A pendência está registrada em `apps/api/PENDENCIAS.md`.
+ 
+ As diferenças que existem HOJE entre o laudo da rota e o do pacote, para a mesma
+-vistoria (medidas em 2026-10-13 e travadas no bloco "campo por campo" do teste):
++vistoria (medidas em 2026-10-13, a da assinatura achada pela validação de 4b96ea7 e consertada em 2026-10-14, a do armazenamento sem resposta decidida no mesmo dia, e travadas no bloco "campo por campo" do teste):
+ 
+ | Diferença | Laudo da rota | Laudo do pacote | Estado |
+ | --- | --- | --- | --- |
+@@ -160,7 +160,9 @@ vistoria (medidas em 2026-10-13 e travadas no bloco "campo por campo" do teste):
+ | Fotos do registro fotográfico | só as da vistoria vigente | as de TODAS as vistorias e a avulsa, numeradas como da vistoria | **Diferente** até a F09-E02 |
+ | Seção "Fotografias anexadas ao protocolo" (fotos avulsas, com quem anexou) | imprime | não existe | **Diferente** até a F09-E02 |
+ | Seção "Registros capturados que não puderam ser recuperados" | imprime | não existe | **Diferente** até a F09-E02 |
+-| Endereço das imagens e identificador da emissão | endereço assinado, identificador próprio | caminho relativo dentro do pacote | Esperado, não é defeito |
++| Assinatura declarada e ausente no armazenamento | "Assinatura não coletada" | "Assinatura não coletada" (imprimia imagem quebrada até 2026-10-14), e a falta fica registrada em `PENDENCIAS-DA-EXTRACAO.txt` | **Igual** (consertada na correção 2 da E12) |
++| Assinatura declarada e o armazenamento SEM RESPOSTA na conferência | "Assinatura não coletada" | "Não foi possível conferir a assinatura no armazenamento ao montar este pacote", sem imagem; o arquivo vai no pacote se a cópia funcionar, e senão fica em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO | **Diferente, de propósito** (correção 2 da E12): o pacote não afirma ausência que ninguém conferiu |
++| Endereço das imagens, identificador da emissão e quem consta como emitente | endereço assinado, identificador próprio, quem emitiu o laudo | caminho relativo dentro do pacote, quem baixou o pacote | Esperado, não é defeito |
+ 
+ ---
+ 

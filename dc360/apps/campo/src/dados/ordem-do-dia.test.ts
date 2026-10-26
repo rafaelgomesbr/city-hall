@@ -530,3 +530,39 @@ describe("a faixa de prazo, sozinha", () => {
     expect(leitura(AGORA + 30_000)).toEqual(leitura(AGORA));
   });
 });
+
+/*
+  V2-F00-E06, correção 2. Quando a primeira da lista já foi vistoriada, a frase
+  "o que falta é sinal" só é verdade com a fila andando. Com a fila parada pela
+  sessão, a frase tem de dizer o que falta de verdade.
+*/
+describe("a frase da lista inteira já vistoriada", () => {
+  const tarefa = {
+    id: "t1", protocolo: "2026/000001", tipo: "deslizamento", severidade: "alta",
+    prazo_em: null, latitude: null, longitude: null,
+  } as unknown as TarefaDoDia;
+  const agora = Date.parse("2026-09-09T12:00:00.000Z");
+  const base = { agora, de: null, jaColetadas: new Set(["t1"]) };
+
+  it("com a fila andando, falta sinal", () => {
+    expect(ordemDoDia([tarefa], base).motivo).toBe(
+      "Você já vistoriou tudo o que está nesta lista. O que falta é sinal para enviar.",
+    );
+  });
+
+  it("com a fila parada pela sessão, falta entrar de novo, e não sinal", () => {
+    const { motivo } = ordemDoDia([tarefa], { ...base, pausadaPor: "sessao_encerrada" });
+    expect(motivo).toMatch(/falta é entrar de novo/);
+    expect(motivo).not.toMatch(/sinal/i);
+  });
+
+  it("com a pausa nula, volta a falar de sinal", () => {
+    expect(ordemDoDia([tarefa], { ...base, pausadaPor: null }).motivo).toMatch(/falta é sinal/);
+  });
+
+  it("a pausa não muda a frase de uma lista que ainda tem o que vistoriar", () => {
+    const outra = { ...tarefa, id: "t2", protocolo: "2026/000002" };
+    const { motivo } = ordemDoDia([outra], { ...base, pausadaPor: "sessao_encerrada" });
+    expect(motivo).not.toMatch(/falta é/);
+  });
+});

@@ -1,0 +1,13 @@
+$ npm run test:scripts   (em dc360, depois de gravar os INDEX.md desta pasta e da etapa)
+codigo=0
+ℹ tests 355
+ℹ suites 11
+ℹ pass 351
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 4
+ℹ todo 0
+
+$ node dc360/scripts/conferir-indices-de-evidencia.mjs
+Índices de evidência: 90 INDEX.md, 4835 arquivo(s) conferido(s) byte a byte.
+RESULTADO: OK

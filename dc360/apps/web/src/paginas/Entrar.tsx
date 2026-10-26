@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL, errosPorCampo } from "@dc360/shared";
 import {
@@ -13,8 +13,10 @@ import {
 import { Campo } from "../componentes/Campo";
 import { AtivarSegundoFator } from "../componentes/SegundoFator";
 import { useTitulo } from "../seo/titulo";
+import { focarPrimeiroInvalido } from "../componentes/foco";
+import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
 import { conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada } from "./entrar-regras";
-import { conferirSenhaNova, passoDepoisDeEntrar } from "./senha-provisoria-regras";
+import { conferirSenhaNova, erroDaSenhaAtual, passoDepoisDeEntrar } from "./senha-provisoria-regras";
 
 /**
  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
@@ -511,6 +513,17 @@ function PassoDaSenhaNova(
   const [erro, setErro] = useState<string | null>(null);
   const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
+  const formulario = useRef<HTMLFormElement>(null);
+
+  /*
+    O foco depois de enviar (V2-F00-E09, correção 4, revisão): o botão fica
+    desabilitado enquanto grava e, ao terminar, o foco estava no `<body>`. Erro
+    de campo leva ao campo inválido; erro que não é de campo, à própria
+    mensagem (`#senha-nova-erro`, focável por código).
+  */
+  const levarOFocoAoErro = useFocoDepoisDeRenderizar(() => {
+    if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
+  });
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();
@@ -518,6 +531,7 @@ function PassoDaSenhaNova(
     const conferida = conferirSenhaNova({ atual, nova, repetida });
     if (!conferida.ok) {
       setErrosDeCampo(conferida.erros);
+      levarOFocoAoErro();
       return;
     }
     setErrosDeCampo({});
@@ -526,12 +540,17 @@ function PassoDaSenhaNova(
       await trocarSenha(atual, nova);
       aoConcluir();
     } catch (e: unknown) {
-      if (e instanceof ErroDaApi && e.campos.length > 0) {
+      const daSenha = erroDaSenhaAtual(e, "senha-provisoria");
+      if (daSenha) {
+        // O erro mora no campo que a pessoa digitou errado, com o nome que ele tem na tela.
+        setErrosDeCampo({ atual: daSenha });
+      } else if (e instanceof ErroDaApi && e.campos.length > 0) {
         setErrosDeCampo(errosPorCampo(e.campos));
       } else {
         setErro(e instanceof Error ? e.message : String(e));
       }
       setEnviando(false);
+      levarOFocoAoErro();
     }
   }
 
@@ -544,7 +563,7 @@ function PassoDaSenhaNova(
           entrada. Escolha agora a senha que vai usar daqui em diante: pelo
           menos 12 caracteres, e que só você saiba.
         </Aviso>
-        <form onSubmit={enviar} noValidate>
+        <form onSubmit={enviar} noValidate ref={formulario}>
           <AvisoDeObrigatorios />
           <Campo id="senha-nova-atual" rotulo="Senha provisória que você recebeu"
                  erro={errosDeCampo["atual"]}>
@@ -567,7 +586,7 @@ function PassoDaSenhaNova(
             )}
           </Campo>
 
-          {erro && <ErroCampo id="senha-nova-erro">{erro}</ErroCampo>}
+          {erro && <ErroCampo id="senha-nova-erro" focavel>{erro}</ErroCampo>}
 
           <button type="submit" className="botao botao--primario" style={{ width: "100%" }}
                   disabled={enviando}>

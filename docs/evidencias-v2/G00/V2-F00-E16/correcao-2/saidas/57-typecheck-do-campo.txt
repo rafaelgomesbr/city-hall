@@ -1,0 +1,3 @@
+tsc -p apps/campo/tsconfig.json --noEmit.
+
+codigo 0

@@ -1,0 +1,55 @@
+$ (em apps/api de uma copia de 7005a60, anterior a correcao 1 da E04, com o arquivo de teste de hoje) npx vitest run test/acesso-suspenso.test.ts --reporter=verbose
+# prova de que o caso novo morde: sem a marca ROTA_GET_COM_EFEITO o sino responde 200 com o municipio suspenso
+
+
+ RUN  v3.2.7 /private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/e04-antes/dc360/apps/api
+
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > recusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato 241ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > nunca responde 401: a credencial esta certa, o que falta e o contrato 230ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > senha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao 230ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > nao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou 229ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > o municipio vizinho continua entrando normalmente 232ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel 461ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > municipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra 229ms
+ ✓ test/acesso-suspenso.test.ts > A barreira do banco, quando a da API nao alcanca > abrir_sessao recusando com DC367 vira 403 acesso_suspenso, e nao 500 15ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > renovar recusa com 403 mesmo com a sessao ainda de pe no banco 234ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403 461ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: escrita recusa na hora, com 403 234ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: leitura continua ate o token vencer 236ms
+ × test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD) 239ms
+   → GET /avisos: {"ate":"2026-10-14T15:37:10.563Z","ateId":null,"itens":[],"teto":200,"truncada":false,"naoLidos":0,"naoLidosTruncado":false}: expected 200 to be 403 // Object.is equality
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso VENCIDO de municipio suspenso responde 403, e nao 401 3ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vencido de municipio ATIVO continua respondendo 401 2ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token adulterado de municipio suspenso continua sendo 401: a suspensao so fala com token autentico 2ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > a sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario 233ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > as quatro rotas que a fila chama recusam com 503, e as demais escritas com 403 239ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > com token vencido a fila tambem recebe 503, e nao 403 3ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > nada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso 233ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD)
+AssertionError: GET /avisos: {"ate":"2026-10-14T15:37:10.563Z","ateId":null,"itens":[],"teto":200,"truncada":false,"naoLidos":0,"naoLidosTruncado":false}: expected 200 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 200
+
+ ❯ test/acesso-suspenso.test.ts:400:61
+    398|       for (const url of ["/avisos", "/relatorios/ocorrencias.csv", "/d…
+    399|         const r = await app.inject({ method, url, headers: comToken(to…
+    400|         expect(r.statusCode, `${method} ${url}: ${r.body}`).toBe(403);
+       |                                                             ^
+    401|         if (method === "GET") expect(r.json().erro, `${method} ${url}`…
+    402|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 passed (20)
+   Start at  12:37:15
+   Duration  5.45s (transform 201ms, setup 15ms, collect 307ms, tests 4.97s, environment 0ms, prepare 33ms)
+

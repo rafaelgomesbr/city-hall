@@ -5,6 +5,7 @@ import { acolherNoAparelho, apagarDadosLocais, marcarDonoDosDadosLocais } from "
 import { esquecerFicha, fichaGuardada } from "../push/ficha-do-aparelho";
 import type { ObterToken } from "@dc360/campo";
 import { criarObtentorDeToken } from "./token";
+import { novaGeracaoDaSessao } from "./geracao-da-sessao";
 
 /**
  * A sessão do agente, guardada no cofre do aparelho.
@@ -189,6 +190,8 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
       guardar(CHAVE_CREDENCIAIS, r.credenciais),
       guardar(CHAVE_IDENTIDADE, r.identidade),
     ]);
+    /* A pessoa entrou: a pausa da fila, se havia, era da credencial anterior. */
+    novaGeracaoDaSessao();
     setIdentidade(r.identidade);
   }, []);
 

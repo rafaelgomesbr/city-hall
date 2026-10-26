@@ -1,0 +1,75 @@
+$ (em uma copia de dc360/db no scratchpad, com a mutacao abaixo na 049) vitest run test/renovacao-e-encerramento-na-mesma-trava.test.ts --reporter=verbose
+# MUTACAO (so na copia): em revogar_sessoes_do_usuario, a trava depois do UPDATE de sessoes; o diff vem primeiro
+
+----- m049.txt -----
+--- /Users/[usuario]/Documents/city-hall/dc360/db/migrations/049_renovacao_e_encerramento_na_mesma_trava.sql	2026-10-14 11:22:35
++++ migrations/049_renovacao_e_encerramento_na_mesma_trava.sql	2026-10-14 13:37:08
+@@ -115,12 +115,12 @@
+ DECLARE
+   v_afetadas integer;
+ BEGIN
+-  PERFORM travar_sessoes_do_usuario(p_usuario_id);
+-
+   UPDATE sessoes
+      SET revogada_em = now(), motivo_revogacao = p_motivo
+    WHERE usuario_id = p_usuario_id AND revogada_em IS NULL;
+   GET DIAGNOSTICS v_afetadas = ROW_COUNT;
++
++  PERFORM travar_sessoes_do_usuario(p_usuario_id);
+   RETURN v_afetadas;
+ END;
+ $$;
+
+----- e07-db-ordem-mutacao.txt -----
+
+ RUN  v3.2.7 /private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/c2r3/mut/dc360/db
+
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A migração 049 sobre um banco que já tem sessões > não toca em sessão nenhuma 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A migração 049 sobre um banco que já tem sessões > é idempotente: rodar o texto de novo não falha nem muda nada 2ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > o número de funções SECURITY DEFINER não mudou 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > travar_sessoes_do_usuario não é privilegiada, fixa o search_path e só o papel de aplicação a executa 2ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > as quatro funções recriadas continuam executáveis só pelo papel de aplicação 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > cada encerramento em massa do banco toma a MESMA trava da renovação, e ela some no COMMIT 8ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > quem atualiza a linha de usuarios o faz ANTES de tomar a trava (sem impasse com a redefinição por quem administra) 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console 8ms
+ × test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios 13ms
+   → expected [ { tabela: 'sessoes', travas: [] } ] to deeply equal [ { tabela: 'sessoes', …(1) } ]
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > abrir_sessao recusa herdar família encerrada > a família só rotacionada (a renovação no mesmo instante) é herdada 2ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > abrir_sessao recusa herdar família encerrada > a família encerrada por qualquer outro motivo é recusada com a mesma mensagem da família que não existe, e nada é gravado 12ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > abrir_sessao recusa herdar família encerrada > login (sem família) continua abrindo família nova, mesmo com cadeias encerradas da pessoa 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > a trava já está tomada no instante do UPDATE de sessoes, e ainda não no do UPDATE de usuarios
+AssertionError: expected [ { tabela: 'sessoes', travas: [] } ] to deeply equal [ { tabela: 'sessoes', …(1) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "tabela": "sessoes",
+-     "travas": [
+-       "2489233678/2924049009/2",
+-     ],
++     "travas": [],
+    },
+  ]
+
+ ❯ test/renovacao-e-encerramento-na-mesma-trava.test.ts:309:10
+    307|       await abrir("ordem-1", null, usuario);
+    308|       expect(await medir("SELECT revogar_sessoes_do_usuario($1, 'usuar…
+    309|         .toEqual([{ tabela: "sessoes", travas: [chave] }]);
+       |          ^
+    310| 
+    311|       await abrir("ordem-2", null, usuario);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  13:37:15
+   Duration  1.06s (transform 26ms, setup 0ms, collect 37ms, tests 837ms, environment 0ms, prepare 43ms)
+
+

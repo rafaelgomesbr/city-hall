@@ -1,0 +1,22 @@
+$ (em dc360/db) npx vitest run test/renovacao-e-encerramento-na-mesma-trava.test.ts --reporter=verbose
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/db
+
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A migração 049 sobre um banco que já tem sessões > não toca em sessão nenhuma 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A migração 049 sobre um banco que já tem sessões > é idempotente: rodar o texto de novo não falha nem muda nada 2ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > o número de funções SECURITY DEFINER não mudou 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > travar_sessoes_do_usuario não é privilegiada, fixa o search_path e só o papel de aplicação a executa 2ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > as quatro funções recriadas continuam executáveis só pelo papel de aplicação 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > cada encerramento em massa do banco toma a MESMA trava da renovação, e ela some no COMMIT 8ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > quem atualiza a linha de usuarios o faz ANTES de tomar a trava (sem impasse com a redefinição por quem administra) 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > A trava e as permissões > a suspensão pelo console toma a trava de cada pessoa com sessão de pé, e continua só do console 7ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > abrir_sessao recusa herdar família encerrada > a família só rotacionada (a renovação no mesmo instante) é herdada 1ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > abrir_sessao recusa herdar família encerrada > a família encerrada por qualquer outro motivo é recusada com a mesma mensagem da família que não existe, e nada é gravado 13ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts > abrir_sessao recusa herdar família encerrada > login (sem família) continua abrindo família nova, mesmo com cadeias encerradas da pessoa 1ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  12:32:46
+   Duration  915ms (transform 20ms, setup 0ms, collect 27ms, tests 719ms, environment 0ms, prepare 34ms)
+

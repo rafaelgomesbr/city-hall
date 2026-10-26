@@ -1,0 +1,14 @@
+$ git grep -n -i -E 'quinze de quinze|décima sexta' HEAD -- dc360 ':!dc360/db/migrations' | sed 's/^HEAD://'   (em .)
+codigo=0
+
+dc360/README.md:932:| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o portão CA-06 reprova a décima sexta. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
+dc360/apps/api/src/armazenamento/cli.ts:80: * em quinze de quinze com o portão CA-06 reprovando a décima sexta: não se
+dc360/apps/api/src/armazenamento/orfaos.ts:129:   * faria, e o orçamento delas está em quinze de quinze com o portão CA-06
+dc360/apps/api/src/armazenamento/orfaos.ts:130:   * reprovando a décima sexta. Não se gasta a última numa lista.
+dc360/apps/api/src/armazenamento/orfaos.ts:184: * orçamento de `SECURITY DEFINER` deste produto está em quinze de quinze, e o
+dc360/apps/api/src/armazenamento/orfaos.ts:185: * portão CA-06 reprova a décima sexta.
+dc360/apps/api/src/rotas/avisos.ts:316:        quinze e o portão CA-06 reprova a décima sexta.
+dc360/apps/api/src/rotas/saida-a-campo.ts:74: *     função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o
+dc360/apps/api/src/rotas/saida-a-campo.ts:75: *     portão CA-06 reprova a décima sexta. O canal é o sino, que a coordenação
+dc360/apps/api/test/objeto-orfao.test.ts:342:      orçamento delas está em quinze de quinze com o portão CA-06 reprovando a
+dc360/apps/api/test/objeto-orfao.test.ts:343:      décima sexta.

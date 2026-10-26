@@ -9,11 +9,14 @@
 # duas imagens e dois aplicativos, o console só tem acesso ao que foi escrito
 # no aplicativo do console.
 #
-# NÃO FOI CONSTRUÍDA NEM EXECUTADA AQUI: esta máquina não tem Docker. O que foi
-# provado à mão foi o `npm run build --workspace @dc360/console` fora de
-# contêiner, que é a etapa que os quatro pontos abaixo tornam possível dentro
-# dele. Construir a imagem uma vez antes do primeiro deploy continua
-# obrigatório; ver docs/IMPLANTACAO.md.
+# O QUE PROVA ESTA IMAGEM: nada que esteja no repositório. O que foi provado à
+# mão foi o `npm run build --workspace @dc360/console` fora de contêiner, que
+# é a etapa que os quatro pontos abaixo tornam possível dentro dele. A
+# integração contínua não constrói esta imagem (nem a da API): ela só é
+# construída por `fly deploy -c fly.console.toml` ou `docker build`, e nenhum
+# registro dessa construção está arquivado aqui. Construir a imagem uma vez
+# antes do primeiro deploy continua obrigatório; ver docs/IMPLANTACAO.md. O CI
+# que constrói imagem é a V2-F01-E08.
 #
 # QUATRO ESCOLHAS que valem explicação, e a primeira é a razão de este arquivo
 # existir em vez de reusar o `Dockerfile` da API:

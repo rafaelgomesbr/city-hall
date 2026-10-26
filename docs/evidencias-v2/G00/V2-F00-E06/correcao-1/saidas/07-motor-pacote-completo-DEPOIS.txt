@@ -1,0 +1,23 @@
+$ (cd dc360/packages/campo) npx vitest run
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/packages/campo[39m
+
+ [32m✓[39m test/prazo.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m test/conclusao.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m test/coleta.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m test/prova-perdida.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m test/devolucao.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m test/deposito-sqlite.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m test/correcao-da-coleta.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m test/pausa-por-senha-provisoria.test.ts [2m([22m[2m35 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32m✓[39m test/pausa-de-sessao.test.ts [2m([22m[2m29 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+ [32m✓[39m test/fila.test.ts [2m([22m[2m58 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m10 passed[39m[22m[90m (10)[39m
+[2m      Tests [22m [1m[32m223 passed[39m[22m[90m (223)[39m
+[2m   Start at [22m 05:42:42
+[2m   Duration [22m 1.12s[2m (transform 821ms, setup 0ms, collect 4.79s, tests 277ms, environment 2ms, prepare 2.36s)[22m
+
+
+
+[codigo de saida: 0]

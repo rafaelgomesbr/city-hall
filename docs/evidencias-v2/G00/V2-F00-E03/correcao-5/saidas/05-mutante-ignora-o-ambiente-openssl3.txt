@@ -1,0 +1,46 @@
+familia=openssl3 openssl=OpenSSL 3.0.7 1 Nov 2022 (Library: OpenSSL 3.0.7 1 Nov 2022)
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/zz-ignora-o-ambiente.test.ts (10 tests | 1 failed) 751ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > tira a variável que aponta para arquivo inexistente, e diz por quê 2ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > mantém a variável que aponta para arquivo que existe, sem motivo 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > sem a variável, o ambiente passa igual 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > acha a variável em qualquer caixa, porque no Windows o nome não distingue 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > não mexe no ambiente de quem chamou 0ms
+   ✓ Onde o teste acha o openssl > usa o do PATH quando ele está lá 5ms
+   ✓ Onde o teste acha o openssl > no Windows sem openssl no PATH, acha o que vem ao lado do git (o caso do PowerShell) 0ms
+   ✓ Onde o teste acha o openssl > sem openssl em lugar nenhum devolve null, e o gerador reprova dizendo o que instalar 2ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente  540ms
+   × O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado 199ms
+     → expected undefined to deeply equal [ '1.3.6.1.5.5.7.3.4' ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/zz-ignora-o-ambiente.test.ts > O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado
+AssertionError: expected undefined to deeply equal [ '1.3.6.1.5.5.7.3.4' ]
+
+- Expected: 
+[
+  "1.3.6.1.5.5.7.3.4",
+]
+
++ Received: 
+undefined
+
+ ❯ test/zz-ignora-o-ambiente.test.ts:129:39
+    127|     expect(comAVariavel.motivo).toBeUndefined();
+    128|     const lidoComAVariavel = new X509Certificate(comAVariavel.certific…
+    129|     expect(lidoComAVariavel.keyUsage).toEqual([USO_ESTENDIDO_DE_EMAIL]…
+       |                                       ^
+    130|     expect(lidoComAVariavel.ca).toBe(false);
+    131| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  01:13:44
+   Duration  1.75s (transform 195ms, setup 186ms, collect 122ms, tests 751ms, environment 3ms, prepare 184ms)
+

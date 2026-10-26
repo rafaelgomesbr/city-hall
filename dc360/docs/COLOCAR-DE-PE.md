@@ -35,19 +35,34 @@ D-U-N-S e a revisão não forem gargalo.
 ## Parte 1: o que já está pronto (não precisa mexer)
 
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
-  e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
-  compartilhados.
-- **4712 testes somando o aplicativo.** Durante a estabilização da V2 (fase
-  F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
-  conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
-  raiz do repositório.
+  e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+  stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+  espacial), esquemas Zod compartilhados.
+- **5620 testes somando o aplicativo** (contagem estática de `npm run
+  conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
+  parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+  os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+  15 de 17, por dois passos que dependem da máquina (README, "O roteiro da linha
+  de base"). O `expo-doctor` deu 20 de 21 na manhã desse dia e 21 de 21 depois da
+  correção 4 da E19, no mesmo dia; voltou a 20 de 21 em 2026-10-18 (`expo` e `expo-router`
+  um patch atrás) e fechou em 21 de 21 com a correção 5 da E19, no mesmo dia. `npm run auditar` sai com
+  código 0 pela política do CP-03: dependência de runtime em zero, e os avisos de ferramenta
+  do aplicativo só os da lista nomeada, com dono e prazo
+  (`scripts/auditar-excecoes.mjs`). O `npm audit` puro do aplicativo continua
+  acusando avisos. O estado de cada etapa está em `docs/roadmap-v2/STATUS.md`,
+  na raiz do repositório.
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
   pessoas.
-- O app foi verificado inteiro no emulador **Android**: menu, minuta, login,
-  GPS, câmera, o ciclo completo. **Nunca rodou em iOS**, e é o que você vai fazer
-  no Mac.
+- O aplicativo está inteiro em código e passa nos testes. Há relato de uso em
+  emulador Android (menu, minuta, login, GPS, câmera, o ciclo completo) e de
+  compilação nativa e três vistorias coletadas num iPhone em 08/09/2026, mas
+  **nenhum artefato de aparelho físico está arquivado** (a prova é a
+  V2-F14-E12), e relato não é prova. Do emulador Android há capturas e relato
+  das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não contam como
+  aparelho. O que você vai fazer no Mac é refazer essa prova com o que o
+  repositório consiga guardar.
 
 ---
 
@@ -90,9 +105,13 @@ eas init          # cria o projeto no Expo e grava o projectId
 
 ### CRÍTICO 4: o endereço do servidor no build
 
-Um binário aponta para um servidor fixo. `apps/campo/eas.json` tem
-`https://api.exemplo.gov.br` nos perfis. **Troque pelo domínio real** (Parte 3)
-antes de gerar o build que você vai usar.
+Um binário aponta para um servidor fixo. `apps/campo/eas.json` tem três perfis:
+`producao` aponta para `https://defesa-civil.fly.dev` (o servidor de hoje),
+`homologacao` aponta para `https://api-homologacao.exemplo.gov.br`, que não
+existe (não há ambiente de homologação de pé), e a base, usada pelo perfil de
+desenvolvimento, aponta para `http://localhost:3333`. **Se o domínio próprio
+sair** (Parte 3), troque o `DC360_API_URL` do perfil que você vai usar antes de
+gerar o build; com o servidor de hoje, `producao` já serve.
 
 ### CRÍTICO 5: HTTPS é pré-requisito, não opção
 
@@ -161,6 +180,13 @@ com os dois erros que ele encontrou pelo caminho.
     npm run migrar -- --conferir   # confere primeiro, não aplica nada
   ```
 
+  **Migração 048 (V2-F00-E05, correção 1): sem ordem obrigatória.** Ela só
+  acrescenta uma coluna de saída (`usuario_ativo`) a `dono_do_token`. O código
+  novo lê essa coluna só quando ela existe: contra um banco sem a 048 a
+  renovação de conta desativada continua respondendo `sessao_encerrada`, como
+  antes, e nada quebra. Migre quando puder; a frase "conta desativada" ao
+  voltar depois de 15 minutos só aparece com a 048 aplicada.
+
   **Ordem na atualização que traz a migração 047 (família da sessão, V2-F00-E07):
   migre ANTES de implantar o código novo.** O código novo chama `abrir_sessao`
   com a família e lê `sessoes.familia_id`; contra um banco sem a 047, todo login
@@ -170,13 +196,34 @@ com os dois erros que ele encontrou pelo caminho.
   troca de uma função); sessões abertas na hora ganham família própria, e no
   máximo um token de acesso antigo cai e o cliente renova.
 
+  **Migrações 049 e 050 (V2-F00-E07): migre ANTES de implantar o código novo.**
+  O código novo da API chama `travar_sessoes_do_usuario`, que a 049 cria, em
+  todo login, em toda renovação e em todo encerramento em massa das sessões de
+  uma pessoa (o login passou a tomá-la na correção 3 da E07); contra um banco
+  sem a 049 o login e a renovação falham. O contrário é seguro: o código
+  antigo contra o banco já migrado continua funcionando (as funções recriadas
+  mantêm a assinatura). A 050 só recria
+  `abrir_sessao` (o login passa a ler a suspensão do município com `FOR SHARE`),
+  a API não muda por causa dela e a ordem é indiferente.
+
+  **Migração 051 (V2-F00-E10, correção 3): ordem indiferente.** Cria o gatilho
+  que marca como gastos os links de recuperação pendentes em toda mudança de
+  senha e em toda desativação, e recria `consumir_recuperacao` (mesma
+  assinatura) para conferir a conta ativa e segurar a linha da pessoa antes
+  da linha do link. A API não muda por causa dela.
+
 ### 3. Servidor da API
 
 PaaS que dá HTTPS automático e roda contêiner ou Node:
 
 - **Fly.io**, **Railway** ou **Render**. O repositório tem `Dockerfile` e
-  `compose.yaml` (revisados, mas ainda não construídos, e o job de CI
-  `implantavel` os confere no primeiro push).
+  `compose.yaml`. O `Dockerfile` é a imagem de produção: o `fly.toml`
+  (`[build] dockerfile`) manda o `fly deploy` construí-lo, o próprio `Dockerfile`
+  registra o 503 dos botões de PDF que a imagem deu em produção (sem o pacote `playwright`, que estava em `devDependencies`; o Chromium estava lá), e
+  o `eas.json` aponta o perfil `producao` para `defesa-civil.fly.dev`. O que não
+  existe é prova no repositório: o CI não constrói a imagem (o job `implantavel`
+  sobe a API direto no Node contra um Postgres 16 real, sem contêiner) e não há
+  log de build arquivado. O `compose.yaml` nunca foi executado.
   As três são equivalentes para rodar o contêiner, mas **não** para o endereço
   de origem: o `fly.toml` do repositório declara `PROXY_DE_BORDA = "fly"`, e
   levar essa linha para outra PaaS transforma o cabeçalho `Fly-Client-IP` num
@@ -302,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 4712 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 5620 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -329,11 +376,11 @@ Para o `eas submit`, preencha `apps/campo/eas.json` em `submit.producao.ios`
 3. **Provedores**: Neon (banco), Fly/Railway (API), R2 (fotos), registro.br
    (domínio). Todos têm plano inicial barato ou grátis.
 4. **Recuperação de senha**: desligada no piloto (recomendado) ou com provedor.
-5. **Duas decisões de produto pendentes**, anotadas no código:
-   - fechar a tomada de conta entre pares de mesmo posto (notificar email antigo
-     ou exigir reautenticação);
-   - PDF na imagem do servidor (incluir o gerador ou assumir impressão pelo
-     navegador). Ver o comentário no topo do `Dockerfile`.
+5. **Uma decisão de produto pendente:** fechar a tomada de conta entre pares de
+   mesmo posto (hoje um administrador pode gerir outro administrador; a
+   proposta é notificar o e-mail antigo ou exigir reautenticação). O outro item
+   que estava aqui, o PDF na imagem do servidor, foi decidido em 09/09/2026: o
+   gerador entra na imagem (ver o comentário no topo do `Dockerfile`).
 
 ---
 
@@ -357,8 +404,10 @@ ter o app no seu iPhone via TestFlight neste fim de semana.
 ## Parte 6: o restore do banco, testado de verdade (CA-08)
 
 > **Registro histórico, de 2026-09-09.** O roteiro vigente é
-> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado com as 47 migrações,
-> com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
+> `RESTORE-DO-BANCO.md` (V2-F00-E25; versão 2, de 2026-10-15), provado com as 47
+> migrações que existiam no Windows em 2026-10-07 e com as 50 de hoje no macOS
+> em 2026-10-15 (o CI repete o roteiro em Postgres 17, ver o próprio
+> documento), com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
 > cópia. Esta parte descreve o teste com 15 migrações e 15 tabelas e, se
 > seguida hoje, para no restore: faltam o papel `dc360_console` (migração 023)
 > e a extensão `pg_trgm` no dump (migração 041). Ela continua valendo pelo que
@@ -644,8 +693,13 @@ enquanto o piloto estiver de pé. O sinal de que ele continua válido é a linha
 
 ## Parte 7: a fila de pedidos de contato (e por que ela não é uma tela)
 
-O formulário público grava em `interesse_municipio`. Ele é a única rota de
-escrita sem autenticação do produto, e hoje **ninguém lê o que ele grava**. Um
+O formulário público grava em `interesse_municipio`. Ele é a única rota pública
+que grava um pedido de contato de gente de fora, e hoje **ninguém lê o que ele
+grava**. (Não é a única rota sem token que escreve: `/auth/entrar`, `/auth/recuperar`
+e afins mexem em credencial e sessão; `GET /publico/oficio/:token` grava a abertura
+do ofício em `oficio_aberturas`; e `PUT /armazenamento/objeto` grava o arquivo da
+foto, autenticado pela assinatura da URL. A lista inteira está em
+`apps/api/test/superficie-registrada.ts`.) Um
 funil de entrada que ninguém abre não é funil, é caixa fechada. Esta seção
 existe para fechar essa lacuna com o que dá para fazer sem inventar um poder que
 o produto recusa ter.
@@ -752,7 +806,7 @@ Quatro versões diferentes de Postgres e de Node aparecem neste projeto, e confu
 | --- | --- | --- |
 | Node | 22 (`dc360/.nvmrc`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` aceita 20 ou mais, mas só a 22 está medida |
 | PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
-| Postgres do CI | 16 (`postgres:16`) | Job que aplica as migrações e roda a API contra banco real |
+| Postgres do CI | 16 (`postgres:16`) no job `implantavel`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações e roda a API contra banco real; o segundo ensaia o restore (CA-08) em Linux |
 | Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
 
 Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.

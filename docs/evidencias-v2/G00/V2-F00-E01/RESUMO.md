@@ -1,6 +1,8 @@
 # V2-F00-E01: Baseline atual reproduzível em máquina limpa
 
-Situação: IMPLEMENTADA E MEDIDA em 2026-10-05; FALTA A VALIDAÇÃO HUMANA (ver o fim). Por isso a etapa não está marcada como concluída.
+Situação: IMPLEMENTADA E MEDIDA em 2026-10-05; REPROVADA na validação de 2026-10-13 (SHA `7005a60`); CORREÇÃO 1 feita em 2026-10-13 (ver a seção "Correção 1" no fim e `correcao-1/RESUMO.md`).
+
+**Como ler este arquivo.** Tudo entre o início e a seção "Correção 1" é o RESUMO ORIGINAL de 2026-10-05, preservado como histórico: descreve a linha VERMELHA de 2026-09-30 (17 de 17 conferiam com o esperado de então). O roteiro de hoje espera a árvore VERDE e sai com código 1 apenas pela divergência explicada do `expo-doctor` (V-DEP-4). O que vale hoje está na seção "Correção 1".
 
 ## O que foi entregue
 
@@ -58,3 +60,15 @@ O teste `db/test/isolamento.test.ts` (CA-06) roda dentro do passo db e está ver
 1. Uma segunda pessoa, ou o Rafael noutra máquina, segue `COMO-REPRODUZIR.md` do zero (com `npm ci`) e anexa o `RESUMO.md` dela, com a explicação de qualquer divergência.
 2. O Rafael anexa o último run do workflow Verificar no GitHub.
 3. Depois disso o item "baseline reproduzível" do G00 pode ser marcado e o commit `V2-F00-E01: baseline reproduzível` pode ser feito (com a aprovação dele).
+
+## Correção 1 (2026-10-13): o estado de hoje
+
+Reprovada em 7005a60 porque o roteiro esperava números velhos (206 casos em `test:scripts` contra 213; `auditar` e `expo-doctor` esperando uma falha que já não acontecia), saía com código 1 numa árvore verde, e a promessa "número esquecido reprova" era falsa. O detalhe, com Fatos e Justificativa, está em `correcao-1/RESUMO.md`. O resultado, em poucas linhas:
+
+- **O esperado é o de hoje.** `dc360/scripts/baseline.mjs` espera o que a árvore verde produz. O roteiro rodado inteiro (17 dos 19 passos; o `npm ci` não roda nesta máquina) deu **16 que conferem, 0 divergentes sem explicação e 1 divergente explicada**, código de saída **1**: o `expo-doctor` dá 20 de 21 por deriva externa do Expo (seis pacotes um patch atrás do que o SDK 57 exige), nomeada como **V-DEP-4** no roteiro e descrita no item 17 de `dc360/apps/campo/PENDENCIAS.md`. Saída em `correcao-1/saidas/`.
+- **Números de hoje** (tabela substitui a de 2026-10-05, que fica acima como histórico): typecheck 0; shared 168; db 327 e 3 pulados por ambiente; `packages/campo` 223; API 1299; console 259; painel 649; jest do aplicativo 1903; `test:campo` 0; `test:scripts` 240 (4 pulados por ambiente); `conferir:numeros` 0; `auditar` 0; os dois `npm audit` crus vermelhos por desenho (política do CP-03); E2E do painel "Passou: 70   Falhou: 0"; E2E da API "Passou: 279   Falhou: 0" e "Passou: 50   Falhou: 0".
+- **Número velho reprova.** `npm run conferir:numeros` passou a ler as tabelas do roteiro e a compará-las com os casos que a árvore tem (`vitest list`, leitura do aplicativo e o `node --test` de `scripts/`). Prova: com número velho plantado ele sai 1 com a diferença e o nome da tabela a atualizar; com o roteiro certo, 0 (`correcao-1/saidas-de-regressao/03` e `04`).
+- **Código de saída do roteiro:** 0 tudo confere, 1 só divergência explicada, 3 divergência sem explicação, 2 roteiro quebrado. O CI trata 0 como verde, 1 como aviso e 3 como falha.
+- **Documentos atualizados:** `COMO-REPRODUZIR.md` (reescrito, com o histórico preservado no fim), `dc360/README.md` (seção do roteiro) e este arquivo.
+
+O que continua verdadeiro da entrega original: o filtro de redação, o servidor do E2E, o `--so-listar` e as limitações de que a medição foi numa máquina só e de que a validação humana da etapa foi substituída pela emenda D-30 do G00 (CI Linux mais leitura a frio). O que deixou de ser verdadeiro: "17 de 17 conferem com o esperado de 2026-09-30" e a tabela de medição acima descrevem o roteiro ANTIGO.

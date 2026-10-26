@@ -287,6 +287,14 @@ async function chamar<T>(
   if (resposta.status === 401 && !opcoes.repetiu && !opcoes.semSessao && lerTokens()) {
     const renovou = await renovar();
     if (renovou === true) {
+      /*
+        Solta o corpo do 401 antes de repetir. Sem ler nem cancelar, o
+        navegador mantém aquele pedido "em andamento" para sempre, e uma tela
+        que abre com um 401 de renovação (papel alterado, V2-F00-E07) nunca
+        chega a "rede ociosa": o teste de ponta a ponta ficava 30 segundos
+        esperando por um pedido que já tinha sido respondido.
+      */
+      await resposta.body?.cancel().catch(() => undefined);
       return chamar<T>(caminho, { ...opcoes, repetiu: true });
     }
     renovacaoRecusadaPorConta = renovou === "conta_desativada";

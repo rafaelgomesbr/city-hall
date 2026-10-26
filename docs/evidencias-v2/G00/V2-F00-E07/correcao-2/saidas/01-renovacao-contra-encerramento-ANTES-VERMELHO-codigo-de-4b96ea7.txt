@@ -1,0 +1,163 @@
+$ (em apps/api de uma copia de 11751bf, que tem a API e o banco iguais a 4b96ea7, com o arquivo de teste de hoje) DC360_POSTGRES_DE_PROVA=<postgres 17.5 descartavel> npx vitest run test/renovacao-contra-encerramento.test.ts --testTimeout=120000 --reporter=verbose
+# codigo anterior ao checkpoint cea7837: renovacao em duas transacoes, sem trava, sem a 049
+
+
+ RUN  v3.2.7 /private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/antes/dc360/apps/api
+
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 244ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive 468ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive 1147ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 241ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar 244ms
+   → {"erro":"sessao_encerrada","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 401 to be 200 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive 557ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive 796ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive 1515ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive 543ms
+   → sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve 262ms
+   → {"erro":"sessao_encerrada","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 401 to be 200 // Object.is equality
+ × test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas 13908ms
+   → rodadas com sessão viva depois do encerrar: 2, 4, 5, 9, 10, 16, 18, 19, 20, 22, 30, 33, 34, 41, 46, 49, 52, 53, 55, 56: expected [ 2, 4, 5, 9, 10, 16, 18, 19, …(12) ] to deeply equal []
+ ✓ test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse 685ms
+ ✓ test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova 823ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive
+AssertionError: sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ Object.exigirCadeiaMorta test/renovacao-contra-encerramento.test.ts:257:87
+    255|   ): Promise<void> {
+    256|     expect(encerramento.statusCode, encerramento.body).toBe(esperado);
+    257|     expect(await sessoesVivasDaCadeia(h), "sobrou sessão viva numa cad…
+       |                                                                                       ^
+    258|     if (renovacao.statusCode === 200) {
+    259|       const par = renovacao.json();
+ ❯ test/renovacao-contra-encerramento.test.ts:340:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento no mesmo instante: a renovação é UMA transação > 5. a rotação não é expulsão: o token de antes da renovação escreve logo depois de ela confirmar
+AssertionError: {"erro":"sessao_encerrada","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ test/renovacao-contra-encerramento.test.ts:368:48
+    366|       solta.disparar();
+    367|       grampo.atual = null;
+    368|       expect(escrita.statusCode, escrita.body).toBe(200);
+       |                                                ^
+    369|       const r = await renovacao;
+    370|       expect(r.statusCode, r.body).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 4. um token de renovação já gasto reaparece (reuso): nenhuma sessão da cadeia sobrevive
+AssertionError: sobrou sessão viva numa cadeia encerrada: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ Object.exigirCadeiaMorta test/renovacao-contra-encerramento.test.ts:257:87
+    255|   ): Promise<void> {
+    256|     expect(encerramento.statusCode, encerramento.body).toBe(esperado);
+    257|     expect(await sessoesVivasDaCadeia(h), "sobrou sessão viva numa cad…
+       |                                                                                       ^
+    258|     if (renovacao.statusCode === 200) {
+    259|       const par = renovacao.json();
+ ❯ test/renovacao-contra-encerramento.test.ts:476:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 5. a rotação não é expulsão: no meio da renovação, o token de antes dela escreve
+AssertionError: {"erro":"sessao_encerrada","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ test/renovacao-contra-encerramento.test.ts:502:48
+    500|       const escrita = await a.escrever(h.acesso);
+    501|       solta.disparar();
+    502|       expect(escrita.statusCode, escrita.body).toBe(200);
+       |                                                ^
+    503|       const r = await renovacao;
+    504|       expect(r.statusCode, r.body).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  test/renovacao-contra-encerramento.test.ts > Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas
+AssertionError: rodadas com sessão viva depois do encerrar: 2, 4, 5, 9, 10, 16, 18, 19, 20, 22, 30, 33, 34, 41, 46, 49, 52, 53, 55, 56: expected [ 2, 4, 5, 9, 10, 16, 18, 19, …(12) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   2,
++   4,
++   5,
++   9,
++   10,
++   16,
++   18,
++   19,
++   20,
++   22,
++   30,
++   33,
++   34,
++   41,
++   46,
++   49,
++   52,
++   53,
++   55,
++   56,
++ ]
+
+ ❯ test/renovacao-contra-encerramento.test.ts:539:102
+    537|       }
+    538|     }
+    539|     expect(sobreviventes, `rodadas com sessão viva depois do encerrar:…
+       |                                                                                                      ^
+    540|   }, 300_000);
+    541| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 2 passed (13)
+   Start at  11:28:11
+   Duration  23.46s (transform 210ms, setup 15ms, collect 328ms, tests 22.95s, environment 0ms, prepare 31ms)
+

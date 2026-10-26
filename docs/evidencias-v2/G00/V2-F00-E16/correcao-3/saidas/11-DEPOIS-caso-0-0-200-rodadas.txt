@@ -1,0 +1,2 @@
+# DEPOIS, só o caso 0,0, 200 rodadas, quatro em paralelo (scripts/amostra.sh depois 200)
+ 200 Tests:       18 skipped, 1 passed, 19 total

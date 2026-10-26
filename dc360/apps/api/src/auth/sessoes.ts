@@ -33,6 +33,18 @@ import type { Consulta } from "../banco/tipos.js";
  * renovacao so escreve enquanto a cadeia tem sessao viva. Conferido contra
  * `servidor.ts` e `auth/vigencia.ts` na V2-F00-E22.
  *
+ * A TRAVA ANTES DO UPDATE (V2-F00-E07, correcao 2, migracao 049)
+ *
+ * Uma renovacao no meio deste encerramento revoga a sessao antiga e abre a
+ * nova. Sem trava comum, o UPDATE abaixo nao via nem uma nem outra (a antiga
+ * ja rotacionada, a nova ainda nao confirmada), respondia que encerrou, e a
+ * renovacao entregava um par novo numa cadeia encerrada. Agora a renovacao
+ * roda numa transacao so sob `travar_sessoes_do_usuario`, e este caminho toma
+ * a mesma trava num comando ANTERIOR ao UPDATE: em READ COMMITTED o UPDATE
+ * seguinte tira fotografia nova e enxerga a sessao que a renovacao acabou de
+ * confirmar. A trava tem de ser outro comando; no mesmo comando do UPDATE a
+ * fotografia ja estaria tirada. Ela so sai no fim da transacao de quem chama.
+ *
  * @returns quantas sessoes estavam abertas e foram encerradas agora.
  */
 export async function encerrarSessoes(
@@ -43,16 +55,24 @@ export async function encerrarSessoes(
     motivo: string;
     /**
      * A sessao de quem pediu, quando ela deve sobreviver. `null` derruba tudo.
+     *
+     * Sobrevive a CADEIA dela (`familia_id`, migracao 047), e nao so a linha: o
+     * token de acesso emitido antes de uma renovacao carrega o `sid` da sessao
+     * ja rotacionada, e a viva da mesma cadeia e outra linha. Preservar so o
+     * `sid` derrubava a cadeia de quem pediu, enquanto a mensagem da rota
+     * dizia que a sessao de onde a pessoa clicou continuava aberta.
      */
     preservarSessaoId?: string | null;
   },
 ): Promise<number> {
+  await c.query("SELECT travar_sessoes_do_usuario($1)", [alvo.usuarioId]);
   const r = await c.query<{ id: string }>(
     `UPDATE sessoes
         SET revogada_em = now(), motivo_revogacao = $2
       WHERE usuario_id = $1
         AND revogada_em IS NULL
-        AND ($3::uuid IS NULL OR id <> $3::uuid)
+        AND ($3::uuid IS NULL
+             OR familia_id IS DISTINCT FROM (SELECT familia_id FROM sessoes WHERE id = $3::uuid))
     RETURNING id`,
     [alvo.usuarioId, alvo.motivo, alvo.preservarSessaoId ?? null],
   );

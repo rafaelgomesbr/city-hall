@@ -1,0 +1,137 @@
+FAIL src/dados/token.test.ts
+  lerExpiracaoDoAcesso
+    √ lê o exp do token de acesso sem verificar assinatura (1 ms)
+    √ devolve nulo para coisa que não é JWT, em vez de explodir
+  criarObtentorDeToken
+    √ cinco chamadas ao mesmo tempo emitem UMA renovação (7 ms)
+    √ não renova quando o token ainda tem folga: sete pedidos, zero renovações
+    √ renova ao entrar na folga, e usa sempre o token de renovação mais recente (1 ms)
+    √ devolve o token atual e respeita o piso quando a renovação falha (1 ms)
+    √ não ressuscita sessão encerrada com resposta de renovação atrasada (8 ms)
+    √ sem credenciais devolve nulo sem tocar na rede
+  renovarJa
+    √ com o token ainda longe de vencer, renovarJa renova mesmo assim (1 ms)
+    √ respeita o piso: duas forçadas seguidas fazem UMA renovação, e a segunda devolve o mesmo token
+    √ cinco forçadas ao mesmo tempo emitem UMA renovação (a trava continua valendo) (13 ms)
+    √ renovação recusada devolve o token atual, sem lançar: é assim que o transporte pausa a fila (1 ms)
+    √ sem credenciais, devolve nulo
+    renovação recusada porque a conta foi desativada
+      × renovarJa lança FalhaDeSessao conta_desativada, com a frase do servidor (1 ms)
+      × lembra a recusa dentro do piso, sem pedir outra renovação ao servidor (1 ms)
+      × o pedido comum (sem renovarJa) segue devolvendo o token atual: só o transporte da fila lê a recusa
+      √ recusa de OUTRO tipo (sessão encerrada, sem sinal) continua devolvendo o token atual
+      × conta reativada: passado o piso, a nova tentativa vale, e a recusa antiga não gruda (1 ms)
+      × entrar de novo (outras credenciais) apaga a recusa
+
+  ● renovarJa › renovação recusada porque a conta foi desativada › renovarJa lança FalhaDeSessao conta_desativada, com a frase do servidor
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: FalhaDeSessao
+
+    Received value has no prototype
+    Received value: "[JWT REDIGIDO]"
+
+      338 |       const erro = await obterToken({ renovarJa: true }).catch((e: unknown) => e);
+      339 |
+    > 340 |       expect(erro).toBeInstanceOf(FalhaDeSessao);
+          |                    ^
+      341 |       expect((erro as FalhaDeSessao).motivo).toBe("conta_desativada");
+      342 |       expect((erro as FalhaDeSessao).message).toBe("Sua conta foi desativada.");
+      343 |     });
+
+      at Object.toBeInstanceOf (src/dados/token.test.ts:340:20)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● renovarJa › renovação recusada porque a conta foi desativada › lembra a recusa dentro do piso, sem pedir outra renovação ao servidor
+
+    expect(received).rejects.toBeInstanceOf()
+
+    Received promise resolved instead of rejected
+    Resolved to value: "[JWT REDIGIDO]"
+
+      351 |       }, relogio);
+      352 |
+    > 353 |       await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
+          |             ^
+      354 |       relogio.t += 5_000; // dentro do piso: a fila tenta de novo e tem de ler a MESMA resposta
+      355 |       await expect(obterToken({ renovarJa: true })).rejects.toMatchObject({ motivo: "conta_desativada" });
+      356 |       expect(renovacoes).toBe(1);
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.expect (src/dados/token.test.ts:353:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● renovarJa › renovação recusada porque a conta foi desativada › o pedido comum (sem renovarJa) segue devolvendo o token atual: só o transporte da fila lê a recusa
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: "[JWT REDIGIDO]"
+
+      363 |       await expect(obterToken()).resolves.toBe(velho);
+      364 |       // A renovação proativa já foi recusada; o 401 que vem depois pergunta de novo, com renovarJa.
+    > 365 |       await expect(obterToken({ renovarJa: true })).rejects.toMatchObject({ motivo: "conta_desativada" });
+          |             ^
+      366 |     });
+      367 |
+      368 |     it("recusa de OUTRO tipo (sessão encerrada, sem sinal) continua devolvendo o token atual", async () => {
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.expect (src/dados/token.test.ts:365:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● renovarJa › renovação recusada porque a conta foi desativada › conta reativada: passado o piso, a nova tentativa vale, e a recusa antiga não gruda
+
+    expect(received).rejects.toBeInstanceOf()
+
+    Received promise resolved instead of rejected
+    Resolved to value: "[JWT REDIGIDO]"
+
+      380 |         throw new ErroDaApi(401, "sessao_encerrada", "Sessão expirada. Entre novamente.");
+      381 |       }, relogio);
+    > 382 |       await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
+          |             ^
+      383 |
+      384 |       resposta = "encerrada"; // a coordenação reativou: a sessão antiga está revogada, a conta não
+      385 |       relogio.t += 61_000;
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.expect (src/dados/token.test.ts:382:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● renovarJa › renovação recusada porque a conta foi desativada › entrar de novo (outras credenciais) apaga a recusa
+
+    expect(received).rejects.toBeInstanceOf()
+
+    Received promise resolved instead of rejected
+    Resolved to value: "[JWT REDIGIDO]"
+
+      389 |     it("entrar de novo (outras credenciais) apaga a recusa", async () => {
+      390 |       const { c, obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
+    > 391 |       await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
+          |             ^
+      392 |
+      393 |       c.trocarPorFora({ acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r-da-nova-entrada" });
+      394 |       await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.expect (src/dados/token.test.ts:391:13)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 14 passed, 19 total
+Snapshots:   0 total
+Time:        1.688 s
+Ran all test suites matching /src\\dados\\token.test.ts/i.

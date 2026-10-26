@@ -1,0 +1,15 @@
+c8-antes chromium rotacao-320x568-para-568x320: foco em button "Cancelar" 288..332; parte visível 27..294; título 51..75
+c8-antes chromium zoom-1280x1024-para-320x256: foco em button "Cancelar" 383..427; parte visível 21..234; título 45..69
+c8-antes chromium janela-baixa-320x256-titulo: foco em button "Cancelar" 178..222; parte visível 21..234; título -185..-161
+c8-antes chromium fundo-390x844-clique-no-fundo: foco em BODY; parte visível 219..626; título 243..267
+c8-antes chromium erro-390x844-depois-do-erro: foco em BODY; parte visível 190..655; título 214..238
+c8-antes firefox rotacao-320x568-para-568x320: foco em button "Cancelar" 287..331; parte visível 27..294; título 51..75
+c8-antes firefox zoom-1280x1024-para-320x256: foco em button "Cancelar" 383..427; parte visível 21..234; título 45..69
+c8-antes firefox janela-baixa-320x256-titulo: foco em button "Cancelar" 178..222; parte visível 21..234; título -184..-160
+c8-antes firefox fundo-390x844-clique-no-fundo: foco em BODY; parte visível 219..625; título 243..267
+c8-antes firefox erro-390x844-depois-do-erro: foco em BODY; parte visível 190..654; título 214..238
+c8-antes webkit rotacao-320x568-para-568x320: foco em button "Cancelar" 287..331; parte visível 27..294; título 51..75
+c8-antes webkit zoom-1280x1024-para-320x256: foco em button "Cancelar" 383..427; parte visível 21..234; título 45..69
+c8-antes webkit janela-baixa-320x256-titulo: foco em button "Cancelar" 179..223; parte visível 21..234; título -184..-160
+c8-antes webkit fundo-390x844-clique-no-fundo: foco em BODY; parte visível 219..626; título 243..267
+c8-antes webkit erro-390x844-depois-do-erro: foco em BODY; parte visível 190..655; título 214..238

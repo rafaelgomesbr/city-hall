@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
 import {
   MODO, desativarSegundoFator, encerrarMinhasSessoes, listarMinhasSessoes,
@@ -17,6 +17,10 @@ import {
   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
 } from "./sessoes-regras";
 import { useTitulo } from "../seo/titulo";
+import { focarPrimeiroInvalido } from "../componentes/foco";
+import { manterNaFaixaDasBordas } from "../componentes/usar-bordas-fixas";
+import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
+import { erroDaSenhaAtual } from "./senha-provisoria-regras";
 
 /**
  * A conta de quem está usando o sistema, e a troca da própria senha.
@@ -43,6 +47,36 @@ export function MinhaConta() {
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const formulario = useRef<HTMLFormElement>(null);
+  const avisoDeErro = useRef<HTMLDivElement>(null);
+  const confirmacaoDaTroca = useRef<HTMLDivElement>(null);
+
+  /*
+    O FOCO DEPOIS DE ENVIAR (V2-F00-E09, correção 4, revisão).
+
+    O botão "Trocar senha" fica desabilitado enquanto grava, e elemento
+    desabilitado perde o foco: ao terminar, quem usa teclado ou leitor de tela
+    estava no `<body>`, sem saber se deu certo nem onde errou. Erro de campo leva
+    o foco ao campo inválido (`focarPrimeiroInvalido`, o mesmo gesto dos outros
+    formulários); erro que não é de campo e a confirmação são o próprio alvo do
+    foco (`Aviso` com `foco`, que por isso não é região viva: um mecanismo só, o
+    mesmo das sessões, abaixo).
+  */
+  /*
+    O erro de campo também leva o foco por efeito, e não por
+    `requestAnimationFrame` (correção 5): o rAF pedido dentro do `catch` de um
+    `await` rodava antes de o React desenhar o `aria-invalid`, e o Firefox
+    ficava em `<body>`. Ver `usar-foco.ts`.
+  */
+  const focarCampoInvalido = useFocoDepoisDeRenderizar(
+    () => { focarPrimeiroInvalido(formulario.current); },
+  );
+  useEffect(() => {
+    if (erro) avisoDeErro.current?.focus();
+  }, [erro]);
+  useEffect(() => {
+    if (sucesso) confirmacaoDaTroca.current?.focus();
+  }, [sucesso]);
 
   async function submeter(evento: React.FormEvent) {
     evento.preventDefault();
@@ -65,18 +99,28 @@ export function MinhaConta() {
       setErrosDeCampo(problemas);
       setErro(null);
       setSucesso(null);
+      focarCampoInvalido();
       return;
     }
 
     setErrosDeCampo({});
     setErro(null);
+    // A confirmação da troca anterior sai agora: junto de um erro novo ela
+    // diria "Senha trocada" e "não confere" na mesma tela.
+    setSucesso(null);
     setEnviando(true);
     try {
       const mensagem = await trocarSenha(atual, nova);
       setSucesso(mensagem);
       setAtual(""); setNova(""); setRepetida("");
     } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : String(e));
+      const daSenha = erroDaSenhaAtual(e, "minha-conta");
+      if (daSenha) {
+        setErrosDeCampo({ atual: daSenha });
+        focarCampoInvalido();
+      } else {
+        setErro(e instanceof Error ? e.message : String(e));
+      }
     } finally {
       setEnviando(false);
     }
@@ -123,15 +167,15 @@ export function MinhaConta() {
               </Aviso>
             ) : (
               <>
-                {erro && <Aviso tom="perigo">{erro}</Aviso>}
-                {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
+                {erro && <Aviso tom="perigo" foco={avisoDeErro}>{erro}</Aviso>}
+                {sucesso && <Aviso tom="sucesso" foco={confirmacaoDaTroca}>{sucesso}</Aviso>}
 
                 <p className="campo__dica" style={{ marginTop: 0 }}>
                   Trocar a senha encerra as suas outras sessões, em outros
                   navegadores e aparelhos. Esta continua aberta.
                 </p>
 
-                <form onSubmit={submeter} noValidate>
+                <form onSubmit={submeter} noValidate ref={formulario}>
                   <AvisoDeObrigatorios />
                   <Campo
                     id="conta-senha-atual"
@@ -212,6 +256,49 @@ function MinhasOutrasSessoes() {
   const [encerrando, setEncerrando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
+  const confirmacao = useRef<HTMLDivElement>(null);
+
+  /*
+    O FOCO NÃO PODE CAIR EM `BODY` DEPOIS DE ENCERRAR (WCAG 2.4.3).
+
+    O botão "Encerrar minhas outras sessões" só existe enquanto há outra
+    sessão. Ao confirmar, a lista é relida, o botão some, e o foco que o
+    `Modal` devolveu a ele ia junto: teclado e leitor de tela recomeçavam do
+    topo da página (validação da V2-F00-E09, rodada 2). O foco vai para a
+    confirmação, que continua na tela e é o que a pessoa precisa ouvir.
+
+    UM mecanismo só: a confirmação é o próprio alvo do foco (`Aviso` com
+    `foco`) e, por isso, não é região viva. Antes o foco ia para uma `div` sem
+    papel que embrulhava um aviso `role="status"`, e o leitor podia dizer a
+    mesma frase duas vezes (uma pelo foco, outra pela região). É o mesmo
+    mecanismo da tela de redefinição de senha, para os dois fluxos se
+    comportarem igual.
+
+    É um efeito sobre `sucesso`, e não uma chamada dentro de `encerrar`, por
+    causa da ordem: o `Modal` devolve o foco ao gatilho na limpeza do efeito
+    dele, que roda antes deste (filho antes de pai). Mover o foco aqui, depois
+    do commit que mostrou a confirmação, é o que não deixa o gatilho ter a
+    última palavra.
+  */
+  useEffect(() => {
+    if (sucesso) confirmacao.current?.focus();
+  }, [sucesso]);
+
+  /*
+    A CONFIRMAÇÃO TEM DE FICAR À VISTA, e não só focada (WCAG 2.4.11; achado 1 da
+    rodada 8 da V2-F00-E09, correção 7). O foco por código não leva o elemento
+    à vista no WebKit depois que a lista relida encolhe a página: a frase
+    ficava atrás do topo fixo ou acima da janela (de 10..94 com o topo até 129,
+    a 360x640, a -136..-52 a 320x568) para quem encerrou por toque ou clique. O
+    ajuste do Tab não cobre este caso, porque ele ignora o foco que chega até
+    800 ms depois de um toque. Aqui o ajuste é explícito, no instante da
+    confirmação e de novo quando a lista chega (`sessoes`): é a leitura que
+    encolhe a página, e o motor corrige a rolagem por baixo dela.
+  */
+  useEffect(() => {
+    if (!sucesso || !confirmacao.current) return;
+    return manterNaFaixaDasBordas(confirmacao.current);
+  }, [sucesso, sessoes]);
 
   const carregar = useCallback((): (() => void) => {
     let cancelado = false;
@@ -259,7 +346,9 @@ function MinhasOutrasSessoes() {
 
   return (
     <Cartao titulo="Minhas sessões">
-      {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
+      {sucesso && (
+        <Aviso tom="sucesso" foco={confirmacao}>{sucesso}</Aviso>
+      )}
 
       {/*
         O `Carregando` da página tem 60vh de altura, que dentro de um cartão
@@ -312,7 +401,8 @@ function MinhasOutrasSessoes() {
               <p className="campo__dica" style={{ marginTop: 0 }}>
                 Encerrar as outras não mexe nesta: você continua aqui, sem precisar entrar de novo.
               </p>
-              <button type="button" className="botao botao--perigo"
+              {/* `botao--quebra`: a 320 px o rótulo comprido quebra em linhas e o botão ocupa a coluna. */}
+              <button type="button" className="botao botao--perigo botao--quebra"
                       onClick={() => { setErro(null); setSucesso(null); setPerguntando(true); }}>
                 Encerrar minhas outras sessões
               </button>
@@ -326,8 +416,10 @@ function MinhasOutrasSessoes() {
         titulo="Encerrar minhas outras sessões"
         consequencia={
           <>
-            Os outros navegadores e aparelhos da sua conta saem agora e precisam entrar de novo
-            com a sua senha. Esta sessão continua aberta, e a senha não muda.
+            Os outros navegadores e aparelhos da sua conta deixam de poder renovar a sessão e de
+            gravar agora, e precisam entrar de novo com a sua senha. Uma tela já aberta neles
+            pode continuar consultando por alguns minutos. Esta sessão continua aberta,
+            e a senha não muda.
           </>
         }
         rotuloDaAcao={rotuloDeEncerrarOutras(outras)}

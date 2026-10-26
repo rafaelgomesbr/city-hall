@@ -106,6 +106,32 @@ describe("A senha temporária de quem administra", () => {
     expect(depois.statusCode, depois.body).toBe(200);
   });
 
+  /*
+    A FRASE DA SENHA ERRADA NA TROCA (V2-F00-E09, correção 4, arbitragem da
+    rodada 5). Saía "A senha atual nao confere.", sem acento, e a tela
+    "Defina a sua senha" a mostrava como estava: português errado, e nenhuma
+    pista do que fazer. A frase vem do servidor e chega ao painel inteira, então
+    é aqui que ela se prende: com acento e dizendo o que fazer.
+  */
+  it("a senha atual errada na troca responde em português correto e diz o que fazer", async () => {
+    const temporaria = await redefinirDiego();
+    try {
+      const sessao = await entrar(DIEGO_EMAIL, temporaria);
+      const errada = await app.inject({
+        method: "POST", url: "/auth/trocar-senha", headers: com(sessao.acesso),
+        payload: { senhaAtual: "provisoria-digitada-errada", senha: "frase-nova-do-diego-2026" },
+      });
+      expect(errada.statusCode, errada.body).toBe(401);
+      expect(errada.json().erro).toBe("credenciais");
+      expect(errada.json().mensagem).toBe("A senha atual não confere. Confira e digite de novo.");
+    } finally {
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_hash = $2, senha_provisoria_ate = NULL WHERE id = $1",
+        [DIEGO, await derivarSenha(SENHA)],
+      );
+    }
+  }, 300_000);
+
   it("enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403", async () => {
     const temporaria = await redefinirDiego();
     try {
@@ -193,6 +219,37 @@ describe("A senha temporária de quem administra", () => {
         method: "POST", url: "/auth/renovar", payload: { renovacao: sessao.renovacao },
       });
       expect(renovado.statusCode).toBe(401);
+    } finally {
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_hash = $2, senha_provisoria_ate = NULL WHERE id = $1",
+        [DIEGO, await derivarSenha(SENHA)],
+      );
+    }
+  }, 300_000);
+
+  /*
+    O PRAZO NA VIGÊNCIA DA ESCRITA (V2-F00-E07, achado 3 do red-team da
+    validação de 52952a1). O caso de cima não prende esse ramo de
+    `exigirVigencia`: sem ele, a troca de senha ainda leva 401 pela
+    conferência do próprio serviço. Uma escrita comum não tem essa segunda
+    conferência, e sem o prazo ela sairia 403 `troca_de_senha_obrigatoria`,
+    mandando trocar uma senha que já não pode ser trocada. A resposta certa é
+    401 `sessao_encerrada`: entrar de novo, e a entrada diz que a provisória
+    venceu.
+  */
+  it("a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403", async () => {
+    const temporaria = await redefinirDiego();
+    try {
+      const sessao = await entrar(DIEGO_EMAIL, temporaria);
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_provisoria_ate = now() - interval '1 minute' WHERE id = $1", [DIEGO],
+      );
+      const escrita = await app.inject({
+        method: "POST", url: "/sincronizacao/vistoria", headers: com(sessao.acesso),
+        payload: { idempotencyKey: crypto.randomUUID(), ocorrenciaId: OC_ALFA_1 },
+      });
+      expect(escrita.statusCode, escrita.body).toBe(401);
+      expect(escrita.json().erro).toBe("sessao_encerrada");
     } finally {
       await mem.bruto.query(
         "UPDATE usuarios SET senha_hash = $2, senha_provisoria_ate = NULL WHERE id = $1",

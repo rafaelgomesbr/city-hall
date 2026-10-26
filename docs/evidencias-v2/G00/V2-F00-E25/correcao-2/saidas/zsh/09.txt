@@ -1,0 +1,15 @@
+$ # bloco 09 (texto do documento, antes das 5 substituicoes de placeholder)
+super -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+setup -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_setup WITH SET TRUE;"
+setup -p $PORTA_DESTINO -d prova_e25_restaurado -c "GRANT USAGE ON SCHEMA public TO PUBLIC;"
+
+--- saida ---
+%  
+ 
+%  
+ 
+%  
+ 
+%  
+ 
+--- bloco terminou: sim ---

@@ -1,0 +1,11 @@
+$ npm run test --workspace @dc360/web 2>&1 | tail -6; npx tsc --noEmit -p apps/web/tsconfig.json; echo "tsc do painel saiu com $?"; npx tsc --noEmit -p apps/api/tsconfig.json; echo "tsc da API saiu com $?"   (em ./dc360)
+codigo=0
+
+
+ Test Files  44 passed (44)
+      Tests  665 passed (665)
+   Start at  11:59:33
+   Duration  7.84s (transform 1.59s, setup 0ms, collect 12.79s, tests 31.19s, environment 5ms, prepare 2.76s)
+
+tsc do painel saiu com 0
+tsc da API saiu com 0

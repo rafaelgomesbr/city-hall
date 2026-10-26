@@ -1,0 +1,52 @@
+# SONDA: sem o catch de Linking.openSettings, o caso novo reprova (1 de 17). Restaurado.
+
+FAIL src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx (6.231 s)
+  a tela de 'vistoria guardada'
+    √ não promete envio com o aplicativo fechado, porque isso não existe (483 ms)
+  o formulário e o teclado
+    √ o primeiro toque fora do campo AGE, em vez de só fechar o teclado (125 ms)
+    √ a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele (118 ms)
+  a câmera em tela cheia
+    √ reserva a área segura de baixo, onde o menu escondido não está mais para reservar (139 ms)
+  a permissão negada
+    √ de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes (163 ms)
+    √ de localização: a mesma tarja, o mesmo botão (187 ms)
+    √ uma falha que não é de permissão não ganha o botão dos ajustes (196 ms)
+    √ o botão não sobrevive à falha seguinte, que não é de permissão (V2-F00-E16) (283 ms)
+    × se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1) (104 ms)
+    √ o botão dos ajustes tem nome para o leitor de tela e área de toque de 44 (55 ms)
+  a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1)
+    √ erro sem mensagem: a tarja diz o fallback de guardar a foto (92 ms)
+    √ algo que nem é Error: o mesmo fallback (92 ms)
+  a câmera que não disparou (V2-F00-E16)
+    √ continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer (199 ms)
+  a precisão da leitura de GPS
+    √ abaixo de meio metro vira 1, e não zero (192 ms)
+    √ a leitura comum continua arredondada ao metro (146 ms)
+    √ aparelho que não informa a precisão grava nulo, que é 'não informada' (122 ms)
+  a foto que saiu vazia do disco
+    √ a tarja diz a frase certa, com o que fazer, e não a genérica (97 ms)
+
+  ● a permissão negada › se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1)
+
+    sem tela de ajustes
+
+      407 |     process.on("unhandledRejection", ouvinte);
+      408 |     const abrirAjustes = jest.spyOn(Linking, "openSettings")
+    > 409 |       .mockRejectedValue(new Error("sem tela de ajustes"));
+          |                          ^
+      410 |     try {
+      411 |       await abrirATela();
+      412 |       await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+
+      at Object.<anonymous> (src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx:409:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 16 passed, 17 total
+Snapshots:   0 total
+Time:        6.391 s, estimated 7 s
+Ran all test suites matching /src\\__tests__\\vistoria-o-teclado/i.

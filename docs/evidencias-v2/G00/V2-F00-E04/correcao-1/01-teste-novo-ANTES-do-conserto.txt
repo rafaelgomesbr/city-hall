@@ -1,0 +1,175 @@
+$ npx vitest run test/get-com-efeito.test.ts (em dc360/apps/api, com o codigo de src/ SEM o conserto: git stash de src/)
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/get-com-efeito.test.ts (10 tests | 7 failed) 11366ms
+   ✓ Controle: quem está vigente continua emitindo, e as pegadas enxergam a escrita > termo de interdição interdita e grava; o CSV grava a exportação  1157ms
+   × Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > conta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 1343ms
+     → expected [ …(13) ] to deeply equal []
+   × Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > papel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 1280ms
+     → expected [ …(14) ] to deeply equal []
+   × Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > sessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 1572ms
+     → expected [ …(14) ] to deeply equal []
+   × Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > cadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 1653ms
+     → expected [ …(14) ] to deeply equal []
+   ✓ A lista de GET com efeito é a decisão, e o comportamento a obedece > toda entrada da lista existe nas rotas registradas (sem lista morta) 5ms
+   × A lista de GET com efeito é a decisão, e o comportamento a obedece > com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista 466ms
+     → expected [] to deeply equal [ 'GET /avisos', 'GET /avisos/', …(6) ]
+   × A lista de GET com efeito é a decisão, e o comportamento a obedece > varredura da fonte: GET que escreve no corpo carrega a marca, e marca só em GET da lista 14ms
+     → expected [ …(7) ] to deeply equal []
+   ✓ PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve > toda rota de escrita autenticada recusa com 403 conta_desativada, sem tocar no banco  608ms
+   × /auth/encerrar-sessoes com o token anterior à renovação > a mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu 766ms
+     → expected 2 to be 1 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > conta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD
+AssertionError: expected [ …(13) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "GET termo de interdição: respondeu 200, esperado 403",
++   "GET termo de interdição em PDF: respondeu 200, esperado 403",
++   "GET laudo: respondeu 200, esperado 403",
++   "GET laudo em PDF: respondeu 200, esperado 403",
++   "GET termo de desinterdição: respondeu 200, esperado 403",
++   "GET CSV de ocorrências: respondeu 200, esperado 403",
++   "GET CSV completo com dado pessoal: erro posto_insuficiente_para_dado_pessoal, esperado conta_desativada",
++   "HEAD termo de interdição: respondeu 200, esperado 403",
++   "HEAD termo de interdição em PDF: respondeu 200, esperado 403",
++   "HEAD laudo: respondeu 200, esperado 403",
++   "HEAD laudo em PDF: respondeu 200, esperado 403",
++   "HEAD termo de desinterdição: respondeu 200, esperado 403",
++   "HEAD CSV de ocorrências: respondeu 200, esperado 403",
++ ]
+
+ ❯ test/get-com-efeito.test.ts:329:25
+    327|           }
+    328|         }
+    329|         expect(desvios).toEqual([]);
+       |                         ^
+    330|         expect(await pegadas(idTermo)).toEqual(antes);
+    331|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > papel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD
+ FAIL  test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > sessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD
+ FAIL  test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > cadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD
+AssertionError: expected [ …(14) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "GET termo de interdição: respondeu 200, esperado 401",
++   "GET termo de interdição em PDF: respondeu 200, esperado 401",
++   "GET laudo: respondeu 200, esperado 401",
++   "GET laudo em PDF: respondeu 200, esperado 401",
++   "GET termo de desinterdição: respondeu 200, esperado 401",
++   "GET CSV de ocorrências: respondeu 200, esperado 401",
++   "GET CSV completo com dado pessoal: respondeu 403, esperado 401",
++   "HEAD termo de interdição: respondeu 200, esperado 401",
++   "HEAD termo de interdição em PDF: respondeu 200, esperado 401",
++   "HEAD laudo: respondeu 200, esperado 401",
++   "HEAD laudo em PDF: respondeu 200, esperado 401",
++   "HEAD termo de desinterdição: respondeu 200, esperado 401",
++   "HEAD CSV de ocorrências: respondeu 200, esperado 401",
++   "HEAD CSV completo com dado pessoal: respondeu 403, esperado 401",
++ ]
+
+ ❯ test/get-com-efeito.test.ts:329:25
+    327|           }
+    328|         }
+    329|         expect(desvios).toEqual([]);
+       |                         ^
+    330|         expect(await pegadas(idTermo)).toEqual(antes);
+    331|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  test/get-com-efeito.test.ts > A lista de GET com efeito é a decisão, e o comportamento a obedece > com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista
+AssertionError: expected [] to deeply equal [ 'GET /avisos', 'GET /avisos/', …(6) ]
+
+- Expected
++ Received
+
+- [
+-   "GET /avisos",
+-   "GET /avisos/",
+-   "GET /documentos/:id/laudo",
+-   "GET /documentos/:id/laudo.pdf",
+-   "GET /documentos/:id/termo-de-desinterdicao",
+-   "GET /documentos/:id/termo-de-interdicao",
+-   "GET /documentos/:id/termo-de-interdicao.pdf",
+-   "GET /relatorios/ocorrencias.csv",
+- ]
++ []
+
+ ❯ test/get-com-efeito.test.ts:361:31
+    359|         if (r.statusCode === 403 && erro === "conta_desativada") marca…
+    360|       }
+    361|       expect(marcadas.sort()).toEqual([...COM_EFEITO].sort());
+       |                               ^
+    362|     } finally {
+    363|       await restaurarHelena();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  test/get-com-efeito.test.ts > A lista de GET com efeito é a decisão, e o comportamento a obedece > varredura da fonte: GET que escreve no corpo carrega a marca, e marca só em GET da lista
+AssertionError: expected [ …(7) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "avisos.ts: GET / escreve e não tem a marca",
++   "documentos.ts: GET /:id/laudo escreve e não tem a marca",
++   "documentos.ts: GET /:id/termo-de-interdicao escreve e não tem a marca",
++   "documentos.ts: GET /:id/termo-de-desinterdicao escreve e não tem a marca",
++   "documentos.ts: GET /:id/laudo.pdf escreve e não tem a marca",
++   "documentos.ts: GET /:id/termo-de-interdicao.pdf escreve e não tem a marca",
++   "prestacao-de-contas.ts: GET /relatorios/ocorrencias.csv escreve e não tem a marca",
++ ]
+
+ ❯ test/get-com-efeito.test.ts:391:21
+    389|       });
+    390|     }
+    391|     expect(desvios).toEqual([]);
+       |                     ^
+    392|   });
+    393| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  test/get-com-efeito.test.ts > /auth/encerrar-sessoes com o token anterior à renovação > a mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ test/get-com-efeito.test.ts:459:40
+    457|     });
+    458|     expect(r.statusCode, r.body).toBe(200);
+    459|     expect(r.json().sessoesEncerradas).toBe(1);
+       |                                        ^
+    460| 
+    461|     // "Esta continua aberta": a cadeia de quem pediu renova, e a outr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 3 passed (10)
+   Start at  04:30:53
+   Duration  14.04s (transform 385ms, setup 30ms, collect 2.25s, tests 11.37s, environment 0ms, prepare 148ms)
+

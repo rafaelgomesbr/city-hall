@@ -1,0 +1,59 @@
+$ rodar-copias.sh <worktree> f37bdac   (ANTES: o portão de f37bdac em cópias do dc360 sem node_modules, com fast-uri 3.0.1 de runtime plantado no package-lock.json; npm real 11.12.1, Node v24.15.0, com rede)
+=== variante plantada (sem .npmrc)
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante plock (package-lock=false)
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+=== variante raiz-com-dep (sem .npmrc)
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    ERRO: a auditoria completa da raiz não é confiável, então este portão NÃO aprova.
+    codigo=2
+=== variante proibida (before=2020-01-01)
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante permitidas (loglevel=silent
+color=false
+progress=false
+fund=false
+update-notifier=false
+cache=/tmp/e19c6/c8/cache-hostil
+prefix=/tmp/e19c6/c8/prefixo-sem-npmrc
+registry=http://127.0.0.1:9/
+offline=true
+prefer-offline=true
+prefer-online=false
+dry-run=true
+package-lock=false
+package-lock-only=true
+audit-level=critical
+json=false)
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante credencial (//registry.npmjs.org/:_authToken=token-falso-de-teste)
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante global (prefix=/tmp/e19c6/c8/prefixo-hostil)
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante usuario (sem .npmrc)
+    ambiente: HOME=/tmp/e19c6/c8/casa npm_config_cache=/Users/rafaelgomes/.npm
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante env-proibida (sem .npmrc)
+    ambiente: npm_config_omit=dev
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante env-permitida (sem .npmrc)
+    ambiente: npm_config_package_lock=false NPM_CONFIG_OFFLINE=true npm_config_userconfig=/tmp/nao-existe/.npmrc
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    ERRO: a auditoria do aplicativo de campo não é confiável, então este portão NÃO aprova.
+    codigo=2

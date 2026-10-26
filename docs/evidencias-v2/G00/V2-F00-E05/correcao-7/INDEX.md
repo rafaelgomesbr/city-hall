@@ -1,0 +1,32 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | d9592c2bfceecbc21e469987443adb8950044fbb12bb5a01afdd39479ebf76e7 |
+| diff-da-correcao.patch | 9f44271fbb84aa459ca8da4edd4452a1d9d24efe9129ff43f35bc74d97b8cd5a |
+| saidas/00-fd17ff4-sonda-api.txt | e946cdd70b087181423503d90f31b1c36420b966c87109b809ce39c22b78db66 |
+| saidas/01-fd17ff4-sonda-console.txt | 75dc5b959f055a49b750c137507d08789d154fc6560a020253fdf42c1aeadaa1 |
+| saidas/02-ANTES-sonda-api.txt | 9127799c6902af63086b4fcb720d67d4d9b6e324e8ba80d2e15319d53b665d42 |
+| saidas/03-ANTES-sonda-console.txt | 83d699d216dfaba15409d3e3462a27013d40e5bb2308276fbaa063aeb0a338a5 |
+| saidas/10-DEPOIS-sonda-api.txt | 32b0573b7223177540670446417f8a31debd54cca1922b77bf39c43b3ca9bc7a |
+| saidas/11-DEPOIS-sonda-console.txt | a82348bffc537b34fb687c8d6774960ac4fede4defd08b467ecd4484b3ad385d |
+| saidas/12-tabela-variante-antes-depois.txt | 2ccba76ba84c0a6df22a8369882653a2a1fb46491ee5a23865cbc62e6ace4988 |
+| saidas/20-MORDIDA-guarda-de-24da65e-api.txt | f1c400badab2e5aba03841a0569457ed9b49de62844910627224091f31d345fd |
+| saidas/21-MORDIDA-guarda-de-24da65e-console.txt | 1a46980745788d815df5a5664451194a9de7e97a2925a073eeffa8db34ecbf63 |
+| saidas/22-MORDIDA-guarda-de-d00a549-api.txt | fada0278f73eca914e87e5e21472eaaaf50a1ac09019c07919c6dcb40e8addd8 |
+| saidas/23-MORDIDA-guarda-de-d00a549-console.txt | 7d924df00f6f356dfed7af25e813e0de34be5dc389b840f5aabeec5564761563 |
+| saidas/60-test-api.txt | d19de27182d97f6d3cf0f2ded700bd1656c0c0c7eaf8d7dc1ffab70c38eae5ac |
+| saidas/61-test-console.txt | f7e7999fe8b03aa7292ca35abf6a7bca2c1bcc6482fce86ae431a135999cade8 |
+| saidas/62-test-shared.txt | 2a9d15db7caf9014ada4e818aa21e0fc42ab5df838c29aff33be864e4660534a |
+| saidas/63-typecheck.txt | 4c98989b854cb607bb0c870a727827ad60216a1cad659a0118be849509716b2e |
+| saidas/64-typecheck-dos-testes-tocados.txt | cb4c15bd296dfdfc9cd6b16ac77c8800a1ba64212358727a6147fac59774dc70 |
+| saidas/65-portao-de-conteudo.txt | feb76934c6b1c5264a8940e0e2f46a71ff79278e7d3c7c73675808e809b18e05 |
+| saidas/66-test-isolamento.txt | d63ce74f5524a2742d3e7fe659daa52d183e3f4fbde6a2d0edba08a5f648f430 |
+| saidas/67-conferir-numeros.txt | c38f4291f8ff89d8e24ffe215f3ddc7bc8e6ccd6d518f1db7b5b09b56f105b5a |
+| saidas/68-baseline-test.txt | 36b11012c575a28d48160bea756230dfe604c908c15fee731fb7a04bc0ee7fa7 |
+| scripts/rodar-por-variante.sh | e3b9ae258d25f55a70951dc52914f7572f9606cc049fa188352493f3085815df |
+| scripts/rodar.sh | 3338fb55616208758557c6e424cc6dd3c1329272b8e4a4bc61fc735e24ee9186 |
+| scripts/sonda-api.ts | 689d4e96e30061c37ee65b2bca16b9882eae8d40a65aff285d0ae6a1c5a0dd58 |
+| scripts/sonda-console.ts | 0bd317a4dcda7c9fbac0369853bd4dcac26be7c0d708da60115c83ac20916c70 |
+| scripts/tabela.py | db75572bcbfc13b9b2f09a5e66964fc0f6f7aa8a927bf2ac91dd8fd5dda8583b |
+| scripts/zz-c7-comum.ts | 0ed4bd054d4bf32ee73bbfc083b3bf5d9cc67fa7146558b25ef60c13e569ccf8 |

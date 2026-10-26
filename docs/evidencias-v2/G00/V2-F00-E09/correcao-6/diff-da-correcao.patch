@@ -1,0 +1,1092 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 2623d4f..a513d5e 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,7 +10,7 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 699 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 716 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1715 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1581,7 +1581,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3524 testes em seis pacotes
++npm test                    # 3541 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1715 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+diff --git a/dc360/apps/web/src/componentes/Estrutura.tsx b/dc360/apps/web/src/componentes/Estrutura.tsx
+index 6062803..96ffd19 100644
+--- a/dc360/apps/web/src/componentes/Estrutura.tsx
++++ b/dc360/apps/web/src/componentes/Estrutura.tsx
+@@ -12,6 +12,7 @@ import {
+ } from "./Icones";
+ import { Sino } from "./Sino";
+ import { BuscaGlobal } from "./BuscaGlobal";
++import { useBordasFixas, useFocoForaDasBordas } from "./usar-bordas-fixas";
+ 
+ /**
+  * Estrutura fixa da aplicação: lateral de navegação, topo com busca e
+@@ -129,6 +130,10 @@ export function Estrutura() {
+   const navegar = useNavigate();
+   const { pathname } = useLocation();
+   const barraRef = useRef<HTMLElement>(null);
++  const topoRef = useRef<HTMLElement>(null);
++  // O topo e a barra do pé são fixos: a rolagem da página deixa folga para os dois (ver o hook).
++  useBordasFixas(topoRef, barraRef, Boolean(sessao));
++  useFocoForaDasBordas(Boolean(sessao));
+ 
+   /*
+     A barra do celular mostra poucos ladrilhos por vez e o resto rola. Quem
+@@ -224,7 +229,7 @@ export function Estrutura() {
+         </div>
+       </nav>
+ 
+-      <header className="topo">
++      <header className="topo" ref={topoRef}>
+         {/*
+           A MARCA NO TOPO. Em tela estreita a lateral vai para o rodapé e a
+           marca dela some (`.lateral__marca { display: none }`), e o painel
+@@ -264,7 +269,15 @@ export function Estrutura() {
+             conta, que é onde se troca a senha: quem recebe uma senha inicial
+             ditada por telefone procura a troca aqui, e não num menu escondido.
+           */}
+-          <NavLink to="/minha-conta" className="identidade identidade--acionavel">
++          {/*
++            Até 600 px o nome e o papel saem da tela e fica só o avatar, que é
++            `aria-hidden`: o link ficava sem nome nenhum para quem ouve a tela
++            (axe `link-name`, achado 3 da acessibilidade na rodada 7 da
++            V2-F00-E09). O nome dito começa pelo texto que se vê na largura de
++            mesa (o nome e o papel) e termina no destino.
++          */}
++          <NavLink to="/minha-conta" className="identidade identidade--acionavel"
++                   aria-label={`${sessao.usuarioNome}, ${ROTULO_PAPEL[sessao.papel]}, Minha conta`}>
+             <span className="identidade__avatar" aria-hidden="true">{iniciais(sessao.usuarioNome)}</span>
+             <span>
+               <span className="identidade__nome">{sessao.usuarioNome}</span>
+diff --git a/dc360/apps/web/src/componentes/foco.ts b/dc360/apps/web/src/componentes/foco.ts
+index 8f859e9..4eddad1 100644
+--- a/dc360/apps/web/src/componentes/foco.ts
++++ b/dc360/apps/web/src/componentes/foco.ts
+@@ -28,8 +28,17 @@
+ export type NoFocavel = {
+   focus(opcoes?: FocusOptions): void;
+   scrollIntoView?(opcoes?: ScrollIntoViewOptions): void;
++  /** A moldura do campo (rótulo, controle, erro e dica), quando o nó sabe achá-la. */
++  closest?(seletor: string): { scrollIntoView?(opcoes?: ScrollIntoViewOptions): void } | null;
+ };
+ 
++/**
++ * A moldura que o `Campo` desenha em volta do controle: o rótulo em cima, o
++ * controle, o erro e a dica embaixo. É ela que precisa caber à vista depois do
++ * foco, e não só o controle.
++ */
++export const SELETOR_MOLDURA = ".campo";
++
+ /** O mínimo que uma raiz precisa saber fazer: achar o primeiro nó de um seletor. */
+ export type RaizDeBusca = { querySelector(seletor: string): NoFocavel | null };
+ 
+@@ -61,7 +70,7 @@ export function focarPrimeiroCampo(raiz: RaizDeBusca | null | undefined): boolea
+ }
+ 
+ /**
+- * Foca e leva o nó à vista, em DUAS chamadas, e não só com `focus()`.
++ * Foca e leva à vista a MOLDURA do campo, e depois o próprio controle.
+  *
+  * O defeito (V2-F00-E09, correção 5, visto nas capturas): o `focus()` sozinho
+  * rola a página por conta do motor, e cada motor escolhe uma posição. O
+@@ -70,11 +79,22 @@ export function focarPrimeiroCampo(raiz: RaizDeBusca | null | undefined): boolea
+  * do celular (rótulo a 94 px, topo até 129 px). `scrollIntoView` é o gesto que
+  * os três motores fazem com `scroll-padding` e `scroll-margin`. `nearest` não
+  * mexe na página se o campo já está à vista.
++ *
++ * O segundo defeito (correção 6, rodada 7): levar à vista só o CONTROLE deixava
++ * o rótulo de fora. Acima de 600 px o rótulo ficava atrás do topo (o controle
++ * parava no `scroll-padding-top`, e o rótulo 32 px acima dele), e com o campo
++ * abaixo da janela o controle parava na borda de baixo, atrás da barra do pé
++ * do celular. Agora vai à vista a moldura inteira (rótulo, controle e erro),
++ * entre as duas folgas que `usar-bordas-fixas.ts` mede (o topo e a barra do
++ * pé). A segunda chamada, sobre o controle, só mexe quando a moldura é mais
++ * alta que o espaço livre: aí o que não pode faltar é o controle, com o rótulo
++ * logo acima pela `scroll-margin-top` dele.
+  */
+ function focar(raiz: RaizDeBusca | null | undefined, seletor: string): boolean {
+   const alvo = raiz?.querySelector(seletor) ?? null;
+   if (!alvo) return false;
+   alvo.focus({ preventScroll: true });
++  alvo.closest?.(SELETOR_MOLDURA)?.scrollIntoView?.({ block: "nearest" });
+   alvo.scrollIntoView?.({ block: "nearest" });
+   return true;
+ }
+diff --git a/dc360/apps/web/src/componentes/usar-bordas-fixas.ts b/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
+new file mode 100644
+index 0000000..bd0f379
+--- /dev/null
++++ b/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
+@@ -0,0 +1,149 @@
++import { useEffect, useLayoutEffect, type RefObject } from "react";
++
++/**
++ * As duas bordas fixas do painel, medidas, viram a folga da rolagem da página.
++ *
++ * O DEFEITO (V2-F00-E09, correção 6, rodada 7 da validação): o painel tem o
++ * topo fixo (`.topo`, `position: sticky`) e, até 900 px, a barra de navegação
++ * fixa no pé (`.lateral`). Quando o foco leva um campo à vista, o navegador o
++ * encosta na borda da janela, e o que estiver fixo ali fica POR CIMA dele. A
++ * folha dizia a altura do topo com um número escolhido por faixa de largura
++ * (80 px numa linha, 140 px até 600 px), e errava nas outras: entre 601 e uns
++ * 700 px o topo quebra em duas linhas (141 px) conforme o tamanho do nome de
++ * quem entrou, e no zoom de 200 por cento de uma tela de 1280x900 (640x450 de
++ * CSS) o campo inteiro ficava atrás dele. No pé não havia folga nenhuma: o
++ * campo abaixo da janela parava atrás da barra.
++ *
++ * A altura do topo depende do conteúdo (o nome, o papel, a largura), então não
++ * dá para escrevê-la na folha: ela é MEDIDA, aqui, e passa para a folha por
++ * duas variáveis no `<html>`, que o `scroll-padding` usa. A folha guarda as
++ * estimativas antigas como reserva para o primeiro quadro, antes da medida.
++ */
++
++/** A variável que a folha usa no `scroll-padding-top`. */
++export const VARIAVEL_TOPO = "--topo-fixo-folga";
++/** A variável que a folha usa no `scroll-padding-bottom`. */
++export const VARIAVEL_PE = "--pe-fixo-folga";
++
++/**
++ * A folga de uma borda fixa: a altura medida, arredondada para cima (meio pixel
++ * de topo por cima da borda de um campo já é um corte visível), mais um passo
++ * de respiro do design system, para o campo não encostar na borda.
++ */
++export function folgaDaBorda(altura: number): string {
++  const px = Number.isFinite(altura) && altura > 0 ? Math.ceil(altura) : 0;
++  return `calc(${px}px + var(--ds-sp-3))`;
++}
++
++/**
++ * O topo só é borda fixa quando a folha o prende (`sticky`). Em janela muito
++ * baixa (o zoom de 400 por cento) ele rola com a página e não cobre nada.
++ */
++export function topoPreso(estilo: { position: string }): boolean {
++  return estilo.position === "sticky" || estilo.position === "fixed";
++}
++
++/**
++ * A barra lateral só é borda fixa no pé quando a folha a prende embaixo
++ * (`position: sticky; bottom: 0`, até 900 px). Na largura de mesa ela é a
++ * coluna da esquerda e não cobre nada da rolagem, e em janela muito baixa ela
++ * rola com a página.
++ */
++export function barraPresaNoPe(estilo: { position: string; bottom: string }): boolean {
++  return estilo.position === "sticky" && estilo.bottom !== "auto";
++}
++
++/**
++ * Mede o topo e a barra a cada mudança de tamanho (a janela, o zoom, o nome que
++ * quebra o topo em duas linhas) e escreve a folga das duas bordas no `<html>`.
++ * `desenhada` diz se a estrutura já está na tela: `Estrutura` não desenha nada
++ * sem sessão, e o efeito tem de rodar de novo quando ela aparece.
++ */
++export function useBordasFixas(
++  topoRef: RefObject<HTMLElement | null>,
++  barraRef: RefObject<HTMLElement | null>,
++  desenhada: boolean,
++): void {
++  useLayoutEffect(() => {
++    const topo = topoRef.current;
++    const barra = barraRef.current;
++    const raiz = document.documentElement;
++    if (!topo || !barra) return;
++    const medir = () => {
++      const preso = topoPreso(getComputedStyle(topo));
++      raiz.style.setProperty(VARIAVEL_TOPO, folgaDaBorda(preso ? topo.getBoundingClientRect().height : 0));
++      const noPe = barraPresaNoPe(getComputedStyle(barra));
++      raiz.style.setProperty(VARIAVEL_PE, folgaDaBorda(noPe ? barra.getBoundingClientRect().height : 0));
++    };
++    medir();
++    const observador = typeof ResizeObserver === "function" ? new ResizeObserver(medir) : null;
++    observador?.observe(topo);
++    observador?.observe(barra);
++    window.addEventListener("resize", medir);
++    return () => {
++      observador?.disconnect();
++      window.removeEventListener("resize", medir);
++      raiz.style.removeProperty(VARIAVEL_TOPO);
++      raiz.style.removeProperty(VARIAVEL_PE);
++    };
++  }, [topoRef, barraRef, desenhada]);
++}
++
++/**
++ * O Tab também precisa respeitar as duas bordas (achado 2 da acessibilidade na
++ * rodada 7 da V2-F00-E09, WCAG 2.4.11). Cada motor rola o elemento que recebe o
++ * Tab do seu jeito: o Chromium deixava a caixa "Descrição" da Nova ocorrência
++ * pela metade atrás da barra do pé a 320 px, porque um elemento já à vista em
++ * parte não é rolado. Depois da rolagem do próprio motor, o foco que caiu no
++ * conteúdo é levado à vista com `nearest`, que respeita o `scroll-padding`
++ * medido acima e não mexe em nada se o elemento já está inteiro na faixa livre.
++ *
++ * O que é mais alto que a faixa livre (a caixa que rola uma tabela larga, que o
++ * Firefox põe no Tab) não cabe inteiro: aí o que importa é o COMEÇO dele à
++ * vista, e ele só é rolado (`start`) quando a borda de cima está fora da faixa.
++ *
++ * Fica de fora o que mora nas próprias bordas (o topo, a barra do pé, o "Pular
++ * para o conteúdo"), o `<main>` que recebe o foco do "Pular" e a janela de
++ * diálogo, que tem a própria rolagem.
++ */
++export function comoLevarAoFocar(alvo: {
++  naBorda: boolean;
++  ehRegiao: boolean;
++  topo: number;
++  altura: number;
++  /** Onde a faixa livre começa e termina, na janela (as duas folgas já descontadas). */
++  faixaDe: number;
++  faixaAte: number;
++}): "nearest" | "start" | null {
++  if (alvo.naBorda || alvo.ehRegiao) return null;
++  if (alvo.altura <= alvo.faixaAte - alvo.faixaDe) return "nearest";
++  const comecoAVista = alvo.topo >= alvo.faixaDe - 0.5 && alvo.topo < alvo.faixaAte;
++  return comecoAVista ? null : "start";
++}
++
++/** Liga o ajuste do Tab enquanto a estrutura (com as bordas fixas) está na tela. */
++export function useFocoForaDasBordas(desenhada: boolean): void {
++  useEffect(() => {
++    if (!desenhada) return;
++    const aoFocar = (evento: FocusEvent) => {
++      const alvo = evento.target;
++      if (!(alvo instanceof HTMLElement)) return;
++      requestAnimationFrame(() => {
++        if (document.activeElement !== alvo) return;
++        const folgas = getComputedStyle(document.documentElement);
++        const caixa = alvo.getBoundingClientRect();
++        const bloco = comoLevarAoFocar({
++          naBorda: alvo.closest(".topo, .lateral, .pular-para-conteudo") !== null,
++          ehRegiao: alvo.id === "conteudo" || alvo.closest('[role="dialog"]') !== null,
++          topo: caixa.top,
++          altura: caixa.height,
++          faixaDe: parseFloat(folgas.scrollPaddingTop) || 0,
++          faixaAte: window.innerHeight - (parseFloat(folgas.scrollPaddingBottom) || 0),
++        });
++        if (bloco) alvo.scrollIntoView({ block: bloco });
++      });
++    };
++    document.addEventListener("focusin", aoFocar);
++    return () => document.removeEventListener("focusin", aoFocar);
++  }, [desenhada]);
++}
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 1f9b2e0..5099bde 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -23,9 +23,24 @@
+ 
+ html, body, #root { height: 100%; }
+ 
+-/* O topo é fixo: sem isto, rolar até um elemento (âncora, foco por teclado,
+-   scrollIntoView) o deixa por baixo do cabeçalho. */
+-html { scroll-padding-top: calc(var(--ds-sp-8) + var(--ds-sp-4)); }
++/* O topo é fixo, e até 900 px a barra de navegação também, no pé: sem isto,
++   rolar até um elemento (âncora, foco por teclado, scrollIntoView) o deixa por
++   baixo de um dos dois. As duas folgas são MEDIDAS por `usar-bordas-fixas.ts`
++   (a altura do topo muda com a largura, o zoom e o nome de quem entrou) e
++   chegam aqui por variável, antes do primeiro desenho (`useLayoutEffect`).
++   Sem a medida não há borda fixa nenhuma (as telas públicas, como "Defina a
++   sua senha", não têm topo), e a folga é só o respiro: a estimativa de 140 px
++   que valia em toda tela até 600 px tirava espaço da tela pública no zoom de
++   400 por cento (V2-F00-E09, correção 6). */
++html {
++  scroll-padding-top: var(--topo-fixo-folga, var(--ds-sp-3));
++  scroll-padding-bottom: var(--pe-fixo-folga, var(--ds-sp-3));
++}
++/* O foco por teclado leva o CONTROLE à vista, e o rótulo fica uns 32 px acima
++   dele: a margem cobre a linha do rótulo e o respiro entre os dois, em qualquer
++   largura (até a correção 6 valia só até 600 px, e acima disso o rótulo ficava
++   atrás do topo). Um passo de `--ds-sp-5` mais um de `--ds-sp-3`. */
++.campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
+ 
+ body {
+   margin: 0;
+@@ -1090,6 +1105,21 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
+           --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
+ }
++/*
++  Janela muito baixa (o zoom de 400 por cento de uma tela de 1280x1024 é 320x256
++  de CSS; o celular deitado de 568x320): o topo de duas linhas (129 px) e a
++  barra do pé (79 px) deixavam 48 px de página, menos que um rótulo com o campo
++  embaixo, e qualquer campo focado ficava atrás de um dos dois (WCAG 2.4.11,
++  correção 6 da V2-F00-E09). Abaixo de 360 px de altura os dois deixam de ser
++  fixos e rolam com a página: a navegação continua lá, no fim dela, e o topo, no
++  começo. A medida de `usar-bordas-fixas.ts` vê que não estão presos e zera a
++  folga.
++*/
++@media (max-height: 360px) {
++  .topo, .lateral { position: static; }
++  /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
++  .toast { bottom: var(--ds-sp-4); }
++}
+ @media (max-width: 600px) {
+   .lateral { --barra-visiveis: 4; }
+ }
+@@ -1114,21 +1144,21 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ @media (max-width: 600px) {
+   .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
+   /*
+-    O topo agora tem duas linhas (a marca e a conta, e a busca): são 125 px, e o
+-    `scroll-padding-top` de cima (80 px, o topo de uma linha só) deixava o campo
+-    focado por código com o rótulo e a borda de cima por baixo dele. Visto na
+-    correção 5 da V2-F00-E09, na senha errada em Minha conta a 320 e 390 px. Duas
+-    alturas de toque, três respiros de `--ds-sp-3` (cima, entre as linhas, baixo)
+-    e mais um `--ds-sp-4` de folga.
++    O topo tem duas linhas aqui (a marca e a conta, e a busca): 129 px. A folga
++    da rolagem para ele é medida (`usar-bordas-fixas.ts`, correção 6 da
++    V2-F00-E09); a correção 5 a escrevia como número só nesta faixa, e acima de
++    600 px, onde o topo também chega a ter duas linhas, o campo focado ficava
++    por baixo dele.
+   */
+-  html { scroll-padding-top: calc(var(--ds-touch) * 2 + var(--ds-sp-3) * 3 + var(--ds-sp-4)); }
+   /*
+-    O foco leva o CAMPO ao `scroll-padding-top`, e o rótulo fica uns 32 px acima
+-    dele: sem esta margem o rótulo ("Senha que você usa hoje") ficava por baixo do
+-    topo (medido: rótulo em 108 px, topo até 129 px). Um passo de `--ds-sp-5` mais
+-    um de `--ds-sp-3` cobre a linha do rótulo e o respiro entre ele e o campo.
++    O texto de exemplo da busca ("Buscar registro ou função") saía cortado a
++    320 px ("Buscar registro ou funç"): o recuo da direita guarda o lugar da
++    dica "Ctrl K", e no celular não há teclado com Ctrl. A dica some da tela e
++    continua no `aria-describedby` do campo (texto referenciado é lido mesmo
++    escondido), e o recuo volta ao respiro comum.
+   */
+-  .campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
++  .busca-global__atalho { display: none; }
++  .busca-global__caixa #busca-global { padding-right: var(--ds-sp-3); }
+   .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
+   .identidade__nome, .identidade__papel, .identidade br { display: none; }
+   .identidade--acionavel { padding: var(--ds-sp-1); }
+@@ -1404,8 +1434,20 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+ }
+-/* O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`. */
+-.oficio__linha > span { overflow-wrap: break-word; word-break: normal; }
++/*
++  O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`, e um
++  pedaço sem ponto mais largo que o cartão quebra dentro, em vez de sair dele.
++
++  A "rede de segurança" do `break-word` não bastava sozinha (correção 6 da
++  V2-F00-E09, rodada 7): com "plantaocoordenacaodefesacivilserraalta@..." o texto
++  saía do cartão a 360 px e a página rolava na horizontal a 320 px. Duas
++  larguras mínimas seguravam o pedaço inteiro: a do `<span>`, que é item de
++  linha `flex` (`min-width: auto` é a palavra mais longa), e a da coluna do
++  `.oficio`, que é `grid` com coluna `auto` (do tamanho mínimo do conteúdo).
++  Zerar as duas deixa o cartão mandar na largura, e o `break-word` age.
++*/
++.oficio { grid-template-columns: minmax(0, 1fr); }
++.oficio__linha > span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
+ 
+ /* ---------------------------------------------------------------------------
+    Verificação em duas etapas
+diff --git a/dc360/apps/web/src/paginas/Ocorrencia.tsx b/dc360/apps/web/src/paginas/Ocorrencia.tsx
+index 7b355dc..9f4cd6c 100644
+--- a/dc360/apps/web/src/paginas/Ocorrencia.tsx
++++ b/dc360/apps/web/src/paginas/Ocorrencia.tsx
+@@ -34,7 +34,7 @@ import { Modal } from "../componentes/Modal";
+ import { DURACAO_PARA_DITAR, Toast } from "../componentes/Toast";
+ import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
+ import {
+-  estadoDoEnvio, providenciasSemOficio, rotuloDoEnvio,
++  estadoDoEnvio, providenciasSemOficio, rotuloDasTentativas, rotuloDoEnvio,
+ } from "./oficio-regras";
+ import {
+   avisoDaCorrecao, mensagemDaLeitura, podeCorrigirCoordenada, proximoPassoDaCorrecao,
+@@ -1853,8 +1853,7 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar
+                           if (detalhe?.id === f.id) setDetalhe(null);
+                           else void verTentativas(f);
+                         }}>
+-                  {detalhe?.id === f.id ? "Esconder" : "Ver"} as {f.envios}{" "}
+-                  {f.envios === 1 ? "tentativa" : "tentativas"}
++                  {rotuloDasTentativas(f.envios, detalhe?.id === f.id)}
+                 </button>
+               )}
+             </div>
+diff --git a/dc360/apps/web/src/paginas/oficio-regras.ts b/dc360/apps/web/src/paginas/oficio-regras.ts
+index 481f41e..2f0c241 100644
+--- a/dc360/apps/web/src/paginas/oficio-regras.ts
++++ b/dc360/apps/web/src/paginas/oficio-regras.ts
+@@ -55,8 +55,8 @@ export function estadoDoEnvio(oficio: {
+       tom: "perigo",
+       rotulo: "Nenhuma tentativa foi aceita",
+       explicacao:
+-        `${oficio.envios === 1 ? "A tentativa" : `As ${oficio.envios} tentativas`} `
+-        + "ficou registrada e o provedor de email não aceitou a mensagem. "
++        `${oficio.envios === 1 ? "A tentativa ficou registrada" : `As ${oficio.envios} tentativas ficaram registradas`} `
++        + "e o provedor de email não aceitou a mensagem. "
+         + "Ninguém do órgão foi avisado: tente de novo, ou imprima o ofício e "
+         + "encaminhe pelo canal de sempre.",
+     };
+@@ -107,3 +107,16 @@ export function rotuloDoEnvio(oficio: { numero: string; orgao_nome: string } | n
+   if (!oficio) return "Enviar ofício";
+   return `Enviar ${oficio.numero} para ${oficio.orgao_nome}`;
+ }
++
++/**
++ * O rótulo do botão que mostra ou esconde as tentativas de envio de um ofício.
++ *
++ * Era "Ver as {n} tentativa(s)" montado no JSX, e com uma tentativa só saía
++ * "Ver as 1 tentativa" (correção 6 da V2-F00-E09, rodada 7: texto mal escrito
++ * pelo portão visual). Uma tentativa é "a tentativa", sem número; mais de uma
++ * leva o número e o plural, no artigo e no nome.
++ */
++export function rotuloDasTentativas(envios: number, abertas: boolean): string {
++  const verbo = abertas ? "Esconder" : "Ver";
++  return envios === 1 ? `${verbo} a tentativa` : `${verbo} as ${envios} tentativas`;
++}
+diff --git a/dc360/apps/web/test/correcao-5-da-e09.test.ts b/dc360/apps/web/test/correcao-5-da-e09.test.ts
+index 39000a0..e121b95 100644
+--- a/dc360/apps/web/test/correcao-5-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-5-da-e09.test.ts
+@@ -68,7 +68,7 @@ describe("Achado 2: nenhum email aparece solto em tela do painel", () => {
+     expect(li.indexOf("<span>")).toBeGreaterThan(-1);
+     expect(li.indexOf("<span>")).toBeLessThan(li.indexOf("<EmailQuebravel"));
+     expect(li.indexOf("</span>")).toBeGreaterThan(li.indexOf("<EmailQuebravel"));
+-    expect(fonte("estilos", "app.css")).toMatch(/\.oficio__linha > span \{ overflow-wrap: break-word; word-break: normal; \}/);
++    expect(fonte("estilos", "app.css")).toMatch(/\.oficio__linha > span \{ (?:min-width: 0; )?overflow-wrap: break-word; word-break: normal; \}/);
+   });
+ 
+   it("a regra da dica da janela deixou de cortar em qualquer lugar (anywhere ignora o <wbr>)", () => {
+@@ -111,12 +111,12 @@ describe("Achado 1: o foco depois do erro é levado depois do commit, e não por
+ 
+ describe("Achado 3 (visto nas capturas): o campo focado não fica atrás do topo de duas linhas", () => {
+   it("em tela de celular o scroll-padding-top cobre as duas linhas do topo, e o de cima segue para o topo de uma linha", () => {
++    // Correção 6: a folga do topo é MEDIDA (`usar-bordas-fixas.ts`), em qualquer largura; sem medida (tela pública) é só o respiro.
+     const css = fonte("estilos", "app.css");
+-    expect(css).toMatch(/html \{ scroll-padding-top: calc\(var\(--ds-sp-8\) \+ var\(--ds-sp-4\)\); \}/);
+-    const celular = css.slice(css.indexOf("@media (max-width: 600px) {\n  .topo {"));
+-    expect(celular).toMatch(/html \{ scroll-padding-top: calc\(var\(--ds-touch\) \* 2 \+ var\(--ds-sp-3\) \* 3 \+ var\(--ds-sp-4\)\); \}/);
+-    // E o rótulo, uns 32 px acima do campo, também fica à vista: a margem vale para os controles do `Campo`.
+-    expect(celular).toMatch(/\.campo input, \.campo select, \.campo textarea \{ scroll-margin-top: calc\(var\(--ds-sp-5\) \+ var\(--ds-sp-3\)\); \}/);
++    expect(css).toMatch(/scroll-padding-top: var\(--topo-fixo-folga, var\(--ds-sp-3\)\);/);
++    expect(fonte("componentes", "Estrutura.tsx")).toMatch(/useBordasFixas\(topoRef, barraRef, Boolean\(sessao\)\);/);
++    // E o rótulo, uns 32 px acima do campo, também fica à vista: a margem vale para os controles do `Campo` (desde a correção 6, em qualquer largura).
++    expect(css).toMatch(/\.campo input, \.campo select, \.campo textarea \{ scroll-margin-top: calc\(var\(--ds-sp-5\) \+ var\(--ds-sp-3\)\); \}/);
+   });
+ });
+ 
+diff --git a/dc360/apps/web/test/correcao-6-da-e09.test.ts b/dc360/apps/web/test/correcao-6-da-e09.test.ts
+new file mode 100644
+index 0000000..4e74cb4
+--- /dev/null
++++ b/dc360/apps/web/test/correcao-6-da-e09.test.ts
+@@ -0,0 +1,186 @@
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { describe, expect, it } from "vitest";
++
++import { focarPrimeiroInvalido, SELETOR_MOLDURA, type NoFocavel } from "../src/componentes/foco";
++import {
++  barraPresaNoPe, comoLevarAoFocar, folgaDaBorda, topoPreso, VARIAVEL_PE, VARIAVEL_TOPO,
++} from "../src/componentes/usar-bordas-fixas";
++import { estadoDoEnvio, rotuloDasTentativas } from "../src/paginas/oficio-regras";
++import { lerFonte } from "./ler-fonte";
++
++/**
++ * Os achados da rodada 7 da V2-F00-E09 (validador de UX, FAIL, sobre fd17ff4),
++ * na parte que roda sem navegador. A prova no navegador, nos três motores, com
++ * a matriz de larguras, alturas e o zoom de 200 por cento, está em
++ * `test/layout-estreito.e2e.mjs`, seção 13. Aqui ficam as regras e as causas.
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const SRC = join(AQUI, "..", "src");
++const fonte = (...partes: string[]) => lerFonte(join(SRC, ...partes));
++const css = () => fonte("estilos", "app.css");
++
++/** O trecho da folha de um `@media` até o fechamento dele (o primeiro "}" na coluna zero). */
++function blocoDaMidia(folha: string, inicio: string): string {
++  const de = folha.indexOf(inicio);
++  expect(de, `bloco "${inicio}" na folha`).toBeGreaterThanOrEqual(0);
++  return folha.slice(de, folha.indexOf("\n}", de) + 2);
++}
++
++describe("Achados 1, 2 e 4: o foco leva à vista a moldura do campo, e não só o controle", () => {
++  it("foca sem rolar, leva a moldura (rótulo, controle e erro) à vista e depois o controle, os dois com `nearest`", () => {
++    const chamadas: string[] = [];
++    const no: NoFocavel = {
++      focus: (opcoes) => { chamadas.push(`focus ${JSON.stringify(opcoes)}`); },
++      scrollIntoView: (opcoes) => { chamadas.push(`controle ${JSON.stringify(opcoes)}`); },
++      closest: (seletor) => {
++        chamadas.push(`closest ${seletor}`);
++        return { scrollIntoView: (opcoes) => { chamadas.push(`moldura ${JSON.stringify(opcoes)}`); } };
++      },
++    };
++    expect(focarPrimeiroInvalido({ querySelector: () => no })).toBe(true);
++    expect(chamadas).toEqual([
++      'focus {"preventScroll":true}',
++      "closest .campo",
++      'moldura {"block":"nearest"}',
++      'controle {"block":"nearest"}',
++    ]);
++  });
++
++  it("a moldura é a que o `Campo` desenha (o rótulo mora dentro dela)", () => {
++    expect(SELETOR_MOLDURA).toBe(".campo");
++    expect(fonte("componentes", "Campo.tsx")).toMatch(/<div className=\{`campo\$\{.*\}`\}>\s*<label htmlFor=\{id\}>/);
++  });
++
++  it("controle fora de moldura (sem `.campo` em volta) continua indo à vista sozinho", () => {
++    const chamadas: string[] = [];
++    const no: NoFocavel = {
++      focus: () => { chamadas.push("focus"); },
++      scrollIntoView: () => { chamadas.push("controle"); },
++      closest: () => null,
++    };
++    expect(focarPrimeiroInvalido({ querySelector: () => no })).toBe(true);
++    expect(chamadas).toEqual(["focus", "controle"]);
++  });
++});
++
++describe("Achados 1 e 2: as folgas do topo e da barra do pé são medidas", () => {
++  it("a folga é a altura medida arredondada para cima, mais um passo de respiro do design system", () => {
++    expect(folgaDaBorda(81)).toBe("calc(81px + var(--ds-sp-3))");
++    expect(folgaDaBorda(140.4)).toBe("calc(141px + var(--ds-sp-3))");
++    expect(folgaDaBorda(0)).toBe("calc(0px + var(--ds-sp-3))");
++    expect(folgaDaBorda(Number.NaN)).toBe("calc(0px + var(--ds-sp-3))");
++    expect(folgaDaBorda(-5)).toBe("calc(0px + var(--ds-sp-3))");
++  });
++
++  it("a barra lateral só conta como borda do pé quando está presa embaixo (até 900 px)", () => {
++    expect(barraPresaNoPe({ position: "sticky", bottom: "0px" })).toBe(true);
++    expect(barraPresaNoPe({ position: "static", bottom: "auto" })).toBe(false);
++    expect(barraPresaNoPe({ position: "sticky", bottom: "auto" })).toBe(false);
++  });
++
++  it("a Estrutura mede o topo e a barra que ela mesma desenha, e de novo quando a sessão aparece", () => {
++    const estrutura = fonte("componentes", "Estrutura.tsx");
++    expect(estrutura).toMatch(/useBordasFixas\(topoRef, barraRef, Boolean\(sessao\)\);/);
++    expect(estrutura).toMatch(/<header className="topo" ref=\{topoRef\}>/);
++    expect(estrutura).toMatch(/<nav className="lateral" aria-label="Navegação principal" ref=\{barraRef\}>/);
++    const hook = fonte("componentes", "usar-bordas-fixas.ts");
++    expect(hook).toMatch(/new ResizeObserver\(medir\)/);
++    expect(hook).toMatch(/window\.addEventListener\("resize", medir\)/);
++    expect(hook).toMatch(/\}, \[topoRef, barraRef, desenhada\]\);/);
++  });
++
++  it("a folha usa as duas medidas no scroll-padding, e sem medida (tela pública, sem topo) a folga é só o respiro", () => {
++    const folha = css();
++    expect(VARIAVEL_TOPO).toBe("--topo-fixo-folga");
++    expect(VARIAVEL_PE).toBe("--pe-fixo-folga");
++    expect(folha).toMatch(/html \{\n  scroll-padding-top: var\(--topo-fixo-folga, var\(--ds-sp-3\)\);\n  scroll-padding-bottom: var\(--pe-fixo-folga, var\(--ds-sp-3\)\);\n\}/);
++    // Nenhum scroll-padding de página escrito sem a medida, nem a estimativa de 140 px que valia na tela pública (achado 5 da acessibilidade).
++    expect(folha.match(/scroll-padding-(?:top|bottom): (?!var\(--(?:topo|pe)-fixo-folga, var\(--ds-sp-3\)\))/g) ?? []).toEqual([]);
++  });
++
++  it("em janela muito baixa (zoom de 400 por cento, 320x256) o topo e a barra rolam com a página, e a medida os ignora", () => {
++    const baixa = blocoDaMidia(css(), "@media (max-height: 360px) {");
++    expect(baixa).toMatch(/\.topo, \.lateral \{ position: static; \}/);
++    expect(topoPreso({ position: "sticky" })).toBe(true);
++    expect(topoPreso({ position: "static" })).toBe(false);
++    expect(fonte("componentes", "usar-bordas-fixas.ts")).toMatch(/folgaDaBorda\(preso \? topo\.getBoundingClientRect\(\)\.height : 0\)/);
++  });
++
++  it("o Tab também respeita as bordas: o foco que cai no conteúdo é levado à vista, e o que mora nas bordas não", () => {
++    const base = { naBorda: false, ehRegiao: false, topo: 500, altura: 44, faixaDe: 141, faixaAte: 549 };
++    expect(comoLevarAoFocar(base)).toBe("nearest");
++    expect(comoLevarAoFocar({ ...base, naBorda: true })).toBeNull();
++    expect(comoLevarAoFocar({ ...base, ehRegiao: true })).toBeNull();
++    // Mais alto que a faixa livre (a caixa da tabela no Tab do Firefox, 267 px numa faixa de 218): o começo à vista basta.
++    const alta = { ...base, altura: 267, faixaDe: 153, faixaAte: 359 };
++    expect(comoLevarAoFocar({ ...alta, topo: 200 })).toBeNull();
++    expect(comoLevarAoFocar({ ...alta, topo: 400 })).toBe("start");
++    expect(comoLevarAoFocar({ ...alta, topo: 100 })).toBe("start");
++    const hook = fonte("componentes", "usar-bordas-fixas.ts");
++    expect(hook).toMatch(/document\.addEventListener\("focusin", aoFocar\)/);
++    expect(hook).toMatch(/if \(bloco\) alvo\.scrollIntoView\(\{ block: bloco \}\);/);
++    expect(fonte("componentes", "Estrutura.tsx")).toMatch(/useFocoForaDasBordas\(Boolean\(sessao\)\);/);
++  });
++
++  it("a margem do rótulo vale em qualquer largura, e não só até 600 px", () => {
++    const folha = css();
++    const regra = ".campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }";
++    expect(folha.split(regra).length - 1).toBe(1);
++    const linha = folha.split("\n").find((l) => l.includes(regra));
++    expect(linha?.startsWith(".campo")).toBe(true);
++  });
++});
++
++describe("Achado 3: o email longo da tentativa de envio não sai do cartão", () => {
++  it("a coluna do ofício e o texto da linha podem encolher abaixo da palavra mais longa", () => {
++    const folha = css();
++    expect(folha).toMatch(/\.oficio \{ grid-template-columns: minmax\(0, 1fr\); \}/);
++    expect(folha).toMatch(/\.oficio__linha > span \{ min-width: 0; overflow-wrap: break-word; word-break: normal; \}/);
++  });
++});
++
++describe("Achado 5: singular e plural certos no cartão do ofício", () => {
++  it("o botão diz \"a tentativa\" com uma e \"as N tentativas\" com mais de uma, nos dois estados", () => {
++    expect(rotuloDasTentativas(1, false)).toBe("Ver a tentativa");
++    expect(rotuloDasTentativas(1, true)).toBe("Esconder a tentativa");
++    expect(rotuloDasTentativas(2, false)).toBe("Ver as 2 tentativas");
++    expect(rotuloDasTentativas(3, true)).toBe("Esconder as 3 tentativas");
++  });
++
++  it("a explicação concorda o verbo e o particípio com o número de tentativas", () => {
++    const um = estadoDoEnvio({ envios: 1, ultimo_envio: null, aberto_em: null });
++    const dois = estadoDoEnvio({ envios: 2, ultimo_envio: null, aberto_em: null });
++    expect(um.explicacao.startsWith("A tentativa ficou registrada e o provedor de email não aceitou a mensagem.")).toBe(true);
++    expect(dois.explicacao.startsWith("As 2 tentativas ficaram registradas e o provedor de email não aceitou a mensagem.")).toBe(true);
++    expect(dois.explicacao).not.toMatch(/tentativas ficou registrada/);
++  });
++
++  it("a tela usa a regra e não monta mais o rótulo à mão", () => {
++    const ocorrencia = fonte("paginas", "Ocorrencia.tsx");
++    expect(ocorrencia).toMatch(/\{rotuloDasTentativas\(f\.envios, detalhe\?\.id === f\.id\)\}/);
++    expect(ocorrencia).not.toMatch(/"Ver"\} as \{f\.envios\}/);
++  });
++});
++
++describe("Achado 6: o texto de exemplo da busca cabe a 320 px", () => {
++  it("até 600 px a dica do atalho sai da tela e o recuo da direita volta ao respiro comum", () => {
++    const celular = blocoDaMidia(css(), "@media (max-width: 600px) {\n  .topo {");
++    expect(celular).toMatch(/\.busca-global__atalho \{ display: none; \}/);
++    expect(celular).toMatch(/\.busca-global__caixa #busca-global \{ padding-right: var\(--ds-sp-3\); \}/);
++  });
++
++  it("a dica continua ligada ao campo para quem ouve a tela", () => {
++    const busca = fonte("componentes", "BuscaGlobal.tsx");
++    expect(busca).toMatch(/aria-describedby=\{ID_ATALHO\}/);
++    expect(busca).toMatch(/<kbd id=\{ID_ATALHO\} className="busca-global__atalho">/);
++  });
++});
++
++describe("Achado 3 da acessibilidade: o link do topo para Minha conta tem nome em qualquer largura", () => {
++  it("o nome dito começa pelo que se vê na largura de mesa (nome e papel) e termina no destino", () => {
++    expect(fonte("componentes", "Estrutura.tsx")).toMatch(
++      /<NavLink to="\/minha-conta" className="identidade identidade--acionavel"\s+aria-label=\{`\$\{sessao\.usuarioNome\}, \$\{ROTULO_PAPEL\[sessao\.papel\]\}, Minha conta`\}>/);
++  });
++});
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index 051b12b..d298a28 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -969,6 +969,359 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a
+   }
+ }
+ 
++
++console.log("\n== 13. O campo focado depois do erro fica inteiro entre o topo fixo e a barra do pé, e o ofício não sai do cartão (V2-F00-E09, correção 6) ==");
++/*
++  A rodada 7 da validação (sobre fd17ff4) viu o rótulo e o campo focados depois
++  do erro por BAIXO de uma das duas bordas fixas do painel: do topo, acima de
++  600 px e no zoom de 200 por cento (o topo quebra em duas linhas até uns 700
++  px, e a folga era um número por faixa de largura); da barra do pé, até 900 px,
++  quando o campo inválido estava abaixo da janela (não havia folga nenhuma no
++  pé). A seção 10 media só "o rótulo abaixo do topo" e só até 390 px. A
++  validação de acessibilidade da mesma rodada mediu também o zoom de 400 por
++  cento (320x256 de CSS: topo e barra deixavam 48 px de página), todas as telas
++  que usam `focar` e o Tab natural, que deixava o elemento sob a barra do pé.
++
++  Aqui a medida é a do portão: o retângulo do RÓTULO e o do CAMPO, inteiros,
++  entre a borda de baixo do topo e a borda de cima da barra do pé (ou o fim da
++  janela, onde a barra não existe), e o ponto do meio de cada um sem nada por
++  cima (`elementFromPoint`). O zoom de 200 por cento de uma tela de 1280x900 é
++  640x450 de CSS com dois pixels de tela por pixel de CSS; o de 400 por cento
++  de uma tela de 1280x1024 é 320x256.
++*/
++async function contextoDeFoco(largura, altura, dpr = 1) {
++  const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr });
++  const pg = await ctx.newPage();
++  pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
++  pg.on("console", (m) => {
++    if (m.type() !== "error") return;
++    if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
++    erros.push(`console: ${m.text()}`);
++  });
++  return { ctx, pg };
++}
++/** Rótulo e campo focados, inteiros entre o topo fixo e a barra do pé, sem nada por cima. */
++async function campoFocadoAVista(pg) {
++  return pg.evaluate(() => {
++    const campo = document.activeElement;
++    const rotulo = campo?.id ? document.querySelector(`label[for="${campo.id}"]`) : null;
++    if (!campo || !rotulo) return { ok: false, foco: campo?.id || campo?.tagName, txt: "sem rótulo" };
++    const rc = campo.getBoundingClientRect(), rr = rotulo.getBoundingClientRect();
++    const elTopo = document.querySelector(".topo");
++    const topo = elTopo && ["sticky", "fixed"].includes(getComputedStyle(elTopo).position) ? elTopo.getBoundingClientRect().bottom : 0;
++    const barra = document.querySelector(".lateral");
++    const rb = barra?.getBoundingClientRect();
++    const pe = barra && getComputedStyle(barra).position === "sticky" && rb.top > innerHeight / 2 ? rb.top : innerHeight;
++    const coberto = (r, el) => {
++      const achado = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), r.top + r.height / 2);
++      return !(achado === el || el.contains(achado));
++    };
++    const cima = Math.min(rc.top, rr.top), baixo = Math.max(rc.bottom, rr.bottom);
++    return {
++      ok: cima >= topo - 0.5 && baixo <= pe + 0.5 && !coberto(rc, campo) && !coberto(rr, rotulo),
++      foco: campo.id,
++      txt: `rótulo ${Math.round(rr.top)}..${Math.round(rr.bottom)}, campo ${Math.round(rc.top)}..${Math.round(rc.bottom)}, topo até ${Math.round(topo)}, pé desde ${Math.round(pe)}`,
++    };
++  });
++}
++const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l === 320 && a === 256 ? " (zoom de 400 por cento)" : ""}`;
++{
++  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++  let n = 0;
++  const idDasContas = new Map();
++  async function contaDeOperador() {
++    n++;
++    const email = `foco.${n}.${sufixo}@serraalta.exemplo.gov.br`;
++    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++      corpo: { nome: `Foco à Vista ${n}`, matricula: `FV-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
++    if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} não foi criada (${r.status})`);
++    idDasContas.set(email, r.json.id);
++    return email;
++  }
++
++  // A) Minha conta, senha atual errada (o 401 do servidor): uma conta por tamanho, para não chegar ao bloqueio por tentativas.
++  for (const [l, a, d] of [[640, 450, 2], [320, 256, 1], [601, 700, 1], [700, 600, 1], [768, 600, 1], [900, 600, 1], [1024, 600, 1], [1280, 600, 1], [390, 700, 1], [360, 700, 1], [320, 568, 1]]) {
++    const email = await contaDeOperador();
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await entrar(email, SENHA_DO_TESTE, pg);
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-desta-conta");
++    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
++    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
++    const botao = pg.getByRole("button", { name: "Trocar senha", exact: true });
++    await botao.click();
++    await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
++    await pg.waitForFunction((el) => !el.disabled, await botao.elementHandle(), { timeout: 20_000 });
++    await pg.waitForTimeout(300);
++    const m = await campoFocadoAVista(pg);
++    ok(`Minha conta a ${tamanho(l, a, d)}, senha atual errada: o rótulo e o campo focados ficam inteiros entre o topo fixo e a barra do pé`,
++       m.ok && m.foco === "conta-senha-atual", `(foco ${m.foco}; ${m.txt})`);
++    await ctx.close();
++  }
++
++  // B) Minha conta, conferência da tela (senha nova curta) com a página no alto e Enter no último campo: o campo inválido está abaixo da janela.
++  const emailDaConferencia = await contaDeOperador();
++  for (const [l, a, d] of [[320, 568, 1], [390, 700, 1], [640, 450, 2], [320, 256, 1], [768, 600, 1]]) {
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await entrar(emailDaConferencia, SENHA_DO_TESTE, pg);
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.locator("#conta-senha-atual").fill("qualquer-coisa-aqui");
++    await pg.locator("#conta-senha-nova").fill("curta");
++    await pg.locator("#conta-senha-repetida").fill("curta");
++    await pg.evaluate(() => window.scrollTo(0, 0));
++    await pg.waitForTimeout(150);
++    await pg.locator("#conta-senha-repetida").press("Enter");
++    await pg.locator("#conta-senha-nova-erro").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(400);
++    const m = await campoFocadoAVista(pg);
++    ok(`Minha conta a ${tamanho(l, a, d)}, Enter com a página no alto: a senha nova (inválida, abaixo da janela) fica inteira com o rótulo, fora da barra do pé`,
++       m.ok && m.foco === "conta-senha-nova", `(foco ${m.foco}; ${m.txt})`);
++    await ctx.close();
++  }
++
++  // C) Nova ocorrência: o nome do solicitante e Enter (o "Ir" do teclado do celular); o primeiro campo que falta, Endereço, está abaixo da janela.
++  const emailDaOcorrencia = await contaDeOperador();
++  for (const [l, a, d] of [[320, 640, 1], [390, 844, 1], [640, 450, 2], [320, 256, 1], [768, 600, 1], [1280, 600, 1]]) {
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await entrar(emailDaOcorrencia, SENHA_DO_TESTE, pg);
++    await pg.goto(`${BASE}/ocorrencias/nova`, { waitUntil: "networkidle" });
++    await pg.locator("#nova-solicitante").fill("Joana Prado");
++    await pg.locator("#nova-solicitante").press("Enter");
++    await pg.locator("#nova-endereco-erro").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(400);
++    const m = await campoFocadoAVista(pg);
++    ok(`Nova ocorrência a ${tamanho(l, a, d)}, Enter no solicitante: o Endereço fica inteiro com o rótulo, fora do topo e da barra do pé`,
++       m.ok && m.foco === "nova-endereco", `(foco ${m.foco}; ${m.txt})`);
++    await ctx.close();
++  }
++
++  /*
++    D) A linha "Tentativa N para <email>" na tela de Ocorrência DE VERDADE (a
++    seção 12 mede o markup montado à parte). O envio real exige provedor de
++    email, então a resposta do detalhe do ofício ganha uma tentativa no caminho
++    (`route`): a tela, o markup e o CSS são os do painel. O email é o que a
++    rodada 7 usou: parte local de 38 letras sem ponto.
++  */
++  const OC_DO_OFICIO = "11111111-1111-4111-8111-0000000000c4";
++  let oficio = (await viaApi(`/oficios?ocorrenciaId=${OC_DO_OFICIO}`, { token: adm.json.acesso })).json.itens?.[0];
++  if (!oficio) {
++    const pendentes = await viaApi("/ocorrencias/providencias/pendentes", { token: adm.json.acesso });
++    const daOcorrencia = pendentes.json.itens.find((p) => p.ocorrencia_id === OC_DO_OFICIO);
++    const emitido = await viaApi("/oficios", { metodo: "POST", token: adm.json.acesso, corpo: { providenciaId: daOcorrencia?.id } });
++    oficio = { id: emitido.json.id };
++  }
++  ok("há um ofício emitido na ocorrência da Equipe Alfa para medir", Boolean(oficio?.id));
++  const emailSemPonto = "plantaocoordenacaodefesacivilserraalta@serraalta.exemplo.gov.br";
++  const emailDoOficio = await contaDeOperador();
++  for (const largura of [320, 360]) {
++    const { ctx, pg } = await contextoDeFoco(largura, 700);
++    await pg.route("**/oficios?ocorrenciaId=*", async (rota) => {
++      const r = await rota.fetch(); const j = await r.json();
++      for (const o of j.itens) if (o.id === oficio.id) { o.envios = 1; o.ultimo_envio = null; }
++      await rota.fulfill({ response: r, json: j });
++    });
++    await pg.route(`**/oficios/${oficio.id}`, async (rota) => {
++      if (rota.request().method() !== "GET") return rota.continue();
++      const r = await rota.fetch(); const j = await r.json();
++      j.envios = [{ id: "11111111-1111-4111-8111-00000000e001", tentativa: 1, destinatario_email: emailSemPonto,
++        solicitado_em: new Date().toISOString(), solicitado_por_nome: "Jonas Ferreira", desfecho: "falhou",
++        detalhe: null, provedor_id: null, expira_em: null }];
++      await rota.fulfill({ response: r, json: j });
++    });
++    await entrar(emailDoOficio, SENHA_DO_TESTE, pg);
++    await pg.goto(`${BASE}/ocorrencias/${OC_DO_OFICIO}`, { waitUntil: "networkidle" });
++    const botao = pg.locator(".oficio button", { hasText: /tentativa/ }).first();
++    const rotuloFechado = ((await botao.textContent()) ?? "").trim();
++    await botao.click();
++    await pg.locator("li.oficio__linha").first().waitFor({ timeout: 10_000 });
++    const rotuloAberto = ((await botao.textContent()) ?? "").trim();
++    await pg.locator("li.oficio__linha").first().scrollIntoViewIfNeeded();
++    const m = await pg.evaluate(() => {
++      const li = document.querySelector("li.oficio__linha");
++      const cartao = li.closest(".cartao");
++      const util = cartao.getBoundingClientRect().right - parseFloat(getComputedStyle(cartao).paddingRight);
++      return {
++        rola: document.documentElement.scrollWidth > innerWidth + 1, largura: document.documentElement.scrollWidth,
++        texto: li.querySelector("span").getBoundingClientRect().right, util,
++        frase: li.closest(".oficio").textContent.match(/(A tentativa|As \d+ tentativas)[^.]*\./)?.[0] ?? "",
++      };
++    });
++    ok(`Ocorrência a ${largura} px, tentativa para um email de parte local longa sem ponto: a página não rola na horizontal`,
++       !m.rola, `(${m.largura} de ${largura})`);
++    ok(`Ocorrência a ${largura} px, a linha da tentativa fica dentro do cartão`,
++       m.texto <= m.util + 0.5, `(texto até ${Math.round(m.texto)}, cartão até ${Math.round(m.util)})`);
++    if (largura === 320) {
++      ok('com uma tentativa só, o botão diz "Ver a tentativa" e "Esconder a tentativa" (sem "as 1")',
++         rotuloFechado === "Ver a tentativa" && rotuloAberto === "Esconder a tentativa", `("${rotuloFechado}" / "${rotuloAberto}")`);
++      ok('e a explicação concorda no singular ("A tentativa ficou registrada")',
++         m.frase === "A tentativa ficou registrada e o provedor de email não aceitou a mensagem.", `("${m.frase}")`);
++    }
++    await ctx.close();
++  }
++
++  // F) As outras telas que usam `focar`: "Defina a sua senha", Usuários, Ocorrência (corrigir a coordenada) e Quero conhecer.
++  const TAMANHOS_DAS_OUTRAS = [[320, 256, 1], [640, 450, 2], [390, 844, 1]];
++  for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
++    // "Defina a sua senha" (tela pública, sem topo fixo): a provisória digitada errada.
++    const email = await contaDeOperador();
++    const provisoria = (await viaApi(`/usuarios/${idDasContas.get(email)}/redefinir-senha`, { metodo: "POST", token: adm.json.acesso, corpo: {} })).json.senhaTemporaria;
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await pg.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
++    await pg.locator("#entrada-email").fill(email);
++    await pg.locator("#entrada-senha").fill(provisoria);
++    await pg.getByRole("button", { name: "Entrar", exact: true }).click();
++    await pg.getByRole("heading", { name: "Defina a sua senha" }).waitFor({ timeout: 30_000 });
++    await pg.locator("#senha-nova-atual").fill("provisoria-digitada-errada");
++    await pg.locator("#senha-nova").fill("frase-nova-do-teste-2026");
++    await pg.locator("#senha-nova-repetida").fill("frase-nova-do-teste-2026");
++    const botao = pg.getByRole("button", { name: "Definir senha e entrar" });
++    await botao.click();
++    await pg.locator("#senha-nova-atual-erro").waitFor({ timeout: 20_000 });
++    await pg.waitForFunction((el) => !el.disabled, await botao.elementHandle(), { timeout: 20_000 });
++    await pg.waitForTimeout(300);
++    const m = await campoFocadoAVista(pg);
++    const folgaDeCima = await pg.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingTop);
++    ok(`"Defina a sua senha" a ${tamanho(l, a, d)}: a provisória fica inteira com o rótulo, e a tela sem topo fixo não guarda folga de topo (${folgaDeCima})`,
++       m.ok && m.foco === "senha-nova-atual" && parseFloat(folgaDeCima) <= 12.5, `(foco ${m.foco}; ${m.txt})`);
++    await ctx.close();
++  }
++  for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
++    // Usuários: o email preenchido e Enter, sem o nome; o foco volta ao Nome completo, acima.
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++    await pg.locator("#usuario-email").fill(`alguem.${sufixo}@serraalta.exemplo.gov.br`);
++    await pg.locator("#usuario-email").press("Enter");
++    await pg.locator("#usuario-nome-erro").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(400);
++    const m = await campoFocadoAVista(pg);
++    ok(`Usuários a ${tamanho(l, a, d)}, cadastro sem nome: o Nome completo fica inteiro com o rótulo, fora do topo e da barra do pé`,
++       m.ok && m.foco === "usuario-nome", `(foco ${m.foco}; ${m.txt})`);
++    // Ocorrência: "Corrigir a coordenada" abre o formulário e o foco vai ao primeiro campo dele.
++    await pg.goto(`${BASE}/ocorrencias/${OC_DO_OFICIO}`, { waitUntil: "networkidle" });
++    const abrir = pg.getByRole("button", { name: /^(Corrigir|Informar) a coordenada$/ }).first();
++    await abrir.scrollIntoViewIfNeeded();
++    await abrir.click();
++    await pg.waitForTimeout(500);
++    const c = await campoFocadoAVista(pg);
++    ok(`Ocorrência a ${tamanho(l, a, d)}, "Corrigir a coordenada": o primeiro campo do formulário fica inteiro com o rótulo, fora do topo e da barra do pé`,
++       c.ok && c.foco === "corrigir-coordenada-ponto", `(foco ${c.foco}; ${c.txt})`);
++    await ctx.close();
++  }
++  for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
++    // Quero conhecer (tela pública): município, UF e email preenchidos, sem o nome; o foco sobe ao "Seu nome".
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await pg.goto(`${BASE}/quero-conhecer`, { waitUntil: "networkidle" });
++    await pg.locator("#ic-municipio").fill("Serra Alta");
++    await pg.locator("#ic-uf").fill("MG");
++    await pg.locator("#ic-email").fill("contato@serraalta.exemplo.gov.br");
++    await pg.getByRole("button", { name: "Quero conhecer", exact: true }).click();
++    await pg.locator("#ic-nome-erro").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(400);
++    const m = await campoFocadoAVista(pg);
++    ok(`Quero conhecer a ${tamanho(l, a, d)}, sem o nome: o "Seu nome" fica inteiro com o rótulo, à vista`,
++       m.ok && m.foco === "ic-nome", `(foco ${m.foco}; ${m.txt})`);
++    await ctx.close();
++  }
++
++  /*
++    G) O Tab natural, sem erro nenhum: cada parada no conteúdo fica inteira entre
++    o topo e a barra do pé (achado 2 da acessibilidade). No WebKit do Mac, como no
++    Safari, o Tab não para em botão nem link; lá cada elemento que o Tab
++    alcançaria recebe o foco por código, na ordem do documento, que faz a mesma
++    rolagem do motor.
++  */
++  for (const [l, a, d] of [[390, 844, 1], [320, 640, 1], [640, 450, 2], [320, 256, 1]]) {
++    for (const rota of ["/ocorrencias/nova", "/minha-conta", "/orgaos"]) {
++      const { ctx, pg } = await contextoDeFoco(l, a, d);
++      await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++      await pg.goto(`${BASE}${rota}`, { waitUntil: "networkidle" });
++      await pg.waitForTimeout(300);
++      const medirParada = () => pg.evaluate(() => {
++        const el = document.activeElement;
++        if (!el || el === document.body || el.id === "conteudo" || el.closest(".topo, .lateral, .pular-para-conteudo")) return null;
++        const r = el.getBoundingClientRect();
++        const topo = document.querySelector(".topo"), barra = document.querySelector(".lateral");
++        const cima = ["sticky", "fixed"].includes(getComputedStyle(topo).position) ? topo.getBoundingClientRect().bottom : 0;
++        const rb = barra.getBoundingClientRect();
++        const baixo = getComputedStyle(barra).position === "sticky" && rb.top > innerHeight / 2 ? rb.top : innerHeight;
++        const meio = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
++        /*
++          Inteiro na faixa livre. O que é mais alto que ela (a caixa que rola uma
++          tabela larga, que o Firefox põe no Tab) não cabe: aí vale o começo dele à
++          vista e sem nada por cima.
++        */
++        const alto = r.height > baixo - cima;
++        const yDoTeste = alto ? r.top + Math.min(r.height, baixo - cima) / 4 : r.top + r.height / 2;
++        const meioAlto = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), Math.min(Math.max(yDoTeste, 0), innerHeight - 1));
++        const ok = alto
++          ? r.top >= cima - 0.5 && r.top < baixo && (meioAlto === el || el.contains(meioAlto))
++          : r.top >= cima - 0.5 && r.bottom <= baixo + 0.5 && (meio === el || el.contains(meio));
++        return { ok, nome: `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ` "${(el.textContent || "").trim().slice(0, 20)}"`} ${Math.round(r.top)}..${Math.round(r.bottom)} entre ${Math.round(cima)} e ${Math.round(baixo)}` };
++      });
++      const fora = []; let paradas = 0;
++      if (MOTOR === "webkit") {
++        const total = await pg.evaluate(() => {
++          const els = [...document.querySelectorAll("#conteudo a[href], #conteudo button, #conteudo input, #conteudo select, #conteudo textarea")]
++            .filter((e) => !e.disabled && e.getClientRects().length);
++          els.forEach((e, i) => e.setAttribute("data-ordem-do-tab", String(i)));
++          return els.length;
++        });
++        for (let i = 0; i < Math.min(total, 30); i++) {
++          await pg.locator(`[data-ordem-do-tab="${i}"]`).evaluate((e) => e.focus());
++          await pg.waitForTimeout(60);
++          const m = await medirParada(); if (!m) continue; paradas++; if (!m.ok) fora.push(m.nome);
++        }
++      } else {
++        for (let i = 0; i < 40; i++) {
++          await pg.keyboard.press("Tab");
++          await pg.waitForTimeout(60);
++          const m = await medirParada(); if (!m) continue; paradas++; if (!m.ok) fora.push(m.nome);
++        }
++      }
++      ok(`Tab em ${rota} a ${tamanho(l, a, d)}: as ${paradas} paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé`,
++         paradas > 0 && fora.length === 0, `(${fora.slice(0, 4).join("; ")})`);
++      await ctx.close();
++    }
++  }
++
++  // H) O link do topo para Minha conta tem nome também até 600 px, onde o nome e o papel saem da tela (achado 3 da acessibilidade).
++  {
++    const { ctx, pg } = await contextoDeFoco(390, 844);
++    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++    await pg.setViewportSize({ width: 1280, height: 844 });
++    const nomeVisivel = ((await pg.locator(".identidade__nome").textContent()) ?? "").trim();
++    const esperado = `${nomeVisivel}, Administrador da organização, Minha conta`;
++    for (const largura of [390, 320, 1280]) {
++      await pg.setViewportSize({ width: largura, height: 844 });
++      await pg.waitForTimeout(150);
++      const n = await pg.getByRole("link", { name: esperado, exact: true }).count();
++      ok(`a ${largura} px, o link do topo para Minha conta tem nome ("${esperado}")`, nomeVisivel.length > 0 && n === 1, `(${n} link(s) com esse nome)`);
++    }
++    await ctx.close();
++  }
++
++  // E) O texto de exemplo da busca do topo cabe inteiro no campo (a 320 px saía "Buscar registro ou funç").
++  const { ctx, pg } = await contextoDeFoco(320, 568);
++  await entrar(emailDoOficio, SENHA_DO_TESTE, pg);
++  for (const largura of [320, 360]) {
++    await pg.setViewportSize({ width: largura, height: 700 });
++    await pg.waitForTimeout(200);
++    const m = await pg.evaluate(() => {
++      const campo = document.querySelector("#busca-global");
++      const cs = getComputedStyle(campo);
++      const regua = document.createElement("canvas").getContext("2d");
++      regua.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
++      const area = campo.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)
++        - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
++      return { texto: regua.measureText(campo.placeholder).width, area };
++    });
++    ok(`a ${largura} px, o texto de exemplo da busca do topo cabe inteiro no campo`,
++       m.texto <= m.area + 0.5, `(texto ${m.texto.toFixed(1)} px, área ${m.area.toFixed(1)} px)`);
++  }
++  await ctx.close();
++}
++
+ await navegador.close();
+ 
+ console.log(`\n${"=".repeat(52)}`);
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 3a93b4b..edca5ab 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5521 testes somando o aplicativo** (contagem estática de `npm run
++- **5538 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5521 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5538 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 9db76da..c10fad4 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -607,6 +607,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
+   "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
+   // V2-F00-E09, correção 5: `correcao-5-da-e09.test.ts` é novo, com 11 casos (o detector de email solto no JSX e a varredura de todo .tsx do painel, as duas janelas e a tentativa de envio do ofício usando o EmailQuebravel, a regra da dica da janela sem `anywhere`, o hook que leva o foco depois do commit e as duas telas que o usam, o `scroll-padding-top` e a margem do campo no topo de duas linhas, e o foco que rola pelo `scrollIntoView`). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o foco por efeito), sem caso novo. Nenhuma falha nova.
+   "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
++  // V2-F00-E09, correção 6: `correcao-6-da-e09.test.ts` é novo, com 17 casos (o foco que leva à vista a moldura do campo e depois o controle, as folgas medidas do topo e da barra do pé, a janela muito baixa em que os dois rolam com a página, o Tab que respeita as bordas, a margem do rótulo em qualquer largura, o ofício que encolhe abaixo da palavra mais longa, o singular e o plural das tentativas, a busca a 320 px e o nome do link de Minha conta). `correcao-5-da-e09.test.ts` trocou duas asserções no lugar (a folga medida e a regra do ofício), sem caso novo. Nenhuma falha nova.
++  "V2-F00-E09-correcao-6": { total: 17, falhas: 0 },
+ };
+ export function esperadoDoTesteWeb() {
+   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
+@@ -910,13 +912,22 @@ export const PASSOS = [
+     Firefox; no WebKit 196 (uma verificacao do Tab
+     e PULADA la, por escolha antiga do arquivo) e so a tela estreita, ver
+     `e2e-api.mjs --so-layout`.
++
++    Correcao 6 da E09 (2026-10-20): de 197 para 255 (mais 58), secao 13: o
++    rotulo e o campo focados depois do erro inteiros entre o topo fixo e a barra
++    do pe em Minha conta (11 tamanhos, com os zooms de 200 e 400 por cento, mais
++    5 com Enter e a pagina no alto), Nova ocorrencia (6), "Defina a sua senha",
++    Usuarios, Ocorrencia e Quero conhecer (12), o Tab natural em tres telas e
++    quatro tamanhos (12), a linha do oficio na tela de verdade a 320 e 360 px
++    (7), a busca do topo a 320 e 360 px (2) e o nome do link de Minha conta (3).
++    Medido no Mac, Node 24: 255 no Chromium e no Firefox, 254 no WebKit.
+   */
+   {
+     id: "e2e-api",
+     titulo: "npm run test:e2e:api",
+     cmd: "npm run test:e2e:api",
+     cwd: ".",
+-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 197   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 255   Falhou: 0"] },
+   },
+ ];
+ 

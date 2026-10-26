@@ -1,0 +1,8 @@
+  4 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    1 em apps/api/test/renovacao-contra-encerramento.test.ts
+    3 em db/test/busca.test.ts
+
+Afirmações conferidas: 25
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.

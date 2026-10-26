@@ -1,0 +1,219 @@
+diff --git a/dc360/apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx b/dc360/apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+index 79d5305..42faeb7 100644
+--- a/dc360/apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
++++ b/dc360/apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+@@ -20,6 +20,7 @@
+  * `dialogo-na-conta.test.tsx`: nada aqui está dentro de `src/app`.
+  */
+ 
++import { StyleSheet } from "react-native";
+ import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+ import type { ResumoFila } from "@dc360/campo";
+ 
+@@ -66,15 +67,20 @@ jest.mock("../dados/coletas", () => ({ listarColetas: async () => [] }));
+ 
+ /** Quantas vistorias COMEÇADAS o aparelho tem no disco. */
+ let mockRascunhos: { ocorrenciaId: string; fotos: unknown[]; assinaturaUri: string | null }[] = [];
++/** Quando preenchido, o disco NÃO responde: `listarRascunhos` rejeita. */
++let mockDiscoQuebrado: Error | null = null;
+ jest.mock("../dados/rascunho", () => ({
+-  listarRascunhos: jest.fn(async () => mockRascunhos),
++  listarRascunhos: jest.fn(async () => {
++    if (mockDiscoQuebrado) throw mockDiscoQuebrado;
++    return mockRascunhos;
++  }),
+ }));
+ 
+ /** A fila de verdade AVISA quem assina; aqui o teste faz o mesmo. */
+ const mockOuvintes = new Set<(r: ResumoFila) => void>();
+-function resumoCom(pendentes: number): ResumoFila {
++function resumoCom(pendentes: number, bloqueados = 0, enviando = 0): ResumoFila {
+   return {
+-    pendentes, enviando: 0, confirmados: 0, bloqueados: 0, arquivados: 0,
++    pendentes, enviando, confirmados: 0, bloqueados, arquivados: 0,
+     deOutroAutor: 0, sincronizando: false, pausadaPor: null,
+   };
+ }
+@@ -118,7 +124,7 @@ jest.mock("../dados/preferencia-de-tema", () => ({
+ }));
+ 
+ import Perfil from "../app/(agente)/perfil";
+-import { ProvedorDeTema } from "./componentes";
++import { Botao, ProvedorDeTema } from "./componentes";
+ import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
+ 
+ const PUSH: EstadoDoPush = {
+@@ -130,6 +136,7 @@ const PUSH: EstadoDoPush = {
+ 
+ beforeEach(() => {
+   mockRascunhos = [];
++  mockDiscoQuebrado = null;
+   mockResumoInicial = resumoCom(0);
+   mockOuvintes.clear();
+   mockSair.mockClear();
+@@ -183,19 +190,118 @@ describe("a pergunta antes de sair, com vistoria começada", () => {
+   });
+ 
+   it("o botão de confirmar é o de perigo, porque o ato apaga", async () => {
++    /* A referência é o MESMO `Botao` desenhado no mesmo tema, uma vez como
++       perigo e outra como primário. Assim o teste não fixa uma cor: se o
++       desenho do perigo mudar de forma legítima, a referência muda junto; se o
++       diálogo deixar de pedir `perigo`, o botão deixa de parecer a referência. */
++    const { unmount } = await render(
++      <ProvedorDeTema>
++        <Botao testID="ref-perigo" tipo="perigo" titulo="Referência de perigo" onPress={() => {}} />
++        <Botao testID="ref-primario" tipo="primario" titulo="Referência primária" onPress={() => {}} />
++      </ProvedorDeTema>,
++    );
++    const refPerigo = StyleSheet.flatten(screen.getByTestId("ref-perigo").props.style);
++    const refPrimario = StyleSheet.flatten(screen.getByTestId("ref-primario").props.style);
++    const corDaRefPerigo = StyleSheet.flatten(screen.getByText("Referência de perigo").props.style).color;
++    expect(refPerigo.backgroundColor).not.toBe(refPrimario.backgroundColor);
++    await act(async () => { unmount(); });
++
+     mockRascunhos = [rascunho("a", true)];
+     await abrirATela();
+ 
+     await tocar("Sair da conta");
+ 
+     const confirmar = screen.getByTestId("dialogo-acao");
+-    /* `destrutiva` no diálogo vira o tipo `perigo` do botão, que é o único
+-       preenchido de perigo do produto: a cor e a posição dizem "isto apaga". */
++    const recusar = screen.getByTestId("dialogo-recusa");
++    const estiloConfirmar = StyleSheet.flatten(confirmar.props.style);
++    const estiloRecusar = StyleSheet.flatten(recusar.props.style);
++    expect(estiloConfirmar.backgroundColor).toBe(refPerigo.backgroundColor);
++    expect(estiloConfirmar.backgroundColor).not.toBe(refPrimario.backgroundColor);
++    expect(estiloConfirmar.backgroundColor).not.toBe(estiloRecusar.backgroundColor);
++    expect(
++      StyleSheet.flatten(within(confirmar).getByText("Sair da conta").props.style).color,
++    ).toBe(corDaRefPerigo);
++
+     expect(confirmar.props.accessibilityLabel).toBe("Sair da conta");
+     expect(screen.getByTestId("dialogo").props.accessibilityViewIsModal).toBe(true);
+     expect(mockSair).not.toHaveBeenCalled();
+   });
+ 
++  it("a pergunta se chama 'Sair da conta?' e a ação vem antes da recusa", async () => {
++    await abrirATela();
++
++    await tocar("Sair da conta");
++
++    expect(within(screen.getByTestId("dialogo")).getByText("Sair da conta?")).toBeTruthy();
++    /* Ordem na árvore: a ação (destrutiva) primeiro, "Continuar conectado" por
++       último, como em todo diálogo do aplicativo. */
++    const emOrdem = screen
++      .getAllByTestId(/^dialogo-(acao|recusa)$/)
++      .map((botao) => botao.props.testID);
++    expect(emOrdem).toEqual(["dialogo-acao", "dialogo-recusa"]);
++  });
++
++  it("o item que está sendo enviado agora também conta como não enviado", async () => {
++    mockResumoInicial = resumoCom(0, 0, 1);
++    await abrirATela();
++
++    await tocar("Sair da conta");
++
++    const dialogo = within(screen.getByTestId("dialogo"));
++    expect(dialogo.getByText(/1 coleta ainda não enviada/)).toBeTruthy();
++    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
++  });
++
++  it("o disco respondeu zero e na segunda pergunta falha: avisa, e não repete o zero de antes", async () => {
++    /* A primeira pergunta deixa `rascunhosNaSaida` em "zero vistorias". Se o
++       `catch` da segunda não gravar `null`, o estado antigo sobe e o diálogo
++       repete "nada a perder" justamente quando o disco deixou de responder. */
++    await abrirATela();
++    await tocar("Sair da conta");
++    expect(within(screen.getByTestId("dialogo")).getByText(/precisar de sinal e da sua senha/)).toBeTruthy();
++    await tocar("Continuar conectado");
++
++    mockDiscoQuebrado = new Error("disco ilegível");
++    /* O diálogo fechado ainda está na árvore enquanto some: o botão da tela é o primeiro. */
++    await act(async () => { fireEvent.press(screen.getAllByText("Sair da conta")[0]!); });
++
++    const dialogo = within(screen.getByTestId("dialogo"));
++    expect(dialogo.getByText(/Não deu para conferir se há vistoria começada/)).toBeTruthy();
++    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
++    expect(mockSair).not.toHaveBeenCalled();
++  });
++
++  it("o disco não responde: o diálogo avisa do mesmo jeito, e não promete que não há nada", async () => {
++    /* É o defeito de origem (CMP-52) por outro caminho: se a leitura falhar e
++       a tela tratar isso como "zero vistorias", a frase curta de sempre sobe e
++       a confirmação apaga a vistoria começada sem uma palavra. */
++    mockRascunhos = [rascunho("a", true)];
++    mockDiscoQuebrado = new Error("disco ilegível");
++    await abrirATela();
++
++    await tocar("Sair da conta");
++
++    const dialogo = within(screen.getByTestId("dialogo"));
++    expect(dialogo.getByText(/Não deu para conferir se há vistoria começada/)).toBeTruthy();
++    expect(dialogo.getByText(/Sair apaga toda vistoria que ainda não foi concluída/)).toBeTruthy();
++    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
++    expect(mockSair).not.toHaveBeenCalled();
++  });
++
++  it("o item recusado pelo servidor também conta como coleta não enviada", async () => {
++    /* `bloqueados` não está em `pendentes` nem em `enviando`, e o item
++       recusado continua no aparelho: o diálogo não pode dizer que não há
++       nada guardado. */
++    mockResumoInicial = resumoCom(0, 2);
++    await abrirATela();
++
++    await tocar("Sair da conta");
++
++    const dialogo = within(screen.getByTestId("dialogo"));
++    expect(dialogo.getByText(/2 coletas ainda não enviadas/)).toBeTruthy();
++    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
++  });
++
+   it("sem vistoria começada e sem fila, a pergunta não fala em apagar", async () => {
+     await abrirATela();
+ 
+@@ -203,6 +309,7 @@ describe("a pergunta antes de sair, com vistoria começada", () => {
+ 
+     const dialogo = within(screen.getByTestId("dialogo"));
+     expect(dialogo.queryByText(/começada/)).toBeNull();
++    expect(dialogo.queryByText(/apaga/i)).toBeNull();
+     expect(dialogo.getByText(/precisar de sinal e da sua senha/)).toBeTruthy();
+   });
+ });
+diff --git a/dc360/README.md b/dc360/README.md
+index ecbe982..8f2e977 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -13,4 +13,4 @@ build) valem lá, não aqui.
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1327 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 669 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1366 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1356,3 +1389,3 @@ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 te
+-npm run test:api            # 1327 testes da API
+-npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+-npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
++npm run test:api            # 1366 testes da API
++npm run test --workspace @dc360/campo   # 231 testes do motor de campo
++npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 8e95592..40cb2f9 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -41 +41 @@ D-U-N-S e a revisão não forem gargalo.
+-- **4916 testes somando o aplicativo** (contagem estática de `npm run
++- **4977 testes somando o aplicativo** (contagem estática de `npm run
+@@ -346 +346 @@ npm ci
+-npm run verificar          # typecheck, 4916 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 4977 testes com o aplicativo, auditar, números
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index a2ede1c..47fdace 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -585,0 +594,2 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
++  // V2-F00-E15, correção 2: `dialogo-na-conta-com-vistoria-comecada.test.tsx` ganha 5 casos (disco ilegível, item recusado da fila, item em envio, título e ordem dos botões, disco que falha na segunda pergunta). O caso do botão de perigo foi reescrito, sem mudar a contagem.
++  "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },

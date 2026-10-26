@@ -1,0 +1,47 @@
+$ (em dc360, arvore de hoje, duas vezes seguidas) DC360_POSTGRES_DE_PROVA=<postgres 16.13 descartavel, superusuario postgres, banco postgres, como o servico do job implantavel> npx vitest run --root apps/api test/renovacao-contra-encerramento.test.ts; depois, no cluster: SELECT datname FROM pg_database; SELECT rolname FROM pg_roles WHERE rolname LIKE 'dc360%'
+# nenhum prova_c2_* sobrou, e os quatro papeis dc360_* do job continuam
+
+----- e07-ci-pg16-depois-2.txt -----
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/renovacao-contra-encerramento.test.ts (14 tests) 22770ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  476ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1161ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  502ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1166ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  14317ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse  1183ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  506ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 9. o login e a suspensão pelo console no mesmo instante, nas duas ordens: depois da reativação, a sessão do login não renova  323ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  13:44:54
+   Duration  23.26s (transform 199ms, setup 15ms, collect 318ms, tests 22.77s, environment 0ms, prepare 31ms)
+
+
+----- e07-ci-pg16-depois-3.txt -----
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/renovacao-contra-encerramento.test.ts (14 tests) 23179ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  516ms
+   ✓ Renovação e encerramento no mesmo instante: a renovação é UMA transação > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1267ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 1. quem administra encerra as sessões da pessoa: nenhuma sessão da cadeia sobrevive  440ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 2. a própria pessoa encerra as outras sessões, de outro aparelho: nenhuma sessão da cadeia sobrevive  594ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 3. a pessoa troca a senha em outro aparelho: nenhuma sessão da cadeia sobrevive  1231ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 6. sessenta disputas sem grampo, com atraso sorteado: zero sessão viva em todas  14015ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 7. redefinir a senha pela administração e trocar a própria senha ao mesmo tempo: sem impasse  1159ms
+   ✓ Renovação e encerramento em Postgres real: a trava comum por pessoa > 8. o console suspende o município no meio da renovação: depois da reativação, nada da cadeia renova  513ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  13:45:17
+   Duration  23.67s (transform 197ms, setup 15ms, collect 314ms, tests 23.18s, environment 0ms, prepare 33ms)
+
+
+----- cluster-depois.txt -----
+SELECT [{"datname":"dc360"},{"datname":"postgres"},{"datname":"template0"},{"datname":"template1"}]
+SELECT [{"rolname":"dc360_api"},{"rolname":"dc360_app"},{"rolname":"dc360_console"},{"rolname":"dc360_setup"}]
+

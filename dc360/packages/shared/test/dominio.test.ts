@@ -218,5 +218,13 @@ describe("Checklist da vistoria", () => {
       culpados,
       "checklist redefinido fora do pacote compartilhado: importe ROTULO_CHECKLIST",
     ).toEqual([]);
-  });
+  /*
+    Limite de tempo EXPLÍCITO (V-INS-03 do registro da E03). O padrão do vitest
+    é 5 s, e este caso lê o código-fonte do produto inteiro, inclusive o que
+    está sob `apps/campo` (a pasta `ios/` sozinha passa de 1 GB em disco). Livre,
+    leva cerca de 0,5 s; com a suíte inteira disputando disco e CPU ele
+    estourou os 5 s em 2 de cerca de 7 rodadas. 60 s é folga larga, e continua
+    sendo limite: varredura presa reprova com "Test timed out".
+  */
+  }, 60_000);
 });

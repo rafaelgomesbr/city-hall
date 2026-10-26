@@ -1,0 +1,11 @@
+familia=openssl3 openssl=OpenSSL 3.0.7 1 Nov 2022 (Library: OpenSSL 3.0.7 1 Nov 2022)
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/banco-tls.test.ts (13 tests) 367ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  01:13:27
+   Duration  823ms (transform 116ms, setup 41ms, collect 87ms, tests 367ms, environment 0ms, prepare 121ms)
+

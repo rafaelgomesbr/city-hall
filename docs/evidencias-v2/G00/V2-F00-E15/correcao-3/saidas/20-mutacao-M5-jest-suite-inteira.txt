@@ -1,0 +1,5 @@
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+Test Suites: 1 failed, 134 passed, 135 total
+Tests:       1 failed, 1941 passed, 1942 total
+jest-saida=1

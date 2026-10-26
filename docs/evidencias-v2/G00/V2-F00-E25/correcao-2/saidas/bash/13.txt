@@ -1,0 +1,21 @@
+$ # bloco 13 (texto do documento, antes das 5 substituicoes de placeholder)
+kill "$API_PID"
+super -p $PORTA_ORIGEM  -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
+super -p $PORTA_DESTINO -d postgres -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY 1"
+pg_ctl -D "$PASTA_RESTORE/pg-origem"  -m fast stop < /dev/null
+pg_ctl -D "$PASTA_RESTORE/pg-destino" -m fast stop < /dev/null
+test -f "$PASTA_RESTORE/.criada-pelo-roteiro" && rm -rf "$PASTA_RESTORE"
+test ! -e "$PASTA_RESTORE" && echo "pasta temporária apagada"
+find .. -name '*.dump' -not -path '*/node_modules/*'
+
+--- saida ---
+postgres
+prova_e25_origem
+postgres
+prova_e25_restaurado
+waiting for server to shut down.... done
+server stopped
+waiting for server to shut down.... done
+server stopped
+pasta temporária apagada
+--- bloco terminou: sim ---

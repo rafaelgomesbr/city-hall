@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: auditar.mjs
+    # Subtest: passa quando runtime e aplicativo estão limpos
+    ok 1 - passa quando runtime e aplicativo estão limpos
+      ---
+      duration_ms: 257.6262
+      type: 'test'
+      ...
+    # Subtest: reprova vulnerabilidade de runtime
+    ok 2 - reprova vulnerabilidade de runtime
+      ---
+      duration_ms: 184.567
+      type: 'test'
+      ...
+    # Subtest: só avisa de vulnerabilidade apenas de desenvolvimento
+    ok 3 - só avisa de vulnerabilidade apenas de desenvolvimento
+      ---
+      duration_ms: 232.4896
+      type: 'test'
+      ...
+    # Subtest: reprova advisory nova no aplicativo de campo
+    ok 4 - reprova advisory nova no aplicativo de campo
+      ---
+      duration_ms: 231.1929
+      type: 'test'
+      ...
+    # Subtest: aceita o nomeado, com dono e prazo na saída
+    ok 5 - aceita o nomeado, com dono e prazo na saída
+      ---
+      duration_ms: 230.1584
+      type: 'test'
+      ...
+    # Subtest: reprova aceita que tem correção disponível e não está marcada como inaplicável
+    ok 6 - reprova aceita que tem correção disponível e não está marcada como inaplicável
+      ---
+      duration_ms: 229.7674
+      type: 'test'
+      ...
+    # Subtest: tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)
+    ok 7 - tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)
+      ---
+      duration_ms: 232.492
+      type: 'test'
+      ...
+    1..7
+ok 1 - auditar.mjs
+  ---
+  duration_ms: 1599.1347
+  type: 'suite'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1670.9748
+codigo de saida: 0

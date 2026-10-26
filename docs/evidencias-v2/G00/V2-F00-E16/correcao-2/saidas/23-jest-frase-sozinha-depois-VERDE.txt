@@ -1,0 +1,8 @@
+PASS src/ui/dialogo-na-fila.test.tsx (6.767 s)
+PASS src/ui/fila-como-produto.test.tsx (8.206 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       82 passed, 82 total
+Snapshots:   0 total
+Time:        8.888 s
+Ran all test suites matching /src\\ui\\dialogo-na-fila|src\\ui\\fila-como-produto/i.

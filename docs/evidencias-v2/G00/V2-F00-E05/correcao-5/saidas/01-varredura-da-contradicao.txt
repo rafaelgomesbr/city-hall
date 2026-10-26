@@ -1,0 +1,19 @@
+$ grep -n -i "garant\|primeira linha\|segunda linha\|heur" dc360/README.md (trechos sobre o catálogo de códigos de erro, linhas 145-270) e o cabeçalho de packages/shared/src/codigos-de-erro.ts, DEPOIS da correção
+151:código nele. Quem GARANTE isto é uma guarda em tempo de execução; dois testes
+152:apontam o defeito antes, e nenhum deles é garantia sozinho:
+160:  sozinho, `hijack` e `raw` terminam todos nesses três métodos. O corpo tem de ser
+174:  fornecedor). É HEURÍSTICA, a primeira linha: a lista do que ela não lê não é
+213:  que é a SEGUNDA linha, depois da varredura: sobe o servidor, lê as rotas que ELE
+236:  garantia de que nenhuma recusa de acesso sai fora do catálogo é a guarda em
+238:  primeira linha dos testes, heurística, e a prova dinâmica é a segunda: ela
+240:  que usa. Nenhuma das duas é garantia sozinha.
+256:`prependListener`). Contra isso NÃO há garantia em tempo de execução: só a
+257:varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
+--- cabecalho do catalogo
+14: * - token vencido: renova sozinho e repete o pedido, a pessoa nem percebe;
+25: * ## O que garante, e o que só ajuda
+27: * A GARANTIA é uma guarda em tempo de execução, não um teste do texto
+60: * chegar à guarda, e nenhum dos dois é garantia sozinho.
+64: *    TypeScript. É HEURÍSTICA: lê as formas que conhece e tenta reprovar o que
+159: * `upgrade`, `secureConnection`, `clientError`); contra isso não há garantia em
+169: * `raw` e `socket`), mas é heurística. Nenhuma das três linhas prende código

@@ -1,0 +1,874 @@
+{
+  "versao": 1,
+  "descricao": "Mapa de impacto da V2 (28-execucao-e-validacao.md, seções 6 e 14): liga padrões de caminho a tags, suítes, seções do e2e e itens de gate. Escrito a partir do que a F00 tocou (docs/evidencias-v2/G00/*/RESUMO.md e diff-da-etapa.patch). Uma fase nova que toque área nova acrescenta regras aqui, num commit, ANTES de ser validada: caminho de produto sem regra aparece como 'sem regra' e a regressão cai no kit completo.",
+  "convencoes": {
+    "caminhos": "relativos à raiz do repositório, com barra normal. Glob simples: ** atravessa pastas, * fica dentro de um nível, ? é um caractere.",
+    "suites": "texto que começa com 'npm ' é comando a rodar a partir de dc360/; qualquer outro texto é arquivo de teste, relativo a dc360/.",
+    "secoes_e2e": "{ arquivo: [números] } ou { arquivo: \"todas\" }. Os arquivos são dc360/apps/web/test/fluxo-api.e2e.mjs (contra a API) e dc360/apps/web/test/fluxo.e2e.mjs (modo local). Os números são os das seções citadas nas evidências da F00.",
+    "itens_de_gate": "o começo do texto do item no bloco do gate (antes dos dois pontos). Um teste confere que cada um existe no arquivo da fase.",
+    "dimensoes": "o mapa de impacto de cada dimensão de validação, para a herança depois de FAIL (28, seção 6): a dimensão só é herdada se o diff não toca nenhum padrão dela. Padrões da dimensão = padrões das regras que têm alguma das tags dela, mais os padrões próprios."
+  },
+  "sempre": {
+    "suites": [
+      "npm run typecheck",
+      "npm run test:isolamento",
+      "npm run conferir:numeros"
+    ],
+    "itens_de_gate": [
+      "Nenhuma regressão"
+    ]
+  },
+  "lista_permitida": [
+    "docs/evidencias-v2/**/validacao/**",
+    "docs/evidencias-v2/**/VEREDITO.md",
+    "docs/evidencias-v2/**/RISCO-ACEITO.md",
+    "docs/roadmap-v2/STATUS.md",
+    "docs/roadmap-v2/ESTADO-ATUAL.md",
+    "docs/relatorios-v2/**"
+  ],
+  "regras": [
+    {
+      "id": "api-auth-e-vigencia",
+      "padroes": [
+        "dc360/apps/api/src/auth/**",
+        "dc360/apps/api/src/servidor.ts",
+        "dc360/apps/api/src/rotas/autenticacao.ts",
+        "dc360/apps/api/src/rotas/usuarios-eu.ts"
+      ],
+      "tags": [
+        "AUTH",
+        "AUTHZ",
+        "API"
+      ],
+      "suites": [
+        "npm run test:api",
+        "apps/api/test/vigencia-na-escrita.test.ts",
+        "apps/api/test/senha-provisoria.test.ts",
+        "apps/api/test/familia-da-sessao.test.ts",
+        "apps/api/test/sessoes-da-conta.test.ts",
+        "apps/api/test/senha-e-sessoes.test.ts",
+        "apps/api/test/superficie.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          23,
+          24,
+          26
+        ]
+      },
+      "itens_de_gate": [
+        "Vigência de conta, papel e sessão ligada na escrita",
+        "Códigos de erro corretos",
+        "Sessão revogada, conta desativada, papel alterado e senha provisória vencida provados",
+        "Telas de sessões e de redefinição de senha"
+      ]
+    },
+    {
+      "id": "shared-permissoes-e-erros",
+      "padroes": [
+        "dc360/packages/shared/src/permissoes.ts",
+        "dc360/packages/shared/src/codigos-de-erro.ts"
+      ],
+      "tags": [
+        "AUTHZ"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/shared",
+        "npm run test:api",
+        "packages/shared/test/permissoes.test.ts",
+        "packages/shared/test/codigos-de-erro.test.ts",
+        "apps/api/test/codigos-de-erro.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          23,
+          25
+        ]
+      },
+      "itens_de_gate": [
+        "Códigos de erro corretos",
+        "Vazamentos P0 de leitura ao agente fechados"
+      ]
+    },
+    {
+      "id": "shared-conteudo-e-dominio",
+      "padroes": [
+        "dc360/packages/shared/src/**"
+      ],
+      "tags": [],
+      "suites": [
+        "npm run test --workspace @dc360/shared",
+        "packages/shared/test/regras-de-conteudo.test.ts",
+        "packages/shared/test/mensagens-em-portugues.test.ts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Portão de conteúdo verde"
+      ]
+    },
+    {
+      "id": "api-oficios-e-avisos",
+      "padroes": [
+        "dc360/apps/api/src/rotas/oficios.ts",
+        "dc360/apps/api/src/rotas/avisos.ts",
+        "dc360/apps/api/src/rotas/recorte-do-agente.ts",
+        "dc360/apps/api/src/oficios/**"
+      ],
+      "tags": [
+        "AUTHZ",
+        "TENANT",
+        "API"
+      ],
+      "suites": [
+        "npm run test:api",
+        "apps/api/test/leitura-do-agente-oficios-e-avisos.test.ts",
+        "apps/api/test/sino-de-avisos.test.ts",
+        "apps/api/test/agente-so-ve-a-equipe.test.ts",
+        "apps/web/test/oficio-so-para-quem-consulta.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          25
+        ]
+      },
+      "itens_de_gate": [
+        "Vazamentos P0 de leitura ao agente fechados"
+      ]
+    },
+    {
+      "id": "api-saida-de-municipio",
+      "padroes": [
+        "dc360/apps/api/src/saida/**",
+        "dc360/apps/api/src/rotas/saida.ts",
+        "dc360/apps/api/src/rotas/documentos.ts",
+        "dc360/apps/api/src/documentos/**"
+      ],
+      "tags": [
+        "DOCUMENTO",
+        "API"
+      ],
+      "suites": [
+        "npm run test:api",
+        "apps/api/test/pacote-de-saida-contrato.test.ts",
+        "apps/api/test/saida-de-municipio.test.ts",
+        "apps/api/test/saida-nao-declara-inexistente.test.ts",
+        "apps/web/test/pacote-de-saida.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          28,
+          29
+        ]
+      },
+      "itens_de_gate": [
+        "Saída de município"
+      ]
+    },
+    {
+      "id": "api-rotas-e-contrato",
+      "padroes": [
+        "dc360/apps/api/src/rotas/**",
+        "dc360/apps/api/src/index.ts"
+      ],
+      "tags": [
+        "API"
+      ],
+      "suites": [
+        "npm run test:api",
+        "apps/api/test/contrato-do-painel.test.ts",
+        "apps/api/test/superficie.test.ts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Contrato painel x API"
+      ]
+    },
+    {
+      "id": "api-cors-e-evidencias",
+      "padroes": [
+        "dc360/apps/api/src/armazenamento/**",
+        "dc360/apps/api/src/rotas/evidencias.ts",
+        "dc360/apps/api/src/rotas/armazenamento*.ts"
+      ],
+      "tags": [
+        "ARQUIVO",
+        "API"
+      ],
+      "suites": [
+        "npm run test:api",
+        "apps/api/test/cors-do-envio-de-evidencia.test.ts",
+        "apps/api/test/evidencias.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          13,
+          15
+        ]
+      },
+      "itens_de_gate": [
+        "E2E de navegador"
+      ]
+    },
+    {
+      "id": "web-cliente-http-e-dados",
+      "padroes": [
+        "dc360/apps/web/src/dados/**"
+      ],
+      "tags": [
+        "UI",
+        "API"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/web",
+        "npm run test:e2e",
+        "npm run test:e2e:api",
+        "apps/api/test/contrato-do-painel.test.ts",
+        "apps/web/test/paridade-dos-modos.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          13,
+          19,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28
+        ],
+        "fluxo.e2e.mjs": [
+          2,
+          11
+        ]
+      },
+      "itens_de_gate": [
+        "Contrato painel x API",
+        "Painel e app de campo sem teste vermelho",
+        "E2E de navegador"
+      ]
+    },
+    {
+      "id": "web-entrada-e-sessao",
+      "padroes": [
+        "dc360/apps/web/src/App.tsx",
+        "dc360/apps/web/src/estado/**",
+        "dc360/apps/web/src/paginas/Entrar.tsx",
+        "dc360/apps/web/src/paginas/entrar-regras.ts",
+        "dc360/apps/web/src/paginas/RecuperarSenha.tsx",
+        "dc360/apps/web/src/paginas/recuperar-regras.ts"
+      ],
+      "tags": [
+        "UI",
+        "AUTH"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/web",
+        "apps/web/test/sessao-e-entrada.test.ts",
+        "apps/web/test/recuperar-senha.test.ts",
+        "apps/web/test/recuperar-senha-e-sessao.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          14,
+          23,
+          24,
+          27
+        ],
+        "fluxo.e2e.mjs": [
+          2,
+          11
+        ]
+      },
+      "itens_de_gate": [
+        "Recuperação por e-mail provada",
+        "Painel e app de campo sem teste vermelho",
+        "Códigos de erro corretos"
+      ]
+    },
+    {
+      "id": "web-contas-e-sessoes",
+      "padroes": [
+        "dc360/apps/web/src/paginas/MinhaConta.tsx",
+        "dc360/apps/web/src/paginas/Usuarios.tsx",
+        "dc360/apps/web/src/paginas/sessoes-regras.ts",
+        "dc360/apps/web/src/paginas/senha-provisoria-regras.ts",
+        "dc360/apps/web/src/paginas/usuarios-regras.ts"
+      ],
+      "tags": [
+        "UI",
+        "AUTH"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/web",
+        "apps/web/test/sessoes-e-senha-temporaria.test.ts",
+        "apps/web/test/seguranca-da-conta.test.ts",
+        "apps/web/test/senha-provisoria.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          26
+        ]
+      },
+      "itens_de_gate": [
+        "Telas de sessões e de redefinição de senha"
+      ]
+    },
+    {
+      "id": "web-ocorrencia-e-oficios",
+      "padroes": [
+        "dc360/apps/web/src/paginas/Ocorrencia.tsx",
+        "dc360/apps/web/src/paginas/ocorrencia-regras.ts",
+        "dc360/apps/web/src/paginas/oficio-regras.ts"
+      ],
+      "tags": [
+        "UI"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/web",
+        "apps/web/test/oficio.test.ts",
+        "apps/web/test/ocorrencia-encerramento.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          25,
+          28,
+          29
+        ]
+      },
+      "itens_de_gate": [
+        "Vazamentos P0 de leitura ao agente fechados",
+        "Saída de município"
+      ]
+    },
+    {
+      "id": "web-telas-e-componentes",
+      "padroes": [
+        "dc360/apps/web/src/paginas/**",
+        "dc360/apps/web/src/componentes/**",
+        "dc360/apps/web/src/estilos/**",
+        "dc360/apps/web/src/main.tsx"
+      ],
+      "tags": [
+        "UI",
+        "A11Y"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/web",
+        "npm run test:e2e",
+        "apps/web/test/design-system.test.ts",
+        "apps/web/test/acessibilidade.test.ts",
+        "apps/web/test/portoes-de-componente.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo.e2e.mjs": "todas",
+        "fluxo-api.e2e.mjs": "todas"
+      },
+      "itens_de_gate": [
+        "Painel e app de campo sem teste vermelho",
+        "E2E de navegador"
+      ]
+    },
+    {
+      "id": "web-testes",
+      "padroes": [
+        "dc360/apps/web/test/**"
+      ],
+      "tags": [
+        "UI"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/web",
+        "npm run test:e2e"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Painel e app de campo sem teste vermelho",
+        "E2E de navegador"
+      ]
+    },
+    {
+      "id": "campo-transporte-e-fila",
+      "padroes": [
+        "dc360/packages/campo/**"
+      ],
+      "tags": [
+        "MOBILE",
+        "OFFLINE"
+      ],
+      "suites": [
+        "npm run test --workspace @dc360/campo",
+        "npm run test:campo",
+        "packages/campo/test/fila.test.ts",
+        "packages/campo/test/pausa-de-sessao.test.ts",
+        "apps/api/test/campo-integracao.test.ts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Fila do campo sem perda",
+        "Painel e app de campo sem teste vermelho"
+      ]
+    },
+    {
+      "id": "campo-aplicativo",
+      "padroes": [
+        "dc360/apps/campo/src/**",
+        "dc360/apps/campo/*.json",
+        "dc360/apps/campo/*.js"
+      ],
+      "tags": [
+        "MOBILE"
+      ],
+      "suites": [
+        "npm run test:campo",
+        "apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Fila do campo sem perda",
+        "Painel e app de campo sem teste vermelho",
+        "Ambiente"
+      ]
+    },
+    {
+      "id": "banco-migrations",
+      "padroes": [
+        "dc360/db/migrations/**",
+        "dc360/db/src/**",
+        "dc360/db/seeds/**",
+        "dc360/db/provedores/**",
+        "dc360/db/*.json",
+        "dc360/db/*.ts"
+      ],
+      "tags": [
+        "DB",
+        "MIGRATION",
+        "RLS",
+        "TENANT"
+      ],
+      "suites": [
+        "npm run test:isolamento",
+        "npm run migrar -- --conferir",
+        "npm run test:api",
+        "db/test/migrar.test.ts",
+        "db/test/familia-da-sessao.test.ts"
+      ],
+      "secoes_e2e": {
+        "fluxo-api.e2e.mjs": [
+          24
+        ]
+      },
+      "itens_de_gate": [
+        "Sessão revogada, conta desativada, papel alterado e senha provisória vencida provados",
+        "Restore provado"
+      ]
+    },
+    {
+      "id": "banco-testes",
+      "padroes": [
+        "dc360/db/test/**"
+      ],
+      "tags": [
+        "DB",
+        "TENANT"
+      ],
+      "suites": [
+        "npm run test:isolamento"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Nenhuma regressão"
+      ]
+    },
+    {
+      "id": "api-testes",
+      "padroes": [
+        "dc360/apps/api/test/**",
+        "dc360/apps/api/*.json",
+        "dc360/apps/api/*.ts"
+      ],
+      "tags": [
+        "API"
+      ],
+      "suites": [
+        "npm run test:api",
+        "npm run test:isolamento"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Todos os vermelhos classificados e fechados",
+        "Nenhuma regressão"
+      ]
+    },
+    {
+      "id": "shared-testes",
+      "padroes": [
+        "dc360/packages/shared/test/**",
+        "dc360/packages/shared/*.json"
+      ],
+      "tags": [],
+      "suites": [
+        "npm run test --workspace @dc360/shared"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Portão de conteúdo verde",
+        "Todos os vermelhos classificados e fechados"
+      ]
+    },
+    {
+      "id": "console-do-fornecedor",
+      "padroes": [
+        "dc360/apps/console/**"
+      ],
+      "tags": [
+        "UI"
+      ],
+      "suites": [
+        "npm run test:console",
+        "npm run test:isolamento"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Nenhuma regressão"
+      ]
+    },
+    {
+      "id": "scripts-e-baseline",
+      "padroes": [
+        "dc360/scripts/**",
+        "scripts/**"
+      ],
+      "tags": [
+        "INFRA"
+      ],
+      "suites": [
+        "npm run test:scripts",
+        "node --test scripts/roadmap/*.test.mjs"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Baseline reproduzível",
+        "Política T42 em vigor",
+        "Scripts e números",
+        "Ambiente"
+      ]
+    },
+    {
+      "id": "dependencias",
+      "padroes": [
+        "dc360/package.json",
+        "dc360/package-lock.json",
+        "dc360/apps/*/package.json",
+        "dc360/apps/*/package-lock.json",
+        "dc360/packages/*/package.json"
+      ],
+      "tags": [
+        "INFRA"
+      ],
+      "suites": [
+        "npm run auditar",
+        "npm run test:scripts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Dependências",
+        "Ambiente"
+      ]
+    },
+    {
+      "id": "ci-e-ambiente",
+      "padroes": [
+        ".github/**",
+        "dc360/Dockerfile*",
+        "dc360/fly*.toml",
+        "dc360/compose.yaml",
+        ".gitattributes",
+        "dc360/.nvmrc"
+      ],
+      "tags": [
+        "INFRA"
+      ],
+      "suites": [
+        "npm run test:scripts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Ambiente",
+        "Baseline reproduzível"
+      ]
+    },
+    {
+      "id": "documentacao-do-produto",
+      "padroes": [
+        "dc360/README.md",
+        "dc360/docs/**",
+        "dc360/apps/*/PENDENCIAS.md",
+        "dc360/apps/*/LEIA-ME.md",
+        "dc360/apps/*/README.md"
+      ],
+      "tags": [],
+      "suites": [
+        "npm run conferir:numeros",
+        "packages/shared/test/regras-de-conteudo.test.ts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Documentação sem afirmação falsa",
+        "K14 resolvido",
+        "Restore provado"
+      ]
+    },
+    {
+      "id": "roadmap-e-politica",
+      "padroes": [
+        "docs/**",
+        "CLAUDE.md",
+        ".claude/**"
+      ],
+      "tags": [],
+      "suites": [
+        "packages/shared/test/regras-de-conteudo.test.ts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "Documentação atualizada e evidências arquivadas"
+      ]
+    },
+    {
+      "id": "apresentacao-e-prototipo",
+      "padroes": [
+        "mockup/**"
+      ],
+      "tags": [],
+      "suites": [
+        "packages/shared/test/regras-de-conteudo.test.ts"
+      ],
+      "secoes_e2e": {},
+      "itens_de_gate": [
+        "K14 resolvido",
+        "Documentação sem afirmação falsa"
+      ]
+    }
+  ],
+  "dimensoes": {
+    "qa": {
+      "tags": [],
+      "padroes": [
+        "dc360/**",
+        "scripts/**",
+        ".github/**"
+      ]
+    },
+    "ux": {
+      "tags": [
+        "UI"
+      ],
+      "padroes": []
+    },
+    "acessibilidade": {
+      "tags": [
+        "UI",
+        "MOBILE",
+        "A11Y"
+      ],
+      "padroes": []
+    },
+    "seguranca-aplicacao": {
+      "tags": [
+        "AUTH",
+        "AUTHZ",
+        "ARQUIVO"
+      ],
+      "padroes": [
+        "dc360/apps/api/src/**",
+        "dc360/packages/shared/src/permissoes.ts"
+      ]
+    },
+    "red-team": {
+      "tags": [
+        "AUTH",
+        "AUTHZ",
+        "TENANT",
+        "RLS",
+        "ARQUIVO"
+      ],
+      "padroes": [
+        "dc360/apps/api/src/**",
+        "dc360/db/migrations/**"
+      ]
+    },
+    "banco-de-dados": {
+      "tags": [
+        "DB",
+        "MIGRATION",
+        "RLS",
+        "TENANT"
+      ],
+      "padroes": []
+    },
+    "privacidade-lgpd": {
+      "tags": [
+        "ARQUIVO"
+      ],
+      "padroes": [
+        "dc360/db/migrations/**",
+        "dc360/apps/api/src/privacidade/**",
+        "dc360/apps/api/src/eliminacao/**",
+        "dc360/docs/DICIONARIO-DE-DADOS.md"
+      ]
+    },
+    "testes": {
+      "tags": [
+        "MOBILE",
+        "OFFLINE",
+        "MIGRATION",
+        "DB"
+      ],
+      "padroes": [
+        "dc360/**/test/**",
+        "dc360/apps/campo/src/__tests__/**"
+      ]
+    },
+    "especificacao": {
+      "tags": [
+        "DOCUMENTO"
+      ],
+      "padroes": []
+    },
+    "engenharia-entrega": {
+      "tags": [
+        "INFRA"
+      ],
+      "padroes": []
+    }
+  },
+  "reabre_se": [
+    {
+      "id": "G00-vigencia-desligada",
+      "gate": "G00",
+      "condicao": "a vigência desligar de novo (qualquer rota de escrita aceitar conta desativada, papel rebaixado ou sessão encerrada)",
+      "padroes": [
+        "dc360/apps/api/src/servidor.ts",
+        "dc360/apps/api/src/auth/**",
+        "dc360/apps/api/src/rotas/**"
+      ],
+      "suites": [
+        "apps/api/test/vigencia-na-escrita.test.ts",
+        "apps/api/test/familia-da-sessao.test.ts",
+        "npm run test:api"
+      ],
+      "itens_de_gate": [
+        "Vigência de conta, papel e sessão ligada na escrita",
+        "Sessão revogada, conta desativada, papel alterado e senha provisória vencida provados"
+      ]
+    },
+    {
+      "id": "G00-ci-vermelho",
+      "gate": "G00",
+      "condicao": "o CI de master ficar vermelho",
+      "padroes": [
+        ".github/**",
+        "dc360/package.json",
+        "dc360/package-lock.json",
+        "dc360/Dockerfile*"
+      ],
+      "suites": [
+        "npm run test:scripts"
+      ],
+      "itens_de_gate": [
+        "Ambiente"
+      ]
+    },
+    {
+      "id": "G00-skip-sem-dono",
+      "gate": "G00",
+      "condicao": "aparecer skip sem dono, issue e prazo",
+      "padroes": [
+        "dc360/**/test/**",
+        "dc360/apps/campo/src/__tests__/**",
+        "dc360/scripts/portao-de-skip.mjs",
+        "dc360/scripts/**/*.test.mjs"
+      ],
+      "suites": [
+        "npm run test:scripts"
+      ],
+      "itens_de_gate": [
+        "Política T42 em vigor"
+      ]
+    },
+    {
+      "id": "G00-vermelho-fora-do-registro",
+      "gate": "G00",
+      "condicao": "surgir vermelho conhecido fora do registro",
+      "padroes": [
+        "dc360/**/test/**",
+        "dc360/apps/campo/src/__tests__/**"
+      ],
+      "suites": [
+        "npm run test:api",
+        "npm run test --workspace @dc360/web",
+        "npm run test:campo",
+        "npm run test:scripts"
+      ],
+      "itens_de_gate": [
+        "Todos os vermelhos classificados e fechados",
+        "Painel e app de campo sem teste vermelho"
+      ]
+    },
+    {
+      "id": "G00-cliente-chama-caminho-inexistente",
+      "gate": "G00",
+      "condicao": "um cliente do painel chamar caminho que a API não registra",
+      "padroes": [
+        "dc360/apps/web/src/dados/http.ts",
+        "dc360/apps/api/src/rotas/**",
+        "dc360/apps/api/src/servidor.ts"
+      ],
+      "suites": [
+        "apps/api/test/contrato-do-painel.test.ts",
+        "apps/api/test/superficie.test.ts"
+      ],
+      "itens_de_gate": [
+        "Contrato painel x API"
+      ]
+    },
+    {
+      "id": "G00-audit-de-runtime",
+      "gate": "G00",
+      "condicao": "npm audit ou auditar reprovar dependência de runtime",
+      "padroes": [
+        "dc360/package.json",
+        "dc360/package-lock.json",
+        "dc360/apps/*/package.json",
+        "dc360/apps/*/package-lock.json",
+        "dc360/packages/*/package.json"
+      ],
+      "suites": [
+        "npm run auditar"
+      ],
+      "itens_de_gate": [
+        "Dependências"
+      ]
+    },
+    {
+      "id": "G00-documentacao-afirma-o-que-o-codigo-nao-faz",
+      "gate": "G00",
+      "condicao": "a documentação ou a apresentação voltar a afirmar o que o código não faz",
+      "padroes": [
+        "dc360/README.md",
+        "dc360/docs/**",
+        "dc360/apps/*/PENDENCIAS.md",
+        "dc360/apps/*/LEIA-ME.md",
+        "mockup/**",
+        "docs/APRESENTACAO*"
+      ],
+      "suites": [
+        "npm run conferir:numeros"
+      ],
+      "itens_de_gate": [
+        "Documentação sem afirmação falsa",
+        "K14 resolvido"
+      ]
+    }
+  ]
+}

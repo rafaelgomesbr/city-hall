@@ -1,0 +1,45 @@
+
+> dc360@0.1.0 typecheck
+> npm run build:shared && npm run typecheck --workspaces --if-present
+
+
+> dc360@0.1.0 build:shared
+> npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo
+
+
+> @dc360/shared@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/db@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/campo@0.1.0 build
+> tsc -p tsconfig.build.json
+
+
+> @dc360/campo@0.1.0 typecheck
+> tsc -p tsconfig.json
+
+
+> @dc360/shared@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/api@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/console@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/web@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/db@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+exit=0

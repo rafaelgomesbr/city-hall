@@ -1,0 +1,75 @@
+{
+  "versao": 1,
+  "periodo": { "desde": "2026-10-05", "ate": "2026-10-11" },
+  "geradoEm": "2026-10-12",
+  "base": {
+    "sha": "abcdef1234567890abcdef1234567890abcdef12",
+    "shaCurto": "abcdef1",
+    "ramo": "v2/f00",
+    "alteracoesNaoCommitadas": 0,
+    "statusFinal": { "tipo": "copia-de-trabalho", "sha": null },
+    "statusBase": { "sha": "1111111111111111111111111111111111111111", "shaCurto": "1111111", "data": "2026-10-04", "motivo": "ultimo commit do STATUS antes de 2026-10-05", "etapasPresumidasPendentes": false }
+  },
+  "fase": {
+    "fase": "F00",
+    "nome": "Estabilizacao de brinquedo",
+    "ordem": 1,
+    "totalDeFases": 3,
+    "gate": "G00",
+    "nomeDoGate": "BASE DE BRINQUEDO",
+    "statusDoGate": "EM ANDAMENTO",
+    "gateMdPresente": false,
+    "etapas": 9
+  },
+  "contagens": { "PENDENTE": 1, "EM ANDAMENTO": 1, "IMPLEMENTADA": 1, "VALIDADA": 1, "VALIDADA COM PENDÊNCIA HUMANA": 1, "CONCLUÍDA": 1, "CONCLUÍDA COM RISCO ACEITO": 1, "REPROVADA": 1, "BLOQUEADA": 1 },
+  "etapasDaFase": [],
+  "fasesConcluidas": [],
+  "proximasFases": [
+    { "fase": "F02", "nome": "Segunda na ordem", "gate": "G02", "etapas": 1 },
+    { "fase": "F01", "nome": "Terceira na ordem", "gate": "G01", "etapas": 1 }
+  ],
+  "gates": [
+    { "fase": "F00", "gate": "G00", "status": "EM ANDAMENTO" },
+    { "fase": "F02", "gate": "G02", "status": "NÃO INICIADO" },
+    { "fase": "F01", "gate": "G01", "status": "NÃO INICIADO" }
+  ],
+  "statusPorEtapa": {
+    "V2-F00-E01": "CONCLUÍDA",
+    "V2-F00-E02": "VALIDADA",
+    "V2-F00-E03": "VALIDADA COM PENDÊNCIA HUMANA",
+    "V2-F00-E04": "CONCLUÍDA COM RISCO ACEITO",
+    "V2-F00-E05": "IMPLEMENTADA",
+    "V2-F00-E06": "EM ANDAMENTO",
+    "V2-F00-E07": "BLOQUEADA",
+    "V2-F00-E08": "REPROVADA",
+    "V2-F00-E09": "PENDENTE"
+  },
+  "mudancas": {
+    "etapas": [
+      { "id": "V2-F00-E05", "fase": "F00", "titulo": "Etapa cinco", "antes": "PENDENTE", "depois": "IMPLEMENTADA", "tipo": "avanco", "observacao": "Candidato abc1234." },
+      { "id": "V2-F00-E07", "fase": "F00", "titulo": "Etapa sete", "antes": "VALIDADA", "depois": "BLOQUEADA", "tipo": "regressao", "observacao": "Condicao expirada." },
+      { "id": "V2-F00-E08", "fase": "F00", "titulo": "Etapa oito", "antes": "EM VALIDAÇÃO", "depois": "REPROVADA", "tipo": "reprovada", "observacao": "FAIL na rodada 1." }
+    ],
+    "gates": [],
+    "checkpoints": [],
+    "obrigatorias": ["V2-F00-E07", "V2-F00-E08"]
+  },
+  "bloqueios": {
+    "checkpointsAbertos": [
+      { "id": "CP-03", "assunto": "Politica de audit", "quemDecide": "Rafael", "quem": ["rafael"], "status": "ABERTO", "observacao": "", "fase": "F00", "daFase": "atual", "travaEtapas": ["V2-F00-E07"], "noCabecalho": true, "bloqueia": true }
+    ],
+    "etapasBloqueadas": [
+      { "id": "V2-F00-E07", "titulo": "Etapa sete", "motivo": "Bloqueada pelo CP-03.", "checkpoints": ["CP-03"] }
+    ],
+    "porQuem": { "tecnico": [], "rafael": ["CP-03"], "alyson": [], "juridico-dpo": [], "externo": [] }
+  },
+  "pendenciasHumanas": [],
+  "riscosAceitos": [
+    { "etapa": "V2-F00-E04", "criterio": "Rodada em Linux", "validade": "ate o G01", "aceitoPor": "Rafael" }
+  ],
+  "gatesReabertos": [],
+  "decisoesNovas": [],
+  "diario": [],
+  "commits": [],
+  "avisos": []
+}

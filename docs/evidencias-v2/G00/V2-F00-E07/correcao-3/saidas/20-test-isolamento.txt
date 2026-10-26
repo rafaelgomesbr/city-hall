@@ -1,0 +1,54 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/db
+
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 4212ms
+ ✓ test/renovacao-e-encerramento-na-mesma-trava.test.ts (12 tests) 4264ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 4323ms
+ ✓ test/carga.test.ts (15 tests) 4613ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 5048ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 6806ms
+ ✓ test/familia-da-sessao.test.ts (12 tests) 2351ms
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 2527ms
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 4ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts (6 tests) 2390ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 1912ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 1905ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  481ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  500ms
+ ✓ test/migrar.test.ts (17 tests) 8112ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  1833ms
+   ✓ Aplicação > rodar de novo não faz nada  928ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  482ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  354ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  344ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  366ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  332ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  307ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  318ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  308ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  318ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  315ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  477ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  470ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  307ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  321ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  328ms
+ ✓ test/isolamento.test.ts (137 tests) 23431ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  2356ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  865ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  15176ms
+
+ Test Files  14 passed (14)
+      Tests  345 passed | 3 skipped (348)
+   Start at  17:52:15
+   Duration  23.76s (transform 425ms, setup 0ms, collect 1.24s, tests 71.90s, environment 2ms, prepare 657ms)
+
+exit 0

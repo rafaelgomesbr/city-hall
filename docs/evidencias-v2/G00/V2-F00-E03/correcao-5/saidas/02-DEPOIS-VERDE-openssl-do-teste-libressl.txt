@@ -1,0 +1,12 @@
+familia=libressl openssl=LibreSSL 3.3.6
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/openssl-do-teste.test.ts (10 tests) 432ms
+   ✓ O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado  312ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  01:13:21
+   Duration  815ms (transform 84ms, setup 58ms, collect 29ms, tests 432ms, environment 0ms, prepare 118ms)
+

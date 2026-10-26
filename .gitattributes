@@ -5,7 +5,7 @@
 # CRLF, e todo teste que lia fonte do disco e procurava "\n" passava no Linux e
 # reprovava no Windows, ou o contrário. Aqui a regra passa a morar no
 # repositório: o índice é LF para todo arquivo de texto, e o checkout também,
-# em qualquer sistema. A única exceção é o PowerShell, que segue em CRLF.
+# em qualquer sistema. As exceções de fim de linha são os scripts do Windows (`.ps1`, `.bat` e `.cmd`), que seguem em CRLF; imagem, fonte, dump e afins são `binary`, abaixo.
 #
 # `text=auto` deixa o git detectar binário pelo conteúdo, e é por isso que uma
 # saída bruta de evidência com CR solto (barra de progresso) continua sendo

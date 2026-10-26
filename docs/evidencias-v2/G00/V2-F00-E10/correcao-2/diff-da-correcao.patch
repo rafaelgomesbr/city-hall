@@ -1,0 +1,577 @@
+diff --git a/dc360/apps/web/src/paginas/RecuperarSenha.tsx b/dc360/apps/web/src/paginas/RecuperarSenha.tsx
+index e657d26..a72ad66 100644
+--- a/dc360/apps/web/src/paginas/RecuperarSenha.tsx
++++ b/dc360/apps/web/src/paginas/RecuperarSenha.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useState } from "react";
++import { useEffect, useRef, useState } from "react";
+ import type { FormEvent, ReactNode } from "react";
+ import { useSearchParams } from "react-router-dom";
+ import { MODO, pedirRecuperacao, redefinirSenha, situacaoDaRecuperacao } from "../dados/repositorio";
+@@ -35,10 +35,12 @@ import {
+  * login, e o mapa do Google (cuja chave é restrita por referenciador) pararia
+  * de carregar até a próxima recarga. Recarregar é barato aqui e fecha isso.
+  */
+-function Moldura({ titulo, subtitulo, children }: {
++function Moldura({ titulo, subtitulo, children, comVolta = true }: {
+   titulo: string;
+   subtitulo: string;
+   children: ReactNode;
++  /** Falso na confirmação da senha nova: o botão "Entrar" já é a ida à entrada, e um segundo link para o mesmo lugar só repetiria. */
++  comVolta?: boolean;
+ }) {
+   return (
+     <div className="entrada">
+@@ -53,9 +55,11 @@ function Moldura({ titulo, subtitulo, children }: {
+         <section className="cartao">
+           <div className="cartao__corpo">{children}</div>
+         </section>
+-        <p className="entrada__rodape">
+-          <a href="/entrar">{FRASES.voltar}</a>
+-        </p>
++        {comVolta && (
++          <p className="entrada__rodape">
++            <a href="/entrar">{FRASES.voltar}</a>
++          </p>
++        )}
+       </div>
+     </div>
+   );
+@@ -100,6 +104,24 @@ export type PropsDoPedido = {
+ };
+ 
+ export function TelaDoPedido(p: PropsDoPedido) {
++  /*
++    O FOCO ACOMPANHA A TROCA DE TELA (WCAG 2.4.3 e 4.1.3).
++
++    Enviar o pedido faz o formulário (e o botão que tinha o foco) sumir, e o
++    foco caía em `BODY`. Agora ele vai para a confirmação. UM mecanismo só: o
++    foco. A confirmação (`Aviso` com `foco`) não é região viva, porque uma
++    região inserida já com o texto pode nem ser anunciada, e com o foco em cima
++    seria lida duas vezes. Ao "Pedir de novo" o botão também some, e o foco
++    volta para o campo de email.
++  */
++  const confirmacao = useRef<HTMLDivElement>(null);
++  const faseAnterior = useRef(p.fase);
++  useEffect(() => {
++    if (p.fase === "enviado") confirmacao.current?.focus();
++    else if (faseAnterior.current === "enviado") document.getElementById("recuperar-email")?.focus();
++    faseAnterior.current = p.fase;
++  }, [p.fase]);
++
+   const subtitulo = p.fase === "desligada" ? FRASES.desligadaSubtitulo : FRASES.pedidoSubtitulo;
+   return (
+     <Moldura titulo={FRASES.pedidoTitulo} subtitulo={subtitulo}>
+@@ -114,7 +136,7 @@ export function TelaDoPedido(p: PropsDoPedido) {
+ 
+       {p.fase === "enviado" && (
+         <>
+-          <Aviso tom="sucesso">{FRASES.pedidoEnviado}</Aviso>
++          <Aviso tom="sucesso" foco={confirmacao}>{FRASES.pedidoEnviado}</Aviso>
+           <p className="entrada__texto entrada__texto--apoio">{FRASES.pedidoEnviadoApoio}</p>
+           <button type="button" className="botao botao--secundario"
+                   style={{ width: "100%" }} onClick={p.aoPedirDeNovo}>
+@@ -206,16 +228,6 @@ export function RecuperarSenha() {
+ // Definir a senha nova
+ // ---------------------------------------------------------------------------
+ 
+-/**
+- * Quanto a confirmação fica na tela antes de levar para a entrada.
+- *
+- * Tempo suficiente para ler "Senha redefinida" e entender que a próxima tela
+- * não é erro. Menos que isto e a troca de tela parece falha; muito mais e a
+- * pessoa fica olhando uma tela que não pede nada. O botão "Ir para a entrada"
+- * existe ao lado, para quem não quer esperar.
+- */
+-const ESPERA_ATE_A_ENTRADA_MS = 2500;
+-
+ export type FaseDaRedefinicao = "sem-link" | "link-invalido" | "desligada" | "formulario" | "pronto";
+ 
+ export type PropsDaRedefinicao = {
+@@ -231,6 +243,23 @@ export type PropsDaRedefinicao = {
+ };
+ 
+ export function TelaDaRedefinicao(p: PropsDaRedefinicao) {
++  /*
++    O FOCO VAI PARA A CONFIRMAÇÃO DEPOIS DE REDEFINIR (WCAG 2.4.3 e 4.1.3).
++
++    "Definir nova senha" faz o formulário sumir e o foco caía em `BODY`; a
++    confirmação, além disso, entrava no DOM já com o texto, e região viva
++    inserida assim pode não ser anunciada (quem lê devagar ou usa leitor de tela
++    perdia a mensagem, o mesmo motivo da retirada do relógio). Escolha: UM
++    mecanismo, o FOCO. O foco no `Aviso` faz o leitor ler a frase inteira, vale
++    para teclado e para toque, e não depende de a região já existir antes do
++    texto. Por isso o aviso com `foco` não é `role="status"`: os dois juntos
++    seriam lidos duas vezes. Os hooks ficam antes dos retornos antecipados.
++  */
++  const confirmacao = useRef<HTMLDivElement>(null);
++  useEffect(() => {
++    if (p.fase === "pronto") confirmacao.current?.focus();
++  }, [p.fase]);
++
+   if (p.fase === "sem-link") {
+     return (
+       <Moldura titulo={FRASES.pedidoTitulo} subtitulo={FRASES.semLinkSubtitulo}>
+@@ -265,11 +294,12 @@ export function TelaDaRedefinicao(p: PropsDaRedefinicao) {
+     <Moldura
+       titulo={FRASES.novaTitulo}
+       subtitulo={p.fase === "pronto" ? FRASES.novaProntaSubtitulo : FRASES.novaSubtitulo}
++      comVolta={p.fase !== "pronto"}
+     >
+       {p.fase === "pronto" ? (
+         <>
+-          <Aviso tom="sucesso">{FRASES.novaPronta}</Aviso>
+-          <p className="entrada__texto entrada__texto--apoio">{FRASES.novaProntaApoio}</p>
++          {/* Uma ação (o botão) e um texto (o aviso): o rodapé "Voltar" e a frase de apoio repetiam os dois. */}
++          <Aviso tom="sucesso" foco={confirmacao}>{FRASES.novaPronta}</Aviso>
+           <a className="botao botao--primario entrada__acao" href="/entrar">
+             {FRASES.novaProntaBotao}
+           </a>
+@@ -343,24 +373,20 @@ export function DefinirNovaSenha() {
+   }, []);
+ 
+   /*
+-    A ida para a entrada é agendada DENTRO de um efeito, e cancelada quando a
+-    tela sai.
+-
+-    Solta dentro do envio, ela deixava um relógio de pé que ninguém tinha como
+-    parar: quem redefine a senha e clica em "Ir para a entrada" antes dos dois
+-    segundos e meio (ou fecha a tela por qualquer outro caminho) levava uma
+-    navegação disparada por cima da tela seguinte, alguns segundos depois, sem
+-    ter pedido nada.
+-
+-    É navegação COMPLETA (`location.assign`) e não do roteador, pela razão
+-    escrita na `Moldura`: a política de referenciador desta página não pode
+-    seguir a pessoa para dentro do painel.
++    SEM REDIRECIONAMENTO POR TEMPO (WCAG 2.2.1, Tempo ajustável).
++
++    Antes, depois de redefinir a senha a tela levava sozinha para a entrada em
++    cerca de 2,5 segundos. Quem lê devagar, quem usa leitor de tela (o anúncio
++    de "Senha redefinida" leva mais que isso) e quem tem dificuldade de leitura
++    perdia a única confirmação, e a entrada que carregava não a repetia
++    (validação da V2-F00-E10, rodada 2). Agora a confirmação fica até a pessoa
++    decidir: o botão "Entrar com a nova senha" é um link de navegação COMPLETA
++    (`href`, e não o roteador), pela razão escrita na `Moldura`: a política de
++    referenciador desta página não pode seguir a pessoa para dentro do painel.
++
++    Não existe mais relógio nesta tela, e o teste reprova se alguém o trouxer
++    de volta (`recuperar-senha.test.ts` e o fluxo ponta a ponta).
+   */
+-  useEffect(() => {
+-    if (fase !== "pronto") return;
+-    const relogio = setTimeout(() => window.location.assign("/entrar"), ESPERA_ATE_A_ENTRADA_MS);
+-    return () => clearTimeout(relogio);
+-  }, [fase]);
+ 
+   async function enviar(evento: FormEvent) {
+     evento.preventDefault();
+diff --git a/dc360/apps/web/src/paginas/recuperar-regras.ts b/dc360/apps/web/src/paginas/recuperar-regras.ts
+index a4fca63..cbd2dd2 100644
+--- a/dc360/apps/web/src/paginas/recuperar-regras.ts
++++ b/dc360/apps/web/src/paginas/recuperar-regras.ts
+@@ -107,8 +107,7 @@ export const FRASES = {
+   novaFalhou: "Não foi possível redefinir a senha agora. Tente de novo em instantes.",
+   novaProntaSubtitulo: "Sua senha foi alterada",
+   novaPronta: "Senha redefinida. Entre com a nova senha.",
+-  novaProntaApoio: "Você será levado para a entrada em instantes.",
+-  novaProntaBotao: "Ir para a entrada",
++  novaProntaBotao: "Entrar com a nova senha",
+ 
+   // ---- Link que não serve ----
+   semLinkSubtitulo: "Link incompleto",
+diff --git a/dc360/apps/web/src/componentes/comuns.tsx b/dc360/apps/web/src/componentes/comuns.tsx
+index 34b0de4..b533d88 100644
+--- a/dc360/apps/web/src/componentes/comuns.tsx
++++ b/dc360/apps/web/src/componentes/comuns.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useRef, useState, type ReactNode } from "react";
++import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+ import {
+   ROTULO_SEVERIDADE,
+   ROTULO_STATUS,
+@@ -188,9 +188,31 @@ const ICONE_DO_AVISO = {
+   perigo: <IconeAlerta tamanho={20} />,
+ } as const;
+ 
+-export function Aviso({ tom, children }: { tom: "info" | "perigo" | "sucesso" | "alerta"; children: ReactNode }) {
++/**
++ * O aviso, com DOIS jeitos de ser ouvido, e nunca os dois juntos.
++ *
++ * Sem `foco`, é uma região viva (`role="status"`, ou `alert` no perigo): serve
++ * para o aviso que já está na tela quando o texto muda, ou que chega sem a
++ * pessoa ter acabado de agir.
++ *
++ * Com `foco`, é o ALVO do foco: quem chama leva o foco para ele depois de uma
++ * ação que fez o controle sumir (o formulário enviado, o botão que era
++ * "Encerrar"). Nesse caso o elemento NÃO é região viva. Uma região inserida no
++ * DOM já com o texto não tem anúncio garantido (o leitor só anuncia mudança de
++ * uma região que ele já conhecia), e uma região com foco ainda por cima seria
++ * lida duas vezes. O foco é o mecanismo que funciona sempre, também para quem
++ * navega só com teclado: o foco não cai em `BODY` (WCAG 2.4.3) e o leitor lê o
++ * aviso inteiro ao chegar nele (WCAG 4.1.3 atendido por foco).
++ */
++export function Aviso({ tom, children, foco }: {
++  tom: "info" | "perigo" | "sucesso" | "alerta";
++  children: ReactNode;
++  foco?: Ref<HTMLDivElement>;
++}) {
+   return (
+-    <div className={`aviso aviso--${tom}`} role={tom === "perigo" ? "alert" : "status"}>
++    <div className={`aviso aviso--${tom}`} ref={foco}
++         tabIndex={foco ? -1 : undefined}
++         role={foco ? undefined : tom === "perigo" ? "alert" : "status"}>
+       {ICONE_DO_AVISO[tom]}
+       <div>{children}</div>
+     </div>
+diff --git a/dc360/apps/web/test/fluxo-api.e2e.mjs b/dc360/apps/web/test/fluxo-api.e2e.mjs
+index d8d9355..5e49ad3 100644
+--- a/dc360/apps/web/test/fluxo-api.e2e.mjs
++++ b/dc360/apps/web/test/fluxo-api.e2e.mjs
+@@ -1702,6 +1702,24 @@ const respostaDeQuemTemConta = (await paginaE10.locator(".aviso--sucesso").textC
+ // O link do alvo e lido AGORA, antes dos outros pedidos: o arquivo e o mesmo para todos.
+ const linkDoAlvoE10 = await esperarLinkNovoE10(paginaE10, antesDoPedidoE10);
+ await capturarE10(paginaE10, "pedido-enviado");
++/*
++  Foco depois do envio (WCAG 2.4.3): o formulário sumiu, e o foco tem de estar na
++  confirmação, e não em BODY. UM mecanismo só: a confirmação com foco não é região
++  viva (nem status nem alert), senão o leitor a diria duas vezes.
++*/
++const focoDoEnviadoE10 = await paginaE10.evaluate(() => {
++  const a = document.activeElement;
++  return { classe: a?.className ?? "", tab: a?.getAttribute("tabindex") ?? null, papel: a?.getAttribute("role") ?? null,
++           vivas: document.querySelectorAll(".entrada [role=status], .entrada [role=alert]").length };
++});
++ok("depois de enviar o pedido o foco está na confirmação, sem ser região viva",
++   focoDoEnviadoE10.classe.includes("aviso--sucesso") && focoDoEnviadoE10.tab === "-1"
++   && focoDoEnviadoE10.papel === null && focoDoEnviadoE10.vivas === 0,
++   JSON.stringify(focoDoEnviadoE10));
++await paginaE10.getByRole("button", { name: "Pedir de novo" }).click();
++await paginaE10.waitForSelector("#recuperar-email", { timeout: 10_000 });
++ok("e ao pedir de novo o foco volta para o campo do email",
++   (await paginaE10.evaluate(() => document.activeElement?.id)) === "recuperar-email");
+ 
+ await paginaE10.goto(`${BASE}/recuperar-senha`, { waitUntil: "networkidle" });
+ await paginaE10.locator("#recuperar-email").fill("ninguem-existe-aqui@exemplo.gov.br");
+@@ -1767,10 +1785,77 @@ await paginaE10.getByRole("button", { name: "Definir nova senha" }).click();
+ await paginaE10.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+ ok("redefine a senha e confirma",
+    (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."));
+-ok("a tela oferece ir para a entrada agora",
+-   (await paginaE10.getByRole("link", { name: "Ir para a entrada" }).count()) === 1);
+-await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 }).catch(() => {});
+-ok("e leva sozinha para a entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");
++/*
++  Foco e anúncio (WCAG 2.4.3 e 4.1.3): o formulário sumiu, o foco tem de estar na
++  confirmação (tabindex -1) e ela NÃO é região viva: o foco é o único mecanismo, e
++  uma região inserida já com o texto nem sempre é anunciada.
++*/
++const focoDoProntoE10 = await paginaE10.evaluate(() => {
++  const a = document.activeElement;
++  return { classe: a?.className ?? "", tab: a?.getAttribute("tabindex") ?? null, papel: a?.getAttribute("role") ?? null,
++           vivas: document.querySelectorAll(".entrada [role=status], .entrada [role=alert]").length,
++           acoes: document.querySelectorAll(".entrada a, .entrada button").length };
++});
++ok("depois de redefinir o foco está na confirmação, que não é região viva",
++   focoDoProntoE10.classe.includes("aviso--sucesso") && focoDoProntoE10.tab === "-1"
++   && focoDoProntoE10.papel === null && focoDoProntoE10.vivas === 0,
++   JSON.stringify(focoDoProntoE10));
++ok("a tela oferece o botão Entrar",
++   (await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).count()) === 1);
++ok("e é a única ação: sem o segundo link 'Voltar para a entrada' para o mesmo lugar",
++   focoDoProntoE10.acoes === 1 && (await paginaE10.getByRole("link", { name: "Voltar para a entrada" }).count()) === 0,
++   `(${focoDoProntoE10.acoes} ações)`);
++ok("e o texto não se repete: sem a frase de apoio",
++   !(await paginaE10.locator(".entrada").textContent()).includes("Quando quiser, vá para a entrada"));
++/*
++  V2-F00-E10, correção 2 (WCAG 2.2.1): a tela NÃO redireciona por tempo. Antes
++  ela levava sozinha para a entrada em cerca de 2,5 s, e a entrada não repetia a
++  confirmação. Espera quase o dobro disso, e a confirmação tem de continuar lá,
++  na mesma página, até a pessoa clicar.
++*/
++const inicioDaEspera = Date.now();
++await paginaE10.waitForTimeout(5_000);
++ok("passados 5 s a tela continua a de redefinir, sem redirecionamento por tempo",
++   new URL(paginaE10.url()).pathname === "/redefinir-senha", paginaE10.url());
++ok("e a confirmação de sucesso continua na tela",
++   (await paginaE10.locator(".aviso--sucesso").count()) === 1
++   && (await paginaE10.locator(".aviso--sucesso").textContent()).includes("Senha redefinida. Entre com a nova senha."),
++   `(${Date.now() - inicioDaEspera} ms depois)`);
++await capturarE10(paginaE10, "definir-sucesso");
++/*
++  O botão Entrar é um link, e `a:hover` já fez o texto dele ficar da cor do
++  fundo (rótulo invisível ao passar o mouse, nos dois temas). Mede nos dois temas:
++  com o ponteiro em cima, a razão de contraste entre texto e fundo (luminância
++  relativa da WCAG 2.x) tem de ser de pelo menos 4,5. "Diferente do fundo" não
++  basta: duas cores quase iguais passariam.
++*/
++const botaoEntrarE10 = paginaE10.getByRole("link", { name: "Entrar com a nova senha" });
++for (const [tema, atributo] of [["claro", "light"], ["escuro", "dark"]]) {
++  await paginaE10.evaluate((t) => { document.documentElement.dataset.theme = t; }, atributo);
++  await botaoEntrarE10.hover();
++  await paginaE10.waitForTimeout(400);
++  const sobre = await botaoEntrarE10.evaluate((e) => {
++    const c = getComputedStyle(e);
++    // O navegador devolve `rgb()`/`rgba()` ou `color(srgb r g b)`; os dois viram canais 0..1.
++    const canais = (css) => {
++      const n = css.match(/-?\d*\.?\d+/g).map(Number);
++      return css.startsWith("color(") ? n.slice(0, 3) : n.slice(0, 3).map((v) => v / 255);
++    };
++    const lum = (css) => {
++      const [r, g, b] = canais(css).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
++      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
++    };
++    const [a, b] = [lum(c.color), lum(c.backgroundColor)];
++    return { texto: c.color, fundo: c.backgroundColor, razao: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
++  });
++  ok(`o botão Entrar não perde o rótulo com o mouse em cima (tema ${tema}): contraste >= 4,5`,
++     sobre.razao >= 4.5, `(texto ${sobre.texto} sobre fundo ${sobre.fundo}, razão ${sobre.razao.toFixed(2)})`);
++}
++await paginaE10.mouse.move(2, 2);
++await paginaE10.evaluate(() => { document.documentElement.dataset.theme = "light"; });
++await paginaE10.getByRole("link", { name: "Entrar com a nova senha" }).click();
++await paginaE10.waitForURL(/\/entrar/, { timeout: 10_000 });
++ok("o botão Entrar leva à entrada, com recarga completa", new URL(paginaE10.url()).pathname === "/entrar");
+ 
+ const antigaDoAlvoE10 = await viaApiE07("/auth/entrar", { metodo: "POST", corpo: { email: ALVO_E10, senha: SENHA } });
+ const novaDoAlvoE10 = await viaApiE07("/auth/entrar", { metodo: "POST", corpo: { email: ALVO_E10, senha: SENHA_NOVA_E10 } });
+diff --git a/dc360/apps/web/test/recuperar-senha.test.ts b/dc360/apps/web/test/recuperar-senha.test.ts
+index c113018..3f95187 100644
+--- a/dc360/apps/web/test/recuperar-senha.test.ts
++++ b/dc360/apps/web/test/recuperar-senha.test.ts
+@@ -11,6 +11,7 @@ import {
+   FRASES, MAXIMO_DE_CARACTERES, MINIMO_DE_CARACTERES, classificarFalha,
+   fraseDaFalhaDaRedefinicao, fraseDaFalhaDoPedido, validarEmailDoPedido, validarSenhaNova,
+ } from "../src/paginas/recuperar-regras";
++import { Aviso } from "../src/componentes/comuns";
+ import { ehTelaInterna } from "../src/seo/indexacao";
+ 
+ /**
+@@ -277,17 +278,75 @@ describe("Tela de definir a senha nova, estado por estado", () => {
+     expect(html).not.toContain("<input");
+   });
+ 
+-  it("sucesso: confirma, avisa que vai para a entrada e oferece o botão para ir agora", () => {
++  it("sucesso: confirma com foco (sem ser região viva) e oferece o botão Entrar, sem prometer ida automática", () => {
+     const html = redefinicao({ fase: "pronto" });
+     expect(html).toContain("aviso--sucesso");
++    // A confirmação é o alvo do foco (tabindex -1) e NÃO é região viva: o foco é o único mecanismo
++    // de anúncio, e os dois juntos seriam lidos duas vezes.
++    expect(html).toMatch(/class="aviso aviso--sucesso" tabindex="-1"/);
++    expect(html).not.toMatch(/aviso--sucesso"[^>]*role=/);
+     expect(texto(html)).toContain("Senha redefinida. Entre com a nova senha.");
+-    expect(texto(html)).toContain("Você será levado para a entrada em instantes.");
++    // V2-F00-E10, correção 2: a tela não leva ninguém a lugar nenhum por conta própria (WCAG 2.2.1).
++    expect(texto(html)).not.toMatch(/será levad|em instantes|redirecion/i);
++    expect(html).not.toMatch(/http-equiv="refresh"/i);
++    expect(texto(html)).toContain(FRASES.novaProntaBotao);
++    expect(FRASES.novaProntaBotao).toMatch(/^Entrar/);
+     // O título da tela não continua pedindo "Escolha uma senha" depois de a senha ser trocada.
+     expect(texto(html)).toContain("Sua senha foi alterada");
+     expect(texto(html)).not.toContain("Escolha uma senha para sua conta");
+     expect(html).toContain('href="/entrar"');
+     expect(html).not.toContain("<input");
+   });
++
++  it("sucesso: uma ação só e um texto só (sem o 'Voltar para a entrada' nem a frase de apoio)", () => {
++    const html = redefinicao({ fase: "pronto" });
++    // O botão "Entrar com a nova senha" já leva à entrada: um segundo link para o mesmo lugar só repetia.
++    expect(html.match(/<a /g)).toHaveLength(1);
++    expect(html).not.toContain(FRASES.voltar);
++    expect(texto(html)).not.toContain("Quando quiser");
++    expect(Object.keys(FRASES)).not.toContain("novaProntaApoio");
++    // O formulário continua com as saídas de sempre: só a confirmação perde o rodapé.
++    expect(redefinicao()).toContain(FRASES.voltar);
++  });
++
++  it("pedido enviado: a confirmação também é alvo do foco, e não região viva", () => {
++    const html = pedido({ fase: "enviado" });
++    expect(html).toMatch(/class="aviso aviso--sucesso" tabindex="-1"/);
++    expect(html).not.toMatch(/aviso--sucesso"[^>]*role=/);
++  });
++});
++
++describe("O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3)", () => {
++  const codigo = fonte("paginas/RecuperarSenha.tsx");
++
++  it("depois de redefinir, um efeito sobre a fase leva o foco para a confirmação", () => {
++    expect(codigo).toMatch(/useEffect\(\(\) => \{\s*if \(p\.fase === "pronto"\) confirmacao\.current\?\.focus\(\);\s*\}, \[p\.fase\]\);/);
++    expect(codigo).toContain('<Aviso tom="sucesso" foco={confirmacao}>{FRASES.novaPronta}</Aviso>');
++  });
++
++  it("os hooks da redefinição ficam antes dos retornos antecipados (regra dos hooks)", () => {
++    const corpo = codigo.slice(codigo.indexOf("export function TelaDaRedefinicao"));
++    expect(corpo.indexOf("useRef<HTMLDivElement>")).toBeGreaterThan(-1);
++    expect(corpo.indexOf("useEffect(")).toBeLessThan(corpo.indexOf('if (p.fase === "sem-link")'));
++  });
++
++  it("depois de enviar o pedido o foco vai para a confirmação, e ao pedir de novo volta para o email", () => {
++    expect(codigo).toMatch(/if \(p\.fase === "enviado"\) confirmacao\.current\?\.focus\(\);/);
++    expect(codigo).toMatch(/else if \(faseAnterior\.current === "enviado"\) document\.getElementById\("recuperar-email"\)\?\.focus\(\);/);
++    expect(codigo).toContain('<Aviso tom="sucesso" foco={confirmacao}>{FRASES.pedidoEnviado}</Aviso>');
++  });
++
++  it("o Aviso com foco é focável por código e deixa de ser região viva; sem foco continua status/alert", () => {
++    const comuns = fonte("componentes/comuns.tsx");
++    expect(comuns).toContain("tabIndex={foco ? -1 : undefined}");
++    expect(comuns).toContain('role={foco ? undefined : tom === "perigo" ? "alert" : "status"}');
++    const sem = renderToStaticMarkup(h(Aviso, { tom: "sucesso" }, "x"));
++    const com = renderToStaticMarkup(h(Aviso, { tom: "sucesso", foco: () => {} }, "x"));
++    expect(sem).toContain('role="status"');
++    expect(sem).not.toContain("tabindex");
++    expect(com).toContain('tabindex="-1"');
++    expect(com).not.toContain("role=");
++  });
+ });
+ 
+ describe("O link de uso único não fica na barra de endereço", () => {
+@@ -298,8 +357,9 @@ describe("O link de uso único não fica na barra de endereço", () => {
+     expect(codigo).toContain("window.history.replaceState(window.history.state, \"\", window.location.pathname)");
+   });
+ 
+-  it("depois do sucesso a ida para a entrada recarrega a página, para a política de referenciador não seguir a pessoa", () => {
+-    expect(codigo).toContain('window.location.assign("/entrar")');
++  it("depois do sucesso a ida para a entrada é um link de navegação completa, para a política de referenciador não seguir a pessoa", () => {
++    // O botão é um `<a href="/entrar">`: o navegador recarrega a página e o roteador não participa.
++    expect(codigo).toMatch(/<a className="botao botao--primario entrada__acao" href="\/entrar">\s*\{FRASES\.novaProntaBotao\}/);
+     expect(codigo).not.toMatch(/useNavigate/);
+   });
+ 
+@@ -310,6 +370,51 @@ describe("O link de uso único não fica na barra de endereço", () => {
+   });
+ });
+ 
++describe("A confirmação da senha nova não some por tempo (WCAG 2.2.1)", () => {
++  /** O código sem comentários: a explicação da regra cita o que ela proíbe. */
++  const semComentarios = fonte("paginas/RecuperarSenha.tsx")
++    .replace(/\/\*[\s\S]*?\*\//g, "")
++    .replace(/^\s*\/\/.*$/gm, "")
++    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
++
++  it("a tela de redefinição não tem relógio nem navegação por código: nada leva a pessoa embora sozinho", () => {
++    for (const proibido of [
++      /setTimeout\s*\(/, /setInterval\s*\(/, /requestAnimationFrame\s*\(/,
++      /location\.(assign|replace|href)/, /useNavigate/, /<Navigate\b/, /http-equiv/i,
++    ]) {
++      expect(semComentarios, `RecuperarSenha.tsx contém ${proibido}`).not.toMatch(proibido);
++    }
++  });
++
++  it("não sobrou a constante de espera que alimentava o redirecionamento", () => {
++    expect(fonte("paginas/RecuperarSenha.tsx")).not.toContain("ESPERA_ATE_A_ENTRADA");
++  });
++});
++
++describe("O botão Entrar, que é um link, não perde o rótulo ao passar o mouse", () => {
++  /*
++    O botão é um `<a>`, e `a:hover` (0,1,1) vence `.botao--primario` (0,1,0) na
++    propriedade `color`: ao passar o mouse o texto ia para `--ds-accent-hover`,
++    a mesma cor do fundo, e o rótulo sumia nos dois temas (visto nas capturas da
++    V2-F00-E10, correção 2, a 1280 px, onde o ponteiro ficava sobre o botão). A
++    regra de hover do botão tem de dizer a cor do texto por conta própria.
++  */
++  const css = fonte("estilos/app.css").replace(/\/\*[\s\S]*?\*\//g, "");
++  const regra = (seletor: string) => {
++    const m = css.match(new RegExp(`(^|\\n)${seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`));
++    if (!m) throw new Error(`regra ${seletor} não encontrada`);
++    return m[2];
++  };
++
++  it("o hover do botão primário fixa a cor do texto em --ds-on-accent", () => {
++    expect(regra(".botao--primario:not(:disabled):hover")).toContain("color: var(--ds-on-accent)");
++  });
++
++  it("o hover do botão secundário fixa a cor do texto em --ds-text", () => {
++    expect(regra(".botao--secundario:not(:disabled):hover")).toContain("color: var(--ds-text)");
++  });
++});
++
+ describe("Referrer-Policy no painel", () => {
+   const vercel = JSON.parse(readFileSync(join(AQUI, "..", "..", "..", "vercel.json"), "utf8")) as {
+     headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
+diff --git a/dc360/apps/web/PENDENCIAS.md b/dc360/apps/web/PENDENCIAS.md
+index 3ad55d2..00ac707 100644
+--- a/dc360/apps/web/PENDENCIAS.md
++++ b/dc360/apps/web/PENDENCIAS.md
+@@ -421,3 +421,55 @@ O que continua aberto:
+ 2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
+ 3. A lista `ESPERADOS` de `fluxo-api.e2e.mjs` ainda aceita 403 em qualquer rota:
+    o teste novo é quem prova a ausência do 403 de devolvidas, por papel.
++
++## 12. Minha conta a 320 px, foco depois de encerrar e senha redefinida sem relógio (V2-F00-E09 e E10, correção 2)
++
++A rodada 2 da validação reprovou três pontos, e a própria correção achou um quarto, todos presos agora por teste:
++
++- **Botão de Minha conta a 320 px (E09).** "Encerrar minhas outras sessões" passava
++  cerca de 16 px da coluna porque `.botao` é `nowrap` e o conserto da correção 1 só
++  alcançava `.modal__rodape .botao`. `.botao--quebra` (`app.css`) faz o rótulo
++  quebrar e, até 600 px, o botão ocupar a coluna. `layout-estreito.e2e.mjs`
++  (seções 5 e 6) mede por retângulo Minha conta a 320, 390, 768 e 1280 px, Usuários
++  (fora da tabela que rola) a 320, 390 e 768 px e a janela da senha temporária a
++  320 e 390 px.
++- **Foco depois de encerrar as outras sessões (E09, WCAG 2.4.3).** O botão some
++  quando a lista é relida e o foco caía em `BODY`. Um efeito sobre `sucesso` em
++  `MinhaConta.tsx` leva o foco para a confirmação, que é o próprio `Aviso` com a prop
++  `foco` (`tabIndex={-1}`, sem `role`: ver o fim desta seção). Preso por
++  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real e ausência
++  de região viva).
++- **Senha redefinida sem redirecionamento por tempo (E10, WCAG 2.2.1).** A tela de
++  redefinição não tem mais relógio: mostra a confirmação (com o foco nela) e o
++  botão "Entrar com a nova senha", um link de navegação completa, que é a única ação
++  da tela (sem o link "Voltar para a entrada" nem a frase de apoio, que repetiam). Preso por
++  `test/recuperar-senha.test.ts` (nenhum `setTimeout`, `location.assign` ou
++  navegação por código na tela) e pela seção 14 do e2e, que espera 5 s e confere
++  que a confirmação continua lá.
++- **Rótulo do botão Entrar sumia com o mouse em cima (E10, achado da própria correção).**
++  As capturas a 1280 px mostraram o botão "Entrar com a nova senha" sem texto: ele é
++  um `<a>`, e `a:hover` (0,1,1) vence a cor do repouso de `.botao--primario` (0,1,0),
++  então o texto ia para `--ds-accent-hover`, igual ao fundo do hover, nos dois temas.
++  O hover de `.botao--primario` e de `.botao--secundario` agora diz a cor do texto
++  (`app.css`). Preso por `test/recuperar-senha.test.ts` (fonte) e pela seção 14 do
++  `fluxo-api.e2e.mjs`, que passa o mouse sobre o botão nos dois temas e compara a cor
++  do texto com a do fundo. Era defeito anterior à correção (o botão antigo "Ir para a
++  entrada" tinha o mesmo).
++
++**Foco e anúncio da confirmação (rodada de conserto da correção 2).** O foco em `BODY`
++depois do envio do pedido de recuperação e depois de redefinir a senha, e o aviso de
++sucesso que entrava no DOM já com o texto (anúncio de região inserida não é garantido),
++SAÍRAM desta lista: foram consertados. Escolha, em UM mecanismo só: o FOCO. `Aviso`
++ganhou a prop `foco`; com ela o aviso é o alvo do foco (`tabIndex={-1}`) e NÃO é região
++viva (sem `role`), porque região viva mais foco seriam lidos duas vezes. As duas telas
++de recuperação e a confirmação de Minha conta usam o mesmo mecanismo. Ao "Pedir de novo"
++o foco volta para o campo de email. Preso por `test/recuperar-senha.test.ts` e
++`test/minha-conta-estreita.test.ts` (fonte), pela seção 14 de `fluxo-api.e2e.mjs` e pela
++seção 7 de `layout-estreito.e2e.mjs` (foco real e ausência de região viva).
++
++Continua aberto, com dono em outra fase (F10-E11): quando a redefinição cai em link que
++não vale mais ou em recuperação desligada, o formulário também some e o foco ainda vai
++para `BODY` (o aviso de perigo é `role="alert"`, então é anunciado); telas de
++recuperação sem landmark `main`. Nenhum leitor de tela foi usado: o anúncio por foco
++está provado por atributo e por `document.activeElement`, e a conferência com leitor de
++tela segue como pendência humana.
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 5f8c8bd..2855b59 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -676,10 +676,20 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ .botao:not(:disabled):active { transform: translateY(1px); }
+ 
+ .botao--primario { background: var(--ds-accent); color: var(--ds-on-accent); }
+-.botao--primario:not(:disabled):hover { background: var(--ds-accent-hover); box-shadow: var(--ds-accent-glow); }
++/*
++  O `color` do hover é repetido de propósito: um botão que é `<a>` (o "Entrar com a
++  nova senha" da recuperação de senha) leva `a:hover` (0,1,1), que vence a cor do
++  repouso (0,1,0) e punha o texto em `--ds-accent-hover`, igual ao fundo do hover:
++  o rótulo sumia nos dois temas (V2-F00-E10, correção 2). Aqui (0,3,0) vence.
++*/
++.botao--primario:not(:disabled):hover {
++  background: var(--ds-accent-hover); color: var(--ds-on-accent); box-shadow: var(--ds-accent-glow);
++}
+ 
+ .botao--secundario { background: var(--ds-surface); color: var(--ds-text); border-color: var(--ds-border); }
+-.botao--secundario:not(:disabled):hover { background: var(--ds-surface-2); border-color: var(--ds-text-muted); }
++.botao--secundario:not(:disabled):hover {
++  background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-text-muted);
++}
+ 
+ .botao--perigo { background: var(--ds-danger-bg); color: var(--ds-danger-fg); border-color: var(--ds-danger-fg); }
+ .botao--perigo:not(:disabled):hover { background: var(--ds-danger-fg); color: var(--ds-surface); }

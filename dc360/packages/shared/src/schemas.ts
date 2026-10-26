@@ -465,7 +465,7 @@ export const vistoriaSchema = z.object({
   );
   if (!respondeuSim && (v.orgaosParaAcionar?.length ?? 0) > 0) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: ["orgaosParaAcionar"],
       message:
         "A vistoria lista órgãos a acionar, mas o checklist respondeu que não é "
@@ -621,7 +621,7 @@ export const eventoTrilhaSchema = z.object({
   origem: z.enum(ORIGENS),
   ocorridoEm: z.string().datetime(),
   registradoEm: z.string().datetime(),
-  detalhe: z.record(z.unknown()).nullable(),
+  detalhe: z.record(z.string(), z.unknown()).nullable(),
 });
 export type EventoTrilha = z.infer<typeof eventoTrilhaSchema>;
 
@@ -883,7 +883,10 @@ export type SaidaACampo = z.infer<typeof saidaACampoSchema>;
 export const prorrogacaoDeSaidaSchema = z.object({
   idempotencyKey: uuidSchema,
   saidaId: uuidSchema,
-  /** Quantos minutos A MAIS, contados a partir do prazo corrente no servidor. */
+  /**
+   * Quantos minutos A MAIS, contados a partir de AGORA no servidor (`now()`); o prazo
+   * novo nunca fica abaixo do corrente (`GREATEST`, ver `rotas/saida-a-campo.ts`).
+   */
   minutosAdicionais: duracaoDeSaidaSchema,
   pedidaEm: z.string().datetime(),
 });

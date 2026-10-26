@@ -1,0 +1,6 @@
+Minha conta: resposta do servidor [{"status":401,"corpo":null},{"status":401,"corpo":{"erro":"credenciais","mensagem":"A senha atual não confere. Confira e digite de novo."}}]
+Minha conta: mensagens de erro na tela ["A senha que você usa hoje não confere. Confira e digite de novo."]
+Minha conta: erros de console []
+Senha nova obrigatória: resposta [{"status":401,"corpo":null},{"status":401,"corpo":{"erro":"credenciais","mensagem":"A senha atual não confere. Confira e digite de novo."}}]
+Senha nova obrigatória: mensagens de erro na tela ["A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo."]
+Senha nova obrigatória: erros de console []

@@ -1,0 +1,17 @@
+$ (em dc360/apps/api) npx vitest run test/devolvidas-esperando-decisao.test.ts test/fotos-do-documento.test.ts test/prova-fotografica.test.ts test/reconciliar-pendencias.test.ts test/tipo-a-classificar.test.ts test/vistoria-e-da-equipe.test.ts --testTimeout=120000
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/devolvidas-esperando-decisao.test.ts (6 tests) 3623ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 3885ms
+ ✓ test/vistoria-e-da-equipe.test.ts (7 tests) 3889ms
+ ✓ test/reconciliar-pendencias.test.ts (5 tests) 4023ms
+ ✓ test/fotos-do-documento.test.ts (4 tests) 4044ms
+ ✓ test/prova-fotografica.test.ts (11 tests) 4062ms
+
+ Test Files  6 passed (6)
+      Tests  45 passed (45)
+   Start at  12:33:03
+   Duration  4.69s (transform 347ms, setup 164ms, collect 2.26s, tests 23.53s, environment 0ms, prepare 307ms)
+

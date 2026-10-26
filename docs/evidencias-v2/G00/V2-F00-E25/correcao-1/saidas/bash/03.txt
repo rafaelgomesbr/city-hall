@@ -1,0 +1,7 @@
+$ # bloco 03 (texto do documento, antes das 5 substituicoes de placeholder)
+super() { psql -X -q -v ON_ERROR_STOP=1 -U postgres "$@"; }
+setup() { psql -X -q -v ON_ERROR_STOP=1 -U dc360_setup "$@"; }
+aplic() { psql -X -q -v ON_ERROR_STOP=1 -U dc360_api "$@"; }
+
+--- saida ---
+--- bloco terminou: sim ---

@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+import { esperarORelogioAndar } from "./esperar-o-relogio.js";
 
 /**
  * A interdição tem fim, e o fim é um ato com autor, data e motivo.
@@ -204,7 +205,7 @@ describe("Emitir o termo é interditar", () => {
     const primeira = (await interditados(tokenCoordenador)).json()
       .itens.find((i: { id: string }) => i.id === alvo.id).interditada_em;
 
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await interditar(alvo.id);
 
     const segunda = (await interditados(tokenCoordenador)).json()
@@ -381,7 +382,7 @@ describe("Reinterdição: o risco volta", () => {
       .itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
 
     // O risco volta: nova vistoria, novo termo.
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await novaVistoria(alvo.id);
     await interditar(alvo.id);
 
@@ -505,7 +506,7 @@ describe("A re-vistoria que atesta a cessação do risco", () => {
   async function cicloCompleto(endereco: string): Promise<{ id: string; protocolo: string }> {
     const alvo = await comVistoria(endereco);
     await interditar(alvo.id);
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await novaVistoria(alvo.id, false);
     const lev = await app.inject({
       method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,

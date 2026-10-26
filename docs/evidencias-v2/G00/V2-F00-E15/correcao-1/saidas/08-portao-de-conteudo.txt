@@ -1,0 +1,15 @@
+# Portao de conteudo (8 de 8) com RESUMO, DECISOES e PENDENCIAS atualizados.
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (8 tests) 1074ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  304ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  419ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  05:57:25
+   Duration  1.55s (transform 58ms, setup 0ms, collect 78ms, tests 1.07s, environment 0ms, prepare 147ms)
+
+exit 0

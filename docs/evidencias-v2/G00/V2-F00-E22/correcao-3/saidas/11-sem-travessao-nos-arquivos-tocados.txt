@@ -1,0 +1,4 @@
+$ node docs/evidencias-v2/G00/V2-F00-E22/correcao-3/sondas/travessao-nos-arquivos-tocados.mjs   (em .)
+codigo=0
+
+30 arquivo(s) alterado(s) conferido(s); travessao U+2014: 0 acerto(s)

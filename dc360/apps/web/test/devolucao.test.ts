@@ -3,12 +3,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
-  MOTIVOS_DE_DEVOLUCAO, ROTULO_MOTIVO_DE_DEVOLUCAO, rotuloEventoTrilha,
+  MOTIVOS_DE_DEVOLUCAO, PAPEIS, ROTULO_MOTIVO_DE_DEVOLUCAO, podeExecutar, rotuloEventoTrilha,
 } from "@dc360/shared";
 import {
   ANCORA_DA_COORDENADA, ANCORA_DO_DESPACHO, TIPO_EVENTO_DEVOLUCAO,
-  avisoDoPainel, devolucaoEmAberto, lerDevolucao, marcaDaLista,
-  porOcorrencia, proximoPasso, rotuloDoMotivo,
+  ACAO_PARA_VER_DEVOLUCOES, avisoDoPainel, devolucaoEmAberto, lerDevolucao, marcaDaLista,
+  podeVerDevolucoes, porOcorrencia, proximoPasso, rotuloDoMotivo,
   type DevolucaoDaOcorrencia, type EventoDaTrilha,
 } from "../src/devolucao";
 import * as local from "../src/dados/local";
@@ -659,3 +659,39 @@ describe("A devolução na demonstração, contra o banco", () => {
     expect(Number.isNaN(new Date(faixa!.quando).getTime())).toBe(false);
   });
 });
+
+describe("O painel só pede as devolvidas a quem pode ver", () => {
+  /*
+    Achado da validação da V2-F00-E09: o painel pedia `GET /ocorrencias/devolvidas`
+    a todo papel, a rota exige `despachar_equipe`, e o operador levava 403 em
+    todo carregamento, além da frase falsa de que a consulta tinha falhado. A
+    decisão sai da matriz de permissões do pacote compartilhado, e não de um
+    papel escrito na tela: estes casos amarram as duas pontas.
+  */
+  it("a decisão é a da matriz de permissões, para todos os papéis", () => {
+    for (const papel of PAPEIS) {
+      expect(podeVerDevolucoes(papel), papel).toBe(podeExecutar(papel, "despachar_equipe"));
+    }
+    expect(ACAO_PARA_VER_DEVOLUCOES).toBe("despachar_equipe");
+  });
+
+  it("o operador e o agente de campo não pedem; coordenação e administração pedem", () => {
+    expect(podeVerDevolucoes("operador")).toBe(false);
+    expect(podeVerDevolucoes("agente_campo")).toBe(false);
+    expect(podeVerDevolucoes("coordenador")).toBe(true);
+    expect(podeVerDevolucoes("administrador")).toBe(true);
+  });
+
+  it("o painel e a lista só chamam a consulta depois de perguntar", () => {
+    for (const arquivo of ["Painel.tsx", "Ocorrencias.tsx"]) {
+      const tela = fonte("paginas", arquivo);
+      const chamada = tela.indexOf("devolucoesPendentes(sessao)");
+      expect(chamada, `${arquivo} deixou de chamar a consulta`).toBeGreaterThan(0);
+      // A pergunta vem logo antes do pedido, e não em outro lugar do arquivo.
+      expect(tela.slice(Math.max(0, chamada - 200), chamada),
+        `${arquivo} não consulta mais a permissão antes de pedir as devolvidas`)
+        .toContain("podeVerDevolucoes(sessao.papel)");
+    }
+  });
+});
+

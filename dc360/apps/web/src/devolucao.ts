@@ -31,7 +31,9 @@
  * reescritos aqui: o agente lê uma frase no aparelho e a coordenação precisa
  * ler a mesma, senão a conversa por telefone é sobre dois textos diferentes.
  */
-import { ROTULO_MOTIVO_DE_DEVOLUCAO, type MotivoDeDevolucao } from "@dc360/shared";
+import {
+  ROTULO_MOTIVO_DE_DEVOLUCAO, podeExecutar, type Acao, type MotivoDeDevolucao, type Papel,
+} from "@dc360/shared";
 /*
   O tipo da linha mora em `dados/tipos.ts`, com os outros tipos da porta, e não
   aqui: quem o devolve é o repositório, e as duas implementações dele precisam
@@ -348,3 +350,31 @@ export function avisoDoPainel(quantas: number): string {
     ? "1 ocorrência voltou do campo sem vistoria e espera uma decisão."
     : `${quantas} ocorrências voltaram do campo sem vistoria e esperam decisão.`;
 }
+
+/**
+ * A permissão que a rota `GET /ocorrencias/devolvidas` exige, escrita uma vez.
+ *
+ * É a mesma do despacho, porque a decisão que a lista pede é despachar de novo
+ * (ver o comentário da rota, em `apps/api/src/rotas/ocorrencias.ts`). Fica aqui
+ * como constante para o painel e a lista decidirem pela MESMA coisa que o
+ * servidor, e não por um papel escrito na tela: se a matriz de permissões do
+ * pacote compartilhado mudar, a tela acompanha sozinha.
+ */
+export const ACAO_PARA_VER_DEVOLUCOES: Acao = "despachar_equipe";
+
+/**
+ * Este papel pode ver as devolvidas do município?
+ *
+ * Existe porque o painel pedia a lista a TODO papel e engolia a recusa: o
+ * operador recebia 403 em todo carregamento (um erro vermelho de console por
+ * visita, achado da validação da V2-F00-E09) e, pior, a tela lia o `null` da
+ * recusa como "a consulta falhou" e mostrava a frase de que a marca pode estar
+ * faltando. Quem não pode ver a lista não perde marca nenhuma: ela nunca foi
+ * dele. Esconder o pedido na tela não é controle de acesso (o servidor continua
+ * recusando, e o teste de integração confere o 403); é só o painel parar de
+ * pedir o que o papel não pode receber.
+ */
+export function podeVerDevolucoes(papel: Papel): boolean {
+  return podeExecutar(papel, ACAO_PARA_VER_DEVOLUCOES);
+}
+

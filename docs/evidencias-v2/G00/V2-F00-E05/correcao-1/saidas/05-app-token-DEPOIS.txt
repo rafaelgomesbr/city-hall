@@ -1,0 +1,30 @@
+PASS src/dados/token.test.ts
+  lerExpiracaoDoAcesso
+    √ lê o exp do token de acesso sem verificar assinatura (2 ms)
+    √ devolve nulo para coisa que não é JWT, em vez de explodir (1 ms)
+  criarObtentorDeToken
+    √ cinco chamadas ao mesmo tempo emitem UMA renovação (3 ms)
+    √ não renova quando o token ainda tem folga: sete pedidos, zero renovações
+    √ renova ao entrar na folga, e usa sempre o token de renovação mais recente (1 ms)
+    √ devolve o token atual e respeita o piso quando a renovação falha
+    √ não ressuscita sessão encerrada com resposta de renovação atrasada (2 ms)
+    √ sem credenciais devolve nulo sem tocar na rede
+  renovarJa
+    √ com o token ainda longe de vencer, renovarJa renova mesmo assim (1 ms)
+    √ respeita o piso: duas forçadas seguidas fazem UMA renovação, e a segunda devolve o mesmo token (1 ms)
+    √ cinco forçadas ao mesmo tempo emitem UMA renovação (a trava continua valendo) (1 ms)
+    √ renovação recusada devolve o token atual, sem lançar: é assim que o transporte pausa a fila
+    √ sem credenciais, devolve nulo (1 ms)
+    renovação recusada porque a conta foi desativada
+      √ renovarJa lança FalhaDeSessao conta_desativada, com a frase do servidor (1 ms)
+      √ lembra a recusa dentro do piso, sem pedir outra renovação ao servidor (2 ms)
+      √ o pedido comum (sem renovarJa) segue devolvendo o token atual: só o transporte da fila lê a recusa
+      √ recusa de OUTRO tipo (sessão encerrada, sem sinal) continua devolvendo o token atual (1 ms)
+      √ conta reativada: passado o piso, a nova tentativa vale, e a recusa antiga não gruda
+      √ entrar de novo (outras credenciais) apaga a recusa (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       19 passed, 19 total
+Snapshots:   0 total
+Time:        0.917 s, estimated 2 s
+Ran all test suites matching /src\\dados\\token.test.ts/i.

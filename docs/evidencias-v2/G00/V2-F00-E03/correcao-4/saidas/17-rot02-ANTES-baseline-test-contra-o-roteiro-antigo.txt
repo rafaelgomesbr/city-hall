@@ -1,0 +1,27 @@
+baseline.test.mjs novo contra o baseline.mjs de HEAD: o roteiro antigo nem exporta `ambienteDoPasso`.
+
+file:///Users/[usuario]/Documents/city-hall/dc360/scripts/baseline.test.mjs:49
+  ambienteDoPasso,
+  ^^^^^^^^^^^^^^^
+SyntaxError: The requested module './baseline.mjs' does not provide an export named 'ambienteDoPasso'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:326:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:429:5)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.15.0
+✖ scripts/baseline.test.mjs (32.66225ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36.223125
+
+✖ failing tests:
+
+test at scripts/baseline.test.mjs:1:1
+✖ scripts/baseline.test.mjs (32.66225ms)
+  'test failed'

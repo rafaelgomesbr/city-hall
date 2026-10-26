@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 348ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  11:10:34
+   Duration  534ms (transform 27ms, setup 0ms, collect 27ms, tests 348ms, environment 0ms, prepare 30ms)
+

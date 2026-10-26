@@ -130,3 +130,60 @@ describe("a conta desativada", () => {
     expect(frase.resumo.length).toBeLessThanOrEqual(32);
   });
 });
+
+/**
+ * A senha provisória (V2-F00-E06, correção 1): o 403 que caía em "outro".
+ *
+ * Quem entra com a senha que a coordenação sorteou recebe 403
+ * `troca_de_senha_obrigatoria` em toda rota. "Outro" diz "tenta de novo daqui a
+ * pouco", e tentar de novo não resolve: quem resolve é a própria pessoa, que
+ * define a senha no painel. O aplicativo não tem tela para isso.
+ */
+describe("a senha provisória", () => {
+  it("403 troca_de_senha_obrigatoria é troca de senha, e não 'outro'", () => {
+    expect(motivoDaFalha(new RespostaDoServidor(403, "troca_de_senha_obrigatoria")))
+      .toBe("troca-de-senha");
+  });
+
+  it("é fim de linha para a tela: nada novo desce até a senha ser definida", () => {
+    expect(ehFimDeLinha("troca-de-senha")).toBe(true);
+  });
+
+  const frase = comoContarAFalha("troca-de-senha", "Mostrando o que já estava no aparelho.");
+
+  it("manda definir a senha no painel e promete que as coletas continuam guardadas", () => {
+    expect(frase.resumo).toBe("Defina a sua senha");
+    expect(frase.detalhe).toMatch(/senha provisória/i);
+    expect(frase.detalhe).toMatch(/painel/i);
+    expect(frase.detalhe).toMatch(/continuam guardadas/i);
+  });
+
+  it("não é a frase da sessão encerrada nem da conta desativada", () => {
+    expect(frase.detalhe).not.toBe(comoContarAFalha("sessao-encerrada", "a lista").detalhe);
+    expect(frase.detalhe).not.toBe(comoContarAFalha("conta-desativada", "a lista").detalhe);
+    expect(frase.detalhe).not.toMatch(/procure a coordenação/i);
+  });
+
+  it("o resumo cabe numa linha da faixa e não tem travessão", () => {
+    expect(frase.resumo.length).toBeLessThanOrEqual(32);
+    expect(frase.detalhe).not.toContain(String.fromCharCode(0x2014));
+  });
+});
+
+describe("nenhuma frase da falha promete envio em segundo plano (V2-F00-E16, correção 1)", () => {
+  const FALSA = /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i;
+  const MOTIVOS = [
+    "sem-sinal", "sessao-encerrada", "conta-desativada", "troca-de-senha", "acesso-suspenso", "outro",
+  ] as const;
+
+  it.each(MOTIVOS)("%s: nem o resumo nem o detalhe prometem", (motivo) => {
+    const frase = comoContarAFalha(motivo, "a lista");
+    expect(frase.resumo).not.toMatch(FALSA);
+    expect(frase.detalhe).not.toMatch(FALSA);
+  });
+
+  it("o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto", () => {
+    expect(comoContarAFalha("acesso-suspenso", "a lista").detalhe)
+      .toMatch(/sobe se o acesso voltar, com o aplicativo aberto/);
+  });
+});

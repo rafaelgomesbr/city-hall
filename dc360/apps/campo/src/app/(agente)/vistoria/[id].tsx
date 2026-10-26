@@ -13,7 +13,7 @@ import {
   montarMinuta, rotuloDoCampo,
   type EnvelopeSincronizacao, type MotivoDeDevolucao, type PessoasAtingidas,
 } from "@dc360/shared";
-import type { CampoRecusado, ColetaLocal, FotoLocal } from "@dc360/campo";
+import type { CampoRecusado, ColetaLocal, FotoLocal, MotivoDeSessao } from "@dc360/campo";
 import { enderecoDaApi, type OrgaoDoCatalogo, type Pendencia } from "../../../dados/api";
 import {
   comoContarAFalha, ehFimDeLinha, motivoDaFalha, type MotivoDaFalha,
@@ -26,6 +26,7 @@ import {
   apagarFotoDoAparelho, guardarFotoNoAparelho, medirArquivoNoAparelho,
 } from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
+import { frasesDaPausa } from "../../../dados/pausa-da-fila";
 import { precisaoDoGpsEmMetros } from "../../../dados/precisao-do-gps";
 import {
   buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
@@ -42,7 +43,7 @@ import { useSinal } from "../../../dados/conectividade";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, SobreOVisor, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { useRecuoDoMenu } from "../../../ui/BarraDeAbas";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
@@ -797,7 +798,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   */
   const margens = useSafeAreaInsets();
   const tema = useTema();
-  const { obterToken, identidade, lerIdentidade, sair } = useSessao();
+  const { obterToken, identidade, lerIdentidade, encerrarSessaoVencida } = useSessao();
 
   const [ocorrencia, setOcorrencia] = useState<Pendencia | null>(null);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
@@ -853,7 +854,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     não uma frase. Era `erro` com "Tente de novo em alguns minutos" para tudo
     que não fosse `SemSinal`, e o 401 de sessão revogada caía nisso: tentar de
     novo dá 401 de novo, para sempre. A lista de tarefas já classifica com
-    `motivoDaFalha` e oferece "Sair e entrar de novo"; esta tela usa a mesma
+    `motivoDaFalha` e oferece "Entrar de novo"; esta tela usa a mesma
     régua, porque é o mesmo agente lendo as duas.
   */
   const [falhaAoBaixar, setFalhaAoBaixar] = useState<MotivoDaFalha | null>(null);
@@ -902,6 +903,41 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     fez", que era invisível enquanto isto era `Alert.alert`.
   */
   const [avisandoQueGuardou, setAvisandoQueGuardou] = useState(false);
+  /*
+    A fila parada pela sessão, para as duas telas que dizem "isto sobe quando
+    houver sinal" (a da coleta já feita e a de depois de guardar). Com a pausa
+    o sinal não resolve nada, e a frase tem de ser a da pausa, a mesma da faixa
+    do topo e do cartão da fila (V2-F00-E06, correção 3).
+
+    A fila só é consultada quando uma dessas duas telas está aberta: o resto da
+    vistoria não tem nada a dizer sobre envio. Fila que não abre deixa a frase
+    de sempre, que é o que esta tela dizia antes de saber da pausa.
+  */
+  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
+  const dizOQueFazComAColeta = Boolean(jaColetada) || avisandoQueGuardou;
+  useEffect(() => {
+    if (!dizOQueFazComAColeta) return;
+    let vivo = true;
+    let desassinar: (() => void) | undefined;
+    void (async () => {
+      try {
+        const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
+        if (!vivo) return;
+        desassinar = fila.assinar((resumo) => {
+          if (vivo) setPausadaPor(resumo?.pausadaPor ?? null);
+        });
+      } catch {
+        /* Sem fila, sem pausa conhecida: vale a frase de sempre. */
+      }
+    })();
+    return () => {
+      vivo = false;
+      desassinar?.();
+    };
+    // As funções da sessão passam direto para a fila única, como em
+    // `useResumoDaFila`; só mostrar ou esconder as telas refaz a assinatura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dizOQueFazComAColeta]);
   /*
     O que o servidor, ou a conferência de antes de enfileirar, recusou na
     última tentativa de concluir. Vem do rascunho ao abrir (a coleta que voltou
@@ -1406,12 +1442,18 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   }, [obterToken, carregarDoDisco]);
 
   /**
-   * Sair da conta e voltar à entrada: o único ato que resolve a sessão
-   * encerrada. É o mesmo par de linhas da lista de tarefas, e a promessa de
-   * que a fila sobrevive ao logout está escrita em `comoContarAFalha`.
+   * Entrar de novo e voltar à entrada: o único ato que resolve a sessão
+   * encerrada. É o mesmo par de linhas da lista de tarefas e da fila.
+   *
+   * Chama `encerrarSessaoVencida`, e NÃO `sair()`: `sair()` é o verbo do fim do
+   * turno e apaga o dado local. Esta tela é justamente a de quem pode ter uma
+   * vistoria começada no disco (rascunho, fotos, assinatura), e a pessoa que só
+   * precisava renovar a credencial a perderia sem aviso (V2-F00-E15). Aqui o
+   * disco fica como está, com a marca de quem o deixou; quem confere se quem
+   * entra em seguida é a mesma pessoa é o login (`acolherNoAparelho`).
    */
-  async function sairEEntrarDeNovo(): Promise<void> {
-    await sair();
+  async function entrarDeNovo(): Promise<void> {
+    await encerrarSessaoVencida();
     router.replace("/entrar");
   }
 
@@ -1579,7 +1621,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     */
     let guardada: { uriLocal: string; tamanhoBytes: number };
     try {
-      guardada = guardarFotoNoAparelho(uri, rascunho.fotos.length);
+      guardada = await guardarFotoNoAparelho(uri, rascunho.fotos.length);
     } catch (e) {
       throw new FotoNaoGuardada(
         e instanceof Error && e.message
@@ -1975,10 +2017,10 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
               {...(falhaAoBaixar === "sessao-encerrada"
                 ? {
                   acao: {
-                    titulo: "Sair e entrar de novo",
-                    onPress: () => void sairEEntrarDeNovo(),
-                    descricao: "Sair da conta e entrar de novo com o seu email e a sua senha",
-                    testID: "sair-e-entrar-de-novo",
+                    titulo: "Entrar de novo",
+                    onPress: () => void entrarDeNovo(),
+                    descricao: "Entrar de novo com o seu email e a sua senha, sem apagar a vistoria começada",
+                    testID: "entrar-de-novo",
                   },
                 }
                 : {})}
@@ -2150,17 +2192,30 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           }
         />
 
-        <Aviso tom="info">
-          Esta ocorrência já foi coletada neste aparelho.
-          {jaColetada.situacao === "enviada"
-            ? " A vistoria já foi enviada ao servidor."
-            : " A vistoria está na fila de envio e sobe assim que houver sinal."}
-        </Aviso>
+        {/* Com a fila pausada o aviso deixa de ser informativo (é um alerta, como
+            o da tela de depois de guardar) e não repete "neste aparelho": o
+            `detalhe` da pausa já diz que as coletas ficam guardadas aqui. */}
+        {jaColetada.situacao !== "enviada" && pausadaPor ? (
+          <Aviso tom="alerta" peso="leve">
+            {`Esta ocorrência já foi coletada. ${frasesDaPausa(pausadaPor).detalhe}`}
+          </Aviso>
+        ) : (
+          <Aviso tom="info">
+            Esta ocorrência já foi coletada neste aparelho.
+            {jaColetada.situacao === "enviada"
+              ? " A vistoria já foi enviada ao servidor."
+              : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
+          </Aviso>
+        )}
 
         <Txt variante="corpoP" discreto>
-          A tarefa continua aparecendo na sua lista porque ela só sai de lá
-          quando o aparelho conseguir falar com o servidor. Isso pode demorar
-          horas sem sinal, e não significa que a vistoria se perdeu.
+          {jaColetada.situacao !== "enviada" && pausadaPor
+            ? "A tarefa continua aparecendo na sua lista porque ela só sai de lá "
+              + "depois que o servidor receber a vistoria, e isso não significa "
+              + "que a vistoria se perdeu."
+            : "A tarefa continua aparecendo na sua lista porque ela só sai de lá "
+              + "quando o aparelho conseguir falar com o servidor. Isso pode demorar "
+              + "horas sem sinal, e não significa que a vistoria se perdeu."}
         </Txt>
 
         <Botao
@@ -2334,12 +2389,18 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           F14-E06 e depende do CP-24.
         */}
         <View style={{ alignSelf: "stretch" }}>
-          <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
-            Nada depende de sinal agora. A coleta está guardada neste aparelho e
-            sobe quando o aplicativo estiver aberto e houver rede: se agora não
-            há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
-            de envio mostra o andamento.
-          </Aviso>
+          {pausadaPor ? (
+            <Aviso tom="alerta" peso="leve" titulo={frasesDaPausa(pausadaPor).titulo}>
+              {frasesDaPausa(pausadaPor).detalhe}
+            </Aviso>
+          ) : (
+            <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
+              Nada depende de sinal agora. A coleta está guardada neste aparelho e
+              sobe quando o aplicativo estiver aberto e houver rede: se agora não
+              há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
+              de envio mostra o andamento.
+            </Aviso>
+          )}
         </View>
 
         <View style={{ alignSelf: "stretch" }}>
@@ -2570,13 +2631,17 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
             título, e "Cancelar" aqui é ambíguo do jeito caro (cancelar a foto,
             ou cancelar a vistoria?).
           */}
-          <Botao
-            titulo="Voltar sem fotografar"
-            tipo="secundario"
-            onPress={() => setCameraAberta(false)}
-            testID="fechar-a-camera"
-            estilo={{ alignSelf: "stretch" }}
-          />
+          {/* Sobre o visor preto o botão usa a paleta do tema escuro: com o
+              tema claro o rótulo escuro media 1,19:1 (correção 2 da E16). */}
+          <SobreOVisor>
+            <Botao
+              titulo="Voltar sem fotografar"
+              tipo="secundario"
+              onPress={() => setCameraAberta(false)}
+              testID="fechar-a-camera"
+              estilo={{ alignSelf: "stretch" }}
+            />
+          </SobreOVisor>
         </View>
       </View>
     );

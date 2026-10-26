@@ -11,6 +11,7 @@ import {
   FRASES, MAXIMO_DE_CARACTERES, MINIMO_DE_CARACTERES, classificarFalha,
   fraseDaFalhaDaRedefinicao, fraseDaFalhaDoPedido, validarEmailDoPedido, validarSenhaNova,
 } from "../src/paginas/recuperar-regras";
+import { Aviso } from "../src/componentes/comuns";
 import { ehTelaInterna } from "../src/seo/indexacao";
 
 /**
@@ -277,16 +278,74 @@ describe("Tela de definir a senha nova, estado por estado", () => {
     expect(html).not.toContain("<input");
   });
 
-  it("sucesso: confirma, avisa que vai para a entrada e oferece o botão para ir agora", () => {
+  it("sucesso: confirma com foco (sem ser região viva) e oferece o botão Entrar, sem prometer ida automática", () => {
     const html = redefinicao({ fase: "pronto" });
     expect(html).toContain("aviso--sucesso");
+    // A confirmação é o alvo do foco (tabindex -1) e NÃO é região viva: o foco é o único mecanismo
+    // de anúncio, e os dois juntos seriam lidos duas vezes.
+    expect(html).toMatch(/class="aviso aviso--sucesso" tabindex="-1"/);
+    expect(html).not.toMatch(/aviso--sucesso"[^>]*role=/);
     expect(texto(html)).toContain("Senha redefinida. Entre com a nova senha.");
-    expect(texto(html)).toContain("Você será levado para a entrada em instantes.");
+    // V2-F00-E10, correção 2: a tela não leva ninguém a lugar nenhum por conta própria (WCAG 2.2.1).
+    expect(texto(html)).not.toMatch(/será levad|em instantes|redirecion/i);
+    expect(html).not.toMatch(/http-equiv="refresh"/i);
+    expect(texto(html)).toContain(FRASES.novaProntaBotao);
+    expect(FRASES.novaProntaBotao).toMatch(/^Entrar/);
     // O título da tela não continua pedindo "Escolha uma senha" depois de a senha ser trocada.
     expect(texto(html)).toContain("Sua senha foi alterada");
     expect(texto(html)).not.toContain("Escolha uma senha para sua conta");
     expect(html).toContain('href="/entrar"');
     expect(html).not.toContain("<input");
+  });
+
+  it("sucesso: uma ação só e um texto só (sem o 'Voltar para a entrada' nem a frase de apoio)", () => {
+    const html = redefinicao({ fase: "pronto" });
+    // O botão "Entrar com a nova senha" já leva à entrada: um segundo link para o mesmo lugar só repetia.
+    expect(html.match(/<a /g)).toHaveLength(1);
+    expect(html).not.toContain(FRASES.voltar);
+    expect(texto(html)).not.toContain("Quando quiser");
+    expect(Object.keys(FRASES)).not.toContain("novaProntaApoio");
+    // O formulário continua com as saídas de sempre: só a confirmação perde o rodapé.
+    expect(redefinicao()).toContain(FRASES.voltar);
+  });
+
+  it("pedido enviado: a confirmação também é alvo do foco, e não região viva", () => {
+    const html = pedido({ fase: "enviado" });
+    expect(html).toMatch(/class="aviso aviso--sucesso" tabindex="-1"/);
+    expect(html).not.toMatch(/aviso--sucesso"[^>]*role=/);
+  });
+});
+
+describe("O foco acompanha a troca de tela (WCAG 2.4.3 e 4.1.3)", () => {
+  const codigo = fonte("paginas/RecuperarSenha.tsx");
+
+  it("depois de redefinir, um efeito sobre a fase leva o foco para a confirmação", () => {
+    expect(codigo).toMatch(/useEffect\(\(\) => \{\s*if \(p\.fase === "pronto"\) confirmacao\.current\?\.focus\(\);\s*\}, \[p\.fase\]\);/);
+    expect(codigo).toContain('<Aviso tom="sucesso" foco={confirmacao}>{FRASES.novaPronta}</Aviso>');
+  });
+
+  it("os hooks da redefinição ficam antes dos retornos antecipados (regra dos hooks)", () => {
+    const corpo = codigo.slice(codigo.indexOf("export function TelaDaRedefinicao"));
+    expect(corpo.indexOf("useRef<HTMLDivElement>")).toBeGreaterThan(-1);
+    expect(corpo.indexOf("useEffect(")).toBeLessThan(corpo.indexOf('if (p.fase === "sem-link")'));
+  });
+
+  it("depois de enviar o pedido o foco vai para a confirmação, e ao pedir de novo volta para o email", () => {
+    expect(codigo).toMatch(/if \(p\.fase === "enviado"\) confirmacao\.current\?\.focus\(\);/);
+    expect(codigo).toMatch(/else if \(faseAnterior\.current === "enviado"\) document\.getElementById\("recuperar-email"\)\?\.focus\(\);/);
+    expect(codigo).toContain('<Aviso tom="sucesso" foco={confirmacao}>{FRASES.pedidoEnviado}</Aviso>');
+  });
+
+  it("o Aviso com foco é focável por código e deixa de ser região viva; sem foco continua status/alert", () => {
+    const comuns = fonte("componentes/comuns.tsx");
+    expect(comuns).toContain("tabIndex={foco ? -1 : undefined}");
+    expect(comuns).toContain('role={foco ? undefined : tom === "perigo" ? "alert" : "status"}');
+    const sem = renderToStaticMarkup(h(Aviso, { tom: "sucesso" }, "x"));
+    const com = renderToStaticMarkup(h(Aviso, { tom: "sucesso", foco: () => {} }, "x"));
+    expect(sem).toContain('role="status"');
+    expect(sem).not.toContain("tabindex");
+    expect(com).toContain('tabindex="-1"');
+    expect(com).not.toContain("role=");
   });
 });
 
@@ -298,8 +357,9 @@ describe("O link de uso único não fica na barra de endereço", () => {
     expect(codigo).toContain("window.history.replaceState(window.history.state, \"\", window.location.pathname)");
   });
 
-  it("depois do sucesso a ida para a entrada recarrega a página, para a política de referenciador não seguir a pessoa", () => {
-    expect(codigo).toContain('window.location.assign("/entrar")');
+  it("depois do sucesso a ida para a entrada é um link de navegação completa, para a política de referenciador não seguir a pessoa", () => {
+    // O botão é um `<a href="/entrar">`: o navegador recarrega a página e o roteador não participa.
+    expect(codigo).toMatch(/<a className="botao botao--primario entrada__acao" href="\/entrar">\s*\{FRASES\.novaProntaBotao\}/);
     expect(codigo).not.toMatch(/useNavigate/);
   });
 
@@ -307,6 +367,51 @@ describe("O link de uso único não fica na barra de endereço", () => {
     // A marca no HTML não serve aqui: `seo.test.ts` define "rota pública" como a que fica fora de
     // <Protegida>, e `/redefinir-senha` fica. O robô é barrado no cabeçalho (ver o bloco do vercel.json abaixo).
     expect(ehTelaInterna("/redefinir-senha")).toBe(false);
+  });
+});
+
+describe("A confirmação da senha nova não some por tempo (WCAG 2.2.1)", () => {
+  /** O código sem comentários: a explicação da regra cita o que ela proíbe. */
+  const semComentarios = fonte("paginas/RecuperarSenha.tsx")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("a tela de redefinição não tem relógio nem navegação por código: nada leva a pessoa embora sozinho", () => {
+    for (const proibido of [
+      /setTimeout\s*\(/, /setInterval\s*\(/, /requestAnimationFrame\s*\(/,
+      /location\.(assign|replace|href)/, /useNavigate/, /<Navigate\b/, /http-equiv/i,
+    ]) {
+      expect(semComentarios, `RecuperarSenha.tsx contém ${proibido}`).not.toMatch(proibido);
+    }
+  });
+
+  it("não sobrou a constante de espera que alimentava o redirecionamento", () => {
+    expect(fonte("paginas/RecuperarSenha.tsx")).not.toContain("ESPERA_ATE_A_ENTRADA");
+  });
+});
+
+describe("O botão Entrar, que é um link, não perde o rótulo ao passar o mouse", () => {
+  /*
+    O botão é um `<a>`, e `a:hover` (0,1,1) vence `.botao--primario` (0,1,0) na
+    propriedade `color`: ao passar o mouse o texto ia para `--ds-accent-hover`,
+    a mesma cor do fundo, e o rótulo sumia nos dois temas (visto nas capturas da
+    V2-F00-E10, correção 2, a 1280 px, onde o ponteiro ficava sobre o botão). A
+    regra de hover do botão tem de dizer a cor do texto por conta própria.
+  */
+  const css = fonte("estilos/app.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const regra = (seletor: string) => {
+    const m = css.match(new RegExp(`(^|\\n)${seletor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`));
+    if (!m) throw new Error(`regra ${seletor} não encontrada`);
+    return m[2];
+  };
+
+  it("o hover do botão primário fixa a cor do texto em --ds-on-accent", () => {
+    expect(regra(".botao--primario:not(:disabled):hover")).toContain("color: var(--ds-on-accent)");
+  });
+
+  it("o hover do botão secundário fixa a cor do texto em --ds-text", () => {
+    expect(regra(".botao--secundario:not(:disabled):hover")).toContain("color: var(--ds-text)");
   });
 });
 

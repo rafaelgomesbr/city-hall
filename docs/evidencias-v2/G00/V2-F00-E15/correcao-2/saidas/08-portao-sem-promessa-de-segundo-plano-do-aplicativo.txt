@@ -1,0 +1,23 @@
+✔ nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado (575.827041ms)
+✔ o portão morde: as frases que a arbitragem achou na fila são reprovadas (0.270791ms)
+✔ o portão não pune quem explica: comentário pode citar a frase proibida (0.082833ms)
+✔ as frases verdadeiras passam (0.151333ms)
+✔ o portão morde: as quatro frases plantadas pela validação da rodada 2 são reprovadas (0.231208ms)
+✔ o portão morde frases que ninguém listou, porque a regra é por classe e não por lista (0.191583ms)
+✔ o portão morde: largar o aplicativo junto de uma promessa de envio, em qualquer flexão (1.169667ms)
+✔ o portão morde a promessa dita em duas frases seguidas e o convite a sair (0.198125ms)
+✔ a promessa de retomada sem a condição também reprova (a forma antiga da fila) (0.137791ms)
+✔ a mesma frase com a condição 'aberto' passa (0.250542ms)
+✔ 'aberto' negado não é condição: 'sem o aplicativo aberto' é a promessa que se quer impedir (0.094208ms)
+✔ os avisos verdadeiros sobre largar o aplicativo passam (0.17625ms)
+✔ frases do aplicativo de hoje que falam de continuar, de sair e de 'sozinho' sem prometer envio passam (0.27275ms)
+✔ a fila REAL reprova quando se planta cada frase (em memória, o arquivo não é tocado) (1968.593042ms)
+✔ a fila REAL reprova a forma antiga de 'vai tentar de novo em instantes', sem a condição (77.066833ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2695.356917

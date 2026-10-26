@@ -1,0 +1,12 @@
+$ (em dc360, depois de gravar os RESUMO.md das tres etapas) npx vitest run --root packages/shared test/regras-de-conteudo.test.ts
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (8 tests) 519ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  12:38:15
+   Duration  718ms (transform 26ms, setup 0ms, collect 50ms, tests 519ms, environment 0ms, prepare 34ms)
+

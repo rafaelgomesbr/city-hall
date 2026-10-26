@@ -1,6 +1,6 @@
 # Aplicativo de campo
 
-**Estado: escrito por inteiro, compila, sem artefato de aparelho arquivado.**
+**Estado: escrito por inteiro, compila, sem artefato de aparelho físico arquivado (há capturas de emulador Android, abaixo).**
 
 Este diretório traz o aplicativo do agente de proteção e defesa civil, em
 React Native com Expo. Ele está completo em código e configuração: telas,
@@ -9,20 +9,40 @@ navegação, coleta offline, câmera, GPS, assinatura no dedo, fila de envio,
 
 O que ele não tem é a única coisa que não se resolve daqui: **prova arquivada
 de que ele roda num aparelho**. Há relato de uso (o `README.md` da raiz fala de
-compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas, e
-outras sessões falaram de emulador), mas nenhuma foto, vídeo, registro ou
-captura de aparelho está no repositório, e relato não é prova. Até a
-V2-F14-E12 arquivar esse artefato, nada aqui deve ser lido como "testado em
-aparelho". Não há emulador nesta máquina, e simulador de iOS só existe em Mac.
+compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas), mas
+nenhuma foto, vídeo, registro ou captura de aparelho FÍSICO (iPhone ou
+Android) está no repositório, e relato não é prova. Até a V2-F14-E12 arquivar
+esse artefato, nada aqui deve ser lido como "testado em aparelho".
+
+Emulador é outra coisa, e há um pouco dele arquivado: os validadores das
+etapas E06, E15 e E16 rodaram o aplicativo no emulador Android (AVD
+`Medium_Phone_API_36.1`, APK de depuração construído do commit validado) e
+deixaram capturas e o relato. As capturas estão em
+`docs/evidencias-v2/G00/V2-F00-E06/validacao/4b96ea7/anexos/` (seis, da fila e
+da faixa de envio pausadas pela sessão encerrada e pela senha provisória) e em
+`docs/evidencias-v2/G00/V2-F00-E16/validacao/4b96ea7/anexos/` (seis, da câmera,
+da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), mais
+uma da E15 em `docs/evidencias-v2/G00/V2-F00-E15/validacao/4b96ea7/anexos/`
+(`E15-dialogo-sair-da-conta.png`, o diálogo "Sair da conta?" com a coleta
+guardada no aparelho), e o relato está nos `qa.md` dessas três pastas. Duas ressalvas: parte delas foi
+tirada com remendos de QA que nunca entraram no código (cada `qa.md` diz quais),
+e emulador não prova câmera, GPS nem `expo-sqlite` sob morte de processo num
+aparelho de verdade. Do simulador de iOS há só o relato, e sem captura no
+repositório: o validador da E06 (rodada 3, `qa.md` em
+`docs/evidencias-v2/G00/V2-F00-E06/validacao/52952a1/`) construiu o aplicativo
+em Debug e o abriu no Simulador (iPhone 17 Pro, iOS 26.5) apontando para uma API
+local, e o da E15 repete a frase; ninguém conseguiu dirigir a interface lá (a
+captura da tela de entrada que o `qa.md` cita não está no repositório). Ou
+seja: compila e abre no simulador de iOS, e nada além disso foi visto.
 
 O que É verificável daqui, e está verificado:
 
 | Verificação | Como rodar | Resultado |
 | --- | --- | --- |
 | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
-| Saúde do projeto Expo | `npx expo-doctor` | **20 de 21** em 2026-10-07: dez pacotes do Expo (`expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros) com versão de correção atrás da que o SDK 57 pede. Era 21 de 21 em 15/09/2026; o alinhamento é da V2-F00-E19 |
-| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
-| A fila que ele consome | `npm test --workspace @dc360/campo` | 187 testes do motor de campo |
+| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). **Voltou na manhã de 2026-10-14: 20 de 21**, a única falha era a de versões de pacote, com cinco pacotes um patch atrás (`expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`). **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco (premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13, não estes cinco, e a confirmação dele para a analogia está pendente; item 17 de `PENDENCIAS.md`). **Voltou em 2026-10-18: 20 de 21**, com `expo` e `expo-router` um patch atrás, e fechou em **21 de 21 no mesmo dia** com a correção 5 da E19 (`expo` ~57.0.30 e `expo-router` ~57.0.28, mesma premissa). **Voltou de novo em 2026-10-24 e fechou em 21 de 21 sem pular a checagem de versões** com a correção 10 da E19, que subiu cinco pacotes um patch (`expo` 57.0.30 para 57.0.31, `expo-location` 57.0.21 para 57.0.22, `expo-network` 57.0.2 para 57.0.3, `expo-notifications` 57.0.23 para 57.0.24 e `expo-router` 57.0.28 para 57.0.29; mesma premissa das anteriores, a confirmação do Rafael segue pendente). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho (ver "Antes da próxima entrega aos agentes: novo binário nativo", abaixo) |
+| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-24: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as exceções nomeadas do CP-03 (cinco pacotes, sete advisories: `decode-uri-component`, `brace-expansion` com três, `node-forge`, `shell-quote` e a cópia do `zod` 3 que o `@expo/cli` carrega, com `somenteEm: ["node_modules/expo/node_modules/"]`; `braces` e `sprintf-js` saíram em 2026-10-24, porque o registro retirou as duas advisories), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
+| A fila que ele consome | `npm test --workspace @dc360/campo` | 238 testes do motor de campo |
 
 **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
 o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
@@ -35,7 +55,14 @@ um cache de 2026-08-27 sem `mapa`, `perfil` e `avisos`). `npm run test:campo`,
 na raiz do `dc360`, confere o arquivo contra as rotas do disco antes do
 typecheck e apaga `.expo/types` quando falta alguma rota; o próximo
 `expo start` o recria. Quem rodar `npm run typecheck` direto aqui, com cache
-velho, apaga `.expo/types` à mão ou roda `npm run test:campo`.
+velho, apaga `.expo/types` à mão ou roda `npm run test:campo`. O job
+`plataformas` do CI (Windows e Linux) prova isso a cada push em `main`, `master`
+e `v2/**` e a cada `pull_request` (não em push para outro ramo): põe aqui um cache
+sem `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`, na
+raiz do `dc360`), confere que o `tsc` direto reprova com TS2345 e só então roda
+o `npm run test:campo`. Se uma atualização do expo-router mudar o formato do
+arquivo gerado, a fixture pode precisar ser refeita a partir de um
+`router.d.ts` novo, tirando as três rotas.
 
 ## Para colocar de pé
 
@@ -95,7 +122,7 @@ na chuva.
    de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
 
 Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
-187 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+238 testes do motor de campo cobrindo a lógica fora do celular, inclusive
 retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
 quando o sistema mata o processo.
 
@@ -112,18 +139,42 @@ src/ui/              tokens e componentes
 ```
 
 **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
-feita sem sinal vive em `packages/campo`, com 187 testes de unidade do motor de campo, e a
-integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
+feita sem sinal vive em `packages/campo`, com 238 testes de unidade do motor de campo, e a
+integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.test.ts`). Este diretório liga os
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.
+
+## Antes da próxima entrega aos agentes: novo binário nativo
+
+A correção 10 da V2-F00-E19 (2026-10-24) mudou o que vai dentro do aplicativo, e
+o binário que está nos aparelhos é anterior a ela. **Nenhum binário novo foi
+gerado**: antes de entregar aos agentes, gerar um (`eas build`, ver
+**[LOJAS.md](./LOJAS.md)**) com o que mudou:
+
+- cinco pacotes do SDK 57 subiram um patch, todos dentro do `~57.0`:
+  `expo` 57.0.31, `expo-location` 57.0.22, `expo-network` 57.0.3,
+  `expo-notifications` 57.0.24 e `expo-router` 57.0.29. Pacote nativo muda o
+  código que o aparelho carrega, então precisa de build nativo novo, e o
+  `expo-doctor` volta a 21 de 21 só com eles;
+- o `zod` passou da linha 3 para a **4** (4.6.7), que a GHSA-mrhx-c7xc-m3w5
+  exige, e entra como dependência declarada deste aplicativo (`^4.6.7`). O
+  `@dc360/shared` (esquemas e mensagens em português) usa a linha 4, e o
+  `@expo/cli` mantém por dentro a cópia 3.25.76 em
+  `node_modules/expo/node_modules/zod`, só na máquina de build (exceção
+  nomeada acima).
+
+O Metro nunca empacotou o aplicativo com o `zod` 4: os testes de Jest passam,
+mas nenhum bundle foi gerado até aqui. O primeiro `eas build` é também essa
+prova.
 
 ## Por que fica fora do `workspaces` do monorepo
 
 O Expo traz quase seiscentos pacotes. Deixá-lo fora significa que
 `npm install` na raiz do produto continua rápido, e que o `npm audit` de lá
 não passa a depender do ciclo de lançamento do React Native. Este diretório
-tem o próprio `package-lock.json` e a própria auditoria, que também fecha em
-zero.
+tem o próprio `package-lock.json` e a própria auditoria, que NÃO fecha em zero
+no `npm audit` puro (fecha em `npm run auditar`, com as exceções nomeadas do CP-03: cinco
+pacotes e sete advisories; ver a tabela acima).
 
 ## Por que `react-native-reanimated` e `react-native-worklets` estão fixados
 

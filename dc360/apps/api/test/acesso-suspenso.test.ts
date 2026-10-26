@@ -318,6 +318,28 @@ describe("Sessao viva de municipio suspenso", () => {
     expect(r.json().acesso).toBeUndefined();
   });
 
+  it("renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403", async () => {
+    // O caminho comum: `console_suspender_municipio` (038, 049) escreve a
+    // suspensão E revoga as sessões. A sessão revogada é encerrada como outra
+    // qualquer; quem diz "suspenso" é o pedido seguinte (`auth/suspensao.ts`).
+    const tokens = await entrar(EMAIL_A);
+    await suspender(orgA);
+    await mem.bruto.query(
+      `UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'acesso suspenso pelo fornecedor'
+        WHERE organizacao_id = $1 AND revogada_em IS NULL`,
+      [orgA],
+    );
+
+    const r = await app.inject({
+      method: "POST", url: "/auth/renovar", payload: { renovacao: tokens.renovacao },
+    });
+    expect(r.statusCode, r.body).toBe(401);
+    expect(r.json().erro).toBe("sessao_encerrada");
+    const deNovo = await tentarEntrar(EMAIL_A, SENHA);
+    expect(deNovo.statusCode, deNovo.body).toBe(403);
+    expect(deNovo.json().erro).toBe("acesso_suspenso");
+  });
+
   it("token de acesso vivo: escrita recusa na hora, com 403", async () => {
     const tokens = await entrar(EMAIL_A);
     await suspender(orgA);
@@ -345,9 +367,12 @@ describe("Sessao viva de municipio suspenso", () => {
       assinatura, e essa é a mesma janela que o produto já aceita quando um
       usuário é desativado ou expulso: a sessão cai, o token vivo termina o
       prazo. Suspensão contratual não é incidente de segurança, e quinze
-      minutos de leitura não criam registro nenhum sob o contrato suspenso. O
-      que se compra com isso é nenhuma consulta a mais em nenhuma leitura, que
-      é a maior parte do tráfego de uma noite de chuva. O argumento inteiro
+      minutos de leitura não praticam ato nem mudam dado do município (a
+      leitura do dossiê e a busca gravam só o registro de que foram lidas, em
+      `ocorrencia_consultas`, e por isso o dossiê não tem a marca de vigência:
+      ver `auth/suspensao.ts`). O que se compra com isso é nenhuma consulta a
+      mais em nenhuma leitura, que é a maior parte do tráfego de uma noite de
+      chuva. O argumento inteiro
       está em `auth/suspensao.ts`.
     */
     const tokens = await entrar(EMAIL_A);
@@ -357,6 +382,28 @@ describe("Sessao viva de municipio suspenso", () => {
       method: "GET", url: `/ocorrencias/${ocorrenciaA}`, headers: comToken(tokens.acesso),
     });
     expect(r.statusCode, r.body).toBe(200);
+  });
+
+  it("token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD)", async () => {
+    /*
+      A afirmação de `auth/suspensao.ts` presa ao comportamento (V2-F00-E04,
+      correção 2): o GET marcado com `ROTA_GET_COM_EFEITO` é escrita para a
+      suspensão. O sino `GET /avisos` materializa e expurga avisos; o CSV grava
+      a exportação; o laudo grava a emissão. Com o município suspenso, os três
+      respondem 403 `acesso_suspenso` antes de o handler rodar (o laudo de um
+      id que não existe responde 403 e não 404, prova de que a recusa vem
+      antes). A leitura sem a marca, no teste anterior, continua 200.
+    */
+    const tokens = await entrar(EMAIL_A);
+    await suspender(orgA);
+
+    for (const method of ["GET", "HEAD"] as const) {
+      for (const url of ["/avisos", "/relatorios/ocorrencias.csv", "/documentos/00000000-0000-4000-8000-000000000000/laudo"]) {
+        const r = await app.inject({ method, url, headers: comToken(tokens.acesso) });
+        expect(r.statusCode, `${method} ${url}: ${r.body}`).toBe(403);
+        if (method === "GET") expect(r.json().erro, `${method} ${url}`).toBe("acesso_suspenso");
+      }
+    }
   });
 
   it("token de acesso VENCIDO de municipio suspenso responde 403, e nao 401", async () => {

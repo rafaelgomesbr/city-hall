@@ -1,0 +1,224 @@
+Os 7 arquivos da API com espera trocada, 5 rodadas, sob 16 laços de CPU e a suíte do shared ao mesmo tempo.
+
+RESUMO
+A rodada 1: api:  Test Files  7 passed (7)       Tests  71 passed (71)    Duration  25.90s (transform 1.05s, setup 722ms, collect 7.35s, tests 87.77s, environment 1ms, prepare 1.54s)  | shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.20s (transform 831ms, setup 0ms, collect 3.35s, tests 3.77s, environment 2ms, prepare 2.41s) 
+A rodada 2: api:  Test Files  7 passed (7)       Tests  71 passed (71)    Duration  28.70s (transform 1.58s, setup 748ms, collect 11.25s, tests 113.35s, environment 6ms, prepare 1.13s)  | shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.88s (transform 954ms, setup 0ms, collect 4.68s, tests 5.42s, environment 2ms, prepare 2.59s) 
+A rodada 3: api:  Test Files  7 passed (7)       Tests  71 passed (71)    Duration  21.65s (transform 1.45s, setup 337ms, collect 8.82s, tests 81.11s, environment 1ms, prepare 1.08s)  | shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  2.88s (transform 676ms, setup 0ms, collect 3.37s, tests 3.54s, environment 1ms, prepare 2.65s) 
+A rodada 4: api:  Test Files  7 passed (7)       Tests  71 passed (71)    Duration  21.85s (transform 1.26s, setup 666ms, collect 9.31s, tests 82.07s, environment 1ms, prepare 1.18s)  | shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.31s (transform 683ms, setup 0ms, collect 3.37s, tests 3.84s, environment 2ms, prepare 2.74s) 
+A rodada 5: api:  Test Files  7 passed (7)       Tests  71 passed (71)    Duration  30.61s (transform 1.10s, setup 302ms, collect 9.29s, tests 110.81s, environment 1ms, prepare 1.14s)  | shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.04s (transform 888ms, setup 0ms, collect 3.55s, tests 3.99s, environment 36ms, prepare 2.66s) 
+
+===== rodada da API 1: ins02-api-1.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/fotos-do-documento.test.ts (4 tests) 8107ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 8705ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 8929ms
+   ✓ Segunda via do termo depois do levantamento > o imóvel continua fora da lista de interditados  340ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 11286ms
+   ✓ FCM: a chamada que nao volta > o envio desiste no tempo limite mesmo com o token ja trocado  385ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  5398ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  2775ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  2344ms
+ ✓ test/desinterdicao.test.ts (22 tests) 12051ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 13536ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  3287ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  1915ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  509ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  2609ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 25156ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  5322ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  2585ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  2485ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  2036ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  2506ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  2388ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  2431ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  2517ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  2883ms
+
+ Test Files  7 passed (7)
+      Tests  71 passed (71)
+   Start at  11:29:43
+   Duration  25.90s (transform 1.05s, setup 722ms, collect 7.35s, tests 87.77s, environment 1ms, prepare 1.54s)
+
+
+===== rodada da API 2: ins02-api-2.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/fotos-do-documento.test.ts (4 tests) 10691ms
+   ✓ O laudo da re-vistoria > não imprime as fotos da vistoria anterior  311ms
+   ✓ O laudo da re-vistoria > uma vistoria sem foto nenhuma diz que não tem, mesmo com foto de outra vistoria no protocolo  332ms
+   ✓ A foto anexada fora da vistoria > sai em seção própria, com quem anexou, e não vira foto da vistoria  366ms
+   ✓ A foto anexada fora da vistoria > sem foto avulsa, a seção não existe  382ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 11093ms
+   ✓ Segunda via do termo depois do levantamento > não reinterdita, não apaga o motivo e não muda a data  349ms
+   ✓ Segunda via do termo depois do levantamento > o imóvel continua fora da lista de interditados  328ms
+   ✓ Segunda via do termo depois do levantamento > o termo de desinterdição continua podendo ser emitido depois da segunda via  333ms
+   ✓ Segunda via do termo depois do levantamento > o registro não se contradiz: a trilha do levantamento continua sozinha  429ms
+   ✓ A reinterdição legítima continua funcionando > com vistoria nova depois do levantamento, o termo interdita de novo  486ms
+   ✓ A reinterdição legítima continua funcionando > reimprimir enquanto a interdição está de pé continua sem mexer na data  369ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 11866ms
+   ✓ O identificador é da emissão > vistoria nova produz identificador novo  346ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 15372ms
+   ✓ FCM: a chamada que nao volta > a troca do token de acesso desiste no tempo limite  862ms
+   ✓ FCM: a chamada que nao volta > o envio desiste no tempo limite mesmo com o token ja trocado  1294ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  6056ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  3489ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  3554ms
+ ✓ test/desinterdicao.test.ts (22 tests) 17351ms
+   ✓ Emitir o termo é interditar > reimprimir o termo NÃO muda a data da interdição  317ms
+   ✓ Levantar a interdição > sai da lista de interditados e entra na trilha  426ms
+   ✓ Levantar a interdição > não levanta duas vezes  340ms
+   ✓ Levantar a interdição > recusa motivo curto demais para justificar coisa nenhuma  316ms
+   ✓ Reinterdição: o risco volta > depois de reinterditar, pode levantar de novo  364ms
+   ✓ O termo de desinterdição > recusa emitir antes de a interdição ser levantada  311ms
+   ✓ A re-vistoria que atesta a cessação do risco > a segunda via do termo de interdição sai da vistoria que sustentou o ato  533ms
+   ✓ A re-vistoria que atesta a cessação do risco > sem re-vistoria, o termo de desinterdição DIZ que o levantamento foi sem nova vistoria  410ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição não afirma 'Assinatura não coletada' sobre quem assina de próprio punho  353ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 19554ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  5168ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  2794ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  1112ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  3323ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 27425ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  5905ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  3808ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  3481ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  3146ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  3638ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  2052ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  2022ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  1530ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  1840ms
+
+ Test Files  7 passed (7)
+      Tests  71 passed (71)
+   Start at  11:30:10
+   Duration  28.70s (transform 1.58s, setup 748ms, collect 11.25s, tests 113.35s, environment 6ms, prepare 1.13s)
+
+
+===== rodada da API 3: ins02-api-3.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/fotos-do-documento.test.ts (4 tests) 7866ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 8081ms
+   ✓ Segunda via do termo depois do levantamento > o termo de desinterdição continua podendo ser emitido depois da segunda via  335ms
+   ✓ A reinterdição legítima continua funcionando > com vistoria nova depois do levantamento, o termo interdita de novo  353ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 8733ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 11064ms
+   ✓ FCM: a chamada que nao volta > a troca do token de acesso desiste no tempo limite  304ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  5232ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  2745ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  2554ms
+ ✓ test/desinterdicao.test.ts (22 tests) 11821ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 12764ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  3206ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  1945ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  574ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  1694ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 20777ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  5260ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  2639ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  2385ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  2177ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  1740ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  1604ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  1727ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  1352ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  1892ms
+
+ Test Files  7 passed (7)
+      Tests  71 passed (71)
+   Start at  11:30:40
+   Duration  21.65s (transform 1.45s, setup 337ms, collect 8.82s, tests 81.11s, environment 1ms, prepare 1.08s)
+
+
+===== rodada da API 4: ins02-api-4.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/fotos-do-documento.test.ts (4 tests) 7714ms
+   ✓ O laudo da re-vistoria > uma vistoria sem foto nenhuma diz que não tem, mesmo com foto de outra vistoria no protocolo  305ms
+   ✓ A foto anexada fora da vistoria > sai em seção própria, com quem anexou, e não vira foto da vistoria  324ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 8368ms
+   ✓ A reinterdição legítima continua funcionando > com vistoria nova depois do levantamento, o termo interdita de novo  371ms
+   ✓ A reinterdição legítima continua funcionando > reimprimir enquanto a interdição está de pé continua sem mexer na data  321ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 8676ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 10902ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  4976ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  2752ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  2676ms
+ ✓ test/desinterdicao.test.ts (22 tests) 12290ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 13403ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  3425ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  1902ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  578ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  2113ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 20715ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  4699ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  2691ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  2683ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  2085ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  2035ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  1964ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  1702ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  1321ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  1535ms
+
+ Test Files  7 passed (7)
+      Tests  71 passed (71)
+   Start at  11:31:03
+   Duration  21.85s (transform 1.26s, setup 666ms, collect 9.31s, tests 82.07s, environment 1ms, prepare 1.18s)
+
+
+===== rodada da API 5: ins02-api-5.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/fotos-do-documento.test.ts (4 tests) 9553ms
+   ✓ O laudo da re-vistoria > uma vistoria sem foto nenhuma diz que não tem, mesmo com foto de outra vistoria no protocolo  441ms
+   ✓ A foto anexada fora da vistoria > sai em seção própria, com quem anexou, e não vira foto da vistoria  457ms
+ ✓ test/segunda-via-nao-reinterdita.test.ts (6 tests) 10473ms
+   ✓ Segunda via do termo depois do levantamento > o imóvel continua fora da lista de interditados  463ms
+   ✓ Segunda via do termo depois do levantamento > o termo de desinterdição continua podendo ser emitido depois da segunda via  317ms
+   ✓ Segunda via do termo depois do levantamento > o registro não se contradiz: a trilha do levantamento continua sozinha  386ms
+   ✓ A reinterdição legítima continua funcionando > com vistoria nova depois do levantamento, o termo interdita de novo  326ms
+   ✓ A reinterdição legítima continua funcionando > reimprimir enquanto a interdição está de pé continua sem mexer na data  403ms
+ ✓ test/identificador-da-emissao.test.ts (9 tests) 11555ms
+   ✓ Onde o identificador se confere > responde protocolo, documento, vistoria, instante e quem emitiu  377ms
+ ✓ test/push-sem-resposta.test.ts (6 tests) 14137ms
+   ✓ FCM: a chamada que nao volta > resposta dentro do tempo continua passando  497ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > para no teto de tempo em vez de varrer a fila inteira devagar  6309ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > rodada rapida nao e interrompida  3384ms
+   ✓ A rodada inteira tem teto, e a trava nao fica presa > a rodada que nao termina tem a trava solta pelo vigia  3622ms
+ ✓ test/desinterdicao.test.ts (22 tests) 16593ms
+   ✓ Levantar a interdição > sai da lista de interditados e entra na trilha  364ms
+   ✓ Reinterdição: o risco volta > volta para a lista de interditados, com data nova  321ms
+   ✓ O termo de desinterdição > responde 404 para município vizinho, não 403  306ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição sai depois da re-vistoria que diz NÃO  338ms
+   ✓ A re-vistoria que atesta a cessação do risco > a segunda via do termo de interdição sai da vistoria que sustentou o ato  408ms
+   ✓ A re-vistoria que atesta a cessação do risco > o termo de desinterdição não afirma 'Assinatura não coletada' sobre quem assina de próprio punho  309ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 18999ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  4758ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  3198ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  1051ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  2743ms
+ ✓ test/push-rodada-diz-o-que-fez.test.ts (9 tests) 29497ms
+   ✓ a rodada deixa o resumo no log > falha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha  5986ms
+   ✓ a rodada deixa o resumo no log > rodada com entrega e sem falha vira info com os contadores  3315ms
+   ✓ a rodada deixa o resumo no log > rodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log  3554ms
+   ✓ a rodada deixa o resumo no log > a ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte  3311ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a primeira rodada sai na partida, sem esperar o intervalo  2784ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() faz a rodada sair agora, sem esperar o relógio  3270ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > despertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo  2662ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > ultimaRodada() é nula antes da primeira rodada e traz os contadores depois  1997ms
+   ✓ o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada > a rodada que perdeu a trava para a outra máquina não entra no quadro  2616ms
+
+ Test Files  7 passed (7)
+      Tests  71 passed (71)
+   Start at  11:31:26
+   Duration  30.61s (transform 1.10s, setup 302ms, collect 9.29s, tests 110.81s, environment 1ms, prepare 1.14s)
+

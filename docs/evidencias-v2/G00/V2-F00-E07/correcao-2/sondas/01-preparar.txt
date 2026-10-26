@@ -1,0 +1,6 @@
+$ (sonda-049.mjs copiada para o scratchpad, DC360_RAIZ=<dc360 de hoje>, Postgres 17.5 descartavel; o comando de cada passo esta na linha seguinte)
+
+== node sonda-049.mjs preparar <url-superusuario>
+aplicadas ate a 048: 48 ultima: 048_dono_do_token_diz_se_a_conta_esta_ativa.sql
+sessoes antes da 049: 4 familias da sonda: 3
+DATABASE_URL do setup (para o npm run migrar): postgres://[REDIGIDO]@127.0.0.1:54917/prova_c2_migrar

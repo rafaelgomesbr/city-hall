@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { FastifyInstance } from "fastify";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
@@ -415,8 +415,18 @@ describe("A conexão de verdade vai para o endereço conferido, e não lê corpo
     });
     expect(r).toEqual({ status: 200, location: null });
     expect(pedidos).toEqual([{ host: `nome-que-nao-existe.invalid:${porta}`, metodo: "GET", caminho: "/destino" }]);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(conexaoFechada, "a conexão precisa ser fechada assim que os cabeçalhos chegam").toBe(true);
+    /*
+      Espera com condição e limite, e não um tempo fixo. O `close` da resposta
+      chega no servidor local pelo laço de eventos, e sob a carga da suíte
+      inteira (o pool de derivação de senha ocupa os fios) 20 ms não bastavam:
+      o teste falhou 1 vez em 3 rodadas completas (V2-F00-E03, classe F). Agora
+      ele passa assim que a conexão fecha e só reprova se ela NÃO fechar em 5 s,
+      que é o defeito que o teste existe para pegar (corpo lido até o fim).
+    */
+    await vi.waitFor(
+      () => expect(conexaoFechada, "a conexão precisa ser fechada assim que os cabeçalhos chegam").toBe(true),
+      { timeout: 5000, interval: 10 },
+    );
   });
 
   it("devolve o `Location` de um redirecionamento sem segui-lo por conta própria", async () => {

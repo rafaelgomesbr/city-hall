@@ -1,0 +1,100 @@
+# mutacao em src/ui/Dialogo.tsx
+# -             <Botao
+              testID="dialogo-acao"
+              titulo={acao.rotulo}
+              tipo={acao.destrutiva ? "perigo" : "primario"}
+              /*
+                Fecha ANTES de agir, e a ordem importa.
+
+                A ação costuma navegar para fora desta tela (sair da conta
+                volta para a entrada, a vistoria guardada volta para a lista).
+                Agir primeiro e fechar depois escreveria estado num componente
+                que já saiu da árvore, e o diálogo que sobra aberto por trás da
+                navegação foi defeito visto: o agente volta para a tela
+                anterior e encontra a pergunta ainda de pé, perguntando por algo
+                que já aconteceu.
+              */
+              desabilitado={acao.desabilitada}
+              onPress={() => { aoFechar(); acao.aoTocar(); }}
+            />
+            {recusa && (
+              <Botao
+                testID="dialogo-recusa"
+                titulo={recusa.rotulo}
+                tipo="secundario"
+                onPress={aoFechar}
+              />
+            )}
+# +             {recusa && (
+              <Botao
+                testID="dialogo-recusa"
+                titulo={recusa.rotulo}
+                tipo="secundario"
+                onPress={aoFechar}
+              />
+            )}
+            <Botao
+              testID="dialogo-acao"
+              titulo={acao.rotulo}
+              tipo={acao.destrutiva ? "perigo" : "primario"}
+              /*
+                Fecha ANTES de agir, e a ordem importa.
+
+                A ação costuma navegar para fora desta tela (sair da conta
+                volta para a entrada, a vistoria guardada volta para a lista).
+                Agir primeiro e fechar depois escreveria estado num componente
+                que já saiu da árvore, e o diálogo que sobra aberto por trás da
+                navegação foi defeito visto: o agente volta para a tela
+                anterior e encontra a pergunta ainda de pé, perguntando por algo
+                que já aconteceu.
+              */
+              desabilitado={acao.desabilitada}
+              onPress={() => { aoFechar(); acao.aoTocar(); }}
+            />
+# teste: src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+FAIL src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+  a pergunta antes de sair, com vistoria começada
+    ✓ diz quantas vistorias começadas serão apagadas, e que as fotos vão junto (467 ms)
+    ✓ uma só, sem foto: singular, e sem prometer foto que não existe (156 ms)
+    ✓ o botão de confirmar é o de perigo, porque o ato apaga (282 ms)
+    ✕ a pergunta se chama 'Sair da conta?' e a ação vem antes da recusa (170 ms)
+    ✓ o item que está sendo enviado agora também conta como não enviado (140 ms)
+    ✓ o disco respondeu zero e na segunda pergunta falha: avisa, e não repete o zero de antes (171 ms)
+    ✓ o disco não responde: o diálogo avisa do mesmo jeito, e não promete que não há nada (153 ms)
+    ✓ o item recusado pelo servidor também conta como coleta não enviada (81 ms)
+    ✓ sem vistoria começada e sem fila, a pergunta não fala em apagar (182 ms)
+  a fila lida ao vivo, e não uma vez
+    ✓ quando a fila esvazia, o chip e o aviso de esperar somem sem trocar de aba (101 ms)
+    ✓ o diálogo de saída conta a fila de AGORA, e não a da montagem (84 ms)
+
+  ● a pergunta antes de sair, com vistoria começada › a pergunta se chama 'Sair da conta?' e a ação vem antes da recusa
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "dialogo-acao",
+        "dialogo-recusa",
+    +   "dialogo-acao",
+      ]
+
+      239 |       .getAllByTestId(/^dialogo-(acao|recusa)$/)
+      240 |       .map((botao) => botao.props.testID);
+    > 241 |     expect(emOrdem).toEqual(["dialogo-acao", "dialogo-recusa"]);
+          |                     ^
+      242 |   });
+      243 |
+      244 |   it("o item que está sendo enviado agora também conta como não enviado", async () => {
+
+      at Object.toEqual (src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx:241:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 passed, 11 total
+Snapshots:   0 total
+Time:        3.858 s
+Ran all test suites matching /src\/ui\/dialogo-na-conta-com-vistoria-comecada.test.tsx/i.
+codigo 1

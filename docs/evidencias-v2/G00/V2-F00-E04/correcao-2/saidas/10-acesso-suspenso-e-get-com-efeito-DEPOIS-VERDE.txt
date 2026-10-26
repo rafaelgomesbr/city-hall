@@ -1,0 +1,41 @@
+$ (em dc360/apps/api, arvore de hoje) npx vitest run test/acesso-suspenso.test.ts test/get-com-efeito.test.ts --reporter=verbose
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > recusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato 515ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > nunca responde 401: a credencial esta certa, o que falta e o contrato 465ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > senha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao 475ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > nao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou 432ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > o municipio vizinho continua entrando normalmente 421ms
+ ✓ test/get-com-efeito.test.ts > Controle: quem está vigente continua emitindo, e as pegadas enxergam a escrita > termo de interdição interdita e grava; o CSV grava a exportação 1591ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > reativar devolve a entrada: a suspensao e reversivel 1852ms
+ ✓ test/acesso-suspenso.test.ts > Entrar num municipio suspenso > municipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra 374ms
+ ✓ test/acesso-suspenso.test.ts > A barreira do banco, quando a da API nao alcanca > abrir_sessao recusando com DC367 vira 403 acesso_suspenso, e nao 500 35ms
+ ✓ test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > conta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 2320ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > renovar recusa com 403 mesmo com a sessao ainda de pe no banco 452ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > renovar com a sessao ja revogada pelo console responde 401 sessao_encerrada, e entrar de novo diz 403 1279ms
+ ✓ test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > papel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 1950ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: escrita recusa na hora, com 403 944ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: leitura continua ate o token vencer 475ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vivo: GET COM EFEITO recusa com 403 como a escrita (o sino, o CSV e o laudo, em GET e HEAD) 456ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso VENCIDO de municipio suspenso responde 403, e nao 401 4ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token de acesso vencido de municipio ATIVO continua respondendo 401 3ms
+ ✓ test/acesso-suspenso.test.ts > Sessao viva de municipio suspenso > token adulterado de municipio suspenso continua sendo 401: a suspensao so fala com token autentico 2ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > a sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario 588ms
+ ✓ test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > sessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 2127ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > as quatro rotas que a fila chama recusam com 503, e as demais escritas com 403 547ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > com token vencido a fila tambem recebe 503, e nao 403 12ms
+ ✓ test/acesso-suspenso.test.ts > A fila do aparelho num municipio suspenso > nada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso 778ms
+ ✓ test/get-com-efeito.test.ts > Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado > cadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD 2575ms
+ ✓ test/get-com-efeito.test.ts > A lista de GET com efeito é a decisão, e o comportamento a obedece > toda entrada da lista existe nas rotas registradas (sem lista morta) 5ms
+ ✓ test/get-com-efeito.test.ts > A lista de GET com efeito é a decisão, e o comportamento a obedece > com a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista 593ms
+ ✓ test/get-com-efeito.test.ts > A lista de GET com efeito é a decisão, e o comportamento a obedece > varredura da fonte: GET que escreve no corpo carrega a marca, e marca só em GET da lista 17ms
+ ✓ test/get-com-efeito.test.ts > PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve > toda rota de escrita autenticada recusa com 403 conta_desativada, sem tocar no banco 715ms
+ ✓ test/get-com-efeito.test.ts > /auth/encerrar-sessoes com o token anterior à renovação > a mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu 779ms
+
+ Test Files  2 passed (2)
+      Tests  30 passed (30)
+   Start at  12:34:52
+   Duration  19.27s (transform 655ms, setup 107ms, collect 1.97s, tests 32.07s, environment 0ms, prepare 155ms)
+

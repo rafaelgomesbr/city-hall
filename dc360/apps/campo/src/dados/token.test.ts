@@ -1,4 +1,5 @@
-import type { Credenciais } from "./api";
+import { FalhaDeSessao } from "@dc360/campo";
+import { ErroDaApi, type Credenciais } from "./api";
 import { criarObtentorDeToken, lerExpiracaoDoAcesso } from "./token";
 
 /**
@@ -318,5 +319,79 @@ describe("renovarJa", () => {
     const { c, obterToken } = obtentorCom(async () => ({ acesso: "x", renovacao: "y" }), { t: agora });
     c.trocarPorFora(null);
     await expect(obterToken({ renovarJa: true })).resolves.toBeNull();
+  });
+  /*
+    Correção 1 da V2-F00-E05. Desativar a conta pelo painel revoga as sessões, e
+    a API passou a responder 403 `conta_desativada` à renovação de quem
+    apresenta um token que ela reconhece. O aparelho engolia a recusa e
+    devolvia o token vencido, o servidor respondia 401 `nao_autenticado`, e o
+    transporte lia isso como "sessão encerrada": o agente via "entre de novo"
+    e, ao entrar, "Email ou senha inválidos".
+  */
+  describe("renovação recusada porque a conta foi desativada", () => {
+    const contaDesativada = () =>
+      new ErroDaApi(403, "conta_desativada", "Sua conta foi desativada.");
+
+    it("renovarJa lança FalhaDeSessao conta_desativada, com a frase do servidor", async () => {
+      const { obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
+
+      const erro = await obterToken({ renovarJa: true }).catch((e: unknown) => e);
+
+      expect(erro).toBeInstanceOf(FalhaDeSessao);
+      expect((erro as FalhaDeSessao).motivo).toBe("conta_desativada");
+      expect((erro as FalhaDeSessao).message).toBe("Sua conta foi desativada.");
+    });
+
+    it("lembra a recusa dentro do piso, sem pedir outra renovação ao servidor", async () => {
+      let renovacoes = 0;
+      const relogio = { t: agora };
+      const { obterToken } = obtentorCom(async () => {
+        renovacoes += 1;
+        throw contaDesativada();
+      }, relogio);
+
+      await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
+      relogio.t += 5_000; // dentro do piso: a fila tenta de novo e tem de ler a MESMA resposta
+      await expect(obterToken({ renovarJa: true })).rejects.toMatchObject({ motivo: "conta_desativada" });
+      expect(renovacoes).toBe(1);
+    });
+
+    it("o pedido comum (sem renovarJa) segue devolvendo o token atual: só o transporte da fila lê a recusa", async () => {
+      const { c, obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
+      const velho = c.valor!.acesso;
+
+      await expect(obterToken()).resolves.toBe(velho);
+      // O 401 do token vencido é que pergunta, com renovarJa, e aí a recusa é lida.
+      await expect(obterToken({ renovarJa: true })).rejects.toMatchObject({ motivo: "conta_desativada" });
+    });
+
+    it("recusa de OUTRO tipo (sessão encerrada, sem sinal) continua devolvendo o token atual", async () => {
+      const { c, obterToken } = obtentorCom(async () => {
+        throw new ErroDaApi(401, "sessao_encerrada", "Sessão expirada. Entre novamente.");
+      }, { t: agora });
+      await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
+    });
+
+    it("conta reativada: passado o piso, a nova tentativa vale, e a recusa antiga não gruda", async () => {
+      const relogio = { t: agora };
+      let resposta: "desativada" | "encerrada" = "desativada";
+      const { c, obterToken } = obtentorCom(async () => {
+        if (resposta === "desativada") throw contaDesativada();
+        throw new ErroDaApi(401, "sessao_encerrada", "Sessão expirada. Entre novamente.");
+      }, relogio);
+      await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
+
+      resposta = "encerrada"; // a coordenação reativou: a sessão antiga está revogada, a conta não
+      relogio.t += 61_000;
+      await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
+    });
+
+    it("entrar de novo (outras credenciais) apaga a recusa", async () => {
+      const { c, obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
+      await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
+
+      c.trocarPorFora({ acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r-da-nova-entrada" });
+      await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
+    });
   });
 });

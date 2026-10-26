@@ -1,13 +1,62 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
+> Nota de 2026-10-19 (V2-F00-E24, correção 3): entra `correcao-3/` (RESUMO, `saidas/` e o diff). `correcao-3/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | e3233286c1d7face0c1e98b3565c72f025a76f932727429421e0e5a06ee0fa19 |
+| RESUMO.md | 875d89f395aa2826a656b6a9df4c3809d14de99724b8198a332629fa875a4d0d |
 | antes/npm-test.txt | a1a04e3e3a8312cac8724b017bdf31a52cc6cc9f2e60e09967fc366442037a6a |
 | capturas/seguranca-1280-claro.png | 8f41e68c79ba4cb1078a0653ef6a58a114284f4768625d81d9c4eec43bec4985 |
 | capturas/seguranca-1280-escuro.png | 8d9f66d44584971b68c4ef41cb0ee16ecb771dea8303429231fb250ec17be3c1 |
 | capturas/seguranca-390-claro.png | 2495608f8ddc6d22910b627deeb8292ce5d6e305875ba08c846d44579a8e968b |
 | capturas/seguranca-390-escuro.png | 30fa14e837fa318ad573a50396928f44f06570c7a3b9581da0af04b7bc49640f |
+| correcao-2/RESUMO.md | 643767c8ab51b7ef3dcc4f91cc5f233fcf0211ad6795787dff04f6524815a4b9 |
+| correcao-2/capturas/antes-15-09-tabelas-0-1280-claro.png | 71711003a646aa4b1e130edc89e78fce0eabf039f6817a17ee74cbc91f20ebab |
+| correcao-2/capturas/antes-15-09-tabelas-0-1280-escuro.png | 5b86c6114492fb8c3df46dbc77ffb1479847a6005f5c716f6389c38a48240d07 |
+| correcao-2/capturas/antes-15-09-tabelas-0-390-claro.png | 0c05b74937fbb51db7dcba5d2a8db0391a7f1261b38ee1017566fa996fc61807 |
+| correcao-2/capturas/antes-15-09-tabelas-0-390-escuro.png | 9c86f7a0737c204ee680ab369824e3b417499d08e9f4612310495d0c3b963226 |
+| correcao-2/capturas/antes-15-09-tabelas-1-1280-claro.png | 677999a6c4ebe37d341eb905309658b43d8c269877d415cb5f7cb85f24301dd4 |
+| correcao-2/capturas/antes-15-09-tabelas-1-1280-escuro.png | e282fdb5d277a0a8631cbd6fa2b0e0631149e6505e4acac178792e033764ed1b |
+| correcao-2/capturas/antes-15-09-tabelas-1-390-claro.png | 92338fbc5cf4295ebf51e8743291f7e6b6cf0a372ec94a301f1083bb88440740 |
+| correcao-2/capturas/antes-15-09-tabelas-1-390-escuro.png | d8833cc0a2152e82bb097c271d4cc6ee6ddb0f8068313fa886a7fd112b0732de |
+| correcao-2/capturas/antes-alyson-cards-e-matriz-1280-claro.png | 5ace7a6396cbe8552bd8f2de0d047a6744993ac0c86abe8ea4e07d14cc7b2424 |
+| correcao-2/capturas/antes-alyson-cards-e-matriz-1280-escuro.png | 3433e822c0e5e7587f5bab628c0c325b30262196871749e2e3145443b491741e |
+| correcao-2/capturas/antes-alyson-cards-e-matriz-390-claro.png | cc06bde04951f534aa3c37f7e22e047bdb4c1eca6ff006755d6b12fbd0473ffc |
+| correcao-2/capturas/antes-alyson-cards-e-matriz-390-escuro.png | 3ebc5f913666cca58f5c99d56c2f0f5855f9ac189df3212d5d9850ccb06463df |
+| correcao-2/capturas/depois-15-09-tabelas-0-1280-claro.png | 376b5d1533e3e24dbbd4539317a1ab4dee6691d3159354c344c6964b3984c798 |
+| correcao-2/capturas/depois-15-09-tabelas-0-1280-escuro.png | b44bd9122b6539dff85623d60f3a33bff27619e14ac90f31e3a4af1411b8383f |
+| correcao-2/capturas/depois-15-09-tabelas-0-390-claro.png | 111435203a6aa00da0f3a0a69ad5400516b2a51ad09c8a0bddc3c11dbb586340 |
+| correcao-2/capturas/depois-15-09-tabelas-0-390-escuro.png | 8e53124c96a360e6729d896a344cfd5fa97c08d3a1ed2fd5f6485b9fd6e640e1 |
+| correcao-2/capturas/depois-15-09-tabelas-1-1280-claro.png | c3bb127558efccbf6b499cbb8a16e21bc8804d76193954d76d149ea7e28d4b29 |
+| correcao-2/capturas/depois-15-09-tabelas-1-1280-escuro.png | a82c9cf8f45af92cffc3ff4ba45b51604df2e691668cb3a0281514b5968322e8 |
+| correcao-2/capturas/depois-15-09-tabelas-1-390-claro.png | 260d84032cd065d9b4bc8e37bc18dede4e02ea68588dcec479f85ba4b01468e7 |
+| correcao-2/capturas/depois-15-09-tabelas-1-390-escuro.png | 7c92d3acd67cee1abc0e97ae511fc1a1e3b55b06887fc17f51c72b863d5288db |
+| correcao-2/capturas/depois-alyson-cards-e-matriz-1280-claro.png | f13fa30ba70928253a674961335d20fbc3e4f2ea23b4d7d6b0a592f5bb129b3d |
+| correcao-2/capturas/depois-alyson-cards-e-matriz-1280-escuro.png | 1249183f39368774c2f127c8e061b8799ebbf6450afdf40fe5a1314cba57b9cd |
+| correcao-2/capturas/depois-alyson-cards-e-matriz-390-claro.png | fdbfe0f72bd19d55bf79189bf3c7099ccc4b65d8688fb589ffa724a6f1d43f71 |
+| correcao-2/capturas/depois-alyson-cards-e-matriz-390-escuro.png | 0df9dace42cdfd687883ce8091d04234954da177d6629c03e82cf037a30e2c13 |
+| correcao-2/diff-da-correcao.patch | de1179043dff1c0b6fbcecc97502c12decadd13283e2dba4cbd2a643432f9ca7 |
+| correcao-2/saidas/01-ressalvas-ANTES-VERMELHO.txt | 42420def41e8a775997c4430da518e052fda1e0c31fb579d38b219d15d66d089 |
+| correcao-2/saidas/02-ressalvas-DEPOIS-VERDE.txt | 196884f8c9c612da4c3d7fee866875e8f98ae437d2754b3fe31d94968739498d |
+| correcao-2/saidas/03-gerar-pdf.txt | b9539afbc3b479df3bc8af998815572f460f735f25450e0c6e24a1097058394a |
+| correcao-2/saidas/04-regras-de-conteudo.txt | 567954fda3b0d63d012212f5750099eaed6faf60fac925d077b5ec0a0f55f491 |
+| correcao-2/saidas/05-saida-a-campo-api.txt | ca4745679c2c4dc6e0c1f0b66e77a1eb0b6282f1789dcd20f088642462a982a6 |
+| correcao-2/saidas/06-conferir-numeros-falha-do-ambiente.txt | 20f7ab960cd707d7168a1e4622a67a0d028f2964cd875a253d0826cde1db1a25 |
+| correcao-2/verificar-ressalvas.mjs | 9dc5fa537c37a908e93a69499cf2720b94528f86bc18c6c0e309cb275dd51df6 |
+| correcao-3/RESUMO.md | 0774669b2deff8786b6a945d9b3eebfcad06e8cb79172200e745138d6876b59a |
+| correcao-3/diff-da-correcao.patch | 3fbfe63b1bf6efd4d7b8b8d5f83070811b6ee9ad791db69243f7f029033b2d84 |
+| correcao-3/saidas/01-guarda-antes-do-conserto.txt | 96a7259595575d89b605ce242304844728eb2b4b6abbd936dc8ed69efbfc4862 |
+| correcao-3/saidas/02-teste-novo-sem-o-conserto.txt | 2876ce28c2664afff089a64d77306bb80bd1a820437184c5519ebb2ce6e40de6 |
+| correcao-3/saidas/03-teste-novo-com-o-conserto.txt | e2104fe785bbcf62e955991aa3f6ce61e9e5648daf7ec20d325ac9cc99b75a68 |
+| correcao-3/saidas/04-guarda-depois-do-conserto.txt | 3533e75fd725767a6986574335521fc12e5f429affc15ae65538461c4f9b5723 |
+| correcao-3/saidas/05-shared-completo.txt | 6143e6ab6ab9d359ccecfbd5e6e865b105e8ccf4f181278474ca1a2dbe7bdb6f |
+| correcao-3/saidas/06-portao-de-conteudo-e-permissoes.txt | 69fa77a5721f701b75374f9ea58dfd9218f2633d4433a7375292790521b8c15e |
+| correcao-3/saidas/07-conferir-numeros.txt | 0b1aa085132735a1c01227e086d3e646297664708e10b41b4085a7f8b949c5dc |
+| correcao-3/saidas/08-conferir-indices.txt | 033da061196d9ba30cacf3d0c8f3e1d4c39c5199262a6b7cacb364fc7a078860 |
+| correcao-3/saidas/09-mutacoes-da-revisao-contra-o-teste-ANTIGO.txt | 9836ca7eb0f363ac83dfbc050d5994b4b70dec6337c232510d4b3f5efa4a51b9 |
+| correcao-3/saidas/10-teste-novo-verbose-38-de-38.txt | 288c74a8abed545e496516f5b1bcbb04edf11ef4f4f2fd19dbd8c13643fde177 |
 | depois/conferir-numeros.txt | a9bf679689854e1b00adcc8b23f008c48dfa32fea25df9d8d7404d27a1834630 |
 | depois/npm-test.txt | 3c4f2c0ee0a3c26851092ac5652122ac2324a5438fd5096f06abb5fa5724fee2 |
 | depois/regras-de-conteudo.txt | 46ddb8ec2efcba6fe7e421c71cb83f580e9fa48a11fec7678d55b42ac28e1fe3 |

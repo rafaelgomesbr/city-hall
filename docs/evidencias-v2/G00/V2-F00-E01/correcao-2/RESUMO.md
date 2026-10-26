@@ -1,0 +1,16 @@
+# V2-F00-E01, correção 2: o roteiro descreve o estado de hoje (código 0, sem V-DEP-4)
+
+## Fatos
+
+- **O defeito (rodada 2, `validacao/4b96ea7/`):** `COMO-REPRODUZIR.md` (linhas 65, 67 e 78) e `dc360/README.md` (linhas 1172 e 1173) prometiam código de saída 1 por causa de V-DEP-4 (o `expo-doctor` em 20 de 21). A deriva foi fechada em 2026-10-13 pela E19, correção 2; o roteiro hoje confere 17 de 17 com código 0 (gatekeeper no SHA `4b96ea7`) e 19 de 19 no job de Linux do CI.
+- **`COMO-REPRODUZIR.md`:** a seção "O que esperar" não tem mais "uma divergência EXPLICADA": o `expo-doctor` dá 21 de 21 e o passo confere. O parágrafo que dizia "uma árvore verde dá código 1" diz agora código 0, 19 de 19 numa máquina nova e 17 de 17 com `--sem-instalar`, e avisa que sem rede o resultado não vale. A lista do que anexar ao fechar a validação não cita mais V-DEP-4 como divergência esperada. O resto do arquivo (a tabela de códigos de saída, o histórico da linha vermelha de 2026-09-30) ficou como estava.
+- **`dc360/README.md`:** o parágrafo do roteiro (antes "Hoje a única divergência explicada é o `expo-doctor` (V-DEP-4)") diz que não há divergência explicada, que o roteiro confere 17 de 17 com `--sem-instalar` e 19 de 19 no CI, e que os dois `npm audit` crus só conferem se a saída trouxer o relatório. A frase da linha do `expo-doctor` do aplicativo, mais abaixo, foi corrigida na E19, correção 3.
+- **Passos `audit-raiz` e `audit-campo` do `baseline.mjs`:** deixam de aceitar "qualquer código não zero". O esperado exige agora o cabeçalho `# npm audit report`, que só aparece quando houve auditoria. Registro fora do ar: os dois passos divergem (código de saída do roteiro 3). A prova, o teste novo e o contraste com o roteiro antigo estão em `docs/evidencias-v2/G00/V2-F00-E19/correcao-3/` (a mesma mudança serve às duas etapas) e as saídas do roteiro estão copiadas em `saidas/`.
+- **Roteiro rodado hoje (parte):** `node scripts/baseline.mjs --sem-instalar --so=auditar,audit-raiz,audit-campo,expo-doctor`: 4 de 4 conferem, código 0 (`saidas/01-baseline-com-rede.txt`). Com `npm_config_registry=http://127.0.0.1:9`, só os dois `audit`: 2 divergem, código 3 (`saidas/02-baseline-sem-registro.txt`). O roteiro INTEIRO (17 passos) não foi repetido nesta correção; vale o do gatekeeper no SHA `4b96ea7` para o resto, que esta correção não mexeu.
+- **Fora desta correção, segue aberto:** o passo do Firefox no roteiro (divergência D-4 da E03). Ganhou dono e prazo em `classificacao-dos-vermelhos.md` (linha V-ROT-02, E03 correção 3). Não foi implementado aqui porque acrescentar passo muda as contagens de `baseline.mjs`, arquivo compartilhado.
+- **Números de teste:** nenhuma suíte própria desta etapa mudou além do caso novo em `baseline.test.mjs` (26 para 27), contado na E19.
+- **Limitação:** o README e o COMO-REPRODUZIR afirmam "19 de 19 no Linux do CI" com base no run 38445527075 citado no `VEREDITO.md` da E01; não repeti o job do CI nesta correção.
+
+## Justificativa
+
+A definição de pronto da E01 pede que o procedimento e a documentação de como reproduzir digam o que acontece. Depois que a deriva do Expo fechou, o texto que prometia código 1 mandava a segunda pessoa investigar uma divergência que não existe, e o texto que aceitava "qualquer falha" nos `npm audit` crus deixava o roteiro conferir um passo que não auditou nada.

@@ -1,0 +1,92 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts (27 tests | 3 failed) 1500ms
+   ✓ a guarda do console > em teste, m07 sai 500 e o desvio fica registrado com a rota 8ms
+   ✓ a guarda do console > em teste, m10 sai 500 e o desvio fica registrado com a rota 1ms
+   ✓ a guarda do console > em teste, m11 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, m16 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eab/x sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, eag/x sai 500 e o desvio fica registrado com a rota 4ms
+   ✓ a guarda do console > em teste, eaf sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota 0ms
+   ✓ a guarda do console > fora de teste, m07 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, m10 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m11 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, m16 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eab/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eag/x sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, eaf sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log 0ms
+   ✓ a guarda do console > controle: o código do contrato passa intacto, com a frase da rota 0ms
+   ✓ correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos 15ms
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-store não sai 403 com o código inventado, nos dois modos 4ms
+     → falhar por-baixo-store: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-header não sai 401 com o código inventado, nos dois modos 2ms
+     → falhar por-baixo-header: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+   × correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-writeraw não sai 403 com o código inventado, nos dois modos 1ms
+     → falhar por-baixo-writeraw: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-store não sai 403 com o código inventado, nos dois modos
+AssertionError: falhar por-baixo-store: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:159:43
+    157|         const r = await fetch(`${await enderecoDe(modo)}/teste-da-guar…
+    158|         const corpo = await r.text();
+    159|         expect(corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    160|         if (modo === "falhar") {
+    161|           expect(r.status).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-header não sai 401 com o código inventado, nos dois modos
+AssertionError: falhar por-baixo-header: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:159:43
+    157|         const r = await fetch(`${await enderecoDe(modo)}/teste-da-guar…
+    158|         const corpo = await r.text();
+    159|         expect(corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    160|         if (modo === "falhar") {
+    161|           expect(r.status).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/guarda-de-codigos-de-erro.test.ts > correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-writeraw não sai 403 com o código inventado, nos dois modos
+AssertionError: falhar por-baixo-writeraw: expected '{"erro":"inventado_c6","mensagem":"x"}' not to contain 'inventado_c6'
+
+Expected: "inventado_c6"
+Received: "{"erro":"inventado_c6","mensagem":"x"}"
+
+ ❯ test/guarda-de-codigos-de-erro.test.ts:159:43
+    157|         const r = await fetch(`${await enderecoDe(modo)}/teste-da-guar…
+    158|         const corpo = await r.text();
+    159|         expect(corpo, `${modo} ${n}`).not.toContain("inventado_c6");
+       |                                           ^
+    160|         if (modo === "falhar") {
+    161|           expect(r.status).toBe(500);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 24 passed (27)
+   Start at  07:03:58
+   Duration  1.86s (transform 114ms, setup 32ms, collect 166ms, tests 1.50s, environment 0ms, prepare 30ms)
+
+codigo de saida: 1

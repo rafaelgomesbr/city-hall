@@ -1,0 +1,78 @@
+PASS src/push/logout-cala-o-aparelho.test.tsx
+  √ manda a ficha deste aparelho junto com a saída (24 ms)
+  √ sai normalmente quando este aparelho nunca teve ficha (3 ms)
+  √ esquece a ficha depois de mandá-la, para ela não sobreviver ao turno (3 ms)
+  √ guarda o município da sessão, que é o que a barreira de push compara (1 ms)
+  √ o dublê do banco local acompanha tudo o que sessao.tsx importa dele (1 ms)
+
+PASS src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx (7.893 s)
+  a sessão que venceu no meio do plantão
+    √ o botão da faixa diz 'Entrar de novo', e não 'Sair' (299 ms)
+    √ tocar nele derruba a sessão SEM apagar o disco, e leva à entrada (28 ms)
+    √ o texto por extenso promete a vistoria começada de pé, e não manda 'Sair da conta' (248 ms)
+
+PASS src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx (8.141 s)
+  o servidor que não reconhece mais a sessão
+    √ a faixa diz que a sessão terminou, e não que foi a rede (345 ms)
+    √ o ⓘ ensina o caminho de volta, e promete a fila de pé (230 ms)
+    √ sem sinal continua dizendo que é o sinal (37 ms)
+  o aviso de rede tem saída
+    √ dá para dispensar, e dispensar some com ele (92 ms)
+    √ some sozinho quando a atualização seguinte dá certo (49 ms)
+  o ato de voltar fica na cara, e não atrás do ⓘ
+    √ a faixa traz o botão de voltar, sem precisar abrir o detalhe (30 ms)
+    √ o resumo cabe numa linha, em vez de sair cortado no meio da palavra
+    √ os fracassos que passam sozinhos não ganham botão nenhum (35 ms)
+
+PASS src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx (8.616 s)
+  o servidor que não reconhece mais a sessão
+    √ o perfil diz que a sessão terminou, e não que foi a rede (790 ms)
+    √ e ensina o caminho de volta, sem prometer o que não vale (115 ms)
+    √ sem sinal continua dizendo que é o sinal (121 ms)
+  o aviso de rede tem saída
+    √ dá para fechar, com alvo de 52 e rótulo para quem ouve a tela (158 ms)
+    √ some sozinho quando a atualização seguinte dá certo (188 ms)
+
+PASS src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx (8.614 s)
+  a pergunta antes de sair, com vistoria começada
+    √ diz quantas vistorias começadas serão apagadas, e que as fotos vão junto (791 ms)
+    √ uma só, sem foto: singular, e sem prometer foto que não existe (96 ms)
+    √ o botão de confirmar é o de perigo, porque o ato apaga (123 ms)
+    √ sem vistoria começada e sem fila, a pergunta não fala em apagar (125 ms)
+  a fila lida ao vivo, e não uma vez
+    √ quando a fila esvazia, o chip e o aviso de esperar somem sem trocar de aba (96 ms)
+    √ o diálogo de saída conta a fila de AGORA, e não a da montagem (140 ms)
+
+PASS src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx (9.673 s)
+  a tela de 'vistoria guardada'
+    √ não promete envio com o aplicativo fechado, porque isso não existe (552 ms)
+  o formulário e o teclado
+    √ o primeiro toque fora do campo AGE, em vez de só fechar o teclado (138 ms)
+    √ a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele (122 ms)
+  a câmera em tela cheia
+    √ reserva a área segura de baixo, onde o menu escondido não está mais para reservar (126 ms)
+  a permissão negada
+    √ de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes (164 ms)
+    √ de localização: a mesma tarja, o mesmo botão (170 ms)
+    √ uma falha que não é de permissão não ganha o botão dos ajustes (140 ms)
+    √ o botão não sobrevive à falha seguinte, que não é de permissão (V2-F00-E16) (153 ms)
+    √ se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1) (80 ms)
+    √ o botão dos ajustes tem nome para o leitor de tela e área de toque de 44 (56 ms)
+  a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1)
+    √ erro sem mensagem: a tarja diz o fallback de guardar a foto (60 ms)
+    √ algo que nem é Error: o mesmo fallback (76 ms)
+  a câmera que não disparou (V2-F00-E16)
+    √ continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer (67 ms)
+  a precisão da leitura de GPS
+    √ abaixo de meio metro vira 1, e não zero (76 ms)
+    √ a leitura comum continua arredondada ao metro (75 ms)
+    √ aparelho que não informa a precisão grava nulo, que é 'não informada' (149 ms)
+  a foto que saiu vazia do disco
+    √ a tarja diz a frase certa, com o que fazer, e não a genérica (130 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       44 passed, 44 total
+Snapshots:   0 total
+Time:        10.7 s, estimated 15 s
+Ran all test suites matching /src\\__tests__\\a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx|src\\__tests__\\perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx|src\\push\\logout-cala-o-aparelho.test.tsx|src\\ui\\dialogo-na-conta-com-vistoria-comecada.test.tsx|src\\__tests__\\vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx|src\\__tests__\\a-sessao-vencida-nao-apaga-a-vistoria.test.tsx/i.
+saida=0

@@ -1,0 +1,31 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | e8b49bd809c021703cdb2f13987cad691d178e86d04cab819f1152da093b23d7 |
+| diff-da-correcao.patch | 12058c852c05eb5c924a65108e16829f85ffa983e7051a532d92ba72c5bb12be |
+| saidas/01-ins02-api-5-rodadas-sob-carga16.txt | 6572d36acaeb96c08dc1555e715c51992610b88dd333401c754e262dc0e20051 |
+| saidas/02-ins02-mutante-sem-nenhuma-espera.txt | e7e47ec934761801fc23e9caa25021633da2c46439b6946f95142606281c12ca |
+| saidas/03-ins03-04-shared-5-rodadas-sob-carga24.txt | 5c029d50046a34114d3d1add9fb4fb8969014200254d0f2f74b390982d9b2980 |
+| saidas/04-ins03-04-ANTES-versao-antiga-sob-carga80.txt | 52802962a138bd9a19d6e3e91af11ac62f5d65de7a13c26537596db6bf0c6004 |
+| saidas/05-ins04-ANTES-VERMELHO-regras-de-conteudo.txt | 786f1b7cf51a18c007faeeec28599798fdf155fac491846d65ec606aecee217d |
+| saidas/06-ins04-DEPOIS-VERDE-regras-de-conteudo.txt | 00ad0de9ff432c5021ee37b07b7d4d5543fd7dd2a2d9c188fdd70e0c637bf55b |
+| saidas/07-ins05-ANTES-isolamento-sob-carga24.txt | c80fad49c858410964c2d569b26b48fb6d253f126ba697123a3131a4bf48db46 |
+| saidas/08-ins05-so-o-limite-240s-sob-carga24.txt | 92d8ae015a20fb44a9c604e9fa89f90cfdcf29ee483da10e180e7b331c3dbc4e |
+| saidas/09-ins05-sonda-ANTES.txt | ea2eee7af63e2484071c629b8810339268c8632886696e536b87355a9b4b73d6 |
+| saidas/10-ins05-sonda-DEPOIS.txt | 7d84a17fb28d23dbb4790345a7157acb3940b4a80a2c57ce9928ad311e529eb7 |
+| saidas/11-ins05-DEPOIS-5-rodadas-sob-carga24.txt | 13efe2b079df30ec2254ab27e576fa1981f4e0bbf7943ff812de5614f1cdfbe5 |
+| saidas/12-ins05-solo-antes.txt | 137695541c78af39fa7c2459173e1012910305f8b86b8dbc4a85e3badeb187d9 |
+| saidas/13-ins06-e2e-api-chromium-livre.txt | ac8af7f6234c8b5f344c7c415de4dc4ad18882ddf256b5cb4bbc8e0f8a239024 |
+| saidas/14-ins06-e2e-api-firefox-5-rodadas-sob-carga12.txt | d177a98fdcdb95e8aad1ff9cc5750555a95c193f859b8071247389f8fe56548c |
+| saidas/15-ins06-prova-da-espera.txt | d4a1db6879d0c78fd8b014321f5255691fec08b05e83cc4ebfdc7a8aec7d60d4 |
+| saidas/16-rot02-passo-e2e-firefox.txt | d6fcddb59429d794dceab3e96990ea56ce4a4d07dccef3d971f93c4e3524c983 |
+| saidas/17-rot02-ANTES-baseline-test-contra-o-roteiro-antigo.txt | 8a5bc6b58401b83a6e188123e6fb245bc87d5fbdb0add658cdf726e5c6be1f4a |
+| saidas/20-regressao-typecheck.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
+| saidas/21-regressao-test-api.txt | 3b28c88c8c93be7844b89dce1e0e2963dffd5ac94415956d966bb6e6b810f487 |
+| saidas/22-regressao-test-isolamento.txt | 6d912a0bac324dfba4aff7bdffd0263ff6f9664b6d87eec296829f3c9e60d0bd |
+| saidas/23-regressao-test-shared.txt | af02381dbdd788e55e81cb9a39d78252a186e331955d4f29d6ff0d1953915ab8 |
+| saidas/24-regressao-test-scripts.txt | 7f88d00e7c79a825269aba4e987a9faea28d1838fd1bb56591187de18a159cf4 |
+| saidas/25-regressao-conferir-numeros.txt | d0d58b34ca6aa6ef97c800836c23e978b38add1808e3039d1812c24e7ceb5c37 |
+| saidas/26-regressao-e2e-api-chromium.txt | c10f0931d61fb40065f5d2e44dcdc30a2e2a555cb78fa09e9b1024afbb8f2bc2 |
+| saidas/27-regressao-e2e-api-firefox.txt | fdfd539314523e1bcf29882ed54ab064cb254e42391702b069b94729af858f25 |

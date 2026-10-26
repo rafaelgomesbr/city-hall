@@ -20,7 +20,7 @@ function scryptAsync(
  * Derivação de senha com scrypt.
  *
  * scrypt em vez de bcrypt ou argon2 por três razões concretas: está na lista
- * aprovada do OWASP ASVS 4.0 (2.4.3), vem no `node:crypto` (nenhuma
+ * aprovada do OWASP ASVS 4.0 (2.4.1), vem no `node:crypto` (nenhuma
  * dependência nova, nenhum módulo nativo para compilar em cada servidor) e é
  * duro contra hardware dedicado por exigir memória, não só CPU.
  *

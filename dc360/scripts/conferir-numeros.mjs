@@ -26,11 +26,12 @@
  * Fica fora de `npm test` de propósito: ele chama o vitest, e chamar o vitest
  * de dentro do vitest é receita de processo pendurado.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { conferirContagensDoRoteiro, extrairContagem } from "./baseline.mjs";
 import { contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
 import { varrerArvore } from "./portao-de-skip.mjs";
 
@@ -175,9 +176,29 @@ const NAO_E_CONTAGEM = "<!-- numeros: nao sao contagem -->";
  */
 const CONFERE_SO_POR_VALOR = "<!-- numeros: confere so por valor -->";
 
+/**
+ * Marcador para a frase que diz quantas migrações a pasta `db/migrations/` tem
+ * HOJE: `<!-- numeros: migracoes=50 -->`, na própria linha. O número é conferido
+ * contra os arquivos `NNN_*.sql` da pasta (V2-F00-E22, correção 2).
+ *
+ * Existe porque o roteiro de restore dizia "47 migrações" com 50 na pasta e
+ * nenhum portão reclamou: a contagem de migração não é contagem de teste, e o
+ * conferidor de teste não a enxerga. Só vale para o número ATUAL; fato datado
+ * ("provado com 47 em 2026-10-07") fica sem marcador, porque continua verdadeiro.
+ */
+const MARCADOR_DE_MIGRACOES = /<!--\s*numeros:\s*migracoes=(\d+)\s*-->/;
+const migracoesNaPasta = readdirSync(join(RAIZ, "db", "migrations")).filter((n) => /^\d{3}_.+\.sql$/.test(n)).length;
+
 /* ---------- Varredura da documentação ---------- */
 
-const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage"]);
+/*
+  `ios` e `android` são saída do `expo prebuild` do aplicativo de campo, fora do
+  git (`apps/campo/.gitignore`). Numa máquina que já compilou para o aparelho
+  eles trazem milhares de arquivos de Pods, com link simbólico para dentro do
+  `node_modules`; depois de um `npm ci` o link fica quebrado e o `statSync`
+  derrubava o portão inteiro com ENOENT. Nenhum documento do produto mora ali.
+*/
+const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage", "ios", "android"]);
 
 function markdowns(pasta) {
   const achados = [];
@@ -357,6 +378,15 @@ for (const caminho of markdowns(RAIZ)) {
   readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
     if (linha.trim() === "") isento = false;
     if (linha.includes(NAO_E_CONTAGEM)) isento = true;
+
+    const marcadaDeMigracoes = MARCADOR_DE_MIGRACOES.exec(linha);
+    if (marcadaDeMigracoes) {
+      const afirmado = Number(marcadaDeMigracoes[1]);
+      const local = `${relativo}:${i + 1}`;
+      if (afirmado === migracoesNaPasta) conferidos.push(`${local}  ${afirmado} migrações, conferido contra db/migrations`);
+      else problemas.push(`${local}\n    afirma: ${afirmado} migrações em db/migrations\n    a pasta tem ${migracoesNaPasta}`);
+    }
+
     if (isento) return;
 
     const achados = [...linha.matchAll(AFIRMACAO)];
@@ -413,6 +443,49 @@ for (const [rotulo, valor] of Object.entries(VERDADE)) {
 }
 
 /*
+  O roteiro da linha de base (`scripts/baseline.mjs`) carrega o total esperado de
+  cada suíte. Este bloco o confere com a árvore, para que acrescentar teste sem
+  atualizar o roteiro REPROVE aqui, com a diferença e a tabela a atualizar na
+  mensagem (V2-F00-E01, correção 1: a promessa antiga de que o
+  `baseline.test.mjs` fazia isso era falsa, e o roteiro saiu 1 numa árvore
+  verde por causa dela).
+
+  Seis pacotes pela lista do vitest (que não enumera o pulo por ambiente, daí
+  `descontaPuladas`), o aplicativo pela leitura estática e `scripts/` pelo
+  próprio `node --test`: a conta dinâmica, porque o laço que gera caso vale um
+  por volta e o texto sozinho dá menos (226 contra 230 em 2026-10-13).
+*/
+function contarCasosDeScripts() {
+  const env = { ...process.env };
+  // Sem isto o `node --test` filho se acha filho de outro runner e imprime em outro formato.
+  delete env.NODE_TEST_CONTEXT;
+  const r = spawnSync(process.execPath, ["--test", "--test-reporter=tap", "scripts/*.test.mjs"], {
+    cwd: RAIZ,
+    env,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: 5 * 60 * 1000,
+  });
+  const contagem = extrairContagem(r.stdout ?? "", "node-test");
+  if (contagem.total === undefined) {
+    console.log("\nNão consegui ler o total do `node --test` em scripts/. Confira antes de confiar no verde.");
+    process.exit(1);
+  }
+  return contagem.total;
+}
+
+const problemasDoRoteiro = conferirContagensDoRoteiro({
+  "teste-shared": { quantos: porPacote.shared, descontaPuladas: true },
+  "teste-db": { quantos: porPacote.db, descontaPuladas: true },
+  "teste-campo-pacote": { quantos: porPacote.campo, descontaPuladas: true },
+  "teste-api": { quantos: porPacote.api, descontaPuladas: true },
+  "teste-console": { quantos: porPacote.console, descontaPuladas: true },
+  "teste-web": { quantos: porPacote.web, descontaPuladas: true },
+  "teste-campo-app": { quantos: app },
+  "test-scripts": { quantos: contarCasosDeScripts() },
+});
+
+/*
   O que a lista estática NÃO enxerga, dito na saída em vez de calado.
 
   `vitest list` só enumera o caso que a coleta registra para rodar: o que está
@@ -467,6 +540,16 @@ if (soPorValor.length > 0) {
   for (const s of soPorValor) console.log(`    ${s}`);
 }
 
+if (problemasDoRoteiro.length > 0) {
+  console.log(`\nO roteiro da linha de base não confere com a árvore (${problemasDoRoteiro.length}):\n`);
+  for (const p of problemasDoRoteiro) console.log(`  ${p}\n`);
+  console.log("Atualize as tabelas de esperado em scripts/baseline.mjs: o roteiro não pode esperar um número velho.");
+} else {
+  console.log("\nO roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.");
+}
+
+// Só o roteiro desatualizado também reprova; com problema de texto, o bloco abaixo imprime e sai.
+if (problemasDoRoteiro.length > 0 && problemas.length === 0) process.exit(1);
 if (problemas.length > 0) {
   console.log(`\nAfirmações que não batem (${problemas.length}):\n`);
   for (const p of problemas) console.log(`  ${p}\n`);

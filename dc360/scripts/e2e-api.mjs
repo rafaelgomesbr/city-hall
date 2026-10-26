@@ -23,7 +23,16 @@
  * no mesmo endereço. Por isso este script sempre sobe um par novo, em portas
  * próprias, e derruba tudo no fim.
  *
- * Uso: node scripts/e2e-api.mjs [chromium|firefox]
+ * Uso: node scripts/e2e-api.mjs [chromium|firefox|webkit] [--so-layout]
+ *
+ * `--so-layout` pula a suíte principal (`fluxo-api.e2e.mjs`) e roda só a
+ * geometria e o foco da tela estreita (`layout-estreito.e2e.mjs`). Existe por
+ * causa do WebKit (V2-F00-E09, correção 5): a suíte principal tem verificações
+ * de foco que supõem o comportamento do Chromium e do Firefox (clicar num
+ * botão o focar), e no WebKit do Mac, como no Safari, clicar num botão NÃO o
+ * foca; 5 delas reprovam por isso, nenhuma por defeito do painel. O que tem de
+ * valer nos três motores é o foco depois do erro e o email na janela, que moram
+ * em `layout-estreito.e2e.mjs`.
  */
 import { spawn, spawnSync } from "node:child_process";
 import { createConnection } from "node:net";
@@ -33,7 +42,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = fileURLToPath(new URL("..", import.meta.url));
-const MOTOR = process.argv[2] ?? "chromium";
+const MOTOR = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "chromium";
+const SO_LAYOUT = process.argv.includes("--so-layout");
 
 // Portas próprias, longe das de desenvolvimento, para não brigar com um painel
 // que alguém tenha deixado aberto.
@@ -189,13 +199,29 @@ iniciar("web", "npx", ["vite", "preview", "--port", String(PORTA_WEB), "--strict
 await esperar(BASE_WEB, 60, "O painel");
 console.log("Painel de pé.");
 
-console.log(`\n== Verificações do caminho de produção, em ${MOTOR} ==`);
-await rodar("node", ["test/fluxo-api.e2e.mjs"], {
+if (SO_LAYOUT) {
+  console.log(`\n== Suíte principal PULADA (--so-layout), em ${MOTOR} ==`);
+} else {
+  console.log(`\n== Verificações do caminho de produção, em ${MOTOR} ==`);
+  await rodar("node", ["test/fluxo-api.e2e.mjs"], {
+    cwd: join(RAIZ, "apps/web"),
+    env: {
+      BASE_WEB, BASE_API, MOTOR,
+      NOTIFICADOR_ARQUIVO: ARQUIVO_NOTIFICACAO,
+    },
+  });
+}
+
+/*
+  A geometria da tela estreita (V2-F00-E09, correção 1) roda DEPOIS da suíte
+  principal, na mesma API e no mesmo painel. Ela cria a própria pessoa de nome
+  longo com e-mail único, então a instância já usada não atrapalha, e fica em
+  arquivo à parte para poder rodar sozinha contra um painel de pé.
+*/
+console.log(`\n== Geometria da tela estreita, em ${MOTOR} ==`);
+await rodar("node", ["test/layout-estreito.e2e.mjs"], {
   cwd: join(RAIZ, "apps/web"),
-  env: {
-    BASE_WEB, BASE_API, MOTOR,
-    NOTIFICADOR_ARQUIVO: ARQUIVO_NOTIFICACAO,
-  },
+  env: { BASE_WEB, BASE_API, MOTOR },
 });
 
 console.log("\nTUDO CERTO: o caminho de produção passou de ponta a ponta.");

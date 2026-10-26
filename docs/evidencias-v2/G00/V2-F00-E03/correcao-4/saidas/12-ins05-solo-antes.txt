@@ -1,0 +1,7 @@
+Máquina livre (carga do Mac em torno de 3 por outros processos), código ANTES. O DEPOIS livre é a regressão em 22-regressao-test-isolamento.txt.
+
+===== ANTES (caso único de 23 varreduras) =====
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  14979ms
+ Test Files  14 passed (14)
+      Tests  345 passed | 3 skipped (348)
+   Duration  23.17s (transform 393ms, setup 0ms, collect 1.07s, tests 69.13s, environment 1ms, prepare 646ms)

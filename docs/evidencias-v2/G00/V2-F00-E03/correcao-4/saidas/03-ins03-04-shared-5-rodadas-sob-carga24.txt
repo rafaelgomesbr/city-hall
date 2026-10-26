@@ -1,0 +1,160 @@
+Suíte do shared inteira, 5 rodadas, sob 24 laços de CPU e dois arquivos do banco ao lado.
+
+RESUMO
+B rodada 1: shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.90s (transform 956ms, setup 0ms, collect 4.23s, tests 4.95s, environment 2ms, prepare 3.89s) 
+B rodada 2: shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.22s (transform 682ms, setup 0ms, collect 3.69s, tests 4.31s, environment 4ms, prepare 2.49s) 
+B rodada 3: shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.05s (transform 375ms, setup 0ms, collect 2.43s, tests 3.95s, environment 2ms, prepare 2.93s) 
+B rodada 4: shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.25s (transform 672ms, setup 0ms, collect 3.05s, tests 3.98s, environment 2ms, prepare 2.59s) 
+B rodada 5: shared:  Test Files  16 passed (16)       Tests  170 passed (170)    Duration  3.02s (transform 396ms, setup 0ms, collect 3.12s, tests 4.06s, environment 2ms, prepare 2.78s) 
+
+===== rodada do shared 1: ins03-04-shared-1.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 9ms
+ ✓ src/pessoas.test.ts (11 tests) 8ms
+ ✓ test/evidencia.test.ts (10 tests) 4ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 6ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 8ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 18ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 3ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 6ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 4ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 128ms
+ ✓ test/permissoes.test.ts (16 tests) 3ms
+ ✓ test/csv.test.ts (8 tests) 2ms
+ ✓ test/campos.test.ts (7 tests) 37ms
+ ✓ test/telefone.test.ts (10 tests) 42ms
+ ✓ test/dominio.test.ts (14 tests) 1728ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  1722ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 2944ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  571ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1663ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  380ms
+
+ Test Files  16 passed (16)
+      Tests  170 passed (170)
+   Start at  11:31:58
+   Duration  3.90s (transform 956ms, setup 0ms, collect 4.23s, tests 4.95s, environment 2ms, prepare 3.89s)
+
+
+===== rodada do shared 2: ins03-04-shared-2.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/campos.test.ts (7 tests) 2ms
+ ✓ test/telefone.test.ts (10 tests) 6ms
+ ✓ src/localizacao.test.ts (16 tests) 33ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 7ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 10ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 4ms
+ ✓ src/pessoas.test.ts (11 tests) 5ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 15ms
+ ✓ test/evidencia.test.ts (10 tests) 4ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 99ms
+ ✓ test/permissoes.test.ts (16 tests) 8ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 13ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 3ms
+ ✓ test/csv.test.ts (8 tests) 3ms
+ ✓ test/dominio.test.ts (14 tests) 1630ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  1620ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 2470ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  861ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1046ms
+
+ Test Files  16 passed (16)
+      Tests  170 passed (170)
+   Start at  11:32:11
+   Duration  3.22s (transform 682ms, setup 0ms, collect 3.69s, tests 4.31s, environment 4ms, prepare 2.49s)
+
+
+===== rodada do shared 3: ins03-04-shared-3.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 11ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 6ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 9ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 7ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 8ms
+ ✓ test/evidencia.test.ts (10 tests) 4ms
+ ✓ test/telefone.test.ts (10 tests) 4ms
+ ✓ test/permissoes.test.ts (16 tests) 8ms
+ ✓ src/pessoas.test.ts (11 tests) 57ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 5ms
+ ✓ test/campos.test.ts (7 tests) 2ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 9ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 8ms
+ ✓ test/csv.test.ts (8 tests) 2ms
+ ✓ test/dominio.test.ts (14 tests) 1341ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  1334ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 2472ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  611ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1141ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  302ms
+
+ Test Files  16 passed (16)
+      Tests  170 passed (170)
+   Start at  11:32:21
+   Duration  3.05s (transform 375ms, setup 0ms, collect 2.43s, tests 3.95s, environment 2ms, prepare 2.93s)
+
+
+===== rodada do shared 4: ins03-04-shared-4.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 11ms
+ ✓ src/pessoas.test.ts (11 tests) 6ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 3ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 9ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 16ms
+ ✓ test/permissoes.test.ts (16 tests) 8ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 8ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 31ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 4ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 81ms
+ ✓ test/evidencia.test.ts (10 tests) 9ms
+ ✓ test/campos.test.ts (7 tests) 4ms
+ ✓ test/telefone.test.ts (10 tests) 2ms
+ ✓ test/csv.test.ts (8 tests) 4ms
+ ✓ test/dominio.test.ts (14 tests) 1387ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  1378ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 2398ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  761ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1241ms
+
+ Test Files  16 passed (16)
+      Tests  170 passed (170)
+   Start at  11:32:31
+   Duration  3.25s (transform 672ms, setup 0ms, collect 3.05s, tests 3.98s, environment 2ms, prepare 2.59s)
+
+
+===== rodada do shared 5: ins03-04-shared-5.txt =====
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 10ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 7ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 8ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 11ms
+ ✓ test/evidencia.test.ts (10 tests) 8ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 59ms
+ ✓ test/precisao-do-gps.test.ts (3 tests) 8ms
+ ✓ test/csv.test.ts (8 tests) 5ms
+ ✓ test/permissoes.test.ts (16 tests) 13ms
+ ✓ src/pessoas.test.ts (11 tests) 138ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 4ms
+ ✓ test/campos.test.ts (7 tests) 17ms
+ ✓ test/telefone.test.ts (10 tests) 2ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 6ms
+ ✓ test/dominio.test.ts (14 tests) 1441ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  1438ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 2321ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  745ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  918ms
+
+ Test Files  16 passed (16)
+      Tests  170 passed (170)
+   Start at  11:32:41
+   Duration  3.02s (transform 396ms, setup 0ms, collect 3.12s, tests 4.06s, environment 2ms, prepare 2.78s)
+

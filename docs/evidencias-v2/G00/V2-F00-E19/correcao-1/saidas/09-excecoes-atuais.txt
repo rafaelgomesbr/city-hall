@@ -1,0 +1,8 @@
+hoje 2026-10-13
+decode-uri-component | dono: Rafael | ate: 2027-01-05 | motivo: 255 caracteres | comCorrecao: false
+brace-expansion | dono: Rafael | ate: 2027-01-05 | motivo: 463 caracteres | comCorrecao: true
+braces | dono: Rafael | ate: 2027-01-05 | motivo: 446 caracteres | comCorrecao: false
+node-forge | dono: Rafael | ate: 2027-01-05 | motivo: 486 caracteres | comCorrecao: false
+shell-quote | dono: Rafael | ate: 2027-01-05 | motivo: 515 caracteres | comCorrecao: true
+sprintf-js | dono: Rafael | ate: 2027-01-05 | motivo: 449 caracteres | comCorrecao: false
+problemas: []

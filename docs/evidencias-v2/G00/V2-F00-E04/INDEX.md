@@ -1,11 +1,39 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | 6d734fc21c3a10877ab005c0cc8e7b3347d66f56b246f747a3a9ff0d32d6fd8e |
+| RESUMO.md | 7bd0303e7ad1a522d5f0adb09e106ec60398ba519b36a0760c8251f50631229b |
 | baseline-teste-api/01-teste-api.txt | ee217ecd98270521988db2e2e227a9a59d99c84f16fe34c08c8b24d30c2f8673 |
 | baseline-teste-api/RESUMO.md | 6f9f4e49ba7ae81c071ad7cb4c7e454cb2045bc9039d488c28f9c5072be75fb4 |
 | baseline-teste-api/resultados.json | 760d0a774ec56c487d5b111048c045e3c4870a3dba5d50b18ceaf0fa6abedb13 |
+| correcao-1/01-teste-novo-ANTES-do-conserto.txt | 9b9b7d1097eb81cfff2764f7d4bda45bfbcb4751b69ce295341933e284fd9f0f |
+| correcao-1/02-teste-novo-DEPOIS-do-conserto.txt | 1f1114346e18a8e6a00c3c67138e56f3410d543936362127fd532aa511a1bbdd |
+| correcao-1/03-test-api-completa-depois.txt | bdd03499f4303c52b434e20d2197c245152ff4326a82394e2760df1f33871174 |
+| correcao-1/04-superficie-e-vigencia.txt | bae2c89c60fb32ce3102fed8862967d7593e97b628305b01ce41a05b803384bc |
+| correcao-1/05-test-isolamento.txt | 5056b68fe92bdfbf40ccbb98620c898c90e006279ec45acb969185ac3697cd6c |
+| correcao-1/06-test-e2e-api-depois.txt | 9b23a0ef0e58cab1be25deea3b38740ef49934b33aec8867445c176734fed5d5 |
+| correcao-1/07-test-e2e-api-base-sem-o-conserto-da-api.txt | 73e7775486578899b97fb5033a015ba12c6ff8c55c3af4f087c123bea1aa0c07 |
+| correcao-1/08-typecheck.txt | dd0f5d74c1954cd7b0e9282e9aca2fff0deea2606d719a4a4732ea7855b764c1 |
+| correcao-1/09-conferir-numeros.txt | 1f5d02ad91adfb8910126d5604438e933f14ac09d9a7b8ec25ef44844d11ec29 |
+| correcao-1/10-portao-de-conteudo.txt | bf6c72477fb9f8b2a238f8be177963570581ef87c096216f4f39c791c7f96e61 |
+| correcao-1/11-test-web.txt | 007900b7b342c044b72f42b55044c467ef06a6db729b419622b2143cf68d1e08 |
+| correcao-1/12-test-scripts.txt | 919fd3eec1ba7c44450d841f7f1813ee70cb06f028fdb206dd43144eb734afb4 |
+| correcao-1/13-diagnostico-do-e2e-que-travava.txt | 588e765b2e57e2cc193164fa6854ce456b05571d6c9d9a03e8bdf389af26c6c2 |
+| correcao-1/RESUMO.md | a744e748ed5e65d276ba9056055992ff1354d649736c6ef74e6d577dcf52c4c3 |
+| correcao-1/diff-da-correcao.patch | c0512cc1f29bcd4a2c875613bc894fe57a58a3393e6ac47a578aa0dd60d73743 |
+| correcao-2/RESUMO.md | ad992848be059a323524f9854849c0851349529b0b779818324700e47a02cf2c |
+| correcao-2/diff-da-correcao.patch | 99139f822299156736541821d3ecb8f11141a28b4863fec7bc4442f7a43d005f |
+| correcao-2/saidas/01-acesso-suspenso-ANTES-VERMELHO-codigo-de-7005a60.txt | a8deb17577235ee82c63a507082d60b544daa3d52cc3339371645e84e307d182 |
+| correcao-2/saidas/10-acesso-suspenso-e-get-com-efeito-DEPOIS-VERDE.txt | c9e80655b36e50ff5dd191c4c796096139a73b3a6ba0ce7354d798a8d606787f |
+| correcao-2/saidas/20-test-isolamento.txt | 1a693e0cac44395615280c165bfa978bb02a9082fd3188d0f4e98c5afeba95ac |
+| correcao-2/saidas/21-test-api.txt | d3c8fb013d8c9315c17a8ee5e55893207b5a8e40e37853523332656d3e560b2f |
+| correcao-2/saidas/22-portao-de-conteudo.txt | b725b9cf6f0e39762b665b081211e609ecc066601c36b3dabee46fcc61820ba3 |
+| correcao-2/saidas/30-acesso-suspenso-e-get-com-efeito-revisao-DEPOIS-VERDE.txt | b5ce865f535fe2da95a072d48cd0377d4431cc8713640e2a8f004a139de56495 |
+| correcao-2/saidas/40-test-isolamento-revisao.txt | d8070d35d63d1dc3686d693bcdee2cd12b3d1bba05bccd6a5a432fcae6f9dedd |
+| correcao-2/saidas/41-test-api-revisao.txt | 9e2b5712df3d7e12371550c045a4f5ff4e0cc9e54e7e302f00617ac9690048f3 |
+| correcao-2/saidas/42-portao-de-conteudo-revisao.txt | 4aaea8120d1c4938c80cd18204f50c569e3ffc3cb358d133c6ec23e6b61fa0e8 |
 | diff-da-etapa.patch | 252361baeb0ef41a1cdd831d8b7a31fc0f39fc9213891904e039b118ccfdef76 |
 | saidas/01-api-completa-antes.txt | 584f8d23009a21c2c3962cf6263869405b07b7b78dd4dea28267e4d2ba3f42bd |
 | saidas/02-sonda-antes-do-conserto.txt | 8de2b9ad4a241ea7b5a13cb7fb517649186e064f3850ba84507f41ce4946c117 |

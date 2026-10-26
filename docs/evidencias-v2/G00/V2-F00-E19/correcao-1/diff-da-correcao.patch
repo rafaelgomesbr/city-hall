@@ -1,0 +1,449 @@
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index d3f2273..3f71408 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -552,3 +552,26 @@ sinal"**. O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.
+ impede a volta (varre a fonte, menos comentários). Frases novas são texto de
+ produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
+ Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.
++
++## 17. `expo-doctor` dá 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1)
++
++**Deriva externa, não defeito do projeto.** Em 2026-10-13, `npx expo-doctor` em
++`apps/campo` deu **20 de 21**. A única verificação que falha é "Check that
++packages match versions required by installed Expo SDK", com seis pacotes um
++patch atrás do que o SDK 57 exige hoje: `expo` (57.0.27, esperado ~57.0.28),
++`expo-crypto` (57.0.3, ~57.0.4), `expo-location` (57.0.20, ~57.0.21),
++`expo-router` (57.0.25, ~57.0.26), `expo-splash-screen` (57.0.9, ~57.0.10) e
++`jest-expo` (57.0.5, ~57.0.6). O baseline Linux de 2026-10-08 deu 21 de 21: o
++Expo publicou os patches depois. Nenhum pacote foi atualizado nesta correção, de
++propósito: o CP-03 decidiu que mexer na árvore do Expo (`npm audit fix`) mistura
++pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
++`prebuild` não é um conserto de uma linha.
++
++- **Dono:** Rafael (decide quando subir os seis patches).
++- **Como fechar:** `npx expo install --check` em `apps/campo`, conferir o
++  `package-lock.json`, rodar `npm run test:campo` e `npx expo-doctor`
++  (esperado 21 de 21). Pode entrar junto com a subida do SDK que fecha o CP-03
++  (prazo das exceções: 2027-01-05).
++- **Efeito no G00:** o critério "`expo-doctor` 21 de 21" da E19 e do gate G00
++  está BLOQUEADO enquanto isso não for feito. Aceitar o 20 de 21 como risco é
++  decisão do gatekeeper e do Rafael, não do implementador.
+diff --git a/dc360/scripts/auditar.mjs b/dc360/scripts/auditar.mjs
+index 4b88928..9daa2f6 100755
+--- a/dc360/scripts/auditar.mjs
++++ b/dc360/scripts/auditar.mjs
+@@ -36,71 +36,7 @@
+ import { execFileSync } from "node:child_process";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+-
+-/**
+- * Advisories do aplicativo de campo que hoje NÃO dá para fechar, com o motivo.
+- *
+- * Nenhuma delas vem de dependência escolhida por este projeto: chegam por
+- * dentro do Expo, e `npm audit fix --force` quebraria a compilação nativa.
+- * A lista tem nome e razão de propósito, para envelhecer em público.
+- *
+- * `js-yaml` (por `@expo/xcpretty`) esteve aqui até 15/09/2026 com a razão
+- * "sai quando o Expo atualizar", e a razão era falsa: o `npm audit` já dizia
+- * `fixAvailable: true`, e um `npm audit fix` a fechou. É o caso que fez este
+- * portão passar a reprovar aceita com correção disponível (ver abaixo).
+- */
+-/*
+-  Cada exceção tem `motivo`, `dono` e `ate` (AAAA-MM-DD). Vencido o prazo, o
+-  portão reprova até alguém reavaliar. `comCorrecao: true` só vale para o caso em
+-  que o `npm audit` diz `fixAvailable: true` mas a correção é inaplicável (ver
+-  CP-03, decidido por Rafael em 2026-10-07): o `npm audit fix` em apps/campo
+-  reembaralha a árvore inteira do Expo e mistura pacotes do SDK 57 e do 58.
+-*/
+-const DONO = "Rafael";
+-const PRAZO = "2027-01-05";
+-const FERRAMENTA_DO_EXPO = "Chega por dentro do pacote `expo` (ferramenta de "
+-  + "build e de desenvolvimento, que roda na máquina de quem compila) e NÃO entra "
+-  + "no pacote JavaScript que vai para o telefone do agente. ";
+-const SEM_FIX_SEGURO = "O `npm audit fix` em apps/campo não é aplicável: "
+-  + "reembaralha a árvore do Expo e mistura pacotes do SDK 57 e 58. A saída é "
+-  + "subir o SDK do Expo por inteiro, o que exige novo binário nativo. ";
+-
+-const ACEITAS_NO_APLICATIVO = {
+-  "decode-uri-component": {
+-    motivo: "Chega por expo-router > query-string, e esta vai "
+-      + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
+-      + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
+-      + "profundo dele. Sem correção acima sem trocar o expo-router.",
+-    dono: DONO, ate: PRAZO,
+-  },
+-  "brace-expansion": {
+-    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão `{a},b}` em glob, "
+-      + "e o aplicativo não expande glob em execução. " + SEM_FIX_SEGURO,
+-    dono: DONO, ate: PRAZO, comCorrecao: true,
+-  },
+-  braces: {
+-    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
+-      + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
+-    dono: DONO, ate: PRAZO,
+-  },
+-  "node-forge": {
+-    motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
+-      + "para assinar atualização do EAS na máquina de build, não no telefone. "
+-      + SEM_FIX_SEGURO,
+-    dono: DONO, ate: PRAZO,
+-  },
+-  "shell-quote": {
+-    motivo: FERRAMENTA_DO_EXPO + "Vem de react-devtools-core, só no modo de "
+-      + "desenvolvimento. Injeção de comando exige que o desenvolvedor passe "
+-      + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
+-    dono: DONO, ate: PRAZO, comCorrecao: true,
+-  },
+-  "sprintf-js": {
+-    motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
+-      + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
+-    dono: DONO, ate: PRAZO,
+-  },
+-};
++import { ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
+ 
+ function auditar(argumentos, cwd) {
+   try {
+@@ -129,6 +65,23 @@ function contar(relatorio) {
+   };
+ }
+ 
++/*
++  A lista de exceções precisa cumprir o CP-03 (motivo, dono e prazo, ainda no
++  prazo) ANTES de qualquer auditoria: lista malformada reprova mesmo que o
++  pacote dela não apareça no relatório de hoje.
++*/
++const hoje = new Date().toISOString().slice(0, 10);
++const defeitosDaLista = problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje);
++if (defeitosDaLista.length > 0) {
++  console.error(`\nREPROVADO: ${defeitosDaLista.length} defeito(s) na lista de exceções (CP-03: nome, dono e prazo).`);
++  for (const defeito of defeitosDaLista) console.error(`  - ${defeito}`);
++  console.error(
++    "Corrija ou renove com motivo em ACEITAS_NO_APLICATIVO (scripts/auditar-excecoes.mjs), "
++    + "ou corrija a dependência e apague a linha.",
++  );
++  process.exit(1);
++}
++
+ const runtime = contar(auditar(["--omit=dev", "--audit-level=low"]));
+ const tudo = contar(auditar(["--audit-level=low"]));
+ const soDesenvolvimento = Math.max(0, tudo.total - runtime.total);
+@@ -193,10 +146,6 @@ const aceitasComCorrecao = pacotesDoApp.filter(
+     && !ACEITAS_NO_APLICATIVO[nome].comCorrecao
+     && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
+ );
+-const hoje = new Date().toISOString().slice(0, 10);
+-const vencidas = pacotesDoApp.filter(
+-  (nome) => nome in ACEITAS_NO_APLICATIVO && ACEITAS_NO_APLICATIVO[nome].ate < hoje,
+-);
+ 
+ console.log(`\nAplicativo de campo (vai para o telefone): ${doApp.total} vulnerabilidade(s)`);
+ for (const nome of pacotesDoApp) {
+@@ -211,15 +160,7 @@ if (naoAceitas.length > 0) {
+   );
+   console.error(
+     "Isto vai instalado no telefone do agente. Corrija, ou acrescente a "
+-    + "ACEITAS_NO_APLICATIVO em scripts/auditar.mjs COM O MOTIVO escrito.",
+-  );
+-  process.exit(1);
+-}
+-
+-if (vencidas.length > 0) {
+-  console.error(
+-    `\nREPROVADO: o prazo da exceção venceu para ${vencidas.join(", ")}. `
+-    + "Reavalie em ACEITAS_NO_APLICATIVO (scripts/auditar.mjs) e renove com motivo, ou corrija.",
++    + "ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs COM O MOTIVO escrito.",
+   );
+   process.exit(1);
+ }
+@@ -246,7 +187,7 @@ const obsoletas = Object.keys(ACEITAS_NO_APLICATIVO).filter((n) => !pacotesDoApp
+ if (obsoletas.length > 0) {
+   console.warn(
+     `\nAviso: ${obsoletas.join(", ")} não aparece(m) mais no relatório do `
+-    + "aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar.mjs.",
++    + "aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs.",
+   );
+ }
+ 
+diff --git a/dc360/scripts/auditar.test.mjs b/dc360/scripts/auditar.test.mjs
+index 8805606..05cfbe5 100644
+--- a/dc360/scripts/auditar.test.mjs
++++ b/dc360/scripts/auditar.test.mjs
+@@ -3,16 +3,22 @@
+  *
+  * O portão chama `npm`, então o teste põe um `npm` falso na frente do PATH que
+  * devolve o relatório combinado, sem rede e sem depender do estado real das
+- * dependências. Fica sem teste o vencimento do prazo (`ate`), porque depende da
+- * data do relógio.
++ * dependências.
++ *
++ * O prazo (`ate`) depende do relógio, então o vencimento é provado de dois
++ * jeitos sem mexer no relógio da máquina: a função pura recebe `hoje` por
++ * argumento, e o teste de ponta a ponta roda uma CÓPIA do portão cuja lista de
++ * exceções foi reescrita (prazo apagado, vencido, dono vazio), que é o que prova
++ * que a validação está ligada ao `exit 1` e não só existe.
+  */
+ import assert from "node:assert/strict";
+ import { spawnSync } from "node:child_process";
+-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
++import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ import { delimiter, dirname, join } from "node:path";
+ import { after, before, describe, it } from "node:test";
+ import { fileURLToPath } from "node:url";
++import { ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
+ 
+ const AQUI = dirname(fileURLToPath(import.meta.url));
+ const SCRIPT = join(AQUI, "auditar.mjs");
+@@ -105,3 +111,114 @@ describe("auditar.mjs", () => {
+     assert.equal(codigo, 0, saida);
+   });
+ });
++
++describe("exceções do CP-03: nome, dono e prazo", () => {
++  const boa = { motivo: "porque sim", dono: "Rafael", ate: "2027-01-05" };
++  const HOJE = "2026-10-13";
++
++  it("aceita exceção com motivo, dono e prazo no futuro", () => {
++    assert.deepEqual(problemasDasExcecoes({ pacote: boa }, HOJE), []);
++  });
++
++  it("aceita exceção que vence hoje (o prazo vale até o fim do dia)", () => {
++    assert.deepEqual(problemasDasExcecoes({ pacote: { ...boa, ate: HOJE } }, HOJE), []);
++  });
++
++  it("reprova exceção sem prazo", () => {
++    const { ate, ...semPrazo } = boa;
++    const p = problemasDasExcecoes({ pacote: semPrazo }, HOJE);
++    assert.equal(p.length, 1);
++    assert.match(p[0], /pacote.*sem prazo/);
++  });
++
++  it("reprova prazo em branco, fora do formato ou que não existe no calendário", () => {
++    for (const ate of ["", "  ", "05/01/2027", "2027-1-5", "2027-02-30", "2027-13-01", "amanhã", 20270105, null]) {
++      const p = problemasDasExcecoes({ pacote: { ...boa, ate } }, HOJE);
++      assert.equal(p.length, 1, `prazo ${JSON.stringify(ate)} deveria reprovar`);
++      assert.match(p[0], /pacote.*prazo/);
++    }
++  });
++
++  it("reprova exceção sem dono ou com dono em branco", () => {
++    for (const dono of [undefined, "", "   ", null]) {
++      const p = problemasDasExcecoes({ pacote: { ...boa, dono } }, HOJE);
++      assert.equal(p.length, 1);
++      assert.match(p[0], /pacote.*sem dono/);
++    }
++  });
++
++  it("reprova exceção sem motivo ou com motivo em branco", () => {
++    for (const motivo of [undefined, "", "   "]) {
++      const p = problemasDasExcecoes({ pacote: { ...boa, motivo } }, HOJE);
++      assert.equal(p.length, 1);
++      assert.match(p[0], /pacote.*sem motivo/);
++    }
++  });
++
++  it("reprova exceção vencida e diz a data", () => {
++    const p = problemasDasExcecoes({ pacote: { ...boa, ate: "2026-10-12" } }, HOJE);
++    assert.equal(p.length, 1);
++    assert.match(p[0], /pacote.*venceu em 2026-10-12/);
++  });
++
++  it("aponta todos os defeitos de uma vez, de todas as exceções", () => {
++    const p = problemasDasExcecoes({ a: { motivo: "x" }, b: { ...boa, ate: "2020-01-01" } }, HOJE);
++    assert.equal(p.length, 3); // a: sem dono e sem prazo; b: vencida
++  });
++
++  it("a lista REAL tem motivo, dono e prazo válidos e no futuro", () => {
++    assert.ok(Object.keys(ACEITAS_NO_APLICATIVO).length > 0);
++    const hoje = new Date().toISOString().slice(0, 10);
++    assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje), []);
++  });
++});
++
++describe("auditar.mjs com a lista de exceções adulterada", () => {
++  /** Copia o portão para uma pasta própria, com a lista reescrita por `alterar`. */
++  function rodarCopia(alterar) {
++    const raiz = mkdtempSync(join(tmpdir(), "auditar-copia-"));
++    try {
++      mkdirSync(join(raiz, "scripts"));
++      mkdirSync(join(raiz, "apps", "campo"), { recursive: true });
++      copyFileSync(SCRIPT, join(raiz, "scripts", "auditar.mjs"));
++      const lista = readFileSync(join(AQUI, "auditar-excecoes.mjs"), "utf8").replaceAll("\r\n", "\n");
++      const nova = alterar(lista);
++      assert.notEqual(nova, lista, "a adulteração não mudou nada: o teste estaria mentindo");
++      writeFileSync(join(raiz, "scripts", "auditar-excecoes.mjs"), nova);
++      const r = spawnSync(process.execPath, [join(raiz, "scripts", "auditar.mjs")], {
++        encoding: "utf8",
++        env: {
++          ...process.env,
++          PATH: pasta + delimiter + process.env.PATH,
++          AUDITAR_FIXTURE: JSON.stringify({ runtime: limpo, tudo: limpo, app: relatorio({ "node-forge": false }) }),
++        },
++      });
++      return { codigo: r.status, saida: r.stdout + r.stderr };
++    } finally {
++      rmSync(raiz, { recursive: true, force: true });
++    }
++  }
++
++  it("a cópia sem adulteração passa (controle do próprio teste)", () => {
++    const { codigo, saida } = rodarCopia((t) => `${t}\n// controle\n`);
++    assert.equal(codigo, 0, saida);
++  });
++
++  it("reprova a exceção sem prazo, mesmo que o pacote esteja no relatório", () => {
++    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{[\s\S]*?dono: DONO), ate: PRAZO/, "$1"));
++    assert.equal(codigo, 1, saida);
++    assert.match(saida, /node-forge.*sem prazo/);
++  });
++
++  it("reprova a exceção sem dono", () => {
++    const { codigo, saida } = rodarCopia((t) => t.replace(/(  "node-forge": \{[\s\S]*?)dono: DONO, /, "$1"));
++    assert.equal(codigo, 1, saida);
++    assert.match(saida, /node-forge.*sem dono/);
++  });
++
++  it("reprova a exceção vencida", () => {
++    const { codigo, saida } = rodarCopia((t) => t.replace('const PRAZO = "2027-01-05"', 'const PRAZO = "2020-01-01"'));
++    assert.equal(codigo, 1, saida);
++    assert.match(saida, /venceu em 2020-01-01/);
++  });
++});
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 2059194..99d75ac 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -92,6 +92,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
+     arquivos abaixo.
+   */
+   "V2-F00-E21": 7,
++  /*
++    V2-F00-E19: `scripts/auditar.test.mjs` já existia com 7 casos (que a tabela
++    nunca registrou) e a correção 1 acrescentou 13 (a regra do CP-03: sem prazo,
++    prazo inválido, sem dono, sem motivo, vencida, válida, a lista real, e a
++    cópia adulterada do portão). Arquivo já existente: fora da tabela de
++    arquivos abaixo. Conferido por `node --test scripts/auditar.test.mjs`: 20.
++  */
++  "V2-F00-E19": 20,
+ };
+ 
+ /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
+diff --git a/dc360/scripts/auditar-excecoes.mjs b/dc360/scripts/auditar-excecoes.mjs
+new file mode 100644
+index 0000000..9c5e3ad
+--- /dev/null
++++ b/dc360/scripts/auditar-excecoes.mjs
+@@ -0,0 +1,110 @@
++/**
++ * A lista nomeada de exceções do aplicativo de campo (CP-03) e a regra que a
++ * valida. Fica fora de `auditar.mjs` porque aquele arquivo roda o portão assim
++ * que é importado, e o teste precisa chamar a validação sozinha, com datas e
++ * listas sintéticas.
++ */
++
++/**
++ * Advisories do aplicativo de campo que hoje NÃO dá para fechar, com o motivo.
++ *
++ * Nenhuma delas vem de dependência escolhida por este projeto: chegam por
++ * dentro do Expo, e `npm audit fix --force` quebraria a compilação nativa.
++ * A lista tem nome e razão de propósito, para envelhecer em público.
++ *
++ * `js-yaml` (por `@expo/xcpretty`) esteve aqui até 15/09/2026 com a razão
++ * "sai quando o Expo atualizar", e a razão era falsa: o `npm audit` já dizia
++ * `fixAvailable: true`, e um `npm audit fix` a fechou. É o caso que fez este
++ * portão passar a reprovar aceita com correção disponível (ver abaixo).
++ */
++/*
++  Cada exceção tem `motivo`, `dono` e `ate` (AAAA-MM-DD). Vencido o prazo, o
++  portão reprova até alguém reavaliar. `comCorrecao: true` só vale para o caso em
++  que o `npm audit` diz `fixAvailable: true` mas a correção é inaplicável (ver
++  CP-03, decidido por Rafael em 2026-10-07): o `npm audit fix` em apps/campo
++  reembaralha a árvore inteira do Expo e mistura pacotes do SDK 57 e do 58.
++*/
++const DONO = "Rafael";
++const PRAZO = "2027-01-05";
++const FERRAMENTA_DO_EXPO = "Chega por dentro do pacote `expo` (ferramenta de "
++  + "build e de desenvolvimento, que roda na máquina de quem compila) e NÃO entra "
++  + "no pacote JavaScript que vai para o telefone do agente. ";
++const SEM_FIX_SEGURO = "O `npm audit fix` em apps/campo não é aplicável: "
++  + "reembaralha a árvore do Expo e mistura pacotes do SDK 57 e 58. A saída é "
++  + "subir o SDK do Expo por inteiro, o que exige novo binário nativo. ";
++
++export const ACEITAS_NO_APLICATIVO = {
++  "decode-uri-component": {
++    motivo: "Chega por expo-router > query-string, e esta vai "
++      + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
++      + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
++      + "profundo dele. Sem correção acima sem trocar o expo-router.",
++    dono: DONO, ate: PRAZO,
++  },
++  "brace-expansion": {
++    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão `{a},b}` em glob, "
++      + "e o aplicativo não expande glob em execução. " + SEM_FIX_SEGURO,
++    dono: DONO, ate: PRAZO, comCorrecao: true,
++  },
++  braces: {
++    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
++      + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
++    dono: DONO, ate: PRAZO,
++  },
++  "node-forge": {
++    motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
++      + "para assinar atualização do EAS na máquina de build, não no telefone. "
++      + SEM_FIX_SEGURO,
++    dono: DONO, ate: PRAZO,
++  },
++  "shell-quote": {
++    motivo: FERRAMENTA_DO_EXPO + "Vem de react-devtools-core, só no modo de "
++      + "desenvolvimento. Injeção de comando exige que o desenvolvedor passe "
++      + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
++    dono: DONO, ate: PRAZO, comCorrecao: true,
++  },
++  "sprintf-js": {
++    motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
++      + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
++    dono: DONO, ate: PRAZO,
++  },
++};
++
++/**
++ * A política do CP-03 diz que exceção é NOMEADA, com dono e prazo. Esta função é
++ * o que faz a lista cumprir isso, em vez de a regra viver só num comentário.
++ *
++ * Devolve uma frase por defeito (vazio = lista válida), olhando TODAS as
++ * entradas e não só as que aparecem no relatório de hoje: exceção malformada que
++ * ainda não foi usada é o defeito que explode no dia em que o pacote aparecer.
++ *
++ * O prazo exige AAAA-MM-DD que exista no calendário. Sem isso `undefined < hoje`
++ * e `"amanhã" < hoje` são falsos, e a exceção ficaria eterna sem ninguém ver.
++ * Vale até o fim do dia escrito: vence quando `ate < hoje`.
++ *
++ * @param {Record<string, {motivo?: unknown, dono?: unknown, ate?: unknown}>} aceitas
++ * @param {string} hoje AAAA-MM-DD
++ * @returns {string[]}
++ */
++export function problemasDasExcecoes(aceitas, hoje) {
++  const problemas = [];
++  const preenchido = (v) => typeof v === "string" && v.trim() !== "";
++  for (const [nome, e] of Object.entries(aceitas)) {
++    if (!preenchido(e?.motivo)) problemas.push(`${nome}: exceção sem motivo escrito`);
++    if (!preenchido(e?.dono)) problemas.push(`${nome}: exceção sem dono`);
++    if (e?.ate === undefined || e?.ate === null || e?.ate === "") {
++      problemas.push(`${nome}: exceção sem prazo (\`ate\`, AAAA-MM-DD)`);
++    } else if (!dataValida(e.ate)) {
++      problemas.push(`${nome}: prazo inválido ${JSON.stringify(e.ate)} (esperado AAAA-MM-DD, uma data que exista)`);
++    } else if (e.ate < hoje) {
++      problemas.push(`${nome}: a exceção venceu em ${e.ate}`);
++    }
++  }
++  return problemas;
++}
++
++function dataValida(texto) {
++  if (typeof texto !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return false;
++  const d = new Date(`${texto}T00:00:00Z`);
++  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === texto;
++}

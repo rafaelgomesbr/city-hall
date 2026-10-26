@@ -1,0 +1,22 @@
+$ npm run auditar   (em .)
+codigo=0 duracao=10s situacao=confere
+
+
+> dc360@0.1.0 auditar
+> node scripts/auditar.mjs
+
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+
+Aviso: 3 vulnerabilidade(s) apenas em ferramenta de desenvolvimento. Não reprova, e precisa de dono.
+Veja o detalhe com: npm audit --audit-level=low
+
+Aplicativo de campo (vai para o telefone): 55 vulnerabilidade(s)
+  aceita: brace-expansion (dono Rafael, até 2027-01-05)
+  aceita: braces (dono Rafael, até 2027-01-05)
+  aceita: decode-uri-component (dono Rafael, até 2027-01-05)
+  aceita: node-forge (dono Rafael, até 2027-01-05)
+  aceita: shell-quote (dono Rafael, até 2027-01-05)
+  aceita: sprintf-js (dono Rafael, até 2027-01-05)
+
+Runtime limpo, e o aplicativo sem advisory nova.

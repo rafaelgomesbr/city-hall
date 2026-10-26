@@ -1,0 +1,17 @@
+$ VARIANTES="plantada shrinkwrap shrinkwrap-app uuid" rodar-copias.sh <worktree> ed2cccf   (ANTES: o portão de ed2cccf, npm real 11.12.1, Node v24.15.0, com rede; cópias do dc360 sem node_modules com fast-uri 3.0.1 de runtime plantado no package-lock.json)
+=== variante plantada (sem .npmrc; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante shrinkwrap (sem .npmrc; shrinkwrap: npm-shrinkwrap.json )
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+=== variante shrinkwrap-app (sem .npmrc; shrinkwrap: apps/campo/npm-shrinkwrap.json )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante uuid (sem .npmrc; shrinkwrap: )
+    ERRO: a raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o npm não tomou /private/tmp/e19c6/c9/copias/123e4567-e89b-12d3-a456-426614174000/uuid/dc360 como projeto (npm local prefix = /private/tmp/e19c6/c9/copias/***/uuid/dc360)
+    codigo=2

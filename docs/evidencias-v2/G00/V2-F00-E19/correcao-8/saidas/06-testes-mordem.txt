@@ -1,0 +1,54 @@
+$ mutar.sh dc360   (auditar.test.mjs contra cópias do portão com uma parte da correção 8 desfeita)
+=== mutação: sem conferir a configuração do npm
+  ✖ chave fora da lista no .npmrc da raiz sai 2 com o nome dela e a origem, ANTES de auditar (200.962667ms)
+  ✖ chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo (200.758667ms)
+  ✖ chave fora da lista que só o npm conhece (npmrc do usuário, global ou embutido) sai 2 com o arquivo de origem (197.607083ms)
+  ✖ npm_config_* fora da lista no ambiente sai 2 com o nome (em qualquer caixa), antes de auditar (197.908167ms)
+  ✖ sai 2 quando o npm config list falha, não diz o projeto, ou toma outra pasta como projeto (201.379417ms)
+ℹ fail 5
+ℹ pass 65
+ℹ tests 70
+=== mutação: sem --package-lock=true
+  ✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (266.928042ms)
+  ✖ package-lock=false (e offline) no .npmrc da raiz: a chave é anulada pela bandeira e o runtime vulnerável reprova (285.462459ms)
+ℹ fail 2
+ℹ pass 68
+ℹ tests 70
+=== mutação: com --workspaces=false de volta
+  ✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (286.271416ms)
+  ✖ nenhuma configuração de workspace do ambiente chega ao npm (npm_config_workspace, workspaces e include_workspace_root) (288.764666ms)
+ℹ fail 2
+ℹ pass 68
+ℹ tests 70
+=== mutação: sem --package-lock-only=false nas consultas reais
+  ✖ fixa o registro oficial e anula o modo offline em toda chamada, e faz a consulta de controle nas duas configurações (260.816584ms)
+ℹ fail 1
+ℹ pass 69
+ℹ tests 70
+=== mutação: prazo em UTC de novo
+  ✖ hojeEmSaoPaulo: o prazo vence no fim do dia do Brasil, e não às 21h (UTC) (11.154042ms)
+ℹ fail 1
+ℹ pass 69
+ℹ tests 70
+=== mutação: sem anular as variáveis do npm run
+  ✖ ambienteDaConsulta tira as npm_config_* do npm run e de workspace, e deixa as outras (0.392417ms)
+  ✖ as npm_config_* que o npm run exporta são anuladas (não chegam ao npm), e as permitidas chegam e passam (78.502208ms)
+ℹ fail 2
+ℹ pass 68
+ℹ tests 70
+=== mutação: sem ler o .npmrc do projeto do disco nem as variáveis (só o npm config list)
+  ✖ chave fora da lista no .npmrc do aplicativo também sai 2, nomeando o aplicativo (104.041542ms)
+  ✖ npm_config_* fora da lista no ambiente sai 2 com o nome (em qualquer caixa), antes de auditar (70.905042ms)
+ℹ fail 2
+ℹ pass 68
+ℹ tests 70
+=== mutação: sem ler o npm config list (só o disco e as variáveis)
+  ✖ chave fora da lista que só o npm conhece (npmrc do usuário, global ou embutido) sai 2 com o arquivo de origem (261.27775ms)
+ℹ fail 1
+ℹ pass 69
+ℹ tests 70
+=== mutação: sem conferir o npm local prefix
+  ✖ sai 2 quando o npm config list falha, não diz o projeto, ou toma outra pasta como projeto (359.722917ms)
+ℹ fail 1
+ℹ pass 69
+ℹ tests 70

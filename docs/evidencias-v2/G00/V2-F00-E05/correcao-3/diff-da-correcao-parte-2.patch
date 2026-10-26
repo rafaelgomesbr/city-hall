@@ -1,0 +1,1278 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 80773a0..e5f5ba1 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,10 +11,10 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1517 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1568 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
++| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 268 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+ 
+@@ -148,11 +148,26 @@ O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
+ código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
+ servidor, o painel e o aplicativo importam. O catálogo cobre os erros de ACESSO
+ (autenticação, vigência e permissão): toda resposta 401 ou 403 do servidor tem
+-código nele. Dois testes prendem isto, e um não substitui o outro:
+-
++código nele. Quem GARANTE isto é uma guarda em tempo de execução; dois testes
++apontam o defeito antes, e nenhum deles é garantia sozinho:
++
++- **Guarda em tempo de execução** (`apps/api/src/guarda-de-codigos-de-erro.ts`, e
++  a cópia em `apps/console/src/` com o contrato do console): um `onSend` global e
++  o último `onSend` de cada rota, instalado antes da primeira rota. Toda resposta
++  401 ou 403 que passa pelo Fastify, por qualquer caminho, tem de ter corpo JSON
++  com `erro` do catálogo (ou da entrada) e o status do catálogo. Fora disso, em
++  teste ela vira 500 `desvio_do_catalogo_de_erro` e o caso que passou por ali
++  reprova (`test/guarda-falha-alto.ts`, carregado em toda a suíte); fora de teste
++  ela sai com o código genérico do catálogo para o status (401 `nao_autenticado`,
++  403 `sem_permissao`) e o desvio vai para o log com o método, a rota e o código
++  que tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta como
++  rotas as dezesseis formas que a revisão independente achou e que a varredura
++  não lia, e prova os dois modos.
+ - **Varredura do código-fonte** (`apps/api/test/codigos-de-erro.test.ts`, árvore
+   sintática do TypeScript, na API, no pacote compartilhado e no console do
+-  fornecedor): reprova resposta 401 ou 403, ou de status que o texto não resolve,
++  fornecedor). É HEURÍSTICA, a primeira linha: a lista do que ela não lê não é
++  fechada, e a cada regra nova a revisão achou a forma seguinte. Reprova resposta
++  401 ou 403, ou de status que o texto não resolve,
+   com código fora do catálogo e da lista da entrada. Lê `send({ erro })` literal
+   ou por constante (só um `const` não exportado com objeto literal, resolvido pelo
+   escopo, e que no arquivo só é lido: `let`, `var`, parâmetro homônimo,
+@@ -161,8 +176,8 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
+   (inclusive com outro nome de importação ou por `import * as`), o `super(...)` de
+   qualquer subclasse delas, classe de erro com `codigo` literal, atribuído no
+   construtor, por getter ou por propriedade de parâmetro, o tratador global e a
+-  recusa `{ status, corpo: { erro } }` do console. O que ela não consegue ler, ela
+-  reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
++  recusa `{ status, corpo: { erro } }` do console. Formas que ela reconhece como
++  ilegíveis, e reprova: `.code(...)` fora de uma cadeia com `send`, 401 ou 403 sem `erro`,
+   corpo que não resolve (inclusive texto, com status calculado), `{ erro: "x",
+   ...extra }` com spread depois de `erro`, `erro` por getter, setter ou método,
+   escrita em `erro` ou `corpo` de qualquer objeto (ponto, colchete, operador
+@@ -219,16 +234,13 @@ código nele. Dois testes prendem isto, e um não substitui o outro:
+   requisição, com o status do catálogo (e a frase do catálogo onde a rota usa a
+   padrão).
+ 
+-O que NENHUM deles prende: uma recusa que só sai com um corpo ou um estado que os
+-perfis da prova dinâmica não criam E que o texto não mostra, o que se resume a duas
+-formas: código ou `statusCode` vindos de DADO em tempo de execução (objeto do
+-banco, da rede ou de `JSON.parse` lançado ou espalhado num erro) e classe de erro
+-ou resposta definida fora das pastas varridas (dependência, plugin de terceiros,
+-inclusive método que ele acrescente à resposta: a varredura reconhece a resposta
+-pelo nome dos métodos do Fastify, `code`, `status`, `send`, `redirect`,
+-`statusCode`, `raw`, `hijack`, `writeHead`). A prova dinâmica não alcança ramo que
+-dependa de um valor que o corpo mínimo dela não manda (o handler das 66 rotas
+-acima e qualquer `if` sobre o dado pedido): ali, a garantia é só a varredura.
++O que NENHUMA das três linhas prende: resposta que não passa pelo Fastify, escrita
++direto no Node (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no socket da
++requisição (`req.socket.end("HTTP/1.1 403 ...")`): a guarda não a vê, e a
++varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`, `.connection`),
++mas é heurística. E código no mesmo processo que reescreve o próprio Fastify, o
++protótipo da resposta ou os globais antes de a guarda carregar (ela guarda
++`JSON.parse` na carga e não usa `JSON.stringify` para montar o corpo genérico).
+ Fora do escopo: erros de outros status (404, 409, 422, 429,
+ 5xx) e os códigos de regra de negócio, que são da V2-F02-E03; o texto da frase que
+ cada rota devolve fora dos casos de execução; e o que cada cliente faz com o
+@@ -1486,9 +1498,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3225 testes em seis pacotes
++npm test                    # 3285 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1517 testes da API
++npm run test:api            # 1568 testes da API
+ npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+ npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+new file mode 100644
+index 0000000..39bdb04
+--- /dev/null
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -0,0 +1,179 @@
++import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
++import {
++  CODIGOS_DA_ENTRADA, CODIGOS_DE_ERRO_DE_ACESSO, LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO,
++} from "@dc360/shared";
++
++/**
++ * A GUARDA EM TEMPO DE EXECUÇÃO das respostas de acesso (V2-F00-E05, correção 3).
++ *
++ * O PROBLEMA: o catálogo de códigos de erro de acesso
++ * (`packages/shared/src/codigos-de-erro.ts`) era garantido por uma varredura do
++ * código-fonte, e uma varredura estática nunca fecha a classe: a revisão
++ * independente plantou dezesseis formas de responder 403 com código fora do
++ * catálogo (`code(200).code(403)`, `e[campo] = "x"`, `Object` apelidado,
++ * `onSend` nas opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo
++ * `.mts`...) que o texto não mostrava. Cada regra nova abre a próxima forma.
++ *
++ * O QUE ISTO FAZ: confere a RESPOSTA, e não o texto que a produz. Toda resposta
++ * 401 ou 403 que sai do servidor, por qualquer caminho que passe pelo Fastify,
++ * tem de ter um corpo JSON com `erro` do catálogo (ou da lista da entrada) E o
++ * status que o catálogo dá a esse código. Fora disso:
++ *
++ *   - em TESTE (`modo: "falhar"`), a resposta vira 500
++ *     `desvio_do_catalogo_de_erro` e o desvio fica registrado; o arquivo de
++ *     apoio `test/guarda-falha-alto.ts` reprova o teste que passou por ali,
++ *     qualquer que seja o teste e o que ele confira;
++ *   - fora de teste (`modo: "corrigir"`), a resposta sai com o código genérico
++ *     do catálogo para aquele status (401 `nao_autenticado`, 403
++ *     `sem_permissao`), com a mensagem do catálogo, e o desvio vai para o log
++ *     com o método, a rota (o molde, sem a barra de endereço, que pode levar dado
++ *     pessoal), o status e o código que tentou sair.
++ *
++ * ONDE ELA RODA, e por que em dois lugares: como `onSend` GLOBAL (pega o 404 do
++ * roteador e tudo o que não tem rota) e como o ÚLTIMO `onSend` de cada rota,
++ * acrescentado pelo `onRoute`. O Fastify roda os ganchos do contexto antes dos
++ * das opções da rota, então só no fim da lista da rota ela vê o corpo depois de
++ * um `onSend` posto nas opções (`app.post("/", { onSend }, ...)`), que foi uma
++ * das formas da revisão. Precisa ser instalada ANTES da primeira rota: o
++ * `onRoute` só vale para rota registrada depois dele.
++ *
++ * O QUE ELA NÃO VÊ, e a varredura proíbe: resposta que não passa pelo Fastify,
++ * escrita direto no Node (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou
++ * no socket (`req.socket.end("HTTP/1.1 403 ...")`). E código no mesmo processo
++ * que reescreve o próprio Fastify, o protótipo da resposta ou os globais antes
++ * desta guarda carregar (ela guarda `JSON.parse` na carga do módulo, para um
++ * `JSON.parse` trocado depois não a enganar, e não usa `JSON.stringify` para
++ * montar o corpo genérico, para um `JSON.stringify` trocado não reescrever o
++ * corpo que ela mesma corrigiu).
++ */
++
++export type ModoDaGuarda = "falhar" | "corrigir";
++
++/** Código -> status que ele pode ter numa resposta de acesso. */
++export type ContratoDeAcesso = Readonly<Record<string, readonly number[]>>;
++
++export type Desvio = {
++  metodo: string;
++  rota: string;
++  status: number;
++  /** O `erro` que tentou sair, quando o corpo era JSON com `erro` em texto. */
++  erroVisto: string | null;
++  motivo: string;
++};
++
++/** O contrato da API: os dez códigos do catálogo com o status de cada um, mais os da entrada. */
++export const CONTRATO_DE_ACESSO_DA_API: ContratoDeAcesso = Object.freeze({
++  ...Object.fromEntries(LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO.map((c) => [
++    c, c === "acesso_suspenso" ? [403, 503] : [CODIGOS_DE_ERRO_DE_ACESSO[c].status],
++  ])),
++  ...Object.fromEntries(Object.entries(CODIGOS_DA_ENTRADA).map(([c, v]) => [c, [v.status]])),
++});
++
++/** O que sai no lugar do desvio, fora de teste: o código genérico do catálogo para o status. */
++export const GENERICO_DA_API: Readonly<Record<401 | 403, { erro: string; mensagem: string }>> = Object.freeze({
++  401: { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem },
++  403: { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem },
++});
++
++// Guardado na carga do módulo: um `JSON.parse` trocado depois não engana a guarda.
++const analisarJson: (texto: string) => unknown = JSON.parse;
++
++/**
++ * Confere UM corpo de resposta de acesso. `null` quando está no contrato; o motivo
++ * e o código visto quando não está. `payload` é o que o `onSend` recebe: texto,
++ * `Buffer`, nada, ou um fluxo (que não dá para ler sem consumir, e por isso é desvio).
++ */
++export function conferirCorpoDeAcesso(
++  status: number, payload: unknown, contrato: ContratoDeAcesso,
++): { motivo: string; erroVisto: string | null } | null {
++  let texto: string;
++  if (typeof payload === "string") texto = payload;
++  else if (payload instanceof Uint8Array) texto = Buffer.from(payload).toString("utf8");
++  else if (payload === null || payload === undefined) return { motivo: "resposta sem corpo", erroVisto: null };
++  else return { motivo: "corpo em fluxo ou objeto que não é texto", erroVisto: null };
++  let corpo: unknown;
++  try {
++    corpo = analisarJson(texto);
++  } catch {
++    return { motivo: "corpo que não é JSON", erroVisto: null };
++  }
++  if (typeof corpo !== "object" || corpo === null || Array.isArray(corpo)) {
++    return { motivo: "corpo JSON que não é objeto", erroVisto: null };
++  }
++  const erro = (corpo as { erro?: unknown }).erro;
++  if (typeof erro !== "string") return { motivo: "corpo sem `erro` em texto", erroVisto: null };
++  if (!Object.prototype.hasOwnProperty.call(contrato, erro)) {
++    return { motivo: "código fora do catálogo", erroVisto: erro };
++  }
++  if (!contrato[erro]!.includes(status)) {
++    return { motivo: `código do catálogo com status ${status}, e o catálogo diz ${contrato[erro]!.join(" ou ")}`, erroVisto: erro };
++  }
++  return null;
++}
++
++/** Texto JSON de um objeto de dois campos de texto, sem passar por `JSON.stringify`. */
++function textoJson(campos: Readonly<Record<string, string>>): string {
++  const aspas = (s: string) => `"${s.replace(/[\\"\u0000-\u001f\u2028\u2029]/g, (c) =>
++    (c === "\\" || c === "\"" ? `\\${c}` : `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`))}"`;
++  return `{${Object.entries(campos).map(([k, v]) => `${aspas(k)}:${aspas(v)}`).join(",")}}`;
++}
++
++/** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia depois de cada caso. */
++const desviosPendentes: Desvio[] = [];
++
++/** Devolve e esvazia os desvios registrados no modo "falhar". */
++export function lerDesviosDaGuarda(): Desvio[] {
++  return desviosPendentes.splice(0);
++}
++
++export type OpcoesDaGuarda = {
++  modo: ModoDaGuarda;
++  contrato: ContratoDeAcesso;
++  generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
++};
++
++/** O gancho `onSend` que confere (e, conforme o modo, falha ou corrige) a resposta de acesso. */
++export function criarGuardaDeAcesso(opcoes: OpcoesDaGuarda) {
++  return async function guardaDeAcesso(req: FastifyRequest, resposta: FastifyReply, payload: unknown): Promise<unknown> {
++    const status = resposta.statusCode;
++    if (status !== 401 && status !== 403) return payload;
++    // HEAD não leva corpo, por definição do HTTP: o Fastify tira o do GET gêmeo antes de chegar aqui.
++    // Quem confere o código é o GET da mesma rota, que passa por esta mesma guarda.
++    if (req.method === "HEAD") return payload;
++    const achado = conferirCorpoDeAcesso(status, payload, opcoes.contrato);
++    if (achado === null) return payload;
++    const desvio: Desvio = {
++      metodo: req.method,
++      rota: req.routeOptions?.url ?? "(sem rota)",
++      status,
++      erroVisto: achado.erroVisto,
++      motivo: achado.motivo,
++    };
++    req.log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
++    resposta.removeHeader("content-length");
++    resposta.header("content-type", "application/json; charset=utf-8");
++    if (opcoes.modo === "falhar") {
++      desviosPendentes.push(desvio);
++      resposta.code(500);
++      return textoJson({
++        erro: "desvio_do_catalogo_de_erro",
++        mensagem: `${desvio.metodo} ${desvio.rota} respondeu ${status} fora do catálogo: ${desvio.motivo}`
++          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : ""),
++      });
++    }
++    return textoJson(opcoes.generico[status]);
++  };
++}
++
++/**
++ * Instala a guarda: `onSend` global e, por `onRoute`, o último `onSend` de cada
++ * rota registrada DEPOIS desta chamada. Chamar logo depois de `Fastify()`.
++ */
++export function instalarGuardaDeAcesso(app: FastifyInstance, opcoes: OpcoesDaGuarda): void {
++  const guarda = criarGuardaDeAcesso(opcoes);
++  app.addHook("onRoute", (rota) => {
++    const atuais = rota.onSend === undefined ? [] : Array.isArray(rota.onSend) ? rota.onSend : [rota.onSend];
++    (rota as { onSend: unknown }).onSend = [...atuais, guarda];
++  });
++  app.addHook("onSend", guarda);
++}
+diff --git a/dc360/apps/api/src/servidor.ts b/dc360/apps/api/src/servidor.ts
+index 829efca..1358c70 100644
+--- a/dc360/apps/api/src/servidor.ts
++++ b/dc360/apps/api/src/servidor.ts
+@@ -3,6 +3,10 @@ import cors from "@fastify/cors";
+ import helmet from "@fastify/helmet";
+ import rateLimit from "@fastify/rate-limit";
+ import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
++// Antes das rotas, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
++import {
++  CONTRATO_DE_ACESSO_DA_API, GENERICO_DA_API, instalarGuardaDeAcesso, type ModoDaGuarda,
++} from "./guarda-de-codigos-de-erro.js";
+ import type { ZodError } from "zod";
+ import type { Config } from "./config.js";
+ import type { Banco } from "./banco/tipos.js";
+@@ -156,6 +160,12 @@ export type Dependencias = {
+     despertar(): void;
+     ultimaRodada(): UltimaRodada | null;
+   };
++  /**
++   * O que a guarda das respostas de acesso faz com um desvio do catálogo (ver
++   * `guarda-de-codigos-de-erro.ts`). Sem isto: "falhar" em teste, "corrigir"
++   * fora dele. Só o teste da guarda passa, para provar o modo de produção.
++   */
++  modoDaGuarda?: ModoDaGuarda;
+ };
+ 
+ /**
+@@ -259,7 +269,7 @@ export const CAMINHOS_REDIGIDOS = [
+ export async function construirServidor(
+   {
+     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
+-    push,
++    push, modoDaGuarda,
+   }: Dependencias,
+ ): Promise<FastifyInstance> {
+   /*
+@@ -366,6 +376,18 @@ export async function construirServidor(
+     bodyLimit: 1_048_576,
+   });
+ 
++  /*
++    A guarda das respostas de acesso, ANTES de qualquer rota: toda resposta 401
++    ou 403 tem de sair com um código do catálogo e o status dele. É a garantia
++    em tempo de execução; a varredura do fonte é a primeira linha, e não fecha a
++    classe sozinha. Ver `guarda-de-codigos-de-erro.ts`.
++  */
++  instalarGuardaDeAcesso(app, {
++    modo: modoDaGuarda ?? (config.NODE_ENV === "test" ? "falhar" : "corrigir"),
++    contrato: CONTRATO_DE_ACESSO_DA_API,
++    generico: GENERICO_DA_API,
++  });
++
+   /*
+     De quem este processo aceita cabeçalho de endereço de origem, declarado
+     ANTES de qualquer rota subir: é este valor que decide se `Fly-Client-IP`
+diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
+index f711417..d4485ba 100644
+--- a/dc360/apps/api/test/codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/codigos-de-erro.test.ts
+@@ -17,6 +17,7 @@ import {
+   codigosMortos, rastrearClasses, reprovacoes, varrerFonte, varrerPasta,
+   type RegrasDeConferencia, type Varredura,
+ } from "./varredura-de-erros.js";
++import { CONTRATO_DE_ACESSO_DO_CONSOLE } from "../../console/src/guarda-de-codigos-de-erro.js";
+ 
+ /**
+  * Os códigos de erro de acesso (V2-F00-E05): o cliente distingue "renove o
+@@ -41,8 +42,10 @@ import {
+  *     que o texto não resolve) com código fora do catálogo e da lista da
+  *     entrada. `sessao` (o nome antigo) não volta por nenhuma delas. Cada forma
+  *     tem o seu caso de mordida, com fonte de exemplo e com o fonte real mutado
+- *     em memória. O que fica fora (dado externo, código fora das pastas
+- *     varridas) está escrito no cabeçalho do catálogo e no README.
++ *     em memória. A varredura é heurística, a primeira linha: a GARANTIA é a
++ *     guarda em tempo de execução (`src/guarda-de-codigos-de-erro.ts`, provada
++ *     em `guarda-de-codigos-de-erro.test.ts`), e o que nenhuma das duas cobre
++ *     está escrito no cabeçalho do catálogo e no README.
+  *   - O catálogo não carrega código morto: todo código dele é emitido por
+  *     algum ponto do servidor.
+  *   - O que NÃO é prendido aqui (404, 409, 422, 429, 5xx, regra de negócio) é da
+@@ -625,6 +628,12 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+         arquivo: /[\\/]src[\\/]index\.ts$/, chave: "colchete:app.log[nivel]",
+         porque: "é o logger escolhendo o nível (`warn` ou `info`) do registro da varredura de notificações",
+       },
++      {
++        arquivo: /[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
++        porque: "é a GUARDA em tempo de execução: o `onSend` que confere toda resposta 401 ou 403 contra o "
++          + "catálogo e troca o desvio pelo código genérico (ou por 500, em teste). É ela que reescreve, e "
++          + "só com códigos do catálogo (`test/guarda-de-codigos-de-erro.test.ts`)",
++      },
+       {
+         arquivo: /rotas[\\/]documentos\.ts$/, chave: "colchete:GERADOR[documento]",
+         porque: "é a tabela dos geradores de documento (laudo, termos), funções que devolvem o HTML do "
+@@ -633,15 +642,20 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+     ],
+   };
+ 
+-  /** O console tem contrato próprio: estes são os 401 e 403 dele, e só eles. */
+-  const CONTRATO_DO_CONSOLE: Record<string, number> = {
+-    sem_sessao: 401, so_o_dono: 403, credenciais_invalidas: 401, desafio_invalido: 401,
+-    codigo_invalido: 401, senha_incorreta: 401, recuperacao_invalida: 401,
+-  };
++  /**
++   * O console tem contrato próprio: estes são os 401 e 403 dele, e só eles. A
++   * lista mora no console (`apps/console/src/guarda-de-codigos-de-erro.ts`),
++   * porque a guarda em tempo de execução dele usa a mesma.
++   */
++  const CONTRATO_DO_CONSOLE = CONTRATO_DE_ACESSO_DO_CONSOLE;
+   const REGRAS_DO_CONSOLE: RegrasDeConferencia = {
+     catalogo: {},
+     aceitosAlemDoCatalogo: CONTRATO_DO_CONSOLE,
+     repasses: [{
++      arquivo: /console[\\/]src[\\/]guarda-de-codigos-de-erro\.ts$/, chave: "gancho:onSend:guarda",
++      porque: "é a guarda em tempo de execução do console: o `onSend` que confere toda resposta 401 ou 403 "
++        + "contra o contrato e troca o desvio pelo código genérico (ou por 500, em teste)",
++    }, {
+       arquivo: /console[\\/]src[\\/]servidor\.ts$/, chave: "recusa.corpo",
+       porque: "o corpo vem de `traduzirRecusaDoBanco`, cujos literais (`so_o_dono` 403, `acao_recusada` 409) "
+         + "a varredura lê na forma `{ status, corpo: { erro } }`",
+@@ -873,6 +887,10 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       ["S4 eval", "eval(texto);"],
+       ["S5 new Function", 'const f = new Function("r", texto);'],
+       ["S6 redirect com 403", 'return resposta.redirect("/x", 403);'],
++      ["S7 escrita no socket (M08 da revisão; a guarda em execução não a vê)",
++        'req.socket.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n{\\"erro\\":\\"novo\\"}");'],
++      ["S8 code duas vezes na cadeia, o último é 403 (M11 da revisão)",
++        'resposta.code(200).code(403).send({ erro: "novo", mensagem: "x" });'],
+     ])("correção 3, reprova: %s", (_forma, fonte) => {
+       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+     });
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+new file mode 100644
+index 0000000..c683b78
+--- /dev/null
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -0,0 +1,275 @@
++import type { FastifyInstance, FastifyReply } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor, RegraDeNegocio } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import {
++  CONTRATO_DE_ACESSO_DA_API, conferirCorpoDeAcesso, lerDesviosDaGuarda, type ModoDaGuarda,
++} from "../src/guarda-de-codigos-de-erro.js";
++
++/**
++ * A GUARDA EM TEMPO DE EXECUÇÃO das respostas de acesso (V2-F00-E05, correção 3).
++ *
++ * A varredura do fonte é heurística: a revisão independente plantou dezesseis
++ * formas de responder 403 com código fora do catálogo que ela não lia. Aqui
++ * cada forma vira uma rota de verdade, no servidor de verdade, e o que se
++ * confere é a RESPOSTA: em teste (modo "falhar") ela sai 500
++ * `desvio_do_catalogo_de_erro` e o desvio fica registrado (o apoio
++ * `test/guarda-falha-alto.ts` reprova qualquer outro caso que passe por um);
++ * fora de teste (modo "corrigir") ela sai com o código genérico do catálogo para
++ * o status, e o desvio vai para o log com a rota.
++ *
++ * As rotas ficam neste arquivo, fora das pastas que a varredura lê, de
++ * propósito: o que a guarda prova é que a FORMA não importa.
++ *
++ * A única forma que a guarda não vê é a escrita direta no socket (M08 da
++ * revisão), porque ela não passa pelo Fastify; essa a varredura proíbe
++ * (`.socket` e `.connection`, como `.raw`, `.hijack()` e `.writeHead()`).
++ */
++
++const SEGREDO = "segredo-da-guarda-de-codigos-com-mais-de-32-bytes";
++
++type Recusa = { erro: string; mensagem: string };
++
++/** O que vem "de outro arquivo" (o M16 da revisão era um `.mts` que a varredura não lia). */
++function recusarDeFora(resposta: FastifyReply) {
++  return resposta.code(403).send({ erro: "vazou_m16", mensagem: "x" });
++}
++
++/** As formas da revisão, cada uma numa rota que responderia 403 (ou 401) com código fora do catálogo. */
++function plantarFormas(app: FastifyInstance): void {
++  const r = (n: string) => `/teste-da-guarda/${n}`;
++  app.get(r("m01"), async () => {
++    const modulo = { RegraDeNegocio } as Record<string, typeof RegraDeNegocio>;
++    const k = "Regra" + "DeNegocio";
++    throw new modulo[k]!("vazou_m01", "x", 403);
++  });
++  app.get(r("m02"), async () => {
++    const base = new RegraDeNegocio("sem_permissao", "x", 403);
++    const Construtor = base.constructor as typeof RegraDeNegocio;
++    throw new Construtor("vazou_m02", "x", 403);
++  });
++  app.get(r("m03"), async () => {
++    const campo = "codigo";
++    const e = new RegraDeNegocio("sem_permissao", "x", 403);
++    (e as unknown as Record<string, unknown>)[campo] = "vazou_m03";
++    throw e;
++  });
++  app.get(r("m04"), async () => {
++    const O = Object;
++    const e = new RegraDeNegocio("sem_permissao", "x", 403);
++    O.assign(e, { codigo: "vazou_m04" });
++    throw e;
++  });
++  app.get(r("m05"), async () => {
++    const e = new RegraDeNegocio("sem_permissao", "x", 403);
++    globalThis.Object.defineProperty(e, "codigo", { value: "vazou_m05" });
++    throw e;
++  });
++  app.get(r("m06"), async () => {
++    class Recusa06 extends RegraDeNegocio {
++      constructor() {
++        super("sem_permissao", "x", 403);
++        (this as unknown as Record<string, unknown>)["codigo"] = "vazou_m06";
++      }
++    }
++    throw new Recusa06();
++  });
++  app.get(r("m07"), {
++    onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("sem_permissao", "vazou_m07") : payload),
++  }, async (_req, resposta) => resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" }));
++  // M09: a rota é comum; o `JSON.stringify` é trocado no próprio caso, em volta do pedido.
++  app.get(r("m09"), async (_req, resposta) => resposta.code(403).send({ erro: "sem_permissao", mensagem: "x" }));
++  app.get(r("m10"), async (_req, resposta) => {
++    const campo = "statusCode";
++    const s = 403;
++    (resposta as unknown as Record<string, unknown>)[campo] = s;
++    return { erro: "vazou_m10", mensagem: "x" };
++  });
++  app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_m11", mensagem: "x" }));
++  app.get(r("m12"), async () => {
++    throw new Proxy(new RegraDeNegocio("sem_permissao", "x", 403), {
++      get: (alvo, p) => (p === "codigo" ? "vazou_m12" : (alvo as unknown as Record<string | symbol, unknown>)[p]),
++    });
++  });
++  app.get(r("m13"), async (_req, resposta) => {
++    const corpo: Recusa = { erro: "sem_permissao", mensagem: "x" };
++    void corpo;
++    const recusar = ({ corpo }: { corpo: Recusa }) => resposta.code(403).send(corpo);
++    return recusar({ corpo: { erro: "vazou_m13", mensagem: "x" } });
++  });
++  app.get(r("m14"), async (_req, resposta) => {
++    const corpo: Recusa = { erro: "sem_permissao", mensagem: "x" };
++    void corpo;
++    for (const corpo of [{ erro: "vazou_m14", mensagem: "x" }]) return resposta.code(403).send(corpo);
++    return null;
++  });
++  app.get(r("m15"), async () => {
++    const campo = "status";
++    const e = new RegraDeNegocio("vazou_m15", "x", 409);
++    (e as unknown as Record<string, unknown>)[campo] = 403;
++    throw e;
++  });
++  app.get(r("m16"), async (_req, resposta) => recusarDeFora(resposta));
++  // Desvios que não são de código: status trocado, sem corpo, corpo que não é JSON, 401.
++  app.get(r("status-trocado"), async (_req, resposta) => resposta.code(401).send({ erro: "sem_permissao", mensagem: "x" }));
++  app.get(r("sem-corpo"), async (_req, resposta) => resposta.code(403).send());
++  app.get(r("texto"), async (_req, resposta) => resposta.code(403).type("text/plain").send("proibido"));
++  app.get(r("401-fora"), async (_req, resposta) => resposta.code(401).send({ erro: "token_ausente", mensagem: "x" }));
++  // Controles: o que está no catálogo passa intacto.
++  app.get(r("ok-403"), async (_req, resposta) => resposta.code(403).send({ erro: "sem_permissao", mensagem: "Frase da rota." }));
++  app.get(r("ok-401"), async (_req, resposta) => resposta.code(401).send({ erro: "nao_autenticado", mensagem: "Frase da rota." }));
++  app.get(r("ok-entrada"), async (_req, resposta) => resposta.code(401).send({ erro: "credenciais", mensagem: "x" }));
++  app.get(r("ok-503"), async (_req, resposta) => resposta.code(503).send({ erro: "acesso_suspenso", mensagem: "x" }));
++  app.get(r("ok-200"), async () => ({ erro: "vazou_mas_e_200" }));
++}
++
++/** As formas que respondem 403, com o código que tentaria sair. */
++const FORMAS_403: ReadonlyArray<[string, string | null]> = [
++  ["m01", "vazou_m01"], ["m02", "vazou_m02"], ["m03", "vazou_m03"], ["m04", "vazou_m04"],
++  ["m05", "vazou_m05"], ["m06", "vazou_m06"], ["m07", "vazou_m07"], ["m10", "vazou_m10"],
++  ["m11", "vazou_m11"], ["m12", "vazou_m12"], ["m13", "vazou_m13"], ["m14", "vazou_m14"],
++  ["m15", "vazou_m15"], ["m16", "vazou_m16"], ["sem-corpo", null], ["texto", null],
++];
++
++let mem: BancoEmMemoria;
++const servidores = new Map<ModoDaGuarda, FastifyInstance>();
++const log: string[] = [];
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria();
++  const config = carregarConfig({ NODE_ENV: "test", JWT_SEGREDO: SEGREDO, LOGIN_POR_IP: "10000" } as NodeJS.ProcessEnv);
++  for (const modo of ["falhar", "corrigir"] as const) {
++    const app = await construirServidor({
++      banco: mem.banco, config,
++      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
++      modoDaGuarda: modo,
++      ...(modo === "corrigir" ? { destinoDeLog: { write: (linha: string) => { log.push(linha); } } } : {}),
++    });
++    plantarFormas(app);
++    await app.ready();
++    servidores.set(modo, app);
++  }
++}, 300_000);
++
++afterAll(async () => {
++  for (const app of servidores.values()) await app.close();
++  await mem?.banco.encerrar();
++});
++
++const pedir = (modo: ModoDaGuarda, n: string) => servidores.get(modo)!.inject({ method: "GET", url: `/teste-da-guarda/${n}` });
++
++describe("modo de teste: a resposta fora do catálogo falha alto", () => {
++  it.each(FORMAS_403)("%s: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota", async (n, visto) => {
++    const r = await pedir("falhar", n);
++    const desvios = lerDesviosDaGuarda();
++    expect(r.statusCode, r.body).toBe(500);
++    expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
++    expect(desvios).toHaveLength(1);
++    expect(desvios[0]).toMatchObject({ metodo: "GET", rota: `/teste-da-guarda/${n}`, status: 403, erroVisto: visto });
++  });
++
++  it("M09: `JSON.stringify` trocado depois de o servidor subir também é pego", async () => {
++    const original = JSON.stringify;
++    JSON.stringify = ((v: unknown, ...resto: unknown[]) =>
++      String((original as (...a: unknown[]) => string)(v, ...resto)).replace("sem_permissao", "vazou_m09")) as typeof JSON.stringify;
++    let r;
++    try {
++      r = await pedir("falhar", "m09");
++    } finally {
++      JSON.stringify = original;
++    }
++    const desvios = lerDesviosDaGuarda();
++    expect(r.statusCode).toBe(500);
++    expect(desvios).toEqual([expect.objectContaining({ erroVisto: "vazou_m09", rota: "/teste-da-guarda/m09" })]);
++  });
++
++  it("código do catálogo com o status trocado, e 401 com código fora, também", async () => {
++    for (const [n, status, visto] of [["status-trocado", 401, "sem_permissao"], ["401-fora", 401, "token_ausente"]] as const) {
++      const r = await pedir("falhar", n);
++      expect(r.statusCode, n).toBe(500);
++      expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ status, erroVisto: visto })]);
++    }
++  });
++
++  it("controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada", async () => {
++    const esperado: ReadonlyArray<[string, number, string]> = [
++      ["ok-403", 403, "sem_permissao"], ["ok-401", 401, "nao_autenticado"], ["ok-entrada", 401, "credenciais"],
++      ["ok-503", 503, "acesso_suspenso"], ["ok-200", 200, "vazou_mas_e_200"],
++    ];
++    for (const [n, status, erro] of esperado) {
++      const r = await pedir("falhar", n);
++      expect(r.statusCode, n).toBe(status);
++      expect(r.json().erro, n).toBe(erro);
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
++
++describe("HEAD não leva corpo", () => {
++  it("o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo", async () => {
++    const head = await servidores.get("falhar")!.inject({ method: "HEAD", url: "/teste-da-guarda/ok-403" });
++    expect(head.statusCode).toBe(403);
++    expect(head.body).toBe("");
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
++
++describe("modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log", () => {
++  it.each(FORMAS_403)("%s: sai 403 sem_permissao, com a frase do catálogo", async (n, visto) => {
++    log.length = 0;
++    const r = await pedir("corrigir", n);
++    expect(r.statusCode, r.body).toBe(403);
++    expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem });
++    expect(r.headers["content-type"]).toMatch(/^application\/json/);
++    const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalogo?: unknown }).find((l) => l.desvioDoCatalogo);
++    expect(registro?.desvioDoCatalogo).toMatchObject({ rota: `/teste-da-guarda/${n}`, status: 403, erroVisto: visto });
++    expect(lerDesviosDaGuarda(), "o modo de produção não registra desvio de teste").toEqual([]);
++  });
++
++  it("M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele", async () => {
++    const original = JSON.stringify;
++    JSON.stringify = ((v: unknown, ...resto: unknown[]) =>
++      String((original as (...a: unknown[]) => string)(v, ...resto)).replace("sem_permissao", "vazou_m09")) as typeof JSON.stringify;
++    let r;
++    try {
++      r = await pedir("corrigir", "m09");
++    } finally {
++      JSON.stringify = original;
++    }
++    expect(r.statusCode).toBe(403);
++    expect(r.json().erro).toBe("sem_permissao");
++  });
++
++  it("401 fora do catálogo sai 401 nao_autenticado", async () => {
++    const r = await pedir("corrigir", "401-fora");
++    expect(r.statusCode).toBe(401);
++    expect(r.json()).toEqual({ erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem });
++  });
++
++  it("controles: o que está no catálogo sai como a rota mandou, com a frase da rota", async () => {
++    const r = await pedir("corrigir", "ok-403");
++    expect(r.json()).toEqual({ erro: "sem_permissao", mensagem: "Frase da rota." });
++  });
++});
++
++describe("a conferência do corpo, isolada", () => {
++  it.each([
++    [403, '{"erro":"sem_permissao","mensagem":"x"}', null],
++    [401, Buffer.from('{"erro":"credenciais"}'), null],
++    [403, '{"erro":"acesso_suspenso"}', null],
++    [403, '{"erro":"nao_autenticado"}', "status 403"],
++    [403, '{"erro":"inventado"}', "fora do catálogo"],
++    [403, '{"mensagem":"x"}', "sem `erro`"],
++    [403, '["sem_permissao"]', "não é objeto"],
++    [403, "proibido", "não é JSON"],
++    [403, undefined, "sem corpo"],
++    [403, { pipe: () => undefined }, "fluxo"],
++  ] as const)("%s %s", (status, payload, motivo) => {
++    const r = conferirCorpoDeAcesso(status, payload, CONTRATO_DE_ACESSO_DA_API);
++    if (motivo === null) expect(r).toBeNull();
++    else expect(r?.motivo).toContain(motivo);
++  });
++});
+diff --git a/dc360/apps/api/test/guarda-falha-alto.ts b/dc360/apps/api/test/guarda-falha-alto.ts
+new file mode 100644
+index 0000000..e473f5c
+--- /dev/null
++++ b/dc360/apps/api/test/guarda-falha-alto.ts
+@@ -0,0 +1,16 @@
++import { afterEach, expect } from "vitest";
++import { lerDesviosDaGuarda } from "../src/guarda-de-codigos-de-erro.js";
++
++/**
++ * O "falha alto" da guarda das respostas de acesso (V2-F00-E05, correção 3).
++ *
++ * Em teste, a guarda (`src/guarda-de-codigos-de-erro.ts`) troca toda resposta
++ * 401 ou 403 fora do catálogo por um 500 e registra o desvio. Um 500 sozinho
++ * reprovaria só o teste que confere o status; este apoio reprova QUALQUER caso
++ * que tenha passado por um desvio, confira ele o que conferir. O teste da
++ * própria guarda lê e esvazia os desvios que provoca de propósito.
++ */
++afterEach(() => {
++  const desvios = lerDesviosDaGuarda();
++  expect(desvios, "resposta 401 ou 403 fora do catálogo de códigos de erro (guarda em tempo de execução)").toEqual([]);
++});
+diff --git a/dc360/apps/api/test/varredura-de-erros.ts b/dc360/apps/api/test/varredura-de-erros.ts
+index d507e96..1b424f3 100644
+--- a/dc360/apps/api/test/varredura-de-erros.ts
++++ b/dc360/apps/api/test/varredura-de-erros.ts
+@@ -25,6 +25,13 @@ import ts from "typescript";
+  * para `statusCode: 403` escrito à mão, para corpo 401 ou 403 sem `erro` e para
+  * código calculado em ponto que não está na lista de repasses conhecidos.
+  *
++ * ISTO É HEURÍSTICA, a primeira linha. A garantia de que nenhuma resposta 401 ou
++ * 403 sai fora do catálogo é a guarda em tempo de execução
++ * (`src/guarda-de-codigos-de-erro.ts`): depois das regras abaixo, a revisão
++ * independente ainda achou dezesseis formas que esta varredura não lia, e a
++ * guarda pega todas as que passam pelo Fastify. O que a guarda não vê (escrita no
++ * socket, `raw`, `hijack`, `writeHead`), esta varredura proíbe.
++ *
+  * Correção 3 (rodada 5, red-team): quatro formas passavam caladas, e cada uma
+  * abriu uma família que agora reprova.
+  *
+@@ -180,6 +187,7 @@ const LIDOS_COM_PONTO = new Set([
+   "send", "code", "status", "statusCode", "erro", "codigo", "corpo", "raw", "hijack", "writeHead",
+   "addHook", "setErrorHandler", "httpErrors", "assign", "defineProperty", "defineProperties",
+   "setPrototypeOf", "create", "call", "apply", "bind", "__proto__", "prototype", "constructor", "serializer",
++  "socket", "connection",
+ ]);
+ 
+ /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
+@@ -432,8 +440,12 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+         const metodo = atual.expression.name.text;
+         if ((metodo === "code" || metodo === "status") && atual.arguments.length === 1) {
+           codesDeCadeiaComSend.add(atual);
+-          status = numeroDoLiteral(atual.arguments[0]);
+-          argumento = atual.arguments[0] ?? null;
++          // O que vale é o `code` mais perto do `send` (o último aplicado), e é o primeiro que a
++          // subida encontra. `code(403).code(200)` é 200; `code(200).code(403)` é 403 (M11 da revisão).
++          if (!achou) {
++            status = numeroDoLiteral(atual.arguments[0]);
++            argumento = atual.arguments[0] ?? null;
++          }
+           achou = true;
+         }
+         atual = atual.expression.expression;
+@@ -676,6 +688,11 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+     if (ts.isPropertyAccessExpression(no) && no.name.text === "raw") {
+       problema(no, "`.raw`: escrita direta na resposta do Node, a varredura não vê o código dessa resposta");
+     }
++    // O socket da requisição: escrever nele é responder sem passar pelo Fastify, e é a única forma que a
++    // guarda em tempo de execução não vê (M08 da revisão). Qualquer `.socket` ou `.connection` reprova.
++    if (ts.isPropertyAccessExpression(no) && (no.name.text === "socket" || no.name.text === "connection")) {
++      problema(no, `\`.${no.name.text}\`: escrita direta no socket, que nem a guarda em tempo de execução vê`, `socket:${no.getText(sf)}`);
++    }
+     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
+       && (no.expression.name.text === "hijack" || no.expression.name.text === "writeHead")) {
+       problema(no, `\`.${no.expression.name.text}()\`: escrita direta na resposta, a varredura não vê o código dessa resposta`);
+@@ -699,7 +716,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+             };
+             procurar(funcao);
+           }
+-          if (reescreve) problema(no, `gancho \`${tipo ?? "calculado"}\` que reescreve a resposta ou lança erro de negócio: a varredura não vê o código dessa resposta`);
++          if (reescreve) problema(no, `gancho \`${tipo ?? "calculado"}\` que reescreve a resposta ou lança erro de negócio: a varredura não vê o código dessa resposta`, `gancho:${tipo ?? "calculado"}:${cb?.getText(sf) ?? ""}`);
+         }
+       }
+       if ((m === "assign" || m === "defineProperty" || m === "defineProperties") && ts.isIdentifier(no.expression.expression) && no.expression.expression.text === "Object") {
+diff --git a/dc360/apps/api/vitest.config.ts b/dc360/apps/api/vitest.config.ts
+index b403ed7..3912a77 100644
+--- a/dc360/apps/api/vitest.config.ts
++++ b/dc360/apps/api/vitest.config.ts
+@@ -50,7 +50,12 @@ export default defineConfig({
+       a lista que `carregarMigracoes` devolve ganha essa função no fim. Some
+       sozinho no dia em que uma migração a trouxer.
+     */
+-    setupFiles: ["./test/duble-da-migracao-038.ts"],
++    /*
++      E o "falha alto" da guarda das respostas de acesso (V2-F00-E05, correção 3):
++      caso que passou por uma resposta 401 ou 403 fora do catálogo reprova. Ver
++      `test/guarda-falha-alto.ts`.
++    */
++    setupFiles: ["./test/duble-da-migracao-038.ts", "./test/guarda-falha-alto.ts"],
+     testTimeout: 30_000,
+     hookTimeout: 120_000,
+     poolOptions: {
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+new file mode 100644
+index 0000000..5d88000
+--- /dev/null
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -0,0 +1,152 @@
++import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
++
++/**
++ * A GUARDA EM TEMPO DE EXECUÇÃO das respostas de acesso do console
++ * (V2-F00-E05, correção 3). É a mesma guarda da API
++ * (`apps/api/src/guarda-de-codigos-de-erro.ts`, onde o porquê está escrito por
++ * inteiro), com o contrato do console: toda resposta 401 ou 403 tem de sair com
++ * `erro` da lista abaixo e o status dela. Em teste, o desvio vira 500 e reprova
++ * o caso (`test/apoio/guarda-falha-alto.ts`); fora de teste, sai o código
++ * genérico do console para o status e o desvio vai para o log com a rota.
++ *
++ * Cópia, e não importação: o console é outro processo, com outro deploy, e não
++ * depende de nenhum pacote do produto em tempo de execução. As duas cópias são
++ * presas pelo mesmo tipo de teste, cada uma no seu pacote.
++ *
++ * O que ela não vê, e a varredura proíbe: escrita direta no Node (`raw`,
++ * `hijack`, `writeHead`) ou no socket, e código no mesmo processo que reescreve
++ * o Fastify ou os globais antes de esta guarda carregar.
++ */
++
++export type ModoDaGuarda = "falhar" | "corrigir";
++
++/** Código -> status que ele pode ter numa resposta de acesso. */
++export type ContratoDeAcesso = Readonly<Record<string, readonly number[]>>;
++
++export type Desvio = {
++  metodo: string;
++  rota: string;
++  status: number;
++  /** O `erro` que tentou sair, quando o corpo era JSON com `erro` em texto. */
++  erroVisto: string | null;
++  motivo: string;
++};
++
++/**
++ * O contrato do console: os 401 e 403 dele, e só eles. Era uma lista escrita no
++ * teste da varredura (`apps/api/test/codigos-de-erro.test.ts`); veio para cá
++ * porque a guarda em tempo de execução precisa dela, e o teste a importa daqui.
++ */
++export const CONTRATO_DE_ACESSO_DO_CONSOLE: ContratoDeAcesso = Object.freeze({
++  sem_sessao: [401], so_o_dono: [403], credenciais_invalidas: [401], desafio_invalido: [401],
++  codigo_invalido: [401], senha_incorreta: [401], recuperacao_invalida: [401],
++});
++
++/** O que sai no lugar do desvio, fora de teste, com as frases que o próprio console usa. */
++export const GENERICO_DO_CONSOLE: Readonly<Record<401 | 403, { erro: string; mensagem: string }>> = Object.freeze({
++  401: { erro: "sem_sessao", mensagem: "Entre de novo." },
++  403: { erro: "so_o_dono", mensagem: "Só o dono do console faz isto." },
++});
++
++// Guardado na carga do módulo: um `JSON.parse` trocado depois não engana a guarda.
++const analisarJson: (texto: string) => unknown = JSON.parse;
++
++/**
++ * Confere UM corpo de resposta de acesso. `null` quando está no contrato; o motivo
++ * e o código visto quando não está. `payload` é o que o `onSend` recebe: texto,
++ * `Buffer`, nada, ou um fluxo (que não dá para ler sem consumir, e por isso é desvio).
++ */
++export function conferirCorpoDeAcesso(
++  status: number, payload: unknown, contrato: ContratoDeAcesso,
++): { motivo: string; erroVisto: string | null } | null {
++  let texto: string;
++  if (typeof payload === "string") texto = payload;
++  else if (payload instanceof Uint8Array) texto = Buffer.from(payload).toString("utf8");
++  else if (payload === null || payload === undefined) return { motivo: "resposta sem corpo", erroVisto: null };
++  else return { motivo: "corpo em fluxo ou objeto que não é texto", erroVisto: null };
++  let corpo: unknown;
++  try {
++    corpo = analisarJson(texto);
++  } catch {
++    return { motivo: "corpo que não é JSON", erroVisto: null };
++  }
++  if (typeof corpo !== "object" || corpo === null || Array.isArray(corpo)) {
++    return { motivo: "corpo JSON que não é objeto", erroVisto: null };
++  }
++  const erro = (corpo as { erro?: unknown }).erro;
++  if (typeof erro !== "string") return { motivo: "corpo sem `erro` em texto", erroVisto: null };
++  if (!Object.prototype.hasOwnProperty.call(contrato, erro)) {
++    return { motivo: "código fora do catálogo", erroVisto: erro };
++  }
++  if (!contrato[erro]!.includes(status)) {
++    return { motivo: `código do catálogo com status ${status}, e o catálogo diz ${contrato[erro]!.join(" ou ")}`, erroVisto: erro };
++  }
++  return null;
++}
++
++/** Texto JSON de um objeto de dois campos de texto, sem passar por `JSON.stringify`. */
++function textoJson(campos: Readonly<Record<string, string>>): string {
++  const aspas = (s: string) => `"${s.replace(/[\\"\u0000-\u001f\u2028\u2029]/g, (c) =>
++    (c === "\\" || c === "\"" ? `\\${c}` : `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`))}"`;
++  return `{${Object.entries(campos).map(([k, v]) => `${aspas(k)}:${aspas(v)}`).join(",")}}`;
++}
++
++/** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia depois de cada caso. */
++const desviosPendentes: Desvio[] = [];
++
++/** Devolve e esvazia os desvios registrados no modo "falhar". */
++export function lerDesviosDaGuarda(): Desvio[] {
++  return desviosPendentes.splice(0);
++}
++
++export type OpcoesDaGuarda = {
++  modo: ModoDaGuarda;
++  contrato: ContratoDeAcesso;
++  generico: Readonly<Record<401 | 403, { erro: string; mensagem: string }>>;
++};
++
++/** O gancho `onSend` que confere (e, conforme o modo, falha ou corrige) a resposta de acesso. */
++export function criarGuardaDeAcesso(opcoes: OpcoesDaGuarda) {
++  return async function guardaDeAcesso(req: FastifyRequest, resposta: FastifyReply, payload: unknown): Promise<unknown> {
++    const status = resposta.statusCode;
++    if (status !== 401 && status !== 403) return payload;
++    // HEAD não leva corpo, por definição do HTTP: o Fastify tira o do GET gêmeo antes de chegar aqui.
++    // Quem confere o código é o GET da mesma rota, que passa por esta mesma guarda.
++    if (req.method === "HEAD") return payload;
++    const achado = conferirCorpoDeAcesso(status, payload, opcoes.contrato);
++    if (achado === null) return payload;
++    const desvio: Desvio = {
++      metodo: req.method,
++      rota: req.routeOptions?.url ?? "(sem rota)",
++      status,
++      erroVisto: achado.erroVisto,
++      motivo: achado.motivo,
++    };
++    req.log.error({ desvioDoCatalogo: desvio }, "resposta de acesso fora do catálogo de códigos de erro");
++    resposta.removeHeader("content-length");
++    resposta.header("content-type", "application/json; charset=utf-8");
++    if (opcoes.modo === "falhar") {
++      desviosPendentes.push(desvio);
++      resposta.code(500);
++      return textoJson({
++        erro: "desvio_do_catalogo_de_erro",
++        mensagem: `${desvio.metodo} ${desvio.rota} respondeu ${status} fora do catálogo: ${desvio.motivo}`
++          + (desvio.erroVisto ? ` (${desvio.erroVisto})` : ""),
++      });
++    }
++    return textoJson(opcoes.generico[status]);
++  };
++}
++
++/**
++ * Instala a guarda: `onSend` global e, por `onRoute`, o último `onSend` de cada
++ * rota registrada DEPOIS desta chamada. Chamar logo depois de `Fastify()`.
++ */
++export function instalarGuardaDeAcesso(app: FastifyInstance, opcoes: OpcoesDaGuarda): void {
++  const guarda = criarGuardaDeAcesso(opcoes);
++  app.addHook("onRoute", (rota) => {
++    const atuais = rota.onSend === undefined ? [] : Array.isArray(rota.onSend) ? rota.onSend : [rota.onSend];
++    (rota as { onSend: unknown }).onSend = [...atuais, guarda];
++  });
++  app.addHook("onSend", guarda);
++}
+diff --git a/dc360/apps/console/src/servidor.ts b/dc360/apps/console/src/servidor.ts
+index 734ab9e..d57a618 100644
+--- a/dc360/apps/console/src/servidor.ts
++++ b/dc360/apps/console/src/servidor.ts
+@@ -1,4 +1,8 @@
+ import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
++// Antes do resto, de propósito: a guarda guarda `JSON.parse` na carga do módulo.
++import {
++  CONTRATO_DE_ACESSO_DO_CONSOLE, GENERICO_DO_CONSOLE, instalarGuardaDeAcesso, type ModoDaGuarda,
++} from "./guarda-de-codigos-de-erro.js";
+ import helmet from "@fastify/helmet";
+ import rateLimit from "@fastify/rate-limit";
+ import { z } from "zod";
+@@ -114,6 +118,12 @@ export type DependenciasDoConsole = {
+   limiteDeAcoes?: number;
+   /** Coletor de log, para o teste poder afirmar o que saiu. */
+   destinoDeLog?: { write: (linha: string) => void };
++  /**
++   * O que a guarda das respostas de acesso faz com um desvio do contrato (ver
++   * `guarda-de-codigos-de-erro.ts`). Sem isto: "falhar" em teste, "corrigir"
++   * fora dele. Só o teste da guarda passa, para provar o modo de produção.
++   */
++  modoDaGuarda?: ModoDaGuarda;
+ };
+ 
+ /** Quem está agindo, depois do portão: o que toda rota fechada recebe. */
+@@ -267,6 +277,17 @@ export async function construirConsole(
+     bodyLimit: 16 * 1024,
+   });
+ 
++  /*
++    A guarda das respostas de acesso, ANTES de qualquer rota: toda resposta 401
++    ou 403 sai com um código do contrato do console e o status dele, ou não sai
++    (ver `guarda-de-codigos-de-erro.ts`).
++  */
++  instalarGuardaDeAcesso(app, {
++    modo: dep.modoDaGuarda ?? (config.NODE_ENV === "test" ? "falhar" : "corrigir"),
++    contrato: CONTRATO_DE_ACESSO_DO_CONSOLE,
++    generico: GENERICO_DO_CONSOLE,
++  });
++
+   /*
+     A SEMENTE DO DONO, antes de qualquer rota existir.
+ 
+diff --git a/dc360/apps/console/test/apoio/console-de-teste.ts b/dc360/apps/console/test/apoio/console-de-teste.ts
+index 65e1c67..e6debbb 100644
+--- a/dc360/apps/console/test/apoio/console-de-teste.ts
++++ b/dc360/apps/console/test/apoio/console-de-teste.ts
+@@ -101,6 +101,8 @@ export type OpcoesDoConsoleDeTeste = {
+   limiteDeAcoes?: number;
+   /** Linhas a mais na variável de semente, para o caso que recusa mais de um. */
+   sementeCrua?: string;
++  /** O modo da guarda das respostas de acesso; sem isto, o de teste ("falhar"). */
++  modoDaGuarda?: "falhar" | "corrigir";
+ };
+ 
+ export async function subirConsoleDeTeste(
+@@ -138,6 +140,7 @@ export async function subirConsoleDeTeste(
+     limiteDeAcoes: opcoes.limiteDeAcoes ?? 500,
+     destinoDeLog: { write: (linha: string) => { log.push(linha); } },
+     agora: () => relogio.agora,
++    ...(opcoes.modoDaGuarda ? { modoDaGuarda: opcoes.modoDaGuarda } : {}),
+   };
+   const app = await construirConsole(dependencias);
+ 
+diff --git a/dc360/apps/console/test/apoio/guarda-falha-alto.ts b/dc360/apps/console/test/apoio/guarda-falha-alto.ts
+new file mode 100644
+index 0000000..4348921
+--- /dev/null
++++ b/dc360/apps/console/test/apoio/guarda-falha-alto.ts
+@@ -0,0 +1,12 @@
++import { afterEach, expect } from "vitest";
++import { lerDesviosDaGuarda } from "../../src/guarda-de-codigos-de-erro.js";
++
++/**
++ * O "falha alto" da guarda das respostas de acesso do console (V2-F00-E05,
++ * correção 3): caso que passou por uma resposta 401 ou 403 fora do contrato
++ * reprova, confira ele o que conferir. Ver `src/guarda-de-codigos-de-erro.ts`.
++ */
++afterEach(() => {
++  const desvios = lerDesviosDaGuarda();
++  expect(desvios, "resposta 401 ou 403 fora do contrato do console (guarda em tempo de execução)").toEqual([]);
++});
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+new file mode 100644
+index 0000000..cd606a0
+--- /dev/null
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -0,0 +1,75 @@
++import type { FastifyReply } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { lerDesviosDaGuarda } from "../src/guarda-de-codigos-de-erro.js";
++import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
++
++/**
++ * A guarda das respostas de acesso do CONSOLE (V2-F00-E05, correção 3): a mesma
++ * da API, com o contrato do console. Cada rota abaixo responde 401 ou 403 com
++ * código fora do contrato por uma forma que a varredura do fonte não lia (a
++ * revisão independente plantou estas na API); o que se confere é a resposta.
++ */
++
++function recusarDeFora(resposta: FastifyReply) {
++  return resposta.code(403).send({ erro: "vazou_m16", mensagem: "x" });
++}
++
++const consoles = new Map<"falhar" | "corrigir", ConsoleDeTeste>();
++
++beforeAll(async () => {
++  for (const modo of ["falhar", "corrigir"] as const) {
++    const c = await subirConsoleDeTeste({ modoDaGuarda: modo });
++    const r = (n: string) => `/teste-da-guarda/${n}`;
++    c.app.get(r("m07"), {
++      onSend: async (_req, rep, payload) => (rep.statusCode === 403 ? String(payload).replace("so_o_dono", "vazou_m07") : payload),
++    }, async (_req, resposta) => resposta.code(403).send({ erro: "so_o_dono", mensagem: "x" }));
++    c.app.get(r("m10"), async (_req, resposta) => {
++      const campo = "statusCode";
++      (resposta as unknown as Record<string, unknown>)[campo] = 401;
++      return { erro: "vazou_m10", mensagem: "x" };
++    });
++    c.app.get(r("m11"), async (_req, resposta) => resposta.code(200).code(403).send({ erro: "vazou_m11", mensagem: "x" }));
++    c.app.get(r("m16"), async (_req, resposta) => recusarDeFora(resposta));
++    c.app.get(r("ok"), async (_req, resposta) => resposta.code(403).send({ erro: "so_o_dono", mensagem: "Frase da rota." }));
++    await c.app.ready();
++    consoles.set(modo, c);
++  }
++}, 300_000);
++
++afterAll(async () => {
++  for (const c of consoles.values()) await c.encerrar();
++});
++
++const FORMAS: ReadonlyArray<[string, number, string]> = [
++  ["m07", 403, "vazou_m07"], ["m10", 401, "vazou_m10"], ["m11", 403, "vazou_m11"], ["m16", 403, "vazou_m16"],
++];
++
++describe("a guarda do console", () => {
++  it.each(FORMAS)("em teste, %s sai 500 e o desvio fica registrado com a rota", async (n, status, visto) => {
++    const r = await consoles.get("falhar")!.app.inject({ method: "GET", url: `/teste-da-guarda/${n}` });
++    expect(r.statusCode, r.body).toBe(500);
++    expect(lerDesviosDaGuarda()).toEqual([expect.objectContaining({ rota: `/teste-da-guarda/${n}`, status, erroVisto: visto })]);
++  });
++
++  it.each(FORMAS)("fora de teste, %s sai com o código genérico do console e vai para o log", async (n, status, visto) => {
++    const c = consoles.get("corrigir")!;
++    c.log.length = 0;
++    const r = await c.app.inject({ method: "GET", url: `/teste-da-guarda/${n}` });
++    expect(r.statusCode).toBe(status);
++    expect(r.json()).toEqual(status === 401
++      ? { erro: "sem_sessao", mensagem: "Entre de novo." }
++      : { erro: "so_o_dono", mensagem: "Só o dono do console faz isto." });
++    const registro = c.log.map((l) => JSON.parse(l) as { desvioDoCatalogo?: unknown }).find((l) => l.desvioDoCatalogo);
++    expect(registro?.desvioDoCatalogo).toMatchObject({ rota: `/teste-da-guarda/${n}`, erroVisto: visto });
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("controle: o código do contrato passa intacto, com a frase da rota", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const r = await consoles.get(modo)!.app.inject({ method: "GET", url: "/teste-da-guarda/ok" });
++      expect(r.statusCode).toBe(403);
++      expect(r.json()).toEqual({ erro: "so_o_dono", mensagem: "Frase da rota." });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
+diff --git a/dc360/apps/console/vitest.config.ts b/dc360/apps/console/vitest.config.ts
+index 76eb6a9..485ec27 100644
+--- a/dc360/apps/console/vitest.config.ts
++++ b/dc360/apps/console/vitest.config.ts
+@@ -19,6 +19,10 @@ import { defineConfig } from "vitest/config";
+  */
+ export default defineConfig({
+   test: {
+-    setupFiles: ["./test/apoio/duble-da-migracao-039.ts"],
++    /*
++      E o "falha alto" da guarda das respostas de acesso (V2-F00-E05, correção
++      3): caso que passou por uma resposta 401 ou 403 fora do contrato reprova.
++    */
++    setupFiles: ["./test/apoio/duble-da-migracao-039.ts", "./test/apoio/guarda-falha-alto.ts"],
+   },
+ });
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index a7a6d9c..d6b312d 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5157 testes somando o aplicativo** (contagem estática de `npm run
++- **5217 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5157 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5217 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index 2dd6d2e..3a5fa0b 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -22,13 +22,35 @@
+  * lista mora aqui, no pacote que o servidor, o painel e o aplicativo importam,
+  * e não escrita três vezes.
+  *
+- * ## O que os testes prendem, exatamente
++ * ## O que garante, e o que só ajuda
+  *
+- * São dois, e um não substitui o outro.
++ * A GARANTIA é uma guarda em tempo de execução, não um teste do texto
++ * (V2-F00-E05, correção 3). Uma varredura estática do fonte nunca fecha a
++ * classe: a cada regra nova, a revisão achou a forma seguinte (dezesseis de uma
++ * vez: `code(200).code(403)`, `e[campo] = "x"`, `Object` apelidado, `onSend` nas
++ * opções da rota, `JSON.stringify` trocado, `Proxy`, arquivo `.mts`...).
++ *
++ * 0. `apps/api/src/guarda-de-codigos-de-erro.ts` (e a cópia do console, com o
++ *    contrato dele) é um `onSend` global e o ÚLTIMO `onSend` de cada rota,
++ *    instalado antes da primeira rota. Toda resposta 401 ou 403 que passa pelo
++ *    Fastify, venha de onde vier, tem de ter corpo JSON com `erro` deste
++ *    catálogo (ou da lista da entrada) e o status que o catálogo dá a ele. Fora
++ *    disso, em TESTE a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso
++ *    que passou por ali reprova (`test/guarda-falha-alto.ts`, em todo arquivo da
++ *    suíte); FORA de teste ela sai com o código genérico do catálogo para o
++ *    status (401 `nao_autenticado`, 403 `sem_permissao`, com a frase deste
++ *    catálogo) e o desvio vai para o log com o método, a rota e o código que
++ *    tentou sair. `apps/api/test/guarda-de-codigos-de-erro.test.ts` planta as
++ *    dezesseis formas da revisão como rotas e prova os dois modos.
++ *
++ * Os testes abaixo são as linhas ANTERIORES, que apontam o defeito antes de ele
++ * chegar à guarda, e nenhum dos dois é garantia sozinho.
+  *
+  * 1. `apps/api/test/codigos-de-erro.test.ts` lê o código-fonte (a API, o pacote
+  *    compartilhado e o console do fornecedor) pela árvore sintática do
+- *    TypeScript e reprova nestes casos:
++ *    TypeScript. É HEURÍSTICA: lê as formas que conhece e tenta reprovar o que
++ *    não sabe ler, mas a lista do que ela não lê não é fechada. Reprova nestes
++ *    casos:
+  *
+  *    - TODA resposta de erro de acesso, isto é, de status 401 ou 403, ou de
+  *      status que o texto não resolve, carrega um código deste catálogo ou da
+@@ -47,7 +69,7 @@
+  *      `send(X)`, `typeof X`). `let`, `var`, parâmetro homônimo, exportação,
+  *      escrita em campo, passar a uma função ou apelidar deixam o corpo sem
+  *      leitura, e corpo sem leitura numa resposta de acesso reprova.
+- *    - O que a varredura NÃO consegue ler, ela REPROVA em vez de deixar passar:
++ *    - Formas que ela reconhece como ilegíveis, e reprova:
+  *      `.code(...)` ou `.status(...)` fora de uma cadeia com `send` (o corpo
+  *      iria num `return`), 401 ou 403 sem `erro`, corpo que não resolve (inclusive
+  *      texto, com status calculado), `{ erro: "x", ...extra }` com o spread
+@@ -110,19 +132,16 @@
+  *    só recebem 403 `assinatura`. Não é, portanto, "todas as rotas, com cada
+  *    perfil, até o fim": é o que fecha o que o texto esconde apenas onde chega.
+  *
+- * O que NENHUM dos dois prende, para ninguém ler mais do que está escrito: uma
+- * recusa que só sai com um corpo ou um estado que os perfis do teste dinâmico
+- * não criam E que o texto não mostra, e isso se resume a duas formas: código
+- * ou `statusCode` que vêm de DADO em tempo de execução (um objeto do banco, da
+- * rede ou de `JSON.parse` lançado ou espalhado num erro); e classe de erro ou
+- * resposta definida FORA das pastas varridas (dependência, plugin de
+- * terceiros, inclusive método que ele acrescente à resposta, porque a varredura
+- * reconhece a resposta pelo NOME dos métodos do Fastify: `code`, `status`,
+- * `send`, `redirect`, `statusCode`, `raw`, `hijack`, `writeHead`). A prova
+- * dinâmica, por sua vez, não alcança ramo que dependa de um valor que o corpo
+- * mínimo dela não manda (o handler das 66 rotas que nunca recebem 2xx, acima,
+- * e qualquer `if` sobre o dado pedido). Fora do escopo: os erros de outros
+- * status (404, 409, 422, 429, 5xx) e os
++ * O que NENHUMA das três linhas prende, para ninguém ler mais do que está
++ * escrito: resposta que não passa pelo Fastify, escrita direto no Node
++ * (`resposta.raw`, `resposta.hijack()`, `writeHead`) ou no SOCKET da requisição
++ * (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da revisão). A guarda não a vê;
++ * a varredura a proíbe (`.raw`, `.hijack`, `.writeHead`, `.socket`,
++ * `.connection`), mas é heurística. E código no mesmo processo que reescreve o
++ * próprio Fastify, o protótipo da resposta ou os globais ANTES de a guarda
++ * carregar (ela guarda `JSON.parse` na carga e não usa `JSON.stringify` para
++ * montar o corpo genérico, o que fecha o `JSON` trocado depois). Fora do
++ * escopo: os erros de outros status (404, 409, 422, 429, 5xx) e os
+  * códigos de regra de negócio, que são da V2-F02-E03; o TEXTO da mensagem que
+  * cada rota devolve, fora dos casos de execução; e o que cada cliente faz com o
+  * código (isso é dos testes do painel e do aplicativo, que também leem este
+@@ -141,9 +160,10 @@
+  *
+  * `apps/console` é outro processo, com a própria sessão e o próprio contrato de
+  * erro (`sem_sessao`, `so_o_dono`, ...), e as páginas dele leem esses códigos.
+- * Não usa este catálogo e o painel e o aplicativo nunca falam com ele. O teste
+- * o varre mesmo assim, contra uma lista própria, para que um 401 ou 403 novo
+- * dele também não nasça sem revisão.
++ * Não usa este catálogo e o painel e o aplicativo nunca falam com ele. A lista
++ * própria dele mora em `apps/console/src/guarda-de-codigos-de-erro.ts`: a guarda
++ * do console confere cada resposta 401 ou 403 contra ela (com os mesmos dois
++ * modos), e a varredura o lê contra a mesma lista.
+  *
+  * ## Recurso de outro município
+  *
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 615ca80..f372899 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -474,8 +474,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     chave calculada, `.call`/`.apply`/`.bind`, `statusCode` abreviado, texto
+     com `FST_`, classe forjada, `toJSON`, serializador, `eval`, `redirect`) e
+     1 caso de controle (o que é só lido passa). Sem pulo nem falha novos.
++    Segunda parte da correção 3 (depois da revisão independente): a GUARDA em
++    tempo de execução. `codigos-de-erro.test.ts` ganha mais 2 (escrita no
++    socket e `code(200).code(403)`), indo a 171; `guarda-de-codigos-de-erro.test.ts`
++    é novo, com 49 (as dezesseis formas da revisão como rotas, nos dois modos,
++    o `JSON.stringify` trocado nos dois, status trocado e 401 fora, HEAD,
++    controles e 10 casos da conferência isolada). 53 + 2 + 49 = 104.
+   */
+-  "V2-F00-E05-correcao-3": { total: 53, falhas: 0, puladas: 0 },
++  "V2-F00-E05-correcao-3": { total: 104, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -690,7 +696,7 @@ export const PASSOS = [
+   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
+   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
+   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
+-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 259, falhas: 0 } },
++  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 268, falhas: 0 } },
+   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
+   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
+   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

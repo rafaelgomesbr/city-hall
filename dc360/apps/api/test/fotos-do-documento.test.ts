@@ -6,6 +6,7 @@ import { construirServidor } from "../src/servidor.js";
 import {
   armazenamentoEmMemoria, type ArmazenamentoEmMemoria,
 } from "../src/armazenamento/memoria.js";
+import { esperarORelogioAndar } from "./esperar-o-relogio.js";
 
 /**
  * As fotos do documento são as da vistoria que ele documenta.
@@ -175,7 +176,7 @@ describe("O laudo da re-vistoria", () => {
     const daPrimeira = await subirFoto(id, "Talude destruído");
     await vistoriar(id, [daPrimeira.chave], "Vistoria A: talude cedeu.");
 
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     const daSegunda = await subirFoto(id, "Talude contido");
     await vistoriar(id, [daSegunda.chave], "Vistoria B: risco cessou.");
 
@@ -202,7 +203,7 @@ describe("O laudo da re-vistoria", () => {
     const daPrimeira = await subirFoto(id, "Trinca na parede");
     await vistoriar(id, [daPrimeira.chave], "Vistoria A.");
 
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await vistoriar(id, [], "Vistoria B, sem registro fotográfico.");
 
     const html = (await laudo(id)).body;

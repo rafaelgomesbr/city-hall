@@ -1,0 +1,229 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 2d3b7ef..df3e9d2 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -245,9 +245,15 @@ A guarda decide pelo status que o Node escreve (`statusCode | 0`: `403.5` e
+ (`_writeRaw` e `_flushOutput` da instância), então a cabeça gravada por baixo de
+ `writeHead` (`_storeHeader`, `_header` reescrito) também é conferida.
+ 
+-O que a guarda NÃO vê, e a varredura proíbe (mas é heurística): escrita no socket
+-da requisição (`req.socket.end("HTTP/1.1 403 ...")`, que não passa pela resposta
+-do Node; a varredura reprova `.socket`, `.connection` e desestruturar `socket`), o
++O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
++Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
++`.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
++servidor HTTP que entregam o socket ou o pedido antes do Fastify
++(`app.server.on("connection", (s) => s.end("HTTP/1.1 403 ..."))`, e `request`,
++`upgrade`, `secureConnection`, `clientError`, por `on`, `once`, `addListener` ou
++`prependListener`). Contra isso NÃO há garantia em tempo de execução: só a
++varredura do fonte, que é heurística, reprova esses nomes e esses ouvintes (e a
++desestruturação de `socket`, `connection` e `client`). A guarda também não vê o
+ método do protótipo da resposta chamado por fora da instância (`.call`, `.apply`,
+ `Reflect`), e o corpo depois de uma cabeça final que passou, cuja moldura
+ (`content-length`, `chunked`) ela não confere: bytes escritos por baixo além do
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index e8592e2..87c2e19 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -67,9 +67,14 @@ import {
+  *
+  * O QUE ELA NÃO VÊ, dito sem folga:
+  *
+- *   - escrita no SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`),
+- *     que não passa pela resposta do Node; a varredura do fonte proíbe
+- *     `.socket` e `.connection`, e desestruturar `socket`;
++ *   - escrita direta no SOCKET, que não passa pela resposta do Node:
++ *     `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por `.connection`
++ *     ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
++ *     servidor HTTP que entregam o socket ou o pedido antes do Fastify
++ *     (`app.server.on("connection", (s) => s.end(...))`, `request`, `upgrade`,
++ *     `secureConnection`, `clientError`). Contra isso não há garantia em tempo
++ *     de execução: só a varredura do fonte, heurística, que reprova esses
++ *     nomes, a desestruturação deles e esses ouvintes;
+  *   - chamar o método do protótipo por fora da instância
+  *     (`ServerResponse.prototype.end` ou `_writeRaw` com `.call`, `.apply` ou
+  *     `Reflect`); a varredura proíbe `.call`, `.apply`, `.bind` e `Reflect`;
+diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
+index 4fa7a6c..7151548 100644
+--- a/dc360/apps/api/test/codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/codigos-de-erro.test.ts
+@@ -954,6 +954,40 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+     });
+ 
++    /*
++      Correção 4c (revisão de `ae19e89`): o socket alcançado sem `.socket`, `.connection` nem `.raw` no
++      texto. A primeira é a sonda exata da revisão (`sonda-conexao.ts`), que chegava ao fio como 403 com
++      código inventado e saía daqui com 0 problemas; a guarda em tempo de execução não a vê.
++    */
++    it.each([
++      ["revisão: ouvinte de connection no servidor escrevendo no socket",
++        'app.server.on("connection", (s: any) => { s.once("data", () => s.end("HTTP/1.1 403 Forbidden\\r\\ncontent-length: 20\\r\\n\\r\\n{\\"erro\\":\\"inventado\\"}")); });'],
++      ["revisão: q.client, o apelido do socket no pedido", 'app.get("/x", async (q: any) => { q.client.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"); });'],
++      ["client por colchete", 'req["client"].write("HTTP/1.1 403");'],
++      ["client desestruturado", "const { client } = req;\nvoid client;"],
++      ["client desestruturado e renomeado", "const { client: s } = req;\nvoid s;"],
++      ["once de request", 'servidor.once("request", (q: any, r: any) => r.end());'],
++      ["prependListener de connection", 'app.server.prependListener("connection", (s: any) => s.end());'],
++      ["addListener de upgrade", 'app.server.addListener("upgrade", (q: any, s: any) => s.end());'],
++      ["on de secureConnection", 'srv.on("secureConnection", (s: any) => s.end());'],
++      ["on de clientError", 'app.server.on("clientError", (e: any, s: any) => s.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n"));'],
++      ["on por colchete com texto", 'app.server["on"]("connection", (s: any) => s.end());'],
++      ["evento calculado no servidor", "const evento = escolher();\napp.server.on(evento, (s: any) => s.end());"],
++      ["tirar o ouvinte de request do Fastify", 'app.server.removeAllListeners("request");'],
++      ["ler os ouvintes de request", 'const [h] = app.server.listeners("request");\nvoid h;'],
++    ])("correção 4c, reprova: %s", (_forma, fonte) => {
++      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
++    });
++
++    it("correção 4c, controles: sinal do processo, resposta do APNs e erro do pedido passam", () => {
++      for (const limpo of [
++        'for (const sinal of ["SIGINT", "SIGTERM"] as const) process.on(sinal, () => {});',
++        'requisicao.on("response", (cabecalhos: unknown) => { void cabecalhos; });',
++        'req.on("error", rejeitar);',
++        'nova.on("close", () => { sessao = null; });',
++      ]) expect(FORA(limpo), limpo).toEqual([]);
++    });
++
+     it("correção 4b, controles: chave calculada fora da resposta, desestruturação comum e `__dirname` passam", () => {
+       for (const limpo of [
+         "const ROTULO = { a: 1 } as Record<string, number>;\nconst v = ROTULO[k];\nvoid v;",
+@@ -1165,6 +1199,13 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       expect(falhas.length, "a varredura deixou passar").toBeGreaterThan(0);
+     });
+ 
++    it("correção 4c: ouvinte de connection no servidor real (servidor.ts, em memória) reprova", () => {
++      const falhas = mutarTrecho("servidor.ts", (t) => t
++        + '\nexport function zzConexao(app: FastifyInstance) {\n'
++        + '  app.server.on("connection", (s) => { s.once("data", () => s.end("HTTP/1.1 403 Forbidden\\r\\n\\r\\n")); });\n}\n');
++      expect(falhas.join("\n")).toContain("ouvinte de `connection`");
++    });
++
+     /*
+       Correção 3 (rodada 5): as quatro formas que o red-team plantou em `POST /orgaos`, DEPOIS da
+       validação do corpo (onde a prova dinâmica não chega), e que passavam com a varredura verde. São as
+diff --git a/dc360/apps/api/test/varredura-de-erros.ts b/dc360/apps/api/test/varredura-de-erros.ts
+index 8073450..07db43b 100644
+--- a/dc360/apps/api/test/varredura-de-erros.ts
++++ b/dc360/apps/api/test/varredura-de-erros.ts
+@@ -197,7 +197,7 @@ const LIDOS_COM_PONTO = new Set([
+   "send", "code", "status", "statusCode", "erro", "codigo", "corpo", "raw", "hijack", "writeHead",
+   "addHook", "setErrorHandler", "httpErrors", "assign", "defineProperty", "defineProperties",
+   "setPrototypeOf", "create", "call", "apply", "bind", "__proto__", "prototype", "constructor", "serializer",
+-  "socket", "connection",
++  "socket", "connection", "client",
+ ]);
+ 
+ /** Nomes que trocam o corpo ou o código fora do que a varredura lê; aparecer em qualquer lugar reprova. */
+@@ -216,6 +216,21 @@ const NOMES_INTERNOS_DO_NODE = new Set([
+   "outputData", "outputSize", "chunkedEncoding", "shouldKeepAlive", "useChunkedEncodingByDefault",
+ ]);
+ const PRIVADO = /^_[A-Za-z]/;
++/**
++ * Correção 4c (revisão de `ae19e89`): os eventos do servidor HTTP que entregam o
++ * socket (ou o pedido e a resposta antes do Fastify). Um ouvinte neles escreve no
++ * socket sem passar pela resposta do Node, e a guarda não o vê:
++ * `app.server.on("connection", (s) => s.end("HTTP/1.1 403 ..."))` chegava ao fio.
++ */
++const EVENTOS_DO_SERVIDOR = new Set([
++  "connection", "request", "upgrade", "secureConnection", "connect", "clientError",
++  "checkContinue", "checkExpectation", "dropRequest", "tlsClientError", "keylog", "session", "stream",
++]);
++/** Os métodos de emissor que registram, tiram ou leem ouvintes. */
++const METODOS_DE_OUVINTE = new Set([
++  "on", "once", "addListener", "prependListener", "prependOnceListener",
++  "off", "removeListener", "removeAllListeners", "listeners", "rawListeners",
++]);
+ /** Nomes que, por convenção do produto e do Fastify, são a resposta (ou a resposta do Node). */
+ const NOMES_DE_RESPOSTA = new Set(["resposta", "reply", "rep", "res", "resp", "raw", "response"]);
+ 
+@@ -791,7 +806,8 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+     }
+     // O socket da requisição: escrever nele é responder sem passar pelo Fastify, e é a única forma que a
+     // guarda em tempo de execução não vê (M08 da revisão). Qualquer `.socket` ou `.connection` reprova.
+-    if (ts.isPropertyAccessExpression(no) && (no.name.text === "socket" || no.name.text === "connection")) {
++    // Correção 4c: `.client` é o mesmo socket no pedido do Node (`IncomingMessage.client`), e vale igual.
++    if (ts.isPropertyAccessExpression(no) && (no.name.text === "socket" || no.name.text === "connection" || no.name.text === "client")) {
+       problema(no, `\`.${no.name.text}\`: escrita direta no socket, que nem a guarda em tempo de execução vê`, `socket:${no.getText(sf)}`);
+     }
+     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
+@@ -1010,7 +1026,8 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+         problema(no, `desestruturação por chave calculada (\`${no.getText(sf)}\`): a varredura não sabe que campo é`);
+       } else if (ts.isIdentifier(nomeDoCampo) || ts.isStringLiteral(nomeDoCampo)) {
+         const campo = nomeDoCampo.text;
+-        if (campo === "raw" || campo === "socket" || campo === "connection" || PRIVADO.test(campo) || NOMES_INTERNOS_DO_NODE.has(campo)) {
++        if (campo === "raw" || campo === "socket" || campo === "connection" || campo === "client"
++          || PRIVADO.test(campo) || NOMES_INTERNOS_DO_NODE.has(campo)) {
+           problema(no, `desestruturação de \`${campo}\`: a resposta do Node (ou o estado dela) por um caminho que a varredura não segue`);
+         }
+       }
+@@ -1030,6 +1047,26 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+       }
+     }
+ 
++    // 9. Correção 4c (revisão de `ae19e89`): ouvinte nos eventos do servidor HTTP que entregam o socket.
++    // Evento por texto da lista reprova em qualquer emissor; evento calculado reprova quando o emissor
++    // parece o servidor (`server`, `servidor` no texto), porque `process.on(sinal, ...)` é legítimo.
++    if (ts.isCallExpression(no) && no.arguments.length >= 1) {
++      const callee = no.expression;
++      const metodo = ts.isPropertyAccessExpression(callee) ? callee.name.text
++        : ts.isElementAccessExpression(callee) ? textoDoLiteral(callee.argumentExpression) : null;
++      if (metodo !== null && METODOS_DE_OUVINTE.has(metodo)) {
++        const evento = textoDoLiteral(no.arguments[0]);
++        const emissor = (callee as ts.PropertyAccessExpression | ts.ElementAccessExpression).expression.getText(sf);
++        if (evento !== null && EVENTOS_DO_SERVIDOR.has(evento)) {
++          problema(no, `ouvinte de \`${evento}\` (\`${emissor}.${metodo}\`): o servidor HTTP entrega o socket, e a escrita nele não passa pela guarda`,
++            `ouvinte:${emissor}.${metodo}(${evento})`);
++        } else if (evento === null && /server|servidor/i.test(emissor)) {
++          problema(no, `ouvinte de evento calculado no servidor (\`${emissor}.${metodo}\`): pode ser \`connection\` ou \`request\``,
++            `ouvinte:${emissor}.${metodo}`);
++        }
++      }
++    }
++
+     // 7. Correção 4 (rodada 6): status que o Node escreve como 401 ou 403 sem estar escrito assim.
+     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
+       && ["code", "status", "writeHead"].includes(no.expression.name.text) && no.arguments.length >= 1) {
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index d210d00..5e3a34e 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -17,7 +17,9 @@ import type { ServerResponse } from "node:http";
+  * Ela confere no nível da resposta do Node (`writeHead`, `write` e `end`
+  * envolvidos num `onRequest` instalado antes de tudo, e a linha de status nos
+  * bytes que saem por `_writeRaw` e `_flushOutput`), e o que ela não vê está
+- * escrito no módulo da API: escrita no socket, o método do protótipo chamado por
++ * escrito no módulo da API: escrita direta no socket (`.socket`,
++ * `.connection`, `.client`, ouvinte de `connection` ou `request` no servidor),
++ * que só a varredura proíbe, o método do protótipo chamado por
+  * fora da instância, a moldura do corpo depois de uma cabeça que passou, e
+  * código que troque as primitivas dela antes da carga ou o próprio Node.
+  */
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index d272902..172db9b 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -151,14 +151,19 @@
+  * pronta) com 401 ou 403 que ela não conferiu troca a resposta inteira pela do
+  * desvio (correção 4b).
+  *
+- * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita no
+- * SOCKET da requisição (`req.socket.end("HTTP/1.1 403 ...")`, o M08 da
+- * revisão), que não passa pela resposta do Node; o método do protótipo da
++ * O que a guarda NÃO vê, para ninguém ler mais do que está escrito: escrita
++ * direta no SOCKET, que não passa pela resposta do Node. Isso inclui
++ * `req.socket.end("HTTP/1.1 403 ...")` (o M08 da revisão), o mesmo socket por
++ * `.connection` ou `.client`, e um ouvinte nos eventos do servidor HTTP que
++ * entregam o socket ou o pedido (`app.server.on("connection", ...)`, `request`,
++ * `upgrade`, `secureConnection`, `clientError`); contra isso não há garantia em
++ * tempo de execução, só a varredura (correção 4c). Também não vê o método do protótipo da
+  * resposta chamado por fora da instância (`.call`, `.apply`, `Reflect`); e o
+  * corpo depois de uma cabeça final que passou, cuja moldura (`content-length`,
+  * `chunked`) ela não confere: bytes escritos por baixo além do tamanho
+  * declarado seriam lidos como a resposta seguinte da conexão. A varredura
+- * proíbe os três caminhos (`.socket`, `.connection`, `.call`, `.apply`,
++ * proíbe os três caminhos (`.socket`, `.connection`, `.client`, ouvinte de
++ * `connection`, `request` e afins no servidor, `.call`, `.apply`,
+  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
+  * `_header` e `outputData`, chave calculada na resposta, desestruturação de
+  * `raw` e `socket`), mas é heurística. Nenhuma das três linhas prende código

@@ -1,0 +1,59 @@
+$ npm run test:e2e:api (em dc360), com o conserto da API e SEM o ajuste do http.ts do painel, com ouvintes de rede do Playwright acrescentados TEMPORARIAMENTE ao roteiro (revertidos) para achar por que `page.goto('/painel', networkidle)` estourava os 30 s na secao 25.
+Leitura: o primeiro `GET /avisos` responde 401 (papel do token diferente do banco), o painel renova e repete, e o pedido do 401 NUNCA aparece como finalizado (sem linha FIN): o navegador o mantem em andamento porque o corpo da resposta nao foi lido nem cancelado, e `networkidle` nao chega.
+
+ANTES-GOTO 19339 http://localhost:4691/minha-conta
+REQ 19342 GET document /painel
+FIN 19350 /painel
+REQ 19360 GET fetch /avisos
+REQ 19360 GET fetch /ocorrencias/indicadores/painel
+REQ 19360 GET fetch /ocorrencias?status=ativas&pagina=1&porPagina=100
+REQ 19360 GET fetch /ocorrencias/providencias/pendentes
+REQ 19360 GET fetch /ocorrencias/interditados
+REQ 19360 GET fetch /ocorrencias/devolvidas
+REQ 19363 POST fetch /auth/renovar
+FIN 19365 /ocorrencias/indicadores/painel
+FIN 19369 /ocorrencias?status=ativas&pagina=1&porPagina=100
+FIN 19372 /ocorrencias/providencias/pendentes
+FIN 19377 /ocorrencias/interditados
+FIN 19377 /ocorrencias/devolvidas
+FIN 19385 /auth/renovar
+REQ 19385 GET fetch /avisos
+REQ 19391 GET fetch /ocorrencias/indicadores/painel
+REQ 19391 GET fetch /ocorrencias?status=ativas&pagina=1&porPagina=100
+REQ 19391 GET fetch /ocorrencias/providencias/pendentes
+REQ 19391 GET fetch /ocorrencias/interditados
+REQ 19391 GET fetch /ocorrencias/devolvidas
+FIN 19396 /avisos
+FIN 19402 /ocorrencias/indicadores/painel
+FIN 19406 /ocorrencias?status=ativas&pagina=1&porPagina=100
+FIN 19409 /ocorrencias/providencias/pendentes
+FIN 19411 /ocorrencias/interditados
+FIN 19414 /ocorrencias/devolvidas
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.goto: Timeout 30000ms exceeded.
+Call log:
+  - navigating to "http://localhost:4691/painel", waiting until "networkidle"
+
+    at entrar (C:\Projetos\city-hall\dc360\apps\web\test\fluxo-api.e2e.mjs:104:14)
+    at C:\Projetos\city-hall\dc360\apps\web\test\fluxo-api.e2e.mjs:1170:7 {
+  log: [
+    '  - navigating to "http://localhost:4691/painel", waiting until "networkidle"'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.17.0
+file:///C:/Projetos/city-hall/dc360/scripts/e2e-api.mjs:112
+    p.on("exit", (codigo) => (codigo === 0 ? resolve() : reject(new Error(`saiu com ${codigo}`))));
+                                                                ^
+
+Error: saiu com 1
+    at ChildProcess.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/e2e-api.mjs:112:65)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v22.17.0
+

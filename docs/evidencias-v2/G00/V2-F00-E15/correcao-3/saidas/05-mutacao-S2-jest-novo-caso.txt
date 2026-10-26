@@ -1,0 +1,38 @@
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+  outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
+    ✓ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (19 ms)
+    ✓ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (3 ms)
+    ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (6 ms)
+  a credencial e a identidade saem do cofre do aparelho
+    ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (2 ms)
+    ✕ 'Sair da conta' tira a credencial e a identidade do cofre (2 ms)
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (2 ms)
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (1 ms)
+
+  ● a credencial e a identidade saem do cofre do aparelho › 'Sair da conta' tira a credencial e a identidade do cofre
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "renovacao-ana"
+    Received string:        "dc360.credenciais={\"acesso\":\"acesso-ana\",\"renovacao\":\"renovacao-ana\"}"
+
+      247 |   function semRastroDaAna(): void {
+      248 |     const tudo = [...mockCofre.entries()].map(([k, v]) => `${k}=${v}`).join("\n");
+    > 249 |     expect(tudo).not.toContain("renovacao-ana");
+          |                      ^
+      250 |     expect(tudo).not.toContain("acesso-ana");
+      251 |     expect(tudo).not.toContain(ANA);
+      252 |   }
+
+      at toContain (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:249:22)
+      at semRastroDaAna (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:255:5)
+      at Object.cofreVazioDeSessao (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:276:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        0.566 s, estimated 1 s
+Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
+jest-saida=1

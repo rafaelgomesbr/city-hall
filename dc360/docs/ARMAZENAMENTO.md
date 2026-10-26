@@ -62,11 +62,14 @@ quem renegocia contrato, e essa pessoa está na mesa, não no barranco. A margem
 o dobro das vistorias de um mês normal.
 
 **Por que a recusa é 507 e não 413.** `packages/campo/src/transporte.ts`
-classifica 5xx e 429 como falha **temporária** e 400, 401, 403, 404, 409 e 422
-como **permanente**. Item permanente vira `bloqueado` na fila do aparelho, e não
-existe tela para desbloquear coleta recusada: um 4xx aqui prenderia a vistoria no
-telefone do agente até alguém apagá-la, e apagar é a única saída que o produto
-nunca quer oferecer para trabalho de campo.
+classifica 5xx e 429 como falha **temporária**; as recusas de 4xx que são do dado
+ou do papel (400, 403 `sem_permissao`, 404, 409 e 422) como **permanente**; trata
+401 e os 403 de conta desativada e de senha provisória como pausa da fila, sem
+perder o item; e o 403 de suspensão do município como temporário. Item permanente vira `bloqueado` na fila do aparelho e
+só anda quando alguém age nele: reenviar (que some quando a recusa é do dado),
+corrigir o rascunho ou descartar. Um 4xx aqui prenderia a vistoria no telefone do
+agente até alguém agir, e descartar, que apaga, é a saída que o produto nunca
+quer induzir para trabalho de campo.
 
 Com 507 a fila adia e insiste, sem teto de tentativas para falha temporária. A
 coleta sobrevive no aparelho e **drena sozinha** no dia em que o teto for
@@ -288,9 +291,14 @@ operador, que traz a lista completa.
 - **O consumo não aparece no console do fornecedor.** Quem é avisado hoje é o
   administrador do município (`GET /armazenamento/uso`) e o operador da
   plataforma (`--uso`). Levar o número para a métrica que o console lê é uma
-  coluna numérica a mais na migração 023, que outra frente está tocando agora.
-- **Não existe tela.** O número sai por rota e por comando, e nenhuma página do
-  painel o mostra ainda.
+  coluna numérica a mais em `metricas_municipio` (migração 023), que ainda não
+  foi feita.
+- **A tela do painel é só leitura.** O cartão "Uso de armazenamento" da página
+  Organização (`apps/web/src/paginas/Organizacao.tsx`, visível a quem tem
+  `gerenciar_organizacao`) lê `GET /armazenamento/uso` e mostra o número com a
+  situação (sem teto, normal, aviso, acima do teto, recusado). Quem amplia o teto
+  continua sendo a plataforma, por comando; o painel não tem botão para isso, e o
+  console do fornecedor continua sem o número (item acima).
 - **O aviso não usa o sino.** `avisos.ocorrencia_id` é obrigatório, e este aviso
   não é sobre uma ocorrência. Ele viaja na resposta da autorização de envio, que
   é o caminho que já acontece seis vezes por vistoria.

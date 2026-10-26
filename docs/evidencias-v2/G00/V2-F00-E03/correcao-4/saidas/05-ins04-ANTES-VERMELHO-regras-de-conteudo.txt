@@ -1,0 +1,62 @@
+Os 2 casos novos contra a varredura antiga (statSync sem tolerância).
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 2 failed) 424ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação 40ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum 115ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada 197ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real 35ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 6ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 13ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 9ms
+     → ENOENT: no such file or directory, stat '/var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-conteudo-AKhx62/docs/sumiu-depois-da-listagem.md'
+   × Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 6ms
+     → expected [Function] to throw error matching /EISDIR/ but got 'lerSeExistir is not defined'
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: ENOENT: no such file or directory, stat '/var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-conteudo-AKhx62/docs/sumiu-depois-da-listagem.md'
+ ❯ percorrer test/regras-de-conteudo.test.ts:154:11
+    152|       if (PASTAS_IGNORADAS.has(nome)) continue;
+    153|       const caminho = join(pasta, nome);
+    154|       if (statSync(caminho).isDirectory()) {
+       |           ^
+    155|         percorrer(caminho);
+    156|       } else if (EXTENSOES.some((e) => nome.endsWith(e))) {
+ ❯ arquivos test/regras-de-conteudo.test.ts:163:3
+ ❯ superficiesDoProduto test/regras-de-conteudo.test.ts:176:8
+ ❯ achadosDeTravessao test/regras-de-conteudo.test.ts:186:25
+ ❯ test/regras-de-conteudo.test.ts:360:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura
+AssertionError: expected [Function] to throw error matching /EISDIR/ but got 'lerSeExistir is not defined'
+
+- Expected: 
+/EISDIR/
+
++ Received: 
+"lerSeExistir is not defined"
+
+ ❯ test/regras-de-conteudo.test.ts:375:87
+    373|         // `arquivos()` a trata como pasta (não lê); o erro que não é …
+    374|         // aparece na leitura de arquivo, então provamos pela função d…
+    375|         expect(() => lerSeExistir(join(raiz, "docs", "pasta-que-parece…
+       |                                                                                       ^
+    376|         expect(lerSeExistir(join(raiz, "docs", "nao-existe.md"))).toBe…
+    377|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 8 passed (10)
+   Start at  11:10:16
+   Duration  658ms (transform 28ms, setup 0ms, collect 34ms, tests 424ms, environment 0ms, prepare 33ms)
+

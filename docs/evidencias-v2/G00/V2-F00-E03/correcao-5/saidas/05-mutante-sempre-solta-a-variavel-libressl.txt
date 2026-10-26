@@ -1,0 +1,66 @@
+familia=libressl openssl=LibreSSL 3.3.6
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/zz-sempre-solta-a-variavel.test.ts (10 tests | 2 failed) 372ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > tira a variável que aponta para arquivo inexistente, e diz por quê 1ms
+   × Qual OPENSSL_CONF chega no openssl do teste > mantém a variável que aponta para arquivo que existe, sem motivo 4ms
+     → expected { PATH: 'x' } to deeply equal { PATH: 'x', …(1) }
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > sem a variável, o ambiente passa igual 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > acha a variável em qualquer caixa, porque no Windows o nome não distingue 0ms
+   ✓ Qual OPENSSL_CONF chega no openssl do teste > não mexe no ambiente de quem chamou 0ms
+   ✓ Onde o teste acha o openssl > usa o do PATH quando ele está lá 0ms
+   ✓ Onde o teste acha o openssl > no Windows sem openssl no PATH, acha o que vem ao lado do git (o caso do PowerShell) 0ms
+   ✓ Onde o teste acha o openssl > sem openssl em lugar nenhum devolve null, e o gerador reprova dizendo o que instalar 1ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente 233ms
+   × O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado 131ms
+     → expected 'OPENSSL_CONF aponta para "/var/folder…' to be undefined
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/zz-sempre-solta-a-variavel.test.ts > Qual OPENSSL_CONF chega no openssl do teste > mantém a variável que aponta para arquivo que existe, sem motivo
+AssertionError: expected { PATH: 'x' } to deeply equal { PATH: 'x', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "OPENSSL_CONF": "/etc/ssl/openssl.cnf",
+    "PATH": "x",
+  }
+
+ ❯ test/zz-sempre-solta-a-variavel.test.ts:44:24
+     42|   it("mantém a variável que aponta para arquivo que existe, sem motivo…
+     43|     const r = ambienteDoOpenssl({ PATH: "x", OPENSSL_CONF: "/etc/ssl/o…
+     44|     expect(r.ambiente).toEqual({ PATH: "x", OPENSSL_CONF: "/etc/ssl/op…
+       |                        ^
+     45|     expect(r.motivo).toBeUndefined();
+     46|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/zz-sempre-solta-a-variavel.test.ts > O openssl de verdade, com cada ambiente > respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado
+AssertionError: expected 'OPENSSL_CONF aponta para "/var/folder…' to be undefined
+
+- Expected: 
+undefined
+
++ Received: 
+"OPENSSL_CONF aponta para \"/var/folders/__/1fwllh1d2db789v3f4_hl9f40000gn/T/dc360-openssl-xZVWBv/openssl.cnf\", que não existe; o openssl do teste roda sem a variável"
+
+ ❯ test/zz-sempre-solta-a-variavel.test.ts:127:33
+    125| 
+    126|     const comAVariavel = gerarCertificadoAutoassinado(pasta, { ...ambi…
+    127|     expect(comAVariavel.motivo).toBeUndefined();
+       |                                 ^
+    128|     const lidoComAVariavel = new X509Certificate(comAVariavel.certific…
+    129|     expect(lidoComAVariavel.keyUsage).toEqual([USO_ESTENDIDO_DE_EMAIL]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 8 passed (10)
+   Start at  01:13:34
+   Duration  757ms (transform 64ms, setup 48ms, collect 30ms, tests 372ms, environment 0ms, prepare 78ms)
+

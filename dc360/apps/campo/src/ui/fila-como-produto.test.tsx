@@ -409,7 +409,12 @@ describe("o toque que muda alguma coisa deixa marca", () => {
 
     await tocar("Tentar de novo");
 
-    expect(screen.getByText(/continua tentando\.$/)).toBeTruthy();
+    /*
+      V2-F00-E16, correção 2: "continua tentando" sem condição sugeria
+      tentativa com o aplicativo fechado, que não existe. A frase diz a
+      condição, e continua sem prometer chegada.
+    */
+    expect(screen.getByText(/continua tentando enquanto o aplicativo estiver aberto\.$/)).toBeTruthy();
   });
 
   /*
@@ -665,7 +670,7 @@ describe("a espera de abertura tem saída", () => {
     await act(async () => { jest.advanceTimersByTime(DEMORA_MS); });
     await act(async () => { fireEvent.press(screen.getByText("Parar de esperar")); });
 
-    expect(screen.getByText(/continua no aparelho e sai sozinho/)).toBeTruthy();
+    expect(screen.getByText(/continua no aparelho e sai quando o aplicativo estiver aberto/)).toBeTruthy();
   });
 
   it("'Tentar abrir de novo' abre a fila de verdade", async () => {
@@ -1422,3 +1427,72 @@ describe("a coleta que não sobe porque um arquivo se perdeu", () => {
     expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
   });
 });
+
+/* ========================================================================
+   8. A fila só promete o que o aplicativo faz (V2-F00-E16, correção 1)
+   ======================================================================== */
+
+/*
+  A fila drena enquanto o aplicativo está ABERTO (`iniciarSincronizacaoContinua`
+  vive no layout das abas), e não existe tarefa de segundo plano. A E16 tirou a
+  promessa falsa da vistoria guardada, e a arbitragem da validação achou a mesma
+  promessa duas vezes nesta tela: "o envio ... acontece sozinho, em segundo
+  plano". O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo`
+  varre a fonte; estes casos leem o que a tela DESENHA em cada estado.
+*/
+describe("a fila não promete envio em segundo plano nem com o aplicativo fechado", () => {
+  const PROMESSA_FALSA = /segundo plano|fechado|em background|assim que houver sinal|(sai|sobe|acontece) sozinh/i;
+
+  function nenhumTextoPromete(): void {
+    const promessas = textosNaTela().filter((t) => PROMESSA_FALSA.test(t));
+    expect(promessas).toEqual([]);
+  }
+
+  it("a fila zerada diz que o que vier depois sobe com o aplicativo aberto e rede", async () => {
+    await abrirATela();
+
+    expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
+    expect(screen.getByText(/sobe quando o aplicativo estiver aberto e houver rede/)).toBeTruthy();
+    nenhumTextoPromete();
+  });
+
+  it("com coleta na fila e com sinal, a legenda do botão diz a condição", async () => {
+    mockItens = [item({ id: "esperando", estado: "pendente" })];
+    await abrirATela();
+
+    expect(screen.getByText(/Com o aplicativo aberto e com sinal, o envio acontece sem você tocar/))
+      .toBeTruthy();
+    nenhumTextoPromete();
+  });
+
+  it("sem sinal, o aviso e o cartão não prometem envio fora do aplicativo", async () => {
+    mockSinal = { temSinal: false, tipo: "nenhuma" };
+    mockItens = [item({ id: "esperando", estado: "pendente" })];
+    await abrirATela();
+
+    expect(screen.getByText(/sai quando a conexão voltar, com o aplicativo aberto/)).toBeTruthy();
+    expect(screen.getByText(/Vai sair quando o aplicativo estiver aberto e houver sinal/)).toBeTruthy();
+    nenhumTextoPromete();
+  });
+
+  it("depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz", async () => {
+    mockItens = [item({ id: "teimosa", estado: "pendente", tentativas: 8 })];
+    await abrirATela();
+
+    expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
+    expect(screen.queryByText(/sozinha/)).toBeNull();
+    nenhumTextoPromete();
+  });
+
+  it("a fila que não abriu também diz a condição", async () => {
+    jest.useFakeTimers();
+    mockObterFila = () => new Promise(() => {});
+    await abrirATela();
+    await act(async () => { jest.advanceTimersByTime(DEMORA_MS); });
+    await act(async () => { fireEvent.press(screen.getByText("Parar de esperar")); });
+
+    expect(screen.getByText(/sai quando o aplicativo estiver aberto e a conexão voltar/)).toBeTruthy();
+    nenhumTextoPromete();
+  });
+});
+

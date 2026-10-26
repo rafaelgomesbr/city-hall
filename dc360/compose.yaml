@@ -1,12 +1,13 @@
 # =====================================================================
 # Ambiente local: sobe banco, aplica migrações, cria os papéis e serve a API.
 #
-# NÃO PÔDE SER EXECUTADO onde foi escrito: a máquina não tem Docker. As
-# correções abaixo vêm da auditoria (NODE_ENV, HOST, papéis) e da partida
-# provada À MÃO contra um PostgreSQL 18 real, sem Docker, que é o que garante
-# que a API sobe. A conferência no contêiner é o job `implantavel` da
-# integração contínua, que roda onde há Docker. Construir e subir uma vez
-# antes do primeiro deploy continua sendo obrigatório.
+# NUNCA FOI EXECUTADO E NADA NO REPOSITÓRIO O PROVA. As correções abaixo vêm
+# da auditoria (NODE_ENV, HOST, papéis) e da partida provada À MÃO contra um
+# PostgreSQL 18 real, sem Docker, que é o que garante que a API sobe. A
+# integração contínua NÃO usa este arquivo nem constrói a imagem: o job
+# `implantavel` sobe a API direto no Node, contra um Postgres 16 de serviço.
+# Construir e subir uma vez antes do primeiro deploy continua sendo
+# obrigatório; o CI que constrói a imagem é a V2-F01-E08.
 #
 # ESTE COMPOSE É PARA DESENVOLVER E PARA CONFERIR QUE A IMAGEM SOBE, não para
 # produção. Produção usa Postgres gerenciado (com backup e PITR) e um proxy

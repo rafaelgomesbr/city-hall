@@ -34,14 +34,14 @@ import { join, relative, sep } from "node:path";
 
 /**
  * Prazo máximo de um skip incondicional, em dias corridos a partir de hoje.
- * PREMISSA registrada no STATUS (seção 9): Rafael ainda não escolheu o número.
+ * DECIDIDO por Rafael em 2026-10-13 (D2 do roteiro de aprovação da F00): 5 dias.
  */
-export const PRAZO_MAXIMO_EM_DIAS = 30;
+export const PRAZO_MAXIMO_EM_DIAS = 5;
 
 /**
  * O relógio do portão é UTC e a marca é escrita no horário de Brasília: perto da
  * meia-noite os dois estão em dias diferentes. Um dia de folga evita reprovar
- * uma marca de 30 dias escrita "ontem" para o relógio UTC.
+ * uma marca de 5 dias escrita "ontem" para o relógio UTC.
  */
 export const FOLGA_DE_FUSO_EM_DIAS = 1;
 

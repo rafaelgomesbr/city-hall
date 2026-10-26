@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/campo
+
+ ✓ test/pausa-de-sessao.test.ts (29 tests) 27ms
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  05:23:20
+   Duration  1.16s (transform 167ms, setup 0ms, collect 744ms, tests 27ms, environment 0ms, prepare 151ms)
+

@@ -1,0 +1,167 @@
+TAP version 13
+# Subtest: redige um JWT colado num texto
+ok 1 - redige um JWT colado num texto
+  ---
+  duration_ms: 1.1854
+  type: 'test'
+  ...
+# Subtest: redige o valor de Authorization Bearer e Basic
+ok 2 - redige o valor de Authorization Bearer e Basic
+  ---
+  duration_ms: 0.1796
+  type: 'test'
+  ...
+# Subtest: redige usuário e senha de uma URL de banco
+ok 3 - redige usuário e senha de uma URL de banco
+  ---
+  duration_ms: 0.1359
+  type: 'test'
+  ...
+# Subtest: troca o nome do usuário nas pastas pessoais
+ok 4 - troca o nome do usuário nas pastas pessoais
+  ---
+  duration_ms: 0.0877
+  type: 'test'
+  ...
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+ok 5 - troca o travessão, que a regra de conteúdo proíbe em docs
+  ---
+  duration_ms: 0.2937
+  type: 'test'
+  ...
+# Subtest: não mexe em texto comum
+ok 6 - não mexe em texto comum
+  ---
+  duration_ms: 0.1176
+  type: 'test'
+  ...
+# Subtest: lê as contagens do vitest
+ok 7 - lê as contagens do vitest
+  ---
+  duration_ms: 0.9202
+  type: 'test'
+  ...
+# Subtest: lê as contagens do node --test e do jest
+ok 8 - lê as contagens do node --test e do jest
+  ---
+  duration_ms: 0.3192
+  type: 'test'
+  ...
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+ok 9 - sem contagem na saída o resultado é vazio, não zero
+  ---
+  duration_ms: 0.2322
+  type: 'test'
+  ...
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+ok 10 - avaliar confere quando o resultado é o esperado, vermelho inclusive
+  ---
+  duration_ms: 0.4048
+  type: 'test'
+  ...
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+ok 11 - avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+  ---
+  duration_ms: 0.1975
+  type: 'test'
+  ...
+# Subtest: avaliar não aceita a ausência de contagem como confere
+ok 12 - avaliar não aceita a ausência de contagem como confere
+  ---
+  duration_ms: 0.0718
+  type: 'test'
+  ...
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+ok 13 - a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+  ---
+  duration_ms: 1.3161
+  type: 'test'
+  ...
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+ok 14 - o E2E do painel local declara o servidor que o teste exige
+  ---
+  duration_ms: 0.3398
+  type: 'test'
+  ...
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+ok 15 - as opções recusam o que não conhecem e os filtros recusam passo inexistente
+  ---
+  duration_ms: 0.5338
+  type: 'test'
+  ...
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+ok 16 - --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+  ---
+  duration_ms: 60.8879
+  type: 'test'
+  ...
+# Subtest: o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, nomeando a deriva
+ok 17 - o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, nomeando a deriva
+  ---
+  duration_ms: 0.1872
+  type: 'test'
+  ...
+# Subtest: o expo-doctor 20 de 21 é divergência EXPLICADA e nomeada, e saída diferente da descrita continua divergente
+ok 18 - o expo-doctor 20 de 21 é divergência EXPLICADA e nomeada, e saída diferente da descrita continua divergente
+  ---
+  duration_ms: 0.3098
+  type: 'test'
+  ...
+# Subtest: passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+ok 19 - passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+  ---
+  duration_ms: 0.1043
+  type: 'test'
+  ...
+# Subtest: o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+ok 20 - o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+  ---
+  duration_ms: 0.0805
+  type: 'test'
+  ...
+# Subtest: o resumo conta as divergências explicadas e diz por quê
+ok 21 - o resumo conta as divergências explicadas e diz por quê
+  ---
+  duration_ms: 0.2715
+  type: 'test'
+  ...
+# Subtest: o conferidor de contagens reprova o número velho plantado e passa com o certo
+ok 22 - o conferidor de contagens reprova o número velho plantado e passa com o certo
+  ---
+  duration_ms: 0.2091
+  type: 'test'
+  ...
+# Subtest: o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+ok 23 - o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+  ---
+  duration_ms: 0.1298
+  type: 'test'
+  ...
+# Subtest: suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+ok 24 - suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+  ---
+  duration_ms: 0.138
+  type: 'test'
+  ...
+# Subtest: todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+ok 25 - todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+  ---
+  duration_ms: 0.5268
+  type: 'test'
+  ...
+# Subtest: a divergência explicada aponta para registros que existem
+ok 26 - a divergência explicada aponta para registros que existem
+  ---
+  duration_ms: 0.7169
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 154.3234
+saida=0

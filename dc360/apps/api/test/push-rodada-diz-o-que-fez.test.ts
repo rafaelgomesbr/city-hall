@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import type { EnvioDePush } from "../src/push/envio.js";
 import { travaDeProcesso, type Trava } from "../src/push/trava.js";
@@ -42,11 +42,17 @@ function travaEspia(): Trava & { posses: number; soltas: number } {
   return estado;
 }
 
-async function esperarAte(condicao: () => boolean, prazoMs: number): Promise<void> {
-  const limite = Date.now() + prazoMs;
-  while (!condicao() && Date.now() < limite) {
-    await new Promise((pronto) => { setTimeout(pronto, 10); });
-  }
+/*
+  Espera por condição e com limite: volta assim que a condição vale e REPROVA,
+  com a mensagem de `o_que`, se ela não valer no prazo. Antes o laço devolvia
+  em silêncio quando o prazo estourava e a falha aparecia depois, numa
+  asserção que não dizia o que tinha faltado.
+*/
+async function esperarAte(condicao: () => boolean, prazoMs: number, o_que: string): Promise<void> {
+  await vi.waitFor(
+    () => expect(condicao(), o_que).toBe(true),
+    { timeout: prazoMs, interval: 10 },
+  );
 }
 
 async function registrarAparelho(ficha: string): Promise<void> {
@@ -186,7 +192,7 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
       UMA_HORA,
     );
     try {
-      await esperarAte(() => trava.soltas >= 1, 5_000);
+      await esperarAte(() => trava.soltas >= 1, 5_000, "nenhuma rodada saiu na partida");
       expect(trava.posses, "nenhuma rodada saiu na partida").toBe(1);
     } finally {
       await agendada.parar();
@@ -200,11 +206,11 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
       UMA_HORA,
     );
     try {
-      await esperarAte(() => trava.soltas >= 1, 5_000);
+      await esperarAte(() => trava.soltas >= 1, 5_000, "a rodada da partida não terminou");
       expect(trava.posses).toBe(1);
 
       agendada.despertar();
-      await esperarAte(() => trava.soltas >= 2, 5_000);
+      await esperarAte(() => trava.soltas >= 2, 5_000, "despertar() não produziu rodada");
       expect(trava.posses, "despertar() não produziu rodada").toBe(2);
     } finally {
       await agendada.parar();
@@ -232,19 +238,26 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
     );
     try {
       // A rodada da partida reivindicou e está presa no envio.
-      await esperarAte(() => soltarEnvio !== null, 5_000);
+      await esperarAte(() => soltarEnvio !== null, 5_000, "a rodada da partida não chegou ao envio");
       expect(trava.posses).toBe(1);
       expect(trava.soltas).toBe(0);
 
       agendada.despertar();
       agendada.despertar();
       agendada.despertar();
+      // Janela de silêncio (ver o comentário mais abaixo): prova que NÃO abriu rodada.
       await new Promise((pronto) => { setTimeout(pronto, 50); });
       expect(trava.posses, "abriu rodada por cima da que estava em voo").toBe(1);
 
       soltarEnvio!();
-      await esperarAte(() => trava.soltas >= 2, 5_000);
-      // Uma rodada a mais, e só uma.
+      await esperarAte(() => trava.soltas >= 2, 5_000, "a rodada a mais não terminou");
+      /*
+        Janela de silêncio, e não espera por evento: aqui o teste prova que NÃO
+        veio uma terceira rodada, e nada acontece para ser esperado. Esperar
+        pouco só pode dar falso verde (deixar passar um defeito), nunca falso
+        vermelho; por isso o tempo fixo é o instrumento certo e não é causa de
+        intermitência.
+      */
       await new Promise((pronto) => { setTimeout(pronto, 100); });
       expect(trava.posses).toBe(2);
       expect(trava.soltas).toBe(2);
@@ -263,7 +276,7 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
     );
     try {
       expect(agendada.ultimaRodada()).toBeNull();
-      await esperarAte(() => agendada.ultimaRodada() !== null, 5_000);
+      await esperarAte(() => agendada.ultimaRodada() !== null, 5_000, "a rodada da partida não deixou quadro");
       const ultima = agendada.ultimaRodada()!;
       expect(ultima).toMatchObject({ reivindicadas: 1, entregues: 1, falhas: 0, revogados: 0 });
       expect(Date.parse(ultima.rodadaEm)).toBeGreaterThanOrEqual(antes);
@@ -286,6 +299,7 @@ describe("o relógio: rodada na partida, despertar do despacho, e o quadro da ú
       UMA_HORA,
     );
     try {
+      // Janela de silêncio: a rodada perdida não deixa quadro, e nada a esperar.
       await new Promise((pronto) => { setTimeout(pronto, 100); });
       expect(agendada.ultimaRodada()).toBeNull();
     } finally {

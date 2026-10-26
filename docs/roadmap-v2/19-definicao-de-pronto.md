@@ -83,7 +83,7 @@ Cada etapa lista a regressão específica; o kit abaixo é o mínimo comum, roda
 - `npm run auditar` e `npm run conferir:numeros`
 - Os gates anteriores: a lista de itens de cada `# GATE Gnn` aprovado anteriormente continua verdadeira.
 
-Se uma etapa posterior quebra algo aprovado antes, o gate anterior volta a REPROVADO e a etapa não fecha.
+Se uma etapa posterior quebra algo aprovado antes, o gate anterior fica REABERTO (sem apagar a aprovação histórica) e a etapa não fecha.
 
 ## 3. Padrão de evidência
 
@@ -107,17 +107,17 @@ Se uma etapa posterior quebra algo aprovado antes, o gate anterior volta a REPRO
 
 **Travessão e o portão de conteúdo (V2-F00-E20, 2026-10-07):** `dc360/packages/shared/test/regras-de-conteudo.test.ts` varre `docs/` inteiro atrás do travessão (U+2014). A saída bruta arquivada (arquivo que não é `.md`, dentro de `docs/evidencias-v2/` e de `docs/auditoria-v2/raw/`) fica fora da varredura, porque reproduz a linha que um teste reprovou e reescrevê-la apagaria a prova; o mesmo vale para o relatório histórico `docs/AUDITORIA-2026-09-30.md`, isento pelo nome exato. O `RESUMO.md`, o `INDEX.md` e qualquer outro `.md` de evidência continuam varridos e reprovam com travessão. Mesmo isenta, a saída bruta continua passando por `redigir` de `dc360/scripts/baseline.mjs` antes de arquivar (troca o travessão por `[travessao]` e apaga JWT de teste). A lista de isenções muda só no próprio teste, com comentário de motivo e caso de âncora.
 
-**Quem confere:** Rafael vê a evidência listada em "Validação humana" da etapa. Evidência sem `INDEX.md` não conta.
+**Quem confere:** desde 2026-10-07 (D-30), validadores independentes sob o gatekeeper, sobre o SHA do commit candidato, gravando em `validacao/<sha7>/` e no `VEREDITO.md` da etapa; Rafael confere o que a regra global da seção 4 de `28-execucao-e-validacao.md` reserva a uma pessoa. Evidência sem `INDEX.md` não conta.
 
 ## 4. Evidência do gate
 
-`docs/evidencias-v2/Gnn/GATE.md` contém: o checklist do gate com cada item marcado, a etapa e o arquivo de evidência que o prova, a data, quem aprovou, a lista de checkpoints decididos ou adiados (com o que ficou bloqueado), e o resultado da regressão dos gates anteriores. O gate só passa com todos os itens `[x]`. Se um item depender de um checkpoint em aberto, o gate registra "BLOQUEADO por CP-nn" e não passa.
+`docs/evidencias-v2/Gnn/GATE.md` contém: o checklist do gate com cada item marcado, a etapa e o arquivo de evidência que o prova, a data, a recomendação do gatekeeper, quem aprovou, o SHA do merge em master, os itens aprovados com RISCO ACEITO numa lista à parte (D-30), a lista de checkpoints decididos ou adiados (com o que ficou bloqueado), e o resultado da regressão dos gates anteriores. O gate só passa com todos os itens `[x]`. Se um item depender de um checkpoint em aberto, o gate registra "BLOQUEADO por CP-nn" e não passa.
 
 **Checkpoint novo.** Checkpoint que a revisão de 2026-10-01 criou aparece como `CP-NOVO-<ASSUNTO>` até o coordenador numerá-lo; o `GATE.md` o cita por esse nome.
 
 **Gates das fases F29 a F35 e checkpoint de ativação real.** Nesses gates o item de DESENVOLVIMENTO (provado em HML, em sandbox ou em provedor de teste, com dado sintético) é obrigatório. O checkpoint de ATIVAÇÃO REAL (contratação, credenciamento, parecer, escolha humana) pode estar "decidido" ou "adiado por escrito": nesse caso o `GATE.md` lista o que fica bloqueado em produção e o gate pode passar. A regra acima ("BLOQUEADO por CP-nn e não passa") continua valendo para o checkpoint cuja resposta muda o desenho da etapa.
 
-**Reabertura:** se um item de um gate aprovado deixa de ser verdadeiro, o `GATE.md` recebe a anotação "REPROVADO em <data> por <etapa>" e todos os gates seguintes ficam suspensos até a correção.
+**Reabertura:** se um item de um gate aprovado deixa de ser verdadeiro, ou um risco aceito nele expira, o `GATE.md` recebe a linha "REABERTO em <data> por <etapa ou condição expirada>", sem apagar a aprovação histórica, e todos os gates seguintes ficam suspensos até a revalidação (D-30).
 
 ## 5. Definição de preparado (DoR) para etapas e fases de alto risco
 

@@ -31,8 +31,13 @@ import { FalhaAutenticacao } from "./servico.js";
  * quem cai é a sessão NOVA, e a antiga, já revogada por rotação, continuava
  * contando como viva. Desde a migração 047 as sessões de uma cadeia
  * compartilham `familia_id`, e a rotacionada só vale se a família ainda tem
- * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram: todos
- * atingem a sessão viva, e isso derruba a cadeia inteira.
+ * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram com a
+ * 047: todos atingem a sessão viva, e isso derruba a cadeia inteira. Desde a
+ * migração 049 eles e a renovação tomam a mesma trava por pessoa, e desde a
+ * correção 3 da E07 o login também a toma
+ * (`travar_sessoes_do_usuario`, ver `auth/sessoes.ts`), e a renovação é uma
+ * transação só: nenhum encerramento cai no meio de uma renovação sem ver a
+ * sessão nova, e a família nunca fica sem sessão de pé no meio da rotação.
  *
  * O PAPEL DIFERENTE DO TOKEN NÃO É SESSÃO ENCERRADA. O token continua
  * legítimo e a sessão está de pé: o que mudou foi o cadastro. A resposta é
@@ -44,12 +49,24 @@ import { FalhaAutenticacao } from "./servico.js";
  * entrega sem ela notar. A segurança não depende disso: a escrita confere o
  * papel do banco, então o token velho não escreve com o papel antigo.
  *
- * LEITURA NÃO PASSA POR AQUI, e a troca continua a de `auth/suspensao.ts`:
- * quinze minutos de leitura com token vivo não produzem registro (a exceção
- * conhecida é `GET /avisos`, que escreve, ver `apps/api/PENDENCIAS.md`), e o custo
- * de uma ida ao banco em cada leitura de uma noite de chuva é o que se
- * compra. As leituras do agente de campo já consultam `usuarios` pela equipe
+ * LEITURA PURA NÃO PASSA POR AQUI, e a troca continua a de `auth/suspensao.ts`:
+ * quinze minutos de leitura com token vivo não praticam ato nem mudam dado do
+ * município (o dossiê e a busca gravam só o registro de que foram lidos, ver
+ * abaixo), e o custo de uma ida ao banco em cada leitura de uma noite de chuva
+ * é o que se compra. As leituras do agente de campo já consultam `usuarios` pela equipe
  * (`rotas/recorte-do-agente.ts`), mas não a sessão. Fica declarado.
+ *
+ * MAS GET QUE ESCREVE PASSA, e quem decide é a rota, não o método. As rotas
+ * GET marcadas com `ROTA_GET_COM_EFEITO` (`servidor.ts`) são tratadas como
+ * escrita, junto com o HEAD delas: o laudo, o termo de interdição, o termo de
+ * desinterdição e os PDFs (emitir É gravar a trilha, e o termo É interditar),
+ * o CSV de ocorrências (grava `exportacoes`) e o sino `GET /avisos`
+ * (materializa e expurga avisos). Fica de fora o GET cuja única escrita é o
+ * registro de que ele foi lido (`registrarConsulta`: o dossiê e a busca): é
+ * leitura, e a vigência dela é da F03-E03. A lista é conferida por
+ * `test/get-com-efeito.test.ts`. Foi o que a validação de 7005a60 provou: com
+ * a decisão só pelo método, conta desativada, papel rebaixado e cadeia
+ * encerrada interditavam imóvel e exportavam dado pessoal por GET.
  */
 
 export type Vigencia = {

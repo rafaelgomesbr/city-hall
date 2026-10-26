@@ -19,9 +19,10 @@ Duas coisas ficaram decididas e precisam ser conhecidas antes de mexer aqui:
 
 - **`coletadaPor` é OPCIONAL, e vai continuar sendo por enquanto.** Existe
   aparelho em campo com coleta gravada antes deste campo, com `autor: null`, e
-  não existe tela para desbloquear item que o servidor recusou: campo
-  obrigatório daria 422 do Zod para sempre nessas coletas, e uma vistoria de
-  morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
+  a fila não reenvia sozinha item que o servidor recusou pelo dado (a tela só
+  oferece corrigir o rascunho, quando a coleta é da própria pessoa, ou
+  descartar): campo obrigatório daria 422 do Zod para sempre nessas coletas, e
+  uma vistoria de morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
   mesmo dia em que o cartão "Sem autor registrado" puder sair daqui (item 5), e
   não antes.
 - **O campo é montado na hora do envio**, a partir de `item.autor`
@@ -52,28 +53,24 @@ está torto é o caminho de volta:
 3. **Enquanto isso não existir, não mexer no filtro em `prontos`** sem ler o
    comentário que está lá: é ele que impede a recusa de acontecer no uso normal.
 
-## 2. API: vistoria não pode morrer porque um arquivo sumiu
+## 2. ~~API: vistoria não pode morrer porque um arquivo sumiu~~ (feita)
 
-**Fora da faixa.** Exige campo no envelope e decisão de produto sobre o laudo.
+**Resolvido, conferido em 2026-10-19 (V2-F00-E22, correção 4).** Este item
+descrevia como pendente o que o código já tem. O envelope ganhou
+`evidenciasPerdidas` (`packages/shared/src/schemas.ts`), o motor
+`abrirMaoDasEvidenciasPerdidas` (`packages/campo/src/fila.ts`) solta o item que
+travou por `arquivo_sumiu` quando o agente assume a perda, a tela da fila
+pergunta antes (`fila.tsx`: "Enviar sem os registros perdidos", com a contagem
+e a assinatura dita à parte), a API grava a perda em `vistoria_evidencias_perdidas`
+(`apps/api/src/rotas/sincronizacao.ts`) e o laudo ganha a seção que declara a
+causa (`apps/api/src/documentos/laudo.ts`). O pacote de saída de município
+também leva a tabela (`docs/SAIDA-DE-MUNICIPIO.md`).
 
-As fotos sobem ANTES do envelope, de propósito (o laudo não pode apontar para
-arquivo que não existe). A consequência: se um arquivo não estiver mais no
-aparelho, a leitura falha e o envelope inteiro (checklist, GPS, assinatura,
-observações, órgãos a acionar) nunca sai. Uma foto perdida destrói a vistoria
-inteira.
-
-Neste turno isso deixou de ser silencioso e deixou de ser eterno: a foto passou a
-ser copiada para o diretório de documentos na hora da captura
-(`src/dados/evidencia-no-disco.ts`), e o arquivo ausente virou falha permanente
-com frase em português que termina numa ação, em vez de erro cru do sistema
-repetido a cada cinco minutos para sempre.
-
-O que falta, e é decisão de produto antes de ser código: **a vistoria deveria
-poder subir SEM o arquivo perdido, com a perda registrada.** Isso exige um campo
-no envelope (algo como `evidenciasPerdidas: [{ idempotencyKey, capturadaEm }]`),
-um evento na trilha, e uma linha no laudo dizendo que houve registro fotográfico
-que não pôde ser recuperado. Sem esse registro, subir a vistoria sem a foto seria
-entregar um laudo que parece completo e não é, que é pior do que não entregar.
+O que continua verdade do texto antigo, e vale conhecer: as fotos sobem ANTES do
+envelope, de propósito (o laudo não pode apontar para arquivo que não existe), e
+o aplicativo só marca como perdido o arquivo que SUMIU do disco (ou ficou com zero
+byte), nunca decide sozinho jogar uma foto fora; a escolha de seguir sem ela é do agente, com a
+frase na tela. Nada disto rodou em aparelho (item 7).
 
 ## 3. Aparelho que atualiza com foto antiga ainda no cache
 
@@ -261,11 +258,11 @@ portão de design reprova quem escrever `fonteMinima` de novo.
   botão primário e a sombra que sobe na folha foram provados por teste e por
   portão, e nenhum deles foi olhado num iPhone. A reclamação de origem foi
   visual, e prova visual exige o aparelho na mão.
-- **A cascata de entrada de lista não tem uso ainda.** `cascata` e
-  `atrasoEmCascata()` existem para as quatro frentes de tela usarem o MESMO
-  ritmo, que é o defeito que a régua de densidade documenta (cinco frentes,
-  cinco decisões certas sozinhas, uma tela poluída no fim). Enquanto nenhuma
-  lista a chamar, ela é vocabulário e não comportamento.
+- ~~**A cascata de entrada de lista não tem uso ainda.**~~ Passou a ter, conferido
+  em 2026-10-19: `atrasoEmCascata()` é chamada em quatro telas (`avisos.tsx`,
+  `fila.tsx`, `index.tsx` e `perfil.tsx`), pelo `ItemDeLista`. O que resta do
+  argumento original é a régua de densidade: uma quinta tela deve usar o mesmo
+  ritmo, e não escolher o dela.
 - **A altura de linha própria para a fonte tabular NÃO foi criada**, e a
   ausência é deliberada: a Roboto Mono tem métrica diferente da Work Sans, e um
   protocolo ao lado de texto de corpo pode desalinhar a linha de base, mas isso
@@ -314,8 +311,10 @@ consequências, e nenhuma delas quebra nada hoje:
   tabelas diferentes no servidor, e ligá-las exige decidir o que "lido"
   significa quando a pessoa só viu o texto na tela bloqueada.
 
-O sino sincroniza quando a aba Perfil é aberta, e não em segundo plano: o crachá
-na barra de abas mostra o que o último `sincronizarAvisos` trouxe. É escolha e
+O sino sincroniza quando a tela de avisos abre (se há sinal, ou se ainda não há
+cópia no aparelho) e quando a pessoa puxa a lista para atualizar, e não em
+segundo plano: o crachá na barra de abas mostra o que o último
+`sincronizarAvisos` trouxe. É escolha e
 não descuido (rede em segundo plano gasta bateria e dado do agente no morro),
 mas quem olhar o crachá esperando tempo real vai se enganar.
 
@@ -381,25 +380,95 @@ Duas decisões que o próximo precisa conhecer:
   (`ESPERA_COM_A_FILA_PAUSADA_MS`): cada volta é uma requisição que o servidor já
   recusou. Entrar de novo reinicia o laço na hora.
 
-**Decisão da V2-F00-E07 sobre o 403 `troca_de_senha_obrigatoria`:** fica FORA da
-etapa e continua recusa permanente do item, por três razões. (1) A E07 só mexe
-na vigência da API (papel, cadeia da sessão e senha provisória vencida), e a
-classificação desse 403 na fila é do motor offline, que a E06 fechou para os três
-códigos de acesso. (2) O aparelho praticamente não chega a ele: quem entra com a
-senha provisória é mandado ao painel para trocá-la (`src/dados/api.ts`,
-`ErroDaApi`), e redefinir a senha de alguém derruba as sessões dele (401
-`sessao_encerrada`, que já é pausa, não bloqueio). (3) Tratá-lo como pausa sem
-haver tela de troca de senha no aplicativo deixaria o item parado sem saída.
-Reabrir quando o aplicativo ganhar a tela de troca de senha.
+**Correção 1 da V2-F00-E06 (2026-10-13): o 403 `troca_de_senha_obrigatoria` agora
+PAUSA a fila.** A decisão que a E07 tinha registrado aqui (deixá-lo como recusa
+permanente, "porque o aparelho praticamente não chega a ele") foi derrubada pela
+validação: redefinir a senha derruba as sessões (401, pausa), o agente entra com a
+senha provisória, o aplicativo ignora `trocaDeSenhaObrigatoria` e o dreno recebia
+403 em toda escrita. Todas as coletas viravam `bloqueado`, o dreno não parava e o
+cartão oferecia "Descartar", que apaga coleta que o servidor nunca recebeu. É
+perda de dado, e o caso é o procedimento padrão de recuperação de conta.
+
+Matriz final do transporte (`falhaDaResposta`), lida pela AÇÃO do catálogo e não
+por lista de códigos:
+
+| Resposta | Fila |
+| --- | --- |
+| 401 de qualquer código (inclui sem código) | pausa `sessao_encerrada` (antes renova UMA vez no `nao_autenticado`) |
+| 403 `conta_desativada` (ação `parar_e_avisar`) | pausa `conta_desativada` |
+| 403 `troca_de_senha_obrigatoria` (ação `trocar_a_senha`) | pausa `troca_de_senha_obrigatoria` |
+| 403 `acesso_suspenso` (ação `aguardar_o_contrato`) | temporária (a API já responde 503 à fila; este é o cinto) |
+| 403 `sem_permissao` e 403 sem código | permanente: recusa do papel, bloqueia |
+| 409 `autor_divergente` | permanente por desenho (a coleta espera a conta de quem a fez) |
+| 409 `ja_encerrada` | arquivada |
+| 5xx, 429, rede | temporária |
+
+Como o aplicativo NÃO tem tela de troca de senha, a pausa não traz botão: a frase
+(`src/dados/pausa-da-fila.ts`, `troca_de_senha_obrigatoria`) manda definir a senha
+no painel, no computador, e entrar aqui de novo, e promete que as coletas continuam
+guardadas. A mesma classificação vale para as telas que vão à rede
+(`falha-de-atualizacao.ts`, motivo `troca-de-senha`). **A frase é texto de produto e
+precisa da aprovação do Rafael.** Quando o aplicativo ganhar a tela de troca de
+senha, o ato certo passa a ser levar a pessoa a ela na entrada
+(`trocaDeSenhaObrigatoria` do login), e a pausa vira o cinto.
+
+Na mesma correção, a pausa passou a ser do AUTOR do item (e não de quem está
+logado quando a resposta chega), um 401 tardio de um dreno cancelado não devolve a
+`pendente` item que outro dreno já confirmou, e o motor refaz a pergunta "ainda é a
+conta do autor?" antes de CADA chamada do item (autorização, bytes, confirmação,
+envelope). O servidor fecha o resto: autorizar e confirmar o envio de foto conferem
+o autor (409 `autor_divergente`).
 
 **O que falta** (validação humana): ver a frase e a coleta preservada em
 aparelho ou emulador, desativando o agente no painel durante uma coleta na fila,
-e a reativação seguida de nova entrada. O ambiente desta etapa não renderiza o
-app Expo; a prova foi por teste de componente (`src/ui/fila-pausada-pela-sessao.test.tsx`),
-e a foto do aparelho continua pendente. Fora do escopo e ainda aberto: o 403
-`troca_de_senha_obrigatoria` (senha provisória) e o 403 `acesso_suspenso` nas
-rotas que não são da fila ainda são lidos como recusa permanente do item pelo
-transporte; a API responde 503 à fila no caso da suspensão, que é temporário.
+e a reativação seguida de nova entrada; e redefinindo a senha do agente. O ambiente
+não renderiza o app Expo; a prova foi por teste de componente
+(`src/ui/fila-pausada-pela-sessao.test.tsx`), e a foto do aparelho continua pendente.
+
+**Ainda aberto, anotado pela validação e fora desta correção:**
+
+- Rebaixar o PAPEL de um agente com coleta na fila (403 `sem_permissao`) bloqueia
+  tudo, com "Descartar". É o que o bloco da E06 manda ("continua permanente"), mas
+  o efeito para a coleta é o mesmo que a etapa eliminou para a desativação. Decisão
+  do Rafael: pausar ou continuar bloqueando.
+- `descartar` aceita item de outro autor em qualquer estado (aparelho compartilhado:
+  o agente A pode apagar a coleta guardada do agente B, com confirmação nominal).
+- A recusa por autor divergente na FOTO não deixa evento na trilha (a da vistoria e
+  a da devolução deixam, com tipo próprio). Fica só o aviso no log do servidor.
+- 401 `nao_autenticado` dentro do piso de 60 s do obtentor pausa como
+  `sessao_encerrada` quando só faltava esperar; corrige sozinho no próximo dreno.
+
+### Correção 2 da E06 (2026-10-14): uma fila só por aparelho, e o cartão da tarefa não pede sinal quando a fila está pausada
+
+Três coisas mudaram, todas presas por teste de componente ou de módulo com a fila de
+produção:
+
+- **`obterFila` (`src/dados/fila.ts`) devolve UMA instância por dono, também sob
+  chamadas simultâneas.** A variável de módulo guarda a PROMESSA da fila, atribuída de
+  forma síncrona antes de qualquer `await`. Antes, a faixa global, a barra de abas, o
+  laço de fundo e a tela da fila passavam todas pela conferência com a variável ainda
+  nula e cada uma montava a sua fila; a pausa nascia numa fila que ninguém mais
+  escutava e a faixa dizia "Tudo sincronizado" com a sessão encerrada. Uma criação que
+  falha não fica gravada, mas `bancoLocal()` memoiza a própria promessa rejeitada: um
+  banco que falhou ao abrir continua falhando até `esquecerConexao()` ou o aplicativo
+  ser reaberto.
+- **O cartão da tarefa não manda esperar sinal quando a fila está pausada.** Com a
+  coleta guardada e a fila parada pela sessão, pela senha provisória ou pela conta
+  desativada, o cartão dizia "O que falta é sinal para enviar" enquanto a faixa dizia
+  "Sessão encerrada". `ordemDoDia` recebe `pausadaPor` (opcional) e, no caso "a
+  primeira da lista já foi vistoriada", usa a frase `daLista` de `pausa-da-fila.ts`
+  (uma por motivo: entrar de novo, a coordenação reativar a conta, definir a senha no
+  painel e entrar de novo). A tela de tarefas (`index.tsx`) guarda a pausa que a fila
+  entrega no resumo e a passa à ordem. O mapa não mostra essa frase. Texto de produto
+  novo: precisa da aprovação do Rafael.
+- **`troca-de-conta-com-pedido-em-voo.test.ts` não depende mais da ordem dos casos**
+  (recarrega o módulo e zera banco e `fetch` em cada caso); reprovava com
+  `--randomize` em quatro das oito sementes.
+
+Continua sem prova de aparelho: esta correção não foi vista em emulador nem em aparelho
+(a validação anterior exercitou o emulador Android sobre o código sem ela; ver o
+`LEIA-ME.md`). As capturas da correção (`docs/evidencias-v2/G00/V2-F00-E06/correcao-2/capturas/`) são de
+nível E1+ (a árvore real em Chromium, sem a barra de abas nem a fonte do aparelho).
 
 ## 15. Sair da conta avisa o que apaga, e o GPS bom conclui (V2-F00-E15). Falta ver no aparelho
 
@@ -435,6 +504,35 @@ que ela usa continuam fora da limpeza (`src/dados/sair-e-entrar-nao-perde-a-cole
 do escopo: o laudo (`packages/shared/src/minuta.ts`) e o cartão de vistoria
 concluída do Perfil escrevem "N metros" sem singular, e com o piso de 1 metro
 "1 metros" passa a ser comum; fica para a etapa que mexer nesses textos.
+
+### Correção 1 da E15 (2026-10-13): "Entrar de novo" na tela da vistoria, e o que sobrou da LGPD
+
+**Feito.** A tela da vistoria oferecia "Sair e entrar de novo" quando a baixa dava
+401, e o botão chamava `sair()`, que apaga rascunho, fotos e assinatura sem avisar.
+Agora ela oferece "Entrar de novo" e chama `encerrarSessaoVencida`, como a lista de
+tarefas e a fila. Não há mais nenhum `sair()` no app fora do diálogo "Sair da conta?"
+do Perfil. O outro apagamento, `acolherNoAparelho` (quando OUTRA pessoa entra num
+aparelho com dado de turno), é a regra de isolamento entre agentes e continua; o
+agente que perde o rascunho por isso não é avisado na hora, porque quem está na tela
+é o colega, e esse aviso é a decisão do CP-24 (F14-E02).
+
+**Achados de LGPD da validação, abertos e SEM dono de código ainda** (nada disto é
+da correção 1; a validação classificou como "corrigir antes de crescer"):
+
+1. **A fila e os arquivos dela ficam no aparelho sem prazo**, inclusive depois que
+   outro agente entra (envelope com CPF e coordenada, fotos, assinatura). Dono
+   provável: F05-E09 (retenção por classe) para o prazo, e F14-E02 para o item de
+   outro autor e o item bloqueado.
+2. **JPEG e PNG de coleta já enviada ou descartada só saem no logout**, que o agente
+   raramente faz. Dono: F14-E15 (já escrita para isso, com `limparMidiaConfirmada`).
+3. **O original da câmera no cache nunca é apagado** (`takePictureAsync` copia para
+   `Paths.document`, o original fica em `Paths.cache`, que nada limpa). Dono
+   provável: F14-E15, ou F14-E04 junto da criptografia das fotos. A F14-E15 hoje
+   NÃO cita o cache: quem a implementar precisa acrescentar.
+4. **Coordenada gravada com 6 casas** (cerca de 0,11 m, `vistoria/[id].tsx`), mais
+   fina que o GPS informa; 5 casas bastariam. Dono provável: F05-E10 (minimização).
+5. **Resíduo de WAL e páginas livres do SQLite** depois de `DELETE` sem `VACUUM`.
+   Risco baixo (armazenamento privado do aplicativo). Dono: F14-E04.
 
 ## 16. A vistoria diz a verdade sobre o envio, respeita teclado e área segura, e abre os ajustes (V2-F00-E16). Falta ver no aparelho
 
@@ -473,3 +571,122 @@ foto" no primeiro toque; ver o obturador acima da barra do sistema. Foto do
 aparelho para a evidência da etapa. O ambiente da etapa não renderiza o app Expo:
 a prova foi por teste de componente
 (`src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`).
+
+### Correção 1 da E16 (2026-10-13): a fila também prometia segundo plano
+
+A validação (arbitragem em Opus) achou "o envio acontece sozinho, em segundo
+plano" em duas frases da fila (`fila.tsx`). A varredura do aplicativo inteiro
+achou a mesma promessa, com outras palavras, em 12 frases de 5 arquivos (fila,
+lista de tarefas, vistoria guardada, pausa da sessão e acesso suspenso). Todos
+passaram a dizer a condição: **"quando o aplicativo estiver aberto e houver
+sinal"**. O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
+impede a volta (varre a fonte, menos comentários). Frases novas são texto de
+produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
+Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.
+
+### Correção 2 da E16 (2026-10-14): a cópia da foto é esperada, o contraste sobre o visor e o portão por classe
+
+- **A cópia da foto é assíncrona e agora é esperada.** No `expo-file-system` 57,
+  `File.copy` devolve uma `Promise`; `guardarFotoNoAparelho` (`src/dados/evidencia-no-disco.ts`)
+  chamava sem `await` e lia o tamanho antes de a cópia existir, de modo que no emulador
+  Android toda foto era recusada como "o arquivo saiu vazio", com o JPEG inteiro órfão no
+  disco. Agora o `await` fica dentro do `try` (a recusa do sistema, como disco cheio, chega
+  como Promise rejeitada e sai em português), e foto vazia ou cópia pela metade apaga o
+  destino antes de a recusa subir. O dublê de `File` do teste foi reescrito para o
+  contrato real (`copy` assíncrona, `copySync` síncrona, `size` zero para arquivo que não
+  existe); trocar `copy` por `copySync` também passa.
+- **O botão sobre a câmera é legível.** "Voltar sem fotografar" media 1,19:1 de rótulo
+  sobre o visor preto no tema claro (exigido 4,5:1). As peças sobre o visor agora leem o
+  tema escuro nos dois temas (`SobreOVisor`, em `ui/componentes.tsx`, sem cor nova): rótulo
+  18,46:1 e contorno 8,81:1. Um teste mede o estilo renderizado nos dois temas do aparelho
+  (rótulo de pelo menos 4,5 e contorno de pelo menos 3).
+- **A fila deixou de prometer que continua sozinha.** O cartão "Aguardando" com muitas
+  tentativas diz "Já tentou Nx e vai continuar tentando enquanto o aplicativo estiver
+  aberto. A conexão daqui não está completando o envio." (`fila.tsx`).
+- **O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs` passou
+  a ser por classe, e não por lista de frases:** reconhece o afastamento (fechar, minimizar,
+  bloquear, sair do aplicativo...) e a promessa (enviar, subir, terminar, continuar...) por
+  radical do verbo, e reprova a frase que junta as duas sem a condição "aberto". Medido
+  contra 22 promessas plantadas: a regra da rodada anterior deixou passar 15, a por classe
+  deixa passar 0. O arquivo tem 15 casos.
+
+Continua valendo: nada disto foi visto num aparelho (o que a cópia faz no `expo-file-system`
+real do iPhone ou do Android é o que só o aparelho responde).
+
+## 17. `expo-doctor` deu 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1; RESOLVIDO em 2026-10-13, correção 2; reaberto e RESOLVIDO de novo em 2026-10-14, correção 4)
+
+**RESOLVIDO DE NOVO em 2026-10-18 (V2-F00-E19, correção 5).** O estado atual é **21 de 21**.
+Em 2026-10-18 (linha de base sobre `6d9d09f`) o `npx expo-doctor` voltou a dar **20 de 21**
+pela mesma verificação de versões: `expo` 57.0.29 contra ~57.0.30 e `expo-router` 57.0.27
+contra ~57.0.28. O código não mudou; o Expo publicou patches. `npx expo install
+expo@~57.0.30 expo-router@~57.0.28` em `apps/campo` mudou só `package.json` e
+`package-lock.json` (o lock puxou os transitivos do Expo, como `@expo/cli` e
+`babel-preset-expo`), e o `expo-doctor` deu **21 de 21**. Prova em
+`docs/evidencias-v2/G00/V2-F00-E19/correcao-5/`. **PREMISSA, dita como premissa:** o Rafael
+não decidiu isso para estes dois pacotes; o tratamento é o mesmo da D1 por analogia, e a
+confirmação dele está pendente (H24). O que segue é o registro das correções anteriores.
+
+**RESOLVIDO DE NOVO em 2026-10-14 (V2-F00-E19, correção 4).** O estado atual é **21 de 21**.
+Na manhã de 2026-10-14 (medido na rodada de conserto da V2-F00-E22), o `npx expo-doctor`
+em `apps/campo` voltou a dar **20 de 21**, pela mesma verificação ("Check that packages match
+versions required by installed Expo SDK"): o Expo publicou mais patches depois da subida de
+2026-10-13, e cinco pacotes ficaram um patch atrás (`expo` 57.0.28 contra ~57.0.29,
+`expo-constants` 57.0.21 contra ~57.0.22, `expo-linking` 57.0.12 contra ~57.0.13,
+`expo-notifications` 57.0.22 contra ~57.0.23 e `expo-router` 57.0.26 contra ~57.0.27). Saída em
+`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/`. No mesmo dia o coordenador rodou
+`npx expo install --fix` em `apps/campo` (só `package.json` e `package-lock.json` mudaram) e
+o `expo-doctor` deu **21 de 21**; `npm run auditar` com código 0, jest do aplicativo 1927 de
+1927 e linha de base completa no Mac 15 de 17 (os dois que divergem são de máquina:
+`teste-api` por causa do LibreSSL e `test-scripts` por causa de `apps/campo/ios/`). Prova em
+`docs/evidencias-v2/G00/V2-F00-E19/correcao-4/`. **PREMISSA, dita como premissa:** o Rafael
+decidiu (D1, 2026-10-13) atualizar os seis pacotes anteriores; **não decidiu** isso para
+estes cinco. O coordenador aplicou o mesmo tratamento por analogia, e a confirmação do
+Rafael está pendente (o patch da pasta reverte com `git apply -R`). Não foi provado num
+aparelho nem no CI em Linux com os pacotes novos. Nos textos abaixo, "hoje" e "agora" valem
+para a data de cada registro, não para o estado atual.
+
+**RESOLVIDO em 2026-10-13 (V2-F00-E19, correção 2).** O Rafael decidiu atualizar (D1 do
+roteiro de aprovação). `npx expo install --fix` em `apps/campo` subiu os seis pacotes
+(`expo` ~57.0.28, `expo-crypto` ~57.0.4, `expo-location` ~57.0.21, `expo-router`
+~57.0.26, `expo-splash-screen` ~57.0.10, `jest-expo` ~57.0.6) e o
+`package-lock.json`. Depois (números daquele dia; hoje o jest do aplicativo tem 1927 casos):
+`npx expo-doctor` **21 de 21**, `npm run test:campo`
+1903 de 1903, testes do pacote `campo` 223 de 223, `npm run typecheck` com código 0 e
+`npm run auditar` com código 0 (runtime em zero e nenhuma advisory nova no aplicativo).
+Prova em `docs/evidencias-v2/G00/V2-F00-E19/correcao-2/`. O texto abaixo é o registro
+da deriva como ela estava em 2026-10-13, antes da correção. A deriva volta a cada patch
+novo do Expo: quando voltar, é um item novo.
+
+**Deriva externa, não defeito do projeto.** Em 2026-10-13, `npx expo-doctor` em
+`apps/campo` deu **20 de 21**. A única verificação que falha é "Check that
+packages match versions required by installed Expo SDK", com seis pacotes um
+patch atrás do que o SDK 57 exige hoje: `expo` (57.0.27, esperado ~57.0.28),
+`expo-crypto` (57.0.3, ~57.0.4), `expo-location` (57.0.20, ~57.0.21),
+`expo-router` (57.0.25, ~57.0.26), `expo-splash-screen` (57.0.9, ~57.0.10) e
+`jest-expo` (57.0.5, ~57.0.6). O baseline Linux de 2026-10-08 deu 21 de 21: o
+Expo publicou os patches depois. Nenhum pacote foi atualizado nesta correção, de
+propósito: o CP-03 decidiu que mexer na árvore do Expo (`npm audit fix`) mistura
+pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
+`prebuild` não é um conserto de uma linha.
+
+- **Dono:** Rafael (decide quando subir os seis patches).
+- **Como fechar:** `npx expo install --check` em `apps/campo`, conferir o
+  `package-lock.json`, rodar `npm run test:campo` e `npx expo-doctor`
+  (esperado 21 de 21). Pode entrar junto com a subida do SDK que fecha o CP-03
+  (prazo das exceções: 2027-01-05).
+- **Efeito no G00:** o critério "`expo-doctor` 21 de 21" da E19 e do gate G00
+  estava BLOQUEADO; deixou de estar com a correção 2 (21 de 21).
+
+## 18. A tarefa sai da lista sem o aplicativo dizer por quê (achado da V2-F00-E22, correção 4)
+
+`POST /sincronizacao/pendencias/reconciliar` (`apps/api/src/rotas/sincronizacao.ts`)
+devolve, para cada ocorrência que saiu da lista do agente, o `desfecho` (concluída,
+encerrada, devolvida ou passou para outra equipe, que é quem carrega os quatro
+casos) e o `motivo`, que só vem preenchido no encerramento (o texto da coordenação)
+e na devolução (o rótulo do motivo), e é nulo nos outros dois. O aplicativo só usa o `status` dessa resposta, para apagar a
+lápide da coleta já recebida (`aplicarReconciliacao`, `src/dados/pendencias.ts`); nenhuma
+tela lê `desfecho` nem `motivo`. Resultado: a tarefa some da lista e o agente não
+sabe se foi concluída, encerrada ou passada a um colega. `docs/CARTAO-DO-AGENTE.md`,
+`docs/IMPLANTACAO.md` e `docs/GUIA-DO-COORDENADOR.md` agora dizem isso. O conserto
+é uma frase na lista ou no sino a partir dos dois campos que já chegam; não foi
+feito aqui (resolver pendência não é desta etapa).

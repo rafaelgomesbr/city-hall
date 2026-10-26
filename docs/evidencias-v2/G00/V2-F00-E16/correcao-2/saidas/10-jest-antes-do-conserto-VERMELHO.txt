@@ -1,0 +1,179 @@
+C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:44
+          if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
+                                              ^
+
+Error: Invalid destination
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:69:43)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at File.apply [as copy] (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:68:15)
+    at copy (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.ts:47:27)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:184:39)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at Promise.then.completed (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:252:3)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:126:9)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:121:9)
+    at run (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:71:3)
+    at runAndTransformResultsToJestFormat (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at jestAdapter (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at runTestInternal (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:444:34)
+    at Object.worker (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\testWorker.js:106:12)
+
+Node.js v22.17.0
+C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:44
+          if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
+                                              ^
+
+Error: Invalid destination
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:69:43)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at File.apply [as copy] (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:68:15)
+    at copy (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.ts:47:27)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:184:39)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at Promise.then.completed (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:252:3)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:126:9)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:121:9)
+    at run (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:71:3)
+    at runAndTransformResultsToJestFormat (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at jestAdapter (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at runTestInternal (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:444:34)
+    at Object.worker (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\testWorker.js:106:12)
+
+Node.js v22.17.0
+C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:44
+          if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
+                                              ^
+
+Error: Invalid destination
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:69:43)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at File.apply [as copy] (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:68:15)
+    at copy (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.ts:47:27)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:184:39)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at Promise.then.completed (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:252:3)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:126:9)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:121:9)
+    at run (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:71:3)
+    at runAndTransformResultsToJestFormat (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at jestAdapter (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at runTestInternal (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:444:34)
+    at Object.worker (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\testWorker.js:106:12)
+
+Node.js v22.17.0
+FAIL src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx
+  ● tirar a foto com o disco de verdade › a foto é aceita: 'Fotografias (1)', sem a tarja de arquivo vazio
+
+    expect(received).toBeNull()
+
+    Received: <Text style={{"color": "#FF8787", "fontFamily": "System", "fontSize": 14, "fontWeight": "400", "letterSpacing": undefined, "lineHeight": 20, "textAlign": undefined, "textTransform": undefined}}>A foto não ficou guardada neste aparelho (o arquivo saiu vazio). Tire a foto de novo.</Text>
+
+    [0m [90m 202 |[39m     [36mawait[39m act([36masync[39m () [33m=>[39m { [36mawait[39m [36mnew[39m [33mPromise[39m((r) [33m=>[39m setTimeout(r[33m,[39m [35m20[39m))[33m;[39m })[33m;[39m
+     [90m 203 |[39m
+    [31m[1m>[22m[39m[90m 204 |[39m     expect(screen[33m.[39mqueryByText([35m/arquivo saiu vazio/[39m))[33m.[39mtoBeNull()[33m;[39m
+     [90m     |[39m                                                      [31m[1m^[22m[39m
+     [90m 205 |[39m     expect(screen[33m.[39mqueryByTestId([32m"tarja-de-erro"[39m))[33m.[39mtoBeNull()[33m;[39m
+     [90m 206 |[39m     expect(screen[33m.[39mgetByText([32m"Fotografias (1)"[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m 207 |[39m[0m
+
+      at Object.toBeNull (src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx:204:54)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:44
+          if (mockRecusaCopiarSincrono) throw new Error("Invalid destination");
+                                              ^
+
+Error: Invalid destination
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:69:43)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at File.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at File.apply [as copy] (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:68:15)
+    at copy (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.ts:47:27)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\src\dados\evidencia-no-disco.test.ts:184:39)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+    at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+    at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+    at new Promise (<anonymous>)
+    at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+    at Promise.then.completed (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:252:3)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:126:9)
+    at _runTestsForDescribeBlock (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:121:9)
+    at run (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\run.js:71:3)
+    at runAndTransformResultsToJestFormat (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at jestAdapter (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at runTestInternal (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\runTest.js:444:34)
+    at Object.worker (C:\Projetos\city-hall\dc360\apps\campo\node_modules\jest-runner\build\testWorker.js:106:12)
+
+Node.js v22.17.0
+FAIL src/dados/evidencia-no-disco.test.ts
+  ● Test suite failed to run
+
+    Jest worker encountered 4 child process exceptions, exceeding retry limit
+
+      at ChildProcessWorker.initialize (node_modules/jest-worker/build/workers/ChildProcessWorker.js:181:21)
+
+Test Suites: 2 failed, 2 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        5.709 s
+Ran all test suites matching /src\\dados\\evidencia-no-disco.test.ts|src\\__tests__\\vistoria-a-foto-com-o-disco-fiel.test.tsx/i.

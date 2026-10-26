@@ -1,0 +1,2178 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 4fe115b..3a0d2c5 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,9 +11,9 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1283 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 188 testes de unidade do motor de campo e 15 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1867 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1296 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1880 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -1292,11 +1292,11 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2868 testes em seis pacotes
++npm test                    # 2916 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+-npm run test:api            # 1283 testes da API
+-npm run test --workspace @dc360/campo   # 188 testes do motor de campo
+-npm run test:campo          # tipos e os 1867 testes do aplicativo de campo
++npm run test:api            # 1296 testes da API
++npm run test --workspace @dc360/campo   # 223 testes do motor de campo
++npm run test:campo          # tipos e os 1880 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
+ ```
+@@ -1604,7 +1604,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+   aparelho fica sem sinal (V2-F14-E12).
+ 
+-  Essa última já tem 188 testes do motor de campo cobrindo a lógica fora do
++  Essa última já tem 223 testes do motor de campo cobrindo a lógica fora do
+   celular, inclusive retomada arquivo a arquivo.
+   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
+   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+diff --git a/dc360/apps/api/src/rotas/evidencias.ts b/dc360/apps/api/src/rotas/evidencias.ts
+index 4ca68c8..b4d96b9 100644
+--- a/dc360/apps/api/src/rotas/evidencias.ts
++++ b/dc360/apps/api/src/rotas/evidencias.ts
+@@ -66,6 +66,26 @@ type EvidenciaPendente = {
+   id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
+ };
+ 
++/**
++ * A recusa de quem não é o autor da coleta a que a foto pertence.
++ *
++ * A MESMA `autor_divergente` (409) que a vistoria e a devolução já respondem
++ * (`rotas/sincronizacao.ts`), pelo que o aplicativo faz com ela: 409 cai em
++ * falha permanente e o item espera a conta de quem fez a coleta. Existe aqui
++ * porque a fila do aparelho atravessa a troca de turno, e a foto do agente da
++ * manhã podia ser autorizada ou confirmada com o token do agente da noite. A
++ * trilha é append-only: `evidencia_anexada` gravada com o autor errado não tem
++ * correção possível depois (V2-F00-E06, correção 1).
++ */
++function autorDivergente(): RegraDeNegocio {
++  return new RegraDeNegocio(
++    "autor_divergente",
++    "Esta foto foi feita por outro agente. Entre neste aparelho com a conta de "
++    + "quem fez a vistoria para poder enviá-la.",
++    409,
++  );
++}
++
+ export async function rotasEvidencias(
+   app: FastifyInstance,
+   { banco, armazenamento }: { banco: Banco; armazenamento: Armazenamento },
+@@ -211,6 +231,26 @@ export async function rotasEvidencias(
+     const quem = await autorizar(app, req, "registrar_vistoria");
+     const dados = pedidoSchema.parse(req.body);
+ 
++    /*
++      O AUTOR DECLARADO CONFERE COM O TOKEN, e vem antes de qualquer leitura do
++      banco, pelos mesmos motivos do portão da vistoria: a comparação não toca
++      em nada que o município guarda, então não vira oráculo de existência (a
++      ocorrência de outro município continua 404, e o 404 sai depois), e vem
++      antes da idempotência porque a reautorização de uma foto já gravada, com
++      a credencial de outra pessoa, devolveria a evidência dela.
++
++      Opcional por causa do aparelho de versão anterior: sem o campo, o autor
++      é quem apresentou o token, e a trilha diz a verdade sobre ele. O que o
++      campo impede é a troca de conta no meio da fila escrever o nome errado.
++    */
++    if (dados.coletadaPor && dados.coletadaPor !== quem.usuarioId) {
++      req.log.warn(
++        { usuarioId: quem.usuarioId },
++        "autorizacao de foto com autor declarado diferente do token",
++      );
++      throw autorDivergente();
++    }
++
+     const resultado = await banco.comTenant(quem.organizacaoId, async (c) => {
+       /*
+         Já autorizada antes: devolve a MESMA linha. Uma URL pré-assinada vence
+@@ -238,14 +278,24 @@ export async function rotasEvidencias(
+       if (dados.idempotencyKey) {
+         const anterior = await c.query<{
+           id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
+-          enviada_em: string | null; abandonada_em: string | null;
++          enviada_em: string | null; abandonada_em: string | null; anexada_por: string | null;
+         }>(
+-          `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, abandonada_em
++          `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, abandonada_em,
++                  anexada_por
+              FROM evidencias WHERE idempotency_key = $1`,
+           [dados.idempotencyKey],
+         );
+         const achada = anterior.rows[0];
+         if (achada) {
++          /*
++            A chave é de outra pessoa: nem devolve a evidência dela, nem a
++            confirma em nome de quem pediu (o ramo `pendente` abaixo grava
++            `evidencia_anexada` com o autor do TOKEN). `anexada_por` nulo é a
++            linha de antes da migração 024, que não tinha dono: segue valendo.
++          */
++          if (achada.anexada_por !== null && achada.anexada_por !== quem.usuarioId) {
++            throw autorDivergente();
++          }
+           /*
+             RESSUSCITA a autorização que a varredura de órfão deu por perdida.
+ 
+@@ -485,8 +535,10 @@ export async function rotasEvidencias(
+     const dados = confirmacaoSchema.parse(req.body);
+ 
+     const evidencia = await banco.comTenant(quem.organizacaoId, async (c) => {
+-      const r = await c.query<EvidenciaPendente & { enviada_em: string | null }>(
+-        `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em
++      const r = await c.query<EvidenciaPendente & {
++        enviada_em: string | null; anexada_por: string | null;
++      }>(
++        `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, anexada_por
+            FROM evidencias WHERE id = $1`,
+         [dados.evidenciaId],
+       );
+@@ -495,6 +547,20 @@ export async function rotasEvidencias(
+       return achada;
+     });
+ 
++    /*
++      SÓ QUEM AUTORIZOU CONFIRMA, e vem antes do atalho de "já estava
++      confirmada": a confirmação é o que escreve `evidencia_anexada` na trilha
++      append-only, com o autor do token. Com a conta trocada no meio do envio, o
++      token da pessoa que entrou depois gravava ali uma fotografia que ela nunca
++      viu, e não há como corrigir a linha. Depois da leitura por RLS (a evidência
++      de outro município já respondeu 404 acima), para a recusa não distinguir
++      o que o município do token não enxerga. `anexada_por` nulo é a linha de
++      antes da migração 024, que não tinha dono.
++    */
++    if (evidencia.anexada_por !== null && evidencia.anexada_por !== quem.usuarioId) {
++      throw autorDivergente();
++    }
++
+     // Reconfirmar é inofensivo e acontece: o aparelho pode ter perdido a
+     // resposta da primeira confirmação.
+     if (evidencia.enviada_em) {
+diff --git a/dc360/apps/api/test/campo-integracao.test.ts b/dc360/apps/api/test/campo-integracao.test.ts
+index 84855a7..1395eb1 100644
+--- a/dc360/apps/api/test/campo-integracao.test.ts
++++ b/dc360/apps/api/test/campo-integracao.test.ts
+@@ -28,6 +28,8 @@ import { construirServidor } from "../src/servidor.js";
+  */
+ 
+ const SENHA = "defesa-civil-2026";
++const HASH_DA_SEMENTE =
++  "scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk";
+ const AGENTE = "diego.alves@serraalta.exemplo.gov.br";
+ 
+ let mem: BancoEmMemoria;
+@@ -516,6 +518,81 @@ describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
+     expect(await vistoriasComAChave(chave)).toBe(1);
+   }, 120_000);
+ 
++  it("senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez", async () => {
++    /*
++      O roteiro ordinário de recuperação de conta, e o que a rodada 1 da
++      validação provou que perdia dado: a coordenação redefine a senha (as
++      sessões do agente caem), o agente entra com a senha provisória e o app
++      dispara o dreno. Antes da correção, o 403 `troca_de_senha_obrigatoria`
++      virava `FalhaPermanente`, o item ficava `bloqueado` e o cartão oferecia
++      "Descartar" sobre uma coleta que o servidor nunca recebeu.
++    */
++    const alvo = await prepararOcorrenciaEmCampo("Rua das Bromélias, 52, Alto da Serra");
++    const chave = "bbbbbbbb-0000-4000-8000-000000000007";
++    const loja = lojaEmMemoria();
++    let tokenAtual = await entrarComoAgente();
++    const fila = filaCom(loja, async () => tokenAtual);
++    await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
++
++    try {
++      const redefinicao = await app.inject({
++        method: "POST", url: `/usuarios/${SESSAO_DO_DIEGO.usuarioId}/redefinir-senha`,
++        headers: { authorization: `Bearer ${tokenCoordenador}` },
++      });
++      expect(redefinicao.statusCode, redefinicao.body).toBe(200);
++      const provisoria = redefinicao.json().senhaTemporaria as string;
++
++      // (a) A sessão que o aparelho tinha caiu: pausa por sessão encerrada.
++      const velha = await fila.drenar();
++      expect(velha.paradaPor).toBe("sessao_encerrada");
++      expect((await fila.itens())[0]!.estado).toBe("pendente");
++
++      // (b) O agente entra com a senha provisória. O dreno recebe o 403 do servidor de verdade.
++      const entrada = await app.inject({
++        method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: provisoria },
++      });
++      expect(entrada.statusCode, entrada.body).toBe(200);
++      expect(entrada.json().trocaDeSenhaObrigatoria).toBe(true);
++      tokenAtual = entrada.json().acesso as string;
++
++      const comProvisoria = await fila.drenar();
++
++      expect(comProvisoria.paradaPor).toBe("troca_de_senha_obrigatoria");
++      expect(comProvisoria.bloqueados).toBe(0);
++      const [guardado] = await fila.itens();
++      expect(guardado!.estado).toBe("pendente");
++      expect(guardado!.tentativas).toBe(0);
++      expect(guardado!.ultimaFalha).toBeNull();
++      const resumo = await fila.resumo();
++      expect(resumo.bloqueados).toBe(0);
++      expect(resumo.pausadaPor, "a pausa velha ficou por cima da nova").toBe("troca_de_senha_obrigatoria");
++      expect(await vistoriasComAChave(chave), "nada pode ter chegado ao banco").toBe(0);
++
++      // (c) A senha é trocada (no painel). A MESMA coleta sobe, uma vez só.
++      const troca = await app.inject({
++        method: "POST", url: "/auth/trocar-senha", headers: { authorization: `Bearer ${tokenAtual}` },
++        payload: { senhaAtual: provisoria, senha: SENHA },
++      });
++      expect(troca.statusCode, troca.body).toBe(200);
++      tokenAtual = troca.json().acesso as string;
++
++      const subiu = await fila.drenar();
++
++      expect(subiu.enviados).toBe(1);
++      expect(subiu.paradaPor).toBeUndefined();
++      expect((await fila.resumo()).pausadaPor).toBeNull();
++      expect(await vistoriasComAChave(chave)).toBe(1);
++    } finally {
++      // A redefinição derrubou a sessão compartilhada dos outros testes. Mesmo que
++      // uma asserção acima tenha falhado no meio, a senha volta à da semente.
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_hash = $1, senha_provisoria_ate = NULL WHERE id = $2",
++        [HASH_DA_SEMENTE, SESSAO_DO_DIEGO.usuarioId],
++      );
++      tokenAcesso = await entrarComoAgente();
++    }
++  }, 120_000);
++
+   it("token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar", async () => {
+     const alvo = await prepararOcorrenciaEmCampo("Rua das Orquídeas, 15, Alto da Serra");
+     const chave = "bbbbbbbb-0000-4000-8000-000000000003";
+@@ -676,6 +753,61 @@ describe("Foto de campo do aparelho ao banco", () => {
+     expect(Buffer.from(PIXEL).equals(bytes.rawPayload)).toBe(true);
+   }, 60_000);
+ 
++  it("a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez", async () => {
++    /*
++      A corrida que a rodada 1 da validação provou: o item é do Diego, a fila
++      ainda o tem como autor, mas o token que sai pelo fio já é de outra pessoa
++      (a troca de conta aconteceu entre o portão de autoria e o pedido). O
++      servidor é o último portão: a declaração do autor da coleta confere com o
++      token, e a foto não chega a existir.
++    */
++    const ANA = "11111111-1111-4111-8111-0000000000d9";
++    await mem.bruto.query(
++      `INSERT INTO usuarios (id, organizacao_id, nome, matricula, email, papel, equipe_id, senha_hash)
++       SELECT $1, organizacao_id, 'Ana Ribeiro Gouveia', 'SA-3392',
++              'ana.gouveia@serraalta.exemplo.gov.br', 'agente_campo', equipe_id, senha_hash
++         FROM usuarios WHERE id = $2
++       ON CONFLICT (id) DO NOTHING`,
++      [ANA, SESSAO_DO_DIEGO.usuarioId],
++    );
++    const entradaDaAna = await app.inject({
++      method: "POST", url: "/auth/entrar",
++      payload: { email: "ana.gouveia@serraalta.exemplo.gov.br", senha: SENHA },
++    });
++    expect(entradaDaAna.statusCode, entradaDaAna.body).toBe(200);
++    const tokenDaAna = entradaDaAna.json().acesso as string;
++
++    const alvo = await prepararOcorrenciaEmCampo("Rua da Troca de Turno, 300");
++    const fila = criarFilaDeSincronizacao({
++      deposito: depositoSobreChaveValor(lojaEmMemoria()),
++      transporte: transporteHttp({ baseUrl: endereco, obterToken: async () => tokenDaAna }),
++      sessaoAtual: () => SESSAO_DO_DIEGO,
++      arquivos,
++      dormir: async () => undefined,
++    });
++    const base = envelopeDe(alvo.id, "aaaaaaaa-0000-4000-8000-00000000000c");
++    await fila.enfileirar(
++      { ...base, vistoria: { ...base.vistoria, fotos: [] } },
++      { protocolo: alvo.protocolo, fotos: [fotoDe("bbbbbbbb-0000-4000-8000-00000000000c")] },
++    );
++
++    const r = await fila.drenar();
++
++    expect(r.enviados).toBe(0);
++    const [item] = await fila.itens();
++    expect(item!.estado).toBe("bloqueado");
++    expect(item!.ultimaFalha!.codigo).toBe("autor_divergente");
++    const evidencias = await mem.bruto.query<{ n: string }>(
++      "SELECT count(*)::text AS n FROM evidencias WHERE ocorrencia_id = $1", [alvo.id],
++    );
++    expect(evidencias.rows[0]!.n, "a foto foi reservada em nome de outra pessoa").toBe("0");
++    const anexos = await mem.bruto.query<{ n: string }>(
++      "SELECT count(*)::text AS n FROM trilha_eventos WHERE ocorrencia_id = $1 AND tipo = 'evidencia_anexada'",
++      [alvo.id],
++    );
++    expect(anexos.rows[0]!.n).toBe("0");
++  }, 120_000);
++
+   it("reenviar a coleta inteira não duplica a foto", async () => {
+     const alvo = await prepararOcorrenciaEmCampo("Rua do Reenvio, 200");
+     const chaveColeta = "aaaaaaaa-0000-4000-8000-00000000000b";
+diff --git a/dc360/apps/api/test/evidencia-so-do-autor.test.ts b/dc360/apps/api/test/evidencia-so-do-autor.test.ts
+new file mode 100644
+index 0000000..938e3f1
+--- /dev/null
++++ b/dc360/apps/api/test/evidencia-so-do-autor.test.ts
+@@ -0,0 +1,307 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++
++/**
++ * Foto de campo: quem envia é o autor da coleta (V2-F00-E06, correção 1).
++ *
++ * O DEFEITO, provado pela rodada 1 da validação: a fila do aparelho atravessa
++ * a troca de turno. Se a conta trocava com a foto do Diego em voo, a
++ * confirmação chegava com o token da Ana e a trilha, que é append-only, passava
++ * a dizer que a Ana anexou uma fotografia que ela nunca viu. A vistoria e a
++ * devolução já respondiam 409 `autor_divergente` nesse caso; a foto não
++ * conferia nada, e a mentira não tem correção possível depois de gravada.
++ *
++ * A REGRA, no servidor (a tela não é controle de acesso):
++ *
++ * - autorizar o envio com `coletadaPor` diferente do token: 409;
++ * - reautorizar uma chave que é de outra pessoa: 409, sem devolver a evidência;
++ * - confirmar uma evidência que outra pessoa autorizou: 409, sem evento na
++ *   trilha e sem marcar como enviada;
++ * - evidência de outro município continua 404, nunca 403.
++ */
++
++const SENHA = "defesa-civil-2026";
++const HASH_DA_SEMENTE =
++  "scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk";
++const SERRA_ALTA = "11111111-1111-4111-8111-000000000001";
++const EQUIPE_ALFA = "11111111-1111-4111-8111-0000000000e1";
++const DIEGO = "11111111-1111-4111-8111-0000000000d3";
++const ANA = "11111111-1111-4111-8111-0000000000d9";
++const TARCISIO = "22222222-2222-4222-8222-0000000000d3";
++
++const PIXEL_PNG = Buffer.from(
++  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
++  "base64",
++);
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++let tokenDiego: string;
++let tokenAna: string;
++let tokenCoordenadora: string;
++let tokenAgenteDeFora: string;
++
++const com = (t: string) => ({ authorization: `Bearer ${t}` });
++
++async function entrar(email: string): Promise<string> {
++  const r = await app.inject({ method: "POST", url: "/auth/entrar", payload: { email, senha: SENHA } });
++  if (r.statusCode !== 200) throw new Error(`login falhou: ${r.body}`);
++  return r.json().acesso;
++}
++
++async function ocorrenciaEmCampo(endereco: string): Promise<string> {
++  const criar = await app.inject({
++    method: "POST", url: "/ocorrencias", headers: com(tokenCoordenadora),
++    payload: {
++      solicitanteNome: "Marilda Souza Prado", canalEntrada: "telefone", endereco,
++      tipo: "deslizamento", descricao: "Talude atrás da casa cedeu depois da chuva da madrugada.",
++    },
++  });
++  const id = criar.json().id;
++  await app.inject({
++    method: "POST", url: `/ocorrencias/${id}/triagem`, headers: com(tokenCoordenadora),
++    payload: { severidade: "alta", vulnerabilidadePresente: false },
++  });
++  const d = await app.inject({
++    method: "POST", url: `/ocorrencias/${id}/despacho`, headers: com(tokenCoordenadora),
++    payload: { equipeId: EQUIPE_ALFA, prazoHoras: 4 },
++  });
++  if (d.statusCode !== 200) throw new Error(`despacho falhou: ${d.body}`);
++  return id;
++}
++
++function pedido(ocorrenciaId: string, extras: Record<string, unknown> = {}) {
++  return {
++    ocorrenciaId,
++    idempotencyKey: crypto.randomUUID(),
++    nomeArquivo: "IMG_0001.png",
++    tipoConteudo: "image/png",
++    tamanhoBytes: PIXEL_PNG.length,
++    capturadaEm: new Date().toISOString(),
++    legenda: "Trinca na parede dos fundos",
++    ordem: 0,
++    ...extras,
++  };
++}
++
++async function autorizar(token: string, corpo: Record<string, unknown>) {
++  return app.inject({
++    method: "POST", url: "/evidencias/autorizar-envio", headers: com(token), payload: corpo,
++  });
++}
++
++async function confirmar(token: string, evidenciaId: string) {
++  return app.inject({
++    method: "POST", url: "/evidencias/confirmar-envio", headers: com(token),
++    payload: { evidenciaId },
++  });
++}
++
++async function enviarBytes(url: string, cabecalhos: Record<string, string>) {
++  const alvo = new URL(url);
++  return app.inject({
++    method: "PUT", url: alvo.pathname + alvo.search,
++    headers: { ...cabecalhos, "content-length": String(PIXEL_PNG.length) },
++    payload: PIXEL_PNG,
++  });
++}
++
++async function linhaDaEvidencia(chaveDeIdempotencia: string) {
++  const r = await mem.bruto.query<{
++    id: string; anexada_por: string | null; enviada_em: string | null;
++  }>(
++    "SELECT id, anexada_por, enviada_em FROM evidencias WHERE idempotency_key = $1",
++    [chaveDeIdempotencia],
++  );
++  return r.rows[0] ?? null;
++}
++
++async function eventosDeAnexo(ocorrenciaId: string) {
++  const r = await mem.bruto.query<{ autor_id: string; autor_nome: string }>(
++    "SELECT autor_id, autor_nome FROM trilha_eventos WHERE ocorrencia_id = $1 AND tipo = 'evidencia_anexada'",
++    [ocorrenciaId],
++  );
++  return r.rows;
++}
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria({ semear: true });
++  const config = carregarConfig({
++    NODE_ENV: "test",
++    JWT_SEGREDO: "segredo-da-evidencia-do-autor-com-mais-de-32-bytes",
++    LOGIN_POR_IP: "10000",
++  } as NodeJS.ProcessEnv);
++  app = await construirServidor({
++    banco: mem.banco, config,
++    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++  });
++  await app.ready();
++
++  // O segundo agente NA MESMA EQUIPE: a divergência é só de pessoa.
++  await mem.bruto.query(
++    `INSERT INTO usuarios (id, organizacao_id, nome, matricula, email, papel, equipe_id, senha_hash)
++     VALUES ($1,$2,'Ana Ribeiro Gouveia','SA-3392','ana.gouveia@serraalta.exemplo.gov.br',
++             'agente_campo',$3,$4)`,
++    [ANA, SERRA_ALTA, EQUIPE_ALFA, HASH_DA_SEMENTE],
++  );
++
++  tokenDiego = await entrar("diego.alves@serraalta.exemplo.gov.br");
++  tokenAna = await entrar("ana.gouveia@serraalta.exemplo.gov.br");
++  tokenCoordenadora = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
++  tokenAgenteDeFora = await entrar("tarcisio.ramos@valefundo.exemplo.gov.br");
++}, 180_000);
++
++afterAll(async () => {
++  await app?.close();
++  await mem?.banco.encerrar();
++});
++
++describe("Autorizar o envio: o autor declarado é o do token", () => {
++  it("coletadaPor de OUTRA pessoa é recusado com 409 autor_divergente, e nada fica reservado", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 1");
++    const corpo = pedido(ocorrencia, { coletadaPor: DIEGO });
++
++    // A foto é do Diego; quem apresenta o token é a Ana.
++    const r = await autorizar(tokenAna, corpo);
++
++    expect(r.statusCode, r.body).toBe(409);
++    expect(r.json().erro).toBe("autor_divergente");
++    expect(r.json().mensagem).toContain("conta de quem fez a vistoria");
++    expect(await linhaDaEvidencia(corpo.idempotencyKey)).toBeNull();
++  }, 60_000);
++
++  it("coletadaPor igual ao token é aceito, e anexada_por é o do token", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 2");
++    const corpo = pedido(ocorrencia, { coletadaPor: DIEGO });
++
++    const r = await autorizar(tokenDiego, corpo);
++
++    expect(r.statusCode, r.body).toBe(201);
++    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.anexada_por).toBe(DIEGO);
++  }, 60_000);
++
++  it("aparelho de versão anterior, sem coletadaPor, continua entrando", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 3");
++
++    const r = await autorizar(tokenDiego, pedido(ocorrencia));
++
++    expect(r.statusCode, r.body).toBe(201);
++  }, 60_000);
++
++  it("a mesma chave pedida por OUTRA pessoa não devolve a evidência do autor", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 4");
++    const corpo = pedido(ocorrencia);
++    const doDiego = await autorizar(tokenDiego, corpo);
++    expect(doDiego.statusCode, doDiego.body).toBe(201);
++
++    // A Ana (sem declarar autor nenhum) apresenta a chave do Diego.
++    const daAna = await autorizar(tokenAna, corpo);
++
++    expect(daAna.statusCode, daAna.body).toBe(409);
++    expect(daAna.json().erro).toBe("autor_divergente");
++    expect(daAna.json()).not.toHaveProperty("evidenciaId");
++    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.anexada_por).toBe(DIEGO);
++  }, 60_000);
++
++  it("a reautorização com os bytes já no armazenamento não confirma em nome de outra pessoa", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 5");
++    const corpo = pedido(ocorrencia);
++    const doDiego = (await autorizar(tokenDiego, corpo)).json();
++    expect((await enviarBytes(doDiego.url, doDiego.cabecalhos)).statusCode).toBe(200);
++
++    // Os bytes chegaram e a resposta se perdeu. A Ana pede a mesma chave:
++    // seria ela a confirmar, e a trilha diria que foi ela quem anexou.
++    const daAna = await autorizar(tokenAna, corpo);
++
++    expect(daAna.statusCode, daAna.body).toBe(409);
++    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.enviada_em).toBeNull();
++    expect(await eventosDeAnexo(ocorrencia)).toHaveLength(0);
++  }, 60_000);
++
++  it("ocorrência de outro município continua 404, com ou sem autor declarado (o dele)", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 6");
++
++    const semAutor = await autorizar(tokenAgenteDeFora, pedido(ocorrencia));
++    const comAutor = await autorizar(tokenAgenteDeFora, pedido(ocorrencia, { coletadaPor: TARCISIO }));
++
++    // 404 e não 403 nem 409: o autor confere, e a ocorrência alheia não existe daqui.
++    for (const r of [semAutor, comAutor]) {
++      expect(r.statusCode, r.body).toBe(404);
++      expect(r.json().erro).toBe("nao_encontrada");
++    }
++  }, 60_000);
++
++  it("a recusa por autor não depende de a ocorrência existir: não vira oráculo", async () => {
++    const existe = await ocorrenciaEmCampo("Rua do Autor, 6b");
++    const inventada = crypto.randomUUID();
++
++    const a = await autorizar(tokenAna, pedido(existe, { coletadaPor: DIEGO }));
++    const b = await autorizar(tokenAna, pedido(inventada, { coletadaPor: DIEGO }));
++
++    expect(a.statusCode).toBe(409);
++    expect(b.statusCode).toBe(409);
++    expect(a.json()).toEqual(b.json());
++  }, 60_000);
++});
++
++describe("Confirmar o envio: só quem autorizou confirma", () => {
++  it("a confirmação com o token de OUTRA pessoa é recusada: nada na trilha, nada marcado", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 7");
++    const corpo = pedido(ocorrencia);
++    const autorizacao = (await autorizar(tokenDiego, corpo)).json();
++    expect((await enviarBytes(autorizacao.url, autorizacao.cabecalhos)).statusCode).toBe(200);
++
++    // A conta trocou com a foto em voo: a confirmação chega com o token da Ana.
++    const r = await confirmar(tokenAna, autorizacao.evidenciaId);
++
++    expect(r.statusCode, r.body).toBe(409);
++    expect(r.json().erro).toBe("autor_divergente");
++    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.enviada_em).toBeNull();
++    expect(await eventosDeAnexo(ocorrencia), "autor falso na trilha append-only").toHaveLength(0);
++  }, 60_000);
++
++  it("a confirmação do autor continua valendo, e a trilha diz Diego", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 8");
++    const corpo = pedido(ocorrencia);
++    const autorizacao = (await autorizar(tokenDiego, corpo)).json();
++    await enviarBytes(autorizacao.url, autorizacao.cabecalhos);
++
++    // Primeiro a Ana tenta e é recusada; depois o Diego volta e conclui.
++    expect((await confirmar(tokenAna, autorizacao.evidenciaId)).statusCode).toBe(409);
++    const r = await confirmar(tokenDiego, autorizacao.evidenciaId);
++
++    expect(r.statusCode, r.body).toBe(200);
++    expect(r.json().confirmada).toBe(true);
++    const eventos = await eventosDeAnexo(ocorrencia);
++    expect(eventos).toHaveLength(1);
++    expect(eventos[0]!.autor_id).toBe(DIEGO);
++    expect((await linhaDaEvidencia(corpo.idempotencyKey))!.anexada_por).toBe(DIEGO);
++  }, 60_000);
++
++  it("reconfirmar depois de enviada, por outra pessoa, também é recusado", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 9");
++    const autorizacao = (await autorizar(tokenDiego, pedido(ocorrencia))).json();
++    await enviarBytes(autorizacao.url, autorizacao.cabecalhos);
++    expect((await confirmar(tokenDiego, autorizacao.evidenciaId)).statusCode).toBe(200);
++
++    // O atalho "já estava confirmada" não pode servir de oráculo para quem não é o autor.
++    const r = await confirmar(tokenAna, autorizacao.evidenciaId);
++
++    expect(r.statusCode, r.body).toBe(409);
++    expect(r.json().erro).toBe("autor_divergente");
++  }, 60_000);
++
++  it("evidência de outro município: 404, nunca 403 nem 409", async () => {
++    const ocorrencia = await ocorrenciaEmCampo("Rua do Autor, 10");
++    const autorizacao = (await autorizar(tokenDiego, pedido(ocorrencia))).json();
++
++    const r = await confirmar(tokenAgenteDeFora, autorizacao.evidenciaId);
++
++    expect(r.statusCode, r.body).toBe(404);
++    expect(r.json().erro).toBe("nao_encontrada");
++  }, 60_000);
++});
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 0648dbf..3f753b9 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -22,7 +22,7 @@ O que É verificável daqui, e está verificado:
+ | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+ | Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57 (versões de correção). Mudou a versão de pacote nativo: o próximo binário do aparelho precisa ser recompilado |
+ | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
+-| A fila que ele consome | `npm test --workspace @dc360/campo` | 188 testes do motor de campo |
++| A fila que ele consome | `npm test --workspace @dc360/campo` | 223 testes do motor de campo |
+ 
+ **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
+ o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
+@@ -95,7 +95,7 @@ na chuva.
+    de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
+ 
+ Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
+-188 testes do motor de campo cobrindo a lógica fora do celular, inclusive
++223 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+ retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
+ quando o sistema mata o processo.
+ 
+@@ -112,7 +112,7 @@ src/ui/              tokens e componentes
+ ```
+ 
+ **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
+-feita sem sinal vive em `packages/campo`, com 188 testes de unidade do motor de campo, e a
++feita sem sinal vive em `packages/campo`, com 223 testes de unidade do motor de campo, e a
+ integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
+ fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
+ isso que ele é fino de propósito.
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index 149e076..7194982 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -381,25 +381,63 @@ Duas decisões que o próximo precisa conhecer:
+   (`ESPERA_COM_A_FILA_PAUSADA_MS`): cada volta é uma requisição que o servidor já
+   recusou. Entrar de novo reinicia o laço na hora.
+ 
+-**Decisão da V2-F00-E07 sobre o 403 `troca_de_senha_obrigatoria`:** fica FORA da
+-etapa e continua recusa permanente do item, por três razões. (1) A E07 só mexe
+-na vigência da API (papel, cadeia da sessão e senha provisória vencida), e a
+-classificação desse 403 na fila é do motor offline, que a E06 fechou para os três
+-códigos de acesso. (2) O aparelho praticamente não chega a ele: quem entra com a
+-senha provisória é mandado ao painel para trocá-la (`src/dados/api.ts`,
+-`ErroDaApi`), e redefinir a senha de alguém derruba as sessões dele (401
+-`sessao_encerrada`, que já é pausa, não bloqueio). (3) Tratá-lo como pausa sem
+-haver tela de troca de senha no aplicativo deixaria o item parado sem saída.
+-Reabrir quando o aplicativo ganhar a tela de troca de senha.
++**Correção 1 da V2-F00-E06 (2026-10-13): o 403 `troca_de_senha_obrigatoria` agora
++PAUSA a fila.** A decisão que a E07 tinha registrado aqui (deixá-lo como recusa
++permanente, "porque o aparelho praticamente não chega a ele") foi derrubada pela
++validação: redefinir a senha derruba as sessões (401, pausa), o agente entra com a
++senha provisória, o aplicativo ignora `trocaDeSenhaObrigatoria` e o dreno recebia
++403 em toda escrita. Todas as coletas viravam `bloqueado`, o dreno não parava e o
++cartão oferecia "Descartar", que apaga coleta que o servidor nunca recebeu. É
++perda de dado, e o caso é o procedimento padrão de recuperação de conta.
++
++Matriz final do transporte (`falhaDaResposta`), lida pela AÇÃO do catálogo e não
++por lista de códigos:
++
++| Resposta | Fila |
++| --- | --- |
++| 401 de qualquer código (inclui sem código) | pausa `sessao_encerrada` (antes renova UMA vez no `nao_autenticado`) |
++| 403 `conta_desativada` (ação `parar_e_avisar`) | pausa `conta_desativada` |
++| 403 `troca_de_senha_obrigatoria` (ação `trocar_a_senha`) | pausa `troca_de_senha_obrigatoria` |
++| 403 `acesso_suspenso` (ação `aguardar_o_contrato`) | temporária (a API já responde 503 à fila; este é o cinto) |
++| 403 `sem_permissao` e 403 sem código | permanente: recusa do papel, bloqueia |
++| 409 `autor_divergente` | permanente por desenho (a coleta espera a conta de quem a fez) |
++| 409 `ja_encerrada` | arquivada |
++| 5xx, 429, rede | temporária |
++
++Como o aplicativo NÃO tem tela de troca de senha, a pausa não traz botão: a frase
++(`src/dados/pausa-da-fila.ts`, `troca_de_senha_obrigatoria`) manda definir a senha
++no painel, no computador, e entrar aqui de novo, e promete que as coletas continuam
++guardadas. A mesma classificação vale para as telas que vão à rede
++(`falha-de-atualizacao.ts`, motivo `troca-de-senha`). **A frase é texto de produto e
++precisa da aprovação do Rafael.** Quando o aplicativo ganhar a tela de troca de
++senha, o ato certo passa a ser levar a pessoa a ela na entrada
++(`trocaDeSenhaObrigatoria` do login), e a pausa vira o cinto.
++
++Na mesma correção, a pausa passou a ser do AUTOR do item (e não de quem está
++logado quando a resposta chega), um 401 tardio de um dreno cancelado não devolve a
++`pendente` item que outro dreno já confirmou, e o motor refaz a pergunta "ainda é a
++conta do autor?" antes de CADA chamada do item (autorização, bytes, confirmação,
++envelope). O servidor fecha o resto: autorizar e confirmar o envio de foto conferem
++o autor (409 `autor_divergente`).
+ 
+ **O que falta** (validação humana): ver a frase e a coleta preservada em
+ aparelho ou emulador, desativando o agente no painel durante uma coleta na fila,
+-e a reativação seguida de nova entrada. O ambiente desta etapa não renderiza o
+-app Expo; a prova foi por teste de componente (`src/ui/fila-pausada-pela-sessao.test.tsx`),
+-e a foto do aparelho continua pendente. Fora do escopo e ainda aberto: o 403
+-`troca_de_senha_obrigatoria` (senha provisória) e o 403 `acesso_suspenso` nas
+-rotas que não são da fila ainda são lidos como recusa permanente do item pelo
+-transporte; a API responde 503 à fila no caso da suspensão, que é temporário.
++e a reativação seguida de nova entrada; e redefinindo a senha do agente. O ambiente
++não renderiza o app Expo; a prova foi por teste de componente
++(`src/ui/fila-pausada-pela-sessao.test.tsx`), e a foto do aparelho continua pendente.
++
++**Ainda aberto, anotado pela validação e fora desta correção:**
++
++- Rebaixar o PAPEL de um agente com coleta na fila (403 `sem_permissao`) bloqueia
++  tudo, com "Descartar". É o que o bloco da E06 manda ("continua permanente"), mas
++  o efeito para a coleta é o mesmo que a etapa eliminou para a desativação. Decisão
++  do Rafael: pausar ou continuar bloqueando.
++- `descartar` aceita item de outro autor em qualquer estado (aparelho compartilhado:
++  o agente A pode apagar a coleta guardada do agente B, com confirmação nominal).
++- A recusa por autor divergente na FOTO não deixa evento na trilha (a da vistoria e
++  a da devolução deixam, com tipo próprio). Fica só o aviso no log do servidor.
++- 401 `nao_autenticado` dentro do piso de 60 s do obtentor pausa como
++  `sessao_encerrada` quando só faltava esperar; corrige sozinho no próximo dreno.
+ 
+ ## 15. Sair da conta avisa o que apaga, e o GPS bom conclui (V2-F00-E15). Falta ver no aparelho
+ 
+diff --git a/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts b/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
+index fe470de..8470d0b 100644
+--- a/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
++++ b/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
+@@ -130,3 +130,42 @@ describe("a conta desativada", () => {
+     expect(frase.resumo.length).toBeLessThanOrEqual(32);
+   });
+ });
++
++/**
++ * A senha provisória (V2-F00-E06, correção 1): o 403 que caía em "outro".
++ *
++ * Quem entra com a senha que a coordenação sorteou recebe 403
++ * `troca_de_senha_obrigatoria` em toda rota. "Outro" diz "tenta de novo daqui a
++ * pouco", e tentar de novo não resolve: quem resolve é a própria pessoa, que
++ * define a senha no painel. O aplicativo não tem tela para isso.
++ */
++describe("a senha provisória", () => {
++  it("403 troca_de_senha_obrigatoria é troca de senha, e não 'outro'", () => {
++    expect(motivoDaFalha(new RespostaDoServidor(403, "troca_de_senha_obrigatoria")))
++      .toBe("troca-de-senha");
++  });
++
++  it("é fim de linha para a tela: nada novo desce até a senha ser definida", () => {
++    expect(ehFimDeLinha("troca-de-senha")).toBe(true);
++  });
++
++  const frase = comoContarAFalha("troca-de-senha", "Mostrando o que já estava no aparelho.");
++
++  it("manda definir a senha no painel e promete que as coletas continuam guardadas", () => {
++    expect(frase.resumo).toBe("Defina a sua senha");
++    expect(frase.detalhe).toMatch(/senha provisória/i);
++    expect(frase.detalhe).toMatch(/painel/i);
++    expect(frase.detalhe).toMatch(/continuam guardadas/i);
++  });
++
++  it("não é a frase da sessão encerrada nem da conta desativada", () => {
++    expect(frase.detalhe).not.toBe(comoContarAFalha("sessao-encerrada", "a lista").detalhe);
++    expect(frase.detalhe).not.toBe(comoContarAFalha("conta-desativada", "a lista").detalhe);
++    expect(frase.detalhe).not.toMatch(/procure a coordenação/i);
++  });
++
++  it("o resumo cabe numa linha da faixa e não tem travessão", () => {
++    expect(frase.resumo.length).toBeLessThanOrEqual(32);
++    expect(frase.detalhe).not.toContain(String.fromCharCode(0x2014));
++  });
++});
+diff --git a/dc360/apps/campo/src/dados/falha-de-atualizacao.ts b/dc360/apps/campo/src/dados/falha-de-atualizacao.ts
+index ecb4902..0e0d2e8 100644
+--- a/dc360/apps/campo/src/dados/falha-de-atualizacao.ts
++++ b/dc360/apps/campo/src/dados/falha-de-atualizacao.ts
+@@ -13,13 +13,14 @@ import { SemSinal } from "./api";
+  * sozinho, sessão encerrada não passa nunca, e as duas frases mandavam o
+  * agente fazer a mesma coisa (esperar).
+  *
+- * São cinco desfechos porque são cinco atos diferentes:
++ * São seis desfechos porque são seis atos diferentes:
+  *
+  * | Motivo | O que o agente faz |
+  * | --- | --- |
+  * | `sem-sinal` | espera o sinal voltar, e continua trabalhando no que baixou |
+  * | `sessao-encerrada` | entra de novo, e ATÉ LÁ nada novo desce |
+  * | `conta-desativada` | NADA que ele faça resolve: quem resolve é a coordenação |
++ * | `troca-de-senha` | define a senha no painel e entra de novo |
+  * | `acesso-suspenso` | NADA que ele faça resolve: quem resolve é quem administra o contrato |
+  * | `outro` | tenta de novo daqui a pouco |
+  *
+@@ -28,7 +29,12 @@ import { SemSinal } from "./api";
+  * desativada não resolve nunca. É lido pelo CÓDIGO, não pelo status, pelo mesmo
+  * motivo da suspensão: o 403 também serve a `sem_permissao`, que é outra coisa.
+  *
+- * O quarto entrou com a suspensão de acesso pelo fornecedor (migração 038 e
++ * `troca-de-senha` entrou na correção 1 da E06: quem entra com a senha provisória
++ * que a coordenação sorteou recebe 403 `troca_de_senha_obrigatoria` em toda
++ * rota, e o aplicativo não tem tela para trocá-la. "Outro" mandava tentar de
++ * novo daqui a pouco; a frase certa manda definir a senha no painel.
++ *
++ * O `acesso-suspenso` entrou com a suspensão de acesso pelo fornecedor (migração 038 e
+  * `auth/suspensao.ts` na API). Ele existe separado do segundo porque a frase
+  * do segundo manda entrar de novo, e entrar de novo num município suspenso dá
+  * 403 para sempre: o botão mandaria o agente fazer a única coisa que não
+@@ -46,6 +52,7 @@ export type MotivoDaFalha =
+   | "sem-sinal"
+   | "sessao-encerrada"
+   | "conta-desativada"
++  | "troca-de-senha"
+   | "acesso-suspenso"
+   | "outro";
+ 
+@@ -55,7 +62,7 @@ export type MotivoDaFalha =
+  * o tempo. Fica aqui para as telas não repetirem a lista a cada aviso.
+  */
+ export function ehFimDeLinha(motivo: MotivoDaFalha): boolean {
+-  return motivo === "sessao-encerrada" || motivo === "conta-desativada";
++  return motivo === "sessao-encerrada" || motivo === "conta-desativada" || motivo === "troca-de-senha";
+ }
+ 
+ /**
+@@ -102,6 +109,14 @@ export function motivoDaFalha(erro: unknown): MotivoDaFalha {
+   if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "conta_desativada") {
+     return "conta-desativada";
+   }
++  /*
++    A senha provisória (403), também pelo código e pelo mesmo motivo: o status
++    sozinho é `sem_permissao` para o resto. Nada que a pessoa faça no aparelho
++    resolve; quem resolve é ela mesma, no painel.
++  */
++  if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "troca_de_senha_obrigatoria") {
++    return "troca-de-senha";
++  }
+   /*
+     O 401 vem na frente do `SemSinal` de propósito: um erro que carrega status
+     é resposta do servidor, ou seja, a requisição CHEGOU. Não há sinal a
+@@ -172,6 +187,21 @@ export function comoContarAFalha(
+         + "procure a coordenação do seu município.",
+     };
+   }
++  if (motivo === "troca-de-senha") {
++    return {
++      resumo: "Defina a sua senha",
++      /*
++        O fato, onde resolver (o aplicativo não tem tela para isso) e a promessa.
++        NÃO manda entrar de novo: entrar de novo com a provisória volta a esta
++        mesma frase. A promessa é verdade pela correção 1 da E06: a fila trata o
++        403 como pausa, e a coleta espera em vez de virar bloqueada.
++      */
++      detalhe:
++        "Você entrou com uma senha provisória. Defina a sua senha no painel, no "
++        + "computador (a tela de entrada pede isso), e depois entre aqui de novo. "
++        + "Suas coletas continuam guardadas neste aparelho.",
++    };
++  }
+   if (motivo === "acesso-suspenso") {
+     return {
+       resumo: "Acesso suspenso pelo fornecedor",
+diff --git a/dc360/apps/campo/src/dados/pausa-da-fila.test.ts b/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+index 4119c3b..f042b3b 100644
+--- a/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
++++ b/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+@@ -46,6 +46,26 @@ describe("frases da pausa", () => {
+     }
+   });
+ 
++  it("senha provisória manda definir a senha no painel e não manda procurar a coordenação", () => {
++    const senha = frasesDaPausa("troca_de_senha_obrigatoria");
++    expect(senha.titulo).toMatch(/senha provisória/i);
++    expect(senha.detalhe).toMatch(/continuam guardadas/i);
++    expect(senha.detalhe).toMatch(/painel/i);
++    expect(senha.faixaDetalhe).toMatch(/guardadas/i);
++    expect(senha.doCartao).toMatch(/guardada/i);
++    expect(senha.doCartao).toMatch(/definir a sua senha/i);
++    expect(senha.detalhe).not.toMatch(/procure a coordenação/i);
++    for (const texto of Object.values(senha)) expect(texto).not.toContain(String.fromCharCode(0x2014));
++  });
++
++  it("as três pausas têm frases diferentes", () => {
++    const todas = (["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const)
++      .map((m) => frasesDaPausa(m));
++    expect(new Set(todas.map((f) => f.titulo)).size).toBe(3);
++    expect(new Set(todas.map((f) => f.faixaTitulo)).size).toBe(3);
++    expect(new Set(todas.map((f) => f.doCartao)).size).toBe(3);
++  });
++
+   it("com a fila parada o laço espera mais que o piso normal de 15 s", () => {
+     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
+   });
+diff --git a/dc360/apps/campo/src/dados/pausa-da-fila.ts b/dc360/apps/campo/src/dados/pausa-da-fila.ts
+index 3ab8fe0..27cd230 100644
+--- a/dc360/apps/campo/src/dados/pausa-da-fila.ts
++++ b/dc360/apps/campo/src/dados/pausa-da-fila.ts
+@@ -3,13 +3,19 @@ import type { MotivoDeSessao } from "@dc360/campo";
+ /**
+  * O que a tela diz quando a FILA está parada pela sessão (V2-F00-E06).
+  *
+- * São duas pausas e dois atos opostos, e por isso duas frases que não se
++ * São três pausas e três atos diferentes, e por isso três frases que não se
+  * misturam:
+  *
+  * | Motivo | O que resolve | O que NÃO resolve |
+  * | --- | --- | --- |
+  * | `sessao_encerrada` | entrar de novo | esperar |
+  * | `conta_desativada` | a coordenação reativar a conta | entrar de novo |
++ * | `troca_de_senha_obrigatoria` | a própria pessoa definir a senha no painel | entrar de novo com a provisória |
++ *
++ * A terceira entrou na correção 1 da E06. O aplicativo não tem tela de troca de
++ * senha (quem entrou com a senha provisória define a sua no painel, no
++ * computador), então a frase diz onde fazer e o que fazer depois, e não traz
++ * botão: nenhum ato dentro do aparelho resolve.
+  *
+  * Mora fora das telas porque três superfícies dizem a mesma coisa em três
+  * tamanhos: a faixa do topo (uma linha), o aviso no alto da fila (um parágrafo)
+@@ -56,6 +62,18 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+       "Guardada neste aparelho. Só sobe depois que a coordenação reativar a sua "
+       + "conta e você entrar.",
+   },
++  troca_de_senha_obrigatoria: {
++    faixaTitulo: "Defina a sua senha",
++    faixaDetalhe: "Suas coletas continuam guardadas neste aparelho",
++    titulo: "Você entrou com uma senha provisória e o envio está parado",
++    detalhe:
++      "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
++      + "Defina a sua senha no painel, no computador (a tela de entrada pede isso), "
++      + "e depois entre aqui de novo: assim que você entrar, elas sobem sozinhas.",
++    doCartao:
++      "Guardada neste aparelho. Só sobe depois que você definir a sua senha no "
++      + "painel e entrar de novo.",
++  },
+ };
+ 
+ export function frasesDaPausa(motivo: MotivoDeSessao): FrasesDaPausa {
+diff --git a/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts b/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+new file mode 100644
+index 0000000..b196d71
+--- /dev/null
++++ b/dc360/apps/campo/src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+@@ -0,0 +1,154 @@
++/**
++ * A troca de conta com um pedido da fila na rua, pela fila REAL do aplicativo
++ * (V2-F00-E06, correção 1).
++ *
++ * A fila do aparelho atravessa a troca de turno: é criada uma vez e lê quem está
++ * logado a cada decisão (`obterFila`). A rodada 1 da validação provou duas
++ * coisas sobre o instante em que a conta muda com um envio em voo:
++ *
++ * 1. a resposta tardia (403 `conta_desativada`) era atribuída a QUEM ESTAVA
++ *    LOGADO QUANDO ELA CHEGOU, e o agente que acabou de entrar lia "Conta
++ *    desativada" por causa da conta de quem saiu;
++ * 2. o item do agente que saiu não pode sair mais com a conta que entrou: o
++ *    layout cancela o dreno quando a identidade muda (`LacoDaFila`), e o motor
++ *    refaz a pergunta de autoria antes de cada chamada.
++ *
++ * O SQLite é o do Node em memória e o `fetch` é falso, mas a fila, o transporte
++ * e o depósito são os de produção.
++ */
++
++import { DatabaseSync } from "node:sqlite";
++import type { EnvelopeSincronizacao } from "@dc360/shared";
++
++let mockBanco: DatabaseSync | null = null;
++
++function mockAbrir(): DatabaseSync {
++  mockBanco ??= new DatabaseSync(":memory:");
++  return mockBanco;
++}
++
++jest.mock("expo-sqlite", () => ({
++  openDatabaseAsync: async () => {
++    const db = mockAbrir();
++    return {
++      async execAsync(sql: string) { db.exec(sql); },
++      async runAsync(sql: string, params: unknown[] = []) { db.prepare(sql).run(...params); },
++      async getAllAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).all(...params); },
++      async getFirstAsync(sql: string, params: unknown[] = []) { return db.prepare(sql).get(...params) ?? null; },
++    };
++  },
++}));
++
++jest.mock("expo-file-system", () => ({
++  Paths: { document: "file:///documentos" },
++  File: class {},
++  Directory: class { list() { return []; } },
++}));
++
++import { obterFila } from "./fila";
++import type { Identidade } from "./api";
++
++const ANA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
++const BRUNO = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
++const ORG = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
++
++function identidade(usuarioId: string, nome: string): Identidade {
++  return { usuarioId, nome, organizacaoId: ORG } as unknown as Identidade;
++}
++
++const quem = { atual: identidade(ANA, "Ana Ribeiro") as Identidade | null };
++
++function envelope(chave: string): EnvelopeSincronizacao {
++  const momento = new Date(Date.now() - 3_600_000).toISOString();
++  return {
++    idempotencyKey: chave,
++    ocorrenciaId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
++    coletadaEm: momento,
++    vistoria: {
++      checklist: [
++        { chave: "risco_iminente", resposta: true },
++        { chave: "evacuacao_necessaria", resposta: false },
++        { chave: "interdicao_indicada", resposta: false },
++        { chave: "acionar_outro_orgao", resposta: false },
++      ],
++      fotos: [],
++      gpsPrecisaoMetros: 6,
++      assinanteNome: "Moradora",
++      assinaturaChave: null,
++      coletadaEm: momento,
++    },
++  };
++}
++
++function resposta(status: number, corpo: Record<string, unknown>): Response {
++  return { ok: status >= 200 && status < 300, status, json: async () => corpo } as Response;
++}
++
++/*
++  A fila do aplicativo é memoizada e o transporte captura o `fetch` na criação:
++  o que muda de um teste para outro é o delegado, e não o `fetch` global.
++*/
++let mockFetch: (url: string, init: RequestInit) => Promise<Response> = async () => {
++  throw new Error("fetch nao configurado");
++};
++(globalThis as unknown as { fetch: unknown }).fetch = (url: string, init: RequestInit) => mockFetch(url, init);
++
++describe("a fila real do aplicativo com a conta trocando no meio do pedido", () => {
++  it("o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela", async () => {
++    // O pedido fica pendurado até o teste decidir a resposta.
++    let responder!: (r: Response) => void;
++    const pedidos: string[] = [];
++    mockFetch = async (_url, init) => {
++      pedidos.push((init.headers as Record<string, string>)["authorization"]!);
++      return new Promise<Response>((r) => { responder = r; });
++    };
++    const fila = await obterFila(
++      "http://api.exemplo",
++      async () => (quem.atual?.usuarioId === ANA ? "token-da-ana" : "token-do-bruno"),
++      () => quem.atual,
++    );
++    await fila.enfileirar(envelope("11111111-1111-4111-8111-111111111111"), { protocolo: "000471/2026" });
++
++    const dreno = fila.drenar();
++    await new Promise((r) => setTimeout(r, 0));
++    expect(pedidos).toEqual(["Bearer [REDIGIDO]"]);
++
++    // A Ana sai, o Bruno entra, e o layout cancela o dreno (a identidade mudou).
++    quem.atual = identidade(BRUNO, "Bruno Lima");
++    fila.cancelar();
++    responder(resposta(403, { erro: "conta_desativada", mensagem: "Sua conta foi desativada." }));
++    const r = await dreno;
++
++    expect(r.bloqueados).toBe(0);
++    // O Bruno não lê a pausa da Ana, e a coleta dela espera por ela.
++    const doBruno = await fila.resumo();
++    expect(doBruno.pausadaPor).toBeNull();
++    expect(doBruno.deOutroAutor).toBe(1);
++    // A Ana volta e a pausa dela está lá, com o item guardado e sem tentativa gasta.
++    quem.atual = identidade(ANA, "Ana Ribeiro");
++    expect((await fila.resumo()).pausadaPor).toBe("conta_desativada");
++    const [item] = await fila.itens();
++    expect(item!.estado).toBe("pendente");
++    expect(item!.tentativas).toBe(0);
++    // E o dreno do Bruno não manda a coleta da Ana com o token dele.
++    quem.atual = identidade(BRUNO, "Bruno Lima");
++    await fila.drenar();
++    expect(pedidos).toEqual(["Bearer [REDIGIDO]"]);
++  });
++
++  it("403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada", async () => {
++    quem.atual = identidade(ANA, "Ana Ribeiro");
++    mockFetch = async () =>
++      resposta(403, { erro: "troca_de_senha_obrigatoria", mensagem: "Defina a sua senha." });
++    const fila = await obterFila("http://api.exemplo", async () => "token", () => quem.atual);
++
++    const r = await fila.drenar();
++
++    expect(r.paradaPor).toBe("troca_de_senha_obrigatoria");
++    expect(r.bloqueados).toBe(0);
++    const resumo = await fila.resumo();
++    expect(resumo.bloqueados).toBe(0);
++    expect(resumo.pausadaPor).toBe("troca_de_senha_obrigatoria");
++    expect((await fila.itens())[0]!.estado).toBe("pendente");
++  });
++});
+diff --git a/dc360/apps/campo/src/ui/FaixaDeSincronizacao.tsx b/dc360/apps/campo/src/ui/FaixaDeSincronizacao.tsx
+index 9423e34..5225519 100644
+--- a/dc360/apps/campo/src/ui/FaixaDeSincronizacao.tsx
++++ b/dc360/apps/campo/src/ui/FaixaDeSincronizacao.tsx
+@@ -46,6 +46,7 @@ export type EstadoDaFaixa = {
+     | "esperando"
+     | "sessao_encerrada"
+     | "conta_desativada"
++    | "troca_de_senha_obrigatoria"
+     | "precisa_de_correcao"
+     | "aguardando_autor"
+     | "sincronizado";
+diff --git a/dc360/apps/campo/src/ui/faixa-de-sincronizacao.test.tsx b/dc360/apps/campo/src/ui/faixa-de-sincronizacao.test.tsx
+index 7e113e1..949fb4c 100644
+--- a/dc360/apps/campo/src/ui/faixa-de-sincronizacao.test.tsx
++++ b/dc360/apps/campo/src/ui/faixa-de-sincronizacao.test.tsx
+@@ -63,6 +63,11 @@ const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
+     titulo: "Conta desativada",
+     detalhe: "Suas coletas continuam guardadas neste aparelho, procure a coordenação",
+   },
++  troca_de_senha_obrigatoria: {
++    chave: "troca_de_senha_obrigatoria", fundo: "#FDEBEB", cor: "#C92A2A", sinalTexto: "!",
++    titulo: "Defina a sua senha",
++    detalhe: "Suas coletas continuam guardadas neste aparelho",
++  },
+   /*
+     A coleta que o servidor recusou e espera o dedo do agente. Existe pelo
+     mesmo motivo do estado acima: em 15/09/2026 a vistoria 000009/2026 parou
+@@ -339,6 +344,19 @@ describe("a faixa quando a fila esta parada pela sessao", () => {
+     expect(r.detalhe).not.toContain("Entre de novo");
+   });
+ 
++  it("senha provisória manda definir a senha e promete a coleta guardada, sem mandar entrar de novo", async () => {
++    const r = faixa({
++      temSinal: true, pendentes: 3, bloqueados: 0, deOutroAutor: 0,
++      sincronizando: false, pausadaPor: "troca_de_senha_obrigatoria",
++    });
++    expect(r.chave).toBe("troca_de_senha_obrigatoria");
++    expect(r.titulo).toBe("Defina a sua senha");
++    expect(r.detalhe).toContain("continuam guardadas");
++    expect(r.detalhe).not.toContain("Entre de novo");
++    expect(r.sinalTexto).toBe("!");
++    expect(r.fundo).toBe(temaEscuro.perigoFundo);
++  });
++
+   it("a pausa vem antes de 'Enviando', que piscaria a cada tentativa recusada", async () => {
+     const r = faixa({
+       temSinal: true, pendentes: 1, bloqueados: 0, deOutroAutor: 0,
+diff --git a/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx b/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
+index da44ba7..2fc7cec 100644
+--- a/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
++++ b/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
+@@ -169,6 +169,33 @@ describe("conta desativada", () => {
+   });
+ });
+ 
++describe("senha provisória (correção 1)", () => {
++  it("diz o fato, manda definir a senha no painel e promete que a coleta continua guardada", async () => {
++    await abrirComPausa("troca_de_senha_obrigatoria");
++
++    expect(screen.getByText("Você entrou com uma senha provisória e o envio está parado")).toBeTruthy();
++    expect(screen.getByText(/Suas coletas continuam guardadas neste aparelho e nada foi apagado/)).toBeTruthy();
++    expect(screen.getByText(/Defina a sua senha no painel/)).toBeTruthy();
++  });
++
++  it("NÃO traz 'Entrar de novo': entrar com a provisória volta ao mesmo lugar", async () => {
++    await abrirComPausa("troca_de_senha_obrigatoria");
++
++    expect(screen.queryByText("Entrar de novo")).toBeNull();
++  });
++
++  it("o cartão guarda a coleta, e NENHUM botão de apagar aparece (o defeito era 'Descartar')", async () => {
++    await abrirComPausa("troca_de_senha_obrigatoria");
++
++    expect(screen.getAllByText("Guardada")).toHaveLength(2);
++    expect(screen.getAllByText(/Só sobe depois que você definir a sua senha/)).toHaveLength(2);
++    expect(screen.queryByText(/Descartar/)).toBeNull();
++    expect(screen.queryByText(/Tentar de novo/)).toBeNull();
++    expect(screen.queryByText(/precisa de atenção|precisam de atenção/i)).toBeNull();
++    expect(mockFila.descartar).not.toHaveBeenCalled();
++  });
++});
++
+ describe("sem pausa", () => {
+   it("a tela é a de sempre: nada de aviso de pausa, e o cartão continua prometendo o envio", async () => {
+     await abrirComPausa(null);
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 853f95c..5ac1737 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4735 testes somando o aplicativo.** Durante a estabilização da V2 (fase
++- **4796 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+   raiz do repositório.
+@@ -309,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4735 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4796 testes com o aplicativo, npm audit, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/campo/src/conferencia.ts b/dc360/packages/campo/src/conferencia.ts
+index f45752a..b555e31 100644
+--- a/dc360/packages/campo/src/conferencia.ts
++++ b/dc360/packages/campo/src/conferencia.ts
+@@ -43,6 +43,7 @@ export type ConferenciaDaColeta =
+ export function pedidoDeEvidenciaDaFoto(
+   ocorrenciaId: string,
+   foto: FotoLocal,
++  coletadaPor?: string,
+ ): PedidoDeEvidenciaBruto {
+   return {
+     ocorrenciaId,
+@@ -54,6 +55,8 @@ export function pedidoDeEvidenciaDaFoto(
+     ...(foto.legenda !== undefined ? { legenda: foto.legenda } : {}),
+     ...(foto.coordenada !== undefined ? { coordenada: foto.coordenada } : {}),
+     ordem: foto.ordem,
++    // Ausente (e não nulo) quando a coleta não tem autor: ver `Transporte.autorizarFoto`.
++    ...(coletadaPor !== undefined ? { coletadaPor } : {}),
+   };
+ }
+ 
+diff --git a/dc360/packages/campo/src/fila.ts b/dc360/packages/campo/src/fila.ts
+index 903261b..dfc6c67 100644
+--- a/dc360/packages/campo/src/fila.ts
++++ b/dc360/packages/campo/src/fila.ts
+@@ -220,6 +220,21 @@ export function esperaAteProximaTentativa(tentativas: number, ruido = Math.rando
+   return Math.round(cheia / 2 + ruido() * (cheia / 2));
+ }
+ 
++/**
++ * O pedido que ia sair não pode sair mais: o dreno foi cancelado, ou a conta
++ * que está no aparelho já não é a do autor da coleta.
++ *
++ * Interna, de propósito: não é falha do servidor, da rede nem da sessão, e
++ * nada dela vai para o cartão do item. Quem a recebe devolve o item ao estado
++ * em que estava e para.
++ */
++class PedidoCancelado extends Error {
++  constructor() {
++    super("O pedido foi cancelado antes de sair.");
++    this.name = "PedidoCancelado";
++  }
++}
++
+ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+   const {
+     deposito,
+@@ -264,6 +279,44 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+     return pausa.usuarioId === (sessaoAtual()?.usuarioId ?? null) ? pausa.motivo : null;
+   }
+ 
++  /**
++   * O transporte, visto por UM item, e é ele que fecha a janela da troca de
++   * conta com o dreno em voo.
++   *
++   * O portão de autoria de `prontos` decide no começo do dreno, e um item com
++   * foto faz várias chamadas ao longo de vários segundos de rede de campo. Se a
++   * conta trocasse no meio, o token que o transporte busca a cada chamada já
++   * seria o da outra pessoa, e a autorização, os bytes e a confirmação da foto
++   * do agente da manhã sairiam com a credencial do agente da noite (a trilha,
++   * append-only, passaria a dizer que ele anexou uma foto que nunca viu).
++   *
++   * Então a pergunta é refeita ANTES DE CADA CHAMADA: o dreno ainda é este e a
++   * sessão ainda é do autor do item. A chamada que já estava na rua termina; é
++   * o servidor, que confere o autor declarado com o token, quem fecha o resto
++   * (`rotas/evidencias.ts`). Esta checagem só impede que o aparelho abra a
++   * janela de graça.
++   */
++  function transporteDoItem(item: ItemFila, minhaMarca: number): Transporte {
++    const conferir = (): void => {
++      if (minhaMarca !== marcaAtual || autoriaDaColeta(item, sessaoAtual()) !== "propria") {
++        throw new PedidoCancelado();
++      }
++    };
++    return {
++      enviar: async (envelope) => { conferir(); return transporte.enviar(envelope); },
++      devolver: async (devolucao) => { conferir(); return transporte.devolver(devolucao); },
++      autorizarFoto: async (pedido) => { conferir(); return transporte.autorizarFoto(pedido); },
++      enviarBytes: async (url, cabecalhos, corpo) => {
++        conferir();
++        return transporte.enviarBytes(url, cabecalhos, corpo);
++      },
++      confirmarFoto: async (evidenciaId) => {
++        conferir();
++        return transporte.confirmarFoto(evidenciaId);
++      },
++    };
++  }
++
+   const ouvintes = new Set<(r: ResumoFila) => void>();
+ 
+   async function avisar(): Promise<void> {
+@@ -607,6 +660,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+             igual para os dois, porque é a mesma rua e a mesma conexão indo e
+             vindo. O que muda é só o que sai pelo fio.
+           */
++          const t = transporteDoItem(item, minhaMarca);
+           let duplicada: boolean;
+           if (item.tipo === "devolucao") {
+             /*
+@@ -614,7 +668,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+               de que a vistoria NÃO aconteceu. Por isso vai direto, sem o passo
+               de arquivos.
+             */
+-            const recibo = await transporte.devolver(
++            const recibo = await t.devolver(
+               devolucaoComAutoria(item.devolucao, item.autor),
+             );
+             duplicada = recibo.duplicada;
+@@ -628,10 +682,10 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+              * fotos falhasse depois disso o laudo ficaria permanentemente
+              * incompleto, sem nada na fila indicando o que faltou.
+              */
+-            const comFotos = await subirFotos(item);
++            const comFotos = await subirFotos(item, t);
+             resultado.fotosEnviadas += comFotos.enviadasAgora;
+ 
+-            const recibo = await transporte.enviar(
++            const recibo = await t.enviar(
+               envelopeComAutoria(comFotos.envelope, item.autor),
+             );
+             duplicada = recibo.duplicada;
+@@ -670,12 +724,24 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+             o mesmo 401 ou 403. Os itens seguintes nem sao tocados.
+           */
+           if (erro instanceof FalhaDeSessao) {
+-            await guardarPausaDeSessao(item, erro);
++            await guardarPausaDeSessao(item, erro, minhaMarca);
+             resultado.paradaPor = erro.motivo;
+             resultado.interrompido = true;
+             await avisar();
+             break;
+           }
++          /*
++            O dreno foi cancelado, ou a conta trocou, no meio do item. Nada foi
++            recusado por ninguém: o item volta como estava e o dreno para. Os
++            itens seguintes são do mesmo autor, e a conta que está no aparelho
++            não é a dele.
++          */
++          if (erro instanceof PedidoCancelado) {
++            await devolverAoEstadoAnterior(item, minhaMarca);
++            resultado.interrompido = true;
++            await avisar();
++            break;
++          }
+           const desfecho = await tratarFalha(item, erro);
+           if (desfecho === "bloqueado") resultado.bloqueados += 1;
+           else resultado.adiados += 1;
+@@ -709,6 +775,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+    */
+   async function subirFotos(
+     item: ItemDeVistoria,
++    t: Transporte,
+   ): Promise<{ envelope: EnvelopeSincronizacao; enviadasAgora: number }> {
+     if (item.fotos.length === 0) {
+       return { envelope: item.envelope, enviadasAgora: 0 };
+@@ -722,6 +789,12 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+ 
+     let enviadasAgora = 0;
+     const atualizadas = [...item.fotos];
++    /*
++      QUEM FEZ A COLETA vai em todo pedido de autorização, para o servidor
++      conferir com o token. Ausente (e nunca o dono da sessão) quando a coleta
++      não tem autor: coleta gravada por versão anterior.
++    */
++    const doAutor = item.autor ? { coletadaPor: item.autor.usuarioId } : {};
+     /*
+       O DRENO NAO PARA NA PRIMEIRA FOTO QUE FALTA, e essa e a diferenca entre
+       uma pergunta e uma sequencia de perguntas no barranco.
+@@ -814,7 +887,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+           honesta para um arquivo que nao existe em lugar nenhum.
+         */
+         const talvez = foto.tamanhoBytes > 0
+-          ? await transporte.autorizarFoto({ ocorrenciaId: item.ocorrenciaId, foto })
++          ? await t.autorizarFoto({ ocorrenciaId: item.ocorrenciaId, foto, ...doAutor })
+           : null;
+         if (talvez?.jaEnviada) {
+           atualizadas[i] = {
+@@ -836,16 +909,17 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+       }
+ 
+       const medida: FotoNaFila = { ...foto, tamanhoBytes: corpo.length };
+-      const autorizacao = await transporte.autorizarFoto({
++      const autorizacao = await t.autorizarFoto({
+         ocorrenciaId: item.ocorrenciaId,
+         foto: medida,
++        ...doAutor,
+       });
+ 
+       // `jaEnviada` cobre o caso de o aparelho ter enviado os bytes e perdido
+       // a resposta: reenviar seria gastar rede a toa.
+       if (!autorizacao.jaEnviada) {
+-        await transporte.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
+-        await transporte.confirmarFoto(autorizacao.evidenciaId);
++        await t.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
++        await t.confirmarFoto(autorizacao.evidenciaId);
+         enviadasAgora += 1;
+       }
+ 
+@@ -961,23 +1035,50 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+   }
+ 
+   /**
+-   * Devolve o item ao estado anterior ao envio e registra a pausa da fila.
++   * Devolve o item ao estado anterior ao envio, se ele ainda é deste dreno.
+    *
+-   * O progresso das fotos que subiram nesta rodada fica (e e o que torna a
++   * O progresso das fotos que subiram nesta rodada fica (e o que torna a
+    * retomada barata); `tentativas` e `liberadoEm` voltam ao que eram, porque a
+    * tentativa nao foi culpa do item; `ultimaFalha` nao muda, porque a pausa e da
+    * fila e nao da coleta, e o cartao nao deve passar a dizer que a coleta
+    * falhou.
++   *
++   * NAO REESCREVE O QUE JA FOI RESOLVIDO POR OUTRO CAMINHO, e esta e a metade
++   * da correcao 1 da E06 que vem das corridas. Esta funcao grava o item como
++   * `pendente` na hora em que a resposta chega, e a resposta pode chegar tarde:
++   * o aparelho perdeu o sinal, o dreno foi cancelado, outro dreno subiu o MESMO
++   * item e o confirmou, e so entao o 401 do primeiro pedido volta. Gravar o
++   * retrato velho desfazia o `confirmado` (o proximo dreno reenviava e recebia
++   * `duplicada`: sem duplicar no servidor, mas o estado local regredia). Por
++   * isso o estado ATUAL e relido, e so `enviando` ou `pendente` voltam; e um
++   * dreno cancelado nao toca no item enquanto houver outro dreno em andamento,
++   * porque o item e dele agora.
++   *
++   * Devolve se o item foi devolvido (ou seja, se a decisao ainda era deste dreno).
+    */
+-  async function guardarPausaDeSessao(item: ItemFila, erro: FalhaDeSessao): Promise<void> {
++  async function devolverAoEstadoAnterior(item: ItemFila, minhaMarca: number): Promise<boolean> {
+     const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
+-    await deposito.salvar({
+-      ...item,
+-      fotos: atual.fotos,
+-      estado: "pendente",
+-      tentativas: item.tentativas,
+-    });
+-    pausa = { motivo: erro.motivo, usuarioId: sessaoAtual()?.usuarioId ?? null };
++    if (atual.estado !== "enviando" && atual.estado !== "pendente") return false;
++    if (minhaMarca !== marcaAtual && drenando) return false;
++    await deposito.salvar({ ...atual, estado: "pendente", tentativas: item.tentativas });
++    return true;
++  }
++
++  /**
++   * Registra a pausa da fila, de quem e o item.
++   *
++   * A pausa e do AUTOR do item, e nao de quem esta logado quando a resposta
++   * chega: com a troca de conta no meio do pedido, a leitura da sessao naquele
++   * instante atribuia a recusa ao agente errado (a pessoa que entrou lia
++   * "Conta desativada" por causa da conta de quem saiu).
++   */
++  async function guardarPausaDeSessao(
++    item: ItemFila,
++    erro: FalhaDeSessao,
++    minhaMarca: number,
++  ): Promise<void> {
++    if (!(await devolverAoEstadoAnterior(item, minhaMarca))) return;
++    pausa = { motivo: erro.motivo, usuarioId: item.autor?.usuarioId ?? null };
+   }
+ 
+   async function tratarFalha(
+@@ -987,6 +1088,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
+     const tentativas = item.tentativas + 1;
+     // Rele do deposito para nao descartar as fotos que subiram nesta rodada.
+     const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
++    // Resposta tardia de um dreno cancelado: o item ja foi confirmado por outro
++    // caminho, e gravar a falha por cima o faria regredir (ver `devolverAoEstadoAnterior`).
++    if (atual.estado === "confirmado") return "adiado";
+     const comProgresso = { ...item, fotos: atual.fotos };
+ 
+     if (erro instanceof FalhaPermanente) {
+diff --git a/dc360/packages/campo/src/tipos.ts b/dc360/packages/campo/src/tipos.ts
+index c395f31..5eedd94 100644
+--- a/dc360/packages/campo/src/tipos.ts
++++ b/dc360/packages/campo/src/tipos.ts
+@@ -327,6 +327,16 @@ export type Transporte = {
+   autorizarFoto(pedido: {
+     ocorrenciaId: string;
+     foto: FotoLocal;
++    /**
++     * Quem fez a coleta a que a foto pertence. Vai no pedido para o SERVIDOR
++     * conferir com o token (409 `autor_divergente`): sem isto, a conta que
++     * trocasse com a foto em voo gravava a autoria da foto no nome de outra
++     * pessoa, na trilha append-only. Opcional por causa da coleta gravada por
++     * versão anterior, que não tem autor: nesse caso o campo sai ausente, e
++     * nunca com o dono da sessão (seria escrever a mentira que ele existe para
++     * impedir).
++     */
++    coletadaPor?: string;
+   }): Promise<AutorizacaoFoto>;
+   /** Manda os bytes direto ao armazenamento, sem passar pela API. */
+   enviarBytes(
+@@ -385,10 +395,21 @@ export class FalhaPermanente extends Error {
+  * `conta_desativada`: a conta da pessoa foi desativada. Entrar de novo NÃO
+  * resolve, e quem resolve é a coordenação.
+  *
+- * Os dois nomes são os códigos do catálogo de `@dc360/shared`
++ * `troca_de_senha_obrigatoria`: a pessoa entrou com a senha provisória que
++ * quem administra sorteou, e o servidor só aceita a troca de senha até ela
++ * definir a própria (403 em toda escrita). Entrar de novo NÃO resolve, e quem
++ * resolve é a própria pessoa, no painel. Entrou na correção 1 da E06: este
++ * código caía em `FalhaPermanente`, e a rodada 1 da validação provou que todas
++ * as coletas do agente viravam `bloqueado`, com "Descartar" ao lado, sobre
++ * coleta que o servidor nunca recebeu.
++ *
++ * Os três nomes são os códigos do catálogo de `@dc360/shared`
+  * (`codigos-de-erro.ts`), de propósito: o texto do servidor muda, o código não.
+  */
+-export type MotivoDeSessao = "sessao_encerrada" | "conta_desativada";
++export type MotivoDeSessao =
++  | "sessao_encerrada"
++  | "conta_desativada"
++  | "troca_de_senha_obrigatoria";
+ 
+ /**
+  * A falha que não é nem de rede nem do dado: é da sessão.
+diff --git a/dc360/packages/campo/src/transporte.ts b/dc360/packages/campo/src/transporte.ts
+index 51c1cc5..e39b155 100644
+--- a/dc360/packages/campo/src/transporte.ts
++++ b/dc360/packages/campo/src/transporte.ts
+@@ -30,7 +30,13 @@ import {
+  *     - 401 `sessao_encerrada`: a pessoa entra de novo, e a fila espera.
+  *     - 403 `conta_desativada`: entrar de novo não resolve, e a fila espera a
+  *       coordenação.
+- *   Nos dois casos a fila para e MANTÉM o item pendente. Até a E06 isso era
++ *     - 403 `troca_de_senha_obrigatoria`: a pessoa entrou com a senha
++ *       provisória e precisa defini-la; a fila espera ela fazer isso. Foi o
++ *       código que a rodada 1 da validação provou cair em permanente e bloquear
++ *       toda a fila (correção 1).
++ *     - 403 `acesso_suspenso`: o contrato do município; temporário, a coleta
++ *       espera.
++ *   Nos casos de sessão e de conta a fila para e MANTÉM o item pendente. Até a E06 isso era
+  *   `FalhaPermanente`: o item virava `bloqueado` com "Descartar" ao lado, e a
+  *   vistoria feita no morro por quem foi desativado (ou cuja sessão caiu) ficava
+  *   marcada como recusada.
+@@ -76,10 +82,30 @@ async function lerCorpo(resposta: Response): Promise<Record<string, unknown>> {
+ function falhaDaResposta(
+   status: number,
+   corpo: Record<string, unknown>,
+-): FalhaPermanente | FalhaDeSessao {
++): FalhaPermanente | FalhaDeSessao | FalhaTemporaria {
+   if (status === 401) return falhaDeSessao("sessao_encerrada", corpo);
+-  if (status === 403 && acaoParaOCodigo(corpo["erro"]) === "parar_e_avisar") {
+-    return falhaDeSessao("conta_desativada", corpo);
++  if (status === 403) {
++    /*
++      O 403 é lido pela AÇÃO que o catálogo manda o cliente tomar, e não por
++      uma lista de códigos escrita aqui: foi uma lista que deixou
++      `troca_de_senha_obrigatoria` cair em `FalhaPermanente` e bloquear a fila
++      inteira (correção 1 da E06). Toda ação do catálogo, menos `nenhuma`
++      (`sem_permissao`, que é do PAPEL e continua recusa do dado), é um estado da
++      CONTA ou do CONTRATO, e nunca da coleta.
++    */
++    const acao = acaoParaOCodigo(corpo["erro"]);
++    if (acao === "parar_e_avisar") return falhaDeSessao("conta_desativada", corpo);
++    if (acao === "trocar_a_senha") return falhaDeSessao("troca_de_senha_obrigatoria", corpo);
++    /*
++      A suspensão do contrato: a API já responde 503 nas rotas da fila (que o
++      cliente trata como temporário), e este ramo é a defesa em profundidade
++      para o dia em que um 403 `acesso_suspenso` chegar a elas. A coleta espera
++      o contrato voltar; bloqueá-la convidaria a apagar prova por um problema
++      que não é dela.
++    */
++    if (acao === "aguardar_o_contrato") {
++      return new FalhaTemporaria(String(corpo["mensagem"] ?? "O acesso está suspenso."));
++    }
+   }
+ 
+   const brutos = Array.isArray(corpo["campos"]) ? corpo["campos"] : [];
+@@ -204,7 +230,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
+   }
+ 
+   return {
+-    async autorizarFoto({ ocorrenciaId, foto }): Promise<AutorizacaoFoto> {
++    async autorizarFoto({ ocorrenciaId, foto, coletadaPor }): Promise<AutorizacaoFoto> {
+       /*
+         O corpo é montado por `pedidoDeEvidenciaDaFoto`, a MESMA função que a
+         conferência de antes de enfileirar valida com o esquema do servidor.
+@@ -214,7 +240,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
+       const r = await chamar<{
+         evidenciaId: string; chave: string; url: string;
+         cabecalhos: Record<string, string>; jaEnviada: boolean;
+-      }>("/evidencias/autorizar-envio", pedidoDeEvidenciaDaFoto(ocorrenciaId, foto));
++      }>("/evidencias/autorizar-envio", pedidoDeEvidenciaDaFoto(ocorrenciaId, foto, coletadaPor));
+       return r;
+     },
+ 
+diff --git a/dc360/packages/campo/test/pausa-por-senha-provisoria.test.ts b/dc360/packages/campo/test/pausa-por-senha-provisoria.test.ts
+new file mode 100644
+index 0000000..fe7e548
+--- /dev/null
++++ b/dc360/packages/campo/test/pausa-por-senha-provisoria.test.ts
+@@ -0,0 +1,477 @@
++import { describe, expect, it, vi } from "vitest";
++import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
++import {
++  FalhaDeSessao,
++  FalhaPermanente,
++  FalhaTemporaria,
++  criarFilaDeSincronizacao,
++  depositoSobreChaveValor,
++  lojaEmMemoria,
++  transporteHttp,
++  type AutorDaColeta,
++  type FotoLocal,
++  type Transporte,
++} from "../src/index.js";
++
++/**
++ * V2-F00-E06, correção 1: a senha provisória e as corridas de troca de conta.
++ *
++ * A rodada 1 da validação provou, contra a API e o motor reais, que o 403
++ * `troca_de_senha_obrigatoria` (o que o servidor responde a quem entrou com a
++ * senha que a coordenação sorteou) caía em `FalhaPermanente`: todo item virava
++ * `bloqueado`, o dreno não parava e o cartão oferecia "Descartar", que apaga
++ * coleta que o servidor nunca recebeu. Perda de dado, sem risco aceito.
++ *
++ * Aqui estão a matriz inteira de classificação (status x código x rota x
++ * estado final do item) e as corridas de troca de conta que a mesma rodada
++ * achou: a pausa atribuída a quem estava logado quando a resposta chegou, o
++ * 401 tardio que devolvia a pendente um item já confirmado, e o pedido de um
++ * item que saía com a credencial de outra pessoa.
++ */
++
++const MOMENTO = new Date("2026-10-06T14:00:00.000Z");
++const OCORRENCIA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
++const CHAVE_A = "11111111-1111-4111-8111-111111111111";
++const CHAVE_B = "22222222-2222-4222-8222-222222222222";
++const CHAVE_C = "33333333-3333-4333-8333-333333333333";
++const FOTO_A = "ffffffff-1111-4111-8111-000000000001";
++const FOTO_B = "ffffffff-2222-4222-8222-000000000002";
++
++const AGENTE_A: AutorDaColeta = {
++  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
++};
++const AGENTE_B: AutorDaColeta = {
++  usuarioId: "u-bruno", nome: "Bruno Lima", organizacaoId: "org-serra-alta",
++};
++
++function envelope(chave: string): EnvelopeSincronizacao {
++  return {
++    idempotencyKey: chave,
++    ocorrenciaId: OCORRENCIA,
++    coletadaEm: MOMENTO.toISOString(),
++    vistoria: {
++      checklist: [
++        { chave: "risco_iminente", resposta: true },
++        { chave: "evacuacao_necessaria", resposta: false },
++        { chave: "interdicao_indicada", resposta: false },
++        { chave: "acionar_outro_orgao", resposta: false },
++      ],
++      fotos: [],
++      gpsPrecisaoMetros: 6,
++      assinanteNome: "Moradora",
++      assinaturaChave: "assinatura.png",
++      coletadaEm: MOMENTO.toISOString(),
++    },
++  };
++}
++
++function foto(chave: string, ordem: number): FotoLocal {
++  return {
++    idempotencyKey: chave, uriLocal: `file:///fotos/${ordem}.jpg`,
++    nomeArquivo: `IMG_000${ordem}.jpg`, tipoConteudo: "image/jpeg", tamanhoBytes: 4,
++    capturadaEm: MOMENTO.toISOString(), legenda: `Foto ${ordem}`, ordem,
++  };
++}
++
++function transporteFalso(parcial: Partial<Transporte>): Transporte {
++  return {
++    enviar: async () => ({ vistoriaId: "v", duplicada: false }),
++    devolver: async () => { throw new Error("devolver nao esperado neste teste"); },
++    autorizarFoto: async () => { throw new Error("autorizarFoto nao esperado neste teste"); },
++    enviarBytes: async () => { throw new Error("enviarBytes nao esperado neste teste"); },
++    confirmarFoto: async () => { throw new Error("confirmarFoto nao esperado neste teste"); },
++    ...parcial,
++  };
++}
++
++function montar(
++  transporte: Partial<Transporte>,
++  extras: Partial<Parameters<typeof criarFilaDeSincronizacao>[0]> = {},
++) {
++  const loja = lojaEmMemoria();
++  const sessao = { atual: AGENTE_A as AutorDaColeta | null };
++  let agora = MOMENTO.getTime();
++  const fila = criarFilaDeSincronizacao({
++    deposito: depositoSobreChaveValor(loja),
++    transporte: transporteFalso(transporte),
++    sessaoAtual: () => sessao.atual,
++    agora: () => new Date(agora),
++    dormir: async () => undefined,
++    ruido: () => 0.5,
++    ...extras,
++  });
++  return { fila, sessao, avancar: (ms: number) => { agora += ms; } };
++}
++
++/** Uma resposta HTTP mínima, do tamanho que `transporteHttp` lê. */
++function resposta(status: number, corpo: Record<string, unknown> = {}): Response {
++  return { ok: status >= 200 && status < 300, status, json: async () => corpo } as Response;
++}
++
++const NAO_AUTENTICADO = { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." };
++const SESSAO_ENCERRADA = { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." };
++const CONTA_DESATIVADA = { erro: "conta_desativada", mensagem: "Sua conta foi desativada." };
++const TROCA_DE_SENHA = {
++  erro: "troca_de_senha_obrigatoria",
++  mensagem: "Você entrou com uma senha provisória.",
++};
++
++describe("Matriz de classificação: status e código contra o transporte e a fila reais", () => {
++  type Esperado =
++    | { classe: "sessao"; motivo: "sessao_encerrada" | "conta_desativada" | "troca_de_senha_obrigatoria" }
++    | { classe: "permanente"; codigo: string }
++    | { classe: "temporaria" };
++
++  /*
++    O que cada resposta da API faz com a fila. A regra, em uma frase: o 401 de
++    qualquer código e o 403 de CONTA (desativada, senha provisória) pausam; só o
++    que é do DADO ou do PAPEL (`sem_permissao`, 409 `autor_divergente`) é
++    permanente por desenho; a suspensão do contrato espera.
++  */
++  const MATRIZ: Array<[string, number, Record<string, unknown>, Esperado]> = [
++    ["401 nao_autenticado", 401, NAO_AUTENTICADO, { classe: "sessao", motivo: "sessao_encerrada" }],
++    ["401 sessao_encerrada", 401, SESSAO_ENCERRADA, { classe: "sessao", motivo: "sessao_encerrada" }],
++    ["401 sem código", 401, {}, { classe: "sessao", motivo: "sessao_encerrada" }],
++    ["401 de código fora do catálogo", 401, { erro: "qualquer_coisa" }, { classe: "sessao", motivo: "sessao_encerrada" }],
++    ["403 conta_desativada", 403, CONTA_DESATIVADA, { classe: "sessao", motivo: "conta_desativada" }],
++    ["403 troca_de_senha_obrigatoria", 403, TROCA_DE_SENHA, { classe: "sessao", motivo: "troca_de_senha_obrigatoria" }],
++    ["403 acesso_suspenso", 403, { erro: "acesso_suspenso", mensagem: "Suspenso." }, { classe: "temporaria" }],
++    ["403 sem_permissao", 403, { erro: "sem_permissao", mensagem: "Sem permissão." }, { classe: "permanente", codigo: "sem_permissao" }],
++    ["403 sem código", 403, {}, { classe: "permanente", codigo: "http_403" }],
++    ["409 autor_divergente", 409, { erro: "autor_divergente", mensagem: "Outro agente." }, { classe: "permanente", codigo: "autor_divergente" }],
++    ["409 ja_encerrada", 409, { erro: "ja_encerrada", mensagem: "Encerrada." }, { classe: "permanente", codigo: "ja_encerrada" }],
++    ["429", 429, {}, { classe: "temporaria" }],
++    ["503", 503, {}, { classe: "temporaria" }],
++  ];
++
++  function transporteDe(status: number, corpo: Record<string, unknown>) {
++    return transporteHttp({
++      baseUrl: "http://api.exemplo",
++      // Token que nunca muda: o 401 não ganha segunda chance e o resultado é o da pausa.
++      obterToken: async () => "token",
++      buscar: (async () => resposta(status, corpo)) as unknown as typeof fetch,
++    });
++  }
++
++  for (const [nome, status, corpo, esperado] of MATRIZ) {
++    it(`${nome}: as quatro rotas da fila classificam igual`, async () => {
++      const devolucao: DevolucaoDeTarefa = {
++        idempotencyKey: CHAVE_A, ocorrenciaId: OCORRENCIA,
++        decididaEm: MOMENTO.toISOString(), motivo: "morador_ausente", devolvidaPor: "u-ana",
++      };
++      const t = transporteDe(status, corpo);
++
++      const erros = await Promise.all([
++        t.enviar(envelope(CHAVE_A)).catch((e: unknown) => e),
++        t.devolver(devolucao).catch((e: unknown) => e),
++        t.autorizarFoto({ ocorrenciaId: OCORRENCIA, foto: foto(FOTO_A, 0) }).catch((e: unknown) => e),
++        t.confirmarFoto("ev-1").catch((e: unknown) => e),
++      ]);
++
++      for (const erro of erros) {
++        if (esperado.classe === "sessao") {
++          expect(erro).toBeInstanceOf(FalhaDeSessao);
++          expect((erro as FalhaDeSessao).motivo).toBe(esperado.motivo);
++        } else if (esperado.classe === "permanente") {
++          expect(erro).toBeInstanceOf(FalhaPermanente);
++          expect((erro as FalhaPermanente).codigo).toBe(esperado.codigo);
++        } else {
++          expect(erro).toBeInstanceOf(FalhaTemporaria);
++        }
++      }
++    });
++
++    it(`${nome}: o item termina no estado certo na fila`, async () => {
++      const { fila } = montar({}, { transporte: transporteDe(status, corpo) });
++      await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++
++      const r = await fila.drenar();
++
++      const [item] = await fila.itens();
++      if (esperado.classe === "sessao") {
++        expect(item!.estado).toBe("pendente");
++        expect(item!.tentativas).toBe(0);
++        expect(r.paradaPor).toBe(esperado.motivo);
++        expect(r.bloqueados).toBe(0);
++        expect((await fila.resumo()).pausadaPor).toBe(esperado.motivo);
++      } else if (esperado.classe === "permanente") {
++        // `ja_encerrada` é coleta sem destino: arquivada, e nunca bloqueada.
++        expect(item!.estado).toBe(esperado.codigo === "ja_encerrada" ? "arquivado" : "bloqueado");
++        expect(r.paradaPor).toBeUndefined();
++      } else {
++        expect(item!.estado).toBe("pendente");
++        expect(item!.tentativas).toBe(1);
++        expect(r.paradaPor).toBeUndefined();
++        expect(r.bloqueados).toBe(0);
++      }
++    });
++  }
++});
++
++describe("403 troca_de_senha_obrigatoria: a fila PAUSA e nenhuma coleta é perdida", () => {
++  async function tresColetas(fila: ReturnType<typeof montar>["fila"], avancar: (ms: number) => void) {
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++    avancar(60_000);
++    await fila.enfileirar(envelope(CHAVE_B), { protocolo: "000472/2026" });
++    avancar(60_000);
++    await fila.enfileirar(envelope(CHAVE_C), { protocolo: "000473/2026" });
++  }
++
++  it("três coletas: zero bloqueadas, tentativas inalteradas, o dreno para na primeira chamada", async () => {
++    const buscar = vi.fn(async () => resposta(403, TROCA_DE_SENHA));
++    const { fila, avancar } = montar({}, {
++      transporte: transporteHttp({
++        baseUrl: "http://api.exemplo", obterToken: async () => "token-provisorio",
++        buscar: buscar as unknown as typeof fetch,
++      }),
++    });
++    await tresColetas(fila, avancar);
++
++    const r = await fila.drenar();
++
++    const itens = await fila.itens();
++    expect(itens.map((i) => i.estado)).toEqual(["pendente", "pendente", "pendente"]);
++    expect(itens.map((i) => i.tentativas)).toEqual([0, 0, 0]);
++    expect(itens.every((i) => i.ultimaFalha === null)).toBe(true);
++    expect(r.paradaPor).toBe("troca_de_senha_obrigatoria");
++    expect(r.bloqueados).toBe(0);
++    expect(buscar).toHaveBeenCalledTimes(1);
++    const resumo = await fila.resumo();
++    expect(resumo.bloqueados).toBe(0);
++    expect(resumo.pausadaPor).toBe("troca_de_senha_obrigatoria");
++  });
++
++  it("a pausa nova SUBSTITUI a velha: de sessão encerrada para senha provisória, e depois sobe tudo", async () => {
++    // O roteiro real: a coordenação redefine a senha (as sessões caem, 401),
++    // o agente entra com a provisória (403 em toda escrita), e depois troca a senha.
++    let fase: "sessao_velha" | "provisoria" | "trocada" = "sessao_velha";
++    const recebidas: string[] = [];
++    const buscar = vi.fn(async (_url: string, init: RequestInit) => {
++      if (fase === "sessao_velha") return resposta(401, SESSAO_ENCERRADA);
++      if (fase === "provisoria") return resposta(403, TROCA_DE_SENHA);
++      recebidas.push(JSON.parse(String(init.body)).idempotencyKey as string);
++      return resposta(201, { vistoriaId: "v", duplicada: false });
++    });
++    const { fila, avancar } = montar({}, {
++      transporte: transporteHttp({
++        baseUrl: "http://api.exemplo", obterToken: async () => "token",
++        buscar: buscar as unknown as typeof fetch,
++      }),
++    });
++    await tresColetas(fila, avancar);
++
++    expect((await fila.drenar()).paradaPor).toBe("sessao_encerrada");
++    expect((await fila.resumo()).pausadaPor).toBe("sessao_encerrada");
++
++    fase = "provisoria";
++    expect((await fila.drenar()).paradaPor).toBe("troca_de_senha_obrigatoria");
++    // Não fica "Sessão encerrada" por cima: a pausa nova trocou a velha.
++    expect((await fila.resumo()).pausadaPor).toBe("troca_de_senha_obrigatoria");
++    expect((await fila.resumo()).bloqueados).toBe(0);
++
++    fase = "trocada";
++    const r = await fila.drenar();
++    expect(r.enviados).toBe(3);
++    expect(recebidas).toEqual([CHAVE_A, CHAVE_B, CHAVE_C]);
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++    expect((await fila.resumo()).bloqueados).toBe(0);
++  });
++
++  it("a devolução de tarefa e a foto também esperam, sem bloquear", async () => {
++    const { fila } = montar({
++      autorizarFoto: async () => { throw new FalhaDeSessao("Defina a sua senha.", "troca_de_senha_obrigatoria"); },
++      devolver: async () => { throw new FalhaDeSessao("Defina a sua senha.", "troca_de_senha_obrigatoria"); },
++    }, { arquivos: { ler: async () => new Uint8Array([1, 2, 3, 4]) } });
++    await fila.enfileirarDevolucao({
++      idempotencyKey: CHAVE_A, ocorrenciaId: OCORRENCIA,
++      decididaEm: MOMENTO.toISOString(), motivo: "morador_ausente",
++    }, { protocolo: "000471/2026" });
++    await fila.enfileirar(envelope(CHAVE_B), {
++      protocolo: "000472/2026", fotos: [foto(FOTO_A, 0)],
++    });
++
++    const r = await fila.drenar();
++
++    expect(r.paradaPor).toBe("troca_de_senha_obrigatoria");
++    expect((await fila.itens()).map((i) => i.estado)).toEqual(["pendente", "pendente"]);
++    expect((await fila.resumo()).bloqueados).toBe(0);
++  });
++});
++
++describe("Corridas de troca de conta com o dreno em voo", () => {
++  /** Uma promessa que o teste resolve ou rejeita quando quiser. */
++  function adiavel<T>() {
++    let resolver!: (v: T) => void;
++    let rejeitar!: (e: unknown) => void;
++    const promessa = new Promise<T>((res, rej) => { resolver = res; rejeitar = rej; });
++    return { promessa, resolver, rejeitar };
++  }
++  const cederAoLaco = () => new Promise<void>((r) => setTimeout(r, 0));
++
++  it("a pausa é do AUTOR do item, e não de quem está logado quando a resposta chega", async () => {
++    const { fila, sessao } = montar({
++      enviar: async () => {
++        // A pessoa saiu e outra entrou enquanto o pedido estava na rua.
++        sessao.atual = AGENTE_B;
++        throw new FalhaDeSessao("Conta desativada.", "conta_desativada");
++      },
++    });
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++
++    await fila.drenar();
++
++    // O B entrou depois e não tem nada a ver com a conta do A.
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++    // O A volta: a pausa é dele.
++    sessao.atual = AGENTE_A;
++    expect((await fila.resumo()).pausadaPor).toBe("conta_desativada");
++  });
++
++  it("cancelar, trocar de conta e a resposta tardia 403: a pausa não aparece para o outro agente", async () => {
++    const pendente = adiavel<{ vistoriaId: string; duplicada: boolean }>();
++    const chamadas = vi.fn();
++    const { fila, sessao } = montar({
++      enviar: async () => { chamadas(); return pendente.promessa; },
++    });
++    sessao.atual = AGENTE_B;
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++
++    const dreno = fila.drenar();
++    await cederAoLaco();
++    expect(chamadas).toHaveBeenCalledTimes(1);
++    fila.cancelar();
++    sessao.atual = AGENTE_A;
++    pendente.rejeitar(new FalhaDeSessao("Conta desativada.", "conta_desativada"));
++    await dreno;
++
++    const resumo = await fila.resumo();
++    expect(resumo.pausadaPor, "o A leu a pausa do B").toBeNull();
++    expect(resumo.deOutroAutor).toBe(1);
++    const [item] = await fila.itens();
++    expect(item!.estado).toBe("pendente");
++    expect(item!.tentativas).toBe(0);
++  });
++
++  it("dois drenos: o 401 tardio do primeiro NÃO devolve a pendente o item que o segundo confirmou", async () => {
++    const primeira = adiavel<{ vistoriaId: string; duplicada: boolean }>();
++    let chamada = 0;
++    const { fila } = montar({
++      enviar: async () => {
++        chamada += 1;
++        if (chamada === 1) return primeira.promessa;
++        return { vistoriaId: "v1", duplicada: false };
++      },
++    });
++    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
++
++    const dreno1 = fila.drenar();
++    await cederAoLaco();
++    fila.cancelar(); // o aparelho perdeu e recuperou o sinal
++    const dreno2 = await fila.drenar();
++    expect(dreno2.enviados).toBe(1);
++    expect((await fila.itens())[0]!.estado).toBe("confirmado");
++
++    // A resposta do primeiro pedido chega tarde, com 401.
++    primeira.rejeitar(new FalhaDeSessao("Sessão encerrada.", "sessao_encerrada"));
++    await dreno1;
++
++    const [item] = await fila.itens();
++    expect(item!.estado, "o item confirmado regrediu").toBe("confirmado");
++    expect((await fila.resumo()).pausadaPor, "pausa falsa depois de um envio que deu certo").toBeNull();
++  });
++
++  it("trocar de conta com a foto em voo: nenhum pedido seguinte sai com a conta nova", async () => {
++    const chamadas: string[] = [];
++    const { fila, sessao } = montar({
++      autorizarFoto: async ({ foto: f }) => {
++        chamadas.push(`autorizar:${f.idempotencyKey}:${sessao.atual?.usuarioId}`);
++        // A primeira autorização estava na rua quando a conta mudou.
++        if (f.idempotencyKey === FOTO_A) sessao.atual = AGENTE_B;
++        return {
++          evidenciaId: `ev-${f.idempotencyKey}`, chave: `k/${f.idempotencyKey}.jpg`,
++          url: `https://armazenamento.exemplo/${f.idempotencyKey}`, cabecalhos: {}, jaEnviada: false,
++        };
++      },
++      enviarBytes: async (url) => { chamadas.push(`bytes:${url.split("/").pop()}:${sessao.atual?.usuarioId}`); },
++      confirmarFoto: async (id) => { chamadas.push(`confirmar:${id}:${sessao.atual?.usuarioId}`); },
++      enviar: async () => { chamadas.push(`enviar:${sessao.atual?.usuarioId}`); return { vistoriaId: "v", duplicada: false }; },
++    }, { arquivos: { ler: async () => new Uint8Array([1, 2, 3, 4]) } });
++    await fila.enfileirar(envelope(CHAVE_A), {
++      protocolo: "000471/2026", fotos: [foto(FOTO_A, 0), foto(FOTO_B, 1)],
++    });
++
++    const r = await fila.drenar();
++
++    // Só a chamada que já estava em voo. Nada mais sai com o B logado.
++    expect(chamadas).toEqual([`autorizar:${FOTO_A}:${AGENTE_A.usuarioId}`]);
++    expect(r.interrompido).toBe(true);
++    expect(r.bloqueados).toBe(0);
++    const [item] = await fila.itens();
++    expect(item!.estado).toBe("pendente");
++    expect(item!.tentativas).toBe(0);
++    expect(item!.autor?.usuarioId).toBe(AGENTE_A.usuarioId);
++    expect((await fila.resumo()).pausadaPor).toBeNull();
++  });
++
++  it("cancelar() com a foto em voo: o item para antes do próximo pedido e a coleta continua guardada", async () => {
++    const chamadas: string[] = [];
++    let cancelou = false;
++    const { fila } = montar({
++      autorizarFoto: async ({ foto: f }) => {
++        chamadas.push("autorizar");
++        // O aplicativo vai para segundo plano, ou a conta mudou: só na primeira volta.
++        if (!cancelou) { cancelou = true; fila.cancelar(); }
++        return {
++          evidenciaId: "ev", chave: `k/${f.idempotencyKey}.jpg`,
++          url: "https://armazenamento.exemplo/x", cabecalhos: {}, jaEnviada: false,
++        };
++      },
++      enviarBytes: async () => { chamadas.push("bytes"); },
++      confirmarFoto: async () => { chamadas.push("confirmar"); },
++      enviar: async () => { chamadas.push("enviar"); return { vistoriaId: "v", duplicada: false }; },
++    }, { arquivos: { ler: async () => new Uint8Array([1, 2, 3, 4]) } });
++    await fila.enfileirar(envelope(CHAVE_A), {
++      protocolo: "000471/2026", fotos: [foto(FOTO_A, 0)],
++    });
++
++    await fila.drenar();
++
++    expect(chamadas).toEqual(["autorizar"]);
++    const [item] = await fila.itens();
++    expect(item!.estado).toBe("pendente");
++    expect(item!.tentativas).toBe(0);
++
++    // Retomada: o item sobe inteiro, uma vez.
++    const r = await fila.drenar();
++    expect(r.enviados).toBe(1);
++  });
++
++  it("o pedido de autorização da foto declara quem coletou (o servidor confere com o token)", async () => {
++    const corpos: Array<Record<string, unknown>> = [];
++    const buscar = vi.fn(async (url: string, init: RequestInit) => {
++      if (url.endsWith("/evidencias/autorizar-envio")) {
++        corpos.push(JSON.parse(String(init.body)));
++        return resposta(201, {
++          evidenciaId: "ev", chave: "k/x.jpg", url: "https://armazenamento.exemplo/x",
++          cabecalhos: {}, jaEnviada: true,
++        });
++      }
++      return resposta(201, { vistoriaId: "v", duplicada: false });
++    });
++    const { fila } = montar({}, {
++      arquivos: { ler: async () => new Uint8Array([1, 2, 3, 4]) },
++      transporte: transporteHttp({
++        baseUrl: "http://api.exemplo", obterToken: async () => "token",
++        buscar: buscar as unknown as typeof fetch,
++      }),
++    });
++    await fila.enfileirar(envelope(CHAVE_A), {
++      protocolo: "000471/2026", fotos: [foto(FOTO_A, 0)],
++    });
++
++    await fila.drenar();
++
++    expect(corpos).toHaveLength(1);
++    expect(corpos[0]!["coletadaPor"]).toBe(AGENTE_A.usuarioId);
++  });
++});
+diff --git a/dc360/packages/shared/src/evidencia.ts b/dc360/packages/shared/src/evidencia.ts
+index b52b167..b117570 100644
+--- a/dc360/packages/shared/src/evidencia.ts
++++ b/dc360/packages/shared/src/evidencia.ts
+@@ -124,6 +124,17 @@ export const pedidoDeEvidenciaSchema = z.object({
+     .min(0, "A ordem da fotografia não pode ser negativa.")
+     .max(200, "Uma vistoria não pode ter mais de 200 fotografias.")
+     .default(0),
++  /**
++   * Quem fez a coleta a que a foto pertence, como o aparelho a carimbou.
++   *
++   * OPCIONAL, pelo mesmo motivo de `coletadaPor` no envelope da vistoria:
++   * aparelho em campo com coleta gravada antes deste campo não tem como
++   * declará-lo. Quando vem, o servidor o confere com o token e responde 409
++   * `autor_divergente` se forem pessoas diferentes. O portão de cliente não é
++   * controle de acesso; este campo existe para o servidor poder recusar a troca
++   * de conta que acontece com a foto em voo, e não para confiar no aparelho.
++   */
++  coletadaPor: uuidSchema.optional(),
+ });
+ 
+ export type PedidoDeEvidencia = z.infer<typeof pedidoDeEvidenciaSchema>;
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index d908f8d..2059194 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -258,6 +258,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     `api.test.ts` que esperava 401 foi reescrito no lugar, sem mudar a conta.
+   */
+   "V2-F00-E05-correcao-1": { total: 6, falhas: 0, puladas: 0 },
++  /*
++    V2-F00-E06, correcao 1: `apps/api/test/evidencia-so-do-autor.test.ts` e novo,
++    com 11 casos (autorizar e confirmar o envio da foto conferem o autor: 409
++    `autor_divergente`, autor certo aceito, outro municipio 404, a recusa nao
++    vira oraculo), e `campo-integracao.test.ts` ganha 2 (a senha redefinida de
++    ponta a ponta e a troca de conta com a foto em voo). Nenhuma falha nem pulo.
++  */
++  "V2-F00-E06-correcao-1": { total: 13, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -380,6 +388,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
+   "V2-F00-E06": { total: 28, falhas: 0 },
+   // V2-F00-E05, correcao 1: o obtentor lanca a falha de sessao da conta desativada.
+   "V2-F00-E05-correcao-1": { total: 1, falhas: 0 },
++  // V2-F00-E06, correcao 1: `pausa-por-senha-provisoria.test.ts` (matriz de classificacao, senha provisoria, corridas de troca de conta).
++  "V2-F00-E06-correcao-1": { total: 35, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoPacote() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
+@@ -393,6 +403,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
+   "V2-F00-E16": { total: 4, falhas: -7 },
+   // V2-F00-E05, correcao 1: seis casos em `token.test.ts` (renovacao recusada por conta desativada).
+   "V2-F00-E05-correcao-1": { total: 6, falhas: 0 },
++  // V2-F00-E06, correcao 1: 13 casos (falha-de-atualizacao 5, pausa-da-fila 2, tela da fila 3, faixa 1, fila real com troca de conta 2).
++  "V2-F00-E06-correcao-1": { total: 13, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoApp() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
+diff --git a/docs/DECISOES-DE-TESTE-DA-FASE-00.md b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+index 4fc0b24..8f0dfc2 100644
+--- a/docs/DECISOES-DE-TESTE-DA-FASE-00.md
++++ b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+@@ -65,6 +65,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
+ | painel, e2e contra a API no Firefox: miniatura com `loading="lazy"` e os abortos de propósito no console | 1 verificação e o portão de console | E18 | feito e provado na V2-F00-E18 |
+ | API e app: renovação de conta desativada, provada só por UPDATE direto | 1 asserção reescrita (`api.test.ts`), mais 1 acréscimo (6 casos na API, 6 no app, 1 no pacote do campo, 1 seção no e2e do painel) | E05, correção 1 | feito e provado na correção 1 da V2-F00-E05 |
++| fila do campo: 403 `troca_de_senha_obrigatoria` e a autoria da foto | 0 reescritos, 61 acrescentados (35 no pacote do campo, 13 na API, 13 no app) | E06, correção 1 | feito e provado na correção 1 da V2-F00-E06 |
+ 
+ ## Registros
+ 
+@@ -359,3 +360,13 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ - **Depois:** seis casos novos na API desativam e reativam pelo ENDPOINT real: renovação 403 `conta_desativada` sem par novo e repetível; token já rotacionado; negativos (token desconhecido e conta ativa encerrada com corpos idênticos; encerrada por quem administra sem desativar continua `sessao_encerrada`; desativada e reativada volta a `sessao_encerrada`; entrar continua com a recusa genérica). No app, a renovação recusada por conta desativada passa a ser lida pelo obtentor de token (seis casos em `token.test.ts` e um em `pausa-de-sessao.test.ts`). No painel, a seção 23c do e2e vence o token de acesso e prova a frase pela renovação.
+ - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E05/correcao-1/saidas/` (antes: 4 dos 22 casos de `codigos-de-erro.test.ts` e 5 dos 6 casos novos do app reprovam; depois: todos passam, e `api.test.ts` só passa com o `403` novo).
+ - **Etapa e data:** V2-F00-E05, correção 1, 2026-10-13.
++
++### Fila do campo: o 403 `troca_de_senha_obrigatoria` e a autoria da foto (nenhum teste reescrito)
++
++- **Teste reescrito:** nenhum. Nenhuma asserção existente mudou nem foi enfraquecida.
++- **Teste acrescentado:** `packages/campo/test/pausa-por-senha-provisoria.test.ts` (35 casos: a matriz status x código x rota x estado final do item, a senha provisória, as corridas de troca de conta), `apps/api/test/evidencia-so-do-autor.test.ts` (11), dois casos em `apps/api/test/campo-integracao.test.ts`, e 13 casos no aplicativo (`falha-de-atualizacao.test.ts`, `pausa-da-fila.test.ts`, `fila-pausada-pela-sessao.test.tsx`, `faixa-de-sincronizacao.test.tsx` e `troca-de-conta-com-pedido-em-voo.test.ts`).
++- **Antes:** a suíte da E06 (86 casos no motor) ficava verde com o 403 `troca_de_senha_obrigatoria` bloqueando toda a fila: a mutação inversa da rodada 1 da validação (classificar `trocar_a_senha` como pausa) deixava 187 de 187 casos passando, ou seja, nenhum teste fixava a classificação desse código. Nenhum teste cobria a corrida de troca de conta com o envio em voo, nem a conferência de autor na autorização e na confirmação da foto.
++- **Decisão que o torna velho:** a validação da E06 (SHA `7005a60`) provou, contra a API e o motor reais, que o procedimento padrão de recuperação de conta (a coordenação redefine a senha, o agente entra com a provisória) bloqueava todas as coletas com "Descartar" ao lado. A decisão da E07 registrada em `apps/campo/PENDENCIAS.md` (item 14), de deixar esse 403 como recusa permanente, foi invertida: ele pausa a fila, como `conta_desativada`. E a foto de campo passou a ter o autor conferido pelo servidor (409 `autor_divergente`), como a vistoria e a devolução já tinham.
++- **Depois:** o 403 de CONTA pausa (`conta_desativada`, `troca_de_senha_obrigatoria`), o 403 do PAPEL (`sem_permissao`) e o 409 `autor_divergente` continuam permanentes por desenho, e `acesso_suspenso` é temporário. A matriz inteira está em um teste só, pelo transporte real e pela fila real.
++- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E06/correcao-1/saidas/` (antes: 12 dos 35 casos do motor, 9 dos 28 da API e 11 dos 68 do aplicativo reprovam; depois: todos passam).
++- **Etapa e data:** V2-F00-E06, correção 1, 2026-10-13.

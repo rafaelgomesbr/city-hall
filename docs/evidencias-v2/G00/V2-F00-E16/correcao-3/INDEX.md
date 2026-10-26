@@ -1,0 +1,29 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | ec8a3c699a68735c32a0bb26ebf928478485e25ff39f6a92f1340280fc8828a3 |
+| diff-da-correcao.patch | 1385106d71422d5df38b525e51fee70be97751293f0c9cf4f8ca9e90805b301f |
+| saidas/00-ci-trecho-da-falha.txt | edb61ad55e092a551fcadf91407b79ea0d8e14bab93f885a6330fa57b1591f8d |
+| saidas/01-ANTES-arquivo-isolado-40-rodadas.txt | 546bee15525a8dc2d8c27fe0ca79dca98dc57d208fdafc0d31d0c80c331f460b |
+| saidas/02-ANTES-caso-0-0-200-rodadas.txt | cd945307ea32945de79a8b461ecf661306431a5ab31f673fe3e0b9fa72a0278a |
+| saidas/03-ANTES-tres-arquivos-sob-carga-25-rodadas.txt | dd0688f7efb76d1584b4d6654ab32badf572208ea617963c48b1d1ad25b67c47 |
+| saidas/04-ANTES-sonda-do-relogio-VERMELHO.txt | ac0768f620209da78984e331c91d61604bb46e402636546c11db2e54830895c5 |
+| saidas/10-DEPOIS-arquivo-isolado-40-rodadas.txt | a1ad1d64f7ba27396d36d51706b294ed58d940824e0858e4ef3c6147b5517b08 |
+| saidas/11-DEPOIS-caso-0-0-200-rodadas.txt | b4c99d15b73bde02ea8127a4e2830afa8ae5e6583a9bdecac9d1b603b989f5e2 |
+| saidas/12-DEPOIS-tres-arquivos-sob-carga-25-rodadas.txt | 816ab6afa7d4dd2cdd455909f5ee0dc1543722a9eafa01f9e0dd52fa0a87b1a2 |
+| saidas/13-DEPOIS-sonda-do-relogio-VERDE.txt | 5ba2a58fd4680ee512bcf9d569a4368a0769edf40c5e47b19276e4e8aa587e5c |
+| saidas/20-MORDIDA-produto-deixando-passar-0-0.txt | fb81bdb27749cb1e8541c6b2de5319368dd60d6eee64e41810a49f5fded7aca6 |
+| saidas/30-npm-test-campo.txt | ff18046536b847ab8f2d98cc2edcfe35883921b8172b7c60a5fbc0f12158cbda |
+| saidas/31-typecheck-campo.txt | 3063829f396b663cbc6773eb7d3309527add0fac80160ff580ce64d3db147ccf |
+| saidas/32-test-campo.txt | 0e59f716697e274b6eae917ee6c7c4ee335ee09dc57410fef2d49338780967d8 |
+| saidas/33-conferir-numeros.txt | 02d04506ff7cb7d48110973fe880ac4ccdc0ea728a1b8b3fc5cd7609673db0b3 |
+| saidas/34-baseline-test.txt | b25536a9f480333e6e0d4cbc26a3a21138a6ccecdbc38430517757e7a3b190e1 |
+| saidas/35-conferir-indices-no-worktree.txt | 2116a0f57976fc4cd07e82af656595794c9c2a6edebe1e704c023c2e535d710c |
+| saidas/36-portao-de-conteudo.txt | 6bcb4a9735570b7b9671098c78af8036122cbd0ce10245894c51c53c6ab6dad3 |
+| scripts/amostra.sh | 985ab0e3a1240430c73a0df393be5c8c072e2c8a6b3915086ec4829274c20713 |
+| scripts/carga.sh | da0cfebaaa890d6665c46cb3b3f3e0625bdf7c4519960e4b5911556cff39852a |
+| scripts/conferir-limpo.sh | 64d619c118e3d5e076a8717721187da5361c74d28aa47bb45f01e26e70bd8d23 |
+| scripts/corrigir.mjs | 1e0b45205b741917a10578f03a378e49e45dca931983aae2be57efe874e3c21f |
+| scripts/fazer-sonda.mjs | 2e5bfbb1540e313060150830816343d7f2d8753906c16226b364cdac5bf49a21 |
+| scripts/indexar.sh | 8cd603d7921e1488c5876ffc081af973fd5109083f034b8ea599c2081b7e0089 |

@@ -1,0 +1,10 @@
+modo=falhar sonda=regra: HTTP 500 Internal Server Error corpo={"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"81fa4fda-744f-4a93-8596-ffa798731d36"} desvios=0
+modo=falhar sonda=code: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: status que não é número inteiro de 100 a 599 e que o Node escreve c desvios=1
+modo=falhar sonda=texto: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 403 fora do catálogo: status que não é número inteiro de 100 a 599 e que o Node escreve c desvios=1
+modo=falhar sonda=catalogo: HTTP 500 Internal Server Error corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /orgaos respondeu 401 fora do catálogo: status que não é número inteiro de 100 a 599 e que o Node escreve c desvios=1
+modo=falhar sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0
+modo=corrigir sonda=regra: HTTP 500 Internal Server Error corpo={"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"b9c83268-b35d-4e97-a1c8-6ff335522717"} desvios=0
+modo=corrigir sonda=code: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=texto: HTTP 403 Forbidden corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."} desvios=0
+modo=corrigir sonda=catalogo: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Token inválido ou expirado."} desvios=0
+modo=corrigir sonda=controle: HTTP 401 Unauthorized corpo={"erro":"nao_autenticado","mensagem":"Informe o token de acesso."} desvios=0

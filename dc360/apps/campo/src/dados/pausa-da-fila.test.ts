@@ -46,7 +46,73 @@ describe("frases da pausa", () => {
     }
   });
 
+  it("senha provisória manda definir a senha no painel e não manda procurar a coordenação", () => {
+    const senha = frasesDaPausa("troca_de_senha_obrigatoria");
+    expect(senha.titulo).toMatch(/senha provisória/i);
+    expect(senha.detalhe).toMatch(/continuam guardadas/i);
+    expect(senha.detalhe).toMatch(/painel/i);
+    expect(senha.faixaDetalhe).toMatch(/guardadas/i);
+    expect(senha.doCartao).toMatch(/guardada/i);
+    expect(senha.doCartao).toMatch(/definir a sua senha/i);
+    expect(senha.detalhe).not.toMatch(/procure a coordenação/i);
+    for (const texto of Object.values(senha)) expect(texto).not.toContain(String.fromCharCode(0x2014));
+  });
+
+  it("as três pausas têm frases diferentes", () => {
+    const todas = (["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const)
+      .map((m) => frasesDaPausa(m));
+    expect(new Set(todas.map((f) => f.titulo)).size).toBe(3);
+    expect(new Set(todas.map((f) => f.faixaTitulo)).size).toBe(3);
+    expect(new Set(todas.map((f) => f.doCartao)).size).toBe(3);
+  });
+
+  /*
+    V2-F00-E06, correção 2. A frase do cartão da tarefa, quando tudo da lista
+    já foi vistoriado: não pode mandar esperar sinal, que é o que a faixa do
+    topo contradizia quando a pausa era da sessão.
+  */
+  it("a frase da lista diz o que falta de verdade em cada pausa, e nunca fala em sinal", () => {
+    const sessao = frasesDaPausa("sessao_encerrada").daLista;
+    const conta = frasesDaPausa("conta_desativada").daLista;
+    const senha = frasesDaPausa("troca_de_senha_obrigatoria").daLista;
+    expect(sessao).toMatch(/falta é entrar de novo/);
+    expect(conta).toMatch(/falta é a coordenação reativar a sua conta/);
+    expect(senha).toMatch(/falta é definir a sua senha no painel e entrar de novo/);
+    for (const frase of [sessao, conta, senha]) {
+      expect(frase).toMatch(/^Você já vistoriou tudo o que está nesta lista/);
+      expect(frase).toMatch(/guardadas/);
+      expect(frase).not.toMatch(/sinal/i);
+      expect(frase).not.toContain(String.fromCharCode(0x2014));
+    }
+    expect(new Set([sessao, conta, senha]).size).toBe(3);
+  });
+
   it("com a fila parada o laço espera mais que o piso normal de 15 s", () => {
     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
+  });
+});
+
+/**
+ * Nenhuma frase da pausa promete envio fora do aplicativo (V2-F00-E16, correção 1).
+ *
+ * A fila só envia com o aplicativo aberto. "Elas sobem sozinhas" lido por quem
+ * acabou de fechar o aplicativo é a promessa de segundo plano que a etapa tirou.
+ */
+describe("as frases da pausa não prometem envio em segundo plano", () => {
+  const FALSA = /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i;
+
+  it.each(["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const)(
+    "%s: nenhum dos cinco textos promete",
+    (motivo) => {
+      const f = frasesDaPausa(motivo);
+      for (const texto of [f.titulo, f.detalhe, f.faixaTitulo, f.faixaDetalhe, f.doCartao]) {
+        expect(texto).not.toMatch(FALSA);
+      }
+    },
+  );
+
+  it("quando a coleta sobe depois de entrar, a frase diz que o aplicativo está aberto", () => {
+    expect(frasesDaPausa("sessao_encerrada").detalhe).toMatch(/com o aplicativo aberto/);
+    expect(frasesDaPausa("troca_de_senha_obrigatoria").detalhe).toMatch(/com o aplicativo aberto/);
   });
 });

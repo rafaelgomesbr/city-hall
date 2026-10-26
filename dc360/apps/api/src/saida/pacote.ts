@@ -264,6 +264,14 @@ type LinhaEvidencia = {
   ordem: number;
 };
 
+/** O registro capturado em campo que não chegou (migração 030). */
+type LinhaPerdida = {
+  vistoria_id: string;
+  papel: "foto" | "assinatura";
+  capturada_em: string;
+  legenda: string | null;
+};
+
 /** A foto de perfil de um servidor, como sai do cadastro. */
 type LinhaFotoDeServidor = {
   matricula: string;
@@ -343,6 +351,43 @@ async function colunasDe(c: Consulta, tabela: string): Promise<string[]> {
 /** Identificador citado, para o nome vindo do catálogo nunca virar SQL. */
 function citar(nome: string): string {
   return `"${nome.replace(/"/g, '""')}"`;
+}
+
+/**
+ * A assinatura declarada entra no laudo do pacote só se o arquivo existe
+ * (V2-F00-E12, correção 2).
+ *
+ * A chave diz que o aparelho colheu o traço; o envio do arquivo é outro passo,
+ * que pode ter falhado. Montar o caminho só pela chave imprimia um quadro
+ * quebrado em cima do nome de quem estava no local, que no papel pode ser lido
+ * como assinatura que houve, enquanto o laudo da rota, para a mesma vistoria,
+ * dizia "Assinatura não coletada". As duas conferências são as de
+ * `enderecoDaAssinatura` (`rotas/documentos.ts`): o prefixo do município antes
+ * de tocar o armazenamento, e o objeto descrito.
+ *
+ * UMA DIFERENÇA, de propósito: se o armazenamento não responde (a descrição
+ * LANÇA), o pacote não afirma que não há assinatura, e também não imprime a
+ * imagem. A primeira versão desta correção mantinha a imagem nesse caso, e
+ * com o provedor caído a cópia do arquivo falha junto: o pacote voltava a
+ * imprimir o quadro quebrado. Agora o bloco diz o que houve, "Não foi possível
+ * conferir a assinatura no armazenamento ao montar este pacote"
+ * (`assinaturaNaoConferida` em `documentos/laudo.ts`), e a cópia mais abaixo
+ * leva o arquivo ou o registra em `PENDENCIAS-DA-EXTRACAO.txt` como NÃO LIDO.
+ * A rota, no mesmo caso, imprime "Assinatura não coletada"; a diferença está na
+ * tabela de `docs/SAIDA-DE-MUNICIPIO.md`. Só a resposta "não existe" vira
+ * "Assinatura não coletada" aqui.
+ */
+async function conferirAssinatura(
+  armazenamento: Armazenamento,
+  organizacaoId: string,
+  chave: string,
+): Promise<"presente" | "ausente" | "nao_conferida"> {
+  if (!chave.startsWith(`tenant/${organizacaoId}/`)) return "ausente";
+  try {
+    return (await armazenamento.descrever(chave)).existe ? "presente" : "ausente";
+  } catch {
+    return "nao_conferida";
+  }
 }
 
 export async function* montarPacoteDeSaida(
@@ -480,7 +525,8 @@ export async function* montarPacoteDeSaida(
       `SELECT DISTINCT ON (v.ocorrencia_id)
               v.id, v.ocorrencia_id, v.checklist, v.gps_precisao_metros,
               v.assinante_nome, v.observacoes, v.coletada_em, v.sincronizada_em,
-              v.assinatura_chave, v.desalojados, v.desabrigados, v.feridos,
+              v.assinatura_chave, v.latitude, v.longitude,
+              v.desalojados, v.desabrigados, v.feridos,
               v.desaparecidos, v.obitos,
               u.nome AS agente_nome, u.matricula AS agente_matricula,
               ed.nome AS equipe_designada_nome, ea.nome AS equipe_do_agente_nome,
@@ -516,7 +562,52 @@ export async function* montarPacoteDeSaida(
       anterior à migração 024, e um `JOIN` interno apagaria essas vistorias do
       pacote inteiro em vez de só deixar o aviso de fora. Nulo aqui significa
       "nada a avisar", e `avisoDeEquipe` já trata assim.
+
+      A COORDENADA DA VISTORIA (`v.latitude`, `v.longitude`) também vem daqui,
+      como em `rotas/documentos.ts`: sem ela o laudo do pacote imprimia "não
+      registrada" para uma vistoria que tem ponto. A assinatura declarada que
+      falta no armazenamento também sai igual desde a correção 2 da E12
+      (`conferirAssinatura`, acima), e os registros perdidos desde a correção 3
+      (consulta `perdidas`, abaixo). Os documentos continuam diferindo em três
+      pontos que a V2-F09-E02 resolve com o montador único (fotos de todas as
+      vistorias, sem a seção das avulsas, e o termo de interdição depois de
+      uma re-vistoria, que aqui sai da vigente e na rota sai da vistoria do
+      ato), e num quarto que é deliberado: com o armazenamento sem resposta na
+      conferência da assinatura, a rota diz "Assinatura não coletada" e o
+      pacote diz que não conseguiu conferir.
+      `test/saida-de-municipio.test.ts` (bloco "campo por campo") trava as
+      quatro e reprova se uma delas mudar sem a documentação. Ele não compara
+      o laudo inteiro: diferença nova em outro campo passa por ele.
     */
+
+    /*
+      O QUE FOI CAPTURADO EM CAMPO E NÃO CHEGOU (V2-F00-E12, correção 3).
+
+      Mesma leitura de `rotas/documentos.ts`, e o motivo é o mais grave dos
+      que separavam os dois laudos: quando o que se perdeu foi a ASSINATURA, a
+      vistoria chega com `assinatura_chave` nula e uma linha aqui com
+      `papel = 'assinatura'`. Sem ler esta tabela, o laudo e o termo de
+      interdição do pacote imprimiam "Assinatura não coletada" em cima do nome
+      de quem estava no local, enquanto a rota, para a mesma vistoria, imprime
+      "Assinatura coletada em campo e não recuperada do aparelho". O documento
+      que o município leva embora afirmava o contrário do fato, e do próprio
+      `tabelas/vistoria_evidencias_perdidas.csv` que vai no mesmo pacote. Junto
+      voltou a seção dos registros perdidos, que sumia e deixava o laudo do
+      pacote parecendo completo sendo incompleto.
+
+      Lê a tabela inteira do município (a transação é a do tenant, sob RLS) e
+      entrega a cada documento só as perdas da VISTORIA VIGENTE, pela mesma
+      razão da rota: numa re-vistoria, a perda da ida anterior não é perda
+      desta. A ordem é a da rota (`ordem, capturada_em, id`).
+
+      Não reemite nada: o pacote gera cópias dos documentos a partir do banco,
+      e nenhum documento já emitido é tocado.
+    */
+    const perdidas = await c.query<LinhaPerdida>(
+      `SELECT vistoria_id, papel, capturada_em, legenda
+         FROM vistoria_evidencias_perdidas
+        ORDER BY vistoria_id, ordem, capturada_em, id`,
+    );
 
     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(
       `SELECT i.vistoria_id, i.nome, g.sigla
@@ -576,6 +667,7 @@ export async function* montarPacoteDeSaida(
       ocorrencias: ocorrencias.rows,
       vistorias: vistorias.rows,
       indicados: indicados.rows,
+      perdidas: perdidas.rows,
       oficios: oficios.rows,
       evidencias: evidencias.rows,
       fotosDeServidor: fotosDeServidor.rows,
@@ -666,6 +758,13 @@ export async function* montarPacoteDeSaida(
     indicadosPorVistoria.set(i.vistoria_id, lista);
   }
 
+  const perdidasPorVistoria = new Map<string, NonNullable<DadosDocumento["evidenciasPerdidas"]>>();
+  for (const p of dados.perdidas) {
+    const lista = perdidasPorVistoria.get(p.vistoria_id) ?? [];
+    lista.push({ papel: p.papel, capturadaEm: p.capturada_em, legenda: p.legenda });
+    perdidasPorVistoria.set(p.vistoria_id, lista);
+  }
+
   const evidenciasPorOcorrencia = new Map<string, LinhaEvidencia[]>();
   for (const e of dados.evidencias) {
     const lista = evidenciasPorOcorrencia.get(e.ocorrencia_id) ?? [];
@@ -687,7 +786,10 @@ export async function* montarPacoteDeSaida(
       capturadaEm: e.capturada_em,
     }));
 
-    const assinaturaUrl = vistoria.assinatura_chave
+    const assinatura = vistoria.assinatura_chave
+      ? await conferirAssinatura(armazenamento, organizacaoId, vistoria.assinatura_chave)
+      : "ausente";
+    const assinaturaUrl = vistoria.assinatura_chave && assinatura === "presente"
       ? `../../evidencias/${item.pasta}/${nomeDoArquivo(vistoria.assinatura_chave, "assinatura.png")}`
       : null;
 
@@ -697,9 +799,11 @@ export async function* montarPacoteDeSaida(
       vistoria: {
         ...vistoria,
         assinaturaUrl,
+        ...(assinatura === "nao_conferida" ? { assinaturaNaoConferida: true } : {}),
         orgaosIndicados: indicadosPorVistoria.get(vistoria.id) ?? [],
       },
       fotos,
+      evidenciasPerdidas: perdidasPorVistoria.get(vistoria.id) ?? [],
       emitidoPor,
       emitidoEm: agora,
       ...(opcoes.marcaDagua ? { marcaDagua: opcoes.marcaDagua } : {}),

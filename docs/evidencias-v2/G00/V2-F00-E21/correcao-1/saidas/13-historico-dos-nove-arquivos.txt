@@ -1,0 +1,64 @@
+Os 9 arquivos de saida do teste do painel (mais de 1900 linhas) cujo hash antigo nao foi reproduzido por forca bruta.
+Prova possivel: o arquivo e o INDEX.md que o lista nasceram no MESMO commit e o blob do arquivo nunca mudou depois.
+Logo o hash do INDEX foi tirado dos bytes do disco antes do 'git add', e a unica coisa que o git faz nos bytes nesse passo e a conversao de fim de linha (nao ha 'filter=' nem 'ident' no .gitattributes: 0 ocorrencias; autocrlf do Windows do autor, ver E21/saidas/02-git-ls-files-eol-completo.txt).
+
+== V2-F00-E01/saidas/07-teste-web.txt (3347 linhas, 168487 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E01/saidas/07-teste-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (dea48bb7922c)
+  INDEX.md que lista o arquivo: V2-F00-E01/saidas/INDEX.md, primeiro commit: afde25c
+  INDEX.md que lista o arquivo: V2-F00-E01/INDEX.md, primeiro commit: afde25c
+
+== V2-F00-E02/saidas/regressao-npm-test/06-teste-web.txt (3347 linhas, 168487 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E02/saidas/regressao-npm-test/06-teste-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (5eeb919fe9ec)
+  INDEX.md que lista o arquivo: V2-F00-E02/saidas/regressao-npm-test/INDEX.md, primeiro commit: afde25c
+  INDEX.md que lista o arquivo: V2-F00-E02/INDEX.md, primeiro commit: afde25c
+
+== V2-F00-E05/saidas/baseline-depois/04-teste-web.txt (3389 linhas, 173664 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E05/saidas/baseline-depois/04-teste-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (090ebaecdc4d)
+  INDEX.md que lista o arquivo: V2-F00-E05/saidas/baseline-depois/INDEX.md, primeiro commit: afde25c
+  INDEX.md que lista o arquivo: V2-F00-E05/INDEX.md, primeiro commit: afde25c
+
+== V2-F00-E08/saidas/10-web.txt (3400 linhas, 174951 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E08/saidas/10-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (3a795ca577fc)
+  INDEX.md que lista o arquivo: V2-F00-E08/INDEX.md, primeiro commit: afde25c
+
+== V2-F00-E08/saidas/baseline-depois/05-teste-web.txt (3403 linhas, 175044 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E08/saidas/baseline-depois/05-teste-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (815a4c849e36)
+  INDEX.md que lista o arquivo: V2-F00-E08/saidas/baseline-depois/INDEX.md, primeiro commit: afde25c
+  INDEX.md que lista o arquivo: V2-F00-E08/INDEX.md, primeiro commit: afde25c
+
+== V2-F00-E11/saidas/baseline-depois/05-teste-web-com-o-temporizador-solto.txt (1943 linhas, 106800 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E11/saidas/baseline-depois/05-teste-web-com-o-temporizador-solto.txt
+  99390e0 2026-10-07 V2-F00-E11 a E25: F00 implementada e medida, E19 bloqueada pelo CP-03
+  blobs distintos do arquivo no historico: 1 (50912fec2396)
+  INDEX.md que lista o arquivo: V2-F00-E11/INDEX.md, primeiro commit: 99390e0
+
+== V2-F00-E11/saidas/baseline-depois/07-teste-web-depois-do-conserto.txt (1904 linhas, 104880 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E11/saidas/baseline-depois/07-teste-web-depois-do-conserto.txt
+  99390e0 2026-10-07 V2-F00-E11 a E25: F00 implementada e medida, E19 bloqueada pelo CP-03
+  blobs distintos do arquivo no historico: 1 (007a1130cac3)
+  INDEX.md que lista o arquivo: V2-F00-E11/INDEX.md, primeiro commit: 99390e0
+
+== V2-F00-E09/saidas/baseline-depois/04-teste-web.txt (1901 linhas, 104736 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E09/saidas/baseline-depois/04-teste-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (fc527f5ffa57)
+  INDEX.md que lista o arquivo: V2-F00-E09/saidas/baseline-depois/INDEX.md, primeiro commit: afde25c
+  INDEX.md que lista o arquivo: V2-F00-E09/INDEX.md, primeiro commit: afde25c
+
+== V2-F00-E10/saidas/baseline-depois/04-teste-web.txt (1903 linhas, 104836 bytes)
+$ git log --format='%h %ad %s' --date=short -- V2-F00-E10/saidas/baseline-depois/04-teste-web.txt
+  afde25c 2026-10-06 Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00
+  blobs distintos do arquivo no historico: 1 (9294b6570309)
+  INDEX.md que lista o arquivo: V2-F00-E10/saidas/baseline-depois/INDEX.md, primeiro commit: afde25c
+  INDEX.md que lista o arquivo: V2-F00-E10/INDEX.md, primeiro commit: afde25c
+

@@ -126,8 +126,9 @@ export type DependenciasDaVarredura = {
    * dentro do contexto dele, debaixo do RLS. Isso é o que permite a varredura
    * rodar sozinha sem nenhum privilégio novo: enumerar município exigiria ler
    * `organizacoes` fora de contexto, o que só uma função `SECURITY DEFINER`
-   * faria, e o orçamento delas está em quinze de quinze com o portão CA-06
-   * reprovando a décima sexta. Não se gasta a última numa lista.
+   * faria, e o teto delas é de 27, hoje cheio (portão CA-06, em
+   * `db/test/isolamento.test.ts`), que reprova a vigésima oitava. Não há vaga
+   * para gastar numa lista.
    *
    * COM a lista (é como o comando do operador chama, que tem a credencial de
    * dono): ela é autoritativa, e cobre um caso que a outra forma não alcança,
@@ -181,8 +182,8 @@ async function chavesDeFotoDePerfil(c: Consulta, chaves: readonly string[]): Pro
  * município existe e a que reconhece a foto de perfil (`usuarios.foto_chave`,
  * migração 040) como linha justificadora. Não há caminho em que a linha de uma prefeitura responda
  * pelo objeto de outra, e por isso não existe função privilegiada nova: o
- * orçamento de `SECURITY DEFINER` deste produto está em quinze de quinze, e o
- * portão CA-06 reprova a décima sexta.
+ * teto de `SECURITY DEFINER` deste produto é de 27, hoje cheio, e o portão
+ * CA-06 (em `db/test/isolamento.test.ts`) reprova a vigésima oitava.
  */
 export async function varrerOrfaos(
   dep: DependenciasDaVarredura,

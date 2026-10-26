@@ -1,0 +1,62 @@
+(node:27348) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/dados/obter-fila-uma-so.test.ts
+  obterFila sob chamadas simultâneas
+    × quatro chamadas ao mesmo tempo devolvem a MESMA instância (248 ms)
+    √ o banco local é aberto uma vez só (48 ms)
+    × a chamada seguinte, depois de a fila existir, também devolve a mesma (49 ms)
+    × se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo (61 ms)
+
+  ● obterFila sob chamadas simultâneas › quatro chamadas ao mesmo tempo devolvem a MESMA instância
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+    [0m [90m 80 |[39m     ])[33m;[39m
+     [90m 81 |[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     expect(filas[[35m1[39m])[33m.[39mtoBe(filas[[35m0[39m])[33m;[39m
+     [90m    |[39m                      [31m[1m^[22m[39m
+     [90m 83 |[39m     expect(filas[[35m2[39m])[33m.[39mtoBe(filas[[35m0[39m])[33m;[39m
+     [90m 84 |[39m     expect(filas[[35m3[39m])[33m.[39mtoBe(filas[[35m0[39m])[33m;[39m
+     [90m 85 |[39m   })[33m;[39m[0m
+
+
+  ● obterFila sob chamadas simultâneas › a chamada seguinte, depois de a fila existir, também devolve a mesma
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+    [0m [90m 106 |[39m     [36mconst[39m depois [33m=[39m [36mawait[39m obterFila([32m"http://api.exemplo"[39m[33m,[39m [36masync[39m () [33m=>[39m [32m"outro"[39m[33m,[39m () [33m=>[39m quem[33m.[39matual)[33m;[39m
+     [90m 107 |[39m
+    [31m[1m>[22m[39m[90m 108 |[39m     expect(depois)[33m.[39mtoBe(primeira)[33m;[39m
+     [90m     |[39m                    [31m[1m^[22m[39m
+     [90m 109 |[39m   })[33m;[39m
+     [90m 110 |[39m
+     [90m 111 |[39m   it([32m"se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+
+  ● obterFila sob chamadas simultâneas › se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+    [0m [90m 135 |[39m
+     [90m 136 |[39m     expect(a)[33m.[39mtoBeDefined()[33m;[39m
+    [31m[1m>[22m[39m[90m 137 |[39m     expect(b)[33m.[39mtoBe(a)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 138 |[39m   })[33m;[39m
+     [90m 139 |[39m })[33m;[39m
+     [90m 140 |[39m[0m
+
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 1 passed, 4 total
+Snapshots:   0 total
+Time:        1.052 s, estimated 2 s
+Ran all test suites matching /src\\dados\\obter-fila-uma-so/i.

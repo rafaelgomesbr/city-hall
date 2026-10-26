@@ -23,9 +23,24 @@
 
 html, body, #root { height: 100%; }
 
-/* O topo é fixo: sem isto, rolar até um elemento (âncora, foco por teclado,
-   scrollIntoView) o deixa por baixo do cabeçalho. */
-html { scroll-padding-top: calc(var(--ds-sp-8) + var(--ds-sp-4)); }
+/* O topo é fixo, e até 900 px a barra de navegação também, no pé: sem isto,
+   rolar até um elemento (âncora, foco por teclado, scrollIntoView) o deixa por
+   baixo de um dos dois. As duas folgas são MEDIDAS por `usar-bordas-fixas.ts`
+   (a altura do topo muda com a largura, o zoom e o nome de quem entrou) e
+   chegam aqui por variável, antes do primeiro desenho (`useLayoutEffect`).
+   Sem a medida não há borda fixa nenhuma (as telas públicas, como "Defina a
+   sua senha", não têm topo), e a folga é só o respiro: a estimativa de 140 px
+   que valia em toda tela até 600 px tirava espaço da tela pública no zoom de
+   400 por cento (V2-F00-E09, correção 6). */
+html {
+  scroll-padding-top: var(--topo-fixo-folga, var(--ds-sp-3));
+  scroll-padding-bottom: var(--pe-fixo-folga, var(--ds-sp-3));
+}
+/* O foco por teclado leva o CONTROLE à vista, e o rótulo fica uns 32 px acima
+   dele: a margem cobre a linha do rótulo e o respiro entre os dois, em qualquer
+   largura (até a correção 6 valia só até 600 px, e acima disso o rótulo ficava
+   atrás do topo). Um passo de `--ds-sp-5` mais um de `--ds-sp-3`. */
+.campo input, .campo select, .campo textarea { scroll-margin-top: calc(var(--ds-sp-5) + var(--ds-sp-3)); }
 
 body {
   margin: 0;
@@ -516,6 +531,47 @@ a:hover { color: var(--ds-accent-hover); }
    largura mínima da coluna: é a linha secundária, e quebrar custa menos que
    empurrar as três últimas colunas para fora do cartão. */
 .tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); overflow-wrap: anywhere; }
+/*
+  Frase curta de célula ("Não despachada"): não quebra no meio da palavra.
+
+  `overflow-wrap: anywhere`, acima, existe para endereço comprido, e ele ENCOLHE
+  a largura mínima da coluna a uma letra: com a tabela apertada, a coluna
+  "Equipe" do painel ficava com a menor largura que a tabela aceitasse e a frase
+  saía "Não despach / ada". Quebrar entre palavras ("Não" / "despachada") é
+  legítimo; no meio da palavra, não.
+*/
+.tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
+/*
+  Email na linha secundária: quebra SÓ onde o componente `EmailQuebravel` põe um
+  `<wbr>` (depois do "@" e de cada ponto). Sem `normal` aqui, o `anywhere` da
+  regra-mãe voltaria a cortar "exemplo.gov.br" no meio, e o `<wbr>` não valeria
+  de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
+  tabela (que rola), e não a palavra.
+*/
+.tabela__secundario--email { overflow-wrap: break-word; word-break: normal; }
+/*
+  O teto da linha do email (V2-F00-E09, correção 4, revisão): um email com uma
+  parte de uns 48 caracteres sem ponto ("joanaplantao24horas...@") tem largura
+  mínima de quase 300 px, a coluna Pessoa cresce junto, a tabela passa a rolar a
+  1280 px e a coluna Ação sai da tela. Com o teto, a linha quebra nos pontos
+  permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
+  (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
+  `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
+  já rola 3 px).
+
+  Valia só até 1399 px, na conta de que "em tela larga a coluna tem folga". A
+  revisão da correção 6 mostrou que a folga depende das letras: com um email de
+  parte local larga ("...municipalmwmwmwmw@") a tabela rolava a 1440 px nos três
+  motores (1083 de 1062) e "Encerrar sessões" saía da tela. O teto vale em
+  qualquer largura; o email ainda quebra só nos `<wbr>`.
+*/
+.tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
+/*
+  Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
+  se a coluna for estreita demais quem cede é a tabela, que rola.
+*/
+.tabela__secundario--telefone { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
+.campo__erro svg { flex-shrink: 0; }
 
 .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
 .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
@@ -526,6 +582,20 @@ a:hover { color: var(--ds-accent-hover); }
 .campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
 .campo > label { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
 .campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+/*
+  A linha de identificação da janela de confirmação ("matrícula, e-mail, papel")
+  traz um e-mail inteiro, que não tem onde quebrar: a 320 px ele passava da
+  área útil da janela e entrava no respiro da borda (o teste de geometria
+  mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
+  que sair da janela.
+
+  V2-F00-E09, correção 5 (rodada 6, achado 2): `anywhere` cortava o email no
+  meio da palavra ("...secretar / ia.serraalta") a 390, 360 e 320 px, porque
+  ignora os pontos de quebra do `EmailQuebravel` (o `<wbr>` depois do "@" e de
+  cada ponto). `break-word` respeita o `<wbr>` e só corta se um pedaço sozinho
+  for mais largo que a janela, que é a rede de segurança que a 320 px importa.
+*/
+.modal__painel .campo__dica { overflow-wrap: break-word; word-break: normal; }
 /* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
    margem própria dele e a distância até o primeiro rótulo fica maior que a
    distância entre os campos, sugerindo que a frase é de outro bloco. */
@@ -658,10 +728,20 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 .botao:not(:disabled):active { transform: translateY(1px); }
 
 .botao--primario { background: var(--ds-accent); color: var(--ds-on-accent); }
-.botao--primario:not(:disabled):hover { background: var(--ds-accent-hover); box-shadow: var(--ds-accent-glow); }
+/*
+  O `color` do hover é repetido de propósito: um botão que é `<a>` (o "Entrar com a
+  nova senha" da recuperação de senha) leva `a:hover` (0,1,1), que vence a cor do
+  repouso (0,1,0) e punha o texto em `--ds-accent-hover`, igual ao fundo do hover:
+  o rótulo sumia nos dois temas (V2-F00-E10, correção 2). Aqui (0,3,0) vence.
+*/
+.botao--primario:not(:disabled):hover {
+  background: var(--ds-accent-hover); color: var(--ds-on-accent); box-shadow: var(--ds-accent-glow);
+}
 
 .botao--secundario { background: var(--ds-surface); color: var(--ds-text); border-color: var(--ds-border); }
-.botao--secundario:not(:disabled):hover { background: var(--ds-surface-2); border-color: var(--ds-text-muted); }
+.botao--secundario:not(:disabled):hover {
+  background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-text-muted);
+}
 
 .botao--perigo { background: var(--ds-danger-bg); color: var(--ds-danger-fg); border-color: var(--ds-danger-fg); }
 .botao--perigo:not(:disabled):hover { background: var(--ds-danger-fg); color: var(--ds-surface); }
@@ -670,6 +750,50 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 .botao--discreto:not(:disabled):hover { color: var(--ds-text); background: var(--ds-surface-2); }
 
 .botao--icone { min-width: var(--ds-touch); padding: 0; }
+
+/*
+  Os botões do rodapé de toda janela (`Modal`, e por isso toda `ConfirmarAcao`).
+
+  `.botao` não quebra linha (`white-space: nowrap`), certo para "Salvar" e
+  "Ver todas". Mas o botão de confirmação REPETE o objeto por regra ("Encerrar
+  sessões de Marcos Vinicius Teles"), e nome de pessoa é comprido: a 390 px o
+  rótulo era mais largo que a janela, o painel ganhava rolagem horizontal e o
+  botão perdia a borda (reprovação da V2-F00-E09). Aqui o rótulo quebra em
+  linhas e o botão cresce em altura, sem passar da janela.
+
+  Até 600 px os botões empilham, cada um com a largura toda: dois botões lado a
+  lado com rótulo de duas linhas viram dois blocos estreitos e difíceis de
+  acertar com o dedo. A ordem do HTML continua (confirmar, depois cancelar),
+  que é a do leitor de tela e a do Tab.
+*/
+.modal__rodape .botao {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .modal__rodape { flex-direction: column; align-items: stretch; }
+  .modal__rodape .botao { width: 100%; }
+}
+
+/*
+  `.botao--quebra` é o mesmo tratamento para o botão que mora FORA de janela e
+  repete o objeto ou diz uma frase comprida: "Encerrar minhas outras sessões" em
+  Minha conta passava cerca de 16 px da coluna a 320 px, porque o conserto acima
+  só alcançava `.modal__rodape .botao` (reprovação da V2-F00-E09, rodada 2). Em
+  tela estreita ele também ocupa a largura da coluna, como os da janela. A regra é
+  própria, e não um seletor a mais na de cima, para um não quebrar o outro.
+*/
+.botao--quebra {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .botao--quebra { width: 100%; }
+}
 
 /* ---------- Filtros ---------- */
 
@@ -692,13 +816,19 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 
 /* ---------- Paginação ---------- */
 
+/*
+  A paginação quebra em linhas: a 320 px "Página 1 de 3" e os dois botões não
+  cabem lado a lado, e "Próxima" saía da tela (Ocorrências em 325 de 320 px e
+  Prestação de contas em 330, nos três motores; revisão da correção 6 da
+  V2-F00-E09).
+*/
 .paginacao {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: var(--ds-sp-3); padding: var(--ds-sp-3) var(--ds-sp-4);
   border-top: 1px solid var(--ds-border);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
 }
-.paginacao__controles { display: flex; gap: var(--ds-sp-2); }
+.paginacao__controles { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
 
 /* ---------- Detalhe ---------- */
 
@@ -907,27 +1037,62 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 
 @media (max-width: 900px) {
   .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: "topo" "conteudo" "lateral"; }
-  .lateral { flex-direction: row; overflow-x: auto; gap: var(--ds-sp-2); align-items: center;
+  /*
+    A barra do pé da tela: ladrilhos de ícone em cima e rótulo embaixo, em
+    número FIXO de ladrilhos visíveis, e o resto rola.
+
+    Era uma fila de itens com o rótulo em uma linha só (`white-space: nowrap`),
+    e dez destinos não cabem em 390 px: o terceiro item, "Mapa da cidade",
+    aparecia cortado na borda da tela, com a metade do rótulo faltando (a
+    validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa tela de
+    390). Cortar um rótulo no meio é o pior dos dois mundos: a pessoa lê metade
+    de uma palavra e ainda não sabe que a barra rola.
+
+    Agora a largura do ladrilho é a conta de quantos cabem INTEIROS
+    (`--barra-visiveis`), o rótulo quebra em até duas linhas dentro dele, e o
+    ladrilho seguinte só espia na borda, sem texto visível. "Mapa da cidade" é
+    sempre um dos primeiros três em qualquer papel, então nunca fica para a
+    parte que rola.
+
+    Os grupos e o rodapé viram `display: contents` para os ladrilhos serem
+    todos filhos diretos da barra: a largura em porcentagem é a da barra, e não
+    a de cada grupo, que é o que fazia a conta anterior não fechar.
+  */
+  .lateral { --barra-visiveis: 6;
+             flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: var(--ds-sp-2); align-items: center;
+             padding: var(--ds-sp-2) var(--ds-sp-4); scrollbar-width: thin;
              border-right: none; border-top: 1px solid var(--ds-ink-800);
              position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
   .lateral__marca, .lateral__rotulo { display: none; }
-  .lateral__grupo { flex-direction: row; }
   /*
     "Tema" e "Sair" continuam na barra, no fim dela. Antes o rodapé sumia
     junto com a marca, e no celular não havia como sair nem trocar o tema fora
     da caixa de busca, que é o único lugar onde ninguém procura isso.
   */
-  .lateral__rodape { flex-direction: row; margin-top: 0; margin-left: auto; }
-  .lateral__item { white-space: nowrap; }
+  .lateral__grupo, .lateral__rodape { display: contents; }
+  .lateral__item {
+    flex: 0 0 calc((100% - (var(--barra-visiveis) - 1) * var(--ds-sp-2)) / var(--barra-visiveis));
+    min-width: 0; height: var(--barra-item-altura);
+    flex-direction: column; justify-content: center; gap: var(--ds-sp-1);
+    padding: var(--ds-sp-1);
+    text-align: center; white-space: normal;
+    font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  }
   /*
-    A barra rola na horizontal de propósito: dez destinos não cabem em 390px, e
-    o rótulo inteiro ("Mapa da cidade", "Prestação de contas") vale mais do que
-    um ícone que a pessoa precisa adivinhar.
+    Os botões "Tema" e "Sair" nascem de `<button>`, que não herda a família da
+    fonte: sem isto o rótulo deles sairia na fonte do sistema, diferente do
+    resto da barra.
+  */
+  button.lateral__item { font-family: inherit; font-weight: var(--ds-fw-medium); }
+  .lateral__texto { display: block; max-width: 100%; }
+  /*
+    A barra rola na horizontal de propósito: onze destinos não cabem em 320px, e
+    o rótulo inteiro vale mais do que um ícone que a pessoa precisa adivinhar.
 
-    O respiro nas duas pontas é para o item não encostar na borda quando a barra
-    rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item: sozinho,
-    o navegador não rola um item que está pela metade, e o Tab parava com o
-    rótulo cortado. O comentário de lá tem a medida.
+    O respiro nas duas pontas é para o ladrilho não encostar na borda quando a
+    barra rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item e na
+    troca de tela: sozinho, o navegador não rola um item que está pela metade, e
+    o Tab parava com o rótulo cortado. O comentário de lá tem a medida.
   */
   .lateral { scroll-padding-inline: var(--ds-sp-4); }
   .conteudo { padding: var(--ds-sp-4); }
@@ -937,11 +1102,47 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
     sobrepostas e o botão Fechar em cima de "Mapa da cidade".
 
     A altura não é um número escolhido aqui: é a mesma conta que desenha a
-    barra, `--ds-touch` (a área de toque mínima, que dá a altura do item) mais o
-    respiro de cima e de baixo da própria `.lateral`. Mudar o respiro move os
-    dois juntos.
+    barra, `--barra-altura` (o ladrilho mais o respiro de cima e de baixo da
+    própria `.lateral`). Mudar o ladrilho ou o respiro move os dois juntos.
   */
-  .toast { bottom: calc(var(--ds-sp-4) + var(--ds-touch) + var(--ds-sp-5) * 2); }
+  .toast { bottom: calc(var(--ds-sp-4) + var(--barra-altura)); }
+  /*
+    As duas medidas moram no `:root` daqui para baixo, e não em `.lateral`,
+    porque o aviso não é filho da barra e precisa enxergá-las. Ladrilho: o
+    respiro, o ícone de 18 px, o respiro entre os dois e as duas linhas do
+    rótulo.
+  */
+  :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
+          --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
+}
+/*
+  Janela muito baixa (o zoom de 400 por cento de uma tela de 1280x1024 é 320x256
+  de CSS; o celular deitado de 568x320): o topo de duas linhas (129 px) e a
+  barra do pé (79 px) deixavam 48 px de página, menos que um rótulo com o campo
+  embaixo, e qualquer campo focado ficava atrás de um dos dois (WCAG 2.4.11,
+  correção 6 da V2-F00-E09). Abaixo de 340 px de altura os dois deixam de ser
+  fixos e rolam com a página: a navegação continua lá, no fim dela, e o topo, no
+  começo. A medida de `usar-bordas-fixas.ts` vê que não estão presos e zera a
+  folga. Era 360 px; desceu para 340 (correção 6b) para o Android deitado
+  (640x360, 740x360) manter a navegação fixa, onde o campo focado ainda cabe
+  inteiro entre as duas bordas (medido). A altura é decisão de desenho a
+  confirmar pelo Rafael.
+*/
+@media (max-height: 340px) {
+  .topo, .lateral { position: static; }
+  /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
+  .toast { bottom: var(--ds-sp-4); }
+}
+@media (max-width: 600px) {
+  .lateral { --barra-visiveis: 4; }
+}
+/*
+  Celular estreito (até 360 px): três ladrilhos, porque "Ocorrências" e
+  "Organização" em quatro ladrilhos de 66 px não cabem na largura do ladrilho.
+  A 361 px já cabem (o teste de geometria mede 360 e 361 por isso).
+*/
+@media (max-width: 360px) {
+  .lateral { --barra-visiveis: 3; }
 }
 
 /*
@@ -955,6 +1156,22 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 */
 @media (max-width: 600px) {
   .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
+  /*
+    O topo tem duas linhas aqui (a marca e a conta, e a busca): 129 px. A folga
+    da rolagem para ele é medida (`usar-bordas-fixas.ts`, correção 6 da
+    V2-F00-E09); a correção 5 a escrevia como número só nesta faixa, e acima de
+    600 px, onde o topo também chega a ter duas linhas, o campo focado ficava
+    por baixo dele.
+  */
+  /*
+    O texto de exemplo da busca ("Buscar registro ou função") saía cortado a
+    320 px ("Buscar registro ou funç"): o recuo da direita guarda o lugar da
+    dica "Ctrl K", e no celular não há teclado com Ctrl. A dica some da tela e
+    continua no `aria-describedby` do campo (texto referenciado é lido mesmo
+    escondido), e o recuo volta ao respiro comum.
+  */
+  .busca-global__atalho { display: none; }
+  .busca-global__caixa #busca-global { padding-right: var(--ds-sp-3); }
   .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
   .identidade__nome, .identidade__papel, .identidade br { display: none; }
   .identidade--acionavel { padding: var(--ds-sp-1); }
@@ -1165,6 +1382,21 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   padding: var(--ds-sp-4);
 }
 
+/*
+  Celular: o painel do sino se ancora na TELA, e não no botão.
+
+  Ancorado no botão (`right: 0`), o painel de largura quase total saía pela
+  esquerda, porque o sino está no meio do topo, ao lado do avatar: a 390 px os
+  primeiros 48 px do painel ficavam fora da tela e o título "Avisos" perdia o
+  começo. Aqui o `.sino` deixa de ser a referência e o painel passa a medir a
+  partir do `.topo` (que é posicionado, ver acima), com o mesmo respiro lateral
+  do resto da página.
+*/
+@media (max-width: 600px) {
+  .sino { position: static; }
+  .sino__painel { left: var(--ds-sp-4); right: var(--ds-sp-4); width: auto; top: calc(100% + var(--ds-sp-2)); }
+}
+
 .sino__cabecalho {
   display: flex; align-items: center; gap: var(--ds-sp-3);
   margin-bottom: var(--ds-sp-3);
@@ -1215,6 +1447,20 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
 }
+/*
+  O email da tentativa de envio quebra só nos pontos do `EmailQuebravel`, e um
+  pedaço sem ponto mais largo que o cartão quebra dentro, em vez de sair dele.
+
+  A "rede de segurança" do `break-word` não bastava sozinha (correção 6 da
+  V2-F00-E09, rodada 7): com "plantaocoordenacaodefesacivilserraalta@..." o texto
+  saía do cartão a 360 px e a página rolava na horizontal a 320 px. Duas
+  larguras mínimas seguravam o pedaço inteiro: a do `<span>`, que é item de
+  linha `flex` (`min-width: auto` é a palavra mais longa), e a da coluna do
+  `.oficio`, que é `grid` com coluna `auto` (do tamanho mínimo do conteúdo).
+  Zerar as duas deixa o cartão mandar na largura, e o `break-word` age.
+*/
+.oficio { grid-template-columns: minmax(0, 1fr); }
+.oficio__linha > span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
 
 /* ---------------------------------------------------------------------------
    Verificação em duas etapas
@@ -1357,7 +1603,7 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
   tabela dividia o que sobrava de modo que o nome quebrava em três linhas
   ("Diego / Nakamura / Alves"). O piso de largura segura o nome em até duas
-  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, continua quebrando onde precisar.
+  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, quebra só depois do "@" e dos pontos (`EmailQuebravel`), nunca no meio de uma palavra.
 */
 .tabela__pessoa {
   display: flex; align-items: center; gap: var(--ds-sp-3);

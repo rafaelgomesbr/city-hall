@@ -20,6 +20,7 @@
  * `dialogo-na-conta.test.tsx`: nada aqui está dentro de `src/app`.
  */
 
+import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import type { ResumoFila } from "@dc360/campo";
 
@@ -66,15 +67,20 @@ jest.mock("../dados/coletas", () => ({ listarColetas: async () => [] }));
 
 /** Quantas vistorias COMEÇADAS o aparelho tem no disco. */
 let mockRascunhos: { ocorrenciaId: string; fotos: unknown[]; assinaturaUri: string | null }[] = [];
+/** Quando preenchido, o disco NÃO responde: `listarRascunhos` rejeita. */
+let mockDiscoQuebrado: Error | null = null;
 jest.mock("../dados/rascunho", () => ({
-  listarRascunhos: jest.fn(async () => mockRascunhos),
+  listarRascunhos: jest.fn(async () => {
+    if (mockDiscoQuebrado) throw mockDiscoQuebrado;
+    return mockRascunhos;
+  }),
 }));
 
 /** A fila de verdade AVISA quem assina; aqui o teste faz o mesmo. */
 const mockOuvintes = new Set<(r: ResumoFila) => void>();
-function resumoCom(pendentes: number): ResumoFila {
+function resumoCom(pendentes: number, bloqueados = 0, enviando = 0): ResumoFila {
   return {
-    pendentes, enviando: 0, confirmados: 0, bloqueados: 0, arquivados: 0,
+    pendentes, enviando, confirmados: 0, bloqueados, arquivados: 0,
     deOutroAutor: 0, sincronizando: false, pausadaPor: null,
   };
 }
@@ -118,7 +124,7 @@ jest.mock("../dados/preferencia-de-tema", () => ({
 }));
 
 import Perfil from "../app/(agente)/perfil";
-import { ProvedorDeTema } from "./componentes";
+import { Botao, ProvedorDeTema } from "./componentes";
 import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
 
 const PUSH: EstadoDoPush = {
@@ -130,6 +136,7 @@ const PUSH: EstadoDoPush = {
 
 beforeEach(() => {
   mockRascunhos = [];
+  mockDiscoQuebrado = null;
   mockResumoInicial = resumoCom(0);
   mockOuvintes.clear();
   mockSair.mockClear();
@@ -183,17 +190,116 @@ describe("a pergunta antes de sair, com vistoria começada", () => {
   });
 
   it("o botão de confirmar é o de perigo, porque o ato apaga", async () => {
+    /* A referência é o MESMO `Botao` desenhado no mesmo tema, uma vez como
+       perigo e outra como primário. Assim o teste não fixa uma cor: se o
+       desenho do perigo mudar de forma legítima, a referência muda junto; se o
+       diálogo deixar de pedir `perigo`, o botão deixa de parecer a referência. */
+    const { unmount } = await render(
+      <ProvedorDeTema>
+        <Botao testID="ref-perigo" tipo="perigo" titulo="Referência de perigo" onPress={() => {}} />
+        <Botao testID="ref-primario" tipo="primario" titulo="Referência primária" onPress={() => {}} />
+      </ProvedorDeTema>,
+    );
+    const refPerigo = StyleSheet.flatten(screen.getByTestId("ref-perigo").props.style);
+    const refPrimario = StyleSheet.flatten(screen.getByTestId("ref-primario").props.style);
+    const corDaRefPerigo = StyleSheet.flatten(screen.getByText("Referência de perigo").props.style).color;
+    expect(refPerigo.backgroundColor).not.toBe(refPrimario.backgroundColor);
+    await act(async () => { unmount(); });
+
     mockRascunhos = [rascunho("a", true)];
     await abrirATela();
 
     await tocar("Sair da conta");
 
     const confirmar = screen.getByTestId("dialogo-acao");
-    /* `destrutiva` no diálogo vira o tipo `perigo` do botão, que é o único
-       preenchido de perigo do produto: a cor e a posição dizem "isto apaga". */
+    const recusar = screen.getByTestId("dialogo-recusa");
+    const estiloConfirmar = StyleSheet.flatten(confirmar.props.style);
+    const estiloRecusar = StyleSheet.flatten(recusar.props.style);
+    expect(estiloConfirmar.backgroundColor).toBe(refPerigo.backgroundColor);
+    expect(estiloConfirmar.backgroundColor).not.toBe(refPrimario.backgroundColor);
+    expect(estiloConfirmar.backgroundColor).not.toBe(estiloRecusar.backgroundColor);
+    expect(
+      StyleSheet.flatten(within(confirmar).getByText("Sair da conta").props.style).color,
+    ).toBe(corDaRefPerigo);
+
     expect(confirmar.props.accessibilityLabel).toBe("Sair da conta");
     expect(screen.getByTestId("dialogo").props.accessibilityViewIsModal).toBe(true);
     expect(mockSair).not.toHaveBeenCalled();
+  });
+
+  it("a pergunta se chama 'Sair da conta?' e a ação vem antes da recusa", async () => {
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    expect(within(screen.getByTestId("dialogo")).getByText("Sair da conta?")).toBeTruthy();
+    /* Ordem na árvore: a ação (destrutiva) primeiro, "Continuar conectado" por
+       último, como em todo diálogo do aplicativo. */
+    const emOrdem = screen
+      .getAllByTestId(/^dialogo-(acao|recusa)$/)
+      .map((botao) => botao.props.testID);
+    expect(emOrdem).toEqual(["dialogo-acao", "dialogo-recusa"]);
+  });
+
+  it("o item que está sendo enviado agora também conta como não enviado", async () => {
+    mockResumoInicial = resumoCom(0, 0, 1);
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    const dialogo = within(screen.getByTestId("dialogo"));
+    expect(dialogo.getByText(/1 coleta ainda não enviada/)).toBeTruthy();
+    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
+  });
+
+  it("o disco respondeu zero e na segunda pergunta falha: avisa, e não repete o zero de antes", async () => {
+    /* A primeira pergunta deixa `rascunhosNaSaida` em "zero vistorias". Se o
+       `catch` da segunda não gravar `null`, o estado antigo sobe e o diálogo
+       repete "nada a perder" justamente quando o disco deixou de responder. */
+    await abrirATela();
+    await tocar("Sair da conta");
+    expect(within(screen.getByTestId("dialogo")).getByText(/precisar de sinal e da sua senha/)).toBeTruthy();
+    await tocar("Continuar conectado");
+
+    mockDiscoQuebrado = new Error("disco ilegível");
+    /* O diálogo fechado ainda está na árvore enquanto some: o botão da tela é o primeiro. */
+    await act(async () => { fireEvent.press(screen.getAllByText("Sair da conta")[0]!); });
+
+    const dialogo = within(screen.getByTestId("dialogo"));
+    expect(dialogo.getByText(/Não deu para conferir se há vistoria começada/)).toBeTruthy();
+    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
+    expect(mockSair).not.toHaveBeenCalled();
+  });
+
+  it("o disco não responde: o diálogo avisa do mesmo jeito, e não promete que não há nada", async () => {
+    /* É o defeito de origem (CMP-52) por outro caminho: se a leitura falhar e
+       a tela tratar isso como "zero vistorias", a frase curta de sempre sobe e
+       a confirmação apaga a vistoria começada sem uma palavra. */
+    mockRascunhos = [rascunho("a", true)];
+    mockDiscoQuebrado = new Error("disco ilegível");
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    const dialogo = within(screen.getByTestId("dialogo"));
+    expect(dialogo.getByText(/Não deu para conferir se há vistoria começada/)).toBeTruthy();
+    expect(dialogo.getByText(/Sair apaga toda vistoria que ainda não foi concluída/)).toBeTruthy();
+    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
+    expect(mockSair).not.toHaveBeenCalled();
+  });
+
+  it("o item recusado pelo servidor também conta como coleta não enviada", async () => {
+    /* `bloqueados` não está em `pendentes` nem em `enviando`, e o item
+       recusado continua no aparelho: o diálogo não pode dizer que não há
+       nada guardado. */
+    mockResumoInicial = resumoCom(0, 2);
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    const dialogo = within(screen.getByTestId("dialogo"));
+    expect(dialogo.getByText(/2 coletas ainda não enviadas/)).toBeTruthy();
+    expect(dialogo.queryByText(/precisar de sinal e da sua senha/)).toBeNull();
   });
 
   it("sem vistoria começada e sem fila, a pergunta não fala em apagar", async () => {
@@ -203,6 +309,7 @@ describe("a pergunta antes de sair, com vistoria começada", () => {
 
     const dialogo = within(screen.getByTestId("dialogo"));
     expect(dialogo.queryByText(/começada/)).toBeNull();
+    expect(dialogo.queryByText(/apaga/i)).toBeNull();
     expect(dialogo.getByText(/precisar de sinal e da sua senha/)).toBeTruthy();
   });
 });

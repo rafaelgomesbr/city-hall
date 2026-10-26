@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /private/tmp/e21c3/sim/clone/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 444ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  12:02:08
+   Duration  638ms (transform 27ms, setup 0ms, collect 27ms, tests 444ms, environment 0ms, prepare 30ms)
+
+codigo=0

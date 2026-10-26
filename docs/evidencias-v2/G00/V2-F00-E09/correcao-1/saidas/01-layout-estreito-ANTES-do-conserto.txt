@@ -1,0 +1,64 @@
+
+== 1. Preparo: pessoa de nome longo, criada pela API ==
+  OK   a administradora entra pela API
+  OK   a pessoa de nome longo foi cadastrada
+  OK   a coordenadora de teste foi cadastrada
+
+== 2. As janelas de confirmação cabem, do celular pequeno à mesa ==
+  FALHA "Encerrar sessões" a 320 px: o botao com o nome inteiro cabe na janela (o painel da janela ganhou rolagem horizontal (527 contra 270; passam da borda: button.botao botao--perigo "Encerrar sessões de Marcos Vinicius Tele"))
+  FALHA "Encerrar sessões" a 390 px: o botao com o nome inteiro cabe na janela (o painel da janela ganhou rolagem horizontal (527 contra 340; passam da borda: button.botao botao--perigo "Encerrar sessões de Marcos Vinicius Tele"))
+  OK   "Encerrar sessões" a 768 px: o botao com o nome inteiro cabe na janela
+  OK   "Encerrar sessões" a 1280 px: o botao com o nome inteiro cabe na janela
+  FALHA "Redefinir senha" a 320 px: o botao com o nome inteiro cabe na janela (o painel da janela ganhou rolagem horizontal (529 contra 270; passam da borda: button.botao botao--perigo "Redefinir a senha de Marcos Vinicius Tel"))
+  FALHA "Redefinir senha" a 390 px: o botao com o nome inteiro cabe na janela (o painel da janela ganhou rolagem horizontal (529 contra 340; passam da borda: button.botao botao--perigo "Redefinir a senha de Marcos Vinicius Tel"))
+  OK   "Redefinir senha" a 768 px: o botao com o nome inteiro cabe na janela
+  OK   "Redefinir senha" a 1280 px: o botao com o nome inteiro cabe na janela
+
+== 3. A barra de navegação não corta os rótulos ==
+  OK   a 320 px a barra existe e tem o item "Mapa da cidade"
+  FALHA a 320 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra (255..416 de 320)
+  OK   a 320 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 320 px nenhum item da barra tem texto cortado
+  OK   a 320 px todo item tem pelo menos 44 px de toque
+  OK   a 320 px a página não ganhou rolagem horizontal
+  OK   a 360 px a barra existe e tem o item "Mapa da cidade"
+  FALHA a 360 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra (255..416 de 360)
+  OK   a 360 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 360 px nenhum item da barra tem texto cortado
+  OK   a 360 px todo item tem pelo menos 44 px de toque
+  OK   a 360 px a página não ganhou rolagem horizontal
+  OK   a 361 px a barra existe e tem o item "Mapa da cidade"
+  FALHA a 361 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra (255..416 de 361)
+  OK   a 361 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 361 px nenhum item da barra tem texto cortado
+  OK   a 361 px todo item tem pelo menos 44 px de toque
+  OK   a 361 px a página não ganhou rolagem horizontal
+  OK   a 390 px a barra existe e tem o item "Mapa da cidade"
+  FALHA a 390 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra (255..416 de 390)
+  OK   a 390 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 390 px nenhum item da barra tem texto cortado
+  OK   a 390 px todo item tem pelo menos 44 px de toque
+  OK   a 390 px a página não ganhou rolagem horizontal
+  OK   a 768 px a barra existe e tem o item "Mapa da cidade"
+  OK   a 768 px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra
+  OK   a 768 px o rótulo de "Mapa da cidade" cabe no próprio botão
+  OK   a 768 px nenhum item da barra tem texto cortado
+  OK   a 768 px todo item tem pelo menos 44 px de toque
+  OK   a 768 px a página não ganhou rolagem horizontal
+  FALHA a 390 px o ladrilho da tela atual (Organização) está inteiro à vista ({"texto":"Organização","esq":1242.515625,"dir":1379.609375,"largura":390})
+  OK   o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada
+  OK   a 1280 px a barra é a lateral e não o pé da tela
+
+== 4. O painel pede só o que o papel pode ver ==
+  FALHA o operador abre /painel sem pedir as devolvidas (que ele não pode ver) (pedidos: 403,403)
+  FALHA o operador em /painel não lê a frase de que a consulta falhou 
+  OK   a coordenadora abre /painel e pede as devolvidas, com 200
+  FALHA o operador abre /ocorrencias sem pedir as devolvidas (que ele não pode ver) (pedidos: 403,403)
+  FALHA o operador em /ocorrencias não lê a frase de que a consulta falhou 
+  OK   a coordenadora abre /ocorrencias e pede as devolvidas, com 200
+
+====================================================
+Passou: 37   Falhou: 13
+
+Erros de console/pagina (4):
+  - console: Failed to load resource: the server responded with a status of 403 (Forbidden)

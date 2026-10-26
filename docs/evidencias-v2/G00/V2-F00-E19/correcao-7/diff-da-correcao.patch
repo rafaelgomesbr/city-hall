@@ -1,0 +1,235 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 180a888..4550f04 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1557,7 +1557,14 @@ O que o portão anula: toda chamada fixa o registro oficial
+ (`https://registry.npmjs.org/`) e desliga `offline`, `prefer-offline` e
+ `dry-run` na linha de comando, que vence variável de ambiente e `.npmrc`; então
+ `offline=true` ou outro registro, num `.npmrc` do projeto, do usuário ou global,
+-ou em `npm_config_*`, não mudam para onde ele pergunta. O que ele exige antes de
++ou em `npm_config_*`, não mudam para onde ele pergunta. O escopo também não
++depende de onde o comando é dado: as consultas da raiz rodam sempre NA raiz (e a
++do aplicativo no aplicativo), com `--workspaces=false` e sem as variáveis
++`npm_config_workspace`, `npm_config_workspaces` e `npm_config_include_workspace_root`
++no ambiente, porque o npm audita só o workspace em que está e devolve "limpo" para
++o resto (dado de dentro de `packages/shared`, o comando ficava em "Runtime limpo"
++com uma dependência de runtime vulnerável na raiz). Um `workspace=` fixado num
++`.npmrc` faz o npm recusar a chamada, e aí o portão sai 2. O que ele exige antes de
+ aprovar: cada relatório diz quantas dependências olhou; as advisories aceitas do
+ aplicativo (por GHSA) e os pacotes aceitos de desenvolvimento voltam DENTRO das
+ próprias consultas (se uma some, a resposta foi forjada no caminho ou a lista
+diff --git a/dc360/scripts/auditar-excecoes.mjs b/dc360/scripts/auditar-excecoes.mjs
+index b5c31a8..f954712 100644
+--- a/dc360/scripts/auditar-excecoes.mjs
++++ b/dc360/scripts/auditar-excecoes.mjs
+@@ -330,8 +330,26 @@ export const BANDEIRAS_DA_CONSULTA_REAL = Object.freeze([
+   "--prefer-offline=false",
+   "--prefer-online",
+   "--dry-run=false",
++  "--workspaces=false",
+ ]);
+ 
++/**
++ * O ambiente com que toda chamada ao `npm audit` roda: o do processo, SEM as
++ * variáveis que restringem o npm a um workspace (`npm_config_workspace`,
++ * `npm_config_workspaces`, `npm_config_include_workspace_root`, em qualquer caixa
++ * e com `-` ou `_`). Dentro de um workspace, ou com uma delas definida, o npm
++ * audita só aquele workspace e devolve um relatório bem formado e limpo para a
++ * raiz inteira (validação pré-rodada 7: a raiz com `fastify@4.10.0` saía 1, e o
++ * mesmo comando rodado de dentro de `packages/shared` saía 0 com "Runtime
++ * limpo"). Junto com `cwd` fixo na raiz e com `--workspaces=false` na chamada,
++ * é o que impede que o escopo da auditoria dependa de onde o comando foi dado.
++ */
++export function ambienteDaConsulta(env) {
++  return Object.fromEntries(Object.entries(env).filter(
++    ([nome]) => !/^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(nome),
++  ));
++}
++
+ /**
+  * A consulta de controle: um projeto mínimo com uma versão de pacote que TEM
+  * advisory publicada há anos. Se o registro responde de verdade, ela volta com a
+diff --git a/dc360/scripts/auditar.mjs b/dc360/scripts/auditar.mjs
+index 94ff606..380777a 100755
+--- a/dc360/scripts/auditar.mjs
++++ b/dc360/scripts/auditar.mjs
+@@ -41,7 +41,7 @@ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, BANDEIRAS_DA_CONSULTA_REAL, CONTROLE, REGISTRO_OFICIAL,
+-  aceitasAusentes, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
++  aceitasAusentes, ambienteDaConsulta, advisoriesNaoAceitas, advisoriesProprias, arquivosDoControle, defeitoDaArvore, defeitoDoControle,
+   idDaAdvisory, mudancasDeGravidade, pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
+@@ -110,12 +110,19 @@ function relatorioValido(relatorio) {
+   return null;
+ }
+ 
++/**
++ * `cwd` é obrigatório e nunca o do processo: o npm restringe a auditoria ao
++ * workspace em que o comando é dado, então auditar "a raiz" no diretório atual
++ * dava "Runtime limpo" quando o portão era chamado de dentro de `packages/shared`
++ * (validação pré-rodada 7, V2-F00-E19 correção 7). A raiz é `RAIZ`, sempre.
++ */
+ function auditar(argumentos, cwd, rotulo) {
++  if (typeof cwd !== "string" || cwd === "") throw new Error(`auditar(${rotulo}): cwd é obrigatório`);
+   let saida;
+   try {
+     saida = execFileSync("npm", ["audit", "--json", ...BANDEIRAS_DA_CONSULTA_REAL, ...argumentos], {
+       encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
+-      ...(cwd ? { cwd } : {}),
++      cwd, env: ambienteDaConsulta(process.env),
+     });
+   } catch (erro) {
+     // `npm audit` sai com código diferente de zero quando acha algo, e o JSON
+@@ -165,10 +172,10 @@ if (defeitosDaLista.length > 0) {
+   process.exit(1);
+ }
+ 
+-const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], undefined, "o conjunto de runtime da raiz");
++const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"], RAIZ, "o conjunto de runtime da raiz");
+ // `--include` explícito: `omit=dev` na configuração do npm não esconde o desenvolvimento.
+ const relatorioDeTudo = auditar(
+-  ["--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], undefined, "o conjunto completo da raiz",
++  ["--include=dev", "--include=optional", "--include=peer", "--audit-level=low"], RAIZ, "o conjunto completo da raiz",
+ );
+ const runtime = contar(relatorioDoRuntime);
+ const tudo = contar(relatorioDeTudo);
+diff --git a/dc360/scripts/auditar.test.mjs b/dc360/scripts/auditar.test.mjs
+index a706a9c..faddc31 100644
+--- a/dc360/scripts/auditar.test.mjs
++++ b/dc360/scripts/auditar.test.mjs
+@@ -27,7 +27,7 @@ import { after, before, describe, it } from "node:test";
+ import { fileURLToPath } from "node:url";
+ import {
+   ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, CONTROLE, REGISTRO_OFICIAL,
+-  aceitasAusentes, advisoriesNaoAceitas, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
++  aceitasAusentes, advisoriesNaoAceitas, ambienteDaConsulta, defeitoDaArvore, defeitoDoControle, idDaAdvisory, mudancasDeGravidade,
+   pacotesAceitosAusentes, pacotesDeRuntimeNoCompleto, problemasDasExcecoes,
+ } from "./auditar-excecoes.mjs";
+ 
+@@ -47,7 +47,8 @@ const args = process.argv.slice(2);
+ const controle = /\\/auditar-controle-[^/]*$/.test(cwd);
+ if (process.env.AUDITAR_LOG) {
+   const npmrc = existsSync(".npmrc") ? readFileSync(".npmrc", "utf8").trim() : null;
+-  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), args, npmrc }) + "\\n");
++  const workspaceNoAmbiente = Object.keys(process.env).filter((n) => /^npm_config_(workspaces?|include[_-]workspace[_-]root)$/i.test(n));
++  appendFileSync(process.env.AUDITAR_LOG, JSON.stringify({ controle, app: cwd.endsWith("apps/campo"), cwd, args, npmrc, workspaceNoAmbiente }) + "\\n");
+ }
+ const fixado = args.includes("--registry=${REGISTRO_OFICIAL}") && args.includes("--offline=false");
+ const rel = f.ignorarBandeiras || (f.offline && !fixado) ? f.vazioBemFormado
+@@ -133,18 +134,18 @@ function fixtura({
+   return JSON.stringify({ runtime, tudo, app, controle, vazioBemFormado: VAZIO_BEM_FORMADO, ...resto });
+ }
+ 
+-function rodar(opcoes, { env = {} } = {}) {
++function rodar(opcoes, { env = {}, cwd } = {}) {
+   const r = spawnSync(process.execPath, [SCRIPT], {
+-    encoding: "utf8",
++    encoding: "utf8", ...(cwd ? { cwd } : {}),
+     env: { ...process.env, PATH: pasta + delimiter + process.env.PATH, AUDITAR_FIXTURE: fixtura(opcoes), ...env },
+   });
+   return { codigo: r.status, saida: r.stdout + r.stderr };
+ }
+ 
+ /** Roda e devolve também cada chamada que o npm falso recebeu. */
+-function rodarComRegistro(opcoes) {
++function rodarComRegistro(opcoes, { env = {}, cwd } = {}) {
+   const log = join(mkdtempSync(join(tmpdir(), "auditar-log-")), "chamadas.jsonl");
+-  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log } });
++  const resultado = rodar(opcoes, { env: { AUDITAR_LOG: log, ...env }, cwd });
+   const chamadas = existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l)) : [];
+   rmSync(dirname(log), { recursive: true, force: true });
+   return { ...resultado, chamadas };
+@@ -302,7 +303,7 @@ describe("auditar.mjs", () => {
+     assert.equal(codigo, 0, saida);
+     assert.equal(chamadas.length, 5, JSON.stringify(chamadas)); // runtime, tudo, aplicativo e dois controles
+     for (const { args } of chamadas) {
+-      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false"]) {
++      for (const bandeira of [`--registry=${REGISTRO_OFICIAL}`, "--offline=false", "--prefer-offline=false", "--prefer-online", "--dry-run=false", "--workspaces=false"]) {
+         assert.ok(args.includes(bandeira), `falta ${bandeira} em ${args.join(" ")}`);
+       }
+     }
+@@ -312,6 +313,53 @@ describe("auditar.mjs", () => {
+     assert.match(saida, /Consulta de controle: lodash 4\.17\.20 voltou com GHSA-35jh-r3h4-6jhm/);
+   });
+ 
++  /*
++    Pré-validação da rodada 7, V2-F00-E19: `auditar()` recebia `cwd` undefined nas
++    duas consultas da raiz, então o `npm audit` rodava no diretório do PROCESSO.
++    Dentro de um workspace (`cd packages/shared && node ../../scripts/auditar.mjs`)
++    o npm audita só aquele workspace: com `fastify@4.10.0` no lockfile a raiz saía 1
++    e o mesmo comando de dentro do workspace saía 0 com "Runtime limpo". O mesmo
++    vale para `npm_config_workspace` no ambiente.
++  */
++  it("audita a RAIZ, e não o diretório de onde o comando foi dado (de dentro de um workspace)", () => {
++    const raiz = join(AQUI, "..");
++    const workspace = join(raiz, "packages", "shared");
++    assert.ok(existsSync(join(workspace, "package.json")), "o teste precisa de um workspace real");
++    const { codigo, saida, chamadas } = rodarComRegistro({}, { cwd: workspace });
++    assert.equal(codigo, 0, saida);
++    const daRaiz = chamadas.filter((c) => !c.controle && !c.app);
++    assert.equal(daRaiz.length, 2, JSON.stringify(chamadas));
++    for (const { cwd } of daRaiz) assert.equal(cwd, raiz.replaceAll("\\", "/"), "a consulta da raiz rodou fora da raiz");
++    assert.ok(chamadas.some((c) => c.app && c.cwd.endsWith("apps/campo")), "o aplicativo audita com o cwd dele");
++    assert.ok(chamadas.filter((c) => c.controle).every((c) => !c.cwd.startsWith(raiz.replaceAll("\\", "/"))), "o controle roda na pasta temporária");
++  });
++
++  it("nenhuma configuração de workspace do ambiente chega ao npm (npm_config_workspace, workspaces e include_workspace_root)", () => {
++    const { codigo, saida, chamadas } = rodarComRegistro({}, {
++      env: {
++        npm_config_workspace: "packages/shared", NPM_CONFIG_WORKSPACES: "true",
++        "npm_config_include-workspace-root": "false", npm_config_include_workspace_root: "false",
++      },
++    });
++    assert.equal(codigo, 0, saida);
++    assert.equal(chamadas.length, 5);
++    for (const { workspaceNoAmbiente, args } of chamadas) {
++      assert.deepEqual(workspaceNoAmbiente, []);
++      assert.ok(args.includes("--workspaces=false"));
++      assert.ok(!args.some((a) => /^--workspace(=|$)/.test(a)));
++    }
++  });
++
++  it("vulnerabilidade de runtime reprova (1) também quando o comando é dado de dentro de um workspace e com npm_config_workspace", () => {
++    const workspace = join(AQUI, "..", "packages", "shared");
++    const { codigo, saida } = rodar(
++      { runtime: relatorio({ fastify: true }) },
++      { cwd: workspace, env: { npm_config_workspace: "packages/shared" } },
++    );
++    assert.equal(codigo, 1, saida);
++    assert.match(saida, /dependência de runtime/);
++  });
++
+   it("com offline=true na configuração do npm, audita mesmo assim: a advisory nova reprova em vez de virar 'Runtime limpo'", () => {
+     const { codigo, saida } = rodar({ offline: true, app: juntar(APP_ACEITO, relatorio({ "pacote-novo": false })) });
+     assert.equal(codigo, 1, saida);
+@@ -410,6 +458,14 @@ describe("auditar.mjs", () => {
+ });
+ 
+ describe("regras puras do portão: advisory por id e prova de consulta", () => {
++  it("ambienteDaConsulta tira só as variáveis de workspace do npm, em qualquer caixa, e mantém o resto", () => {
++    const env = {
++      PATH: "/bin", npm_config_registry: "x", npm_config_workspace: "a", NPM_CONFIG_WORKSPACES: "true",
++      npm_config_include_workspace_root: "1", "npm_config_include-workspace-root": "1", npm_config_workspace_x: "mantém",
++    };
++    assert.deepEqual(ambienteDaConsulta(env), { PATH: "/bin", npm_config_registry: "x", npm_config_workspace_x: "mantém" });
++  });
++
+   it("idDaAdvisory tira o GHSA da URL ou do texto, normalizado, e cai no número do npm sem GHSA", () => {
+     assert.equal(idDaAdvisory({ url: "https://github.com/advisories/GHSA-86W9-CPQP-85RV" }), "GHSA-86w9-cpqp-85rv");
+     assert.equal(idDaAdvisory("ghsa-86w9-cpqp-85rv"), "GHSA-86w9-cpqp-85rv");
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 0f6b26e..3e30778 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -137,7 +137,7 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
+     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
+     dava 0 para este arquivo e por isso ele ficou de fora).
+   */
+-  "V2-F00-E19": 54, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita)
++  "V2-F00-E19": 58, // 28 até a correção 5; a correção 6 (2026-10-20) acrescentou 17 casos (prova de consulta real ao registro, exceções por advisory) e a 6b mais 9 (advisories aceitas como canário dentro das auditorias reais, gravidade aceita); a correção 7 (2026-10-20) mais 4 (a raiz é auditada na raiz e sem variável de workspace: de dentro de um workspace, com npm_config_workspace, o ambiente puro e a reprovação de runtime)
+   /*
+     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
+     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em

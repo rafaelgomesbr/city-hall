@@ -1,0 +1,156 @@
+$ npm run test:e2e   (em .)
+codigo=0 duracao=43s situacao=confere
+
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+✓ 184 modules transformed.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      3.67 kB │ gzip:     1.50 kB
+dist/assets/postgres-CkP7QCDB.data               5,401.75 kB
+dist/assets/postgres-CyuUVpXN.wasm               8,090.73 kB │ gzip: 2,782.95 kB
+dist/assets/index-C95miVQA.css                      41.92 kB │ gzip:     7.82 kB
+dist/assets/__vite-browser-external-BIHI7g3E.js      0.03 kB │ gzip:     0.05 kB
+dist/assets/nodefs-D0WDSTm7.js                       0.42 kB │ gzip:     0.29 kB
+dist/assets/opfs-ahp-C8MBlbZG.js                    10.01 kB │ gzip:     3.04 kB
+dist/assets/index-Cur4Fjbq.js                    1,639.33 kB │ gzip:   429.04 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.89s
+
+[baseline] preparo (npm run build --workspace @dc360/web) saiu com 0
+[baseline] http://localhost:4173 respondeu; rodando o teste
+
+
+> dc360@0.1.0 test:e2e
+> npm run test:e2e --workspace @dc360/web
+
+
+> @dc360/web@0.1.0 test:e2e
+> node test/fluxo.e2e.mjs
+
+
+== 1. Entrada e preparo do banco ==
+  OK   lista de contas carregou dos dois municipios
+  OK   Serra Alta aparece
+  OK   Vale Fundo aparece
+
+== 2. Painel do coordenador de Serra Alta ==
+  OK   entrar a partir de / leva a tela do papel
+  OK   abrir / com a sessao aberta desvia para a tela do papel
+  OK   indicador Na fila conta as 6 ativas de Serra Alta
+  OK   uma critica ativa
+  OK   fila mostra protocolo critico primeiro
+
+== 3. Isolamento entre municipios ==
+  OK   protocolo de Vale Fundo NAO aparece para Serra Alta
+
+== 3b. Busca global: funcao com erro de digitacao, e a lupa fora do texto ==
+  OK   digitar 'ocorencia' mostra Ocorrências no grupo Ir para
+  OK   a caixa e um combobox e declara a lista aberta
+  OK   o trecho casado vem marcado
+  OK   o aria-live conta os resultados
+  OK   o texto do campo comeca depois da lupa
+  OK   a dica do atalho esta escrita na caixa
+  OK   a seta ativa o primeiro item e a caixa aponta para ele por aria-activedescendant
+  OK   Enter no item escolhido abre a pagina de Ocorrências
+  OK   a lista fecha depois da escolha
+  OK   Ctrl+K foca a caixa de busca
+
+== 4. Registrar ocorrencia: protocolo gerado pelo banco ==
+  OK   o link colado vira coordenada reconhecida na tela
+  OK   protocolo segue a sequencia do municipio (000479/2026)
+  OK   status inicial Registrada
+  OK   encerramento nao e oferecido antes da triagem
+
+== 5. Fluxo completo: triagem, despacho, encerramento ==
+  OK   triagem gravou e o bloco de despacho apareceu
+  OK   prazo de 24h herdado da severidade alta
+  OK   aviso de vulnerabilidade visivel
+  OK   status virou Em campo
+  OK   equipe designada aparece
+  OK   trilha tem 3 eventos com autoria
+  OK   trilha nomeia autor e papel
+
+== 6. Encerramento exige motivo, e dois toques ==
+  OK   recusa encerrar sem motivo
+  OK   motivo vazio nao chega a pedir confirmacao
+  OK   o primeiro toque pergunta e nao encerra
+  OK   a confirmacao diz qual protocolo esta sendo encerrado
+  OK   encerrou com motivo
+  OK   motivo aparece no cartao de encerramento
+
+== 7. Painel refletiu o encerramento ==
+  OK   Na fila voltou para 6 (entrou 1, encerrou 1)
+
+== 8. Equipes: cadastrar, editar, desativar ==
+  OK   equipe criada aparece na tabela
+  OK   recusa nome duplicado no mesmo municipio
+
+== 9. Usuarios ==
+  OK   usuario criado
+  OK   nao permite desativar a propria conta
+
+== 9b. Imovel interditado ==
+  OK   o painel lista o imovel interditado
+  OK   mostra ha quantos dias, e nao so a data
+  OK   a ocorrencia mostra o bloco de interdicao
+  OK   motivo curto e recusado antes de gravar
+  OK   levantamento gravado, com aviso na tela
+  OK   o imovel saiu da lista de interditados
+
+== 10. Mapa ==
+  OK   mapa plota as ativas com coordenada
+  OK   selecionar pino mostra o protocolo
+
+== 11. Papel restringe o menu ==
+  OK   operador nao ve Usuarios no menu
+  OK   operador nao ve Equipes no menu
+  OK   operador nao ve bloco de encerramento
+
+== 12. Isolamento visto do outro municipio ==
+  OK   Vale Fundo ve apenas as proprias 2 ocorrencias
+  OK   nenhum protocolo de Serra Alta vaza
+  OK   equipes de Serra Alta nao aparecem
+
+== 13. Tema escuro ==
+  OK   atributo data-theme aplicado
+  OK   fundo mudou para o escuro do token
+
+== 14. Tema vale tambem na tela de entrada ==
+  OK   tela de entrada respeita o tema escolhido
+  OK   fundo da entrada e o escuro do token
+
+== 15. Persistencia entre recarregamentos ==
+  OK   sessao sobreviveu ao reload
+  OK   tema sobreviveu ao reload
+
+== 16. Correcoes de acessibilidade ==
+  OK   selo de status carrega icone, nao so cor
+  OK   marcador do mapa usa forma desenhada, nao so cor de fundo
+  OK   erro de campo tem role=alert
+  OK   erro de campo tem icone
+  OK   campo aponta para o proprio erro via aria-describedby
+
+== 17. Navegacao por teclado ==
+  OK   primeiro Tab cai no atalho de pular para o conteudo
+  OK   o atalho aparece na tela quando recebe foco
+  OK   acionar o atalho leva ao conteudo
+  OK   todo item da lateral e alcancavel por teclado
+
+==================================================
+Passou: 70   Falhou: 0
+Zero erro de console.

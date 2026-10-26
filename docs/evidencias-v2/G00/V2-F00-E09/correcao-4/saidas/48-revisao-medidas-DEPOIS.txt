@@ -1,0 +1,37 @@
+minha conta: erro; foco em conta-senha-atual ; svg [14,14]
+minha conta: sucesso; foco em aviso aviso--sucesso
+minha conta: sucesso+erro; confirmações na tela 0 ; foco em conta-senha-atual
+console []
+provisória: erro; foco em senha-nova-atual ; svg [14,14]
+console []
+janela 320x568 claro {"scrollTop":0,"titulo":[70,94],"foco":"dialog"} 
+janela 320x568 escuro {"scrollTop":0,"titulo":[70,94],"foco":"dialog"} 
+janela 390x844 claro {"scrollTop":0,"titulo":[158,182],"foco":"Copiar senha"} 
+janela 390x844 escuro {"scrollTop":0,"titulo":[158,182],"foco":"Copiar senha"} 
+janela 768x1024 claro {"scrollTop":0,"titulo":[298,322],"foco":"Copiar senha"} 
+janela 768x1024 escuro {"scrollTop":0,"titulo":[298,322],"foco":"Copiar senha"} 
+janela 1280x900 claro {"scrollTop":0,"titulo":[236,260],"foco":"Copiar senha"} 
+janela 1280x900 escuro {"scrollTop":0,"titulo":[236,260],"foco":"Copiar senha"} 
+janela 1440x900 claro {"scrollTop":0,"titulo":[236,260],"foco":"Copiar senha"} 
+janela 1440x900 escuro {"scrollTop":0,"titulo":[236,260],"foco":"Copiar senha"} 
+usuarios 320 claro tabela 885/238; botões de ação fora: 74
+usuarios 320 escuro tabela 885/238; botões de ação fora: 74
+usuarios 390 claro tabela 885/308; botões de ação fora: 74
+usuarios 390 escuro tabela 885/308; botões de ação fora: 74
+usuarios 768 claro tabela 885/686; botões de ação fora: 55
+usuarios 768 escuro tabela 885/686; botões de ação fora: 55
+usuarios 1280 claro tabela 902/902; botões de ação fora: 0
+usuarios 1280 escuro tabela 902/902; botões de ação fora: 0
+usuarios 1440 claro tabela 1062/1062; botões de ação fora: 0
+usuarios 1440 escuro tabela 1062/1062; botões de ação fora: 0
+orgaos 320 claro tabela 667/238; botões de ação fora: 0
+orgaos 320 escuro tabela 667/238; botões de ação fora: 0
+orgaos 390 claro tabela 667/308; botões de ação fora: 0
+orgaos 390 escuro tabela 667/308; botões de ação fora: 0
+orgaos 768 claro tabela 686/686; botões de ação fora: 0
+orgaos 768 escuro tabela 686/686; botões de ação fora: 0
+orgaos 1280 claro tabela 667/569; botões de ação fora: 0
+orgaos 1280 escuro tabela 667/569; botões de ação fora: 0
+orgaos 1440 claro tabela 675/675; botões de ação fora: 0
+orgaos 1440 escuro tabela 675/675; botões de ação fora: 0
+console []

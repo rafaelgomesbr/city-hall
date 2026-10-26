@@ -1,0 +1,29 @@
+FAIL src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx
+  a câmera aberta
+    ✕ com o aparelho no tema light, 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor (138 ms)
+    ✓ com o aparelho no tema dark, 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor (50 ms)
+
+  ● a câmera aberta › com o aparelho no tema light, 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 4.5
+    Received:    1.186538465852321
+
+      204 |     const contorno = StyleSheet.flatten(botao.props.style) as { borderColor: string };
+      205 |
+    > 206 |     expect(contraste(rotulo.color, visor.fundo)).toBeGreaterThanOrEqual(4.5);
+          |                                                  ^
+      207 |     expect(contraste(contorno.borderColor, visor.fundo)).toBeGreaterThanOrEqual(3);
+      208 |   });
+      209 | });
+
+      at toBeGreaterThanOrEqual (src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx:206:50)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        1.744 s, estimated 5 s
+Ran all test suites matching /src\/__tests__\/vistoria-camera-legivel-sobre-o-visor.test.tsx/i.

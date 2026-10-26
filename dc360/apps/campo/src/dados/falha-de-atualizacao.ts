@@ -13,13 +13,14 @@ import { SemSinal } from "./api";
  * sozinho, sessão encerrada não passa nunca, e as duas frases mandavam o
  * agente fazer a mesma coisa (esperar).
  *
- * São cinco desfechos porque são cinco atos diferentes:
+ * São seis desfechos porque são seis atos diferentes:
  *
  * | Motivo | O que o agente faz |
  * | --- | --- |
  * | `sem-sinal` | espera o sinal voltar, e continua trabalhando no que baixou |
  * | `sessao-encerrada` | entra de novo, e ATÉ LÁ nada novo desce |
  * | `conta-desativada` | NADA que ele faça resolve: quem resolve é a coordenação |
+ * | `troca-de-senha` | define a senha no painel e entra de novo |
  * | `acesso-suspenso` | NADA que ele faça resolve: quem resolve é quem administra o contrato |
  * | `outro` | tenta de novo daqui a pouco |
  *
@@ -28,7 +29,12 @@ import { SemSinal } from "./api";
  * desativada não resolve nunca. É lido pelo CÓDIGO, não pelo status, pelo mesmo
  * motivo da suspensão: o 403 também serve a `sem_permissao`, que é outra coisa.
  *
- * O quarto entrou com a suspensão de acesso pelo fornecedor (migração 038 e
+ * `troca-de-senha` entrou na correção 1 da E06: quem entra com a senha provisória
+ * que a coordenação sorteou recebe 403 `troca_de_senha_obrigatoria` em toda
+ * rota, e o aplicativo não tem tela para trocá-la. "Outro" mandava tentar de
+ * novo daqui a pouco; a frase certa manda definir a senha no painel.
+ *
+ * O `acesso-suspenso` entrou com a suspensão de acesso pelo fornecedor (migração 038 e
  * `auth/suspensao.ts` na API). Ele existe separado do segundo porque a frase
  * do segundo manda entrar de novo, e entrar de novo num município suspenso dá
  * 403 para sempre: o botão mandaria o agente fazer a única coisa que não
@@ -46,6 +52,7 @@ export type MotivoDaFalha =
   | "sem-sinal"
   | "sessao-encerrada"
   | "conta-desativada"
+  | "troca-de-senha"
   | "acesso-suspenso"
   | "outro";
 
@@ -55,7 +62,7 @@ export type MotivoDaFalha =
  * o tempo. Fica aqui para as telas não repetirem a lista a cada aviso.
  */
 export function ehFimDeLinha(motivo: MotivoDaFalha): boolean {
-  return motivo === "sessao-encerrada" || motivo === "conta-desativada";
+  return motivo === "sessao-encerrada" || motivo === "conta-desativada" || motivo === "troca-de-senha";
 }
 
 /**
@@ -101,6 +108,14 @@ export function motivoDaFalha(erro: unknown): MotivoDaFalha {
   */
   if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "conta_desativada") {
     return "conta-desativada";
+  }
+  /*
+    A senha provisória (403), também pelo código e pelo mesmo motivo: o status
+    sozinho é `sem_permissao` para o resto. Nada que a pessoa faça no aparelho
+    resolve; quem resolve é ela mesma, no painel.
+  */
+  if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "troca_de_senha_obrigatoria") {
+    return "troca-de-senha";
   }
   /*
     O 401 vem na frente do `SemSinal` de propósito: um erro que carrega status
@@ -172,6 +187,21 @@ export function comoContarAFalha(
         + "procure a coordenação do seu município.",
     };
   }
+  if (motivo === "troca-de-senha") {
+    return {
+      resumo: "Defina a sua senha",
+      /*
+        O fato, onde resolver (o aplicativo não tem tela para isso) e a promessa.
+        NÃO manda entrar de novo: entrar de novo com a provisória volta a esta
+        mesma frase. A promessa é verdade pela correção 1 da E06: a fila trata o
+        403 como pausa, e a coleta espera em vez de virar bloqueada.
+      */
+      detalhe:
+        "Você entrou com uma senha provisória. Defina a sua senha no painel, no "
+        + "computador (a tela de entrada pede isso), e depois entre aqui de novo. "
+        + "Suas coletas continuam guardadas neste aparelho.",
+    };
+  }
   if (motivo === "acesso-suspenso") {
     return {
       resumo: "Acesso suspenso pelo fornecedor",
@@ -189,8 +219,8 @@ export function comoContarAFalha(
         "O fornecedor do sistema suspendeu o acesso da sua prefeitura, e por isso "
         + "nada novo desce para este aparelho. Sair da conta ou tentar entrar outra "
         + "vez não resolve: quem resolve é quem administra o contrato na prefeitura. "
-        + "O que você já coletou continua guardado no aparelho e sobe sozinho se o "
-        + "acesso voltar.",
+        + "O que você já coletou continua guardado no aparelho e sobe se o "
+        + "acesso voltar, com o aplicativo aberto.",
     };
   }
   if (motivo === "sem-sinal") {

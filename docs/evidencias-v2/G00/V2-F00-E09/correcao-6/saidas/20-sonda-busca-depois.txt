@@ -1,0 +1,15 @@
+[depois chromium 320x568] CABE texto 176.8 px, área do texto 226.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois chromium 360x700] CABE texto 176.8 px, área do texto 266.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois chromium 390x844] CABE texto 176.8 px, área do texto 296.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois chromium 601x700] CABE texto 176.8 px, área do texto 354.0 px, dica do atalho visível, aria-describedby=busca-global-atalho
+[depois chromium 768x600] CABE texto 176.8 px, área do texto 260.8 px, dica do atalho visível, aria-describedby=busca-global-atalho
+[depois firefox 320x568] CABE texto 176.8 px, área do texto 226.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois firefox 360x700] CABE texto 176.8 px, área do texto 266.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois firefox 390x844] CABE texto 176.8 px, área do texto 296.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois firefox 601x700] CABE texto 176.8 px, área do texto 354.0 px, dica do atalho visível, aria-describedby=busca-global-atalho
+[depois firefox 768x600] CABE texto 176.8 px, área do texto 260.5 px, dica do atalho visível, aria-describedby=busca-global-atalho
+[depois webkit 320x568] CABE texto 176.5 px, área do texto 226.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois webkit 360x700] CABE texto 176.5 px, área do texto 266.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois webkit 390x844] CABE texto 176.5 px, área do texto 296.0 px, dica do atalho escondida, aria-describedby=busca-global-atalho
+[depois webkit 601x700] CABE texto 176.5 px, área do texto 354.0 px, dica do atalho visível, aria-describedby=busca-global-atalho
+[depois webkit 768x600] CABE texto 176.5 px, área do texto 260.8 px, dica do atalho visível, aria-describedby=busca-global-atalho

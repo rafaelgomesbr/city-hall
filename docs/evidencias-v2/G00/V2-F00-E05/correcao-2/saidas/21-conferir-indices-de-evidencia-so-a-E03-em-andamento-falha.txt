@@ -1,0 +1,47 @@
+Índices de evidência: 64 INDEX.md, 2185 arquivo(s) conferido(s) byte a byte.
+FALHA G00/V2-F00-E03/INDEX.md
+  - linha 8: classificacao-dos-vermelhos.md tem SHA-256 diferente do índice
+  - linha 94: correcao-5/saidas/01-ANTES-VERMELHO-openssl-do-teste-no-libressl.txt está no índice e não existe na pasta
+  - linha 95: correcao-5/saidas/02-DEPOIS-VERDE-openssl-do-teste-e-banco-tls.txt está no índice e não existe na pasta
+  - linha 96: correcao-5/saidas/03-mutante-solta-sempre-a-variavel.txt está no índice e não existe na pasta
+  - linha 97: correcao-5/saidas/04-mutante-nunca-solta-a-variavel.txt está no índice e não existe na pasta
+  - linha 98: correcao-5/saidas/05-mutante-espera-ca-de-openssl3-no-libressl.txt está no índice e não existe na pasta
+  - linha 100: correcao-5/saidas/06a-regressao-test-api-primeira-rodada.txt está no índice e não existe na pasta
+  - linha 103: correcao-5/saidas/09-baseline-teste-api-sob-carga-50-NAO-VALE.txt está no índice e não existe na pasta
+  - correcao-5/saidas/02-DEPOIS-VERDE-openssl-do-teste-libressl.txt existe na pasta e não está no índice
+  - correcao-5/saidas/02-DEPOIS-VERDE-openssl-do-teste-openssl3.txt existe na pasta e não está no índice
+  - correcao-5/saidas/03-DEPOIS-VERDE-banco-tls-libressl.txt existe na pasta e não está no índice
+  - correcao-5/saidas/03-DEPOIS-VERDE-banco-tls-openssl3.txt existe na pasta e não está no índice
+  - correcao-5/saidas/04-ANTES-teste-de-HEAD-libressl.txt existe na pasta e não está no índice
+  - correcao-5/saidas/04-ANTES-teste-de-HEAD-openssl3.txt existe na pasta e não está no índice
+  - correcao-5/saidas/05-mutante-gerador-poe-o-uso-estendido-libressl.txt existe na pasta e não está no índice
+  - correcao-5/saidas/05-mutante-gerador-poe-o-uso-estendido-openssl3.txt existe na pasta e não está no índice
+  - correcao-5/saidas/05-mutante-ignora-o-ambiente-libressl.txt existe na pasta e não está no índice
+  - correcao-5/saidas/05-mutante-ignora-o-ambiente-openssl3.txt existe na pasta e não está no índice
+  - correcao-5/saidas/05-mutante-nunca-solta-a-variavel-libressl.txt existe na pasta e não está no índice
+  - correcao-5/saidas/05-mutante-nunca-solta-a-variavel-openssl3.txt existe na pasta e não está no índice
+  - e mais 3
+FALHA G00/V2-F00-E03/correcao-5/INDEX.md
+  - linha 7: saidas/01-ANTES-VERMELHO-openssl-do-teste-no-libressl.txt está no índice e não existe na pasta
+  - linha 8: saidas/02-DEPOIS-VERDE-openssl-do-teste-e-banco-tls.txt está no índice e não existe na pasta
+  - linha 9: saidas/03-mutante-solta-sempre-a-variavel.txt está no índice e não existe na pasta
+  - linha 10: saidas/04-mutante-nunca-solta-a-variavel.txt está no índice e não existe na pasta
+  - linha 11: saidas/05-mutante-espera-ca-de-openssl3-no-libressl.txt está no índice e não existe na pasta
+  - linha 13: saidas/06a-regressao-test-api-primeira-rodada.txt está no índice e não existe na pasta
+  - linha 16: saidas/09-baseline-teste-api-sob-carga-50-NAO-VALE.txt está no índice e não existe na pasta
+  - saidas/02-DEPOIS-VERDE-openssl-do-teste-libressl.txt existe na pasta e não está no índice
+  - saidas/02-DEPOIS-VERDE-openssl-do-teste-openssl3.txt existe na pasta e não está no índice
+  - saidas/03-DEPOIS-VERDE-banco-tls-libressl.txt existe na pasta e não está no índice
+  - saidas/03-DEPOIS-VERDE-banco-tls-openssl3.txt existe na pasta e não está no índice
+  - saidas/04-ANTES-teste-de-HEAD-libressl.txt existe na pasta e não está no índice
+  - saidas/04-ANTES-teste-de-HEAD-openssl3.txt existe na pasta e não está no índice
+  - saidas/05-mutante-gerador-poe-o-uso-estendido-libressl.txt existe na pasta e não está no índice
+  - saidas/05-mutante-gerador-poe-o-uso-estendido-openssl3.txt existe na pasta e não está no índice
+  - saidas/05-mutante-ignora-o-ambiente-libressl.txt existe na pasta e não está no índice
+  - saidas/05-mutante-ignora-o-ambiente-openssl3.txt existe na pasta e não está no índice
+  - saidas/05-mutante-nunca-solta-a-variavel-libressl.txt existe na pasta e não está no índice
+  - saidas/05-mutante-nunca-solta-a-variavel-openssl3.txt existe na pasta e não está no índice
+  - saidas/05-mutante-sempre-solta-a-variavel-libressl.txt existe na pasta e não está no índice
+  - e mais 2
+RESULTADO: 2 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+codigo=1

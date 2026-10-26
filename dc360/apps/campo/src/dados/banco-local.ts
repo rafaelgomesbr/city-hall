@@ -195,6 +195,9 @@ export function esquecerConexao(): void {
  * fotos e assinatura da vistoria COMEÇADA, sem aviso, para a mesma pessoa
  * entrar de novo dois minutos depois e reencontrar a tela em branco. A sessão
  * vencida deixou de apagar o disco (`encerrarSessaoVencida`, em `sessao.tsx`),
+ * em TODAS as telas que a oferecem: lista de tarefas, fila e tela da vistoria
+ * (esta última até a correção 1 da V2-F00-E15, que a prova com os módulos reais
+ * em `__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx`),
  * e esta marca é o que torna isso seguro num aparelho de plantão compartilhado:
  * quem entra depois é conferido contra quem deixou o dado.
  *

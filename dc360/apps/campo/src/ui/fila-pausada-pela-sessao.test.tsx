@@ -12,7 +12,8 @@
  * 1. a frase diz o fato, o que resolve e a promessa (a coleta continua guardada);
  * 2. sessão encerrada traz o botão que resolve ("Entrar de novo"); conta
  *    desativada NÃO traz, porque entrar de novo não resolve;
- * 3. o cartão da coleta deixa de prometer "vai sair assim que houver sinal";
+ * 3. o cartão da coleta deixa de prometer "vai sair quando o aplicativo estiver aberto
+ *    e houver sinal" (a coleta pausada pela sessão não sai nem assim);
  * 4. nenhum botão de apagar aparece: a coleta pausada não é uma coleta recusada;
  * 5. sem pausa, a tela é a de sempre.
  *
@@ -125,12 +126,13 @@ describe("sessão encerrada", () => {
     expect(mockFila.descartar).not.toHaveBeenCalled();
   });
 
-  it("o cartão da coleta não promete 'vai sair assim que houver sinal'", async () => {
+  it("o cartão da coleta não promete 'vai sair quando o aplicativo estiver aberto e houver sinal'", async () => {
     await abrirComPausa("sessao_encerrada");
 
-    expect(screen.queryByText(/Vai sair assim que houver sinal/)).toBeNull();
+    expect(screen.queryByText(/Vai sair quando o aplicativo estiver aberto/)).toBeNull();
+    expect(screen.queryByText(/assim que houver sinal/)).toBeNull();
     expect(screen.getAllByText("Guardada")).toHaveLength(2);
-    expect(screen.getAllByText(/Sobe sozinha depois que você entrar de novo/)).toHaveLength(2);
+    expect(screen.getAllByText(/Sobe depois que você entrar de novo/)).toHaveLength(2);
   });
 
   it("nenhuma coleta ganha 'Descartar' nem 'Tentar de novo'", async () => {
@@ -166,6 +168,33 @@ describe("conta desativada", () => {
 
     expect(screen.getAllByText(/Só sobe depois que a coordenação reativar a sua conta/)).toHaveLength(2);
     expect(screen.queryByText(/Descartar/)).toBeNull();
+  });
+});
+
+describe("senha provisória (correção 1)", () => {
+  it("diz o fato, manda definir a senha no painel e promete que a coleta continua guardada", async () => {
+    await abrirComPausa("troca_de_senha_obrigatoria");
+
+    expect(screen.getByText("Você entrou com uma senha provisória e o envio está parado")).toBeTruthy();
+    expect(screen.getByText(/Suas coletas continuam guardadas neste aparelho e nada foi apagado/)).toBeTruthy();
+    expect(screen.getByText(/Defina a sua senha no painel/)).toBeTruthy();
+  });
+
+  it("NÃO traz 'Entrar de novo': entrar com a provisória volta ao mesmo lugar", async () => {
+    await abrirComPausa("troca_de_senha_obrigatoria");
+
+    expect(screen.queryByText("Entrar de novo")).toBeNull();
+  });
+
+  it("o cartão guarda a coleta, e NENHUM botão de apagar aparece (o defeito era 'Descartar')", async () => {
+    await abrirComPausa("troca_de_senha_obrigatoria");
+
+    expect(screen.getAllByText("Guardada")).toHaveLength(2);
+    expect(screen.getAllByText(/Só sobe depois que você definir a sua senha/)).toHaveLength(2);
+    expect(screen.queryByText(/Descartar/)).toBeNull();
+    expect(screen.queryByText(/Tentar de novo/)).toBeNull();
+    expect(screen.queryByText(/precisa de atenção|precisam de atenção/i)).toBeNull();
+    expect(mockFila.descartar).not.toHaveBeenCalled();
   });
 });
 

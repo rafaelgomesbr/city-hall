@@ -1,0 +1,28 @@
+migrar rc=0
+semear rc=0
+EXTENSION no dump sem --extension: 0
+### NEGATIVO 1: sem dc360_console
+pg_restore: error: could not execute query: ERROR:  role "dc360_console" does not exist
+Command was: CREATE POLICY console_codigos_insercao ON public.console_codigos_de_recuperacao FOR INSERT TO dc360_console WITH CHECK ((operador_id = public.console_operador_atual()));
+
+
+rc=1
+### NEGATIVO 2: sem derrubar o public
+pg_restore: error: could not execute query: ERROR:  schema "public" already exists
+Command was: CREATE SCHEMA public;
+
+
+rc=1
+### NEGATIVO 3: dump sem --extension
+pg_restore: error: could not execute query: ERROR:  operator class "public.gin_trgm_ops" does not exist for access method "gin"
+Command was: CREATE INDEX equipes_busca_idx ON public.equipes USING gin (busca public.gin_trgm_ops);
+
+
+rc=1
+### POSITIVO de controle
+rc=0
+### NEGATIVO 2b: sem derrubar o public, SEM --exit-on-error (aparencia de sucesso?)
+
+
+pg_restore: warning: errors ignored on restore: 752
+rc=1

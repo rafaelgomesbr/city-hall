@@ -46,6 +46,7 @@ export type EstadoDaFaixa = {
     | "esperando"
     | "sessao_encerrada"
     | "conta_desativada"
+    | "troca_de_senha_obrigatoria"
     | "precisa_de_correcao"
     | "aguardando_autor"
     | "sincronizado";

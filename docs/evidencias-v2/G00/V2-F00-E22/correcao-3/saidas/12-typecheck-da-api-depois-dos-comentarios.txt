@@ -1,0 +1,4 @@
+$ npx tsc --noEmit -p apps/api/tsconfig.json; echo "tsc saiu com $?"   (em ./dc360)
+codigo=0
+
+tsc saiu com 0

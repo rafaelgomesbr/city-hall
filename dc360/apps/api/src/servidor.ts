@@ -3,6 +3,10 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
+// Antes das rotas, de propósito: a guarda copia as primitivas que usa na carga do módulo.
+import {
+  CONTRATO_DE_ACESSO_DA_API, GENERICO_DA_API, instalarGuardaDeAcesso, type ModoDaGuarda,
+} from "./guarda-de-codigos-de-erro.js";
 import type { ZodError } from "zod";
 import type { Config } from "./config.js";
 import type { Banco } from "./banco/tipos.js";
@@ -67,6 +71,12 @@ declare module "fastify" {
      * `auth/suspensao.ts`. Não afeta permissão, não afeta isolamento.
      */
     filaDoCampo?: boolean;
+    /**
+     * Marca a rota GET que ESCREVE: muda estado ou grava trilha, exportação
+     * ou registro de acesso. A vigência (conta, papel, sessão) vale para ela
+     * como vale para um POST. Ver `ROTA_GET_COM_EFEITO`.
+     */
+    comEfeito?: boolean;
   }
 }
 
@@ -79,6 +89,31 @@ declare module "fastify" {
  * marca: uma rota nova da fila sem ela bloquearia coleta em município suspenso.
  */
 export const ROTA_DA_FILA_DO_CAMPO = { config: { filaDoCampo: true } } as const;
+
+/**
+ * A configuração de rota que marca "este GET escreve".
+ *
+ * O método HTTP não diz se um pedido escreve: abrir o termo de interdição É
+ * interditar o imóvel (e grava `documento_emitido`), baixar o CSV grava
+ * `exportacoes`, abrir o laudo ou um termo grava a emissão e o acesso, e
+ * consultar o sino de avisos materializa e expurga avisos. Decidir por
+ * `req.method !== "GET"` deixava conta desativada, papel rebaixado e sessão
+ * encerrada escreverem por esses GET (e por HEAD, que o Fastify serve com o
+ * mesmo handler), e a trilha não se corrige (V2-F00-E04, correção 1).
+ *
+ * O CRITÉRIO da marca: o GET pratica um ATO (emite documento, interdita,
+ * exporta) ou muda dado do município (materializa e expurga avisos). O GET
+ * cuja única escrita é o registro de que ELE foi lido (`registrarConsulta`:
+ * o dossiê `GET /ocorrencias/:id` e a busca) NÃO leva a marca: é leitura, o
+ * registro é a auditoria dela, e a vigência dessa leitura é da F03-E03.
+ *
+ * A marca é lida em `exigirAutenticacao` de `req.routeOptions.config`, e o HEAD
+ * automático do Fastify herda a configuração do GET. Rota GET nova que escreve
+ * e não leva a marca reprova em `test/get-com-efeito.test.ts`, que confere a
+ * lista explícita pelo comportamento e varre o fonte das rotas. A vigência em
+ * LEITURA PURA continua sendo da F03-E03.
+ */
+export const ROTA_GET_COM_EFEITO = { config: { comEfeito: true } } as const;
 
 export type Dependencias = {
   banco: Banco;
@@ -125,6 +160,12 @@ export type Dependencias = {
     despertar(): void;
     ultimaRodada(): UltimaRodada | null;
   };
+  /**
+   * O que a guarda das respostas de acesso faz com um desvio do catálogo (ver
+   * `guarda-de-codigos-de-erro.ts`). Sem isto: "falhar" em teste, "corrigir"
+   * fora dele. Só o teste da guarda passa, para provar o modo de produção.
+   */
+  modoDaGuarda?: ModoDaGuarda;
 };
 
 /**
@@ -228,7 +269,7 @@ export const CAMINHOS_REDIGIDOS = [
 export async function construirServidor(
   {
     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
-    push,
+    push, modoDaGuarda,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -333,6 +374,18 @@ export async function construirServidor(
     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
     bodyLimit: 1_048_576,
+  });
+
+  /*
+    A guarda das respostas de acesso, ANTES de qualquer rota: toda resposta 401
+    ou 403 tem de sair com um código do catálogo e o status dele. É a garantia
+    em tempo de execução; a varredura do fonte é a primeira linha, e não fecha a
+    classe sozinha. Ver `guarda-de-codigos-de-erro.ts`.
+  */
+  instalarGuardaDeAcesso(app, {
+    modo: modoDaGuarda ?? (config.NODE_ENV === "test" ? "falhar" : "corrigir"),
+    contrato: CONTRATO_DE_ACESSO_DA_API,
+    generico: GENERICO_DA_API,
   });
 
   /*
@@ -464,18 +517,25 @@ export async function construirServidor(
     /*
       ESCRITA confere, numa ida só ao banco, a suspensão do município E a
       vigência de quem escreve: conta ativa, papel igual ao do token, sessão
-      não encerrada, senha provisória dentro do prazo. LEITURA com token vivo
-      não vai ao banco (a vigência em leitura é da F03-E03, centralizada em
-      `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o da
-      vigência, em `auth/vigencia.ts`. `HEAD` conta como leitura porque é o
-      que ele é.
+      não encerrada, senha provisória dentro do prazo. LEITURA PURA com token
+      vivo não vai ao banco (a vigência em leitura é da F03-E03, centralizada
+      em `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o
+      da vigência, em `auth/vigencia.ts`.
+
+      Escrita é "método diferente de GET e HEAD" OU "rota marcada com efeito"
+      (`ROTA_GET_COM_EFEITO`). A segunda metade existe porque há GET que
+      escreve: o termo de interdição, o laudo, o termo de desinterdição e os
+      PDFs, o CSV e o sino de avisos. O HEAD dessas rotas
+      é servido pelo mesmo handler e carrega a mesma marca, então também
+      confere. HEAD de rota sem marca continua sendo leitura.
 
       Esta conferência esteve desligada de 17/09/2026 até V2-F00-E04 (o commit
       b4439ac tirou o import e as duas chamadas, e o teste ficou em skip). Sem
       ela, conta desativada, papel rebaixado e sessão encerrada por quem
       administra escreviam por até quinze minutos com o token ainda vivo.
     */
-    const escrita = req.method !== "GET" && req.method !== "HEAD";
+    const escrita = (req.method !== "GET" && req.method !== "HEAD")
+      || req.routeOptions.config.comEfeito === true;
     let senhaProvisoria = conteudo.sp === true;
     if (escrita) {
       const vigencia = await lerVigencia(banco, conteudo);
@@ -599,6 +659,32 @@ export async function construirServidor(
         campos: erro.issues.map((i) => ({ campo: i.path.join("."), mensagem: i.message })),
       });
     }
+    /*
+      O CORPO QUE O FASTIFY NÃO CONSEGUIU LER (V2-F00-E07, correção 3, achado
+      3 da validação de 52952a1): JSON vazio com `content-type:
+      application/json`, JSON torto, corpo grande demais, tipo que nenhuma
+      rota aceita. O Fastify já diz que é erro de quem pediu (status 4xx, código
+      `FST_ERR_CTP_*`), e até aqui isso caía no 500 lá embaixo, que manda
+      "informar o código ao suporte" por um pedido mal formado e enche o log
+      de "erro não tratado". O status do Fastify é mantido; a mensagem não
+      repete a dele, que fala de parser e de cabeçalho.
+    */
+    const doLeitorDeCorpo = erro as { code?: unknown; statusCode?: unknown };
+    if (
+      typeof doLeitorDeCorpo.code === "string" && doLeitorDeCorpo.code.startsWith("FST_ERR_CTP_")
+      && typeof doLeitorDeCorpo.statusCode === "number"
+      && doLeitorDeCorpo.statusCode >= 400 && doLeitorDeCorpo.statusCode < 500
+    ) {
+      const status = doLeitorDeCorpo.statusCode;
+      return resposta.code(status).send({
+        erro: "corpo_invalido",
+        mensagem: status === 413
+          ? "O pedido é grande demais."
+          : status === 415
+            ? "Este tipo de conteúdo não é aceito aqui."
+            : "O corpo do pedido não pôde ser lido. Confira o formato e envie de novo.",
+      });
+    }
     if ((erro as { statusCode?: number }).statusCode === 429) {
       return resposta.code(429).send({
         erro: "excesso_de_requisicoes",
@@ -617,10 +703,13 @@ export async function construirServidor(
   /**
    * Saúde e prontidão numa rota só.
    *
-   * `esquemaEmDia: false` é a informação que importa num rolling deploy: um
-   * processo novo servindo requisição contra banco sem a coluna que o código
-   * espera falha de um jeito difícil de diagnosticar. Melhor o balanceador
-   * saber que este processo ainda não está pronto.
+   * A resposta traz `ultimaMigracao` (a última versão aplicada no banco), que
+   * quem opera um rolling deploy pode comparar com a que o código novo espera.
+   * Não existe campo `esquemaEmDia`: processo com esquema atrasado nem chega a
+   * subir (o boot confere e sai com erro, ver `index.ts`), então um processo
+   * que responde aqui já nasceu com o esquema em dia. O 503 sai só quando a
+   * consulta ao banco falha. Junto vão `eliminacoes` e `push`, sem nome de município nem de pessoa (contagens, e
+   * o instante da última rodada do push).
    */
   app.get("/saude", async (req, resposta) => {
     let ultimaMigracao: string | null;
@@ -876,6 +965,17 @@ export class RegraDeNegocio extends Error {
     campos?: ReadonlyArray<{ campo: string; mensagem: string }>,
   ) {
     super(mensagem);
+    /*
+      Status de erro é número INTEIRO de 400 a 599 (V2-F00-E05, correção 4). O
+      Node escreve `403.5` como 403 (`statusCode |= 0`), e uma regra com status
+      fracionário ou em texto sairia como resposta de acesso com um código que
+      nenhum cliente conhece. Recusar aqui faz o engano virar 500 com o detalhe no
+      log, no primeiro pedido que passar por ele; a guarda da resposta pega o
+      mesmo status por outro caminho.
+    */
+    if (typeof status !== "number" || !Number.isInteger(status) || status < 400 || status > 599) {
+      throw new TypeError(`RegraDeNegocio("${codigo}") com status ${String(status)}: tem de ser inteiro de 400 a 599`);
+    }
     this.codigo = codigo;
     this.status = status;
     if (campos && campos.length > 0) this.campos = campos;

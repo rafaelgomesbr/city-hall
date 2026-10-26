@@ -1,0 +1,72 @@
+{
+  "versao": 2,
+  "nota": "Parâmetros da estimativa de prazo (scripts/roadmap/estimar-prazo.mjs). Editar aqui é decisão de quem gere o projeto: cada número abaixo é premissa, não fato. O ritmo medido NÃO está aqui: ele é medido a cada geração, pelo STATUS, e o relatório compara com o que cada cenário assume.",
+  "meta": "2026-12-31",
+  "inicioDaImplementacao": "2026-10-05",
+  "diasDeMontagemUnicos": 2,
+  "pontosPorTamanho": {
+    "XS": 0.5,
+    "S": 1,
+    "M": 2,
+    "L": 4
+  },
+  "ritmoDeReserva": {
+    "pontosPorSemana": 20,
+    "motivo": "usado só se ainda não houver etapa entregue para medir"
+  },
+  "cenarios": {
+    "otimista": {
+      "fatorDoRitmo": 1.4,
+      "diasEntreCandidatoEGate": 1,
+      "fatorDasEsperasExternas": 0.5,
+      "diasParaFecharAFaseAtual": 3,
+      "fracaoDaEsperaQueSobrepoe": 0.5
+    },
+    "provavel": {
+      "fatorDoRitmo": 1.3,
+      "diasEntreCandidatoEGate": 2,
+      "fatorDasEsperasExternas": 0.75,
+      "diasParaFecharAFaseAtual": 5,
+      "fracaoDaEsperaQueSobrepoe": 0.5
+    },
+    "conservador": {
+      "fatorDoRitmo": 1.2,
+      "diasEntreCandidatoEGate": 2,
+      "fatorDasEsperasExternas": 1.0,
+      "diasParaFecharAFaseAtual": 7,
+      "fracaoDaEsperaQueSobrepoe": 0.5
+    }
+  },
+  "esperasExternasEmDias": {
+    "F12": 14,
+    "F17": 7,
+    "F25": 14,
+    "F26": 10,
+    "F27": 30,
+    "F28": 21
+  },
+  "esperasExternasMotivo": {
+    "F12": "homologação com secretaria real",
+    "F17": "beta interno do aplicativo do cidadão",
+    "F25": "pentest externo e remediação",
+    "F26": "execução da prova controlada",
+    "F27": "operação do piloto municipal (o roteiro não fixa a duração)",
+    "F28": "pareceres jurídicos, contas e fichas de loja"
+  },
+  "premissas": [
+    "Os três cenários assumem alavancas que o Rafael definiu em 2026-10-13 para caber até julho de 2027: ritmo de 20% a 40% acima do medido na fase 1 e metade da espera de cada gate e das esperas externas acontecendo em paralelo com a fase seguinte (validação e aprovação em lote, contratação e homologação adiantadas).",
+    "Sobrepor espera muda a regra de hoje, em que cada fase só começa com o gate da anterior aprovado (D-04 e D-30): essa regra precisa ser revista pelo Rafael para a premissa valer.",
+    "O ritmo medido vem de uma fase só (a fase 1, que corrigia código que já existia). O relatório compara a cada semana o ritmo medido com o que cada cenário assume.",
+    "Esperas externas são suposições em dias corridos; o plano do projeto não as fixa.",
+    "Pontos: XS=0,5, S=1, M=2 e L=4, pelo tamanho que cada etapa declara no roadmap."
+  ],
+  "tetoDeEntregaDesejado": "2027-07-31",
+  "cenarioDeReferencia": {
+    "nome": "Processo de hoje, sem alavancas",
+    "fatorDoRitmo": 0.8,
+    "diasEntreCandidatoEGate": 2,
+    "fatorDasEsperasExternas": 1.0,
+    "diasParaFecharAFaseAtual": 5,
+    "fracaoDaEsperaQueSobrepoe": 0
+  }
+}

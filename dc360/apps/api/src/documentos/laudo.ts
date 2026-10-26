@@ -88,6 +88,20 @@ export type DadosDocumento = {
      */
     assinaturaUrl?: string | null;
     /**
+     * O armazenamento não respondeu quando o montador foi conferir se o traço
+     * existe (V2-F00-E12, correção 2).
+     *
+     * Só o pacote de saída marca isto. Ali o laudo é o registro que fica com o
+     * município depois que as nossas cópias são eliminadas, e o próprio pacote
+     * avisa, em `PENDENCIAS-DA-EXTRACAO.txt`, que falta de resposta não é o
+     * mesmo que arquivo inexistente. Imprimir "Assinatura não coletada" seria
+     * afirmar uma ausência que ninguém viu; imprimir a imagem seria um quadro
+     * quebrado se a cópia também falhar. A rota de emissão não marca: lá a
+     * falta de resposta vira ausência, e a diferença está na tabela de
+     * `docs/SAIDA-DE-MUNICIPIO.md`.
+     */
+    assinaturaNaoConferida?: boolean;
+    /**
      * Quem a vistoria mandou acionar, um por linha, na ordem em que o agente
      * escolheu no local.
      *
@@ -658,9 +672,12 @@ function blocoFotosAvulsas(d: DadosDocumento, fuso: string): string {
  */
 function ausenciaDaAssinatura(d: DadosDocumento): string | undefined {
   const perdida = (d.evidenciasPerdidas ?? []).some((p) => p.papel === "assinatura");
-  return perdida
-    ? "Assinatura coletada em campo e não recuperada do aparelho"
-    : undefined;
+  if (perdida) return "Assinatura coletada em campo e não recuperada do aparelho";
+  // Ver `assinaturaNaoConferida`: não saber não é saber que não houve.
+  if (d.vistoria.assinaturaNaoConferida) {
+    return "Não foi possível conferir a assinatura no armazenamento ao montar este pacote";
+  }
+  return undefined;
 }
 
 export function laudoDeVistoria(d: DadosDocumento): string {

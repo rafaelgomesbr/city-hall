@@ -1,0 +1,219 @@
+
+== Subindo API na 5701 ==
+API de pé.
+
+== Construindo o painel apontado para http://127.0.0.1:5701 ==
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+✓ 190 modules transformed.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      3.60 kB │ gzip:     1.49 kB
+dist/assets/postgres-CkP7QCDB.data               5,401.75 kB
+dist/assets/postgres-CyuUVpXN.wasm               8,090.73 kB │ gzip: 2,782.95 kB
+dist/assets/index-BYaxpqxQ.css                      42.58 kB │ gzip:     7.89 kB
+dist/assets/__vite-browser-external-BIHI7g3E.js      0.03 kB │ gzip:     0.05 kB
+dist/assets/nodefs-JOK6FhtO.js                       0.42 kB │ gzip:     0.29 kB
+dist/assets/opfs-ahp-DBeVD0Zo.js                    10.01 kB │ gzip:     3.05 kB
+dist/assets/index-oG3f7vDT.js                    1,652.80 kB │ gzip:   435.10 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.26s
+
+== Servindo o painel na 5702 ==
+Painel de pé.
+
+== Verificações do caminho de produção, em firefox ==
+
+== 1. Entrada por senha, contra a API ==
+  OK   a tela pede email e senha, nao lista de perfis
+  OK   senha errada mostra erro e nao entra
+  OK   continua na tela de entrada
+  OK   senha correta entra no painel
+  OK   identidade vem do servidor
+
+== 2. Dados vêm da API, com o mesmo conteúdo da semente ==
+  OK   Na fila conta as 6 ativas de Serra Alta
+  OK   fila mostra a critica primeiro
+
+== 3. Token no armazenamento, e nunca a senha ==
+  OK   tokens guardados na sessao
+  OK   a senha nao fica guardada em lugar nenhum
+  OK   nem o hash da senha chega ao navegador
+
+== 4. Isolamento imposto pelo servidor ==
+  OK   protocolo de Vale Fundo nao aparece para Serra Alta
+  OK   abrir ocorrencia de outro municipio pela URL nao mostra o registro
+
+== 5. Fluxo completo gravando no servidor ==
+  OK   protocolo gerado pelo banco segue a sequencia
+  OK   triagem gravou pela API
+  OK   despacho gravou pela API
+  OK   trilha do servidor tem os 3 eventos
+  OK   autoria veio do token, nao da tela
+
+== 6. Persistencia real: outro navegador ve o mesmo dado ==
+  OK   a ocorrencia criada numa sessao aparece na outra
+
+== 7. Papel restringe do lado do servidor ==
+  OK   operador nao ve Usuarios no menu
+  OK   operador nao ve bloco de encerramento
+  OK   a API recusa mesmo contornando a interface
+  OK   e diz que e falta de permissao
+
+== 8. Sair revoga a sessao no servidor ==
+  OK   voltou para a entrada
+  OK   tokens apagados do navegador
+  OK   o token de renovacao nao vale mais no servidor
+
+== 9. Cadastro com senha, e a conta nova entra ==
+  OK   modo API pede senha inicial no cadastro
+  OK   recusa senha curta
+  OK   e marca o campo como invalido para o leitor de tela
+  OK   usuario criado aparece na tabela
+  OK   a conta recem-criada entra com a senha definida
+
+== 10. Outro municipio, do zero ==
+  OK   Vale Fundo ve apenas as proprias 2 ocorrencias
+  OK   nenhum protocolo de Serra Alta vaza
+
+== 11. Documento oficial gerado pelo servidor ==
+  OK   o detalhe oferece o laudo quando ha vistoria
+  OK   o laudo traz o protocolo
+  OK   o laudo identifica o orgao
+  OK   o laudo traz o checklist respondido
+  OK   o laudo identifica quem assinou
+  OK   o laudo sai marcado como documento de validacao
+  OK   o documento tem botao de imprimir
+
+== 12. Isolamento tambem no documento ==
+  OK   outro municipio nao gera o laudo de uma ocorrencia alheia
+
+== 13. Galeria de evidencia no painel ==
+  OK   os bytes sobem direto para o armazenamento
+  OK   o servidor confirma o envio
+  OK   a foto do agente aparece para o coordenador
+  OK   a legenda vem junto
+  OK   a imagem carrega pela URL assinada
+  OK   clicar amplia a foto
+  OK   o foco vai para o botao Fechar ao ampliar
+  OK   Escape fecha a ampliacao
+  OK   o foco volta para a miniatura ao fechar
+  OK   o botao Fechar tambem fecha
+
+== 14. Recuperacao de senha ==
+  OK   responde sem confirmar se a conta existe
+  OK   resposta identica para email inexistente
+  OK   um link de redefinicao foi emitido
+  OK   recusa quando as duas digitacoes diferem
+  OK   redefine a senha
+  OK   a senha antiga nao vale mais
+  OK   a senha nova entra
+
+== 15. Prestacao de contas ==
+  OK   mostra o tempo mediano, nao a media
+  OK   quebra por tipo de ocorrencia
+  OK   a trilha do municipio aparece
+  OK   cada evento diz quem agiu
+  OK   filtrar por autor funciona
+  OK   o CSV e baixado com nome de arquivo util
+  OK   o CSV traz o cabecalho legivel
+  OK   nenhuma celula do CSV comeca com caractere de formula
+
+== 16. Auditoria so para quem tem papel ==
+  OK   operador nao ve Prestacao de contas no menu
+  OK   e a API recusa mesmo contornando a tela
+
+== 17. Vinculo de duplicidade e providencias no painel ==
+  OK   a duplicidade e detectada na abertura
+  OK   a filha diz de quem e continuacao
+  OK   a original avisa que ha outro chamado sobre o mesmo evento
+  OK   e avisa que encerrar um nao encerra o outro
+  OK   o painel conta providencias vencidas
+  OK   o painel lista as providencias sem resposta
+  OK   e explica por que elas continuam ali
+
+== 18. O agente de campo tem a tela dele ==
+  OK   o agente cai em Meu trabalho, nao no painel do coordenador
+  OK   o titulo da tela e o dele
+  OK   a tela avisa que precisa de conexao
+  OK   e diz onde fica o trabalho sem sinal
+  OK   mostra as vistorias designadas para a equipe dele
+  OK   mostra o que ele ja concluiu
+  OK   mostra qual e a equipe dele
+  OK   nomeia a equipe
+  OK   o menu do agente comeca por Meu trabalho
+  OK   o menu do agente nao tem o painel do coordenador
+  OK   nem a tabela de todas as ocorrencias
+  OK   nem administracao de usuarios
+  OK   abrir /usuarios pela URL mostra recusa, nao o formulario
+  OK   e a recusa explica o que fazer
+
+== 19. Erro de rede fala portugues ==
+  OK   erro de rede vira frase em portugues
+  OK   e diz que nada foi enviado
+
+== 20. Corrigir cadastro sem recriar a conta ==
+  OK   coordenador nao ve o papel de administrador no seletor
+  OK   corrigir carrega o cadastro no formulario
+  OK   e o formulario nao pede senha na correcao
+  OK   a correcao aparece na tabela
+
+== 21. Trocar equipe depois de despachar ==
+  OK   ocorrencia ja em campo oferece trocar equipe ou prazo
+  OK   a troca confirma que ficou registrada
+  OK   e a trilha guarda os dois despachos
+
+== 22. Minha conta e troca de senha ==
+  OK   a identidade no topo leva para a propria conta
+  OK   recusa senha nova curta, no campo
+  OK   recusa quando a repeticao nao bate
+  OK   a troca acontece e avisa que as outras sessoes cairam
+  OK   a senha nova entra
+  OK   a senha antiga deixa de valer
+
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+  OK   a coordenacao encerra as sessoes do Marcos
+  OK   sessao encerrada leva a tela de entrada
+  OK   e diz que a sessao foi encerrada, sem dizer que expirou
+  OK   e manda entrar de novo
+  OK   o token morto nao fica guardado
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('tbody tr').filter({ hasText: 'marcos.teles@serraalta.exemplo.gov.br' }).getByRole('button', { name: 'Desativar' })
+
+    at /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/web/test/fluxo-api.e2e.mjs:1001:58 {
+  log: [
+    "  - waiting for locator('tbody tr').filter({ hasText: 'marcos.teles@serraalta.exemplo.gov.br' }).getByRole('button', { name: 'Desativar' })"
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.15.0
+file:///private/tmp/c6-e09/rodar-e2e.mjs:112
+    p.on("exit", (codigo) => (codigo === 0 ? resolve() : reject(new Error(`saiu com ${codigo}`))));
+                                                                ^
+
+Error: saiu com 1
+    at ChildProcess.<anonymous> (file:///private/tmp/c6-e09/rodar-e2e.mjs:112:65)
+    at ChildProcess.emit (node:events:509:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+Node.js v24.15.0

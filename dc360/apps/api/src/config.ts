@@ -20,7 +20,7 @@ import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "./banco/tls.js"
  * MARCA_DAGUA, onde apagar o valor é um ato deliberado que desliga o carimbo,
  * e virar "ausente" traria o carimbo de volta em silêncio.
  */
-function vazioEhAusente<T extends z.ZodTypeAny>(esquema: T) {
+function vazioEhAusente<T extends z.ZodType>(esquema: T) {
   return z.preprocess((v) => (v === "" ? undefined : v), esquema);
 }
 

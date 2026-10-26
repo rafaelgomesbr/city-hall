@@ -93,11 +93,15 @@ interdição responde pelo ato, e a trilha é o que permite ao próprio servidor
 provar o que fez e quando. Por isso usuário **não se apaga**: se desativa. Um
 usuário apagado deixaria laudos assinados por ninguém.
 
-Desde 14/09/2026 há mais uma categoria, e ela precisa ser dita por extenso: a
-**saída a campo declarada pelo agente**, com o protocolo para onde ele foi, o
-tempo que ele previu, se ele foi sozinho, e o prazo de retorno. É dado sobre o
-servidor, ele mesmo declara, e existe para a coordenação saber que alguém não
-deu notícia.
+Desde 14/09/2026 o servidor prevê mais uma categoria, e ela precisa ser dita
+por extenso: a **saída a campo declarada pelo agente**, com o protocolo para
+onde ele foi, o tempo que ele previu, se ele foi sozinho, e o prazo de retorno.
+É dado sobre o servidor, ele mesmo declara, e existe para a coordenação saber
+que alguém não deu notícia. **Recurso em construção:** o aplicativo do agente
+ainda não declara a saída (previsto na V2-F14-E01, sem data), então hoje
+nenhuma saída é declarada e esta categoria fica vazia na prática. Ela já está
+descrita aqui para que a política valha desde o primeiro dia em que o recurso
+for ligado.
 
 **O que o sistema NÃO faz com isso, e é a parte que importa:** não acompanha a
 localização do agente, nem durante a saída nem depois. O que fica guardado é para
@@ -382,8 +386,12 @@ O que **ainda não** está pronto, dito aqui porque omitir seria enganar:
 - **A listagem da fila de ocorrências ainda não gera registro de acesso.** O
   registro cobre o dossiê e os documentos oficiais, que são onde o dado pessoal
   se concentra. A listagem do painel, recarregada o dia inteiro por todo mundo,
-  ficou de fora por volume, e ela ainda devolve nome e contato junto: estreitar
-  as colunas dela é o passo que falta.
+  ficou de fora por volume, e por isso ela foi estreitada: a resposta não leva o
+  contato, a descrição nem a descrição de vulnerabilidade
+  (`apps/api/src/privacidade/lista.ts`). Continuam na lista o nome de quem ligou,
+  o endereço e a coordenada, entre os outros campos da ocorrência, porque a
+  coordenação precisa reconhecer a família e achar o ponto no mapa. Quem precisa do resto abre a ocorrência, e
+  aquela rota registra a consulta.
 
 ## 7. Incidente
 
@@ -426,5 +434,8 @@ Controlador: o órgão municipal de proteção e defesa civil que opera o sistem
    REFERIDA por um laudo depende do descarte no armazenamento, que ainda não
    existe; a fotografia sem dono nenhum já tem caminho, e ele está descrito em
    "O arquivo sem dono".
-4. Rever quando entrarem: notificação por push, envio de ofício por email,
-   console do fornecedor e mapa do Google. Os quatro mudam esta política.
+4. Rever, porque os quatro já existem em código e mudam esta política:
+   notificação por push, envio de ofício por email, console do fornecedor e mapa
+   do Google. O que ainda falta escrever aqui é o console do fornecedor e a série
+   `metricas_municipio` que ele lê (contagens por município e por dia, sem prazo
+   de retenção definido: ver `db/PENDENCIAS.md`, item 2).

@@ -1,0 +1,762 @@
+diff --git a/dc360/apps/api/src/auth/suspensao.ts b/dc360/apps/api/src/auth/suspensao.ts
+index e3f66f7..f991174 100644
+--- a/dc360/apps/api/src/auth/suspensao.ts
++++ b/dc360/apps/api/src/auth/suspensao.ts
+@@ -148,6 +148,8 @@ export class AcessoSuspenso extends Error {
+   readonly status: 403 | 503;
+   constructor(status: 403 | 503 = 403) {
+     super(MENSAGEM_DE_ACESSO_SUSPENSO);
++    // Só 403 ou 503, e não o que o tipo deixa passar por conversão (`403.5 as 403`): V2-F00-E05, correção 4.
++    if (status !== 403 && status !== 503) throw new TypeError(`AcessoSuspenso com status ${String(status)}: só 403 ou 503`);
+     this.name = "AcessoSuspenso";
+     this.status = status;
+   }
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index e6c23a9..4255326 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -29,6 +29,14 @@ import {
+  * tratador de erro, o 404, o tratador de reserva que escreve sozinho, `hijack` e
+  * `raw`), e por isso a guarda vê todos.
+  *
++ * "401 OU 403" É O STATUS QUE O NODE ESCREVE (correção 4, rodada 6): o
++ * `writeHead` do Node faz `statusCode |= 0`, e `403.5`, `"403.2"`, `4294967699`
++ * ou um `valueOf` que dá `401.9` saem 401 ou 403 no fio. A guarda decide pelo
++ * mesmo `| 0`, passa ao Node o inteiro que ela conferiu, e o status que chegou
++ * torto (não é número inteiro de 100 a 599) e vira 401 ou 403 é desvio mesmo
++ * com o corpo no catálogo. A frase da linha de status da rota não sai na
++ * resposta trocada.
++ *
+  * A REGRA: toda resposta 401 ou 403 (fora HEAD, que o HTTP manda sem corpo) tem
+  * de ter corpo JSON com UMA chave `erro` (chave repetida é recusada: o leitor do
+  * cliente pode ficar com a primeira) cujo valor é um código do catálogo ou da
+@@ -191,6 +199,29 @@ function textoJson(campos: ReadonlyArray<readonly [string, string]>): string {
+   return `${saida}}`;
+ }
+ 
++/**
++ * O status COMO O NODE O ESCREVE na linha de status, e se ele chegou torto
++ * (V2-F00-E05, correção 4). O `writeHead` do Node faz `statusCode |= 0` antes de
++ * conferir a faixa: `403.5`, `"403"`, `"403.2"`, `"0x193"`, `[403]`,
++ * `403 + 2 ** 32` e um objeto cujo `valueOf` dá `401.9` saem TODOS como 401 ou
++ * 403 no fio. A guarda decidia pelo valor pedido (`=== 403`), e o status
++ * fracionário passava por ela com código fora do catálogo. Agora ela decide pelo
++ * mesmo `| 0` que o Node usa, calculado UMA vez (o `valueOf` não roda de novo:
++ * o que segue para o Node é o inteiro já calculado), e o status que não é número
++ * inteiro de 100 a 599 é `torto`: se o Node o escreveria como 401 ou 403, é desvio
++ * mesmo com o corpo no catálogo.
++ */
++function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: boolean } {
++  const efetivo = (pedido as number) | 0;
++  const torto = typeof pedido !== "number" || efetivo !== pedido || efetivo < 100 || efetivo > 599;
++  return { efetivo, torto };
++}
++
++/** A frase da linha de status da resposta trocada pela guarda (a da rota pode ser qualquer texto). */
++const FRASE_DO_STATUS: Readonly<Record<number, string>> = Object.freeze({
++  401: "Unauthorized", 403: "Forbidden", 500: "Internal Server Error",
++});
++
+ /** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia. */
+ const desviosPendentes: Desvio[] = [];
+ 
+@@ -234,15 +265,17 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   const ehHead = req.method === "HEAD";
+   let segurando = false;
+   let statusSegurado = 0;
++  let statusTorto = false;
+   let cabecalhosSegurados: Cabecalhos;
+   let mensagemDeStatus: string | undefined;
+   const pedacos: Buffer[] = [];
+   let bytes = 0;
+   let excedeu = false;
+ 
+-  const comecarASegurar = (status: number) => {
++  const comecarASegurar = (status: number, torto: boolean) => {
+     segurando = true;
+     statusSegurado = status;
++    statusTorto = torto;
+   };
+   const ehAcesso = (s: number) => s === 401 || s === 403;
+   const guardar = (pedaco: unknown, codificacao?: unknown) => {
+@@ -255,20 +288,36 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     else pedacos[pedacos.length] = b;
+   };
+ 
+-  function writeHead(this: ServerResponse, status: number, ...resto: unknown[]) {
+-    if (!ehHead && ehAcesso(status) && !raw.headersSent) {
+-      comecarASegurar(status);
++  function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
++    const { efetivo, torto } = statusComoONodeEscreve(status);
++    if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
++      comecarASegurar(efetivo, torto);
++      // Como o Node lê os argumentos: frase em texto e depois os cabeçalhos; sem frase em texto, os
++      // cabeçalhos são o terceiro argumento, ou o segundo quando o terceiro falta (`obj ??= reason`).
+       if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
+-      else cabecalhosSegurados = resto[0] as Cabecalhos;
++      else cabecalhosSegurados = (resto[1] !== undefined && resto[1] !== null ? resto[1] : resto[0]) as Cabecalhos;
+       return raw;
+     }
+-    const todos: unknown[] = [status];
++    // O Node recebe o inteiro já calculado: o que ele escreve é o que a guarda conferiu.
++    const todos: unknown[] = [efetivo];
+     for (let i = 0; i < resto.length; i += 1) todos[todos.length] = resto[i];
+     return aplicar(writeHeadOriginal, raw, todos);
+   }
+ 
++  /**
++   * O cabeçalho implícito (`write`/`end` sem `writeHead` antes): o Node escreve
++   * `this.statusCode`, com o mesmo `| 0`. Status de acesso começa a segurar; o
++   * torto que não é de acesso vira o inteiro antes de o Node lê-lo de novo.
++   */
++  const conferirCabecalhoImplicito = () => {
++    if (segurando || ehHead || raw.headersSent) return;
++    const { efetivo, torto } = statusComoONodeEscreve(raw.statusCode);
++    if (ehAcesso(efetivo)) comecarASegurar(efetivo, torto);
++    else if (torto) raw.statusCode = efetivo;
++  };
++
+   function write(this: ServerResponse, ...args: unknown[]) {
+-    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    conferirCabecalhoImplicito();
+     if (!segurando) return aplicar(writeOriginal, raw, args);
+     const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
+     guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
+@@ -277,7 +326,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   }
+ 
+   function end(this: ServerResponse, ...args: unknown[]) {
+-    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    conferirCabecalhoImplicito();
+     if (!segurando) return aplicar(endOriginal, raw, args);
+     segurando = false;
+     let cb: unknown;
+@@ -290,7 +339,13 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     let achado: { motivo: string; erroVisto: string | null } | null;
+     try {
+       const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
+-      achado = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++      const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++      achado = statusTorto
++        ? {
++          motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
++          erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
++        }
++        : doCorpo;
+     } catch {
+       achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
+     }
+@@ -329,7 +384,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+     cabecalhos["content-type"] = "application/json; charset=utf-8";
+     cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
+-    aplicar(writeHeadOriginal, raw, [statusFinal, cabecalhos]);
++    aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
+     return fimComCb(novo);
+   }
+ 
+diff --git a/dc360/apps/api/src/servidor.ts b/dc360/apps/api/src/servidor.ts
+index 4b3d161..afabc20 100644
+--- a/dc360/apps/api/src/servidor.ts
++++ b/dc360/apps/api/src/servidor.ts
+@@ -965,6 +965,17 @@ export class RegraDeNegocio extends Error {
+     campos?: ReadonlyArray<{ campo: string; mensagem: string }>,
+   ) {
+     super(mensagem);
++    /*
++      Status de erro é número INTEIRO de 400 a 599 (V2-F00-E05, correção 4). O
++      Node escreve `403.5` como 403 (`statusCode |= 0`), e uma regra com status
++      fracionário ou em texto sairia como resposta de acesso com um código que
++      nenhum cliente conhece. Recusar aqui faz o engano virar 500 com o detalhe no
++      log, no primeiro pedido que passar por ele; a guarda da resposta pega o
++      mesmo status por outro caminho.
++    */
++    if (typeof status !== "number" || !Number.isInteger(status) || status < 400 || status > 599) {
++      throw new TypeError(`RegraDeNegocio("${codigo}") com status ${String(status)}: tem de ser inteiro de 400 a 599`);
++    }
+     this.codigo = codigo;
+     this.status = status;
+     if (campos && campos.length > 0) this.campos = campos;
+diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
+index 310536a..14371d6 100644
+--- a/dc360/apps/api/test/codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/codigos-de-erro.test.ts
+@@ -896,6 +896,43 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+       expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
+     });
+ 
++    /*
++      Correção 4 (rodada 6, red-team e QA): o Node escreve o status com `| 0`, e `403.5`, `"403"` ou
++      `4294967699` saem 403 no fio. A regra comparava o literal com 401 e 403 e os via como "outro status".
++    */
++    it.each([
++      ["RegraDeNegocio com 403.5 e código novo (a forma do red-team)", 'throw new RegraDeNegocio("vazou_meio", "x", 403.5);'],
++      ["RegraDeNegocio com 403.5 e código do catálogo", 'throw new RegraDeNegocio("sem_permissao", "x", 403.5);'],
++      ["RegraDeNegocio com 401.9", 'throw new RegraDeNegocio("nao_autenticado", "x", 401.9);'],
++      ["RegraDeNegocio com status em texto", 'throw new RegraDeNegocio("sem_permissao", "x", "403" as never);'],
++      ["code(403.5) e código novo (QA)", 'resposta.code(403.5).send({ erro: "vazou_frac", mensagem: "x" });'],
++      ["code(401.9) e código do catálogo", 'resposta.code(401.9).send({ erro: "nao_autenticado", mensagem: "x" });'],
++      ["code(\"403.2\") (QA)", 'resposta.code("403.2").send({ erro: "sem_permissao", mensagem: "x" });'],
++      ["code(\"403\") em texto", 'resposta.code("403").send({ erro: "sem_permissao", mensagem: "x" });'],
++      ["status(`403`) por modelo de texto", "resposta.status(`403`).send({ erro: \"sem_permissao\", mensagem: \"x\" });"],
++      ["code(403.5 as number)", 'resposta.code(403.5 as number).send({ erro: "sem_permissao", mensagem: "x" });'],
++      ["403.5 guardado numa constante", 'const S = 403.5;\nthrow new RegraDeNegocio("novo", "x", S);'],
++      ["403 + 2 ** 32 escrito por extenso", "const S = 4294967699;\nresposta.code(200);\nvoid S;"],
++      ["-4294966893, que o Node escreve como 403", "const S = -4294966893;\nvoid S;"],
++      ["status com sinal", 'resposta.code(+403).send({ erro: "sem_permissao", mensagem: "x" });'],
++      ["statusCode em texto", 'throw Object.assign(new Error("x"), { statusCode: "403" });'],
++      ["par { status: 403.5, corpo }", 'function f() { return { status: 403.5, corpo: { erro: "sem_permissao", mensagem: "x" } }; }'],
++      ["status 403.5 declarado na classe", "class E extends Error { readonly status = 403.5; }"],
++      ["statusCode = 403.5 atribuído", "resposta.statusCode = 403.5;"],
++      ["redirect com 302.5", 'return resposta.redirect("/x", 302.5);'],
++    ])("correção 4, reprova: %s", (_forma, fonte) => {
++      expect(FORA(fonte).length, fonte).toBeGreaterThan(0);
++    });
++
++    it("correção 4, controles: número decimal que não vira 401 nem 403 e status inteiro passam", () => {
++      for (const limpo of [
++        "const latitude = -23.5505;\nconst longitude = -46.6333;\nvoid latitude; void longitude;",
++        "const fator = 401.5 - 0.5;\nvoid fator;".replace("401.5", "40.15"),
++        'throw new RegraDeNegocio("sem_permissao", "x", 403);',
++        'resposta.code(503).send({ status: "indisponivel", banco: "indisponivel" });',
++      ]) expect(FORA(limpo), limpo).toEqual([]);
++    });
++
+     it("correção 3, controles: a constante só lida, a chave por constante de texto e o hasOwnProperty passam", () => {
+       const limpo = [
+         R_OK + "resposta.code(403).send(R);",
+@@ -1119,6 +1156,12 @@ describe("Nada de acesso sai fora do catálogo (varredura do código-fonte)", ()
+           + '    if (dados.nome === "Mutacao N") { const e = new Error("x") as Error & { code?: string; statusCode?: number }; '
+           + 'const extra = { code: "FST_ERR_CTP_MUTACAO", statusCode }; throw { ...e, ...extra }; }',
+         "`statusCode` abreviado"],
++      ["correção 4: RegraDeNegocio com status 403.5 (a forma do red-team da rodada 6)",
++        '    if (dados.nome === "Mutacao meio") throw new RegraDeNegocio("vazou_meio", "x", 403.5);',
++        "não é número inteiro"],
++      ["correção 4: code(\"403.2\") com código do catálogo",
++        '    if (dados.nome === "Mutacao texto") return resposta.code("403.2" as never).send({ erro: "sem_permissao", mensagem: "x" });',
++        "status em texto"],
+       ["D: parâmetro homônimo de uma constante de corpo do módulo",
+         '    const corpo = { erro: "sem_permissao", mensagem: "Sem permissão." };\n    void corpo;\n'
+           + '    const recusarD = (corpo: { erro: string; mensagem: string }) => resposta.code(403).send(corpo);\n'
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+index 3b209b9..0a22b59 100644
+--- a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -5,6 +5,7 @@ import { CODIGOS_DE_ERRO_DE_ACESSO } from "@dc360/shared";
+ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor, RegraDeNegocio } from "../src/servidor.js";
++import { AcessoSuspenso } from "../src/auth/suspensao.js";
+ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+ import {
+   CONTRATO_DE_ACESSO_DA_API, conferirCorpoDeAcesso, lerDesviosDaGuarda, type ModoDaGuarda,
+@@ -210,6 +211,83 @@ function plantarEscapesDaRevisao(app: FastifyInstance) {
+   }, { prefix: "/esc/e18" });
+ }
+ 
++/*
++  Correção 4 (rodada 6, red-team e QA): o status que o Node escreve é `statusCode | 0`
++  (`403.5`, `"403.2"`, `4294967699`, `-4294966893`, um `valueOf` que dá `401.9`: tudo
++  sai 401 ou 403 no fio). A guarda decidia por `=== 401 || === 403` sobre o valor
++  pedido e deixava passar `403 {"erro":"vazou_meio"}`. Cada rota abaixo chega ao Node
++  com status torto por um caminho diferente.
++*/
++type RespostaCrua = { statusCode: unknown; writeHead: (...a: unknown[]) => unknown; end: (c?: string) => unknown };
++const crua = (resposta: FastifyReply) => resposta.raw as unknown as RespostaCrua;
++const JSON_CT = { "content-type": "application/json" };
++function plantarStatusTorto(app: FastifyInstance): void {
++  const r = (n: string) => `/status-torto/${n}`;
++  app.get(r("code-403.5"), async (_q, rep) => rep.code(403.5).send({ erro: "vazou_frac", mensagem: "x" }));
++  app.get(r("code-401.9"), async (_q, rep) => rep.code(401.9).send({ erro: "vazou_frac_um", mensagem: "x" }));
++  app.get(r("code-texto"), async (_q, rep) => rep.code("403.2" as unknown as 403).send({ erro: "vazou_frac_texto", mensagem: "x" }));
++  app.get(r("catalogo-403.5"), async (_q, rep) => rep.code(403.5).send({ erro: "sem_permissao", mensagem: "x" }));
++  // A forma do red-team pelo tratador global: o construtor recusa 403.5, então o status é trocado depois.
++  app.get(r("regra-mutada"), async () => {
++    const e = new RegraDeNegocio("vazou_meio", "x", 409);
++    (e as unknown as { status: number }).status = 403.5;
++    throw e;
++  });
++  app.get(r("raw-statuscode-texto"), async (_q, rep) => {
++    crua(rep).statusCode = "403";
++    return { erro: "vazou_texto_raw", mensagem: "x" };
++  });
++  app.get(r("hijack-grande"), async (_q, rep) => {
++    rep.hijack();
++    crua(rep).writeHead(403 + 2 ** 32, JSON_CT);
++    crua(rep).end('{"erro":"vazou_grande"}');
++  });
++  app.get(r("hijack-negativo"), async (_q, rep) => {
++    rep.hijack();
++    crua(rep).writeHead(-(2 ** 32) + 403, JSON_CT);
++    crua(rep).end('{"erro":"vazou_negativo"}');
++  });
++  app.get(r("hijack-valueof"), async (_q, rep) => {
++    rep.hijack();
++    crua(rep).writeHead({ valueOf: () => 401.9 }, JSON_CT);
++    crua(rep).end('{"erro":"vazou_valueof"}');
++  });
++  app.get(r("implicito-403.5"), async (_q, rep) => {
++    rep.hijack();
++    crua(rep).statusCode = 403.5;
++    crua(rep).end('{"erro":"vazou_implicito"}');
++  });
++  app.get(r("frase-vazou"), async (_q, rep) => {
++    rep.hijack();
++    crua(rep).writeHead(403, "vazou_frase", JSON_CT);
++    crua(rep).end('{"erro":"vazou_frase"}');
++  });
++  // O construtor recusa o status torto: a regra vira 500 erro_interno, que não é resposta de acesso.
++  app.get(r("regra-403.5"), async () => { throw new RegraDeNegocio("vazou_meio", "x", 403.5); });
++  // Controles.
++  app.get(r("ok-200.5"), async (_q, rep) => rep.code(200.5).send({ erro: "vazou_mas_e_200" }));
++  app.get(r("ok-cabecalho-terceiro"), async (_q, rep) => {
++    rep.hijack();
++    crua(rep).writeHead(403, undefined, { ...JSON_CT, "x-sonda": "terceiro" });
++    crua(rep).end('{"erro":"sem_permissao","mensagem":"x"}');
++  });
++  // O `valueOf` que muda a cada leitura: a guarda o lê UMA vez, e o Node escreve o que ela leu.
++  app.get(r("valueof-que-muda"), async (_q, rep) => {
++    let leituras = 0;
++    rep.hijack();
++    crua(rep).statusCode = { valueOf: () => (leituras++ === 0 ? 200 : 403) };
++    crua(rep).end('{"erro":"vazou_se_403"}');
++  });
++}
++
++/** As rotas de status torto que viram desvio: [rota, status que o Node escreve, código visto]. */
++const FORMAS_TORTAS: ReadonlyArray<[string, 401 | 403, string | null]> = [
++  ["code-403.5", 403, "vazou_frac"], ["code-401.9", 401, "vazou_frac_um"], ["code-texto", 403, "vazou_frac_texto"],
++  ["catalogo-403.5", 403, null], ["regra-mutada", 403, "vazou_meio"], ["raw-statuscode-texto", 403, "vazou_texto_raw"],
++  ["hijack-grande", 403, "vazou_grande"], ["hijack-negativo", 403, "vazou_negativo"], ["hijack-valueof", 401, "vazou_valueof"],
++  ["implicito-403.5", 403, "vazou_implicito"],
++];
++
+ const ESCAPES_DA_REVISAO = ["e01/x", "e02/x", "e04/nada", "e05/nada", "e06/x", "e07/x", "e09", "e10", "e11", "e12", "e13", "e14", "e15", "e16", "e17", "e18/x"];
+ 
+ /** As formas que respondem 403, com o código que tentaria sair. */
+@@ -236,6 +314,7 @@ beforeAll(async () => {
+     });
+     plantarFormas(app);
+     plantarEscapesDaRevisao(app);
++    plantarStatusTorto(app);
+     await app.ready();
+     servidores.set(modo, app);
+   }
+@@ -435,3 +514,91 @@ describe("os escapes da revisão da primeira guarda (onSend) não escapam da gua
+     expect(r.json().erro).toBe("sem_permissao");
+   });
+ });
++
++describe("correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido", () => {
++  it.each(FORMAS_TORTAS)("%s: em teste sai 500 com o desvio registrado (status %s)", async (n, status, visto) => {
++    const r = await pedirEm("falhar", `/status-torto/${n}`);
++    const desvios = lerDesviosDaGuarda();
++    expect(r.statusCode, r.body).toBe(500);
++    expect(r.json().erro).toBe("desvio_do_catalogo_de_erro");
++    expect(desvios).toEqual([expect.objectContaining({ rota: `/status-torto/${n}`, status, erroVisto: visto })]);
++    expect(desvios[0]!.motivo).toContain("não é número inteiro de 100 a 599");
++  });
++
++  it.each(FORMAS_TORTAS)("%s: em produção sai o código genérico do status %s e o desvio vai para o log", async (n, status, visto) => {
++    log.length = 0;
++    const r = await pedirEm("corrigir", `/status-torto/${n}`);
++    expect(r.statusCode, r.body).toBe(status);
++    expect(r.json()).toEqual(status === 401
++      ? { erro: "nao_autenticado", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem }
++      : { erro: "sem_permissao", mensagem: CODIGOS_DE_ERRO_DE_ACESSO.sem_permissao.mensagem });
++    const registro = log.map((l) => JSON.parse(l) as { desvioDoCatalogo?: unknown }).find((l) => l.desvioDoCatalogo);
++    expect(registro?.desvioDoCatalogo).toMatchObject({ rota: `/status-torto/${n}`, status, erroVisto: visto });
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("a frase da linha de status da rota não sai na resposta trocada", async () => {
++    const emTeste = await pedirEm("falhar", "/status-torto/frase-vazou");
++    expect(emTeste.statusCode).toBe(500);
++    expect(emTeste.statusMessage).toBe("Internal Server Error");
++    expect(lerDesviosDaGuarda()).toHaveLength(1);
++    const emProducao = await pedirEm("corrigir", "/status-torto/frase-vazou");
++    expect(emProducao.statusCode).toBe(403);
++    expect(emProducao.statusMessage).toBe("Forbidden");
++    expect(emProducao.json().erro).toBe("sem_permissao");
++  });
++
++  it("RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno", async () => {
++    for (const s of [403.5, 401.9, "403", 4294967699, 399, 600, Number.NaN]) {
++      expect(() => new RegraDeNegocio("vazou_meio", "x", s as number), String(s)).toThrow(TypeError);
++    }
++    expect(new RegraDeNegocio("sem_permissao", "x", 403).status).toBe(403);
++    expect(() => new AcessoSuspenso(403.5 as 403)).toThrow(TypeError);
++    expect(new AcessoSuspenso(503).status).toBe(503);
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const r = await pedirEm(modo, "/status-torto/regra-403.5");
++      expect(r.statusCode, modo).toBe(500);
++      expect(r.json().erro).toBe("erro_interno");
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const r = await pedirEm(modo, "/status-torto/ok-200.5");
++      expect(r.statusCode).toBe(200);
++      const c = await pedirEm(modo, "/status-torto/ok-cabecalho-terceiro");
++      expect(c.statusCode).toBe(403);
++      expect(c.headers["x-sonda"]).toBe("terceiro");
++      expect(c.json()).toEqual({ erro: "sem_permissao", mensagem: "x" });
++      // O valueOf deu 200 na leitura da guarda; o Node escreve 200, e não o 403 da segunda leitura.
++      const v = await pedirEm(modo, "/status-torto/valueof-que-muda");
++      expect(v.statusCode).toBe(200);
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const app = servidores.get(modo)!;
++      const endereco = await app.listen({ port: 0, host: "127.0.0.1" });
++      try {
++        for (const [n, status] of [["regra-mutada", 403], ["code-403.5", 403], ["code-401.9", 401], ["hijack-grande", 403], ["implicito-403.5", 403]] as const) {
++          const r = await fetch(`${endereco}/status-torto/${n}`);
++          const corpo = await r.json() as { erro: string };
++          if (modo === "falhar") {
++            expect(r.status, `${modo} ${n}`).toBe(500);
++            expect(corpo.erro).toBe("desvio_do_catalogo_de_erro");
++            expect(lerDesviosDaGuarda()).toHaveLength(1);
++          } else {
++            expect(r.status, `${modo} ${n}`).toBe(status);
++            expect(corpo.erro).toBe(status === 401 ? "nao_autenticado" : "sem_permissao");
++          }
++        }
++      } finally {
++        await app.server.close();
++      }
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
+diff --git a/dc360/apps/api/test/varredura-de-erros.ts b/dc360/apps/api/test/varredura-de-erros.ts
+index ea28cd0..1370e5e 100644
+--- a/dc360/apps/api/test/varredura-de-erros.ts
++++ b/dc360/apps/api/test/varredura-de-erros.ts
+@@ -354,6 +354,35 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+   const problema = (no: ts.Node, texto: string, chave: string | null = null, origem: string | null = null) =>
+     problemas.push({ arquivo: nome, linha: linhaDe(no), problema: texto, chave, origem });
+ 
++  /**
++   * Correção 4 (rodada 6): o status que o Node escreve é `statusCode | 0`, então
++   * `403.5`, `"403"`, `"403.2"` e `-4294966893` saem como 403 no fio, e a regra que
++   * comparava o literal com 401 e 403 os via como "outro status". No lugar de um
++   * status (`code`, `status`, terceiro argumento de `RegraDeNegocio`, `{ status }`,
++   * `statusCode`, `redirect`), literal em texto, número não inteiro, fora de 100 a
++   * 599 ou com sinal reprova.
++   */
++  const conferirLiteralDeStatus = (no: ts.Node | undefined): void => {
++    if (!no) return;
++    let atual = no;
++    while (ts.isAsExpression(atual) || ts.isParenthesizedExpression(atual) || ts.isTypeAssertionExpression(atual)
++      || ts.isSatisfiesExpression(atual) || ts.isNonNullExpression(atual)) atual = atual.expression;
++    if (ts.isStringLiteral(atual) || ts.isNoSubstitutionTemplateLiteral(atual) || ts.isTemplateExpression(atual)) {
++      problema(no, `status em texto (\`${no.getText(sf)}\`): o Node o converte com \`| 0\` e a varredura não o compara com 401 e 403`);
++      return;
++    }
++    if (ts.isPrefixUnaryExpression(atual) && ts.isNumericLiteral(atual.operand)) {
++      problema(no, `status com sinal (\`${no.getText(sf)}\`): o Node o converte com \`| 0\` e pode escrever 401 ou 403`);
++      return;
++    }
++    if (ts.isNumericLiteral(atual)) {
++      const n = Number(atual.text);
++      if (!Number.isInteger(n) || n < 100 || n > 599) {
++        problema(no, `status ${atual.text} não é número inteiro de 100 a 599: o Node escreve ${n | 0}`);
++      }
++    }
++  };
++
+   /**
+    * O corpo passado por nome (`send(RESPOSTA_X)`), resolvido PELO ESCOPO (um
+    * parâmetro homônimo não vira a constante do módulo). Só é lido quando é um
+@@ -516,6 +545,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+       }
+       const codigo = textoDoLiteral(args[0]);
+       if (familia === "RegraDeNegocio") {
++        if (args.length >= 3) conferirLiteralDeStatus(args[2]);
+         const status = args.length >= 3 ? numeroDoLiteral(args[2]) : 409;
+         emissoes.push({
+           arquivo: nome, linha: linhaDe(no2), forma, codigo,
+@@ -637,6 +667,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+       let temStatus = false;
+       let statusDoPar: number | null = null;
+       let corpoDoPar: ts.Expression | null = null;
++      let noDoStatus: ts.Expression | undefined;
+       for (const p of no.properties) {
+         if (ts.isShorthandPropertyAssignment(p)) {
+           if (p.name.text === "status") temStatus = true;
+@@ -645,10 +676,11 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+         }
+         if (!ts.isPropertyAssignment(p)) continue;
+         const n = nomeDaPropriedade(p.name);
+-        if (n === "status") { temStatus = true; statusDoPar = numeroDoLiteral(p.initializer); }
++        if (n === "status") { temStatus = true; statusDoPar = numeroDoLiteral(p.initializer); noDoStatus = p.initializer; }
+         if (n === "corpo") corpoDoPar = p.initializer;
+       }
+       if (temStatus && corpoDoPar) {
++        conferirLiteralDeStatus(noDoStatus);
+         let corpo: ts.Expression = corpoDoPar;
+         while (ts.isAsExpression(corpo) || ts.isParenthesizedExpression(corpo)) corpo = corpo.expression;
+         if (!ts.isObjectLiteralExpression(corpo)) {
+@@ -756,6 +788,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+ 
+     // 4. `statusCode: 403` escrito à mão (erro do Fastify com status próprio).
+     if (ts.isPropertyAssignment(no) && nomeDaPropriedade(no.name) === "statusCode") {
++      conferirLiteralDeStatus(no.initializer);
+       const n = numeroDoLiteral(no.initializer);
+       if (n === null || n === 401 || n === 403) problema(no, `\`statusCode: ${n ?? "calculado"}\` escrito à mão: a varredura não vê o código dessa resposta`);
+     }
+@@ -764,6 +797,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+       && ts.isPropertyAccessExpression(no.left)
+       && (no.left.name.text === "statusCode" || no.left.name.text === "status")
+     ) {
++      conferirLiteralDeStatus(no.right);
+       const n = numeroDoLiteral(no.right);
+       // `this.status = status` no construtor de uma classe de erro é o campo que o tratador lê; o
+       // código dessa classe é varrido à parte. Só o literal 401 ou 403 ali é uma resposta de acesso.
+@@ -877,6 +911,7 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+     // literal passa.
+     if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression) && no.expression.name.text === "redirect"
+       && no.arguments.length !== 1) {
++      conferirLiteralDeStatus(no.arguments[1]);
+       const n = numeroDoLiteral(no.arguments[1]);
+       if (n === null || n < 300 || n > 399) problema(no, `\`.redirect(...)\` com status ${n ?? "calculado"}: resposta sem \`erro\``);
+     }
+@@ -891,6 +926,25 @@ export function varrerFonte(fonte: string, nome: string, rastreadas?: Rastreadas
+       }
+     }
+ 
++    // 7. Correção 4 (rodada 6): status que o Node escreve como 401 ou 403 sem estar escrito assim.
++    if (ts.isCallExpression(no) && ts.isPropertyAccessExpression(no.expression)
++      && ["code", "status", "writeHead"].includes(no.expression.name.text) && no.arguments.length >= 1) {
++      conferirLiteralDeStatus(no.arguments[0]);
++    }
++    if (ts.isPropertyDeclaration(no) && no.initializer && nomeDaPropriedade(no.name) !== null
++      && (nomeDaPropriedade(no.name) === "status" || nomeDaPropriedade(no.name) === "statusCode")) {
++      conferirLiteralDeStatus(no.initializer);
++    }
++    // Em qualquer lugar: o número que vira 401 ou 403 pelo `| 0` do Node sem ser 401 ou 403
++    // (`403.5`, `401.9`, `4294967699`, `-4294966893`), mesmo guardado numa constante.
++    if (ts.isNumericLiteral(no)) {
++      const negativo = ts.isPrefixUnaryExpression(no.parent) && no.parent.operator === ts.SyntaxKind.MinusToken;
++      const v = (negativo ? -1 : 1) * Number(no.text);
++      if ((v | 0) !== v && ((v | 0) === 401 || (v | 0) === 403)) {
++        problema(no, `número ${negativo ? "-" : ""}${no.text} que o Node escreve como ${v | 0} num status: só 401 ou 403 escritos assim`);
++      }
++    }
++
+     ts.forEachChild(no, visitar);
+   };
+   visitar(sf);
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index fc3c3c3..6db7f4b 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -144,6 +144,29 @@ function textoJson(campos: ReadonlyArray<readonly [string, string]>): string {
+   return `${saida}}`;
+ }
+ 
++/**
++ * O status COMO O NODE O ESCREVE na linha de status, e se ele chegou torto
++ * (V2-F00-E05, correção 4). O `writeHead` do Node faz `statusCode |= 0` antes de
++ * conferir a faixa: `403.5`, `"403"`, `"403.2"`, `"0x193"`, `[403]`,
++ * `403 + 2 ** 32` e um objeto cujo `valueOf` dá `401.9` saem TODOS como 401 ou
++ * 403 no fio. A guarda decidia pelo valor pedido (`=== 403`), e o status
++ * fracionário passava por ela com código fora do catálogo. Agora ela decide pelo
++ * mesmo `| 0` que o Node usa, calculado UMA vez (o `valueOf` não roda de novo:
++ * o que segue para o Node é o inteiro já calculado), e o status que não é número
++ * inteiro de 100 a 599 é `torto`: se o Node o escreveria como 401 ou 403, é desvio
++ * mesmo com o corpo no catálogo.
++ */
++function statusComoONodeEscreve(pedido: unknown): { efetivo: number; torto: boolean } {
++  const efetivo = (pedido as number) | 0;
++  const torto = typeof pedido !== "number" || efetivo !== pedido || efetivo < 100 || efetivo > 599;
++  return { efetivo, torto };
++}
++
++/** A frase da linha de status da resposta trocada pela guarda (a da rota pode ser qualquer texto). */
++const FRASE_DO_STATUS: Readonly<Record<number, string>> = Object.freeze({
++  401: "Unauthorized", 403: "Forbidden", 500: "Internal Server Error",
++});
++
+ /** Desvios do modo "falhar" ainda não lidos. O apoio de teste lê e esvazia. */
+ const desviosPendentes: Desvio[] = [];
+ 
+@@ -187,15 +210,17 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   const ehHead = req.method === "HEAD";
+   let segurando = false;
+   let statusSegurado = 0;
++  let statusTorto = false;
+   let cabecalhosSegurados: Cabecalhos;
+   let mensagemDeStatus: string | undefined;
+   const pedacos: Buffer[] = [];
+   let bytes = 0;
+   let excedeu = false;
+ 
+-  const comecarASegurar = (status: number) => {
++  const comecarASegurar = (status: number, torto: boolean) => {
+     segurando = true;
+     statusSegurado = status;
++    statusTorto = torto;
+   };
+   const ehAcesso = (s: number) => s === 401 || s === 403;
+   const guardar = (pedaco: unknown, codificacao?: unknown) => {
+@@ -208,20 +233,36 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     else pedacos[pedacos.length] = b;
+   };
+ 
+-  function writeHead(this: ServerResponse, status: number, ...resto: unknown[]) {
+-    if (!ehHead && ehAcesso(status) && !raw.headersSent) {
+-      comecarASegurar(status);
++  function writeHead(this: ServerResponse, status: unknown, ...resto: unknown[]) {
++    const { efetivo, torto } = statusComoONodeEscreve(status);
++    if (!ehHead && ehAcesso(efetivo) && !raw.headersSent) {
++      comecarASegurar(efetivo, torto);
++      // Como o Node lê os argumentos: frase em texto e depois os cabeçalhos; sem frase em texto, os
++      // cabeçalhos são o terceiro argumento, ou o segundo quando o terceiro falta (`obj ??= reason`).
+       if (typeof resto[0] === "string") { mensagemDeStatus = resto[0]; cabecalhosSegurados = resto[1] as Cabecalhos; }
+-      else cabecalhosSegurados = resto[0] as Cabecalhos;
++      else cabecalhosSegurados = (resto[1] !== undefined && resto[1] !== null ? resto[1] : resto[0]) as Cabecalhos;
+       return raw;
+     }
+-    const todos: unknown[] = [status];
++    // O Node recebe o inteiro já calculado: o que ele escreve é o que a guarda conferiu.
++    const todos: unknown[] = [efetivo];
+     for (let i = 0; i < resto.length; i += 1) todos[todos.length] = resto[i];
+     return aplicar(writeHeadOriginal, raw, todos);
+   }
+ 
++  /**
++   * O cabeçalho implícito (`write`/`end` sem `writeHead` antes): o Node escreve
++   * `this.statusCode`, com o mesmo `| 0`. Status de acesso começa a segurar; o
++   * torto que não é de acesso vira o inteiro antes de o Node lê-lo de novo.
++   */
++  const conferirCabecalhoImplicito = () => {
++    if (segurando || ehHead || raw.headersSent) return;
++    const { efetivo, torto } = statusComoONodeEscreve(raw.statusCode);
++    if (ehAcesso(efetivo)) comecarASegurar(efetivo, torto);
++    else if (torto) raw.statusCode = efetivo;
++  };
++
+   function write(this: ServerResponse, ...args: unknown[]) {
+-    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    conferirCabecalhoImplicito();
+     if (!segurando) return aplicar(writeOriginal, raw, args);
+     const cb = typeof args[args.length - 1] === "function" ? args[args.length - 1] as () => void : null;
+     guardar(args[0], typeof args[1] === "string" ? args[1] : undefined);
+@@ -230,7 +271,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+   }
+ 
+   function end(this: ServerResponse, ...args: unknown[]) {
+-    if (!segurando && !ehHead && !raw.headersSent && ehAcesso(raw.statusCode)) comecarASegurar(raw.statusCode);
++    conferirCabecalhoImplicito();
+     if (!segurando) return aplicar(endOriginal, raw, args);
+     segurando = false;
+     let cb: unknown;
+@@ -243,7 +284,13 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     let achado: { motivo: string; erroVisto: string | null } | null;
+     try {
+       const texto = excedeu ? null : aplicar(bufferParaTexto, corpoOriginal, ["utf8"]) as string;
+-      achado = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++      const doCorpo = conferirCorpoDeAcesso(statusSegurado, texto, opcoes.contrato);
++      achado = statusTorto
++        ? {
++          motivo: `status que não é número inteiro de 100 a 599 e que o Node escreve como ${statusSegurado}`,
++          erroVisto: doCorpo === null ? null : doCorpo.erroVisto,
++        }
++        : doCorpo;
+     } catch {
+       achado = { motivo: "a conferência do corpo falhou", erroVisto: null };
+     }
+@@ -282,7 +329,7 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     const cabecalhos = semCabecalhosDoCorpo(cabecalhosSegurados);
+     cabecalhos["content-type"] = "application/json; charset=utf-8";
+     cabecalhos["content-length"] = String(tamanhoEmBytes(novo));
+-    aplicar(writeHeadOriginal, raw, [statusFinal, cabecalhos]);
++    aplicar(writeHeadOriginal, raw, [statusFinal, FRASE_DO_STATUS[statusFinal]!, cabecalhos]);
+     return fimComCb(novo);
+   }
+ 
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+index aca7283..b8e3231 100644
+--- a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -50,6 +50,15 @@ beforeAll(async () => {
+       f.get("/x", async () => ({ ok: true }));
+     }, { prefix: "/teste-da-guarda/eag" });
+     c.app.get(r("eaf"), async (_q, rep) => rep.code(403).type("application/json").send('{"erro":"vazou_eaf","erro":"so_o_dono"}'));
++    // Correção 4 (rodada 6): status que o Node escreve como 401 ou 403 sem ser 401 ou 403.
++    c.app.get(r("frac"), async (_q, rep) => rep.code(403.5).send({ erro: "vazou_frac_console", mensagem: "x" }));
++    c.app.get(r("frac-401"), async (_q, rep) => rep.code(401.9).send({ erro: "vazou_frac_um", mensagem: "x" }));
++    c.app.get(r("frac-texto"), async (_q, rep) => rep.code("403.2" as unknown as 403).send({ erro: "so_o_dono", mensagem: "x" }));
++    c.app.get(r("hijack-grande"), async (_q, rep) => {
++      rep.hijack();
++      (rep.raw as unknown as { writeHead: (...a: unknown[]) => unknown }).writeHead(403 + 2 ** 32, { "content-type": "application/json" });
++      rep.raw.end('{"erro":"vazou_grande"}');
++    });
+     await c.app.ready();
+     consoles.set(modo, c);
+   }
+@@ -62,6 +71,8 @@ afterAll(async () => {
+ const FORMAS: ReadonlyArray<[string, number, string | null]> = [
+   ["m07", 403, "vazou_mah"], ["m10", 401, "vazou_mba"], ["m11", 403, "vazou_mbb"], ["m16", 403, "vazou_mbg"],
+   ["eab/x", 403, "vazou_eab"], ["eag/x", 403, null], ["eaf", 403, "so_o_dono"],
++  ["frac", 403, "vazou_frac_console"], ["frac-401", 401, "vazou_frac_um"], ["frac-texto", 403, null],
++  ["hijack-grande", 403, "vazou_grande"],
+ ];
+ 
+ describe("a guarda do console", () => {
+@@ -93,3 +104,27 @@ describe("a guarda do console", () => {
+     expect(lerDesviosDaGuarda()).toEqual([]);
+   });
+ });
++
++describe("correção 4: o status torto, por HTTP de verdade (porta efêmera)", () => {
++  it("403.5 não sai 403 com o código fora do contrato, nos dois modos", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const app = consoles.get(modo)!.app;
++      const endereco = await app.listen({ port: 0, host: "127.0.0.1" });
++      try {
++        const r = await fetch(`${endereco}/teste-da-guarda/frac`);
++        const corpo = await r.json() as { erro: string };
++        if (modo === "falhar") {
++          expect(r.status).toBe(500);
++          expect(lerDesviosDaGuarda()).toHaveLength(1);
++        } else {
++          expect(r.status).toBe(403);
++          expect(corpo.erro).toBe("so_o_dono");
++          expect(r.statusText).toBe("Forbidden");
++        }
++      } finally {
++        await app.server.close();
++      }
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++});
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index 60531d4..ae22250 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -39,9 +39,13 @@
+  *    `hijack` e `raw` terminam nesses três métodos. A primeira versão era um
+  *    `onSend`, e a revisão passou por ela de três jeitos (`onSend` acrescentado
+  *    depois por um `onRoute` de plugin, 404 de plugin trocado por 403, e o
+- *    tratador de reserva escrevendo direto na resposta do Node). O corpo tem de
+- *    ser JSON com UMA chave `erro` (repetida é recusada) deste catálogo (ou da
+- *    lista da entrada) e o status que o catálogo dá a ele. Fora disso, em TESTE
++ *    tratador de reserva escrevendo direto na resposta do Node). "401 ou 403" é
++ *    o status que o Node ESCREVE, `statusCode | 0`, e não o pedido: `403.5`,
++ *    `"403"` e `4294967699` saem 403 no fio, e status que não é número inteiro
++ *    de 100 a 599 e vira 401 ou 403 é desvio mesmo com o corpo certo (correção
++ *    4). O corpo tem de ser JSON com UMA chave `erro` (repetida é recusada)
++ *    deste catálogo (ou da lista da entrada) e o status que o catálogo dá a
++ *    ele. Fora disso, em TESTE
+  *    a resposta vira 500 `desvio_do_catalogo_de_erro` e o caso (ou o
+  *    `afterAll`) que passou por ali reprova (`test/guarda-falha-alto.ts`, em
+  *    todo arquivo da suíte); FORA de teste ela sai com o código genérico do

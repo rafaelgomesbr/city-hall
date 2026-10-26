@@ -1,0 +1,150 @@
+Simulação dos passos bash do job plataformas (caminho do Linux) no macOS
+clone: /tmp/e21c3/sim/clone
+
+== Fim de linha como no Windows do autor (core.autocrlf=true): feito com GIT_CONFIG_GLOBAL próprio (a configuração do Mac não é tocada)
+== Fim de linha como no Windows do autor (core.autocrlf=true): success (código 0, 0.0 s)
+file:/tmp/e21c3/sim/gitconfig	true
+
+
+== actions/checkout@v4: substituído (clone local com autocrlf=true e node do sistema)
+== actions/setup-node@v4: substituído (clone local com autocrlf=true e node do sistema)
+== Contexto do run: success (código 0, 0.1 s)
+
+
+== git ls-files --eol sem i/crlf (checkout com autocrlf=true): success (código 0, 3.0 s)
+file:/tmp/e21c3/sim/gitconfig	true
+git ls-files --eol: 5623 arquivos.
+  i/-text    2195
+  i/lf       3428
+  w/-text    2195
+  w/crlf     2
+  w/lf       3426
+Nenhum i/crlf nem i/mixed; CRLF no disco só onde o .gitattributes pede.
+
+
+== Os INDEX.md da evidência batem com os arquivos (SHA-256): success (código 0, 1.9 s)
+Índices de evidência: 80 INDEX.md, 3773 arquivo(s) conferido(s) byte a byte.
+RESULTADO: OK
+
+
+== Instalar dependências: success (código 0, 1.4 s)
+added 193 packages, and audited 200 packages in 1s
+
+43 packages are looking for funding
+  run `npm fund` for details
+
+3 vulnerabilities (1 moderate, 2 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+
+== Compilar os pacotes compartilhados: success (código 0, 2.2 s)
+> @dc360/shared@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/db@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/campo@0.1.0 build
+> tsc -p tsconfig.build.json
+
+
+
+== Caso 1, controle: árvore do painel em CRLF, sem a agulha antiga: success (código 0, 0.1 s)
+Gravados em CRLF: 119 arquivos de apps/web/src, apps/web/test.
+apps/web/src/paginas/Ocorrencia.tsx: 2485 linhas CRLF, 0 LF sozinho, agulha antiga "\n}\n" presente: não.
+apps/web/test/ocorrencia-encerramento.test.ts: 177 linhas CRLF, 0 LF sozinho, agulha antiga "\n}\n" presente: não.
+
+
+== Caso 1: suíte do painel inteira sobre a árvore CRLF: success (código 0, 6.2 s)
+
+ ✓ test/busca-nos-dois-modos.test.ts (12 tests) 2185ms
+ ✓ test/semente-e-confirmacoes.test.ts (5 tests) 1754ms
+ ✓ test/quem-esta-em-campo.test.ts (4 tests) 1777ms
+ ✓ test/oficio-so-para-quem-consulta.test.ts (4 tests) 1564ms
+
+ Test Files  46 passed (46)
+      Tests  699 passed (699)
+   Start at  11:55:55
+   Duration  5.44s (transform 1.58s, setup 0ms, collect 9.47s, tests 12.94s, environment 5ms, prepare 2.43s)
+
+
+
+== Caso 2, controle: o openssl cru reprova com OPENSSL_CONF quebrado: success (código 0, 0.0 s)
+OPENSSL_CONF=/nao/existe/psqlODBC/etc/openssl.cnf
+openssl: /usr/bin/openssl
+WARNING: can't open config file: /nao/existe/psqlODBC/etc/openssl.cnf
+LibreSSL 3.3.6
+WARNING: can't open config file: /nao/existe/psqlODBC/etc/openssl.cnf
+Unable to load config info from /nao/existe/psqlODBC/etc/openssl.cnf
+controle: o openssl cru reprova com a variável quebrada, como na máquina do autor
+
+
+== Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (bash): success (código 0, 1.2 s)
+banco-tls: OPENSSL_CONF aponta para "/nao/existe/psqlODBC/etc/openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+ ✓ test/banco-tls.test.ts (13 tests) 130ms
+ ✓ test/openssl-do-teste.test.ts (10 tests) 551ms
+   ✓ O openssl de verdade, com cada ambiente > gera o certificado com OPENSSL_CONF apontando para arquivo inexistente  325ms
+
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+   Start at  11:56:01
+   Duration  790ms (transform 77ms, setup 161ms, collect 39ms, tests 681ms, environment 0ms, prepare 64ms)
+
+
+
+== Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (PowerShell 5.1, só Windows): PULADO (shell powershell, só Windows)
+== Instalar dependências do aplicativo: success (código 0, 5.9 s)
+  run `npm fund` for details
+
+59 vulnerabilities (8 moderate, 50 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+
+== Caso 3, controle: com o cache velho o tsc direto dá TS2345: success (código 0, 2.5 s)
+Cache velho em apps/campo/.expo/types/router.d.ts; rotas ausentes nele: /avisos, /mapa, /perfil.
+Cache velho em apps/campo/.expo/types/router.d.ts; rotas ausentes nele: /avisos, /mapa, /perfil.
+src/app/(agente)/perfil.tsx(1224,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/_sitemap" | `/_sitemap?${string}` | `/_sitemap#${string}` | ... 22 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/_sitemap" | `/_sitemap?${string}` | `/_sitemap#${string}` | ... 22 more ... | { ...; }'.
+erros TS2345: 2
+
+
+== Caso 3: npm run test:campo com o cache velho presente: success (código 0, 100.6 s)
+
+Test Suites: 139 passed, 139 total
+Tests:       1997 passed, 1997 total
+Snapshots:   0 total
+Time:        96.479 s
+Ran all test suites.
+Test results written to: node_modules/.cache/dc360-contagem.json
+
+A leitura do código e o jest concordam: 1997 casos.
+
+O aplicativo de campo passou: tipos limpos e testes verdes.
+
+
+== Caso 3: typecheck do aplicativo sem o cache: success (código 0, 2.6 s)
+
+> @dc360/campo-app@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+
+== Redigir segredo dos artefatos: failure (código 1, 0.0 s)
+sed: 1: "s#([A-Za-z][A-Za-z0-9+. ...": \1 not defined in the RE
+
+
+== Publicar os artefatos: substituído (clone local com autocrlf=true e node do sistema)

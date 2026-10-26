@@ -19,6 +19,10 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
-    setupFiles: ["./test/apoio/duble-da-migracao-039.ts"],
+    /*
+      E o "falha alto" da guarda das respostas de acesso (V2-F00-E05, correção
+      3): caso que passou por uma resposta 401 ou 403 fora do contrato reprova.
+    */
+    setupFiles: ["./test/apoio/duble-da-migracao-039.ts", "./test/apoio/guarda-falha-alto.ts"],
   },
 });

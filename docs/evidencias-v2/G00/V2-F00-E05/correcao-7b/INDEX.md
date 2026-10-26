@@ -1,0 +1,32 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | d49b8c4e6484435256474a798ae8fad2592c20fe2bdf8474a00137a0dd4fc40f |
+| diff-da-correcao.patch | e6efb588652b5012e87b84478f27f1f2ca78130d602d3fde85c4d013e264372c |
+| saidas/00-ANTES-node22-sonda-api.txt | eb432500178c7e67f122d30f57645845e324e5397774e873fb332c3c6527b0f9 |
+| saidas/01-ANTES-node22-sonda-console.txt | 165f0beb0fd9f8fcc646132b2d0a099872d6348df139eff0b620d71c349f5f03 |
+| saidas/02-early-hints-por-versao-do-node.txt | 0cc98860ae9c1cdc23b59aabea4de1d9d3f55570c117d88d98cb0e076c1315ea |
+| saidas/03-CI-run-39488319365-trecho.txt | f2466b24cf7368c3b6d146e3ff380d8487deee85f4661d9d0cfa89394e5fd8d9 |
+| saidas/10-DEPOIS-node22-guarda-api.txt | a1af656461dc99c1b0890b0a251bbd1dd9d133b512995dbe0e1f42021a1da9e8 |
+| saidas/11-DEPOIS-node22-guarda-console.txt | 72907c6038f8c4377fde6374f514da6665615705705d17d3be356ddc4d7e68ef |
+| saidas/12-DEPOIS-node24-guarda-api.txt | 49189966cb8c0a03815d2646421ffce955ff8844bf1a77c01c3803eb86ba3d33 |
+| saidas/13-DEPOIS-node24-guarda-console.txt | 8f2169660247debfe7b72fd564d3156d8e3b0db22137a075dd617f7adf3dce43 |
+| saidas/14-DEPOIS-node22-sonda-api.txt | fad08204c0f6dffd1d92c43d7fbc56c74a95b34a5bfac8a5501e26d1520d9737 |
+| saidas/15-DEPOIS-node22-sonda-console.txt | 66ed6d3ab8ce7117d4764936b644872952d88625610bcc23abee1c0b20cfc440 |
+| saidas/16-DEPOIS-node24-sonda-api.txt | 32b0573b7223177540670446417f8a31debd54cca1922b77bf39c43b3ca9bc7a |
+| saidas/17-DEPOIS-node24-sonda-console.txt | a82348bffc537b34fb687c8d6774960ac4fede4defd08b467ecd4484b3ad385d |
+| saidas/20-MORDIDA-guarda-da-correcao-7-node22-api.txt | ab7a56185f5d1ef3a8ba621adb7024c39c3af125945655d0d4516b92357c3404 |
+| saidas/21-MORDIDA-guarda-da-correcao-7-node22-console.txt | fbc69f9d4c6ad30a3ad77e1fff9b573fd2735f37b6b3e2a616196b963c063c7b |
+| saidas/22-MORDIDA-guarda-da-correcao-7-node24-api.txt | bb8cd6e4bf9175d715025708dfadad17a3cf49698a080da8cd78c73ac88a7207 |
+| saidas/23-MORDIDA-guarda-da-correcao-7-node24-console.txt | 0a7e3e549858c8a1b8592804975e4d2fbbcfcfa5f8779c961210bf10ab23cf49 |
+| saidas/60-test-api-node24.txt | 0e3ba86e622ff9cc578384dc17e3dd03e7a653f82cf727a2d273bb5c5b86332f |
+| saidas/61-test-console-node24.txt | 8156da5b6b6508b1d3745a1f69c5de36ddef06468aeb47a29963d19e277dcf29 |
+| saidas/62-test-api-node22.txt | 1e718049974d468fe0125bfed215bd4d9940521f29d2d08754f979de0af6b2ac |
+| saidas/63-test-console-node22.txt | 222d17cee58905714c0d52edc0eb6e48c79bec5bec03b1ccc156a7930c75f14c |
+| saidas/64-typecheck.txt | 4c98989b854cb607bb0c870a727827ad60216a1cad659a0118be849509716b2e |
+| saidas/65-typecheck-dos-testes-tocados.txt | 9af1d90d5128de23676052a402d57abc66ac5bebfa4a57fe5dd55da6832335db |
+| saidas/66-portao-de-conteudo.txt | 63e1006f5330f58c5e8b80da8c8c175e267bb44ac3500c60a41e75e520565c84 |
+| saidas/67-conferir-numeros.txt | 8d76c2691a3aa38e4d983d2fa4591ce7074f14cc85a3be45f6b3d2d1d44d0a91 |
+| saidas/68-baseline-test.txt | 913076b30823a3374dd85220fc811055459f3ccf0e6009cfc41e31f650b664b7 |
+| scripts/early-hints-por-versao.cjs | 2ef7d2a8a003fa63382eed2f1e20f5412aeac0432426eb5ba2b299e39550be32 |

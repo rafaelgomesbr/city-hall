@@ -1,0 +1,5 @@
+rodada 1 saida=0 Passou: 279   Falhou: 0 Passou: 50   Falhou: 0
+rodada 2 saida=0 Passou: 279   Falhou: 0 Passou: 50   Falhou: 0
+rodada 3 saida=0 Passou: 279   Falhou: 0 Passou: 50   Falhou: 0
+rodada 4 saida=0 Passou: 279   Falhou: 0 Passou: 50   Falhou: 0
+FIM

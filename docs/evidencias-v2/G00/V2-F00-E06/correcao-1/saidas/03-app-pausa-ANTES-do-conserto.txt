@@ -1,0 +1,232 @@
+$ (cd dc360/apps/campo) npx jest src/dados/falha-de-atualizacao.test.ts src/dados/pausa-da-fila.test.ts src/ui/fila-pausada-pela-sessao.test.tsx src/ui/faixa-de-sincronizacao.test.tsx src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+
+FAIL src/dados/pausa-da-fila.test.ts
+  ● frases da pausa › senha provisória manda definir a senha no painel e não manda procurar a coordenação
+
+    TypeError: Cannot read properties of undefined (reading 'titulo')
+
+    [0m [90m 49 |[39m   it([32m"senha provisória manda definir a senha no painel e não manda procurar a coordenação"[39m[33m,[39m () [33m=>[39m {
+     [90m 50 |[39m     [36mconst[39m senha [33m=[39m frasesDaPausa([32m"troca_de_senha_obrigatoria"[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 51 |[39m     expect(senha[33m.[39mtitulo)[33m.[39mtoMatch([35m/senha provisória/i[39m)[33m;[39m
+     [90m    |[39m                  [31m[1m^[22m[39m
+     [90m 52 |[39m     expect(senha[33m.[39mdetalhe)[33m.[39mtoMatch([35m/continuam guardadas/i[39m)[33m;[39m
+     [90m 53 |[39m     expect(senha[33m.[39mdetalhe)[33m.[39mtoMatch([35m/painel/i[39m)[33m;[39m
+     [90m 54 |[39m     expect(senha[33m.[39mfaixaDetalhe)[33m.[39mtoMatch([35m/guardadas/i[39m)[33m;[39m[0m
+
+      at Object.titulo (src/dados/pausa-da-fila.test.ts:51:18)
+
+  ● frases da pausa › as três pausas têm frases diferentes
+
+    TypeError: Cannot read properties of undefined (reading 'titulo')
+
+    [0m [90m 62 |[39m     [36mconst[39m todas [33m=[39m ([[32m"sessao_encerrada"[39m[33m,[39m [32m"conta_desativada"[39m[33m,[39m [32m"troca_de_senha_obrigatoria"[39m] [36mas[39m [36mconst[39m)
+     [90m 63 |[39m       [33m.[39mmap((m) [33m=>[39m frasesDaPausa(m))[33m;[39m
+    [31m[1m>[22m[39m[90m 64 |[39m     expect([36mnew[39m [33mSet[39m(todas[33m.[39mmap((f) [33m=>[39m f[33m.[39mtitulo))[33m.[39msize)[33m.[39mtoBe([35m3[39m)[33m;[39m
+     [90m    |[39m                                       [31m[1m^[22m[39m
+     [90m 65 |[39m     expect([36mnew[39m [33mSet[39m(todas[33m.[39mmap((f) [33m=>[39m f[33m.[39mfaixaTitulo))[33m.[39msize)[33m.[39mtoBe([35m3[39m)[33m;[39m
+     [90m 66 |[39m     expect([36mnew[39m [33mSet[39m(todas[33m.[39mmap((f) [33m=>[39m f[33m.[39mdoCartao))[33m.[39msize)[33m.[39mtoBe([35m3[39m)[33m;[39m
+     [90m 67 |[39m   })[33m;[39m[0m
+
+      at titulo (src/dados/pausa-da-fila.test.ts:64:39)
+          at Array.map (<anonymous>)
+      at Object.map (src/dados/pausa-da-fila.test.ts:64:26)
+
+(node:99088) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/dados/falha-de-atualizacao.test.ts
+  ● a senha provisória › 403 troca_de_senha_obrigatoria é troca de senha, e não 'outro'
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "troca-de-senha"
+    Received: "outro"
+
+    [0m [90m 143 |[39m   it([32m"403 troca_de_senha_obrigatoria é troca de senha, e não 'outro'"[39m[33m,[39m () [33m=>[39m {
+     [90m 144 |[39m     expect(motivoDaFalha([36mnew[39m [33mRespostaDoServidor[39m([35m403[39m[33m,[39m [32m"troca_de_senha_obrigatoria"[39m)))
+    [31m[1m>[22m[39m[90m 145 |[39m       [33m.[39mtoBe([32m"troca-de-senha"[39m)[33m;[39m
+     [90m     |[39m        [31m[1m^[22m[39m
+     [90m 146 |[39m   })[33m;[39m
+     [90m 147 |[39m
+     [90m 148 |[39m   it([32m"é fim de linha para a tela: nada novo desce até a senha ser definida"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (src/dados/falha-de-atualizacao.test.ts:145:8)
+
+  ● a senha provisória › é fim de linha para a tela: nada novo desce até a senha ser definida
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 147 |[39m
+     [90m 148 |[39m   it([32m"é fim de linha para a tela: nada novo desce até a senha ser definida"[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 149 |[39m     expect(ehFimDeLinha([32m"troca-de-senha"[39m))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                                            [31m[1m^[22m[39m
+     [90m 150 |[39m   })[33m;[39m
+     [90m 151 |[39m
+     [90m 152 |[39m   [36mconst[39m frase [33m=[39m comoContarAFalha([32m"troca-de-senha"[39m[33m,[39m [32m"Mostrando o que já estava no aparelho."[39m)[33m;[39m[0m
+
+      at Object.toBe (src/dados/falha-de-atualizacao.test.ts:149:44)
+
+  ● a senha provisória › manda definir a senha no painel e promete que as coletas continuam guardadas
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Defina a sua senha"
+    Received: "Não deu para atualizar agora"
+
+    [0m [90m 153 |[39m
+     [90m 154 |[39m   it([32m"manda definir a senha no painel e promete que as coletas continuam guardadas"[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 155 |[39m     expect(frase[33m.[39mresumo)[33m.[39mtoBe([32m"Defina a sua senha"[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 156 |[39m     expect(frase[33m.[39mdetalhe)[33m.[39mtoMatch([35m/senha provisória/i[39m)[33m;[39m
+     [90m 157 |[39m     expect(frase[33m.[39mdetalhe)[33m.[39mtoMatch([35m/painel/i[39m)[33m;[39m
+     [90m 158 |[39m     expect(frase[33m.[39mdetalhe)[33m.[39mtoMatch([35m/continuam guardadas/i[39m)[33m;[39m[0m
+
+      at Object.toBe (src/dados/falha-de-atualizacao.test.ts:155:26)
+
+FAIL src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+  ● a fila real do aplicativo com a conta trocando no meio do pedido › o 403 tardio é da Ana, e o Bruno que entrou depois não lê a pausa dela
+
+    expect(received).toBeNull()
+
+    Received: "conta_desativada"
+
+    [0m [90m 123 |[39m     [90m// O Bruno não lê a pausa da Ana, e a coleta dela espera por ela.[39m
+     [90m 124 |[39m     [36mconst[39m doBruno [33m=[39m [36mawait[39m fila[33m.[39mresumo()[33m;[39m
+    [31m[1m>[22m[39m[90m 125 |[39m     expect(doBruno[33m.[39mpausadaPor)[33m.[39mtoBeNull()[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 126 |[39m     expect(doBruno[33m.[39mdeOutroAutor)[33m.[39mtoBe([35m1[39m)[33m;[39m
+     [90m 127 |[39m     [90m// A Ana volta e a pausa dela está lá, com o item guardado e sem tentativa gasta.[39m
+     [90m 128 |[39m     quem[33m.[39matual [33m=[39m identidade([33mANA[39m[33m,[39m [32m"Ana Ribeiro"[39m)[33m;[39m[0m
+
+      at Object.toBeNull (src/dados/troca-de-conta-com-pedido-em-voo.test.ts:125:32)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila real do aplicativo com a conta trocando no meio do pedido › 403 troca_de_senha_obrigatoria pelo fio do aplicativo: pausa, e a coleta fica guardada
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "troca_de_senha_obrigatoria"
+    Received: undefined
+
+    [0m [90m 145 |[39m     [36mconst[39m r [33m=[39m [36mawait[39m fila[33m.[39mdrenar()[33m;[39m
+     [90m 146 |[39m
+    [31m[1m>[22m[39m[90m 147 |[39m     expect(r[33m.[39mparadaPor)[33m.[39mtoBe([32m"troca_de_senha_obrigatoria"[39m)[33m;[39m
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 148 |[39m     expect(r[33m.[39mbloqueados)[33m.[39mtoBe([35m0[39m)[33m;[39m
+     [90m 149 |[39m     [36mconst[39m resumo [33m=[39m [36mawait[39m fila[33m.[39mresumo()[33m;[39m
+     [90m 150 |[39m     expect(resumo[33m.[39mbloqueados)[33m.[39mtoBe([35m0[39m)[33m;[39m[0m
+
+      at Object.toBe (src/dados/troca-de-conta-com-pedido-em-voo.test.ts:147:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/ui/faixa-de-sincronizacao.test.tsx
+  ● a faixa quando a fila esta parada pela sessao › senha provisória manda definir a senha e promete a coleta guardada, sem mandar entrar de novo
+
+    TypeError: Cannot read properties of undefined (reading 'faixaTitulo')
+
+    [0m [90m 119 |[39m       chave[33m:[39m entrada[33m.[39mpausadaPor[33m,[39m
+     [90m 120 |[39m       fundo[33m:[39m tema[33m.[39mperigoFundo[33m,[39m cor[33m:[39m tema[33m.[39mperigoTexto[33m,[39m sinalTexto[33m:[39m [32m"!"[39m[33m,[39m
+    [31m[1m>[22m[39m[90m 121 |[39m       titulo[33m:[39m frases[33m.[39mfaixaTitulo[33m,[39m detalhe[33m:[39m frases[33m.[39mfaixaDetalhe[33m,[39m
+     [90m     |[39m                      [31m[1m^[22m[39m
+     [90m 122 |[39m     }[33m;[39m
+     [90m 123 |[39m   }
+     [90m 124 |[39m   [36mif[39m (entrada[33m.[39msincronizando) {[0m
+
+      at faixaTitulo (src/ui/FaixaDeSincronizacao.tsx:121:22)
+      at faixa (src/ui/faixa-de-sincronizacao.test.tsx:318:24)
+      at Object.faixa (src/ui/faixa-de-sincronizacao.test.tsx:348:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+FAIL src/ui/fila-pausada-pela-sessao.test.tsx
+  ● senha provisória (correção 1) › diz o fato, manda definir a senha no painel e promete que a coleta continua guardada
+
+    TypeError: Cannot read properties of undefined (reading 'titulo')
+
+    [0m [90m 1738 |[39m [90m                     coisa na primeira linha de toda aba. */[39m
+     [90m 1739 |[39m                   peso[33m=[39m[32m"leve"[39m
+    [31m[1m>[22m[39m[90m 1740 |[39m                   titulo[33m=[39m{frasesDaPausa(pausadaPor)[33m.[39mtitulo}
+     [90m      |[39m                                                    [31m[1m^[22m[39m
+     [90m 1741 |[39m                   {[33m...[39m(pausadaPor [33m===[39m [32m"sessao_encerrada"[39m
+     [90m 1742 |[39m                     [33m?[39m {
+     [90m 1743 |[39m                       acao[33m:[39m {[0m
+
+      at TelaDaFila (C:\Projetos\city-hall\dc360\apps\campo\src\app\(agente)../../../../../fila.tsx:1740:52)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:17596:20)
+      at renderWithHooks (node_modules/react-reconciler/cjs/react-reconciler.development.js:5335:22)
+      at updateFunctionComponent (node_modules/react-reconciler/cjs/react-reconciler.development.js:7720:19)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9277:18)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2508:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:15273:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:15099:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:15080:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:14245:35)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3335:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at node_modules/react/cjs/react.development.js:847:21
+
+  ● senha provisória (correção 1) › NÃO traz 'Entrar de novo': entrar com a provisória volta ao mesmo lugar
+
+    TypeError: Cannot read properties of undefined (reading 'titulo')
+
+    [0m [90m 1738 |[39m [90m                     coisa na primeira linha de toda aba. */[39m
+     [90m 1739 |[39m                   peso[33m=[39m[32m"leve"[39m
+    [31m[1m>[22m[39m[90m 1740 |[39m                   titulo[33m=[39m{frasesDaPausa(pausadaPor)[33m.[39mtitulo}
+     [90m      |[39m                                                    [31m[1m^[22m[39m
+     [90m 1741 |[39m                   {[33m...[39m(pausadaPor [33m===[39m [32m"sessao_encerrada"[39m
+     [90m 1742 |[39m                     [33m?[39m {
+     [90m 1743 |[39m                       acao[33m:[39m {[0m
+
+      at TelaDaFila (C:\Projetos\city-hall\dc360\apps\campo\src\app\(agente)../../../../../fila.tsx:1740:52)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:17596:20)
+      at renderWithHooks (node_modules/react-reconciler/cjs/react-reconciler.development.js:5335:22)
+      at updateFunctionComponent (node_modules/react-reconciler/cjs/react-reconciler.development.js:7720:19)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9277:18)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2508:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:15273:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:15099:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:15080:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:14245:35)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3335:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at node_modules/react/cjs/react.development.js:847:21
+
+  ● senha provisória (correção 1) › o cartão guarda a coleta, e NENHUM botão de apagar aparece (o defeito era 'Descartar')
+
+    TypeError: Cannot read properties of undefined (reading 'titulo')
+
+    [0m [90m 1738 |[39m [90m                     coisa na primeira linha de toda aba. */[39m
+     [90m 1739 |[39m                   peso[33m=[39m[32m"leve"[39m
+    [31m[1m>[22m[39m[90m 1740 |[39m                   titulo[33m=[39m{frasesDaPausa(pausadaPor)[33m.[39mtitulo}
+     [90m      |[39m                                                    [31m[1m^[22m[39m
+     [90m 1741 |[39m                   {[33m...[39m(pausadaPor [33m===[39m [32m"sessao_encerrada"[39m
+     [90m 1742 |[39m                     [33m?[39m {
+     [90m 1743 |[39m                       acao[33m:[39m {[0m
+
+      at TelaDaFila (C:\Projetos\city-hall\dc360\apps\campo\src\app\(agente)../../../../../fila.tsx:1740:52)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:17596:20)
+      at renderWithHooks (node_modules/react-reconciler/cjs/react-reconciler.development.js:5335:22)
+      at updateFunctionComponent (node_modules/react-reconciler/cjs/react-reconciler.development.js:7720:19)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9277:18)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2508:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:15273:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:15099:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:15080:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:14245:35)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3335:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:590:34)
+      at node_modules/react/cjs/react.development.js:847:21
+
+Test Suites: 5 failed, 5 total
+Tests:       11 failed, 57 passed, 68 total
+Snapshots:   0 total
+Time:        3.793 s
+Ran all test suites matching /src\\dados\\falha-de-atualizacao.test.ts|src\\dados\\pausa-da-fila.test.ts|src\\ui\\fila-pausada-pela-sessao.test.tsx|src\\ui\\faixa-de-sincronizacao.test.tsx|src\\dados\\troca-de-conta-com-pedido-em-voo.test.ts/i.
+
+[codigo de saida: 1]

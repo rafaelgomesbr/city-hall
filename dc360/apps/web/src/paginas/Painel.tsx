@@ -13,7 +13,7 @@ import {
   type ProvidenciaPendente,
   type DevolucaoPendente,
 } from "../dados/repositorio";
-import { avisoDoPainel, marcaDaLista, porOcorrencia } from "../devolucao";
+import { avisoDoPainel, marcaDaLista, podeVerDevolucoes, porOcorrencia } from "../devolucao";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, TipoDaOcorrencia, Vazio,
@@ -125,7 +125,15 @@ export function Painel() {
           confusão custa uma equipe mandada para um endereço que já derrubou
           uma viagem.
         */
-        devolucoesPendentes(sessao).catch(() => null),
+        /*
+          Quem não pode ver as devolvidas não as pede (`podeVerDevolucoes`) e
+          recebe lista vazia, sem a frase de falha: para esse papel a marca não
+          existe, e a recusa do servidor deixaria de ser erro de console para
+          virar aviso falso na tela.
+        */
+        podeVerDevolucoes(sessao.papel)
+          ? devolucoesPendentes(sessao).catch(() => null)
+          : Promise.resolve<DevolucaoPendente[]>([]),
       ])
         .then(([ind, fila, providencias, interditados, devolvidas]) => {
           if (!vivo) return;
@@ -361,7 +369,7 @@ export function Painel() {
                         </div>
                       )}
                     </td>
-                    <td>{o.equipe_nome ?? <span className="tabela__secundario">Não despachada</span>}</td>
+                    <td>{o.equipe_nome ?? <span className="tabela__secundario tabela__secundario--frase">Não despachada</span>}</td>
                     <td>
                       <Prazo prazoEm={o.prazo_em} criadoEm={o.criado_em}
                              encerrada={o.status === "encerrada"} />

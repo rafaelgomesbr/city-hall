@@ -1,0 +1,17 @@
+$ (cd dc360/apps/campo) npx jest src/dados/falha-de-atualizacao.test.ts src/dados/pausa-da-fila.test.ts src/ui/fila-pausada-pela-sessao.test.tsx src/ui/faixa-de-sincronizacao.test.tsx src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+
+PASS src/dados/falha-de-atualizacao.test.ts
+PASS src/dados/pausa-da-fila.test.ts
+(node:70152) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+PASS src/ui/faixa-de-sincronizacao.test.tsx
+PASS src/ui/fila-pausada-pela-sessao.test.tsx
+
+Test Suites: 5 passed, 5 total
+Tests:       68 passed, 68 total
+Snapshots:   0 total
+Time:        4.752 s
+Ran all test suites matching /src\\dados\\falha-de-atualizacao.test.ts|src\\dados\\pausa-da-fila.test.ts|src\\ui\\fila-pausada-pela-sessao.test.tsx|src\\ui\\faixa-de-sincronizacao.test.tsx|src\\dados\\troca-de-conta-com-pedido-em-voo.test.ts/i.
+
+[codigo de saida: 0]

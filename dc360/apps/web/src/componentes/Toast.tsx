@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { IconeAlerta, IconeCheck } from "./Icones";
+import { useHaModalAberto } from "./modais-abertos";
 
 /**
  * O aviso passageiro, e o que ele nunca pode ser.
@@ -134,9 +135,20 @@ export function Toast({ mensagem, tom = "info", duracao = DURACAO_PADRAO, aoFech
   */
   const [interagindo, setInteragindo] = useState(false);
 
+  /*
+    Com uma janela modal aberta o aviso ESPERA: não é desenhado e o relógio não
+    corre (ver `modais-abertos.ts`, onde está o defeito inteiro). A pausa por
+    ponteiro é zerada junto: o aviso que sai da tela com o mouse em cima nunca
+    recebe o `pointerleave`, e voltaria para ficar parado para sempre.
+  */
+  const esperandoJanela = useHaModalAberto();
+  useEffect(() => { if (esperandoJanela) setInteragindo(false); }, [esperandoJanela]);
+
   useEffect(() => agendarFechamento(
-    duracaoComPausa(duracao, interagindo), () => ultimoFechar.current(),
-  ), [duracao, interagindo]);
+    duracaoComPausa(duracao, interagindo || esperandoJanela), () => ultimoFechar.current(),
+  ), [duracao, interagindo, esperandoJanela]);
+
+  if (esperandoJanela) return null;
 
   return (
     <div className="toast" role="status" aria-live="polite"

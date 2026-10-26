@@ -1,0 +1,15 @@
+-- bash
+FALHAS: nenhuma
+-- zsh
+FALHAS: nenhuma
+-- blocos: os 14 blocos do documento final (dc360/docs/RESTORE-DO-BANCO.md, versao 3, revisada) sao identicos, byte a byte (cmp), aos 14 que rodaram em cada um dos dois shells, e nenhum tem '#'.
+-- codigo de saida do shell que rodou o fluxo inteiro: zsh -f -i: 0; /bin/bash 3.2: 0
+-- ambiente: env -i HOME PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin TERM=dumb, TMP=<pasta com espaco com 1 arquivo>, TMPDIR=<pasta com espaco>, PASTA_RESTORE=<pasta do leitor, com espaco, com importante.txt>
+-- pasta da rodada criada pelo mktemp -d dentro de TMPDIR (uma por shell):
+   pasta da rodada: /private/tmp/claude-501/tmpdir com espaco/dc360-restore.htXTHM
+   pasta da rodada: /private/tmp/claude-501/tmpdir com espaco/dc360-restore.3TRrHF
+-- pasta do leitor depois: zsh: importante.txt = dado do leitor; bash: importante.txt = dado do leitor
+-- TMPDIR depois (so o que as ferramentas de Node criam, nenhuma dc360-restore.*): node-compile-cache tsx-501 
+-- TMP hostil depois: node-compile-cache sentinela.txt tsx-501 ; sentinela.txt: sentinela
+-- processos postgres desta prova depois: 0; portas 55761-55782 escutando: 0
+-- /bin/bash GNU bash, version 3.2.57(1)-release (arm; zsh zsh 5.9 (; node v24.15.0; sha dos clones: cd3841007f44bbeb5630ddb4704adc3eaacc03a5 cd3841007f44bbeb5630ddb4704adc3eaacc03a5

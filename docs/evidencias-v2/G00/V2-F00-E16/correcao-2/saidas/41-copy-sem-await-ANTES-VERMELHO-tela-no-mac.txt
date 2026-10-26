@@ -1,0 +1,27 @@
+FAIL src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx
+  tirar a foto com o disco de verdade
+    ✕ a foto é aceita: 'Fotografias (1)', sem a tarja de arquivo vazio (168 ms)
+
+  ● tirar a foto com o disco de verdade › a foto é aceita: 'Fotografias (1)', sem a tarja de arquivo vazio
+
+    expect(received).toBeNull()
+
+    Received: <Text style={{"color": "#FF8787", "fontFamily": "System", "fontSize": 14, "fontWeight": "400", "letterSpacing": undefined, "lineHeight": 20, "textAlign": undefined, "textTransform": undefined}}>A foto não ficou guardada neste aparelho (o arquivo saiu vazio). Tire a foto de novo.</Text>
+
+      202 |     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      203 |
+    > 204 |     expect(screen.queryByText(/arquivo saiu vazio/)).toBeNull();
+          |                                                      ^
+      205 |     expect(screen.queryByTestId("tarja-de-erro")).toBeNull();
+      206 |     expect(screen.getByText("Fotografias (1)")).toBeTruthy();
+      207 |
+
+      at Object.toBeNull (src/__tests__/vistoria-a-foto-com-o-disco-fiel.test.tsx:204:54)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        0.911 s, estimated 2 s
+Ran all test suites matching /src\/__tests__\/vistoria-a-foto-com-o-disco-fiel.test.tsx/i.

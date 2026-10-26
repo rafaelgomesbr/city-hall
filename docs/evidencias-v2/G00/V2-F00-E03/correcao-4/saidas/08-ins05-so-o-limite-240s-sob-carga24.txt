@@ -1,0 +1,35 @@
+isolamento.test.ts de HEAD (137 casos) com SÓ o limite do caso das seis vias trocado de 60 s para 240 s (nenhuma outra linha), rodado com a sonda de atraso do laço, 24 laços de CPU.
+O caso passa (137 de 137), mas o comando AINDA sai com `Errors 1`, `Timeout calling "onTaskUpdate"`, e a sonda marca um único atraso de 82,5 s.
+
+--- atrasos registrados
+t=82.9s atraso do laco de eventos 82538 ms (pid 10610)
+
+--- saída completa do vitest
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/db
+
+ ✓ test/zz-limite.test.ts (137 tests) 82682ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  3164ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  3010ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  71375ms
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:605:17
+ ❯ processTimers node:internal/timers:541:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 passed (1)
+      Tests  137 passed (137)
+     Errors  1 error
+   Start at  12:50:27
+   Duration  83.28s (transform 180ms, setup 5ms, collect 250ms, tests 82.68s, environment 0ms, prepare 102ms)
+

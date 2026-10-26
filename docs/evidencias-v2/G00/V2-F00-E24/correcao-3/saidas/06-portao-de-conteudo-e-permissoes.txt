@@ -1,0 +1,12 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/packages/shared
+
+ ✓ test/permissoes-no-readme.test.ts (10 tests) 5ms
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 432ms
+
+ Test Files  2 passed (2)
+      Tests  20 passed (20)
+   Start at  00:23:42
+   Duration  617ms (transform 86ms, setup 0ms, collect 122ms, tests 437ms, environment 0ms, prepare 66ms)
+
+codigo de saida: 0

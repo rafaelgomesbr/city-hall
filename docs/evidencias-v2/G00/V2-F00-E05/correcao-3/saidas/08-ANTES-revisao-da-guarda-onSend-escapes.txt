@@ -1,0 +1,48 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+stdout | test/zz-revisao-escape.test.ts > revisão: formas de escapar > relatório
+
+ESCAPOU e01/x     falhar   status=403 desviosRegistrados=0 corpo={"erro":"vazou_e01","mensagem":"x"}
+ESCAPOU e01/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"vazou_e01","mensagem":"x"}
+pego   e02/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e02/x respondeu 403 fora do catálogo: código fora do
+pego   e02/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+ESCAPOU e04/nada  falhar   status=403 desviosRegistrados=0 corpo={"erro":"vazou_e04","mensagem":"x"}
+ESCAPOU e04/nada  corrigir status=403 desviosRegistrados=0 corpo={"erro":"vazou_e04","mensagem":"x"}
+pego   e05/nada  falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET (sem rota) respondeu 403 fora do catálogo: código fora do
+pego   e05/nada  corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+ESCAPOU e06/x     falhar   status=403 desviosRegistrados=1 corpo={"statusCode":403,"code":"vazou_e06","error":"Forbidden","message":"vazou_e06b"}
+ESCAPOU e06/x     corrigir status=403 desviosRegistrados=0 corpo={"statusCode":403,"code":"vazou_e06","error":"Forbidden","message":"vazou_e06b"}
+pego   e07/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e07/x respondeu 403 fora do catálogo: código fora do
+pego   e07/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e08       falhar   status=500 desviosRegistrados=0 corpo={"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"0c35ce8
+pego   e08       corrigir status=500 desviosRegistrados=0 corpo={"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"412b722
+pego   e09       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e09 respondeu 403 fora do catálogo: código fora do c
+pego   e09       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e10       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e10 respondeu 403 fora do catálogo: código fora do c
+pego   e10       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e11       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e11 respondeu 403 fora do catálogo: corpo em fluxo o
+pego   e11       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e12       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e12 respondeu 403 fora do catálogo: código fora do c
+pego   e12       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e13       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e13 respondeu 403 fora do catálogo: corpo sem `erro`
+pego   e13       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e14       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e14 respondeu 403 fora do catálogo: código fora do c
+pego   e14       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e15       falhar   status=403 desviosRegistrados=0 corpo={"erro":"vazou_e15","erro":"sem_permissao"}
+pego   e15       corrigir status=403 desviosRegistrados=0 corpo={"erro":"vazou_e15","erro":"sem_permissao"}
+pego   e16       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e16 respondeu 403 fora do catálogo: código fora do c
+pego   e16       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e17       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e17 respondeu 403 fora do catálogo: código fora do c
+pego   e17       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+   LOG(e17, 5342 bytes): {"level":50,"time":1792453412937,"pid":79587,"hostname":"Mac.local","reqId":"d9847aca-91ec-4409-ac53-4ac1eb4bf3af","desvioDoCatalogo":{"metodo":"GET","rota":"/esc/e17","status":403,"erroVisto":"maria.silva@exemplo.com.br cpf 123.456.789-00 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+pego   e18/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET (sem rota) respondeu 401 fora do catálogo: código fora do
+pego   e18/x     corrigir status=401 desviosRegistrados=0 corpo={"erro":"nao_autenticado","mensagem":"Token inválido ou expirado."}
+
+ ✓ test/zz-revisao-escape.test.ts (1 test) 940ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:43:31
+   Duration  1.57s (transform 231ms, setup 81ms, collect 338ms, tests 940ms, environment 0ms, prepare 53ms)
+

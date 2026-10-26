@@ -1,0 +1,76 @@
+$ repro.sh dc360   (os modos anteriores: npm real com offline e com registro {}, o npm falso do validador e o npm que devolve vazio em toda pasta; DEPOIS da 6b)
+=== N1 npm real com npm_config_offline=true
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 57 vulnerabilidade(s)
+      aceita: node-forge GHSA-86w9-cpqp-85rv (high, dono Rafael, até 2027-01-05)
+    Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 8 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+=== N2 npm real com registro que responde {} ao endpoint de advisories (npm_config_registry=http://127.0.0.1:48731/)
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 57 vulnerabilidade(s)
+      aceita: node-forge GHSA-86w9-cpqp-85rv (high, dono Rafael, até 2027-01-05)
+    Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 8 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+    Runtime limpo, e o aplicativo sem advisory nova.
+    codigo=0
+    pedidos que o registro falso recebeu: 0
+=== npm falso do validador, modo lixo
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: a saída do npm audit não é JSON
+    codigo=2
+=== npm falso do validador, modo vazio
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: a saída do npm audit não é JSON
+    codigo=2
+=== npm falso do validador, modo objeto
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o relatório não traz metadata.vulnerabilities (o npm não chegou a auditar)
+    codigo=2
+=== npm falso do validador, modo lista
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o npm não devolveu um relatório JSON
+    codigo=2
+=== npm falso do validador, modo falha
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o npm falhou sem relatório (Command failed: npm audit --json --registry=https://registry.npmjs.org/ --offline=false --prefer-offline=false --prefer-online --dry-run=false --omit=dev --audit-level=low)
+    codigo=2
+=== npm falso do validador, modo texto-total
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: o relatório não traz metadata.vulnerabilities (o npm não chegou a auditar)
+    codigo=2
+=== npm falso do validador, modo cortado
+    ERRO: o conjunto de runtime da raiz NÃO foi auditado, então este portão NÃO aprova.
+    Motivo: a saída do npm audit não é JSON
+    codigo=2
+=== npm falso do validador, modo runtime-alta
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== npm falso do validador, modo app-nova
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 1 vulnerabilidade(s)
+      NOVA:   lodash (sem id) (low: y)
+    REPROVADO: 1 advisory nova no aplicativo de campo (lodash (sem id), low).
+    codigo=1
+=== npm falso do validador, modo forge-nova
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 1 vulnerabilidade(s)
+      NOVA:   node-forge npm:999999 (critical: advisory NOVA e critica)
+    REPROVADO: 1 advisory nova no aplicativo de campo (node-forge npm:999999, critical).
+    codigo=1
+=== npm falso que ignora as bandeiras e devolve o relatório vazio bem formado em toda pasta (o espelho que responde {}, mesmo com o registro fixado)
+    Runtime (vai para a imagem): 0 vulnerabilidade(s)
+    Desenvolvimento (fica na máquina): 0 vulnerabilidade(s)
+    Aplicativo de campo (vai para o telefone): 0 vulnerabilidade(s)
+    ERRO: a auditoria do aplicativo de campo não é confiável, então este portão NÃO aprova.
+    Advisories aceitas (conhecidas) que deveriam voltar e não voltaram: decode-uri-component GHSA-vcc3-ghjq-m6fr, brace-expansion GHSA-q2hr-2g5m-vwhr, brace-expansion GHSA-qhr7-859c-m2p7, brace-expansion GHSA-6j4f-fj2g-mc7p, braces GHSA-vfj7-8cjw-p6xm, node-forge GHSA-86w9-cpqp-85rv, shell-quote GHSA-pqg4-j6r4-53mv, sprintf-js GHSA-hp3w-g68c-fv3c.
+    codigo=2
+    chamadas ao npm falso:
+      /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360 :: audit --json --registry=https://registry.npmjs.org/ --offline=false --prefer-offline=false --prefer-online --dry-run=false --omit=dev --audit-level=low
+      /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360 :: audit --json --registry=https://registry.npmjs.org/ --offline=false --prefer-offline=false --prefer-online --dry-run=false --include=dev --include=optional --include=peer --audit-level=low
+      /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/campo :: audit --json --registry=https://registry.npmjs.org/ --offline=false --prefer-offline=false --prefer-online --dry-run=false --omit=dev --audit-level=low

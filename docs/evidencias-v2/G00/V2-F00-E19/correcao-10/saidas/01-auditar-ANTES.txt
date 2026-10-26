@@ -1,0 +1,6 @@
+Runtime (vai para a imagem): 3 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 4 vulnerabilidade(s)
+
+REPROVADO: 1 high, 1 moderate, 1 low em dependência de runtime.
+Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.
+codigo 1

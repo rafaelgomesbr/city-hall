@@ -1,0 +1,11 @@
+PASS src/__tests__/vistoria-camera-legivel-sobre-o-visor.test.tsx
+  a câmera aberta com o aparelho no tema light
+    √ 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor (402 ms)
+  a câmera aberta com o aparelho no tema dark
+    √ 'Voltar sem fotografar' tem contraste AA no rótulo e 3:1 no contorno sobre o visor (144 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        4.779 s
+Ran all test suites matching /src\\__tests__\\vistoria-camera-legivel/i.

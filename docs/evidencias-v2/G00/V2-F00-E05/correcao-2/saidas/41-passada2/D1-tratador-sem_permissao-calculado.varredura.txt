@@ -1,0 +1,1240 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/codigos-de-erro.test.ts (116 tests | 16 failed | 22 skipped) 1743ms
+   ↓ Cada código do catálogo sai do servidor real > token vencido, adulterado ou ausente responde 401 nao_autenticado: o cliente renova e repete
+   ↓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde
+   ↓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada
+   ↓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve
+   ↓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada
+   ↓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou
+   ↓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > URL assinada sem assinatura responde 403 assinatura, sem token: a assinatura é a credencial
+   ↓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum
+   ↓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token
+   ↓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir 8ms
+     → expected [ Array(1) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console do fornecedor só responde 401 e 403 com os códigos do contrato dele 1ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo e a lista da entrada não carregam código morto: o servidor emite cada um 1ms
+     → expected [ 'sem_permissao' ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > ninguém escreve `erro: "sessao"` à mão em lugar nenhum da API 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo tem os dez códigos e cada um tem ação e mensagem 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > o original passa 18ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > M9 { status: 403, corpo: variavel } reprova 17ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > M9b { status: calculado, corpo: { erro } } reprova 17ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > { status: 403, corpo: { erro: novo } } reprova 16ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > N13 { status: 403, corpo } abreviado reprova 16ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console: a recusa montada numa função também é varrida inteira > { status: 403, corpo: { mensagem } } sem erro reprova 16ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .code(403) e código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .status(401) e o nome antigo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send no meio de uma cadeia com header 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send pelo corpo numa constante 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: tratador global 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 403 em várias linhas 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 401 e o nome antigo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: FalhaAutenticacao com código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com codigo literal 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: recusa montada em função (status e corpo) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo com o status trocado 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo na regra de negócio sem status (vira 409) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 401 sem o campo erro 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 sem send na mesma cadeia 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 com corpo que não é objeto nem constante 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: código calculado em resposta 403 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status calculado com código fora do catálogo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode escrito à mão 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status atribuído fora de code() 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por httpErrors 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por createError 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode declarado na classe 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: Error enviado direto num 403 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse de RegraDeNegocio com super(codigo, mensagem, 403) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse da subclasse 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse de FalhaAutenticacao com código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse que repassa o código do chamador (calculado, com status de acesso) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: importação com outro nome 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: importação como espaço de nomes 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: reexportação com outro nome, usada depois 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe guardada em variável 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.construct com a classe 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo atribuído no construtor (literal) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo atribuído no construtor (calculado) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por getter 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por getter calculado 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por propriedade de parâmetro com valor 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: codigo por propriedade de parâmetro sem valor 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: escrita direta na resposta do Node (raw.writeHead) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: resposta tomada pelo hijack 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: status numa constante, corpo no return 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: status 403 sozinho, corpo no return 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por chave computada (N02/N03) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por colchete (N14) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: statusCode por defineProperty (N20) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: remendo de erro de negócio por Object.assign (N17) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: auxiliar com code(s) calculado e corpo em string (N06) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: spread depois de erro sobrescreve o código (N10) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: gancho onSend que reescreve o corpo (N12) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: gancho que lança erro de negócio 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com argumentos espalhados (N15) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: subclasse que sobrescreve o status (N16) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com status 403 literal 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: S1 reatribui o parâmetro do tratador global 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: S3 atribui o codigo depois de construir 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: atribuição ao codigo num método da classe, fora do construtor 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.set do codigo (B1) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: Reflect.defineProperty 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: par { status, corpo } abreviado fora da chamada conferida do APNs 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > subclasse e apelido com código do catálogo passam; o mesmo código num status de acesso diferente do catálogo não 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > a classe rastreada em OUTRO arquivo também vale: a pasta inteira é varrida de uma vez 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > não reprova o que é do catálogo, da entrada ou de outro status (controles negativos da mordida) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > um repasse só vale para o arquivo, a expressão E a origem que foram conferidos 2ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) do tratador global: `posto_insuficiente` vira `inativo` 12ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403: `email_so_por_administrador` vira o nome antigo `sessao` 15ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403 em outra rota: `posto_insuficiente_para_dado_pessoal` vira `inativo` 15ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) de rota: `assinatura` vira `url_vencida` 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > FalhaAutenticacao: `nao_autenticado` vira `token_vencido` 4ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > classe de erro: `acesso_suspenso` vira `contrato_suspenso` 2ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > o tratador global: `sem_permissao` com o status trocado para 401 2ms
+     → servidor.ts tem de conter o trecho mutado: expected 'import Fastify, { type FastifyInstanc…' to contain 'resposta.code(403).send({ erro: "sem_…'
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M1b subclasse de RegraDeNegocio com super("x", .., 403) 10ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M3 importação com outro nome 10ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M6 importação como espaço de nomes 10ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c classe com codigo atribuído no construtor, enviada pelo tratador como erro.codigo 12ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c' o mesmo, com o código vindo do chamador 10ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M7 classe com getter codigo 9ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M8 classe com codigo como propriedade de parâmetro 9ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N18 corpo_invalido com status que não é o do Fastify 9ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N19 erro.codigo com `erro` sombreado no tratador 9ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M4 escrita direta com raw.writeHead(403) 11ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M11 resposta.code(CONSTANTE_403) e o corpo no return 9ms
+     → o original passa: expected [ Array(1) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo sem `posto_insuficiente`: o servidor emite um código que a lista não tem 1ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo com código que ninguém emite: aponta como morto 1ms
+     → expected [ 'sem_permissao', 'codigo_inventado' ] to deeply equal [ 'codigo_inventado' ]
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 78 passed | 22 skipped (116)
+   Start at  02:26:38
+   Duration  2.46s (transform 213ms, setup 16ms, collect 511ms, tests 1.74s, environment 0ms, prepare 34ms)
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/servidor.ts:594: código calculado (`\"sem_\" + \"perm\"`) em resposta de acesso (status 403), fora da lista de repasses conhecidos",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:630:45
+    628|   it("toda resposta 401 ou 403 da API carrega um código do catálogo ou…
+    629|     expect(api.emissoes.length, "a varredura leu alguma coisa").toBeGr…
+    630|     expect(reprovacoes(api, REGRAS_DA_API)).toEqual([]);
+       |                                             ^
+    631|   });
+    632| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo e a lista da entrada não carregam código morto: o servidor emite cada um
+AssertionError: expected [ 'sem_permissao' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "sem_permissao",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:640:109
+    638| 
+    639|   it("o catálogo e a lista da entrada não carregam código morto: o ser…
+    640|     expect(codigosMortos(api, [...LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO, …
+       |                                                                                                             ^
+    641|   });
+    642| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) do tratador global: `posto_insuficiente` vira `inativo`
+AssertionError: o original passa: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/servidor.ts:594: código calculado (`\"sem_\" + \"perm\"`) em resposta de acesso (status 403), fora da lista de repasses conhecidos",
++ ]
+
+ ❯ mutar test/codigos-de-erro.test.ts:869:88
+    867|       const { nome, texto } = real(relativo);
+    868|       expect(texto, `${relativo} tem de conter o trecho mutado`).toCon…
+    869|       expect(reprovacoes(varrerFonte(texto, nome), REGRAS_DA_API), "o …
+       |                                                                                        ^
+    870|       return reprovacoes(varrerFonte(texto.replace(de, para), nome), R…
+    871|     }
+ ❯ test/codigos-de-erro.test.ts:874:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > o tratador global: `sem_permissao` com o status trocado para 401
+AssertionError: servidor.ts tem de conter o trecho mutado: expected 'import Fastify, { type FastifyInstanc…' to contain 'resposta.code(403).send({ erro: "sem_…'
+
+- Expected
++ Received
+
+- resposta.code(403).send({ erro: "sem_permissao"
++ import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from "fastify";
++ import cors from "@fastify/cors";
++ import helmet from "@fastify/helmet";
++ import rateLimit from "@fastify/rate-limit";
++ import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
++ import type { ZodError } from "zod";
++ import type { Config } from "./config.js";
++ import type { Banco } from "./banco/tipos.js";
++ import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
++ import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
++ import { AcessoSuspenso, exigirAcessoAtivo } from "./auth/suspensao.js";
++ import { ContaDesativada } from "./auth/conta-desativada.js";
++ import { exigirVigencia, lerVigencia } from "./auth/vigencia.js";
++ import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
++ import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
++ import { rotasAutenticacao } from "./rotas/autenticacao.js";
++ import { rotasOcorrencias } from "./rotas/ocorrencias.js";
++ import { rotasAdministracao } from "./rotas/administracao.js";
++ import { rotasSincronizacao } from "./rotas/sincronizacao.js";
++ import { rotasCampo } from "./rotas/campo.js";
++ import { rotasUsuariosEu } from "./rotas/usuarios-eu.js";
++ import { rotasSaidaACampo } from "./rotas/saida-a-campo.js";
++ import { rotasAparelhos } from "./rotas/aparelhos.js";
++ import { rotasAvisos } from "./rotas/avisos.js";
++ import { rotasOrgaos } from "./rotas/orgaos.js";
++ import { rotasOficios, rotasOficioPublico } from "./rotas/oficios.js";
++ import { rotasInteresse } from "./rotas/interesse.js";
++ import { rotasEvidencias } from "./rotas/evidencias.js";
++ import { rotasArmazenamento } from "./rotas/armazenamento.js";
++ import { rotasDocumentos } from "./rotas/documentos.js";
++ import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
++ import { rotasSaida } from "./rotas/saida.js";
++ import { rotasSegundoFator } from "./rotas/segundo-fator.js";
++ import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
++ import { rotasConfiguracao } from "./rotas/configuracao.js";
++ import { rotasRota, type OpcoesDaRota } from "./rotas/rota.js";
++ import { rotasMapa, type OpcoesDoMapa } from "./rotas/mapa.js";
++ import { rotasBusca } from "./rotas/busca.js";
++ import type { Armazenamento } from "./armazenamento/tipos.js";
++ import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
++ import type { GeradorDePdf } from "./documentos/pdf.js";
++ import type { UltimaRodada } from "./push/varredor.js";
++ import { chaveDoLimitador, declararProxyDeBorda, enderecoDoCliente } from "./rede.js";
++
++ export type Identidade = {
++   usuarioId: string;
++   organizacaoId: string;
++   papel: import("@dc360/shared").Papel;
++   nome: string;
++   sessaoId: string;
++ };
++
++ declare module "fastify" {
++   interface FastifyRequest {
++     identidade?: Identidade;
++   }
++   interface FastifyInstance {
++     exigirAutenticacao: (req: FastifyRequest) => Promise<Identidade>;
++   }
++   interface FastifyContextConfig {
++     /**
++      * Marca as rotas que a FILA do aparelho de campo chama.
++      *
++      * Só muda uma coisa: com o município suspenso, a recusa sai como 503 em
++      * vez de 403, para a fila tratar como temporário e a coleta feita no
++      * morro sobreviver no aparelho até o acesso voltar. Ver
++      * `auth/suspensao.ts`. Não afeta permissão, não afeta isolamento.
++      */
++     filaDoCampo?: boolean;
++     /**
++      * Marca a rota GET que ESCREVE: muda estado ou grava trilha, exportação
++      * ou registro de acesso. A vigência (conta, papel, sessão) vale para ela
++      * como vale para um POST. Ver `ROTA_GET_COM_EFEITO`.
++      */
++     comEfeito?: boolean;
++   }
++ }
++
++ /**
++  * A configuração de rota que marca "isto é chamado pela fila do aparelho".
++  *
++  * Exportada para as rotas a usarem pelo nome, e para o teste conferir que as
++  * quatro rotas da fila (`/sincronizacao/vistoria`, `/sincronizacao/devolucao`,
++  * `/evidencias/autorizar-envio`, `/evidencias/confirmar-envio`) carregam a
++  * marca: uma rota nova da fila sem ela bloquearia coleta em município suspenso.
++  */
++ export const ROTA_DA_FILA_DO_CAMPO = { config: { filaDoCampo: true } } as const;
++
++ /**
++  * A configuração de rota que marca "este GET escreve".
++  *
++  * O método HTTP não diz se um pedido escreve: abrir o termo de interdição É
++  * interditar o imóvel (e grava `documento_emitido`), baixar o CSV grava
++  * `exportacoes`, abrir o laudo ou um termo grava a emissão e o acesso, e
++  * consultar o sino de avisos materializa e expurga avisos. Decidir por
++  * `req.method !== "GET"` deixava conta desativada, papel rebaixado e sessão
++  * encerrada escreverem por esses GET (e por HEAD, que o Fastify serve com o
++  * mesmo handler), e a trilha não se corrige (V2-F00-E04, correção 1).
++  *
++  * O CRITÉRIO da marca: o GET pratica um ATO (emite documento, interdita,
++  * exporta) ou muda dado do município (materializa e expurga avisos). O GET
++  * cuja única escrita é o registro de que ELE foi lido (`registrarConsulta`:
++  * o dossiê `GET /ocorrencias/:id` e a busca) NÃO leva a marca: é leitura, o
++  * registro é a auditoria dela, e a vigência dessa leitura é da F03-E03.
++  *
++  * A marca é lida em `exigirAutenticacao` de `req.routeOptions.config`, e o HEAD
++  * automático do Fastify herda a configuração do GET. Rota GET nova que escreve
++  * e não leva a marca reprova em `test/get-com-efeito.test.ts`, que confere a
++  * lista explícita pelo comportamento e varre o fonte das rotas. A vigência em
++  * LEITURA PURA continua sendo da F03-E03.
++  */
++ export const ROTA_GET_COM_EFEITO = { config: { comEfeito: true } } as const;
++
++ export type Dependencias = {
++   banco: Banco;
++   config: Config;
++   armazenamento: Armazenamento;
++   /** Por onde sai o link de redefinicao de senha. */
++   notificador?: Notificador;
++   /** Ausente quando o servidor sobe sem navegador para renderizar PDF. */
++   pdf?: GeradorDePdf;
++   /**
++    * Para onde o log vai. Só o teste passa isto, e passa um coletor em memória
++    * para poder AFIRMAR o que saiu: a lista de `redact` é a defesa contra vazar
++    * dado pessoal, e defesa que ninguém exercita não é defesa.
++    */
++   destinoDeLog?: { write: (linha: string) => void };
++   /**
++    * Por onde o caminho por ruas sai para o Google, e o relógio da cache dele.
++    * Só o teste passa: em produção a rota usa o `fetch` global e `Date.now`.
++    * Ver `rotas/rota.ts`.
++    */
++   rota?: Pick<OpcoesDaRota, "buscar" | "agora">;
++   /** A rede e o DNS de `POST /mapa/resolver-link`. Só o teste passa. Ver `rotas/mapa.ts`. */
++   mapa?: OpcoesDoMapa;
++   /**
++    * A varredura de push, quando ela existe (`PUSH_ATIVO=sim`).
++    *
++    * Duas coisas passam por aqui, e as duas fecham um silêncio:
++    *
++    *   `despertar()`  a rota de despacho chama DEPOIS do commit, e o aviso de
++    *                  tarefa nova sai em segundos em vez de esperar o relógio
++    *                  de cinco minutos.
++    *   `ultimaRodada` o que `/saude` mostra: os contadores da última rodada
++    *                  desta máquina, que é a única janela do operador sem
++    *                  abrir o banco.
++    *
++    * Ausente com o push desligado, e `/saude` responde `push: null`, que é
++    * a diferença entre "não está mandando" e "não existe".
++    *
++    * Em `index.ts` a varredura é criada DEPOIS do servidor (ela escreve no log
++    * dele), então o que chega aqui é um par de fechamentos que só resolvem a
++    * varredura quando chamados.
++    */
++   push?: {
++     despertar(): void;
++     ultimaRodada(): UltimaRodada | null;
++   };
++ };
++
++ /**
++  * O que nunca vai para o log, e é a lista que `test/log.test.ts` confere.
++  *
++  * Vive fora da função, e exportada, por um motivo prático: a única forma de um
++  * teste cobrar um caminho desta lista sem depender de qual serializador está
++  * em vigor é lendo a lista. O serializador de `req` logo abaixo NÃO registra o
++  * corpo do pedido, então as entradas `req.body.*` não disparam hoje: elas são
++  * defesa em profundidade para o dia em que alguém registrar `req.body` num
++  * ponto de diagnóstico, e esse dia é justamente o dia em que ninguém vai abrir
++  * este arquivo para conferir se a lista está completa.
++  */
++ /**
++  * Prefixos de rota cujo PRÓXIMO segmento de caminho é um segredo vivo.
++  *
++  * Vive fora da função, exportado, pelo mesmo motivo de `CAMINHOS_REDIGIDOS`: é
++  * o único jeito de um teste cobrar a lista item a item.
++  *
++  * O DEFEITO QUE ISTO FECHA foi reproduzido em produção. O serializador de `req`
++  * abaixo redige a QUERY STRING, porque foi para isso que ele foi escrito, e o
++  * `GET /publico/oficio/<token>` grava `"url":"/publico/oficio/TOKEN-..."` no
++  * log de requisição: o segredo de 32 bytes viaja no CAMINHO, e a rota é
++  * `/oficio/:token`.
++  *
++  * O que está em jogo é o produto inteiro daquela rota. Ela é a única leitura
++  * sem autenticação que devolve dado de município, e o que a protege não é
++  * token de sessão: é um segredo que só existe dentro do email enviado ao órgão
++  * destinatário. Com ele no log, quem lê o log abre o dossiê da família (nome,
++  * contato, endereço, vulnerabilidade) ANTES do destinatário, e o link de uso
++  * único queima: o bombeiro que abrir depois recebe a página de "já foi
++  * aberto", e a providência para de andar sem ninguém entender por quê.
++  */
++ export const PREFIXOS_COM_SEGREDO_NA_URL = [
++   "/publico/oficio/",
++ ] as const;
++
++ /**
++  * O caminho como ele pode ir para o log: sem query string e sem segredo.
++  *
++  * Separada e exportada porque o teste precisa cobrar o CAMINHO, e o teste que
++  * existia (`test/log.test.ts`) conferia corpo, cabeçalho e query string, e
++  * passava verde sem cobrir a única rota do produto que carrega segredo na URL.
++  */
++ export function caminhoParaLog(url: string): string {
++   const caminho = url.split("?")[0] ?? "";
++   for (const prefixo of PREFIXOS_COM_SEGREDO_NA_URL) {
++     // `startsWith` e não igualdade: o que vem depois do prefixo é o segredo, e
++     // é justamente o que não pode sobrar na string.
++     if (caminho.startsWith(prefixo)) return `${prefixo}[removido]`;
++   }
++   return caminho;
++ }
++
++ export const CAMINHOS_REDIGIDOS = [
++   "req.headers.authorization",
++   "req.headers.cookie",
++   "req.body.senha",
++   "req.body.senhaAtual",
++   "req.body.novaSenha",
++   "req.body.renovacao",
++   "req.body.token",
++   /*
++     O segundo fator, e as três entradas dele são segredo de classes
++     diferentes:
++
++     `codigo` é o número de seis dígitos (ou o código de recuperação, que
++     entra pelo mesmo campo e vale uma vez só, mas vale de verdade);
++     `desafio` é o token que atesta que a senha já conferiu, e quem o tem
++     precisa só do código para virar sessão; `segredo` é a semente do TOTP,
++     que não chega em pedido nenhum hoje, e está aqui porque no dia em que
++     alguém logar `req.body` num ponto de diagnóstico, esse dia vai ser
++     justamente o dia em que ninguém confere esta lista.
++
++     O segredo do TOTP fora do banco é o segundo fator inteiro: quem o tem
++     gera os códigos para sempre, sem tocar no telefone de ninguém.
++   */
++   "req.body.codigo",
++   "req.body.desafio",
++   "req.body.segredo",
++   /*
++     A posição do agente e o destino, de `POST /rota`. Não chegam ao log hoje
++     (o serializador de `req` não registra corpo), e estão aqui pela mesma
++     razão dos campos acima: no dia em que alguém registrar `req.body` num
++     ponto de diagnóstico, a posição de um servidor público identificável não
++     pode ir junto. `docs/DECLARACAO-NAS-LOJAS.md` promete que não há histórico
++     de deslocamento do agente, e log é histórico.
++   */
++   "req.body.origem",
++   "req.body.destino",
++   /*
++     A ficha de push, de `POST /aparelhos` e `POST /aparelhos/revogar`. Não é
++     credencial de acesso, e mesmo assim quem a tem escreve na tela bloqueada
++     de um agente de Defesa Civil; a rota já a mantém fora da resposta e do
++     `detalhe` de notificação, e esta linha a mantém fora do log no dia do
++     ponto de diagnóstico.
++   */
++   "req.body.ficha",
++ ] as const;
++
++ export async function construirServidor(
++   {
++     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
++     push,
++   }: Dependencias,
++ ): Promise<FastifyInstance> {
++   /*
++     O logger fica LIGADO em teste, com destino silencioso por padrão.
++
++     Antes ele era `false` quando `NODE_ENV === "test"`, e a consequência é
++     que a configuração de `redact` abaixo, que é a defesa do produto contra
++     vazar dado pessoal em log, nunca era executada por teste nenhum. Uma
++     lista de proteção que ninguém exercita é uma lista que mente.
++
++     `destinoDeLog` permite ao teste passar um coletor em memória e afirmar o
++     que saiu; sem ele, o log de teste vai para lugar nenhum e não polui a
++     saída da suíte.
++   */
++   const opcoesDeLog: FastifyServerOptions["logger"] = {
++     level: config.NODE_ENV === "test"
++       ? "debug"
++       : config.NODE_ENV === "production" ? "info" : "debug",
++     ...(config.NODE_ENV === "test" && !destinoDeLog
++       ? { stream: { write: () => {} } }
++       : {}),
++     ...(destinoDeLog ? { stream: destinoDeLog } : {}),
++     redact: {
++       // A lista mora fora desta função, em `CAMINHOS_REDIGIDOS`, para o teste
++       // conseguir cobrá-la item a item. A barra de endereço NÃO se resolve
++       // aqui: ver o serializador de `req` logo abaixo.
++       paths: [...CAMINHOS_REDIGIDOS],
++       censor: "[removido]",
++     },
++     serializers: {
++       /*
++         O erro do `pg` carrega, em `detail`, o VALOR que violou a restrição.
++         Uma violação de unicidade de email registra o email do servidor
++         municipal; uma de outra tabela pode registrar o contato do
++         solicitante. `where` e `internalQuery` carregam trecho de SQL com
++         parâmetro embutido.
++
++         Nada disso ajuda a diagnosticar: o nome da restrição e o código já
++         dizem o que quebrou. O que eles fazem é transformar todo erro de
++         banco num registro permanente de dado pessoal, num produto vendido
++         como auditável.
++       */
++       /*
++         A barra de endereço é a parte do pedido que mais vaza sozinha: entra em
++         log de proxy, em histórico de navegador e no cabeçalho `referer` de
++         qualquer link que a página abrir depois. E ela carrega dado pessoal
++         aqui: `GET /duplicidades/consulta?endereco=` leva o ENDEREÇO do imóvel
++         de uma família em situação de risco.
++
++         Redigir `req.query` não resolvia, e isso só apareceu porque a correção
++         foi quebrada de propósito para ver o teste reprovar, e ele não
++         reprovou: o serializador padrão do Fastify não registra `query`,
++         registra `url`, que já vem com a query string colada nela.
++       */
++       req: (req) => ({
++         method: req.method,
++         // `caminhoParaLog` e não `split("?")`: a query string não era o único
++         // lugar do produto onde um segredo vivo viaja na URL. Ver
++         // `PREFIXOS_COM_SEGREDO_NA_URL`.
++         url: caminhoParaLog(req.url),
++         ...(req.url.includes("?") ? { query: "[removido]" } : {}),
++         host: req.host,
++         remoteAddress: enderecoDoCliente(req),
++       }),
++       err: (erro) => {
++         const bruto = erro as unknown as Record<string, unknown>;
++         const manter = (chave: string) =>
++           typeof bruto[chave] === "string" || typeof bruto[chave] === "number"
++             ? { [chave]: bruto[chave] }
++             : {};
++         return {
++           type: erro.name,
++           message: erro.message,
++           stack: erro.stack ?? "",
++           ...manter("code"),
++           ...manter("constraint"),
++           ...manter("table"),
++           ...manter("statusCode"),
++         };
++       },
++     },
++   };
++
++   const app = Fastify({
++     // O id de requisição aparece em todo log e na resposta de erro 500. É o
++     // que permite alguém dizer "deu erro às 14h32" e a equipe achar a linha.
++     genReqId: () => crypto.randomUUID(),
++     logger: opcoesDeLog,
++     // `1` salto, e não a cadeia inteira: confiar em tudo faz o Fastify aceitar como
++     // origem a primeira entrada de `X-Forwarded-For`, que é escrita pelo
++     // cliente. `0` fora de produção é o mesmo que não confiar em nenhum.
++     // Ver `rede.ts` para o defeito que isso causava.
++     trustProxy: config.NODE_ENV === "production"
++       // `hop === 0` confia SÓ em quem abriu a conexão, que em produção é o
++       // proxy do Fly. Assim `req.ip` passa a ser a última entrada de
++       // `X-Forwarded-For` (a que o edge acrescenta) em vez da primeira (a
++       // que o cliente escreve). O tipo do Fastify instalado não aceita o
++       // atalho numérico, então a contagem de saltos vai como função.
++       ? (_endereco: string, hop: number) => hop === 0
++       : false,
++     // Um megabyte cobre qualquer payload de negócio. O upload de foto NÃO
++     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
++     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
++     bodyLimit: 1_048_576,
++   });
++
++   /*
++     De quem este processo aceita cabeçalho de endereço de origem, declarado
++     ANTES de qualquer rota subir: é este valor que decide se `Fly-Client-IP`
++     vale alguma coisa. Ver `rede.ts` para o defeito que a leitura incondicional
++     daquele cabeçalho reabria.
++   */
++   declararProxyDeBorda(app, config.PROXY_DE_BORDA);
++
++   await app.register(helmet, {
++     // A API não serve HTML, então a política mais restritiva possível serve.
++     contentSecurityPolicy: { directives: { "default-src": ["'none'"], "frame-ancestors": ["'none'"] } },
++     crossOriginResourcePolicy: { policy: "same-site" },
++   });
++
++   /*
++     `no-store` em TODA resposta, por hook global.
++
++     A API não serve nada cacheável de propósito: fora `/saude`, toda resposta
++     carrega dado de município (nome, endereço, contato e vulnerabilidade de
++     família em risco, o laudo inteiro em HTML). O caso concreto é o computador
++     compartilhado da recepção: sem isto, o botão "voltar" do navegador reabre a
++     ocorrência da família anterior a partir do cache de disco.
++
++     Global, e não rota a rota, de propósito: foi marcando caso a caso que as
++     colunas novas escaparam da validação de saída. Assim, rota nova nasce
++     protegida. A foto de vistoria em produção vem do armazenamento externo e
++     não passa por aqui; no caminho local de desenvolvimento, deixar de cachear
++     a foto por 60s é o lado seguro da troca.
++   */
++   app.addHook("onSend", async (_req, resposta) => {
++     resposta.header("cache-control", "no-store");
++   });
++
++   await app.register(cors, {
++     origin: config.origens,
++     credentials: true,
++     // PUT entra por causa do envio de evidência: o navegador manda os bytes
++     // direto para o armazenamento, e sem PUT liberado o preflight falha e o
++     // upload nem sai. Em produção o armazenamento é externo e tem o próprio
++     // CORS, mas no caminho local quem serve é esta API.
++     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
++     /*
++       O envio assinado repete os cabeçalhos que entraram na assinatura, e
++       `if-none-match` é um deles: é o `if-none-match: *` da escrita única
++       (`armazenamento/memoria.ts` e `armazenamento/s3.ts`). Sem ele aqui o
++       preflight do navegador reprova e o PUT da foto nem sai ("Failed to
++       fetch", seção 13 do e2e contra a API, V2-F00-E18). Nome a nome, e nunca
++       curinga: a lista de origens continua sendo `ORIGENS_PERMITIDAS`, e
++       `test/cors-do-envio-de-evidencia.test.ts` trava que nada além disto
++       passa.
++     */
++     allowedHeaders: ["content-type", "authorization", "accept", "if-none-match"],
++   });
++
++   await app.register(rateLimit, {
++     max: 300,
++     timeWindow: "1 minute",
++     /*
++       Balde por usuário quando há token verificado, por endereço quando não há.
++
++       Era só por endereço, e por endereço a Defesa Civil inteira, que sai por um
++       NAT só, dividia um balde: numa noite de chuva o quinto agente a sincronizar
++       levava 429 por causa do tráfego dos colegas. Ver `chaveDoLimitador` em
++       `rede.ts` para por que a chave sai do token JÁ VERIFICADO e por que o teto
++       por endereço continua existindo.
++
++       O login tem o seu próprio limite, bem mais apertado e sempre por endereço,
++       na rota dele: força bruta se combate onde ela acontece, e lá não existe
++       token para chavear.
++     */
++     keyGenerator: (req) => chaveDoLimitador(req, config.jwtSegredos),
++   });
++
++   /*
++     O segundo fator sobe antes da autenticação porque ela depende dele: a rota
++     de entrar passou a ter dois desfechos, e quem decide qual é este serviço.
++
++     Com `SEGUNDO_FATOR_ATIVO=nao`, que é o padrão, ele existe e RECUSA, em vez
++     de sumir: rota ausente responde 404, e o painel leria isso como "versão
++     velha do servidor" em vez de "o município ainda não ligou". É a mesma
++     escolha do push e do envio de email.
++   */
++   const segundoFator = servicoDeSegundoFator(banco, config);
++   const autenticacao = servicoDeAutenticacao(banco, config, notificador, segundoFator);
++   // O link de recuperação sai depois da resposta (não revela, pelo relógio,
++   // quem tem conta). Quem encerra o servidor espera esses envios terminarem,
++   // para a mensagem já aceita não morrer no meio do caminho até o provedor.
++   app.addHook("onClose", async () => { await autenticacao.esperarEnvios(); });
++
++   /**
++    * Extrai e verifica o token de acesso. A organização usada no `SET LOCAL`
++    * sai daqui, do token assinado, e de nenhum outro lugar: nunca de cabeçalho,
++    * nunca de parâmetro de rota, nunca do corpo da requisição.
++    */
++   app.decorate("exigirAutenticacao", async (req: FastifyRequest): Promise<Identidade> => {
++     const cabecalho = req.headers.authorization;
++     if (!cabecalho?.startsWith("Bearer ")) {
++       throw new NaoAutenticado("Informe o token de acesso.");
++     }
++     const token = cabecalho.slice(7);
++     /*
++       Com o município suspenso, a fila do aparelho recebe 503 e todo o resto
++       recebe 403. A marca vem da configuração da rota, e não de uma lista de
++       caminhos aqui: ver `ROTA_DA_FILA_DO_CAMPO` e `auth/suspensao.ts`.
++     */
++     const statusDaSuspensao = req.routeOptions.config.filaDoCampo ? 503 : 403;
++
++     const conteudo = await verificarAcesso(config.jwtSegredos, token);
++     if (!conteudo) {
++       /*
++         Token vencido de município suspenso responde 403, e não 401.
++
++         `organizacaoDoAcessoVencido` só devolve organização de token que ESTE
++         servidor assinou, com emissor e plateia certos, e que apenas venceu.
++         É a única informação que se extrai de um token vencido, e ela serve
++         para uma pergunta só. Sem isto o aparelho de campo de uma prefeitura
++         suspensa leria 401 para sempre como "entre de novo". O custo é uma
++         consulta só quando a resposta seria 401 de qualquer forma.
++       */
++       const organizacaoVencida = await organizacaoDoAcessoVencido(config.jwtSegredos, token);
++       if (organizacaoVencida) {
++         await exigirAcessoAtivo(banco, organizacaoVencida, statusDaSuspensao);
++       }
++       throw new NaoAutenticado("Token inválido ou expirado.");
++     }
++
++     /*
++       ESCRITA confere, numa ida só ao banco, a suspensão do município E a
++       vigência de quem escreve: conta ativa, papel igual ao do token, sessão
++       não encerrada, senha provisória dentro do prazo. LEITURA PURA com token
++       vivo não vai ao banco (a vigência em leitura é da F03-E03, centralizada
++       em `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o
++       da vigência, em `auth/vigencia.ts`.
++
++       Escrita é "método diferente de GET e HEAD" OU "rota marcada com efeito"
++       (`ROTA_GET_COM_EFEITO`). A segunda metade existe porque há GET que
++       escreve: o termo de interdição, o laudo, o termo de desinterdição e os
++       PDFs, o CSV e o sino de avisos. O HEAD dessas rotas
++       é servido pelo mesmo handler e carrega a mesma marca, então também
++       confere. HEAD de rota sem marca continua sendo leitura.
++
++       Esta conferência esteve desligada de 17/09/2026 até V2-F00-E04 (o commit
++       b4439ac tirou o import e as duas chamadas, e o teste ficou em skip). Sem
++       ela, conta desativada, papel rebaixado e sessão encerrada por quem
++       administra escreviam por até quinze minutos com o token ainda vivo.
++     */
++     const escrita = (req.method !== "GET" && req.method !== "HEAD")
++       || req.routeOptions.config.comEfeito === true;
++     let senhaProvisoria = conteudo.sp === true;
++     if (escrita) {
++       const vigencia = await lerVigencia(banco, conteudo);
++       exigirVigencia(vigencia, conteudo, statusDaSuspensao);
++       // O banco manda: uma marca no token que o banco já não confirma não
++       // tranca ninguém, e um prazo que o banco tem e o token não também vale.
++       senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
++     }
++
++     /*
++       SENHA PROVISÓRIA (migração 046): enquanto a senha for a sorteada por
++       quem administra ou pelo console, a sessão só serve para trocá-la. Toda
++       outra rota responde 403 `troca_de_senha_obrigatoria`, e o painel leva à
++       troca. Sair não passa por aqui (não exige token de acesso). Na leitura
++       vale a marca do token, como vale o papel; na escrita vale o banco.
++     */
++     if (senhaProvisoria && !ROTAS_ABERTAS_COM_SENHA_PROVISORIA.has(req.routeOptions.url ?? "")) {
++       throw new TrocaDeSenhaObrigatoria();
++     }
++
++     const identidade: Identidade = {
++       usuarioId: conteudo.sub,
++       organizacaoId: conteudo.org,
++       papel: conteudo.papel,
++       nome: conteudo.nome,
++       sessaoId: conteudo.sid,
++     };
++     req.identidade = identidade;
++     return identidade;
++   });
++
++   app.setNotFoundHandler((req, resposta) => {
++     void resposta.code(404).send({ erro: "nao_encontrado", mensagem: "Rota não encontrada." });
++   });
++
++   /**
++    * Um único lugar traduz erro em resposta.
++    *
++    * A regra que vale para todos: o cliente recebe o que ele precisa para agir,
++    * e nada sobre a estrutura interna. Erro inesperado vira 500 com o id da
++    * requisição, e o detalhe fica no log do servidor. Mensagem de exceção de
++    * banco costuma conter nome de tabela, de coluna e de restrição, que é
++    * exatamente o mapa que um atacante quer.
++    */
++   app.setErrorHandler((erro, req, resposta) => {
++     if (erro instanceof NaoAutenticado) {
++       return resposta.code(401).send({ erro: "nao_autenticado", mensagem: erro.message });
++     }
++     /*
++       403 para o painel e 503 para a fila do aparelho, com o MESMO código e a
++       MESMA mensagem: quem lê o corpo sabe o que houve, quem lê só o status
++       sabe se pode esperar. Nunca 401, porque a credencial está certa.
++     */
++     if (erro instanceof AcessoSuspenso) {
++       return resposta.code(erro.status).send({ erro: erro.codigo, mensagem: erro.message });
++     }
++     /*
++       A segunda barreira, que é do banco: `abrir_sessao` (migração 038) recusa
++       abrir sessão de município suspenso com o código `DC367`. A API confere
++       antes e o caminho comum nem chega lá; se chegar (suspensão entrando
++       entre a conferência e a abertura), a resposta precisa ser a mesma, e
++       não um 500 com "informe o código ao suporte".
++     */
++     if ((erro as { code?: unknown }).code === "DC367") {
++       const suspenso = new AcessoSuspenso(403);
++       return resposta.code(suspenso.status).send({ erro: suspenso.codigo, mensagem: suspenso.message });
++     }
++     /*
++       403 e não 401: a credencial está certa, é a CONTA que foi desativada, e
++       entrar de novo não resolve. É a conta do próprio usuário autenticado, não
++       um recurso alheio, então não confirma a existência de nada de outro
++       município (esse continua 404). Ver `auth/conta-desativada.ts`.
++     */
++     if (erro instanceof ContaDesativada) {
++       return resposta.code(erro.status).send({ erro: erro.codigo, mensagem: erro.message });
++     }
++     if (erro instanceof SemPermissao) {
++       return resposta.code(403).send({ erro: "sem_" + "perm", mensagem: erro.message });
++     }
++     /*
++       403 nomeado, e não 401: a credencial está certa e a sessão existe. O que
++       falta é um ato da própria pessoa, e a mensagem diz qual. O painel lê o
++       código e abre a troca de senha (`apps/web/src/paginas/Entrar.tsx`).
++     */
++     if (erro instanceof TrocaDeSenhaObrigatoria) {
++       return resposta.code(403).send({ erro: erro.codigo, mensagem: erro.message });
++     }
++     /*
++       403 e não 404: aqui a pessoa administra usuários, ela só não administra
++       AQUELE usuário. O 404 existe para não revelar que um recurso de outro
++       município existe, e esse não é o caso: a conta é do município dela.
++     */
++     if (erro instanceof PostoInsuficiente) {
++       return resposta.code(403).send({ erro: "posto_insuficiente", mensagem: erro.message });
++     }
++     if (erro instanceof FalhaAutenticacao) {
++       const status = erro.codigo === "bloqueado" ? 429 : 401;
++       return resposta.code(status).send({ erro: erro.codigo, mensagem: erro.message });
++     }
++     if (erro instanceof RegraDeNegocio) {
++       return resposta.code(erro.status).send({
++         erro: erro.codigo,
++         mensagem: erro.message,
++         /*
++           `campos` sai quando a regra apontou campos, e só então: e a MESMA
++           forma do 422 do Zod logo abaixo, e é a lista que o cartão da fila do
++           aparelho lê para oferecer "corrigir a vistoria" em vez de "tentar de
++           novo". Sem ela, uma recusa nomeada com status 422 chegaria ao agente
++           sem dizer qual campo está errado.
++         */
++         ...(erro.campos ? { campos: erro.campos } : {}),
++       });
++     }
++     // `instanceof` falharia quando o schema vem de outra cópia do zod (o
++     // pacote compartilhado tem a sua). A checagem é por forma, que é o que
++     // realmente identifica o erro atravessando fronteira de pacote.
++     if (ehErroDeValidacao(erro)) {
++       return resposta.code(422).send({
++         erro: "dados_invalidos",
++         mensagem: "Alguns campos precisam ser corrigidos.",
++         campos: erro.issues.map((i) => ({ campo: i.path.join("."), mensagem: i.message })),
++       });
++     }
++     /*
++       O CORPO QUE O FASTIFY NÃO CONSEGUIU LER (V2-F00-E07, correção 3, achado
++       3 da validação de 52952a1): JSON vazio com `content-type:
++       application/json`, JSON torto, corpo grande demais, tipo que nenhuma
++       rota aceita. O Fastify já diz que é erro de quem pediu (status 4xx, código
++       `FST_ERR_CTP_*`), e até aqui isso caía no 500 lá embaixo, que manda
++       "informar o código ao suporte" por um pedido mal formado e enche o log
++       de "erro não tratado". O status do Fastify é mantido; a mensagem não
++       repete a dele, que fala de parser e de cabeçalho.
++     */
++     const doLeitorDeCorpo = erro as { code?: unknown; statusCode?: unknown };
++     if (
++       typeof doLeitorDeCorpo.code === "string" && doLeitorDeCorpo.code.startsWith("FST_ERR_CTP_")
++       && typeof doLeitorDeCorpo.statusCode === "number"
++       && doLeitorDeCorpo.statusCode >= 400 && doLeitorDeCorpo.statusCode < 500
++     ) {
++       const status = doLeitorDeCorpo.statusCode;
++       return resposta.code(status).send({
++         erro: "corpo_invalido",
++         mensagem: status === 413
++           ? "O pedido é grande demais."
++           : status === 415
++             ? "Este tipo de conteúdo não é aceito aqui."
++             : "O corpo do pedido não pôde ser lido. Confira o formato e envie de novo.",
++       });
++     }
++     if ((erro as { statusCode?: number }).statusCode === 429) {
++       return resposta.code(429).send({
++         erro: "excesso_de_requisicoes",
++         mensagem: "Requisições demais. Aguarde um instante.",
++       });
++     }
++
++     req.log.error({ err: erro }, "erro nao tratado");
++     return resposta.code(500).send({
++       erro: "erro_interno",
++       mensagem: "Erro inesperado. Informe o código abaixo ao suporte.",
++       requisicao: req.id,
++     });
++   });
++
++   /**
++    * Saúde e prontidão numa rota só.
++    *
++    * `esquemaEmDia: false` é a informação que importa num rolling deploy: um
++    * processo novo servindo requisição contra banco sem a coluna que o código
++    * espera falha de um jeito difícil de diagnosticar. Melhor o balanceador
++    * saber que este processo ainda não está pronto.
++    */
++   app.get("/saude", async (req, resposta) => {
++     let ultimaMigracao: string | null;
++     try {
++       ultimaMigracao = await banco.semTenant(async (c) => {
++         const r = await c.query<{ versao: string }>(
++           "SELECT versao FROM schema_migracoes ORDER BY versao DESC LIMIT 1",
++         );
++         return r.rows[0]?.versao ?? null;
++       });
++     } catch {
++       // Sem detalhe do erro: esta rota é pública por natureza, e mensagem de
++       // banco costuma trazer nome de host e de tabela.
++       return resposta.code(503).send({ status: "indisponivel", banco: "indisponivel" });
++     }
++
++     /*
++       Se o relógio de eliminação tem trabalho, e quanto. SÓ NÚMEROS: nome de
++       município não sai daqui, porque esta rota responde a qualquer um.
++
++       É o único lugar fora do console em que alguém vê que há eliminação
++       agendada, e o único em que dá para conferir, de fora, que uma eliminação
++       vencida NÃO está acontecendo (`vencidas` que não zera de uma rodada para
++       a outra). `eliminacoes_pendentes()` é função privilegiada que devolve
++       duas contagens e nada mais (ver o relatório da migração 038).
++
++       Se a função não existir, a resposta diz `null` e o log avisa, e a sonda
++       continua respondendo `ok`: uma migração atrasada nesta função não pode
++       derrubar a API inteira do balanceador, e o aviso a cada sonda é alto o
++       bastante para alguém ver.
++     */
++     let eliminacoes: { agendadas: number; vencidas: number } | null = null;
++     try {
++       eliminacoes = await banco.semTenant(async (c) => {
++         const r = await c.query<{ agendadas: string | number; vencidas: string | number }>(
++           "SELECT agendadas, vencidas FROM eliminacoes_pendentes()",
++         );
++         const linha = r.rows[0];
++         return linha
++           ? { agendadas: Number(linha.agendadas), vencidas: Number(linha.vencidas) }
++           : { agendadas: 0, vencidas: 0 };
++       });
++     } catch (erro) {
++       req.log.warn(
++         { erro: erro instanceof Error ? erro.message : String(erro) },
++         "a rota de saude nao conseguiu contar as eliminacoes agendadas",
++       );
++     }
++
++     /*
++       O que o push fez, nesta máquina, na última rodada. SÓ NÚMEROS, pela
++       mesma razão das eliminações: esta rota responde a qualquer um.
++
++       `null` é push desligado. Ligado e sem rodada concluída ainda (a partida
++       acabou de acontecer, ou esta máquina nunca ganhou a trava) sai com
++       `rodadaEm: null` e zeros, que é diferente de mentir com uma rodada que
++       não houve. `falhas` que não zera de uma sonda para a outra, com
++       `entregues` parado, é a Apple ou o Google recusando: o motivo está no
++       log do varredor, agregado, sem ficha.
++     */
++     const push_ = push
++       ? (push.ultimaRodada() ?? {
++           rodadaEm: null, reivindicadas: 0, entregues: 0, falhas: 0, revogados: 0,
++         })
++       : null;
++
++     return { status: "ok", banco: "ok", ultimaMigracao, eliminacoes, push: push_ };
++   });
++
++   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });
++   /*
++     A verificação em duas etapas da PRÓPRIA conta. Não tem prefixo `/auth`
++     porque não é o login: o login usa `POST /auth/segundo-fator`, que é a
++     segunda etapa da entrada, e estas aqui são a gestão feita por quem já está
++     dentro (ou por quem o município obriga a ligar antes de entrar).
++   */
++   await app.register(rotasSegundoFator, {
++     prefix: "/segundo-fator", banco, config, autenticacao, segundoFator,
++   });
++   await app.register(rotasOcorrencias, {
++     prefix: "/ocorrencias", banco,
++     // O despacho acorda o varredor depois do commit. Sem push, não há quem acordar.
++     ...(push ? { despertarPush: push.despertar } : {}),
++   });
++   await app.register(rotasAdministracao, { prefix: "/", banco });
++   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
++   await app.register(rotasCampo, { prefix: "/campo", banco, armazenamento });
++   /*
++     Quem sou eu, lido do cadastro, e a foto que eu mesmo escolhi. Fora de
++     `/auth` porque não é login, e fora de `/usuarios/:id` porque não é gestão
++     de terceiro: é a pessoa sobre a própria conta, para qualquer papel. O
++     argumento de por que não passa por `exigirPermissao` está na rota.
++   */
++   await app.register(rotasUsuariosEu, { prefix: "/usuarios/eu", banco, armazenamento });
++   /*
++     Prefixo proprio, e nao dentro de `/campo`, porque metade destas rotas e da
++     COORDENACAO e nao do agente: `GET /saida-a-campo` e a tela de quem fica na
++     mesa. Pendurar isso em `/campo` faria o nome do prefixo mentir sobre quem
++     chama, que e a primeira coisa que alguem le ao procurar uma rota.
++   */
++   await app.register(rotasSaidaACampo, { prefix: "/saida-a-campo", banco });
++   // Registro do aparelho que recebe notificação. Com `PUSH_ATIVO=nao`, que é o
++   // padrão, as rotas existem e recusam, em vez de sumirem: uma rota ausente
++   // responde 404, que o aplicativo leria como "versão velha do servidor".
++   await app.register(rotasAparelhos, { prefix: "/aparelhos", banco, config });
++   // O sino do painel. Não depende de `PUSH_ATIVO`: ele é o canal de quem está
++   // na frente do computador, e existe mesmo num município que nunca ligou
++   // notificação em telefone nenhum.
++   await app.register(rotasAvisos, { prefix: "/avisos", banco });
++   /*
++     O que o painel precisa saber do ambiente onde ele está rodando, hoje só a
++     chave do mapa. Ela vem daqui, e não do build do painel, porque o painel é
++     um build só servindo todos os municípios: assada lá, seria a chave do
++     fornecedor pagando o mapa de todas as prefeituras. Não lê o banco e
++     responde igual para todo município. Ver `rotas/configuracao.ts`.
++   */
++   await app.register(rotasConfiguracao, { prefix: "/configuracao", config });
++   /*
++     O caminho por ruas que o agente pede no aplicativo, traçado pelo Google a
++     partir DAQUI, porque a chave que serve para HTTP é segredo de servidor e
++     nunca sai deste processo. Sem `ROUTES_KEY` a rota existe e responde 503,
++     em vez de sumir: rota ausente o aplicativo leria como "servidor velho". Não
++     lê o banco e não registra coordenada nenhuma. Ver `rotas/rota.ts`.
++   */
++   await app.register(rotasRota, { prefix: "/rota", config, ...rota });
++   // O link curto do Google Maps, aberto pelo servidor a pedido do coordenador. Ver `rotas/mapa.ts`.
++   await app.register(rotasMapa, { prefix: "/mapa", ...mapa });
++   // O catálogo de destinos de providência. A leitura é aberta a qualquer conta
++   // autenticada porque o formulário de providência precisa da lista; escrever
++   // exige `gerenciar_equipes`. Ver `rotas/orgaos.ts`.
++   await app.register(rotasOrgaos, { prefix: "/orgaos", banco });
++   // A caixa de busca do painel: registros dos quatro tipos, com tolerância a erro. Ver `rotas/busca.ts`.
++   await app.register(rotasBusca, { prefix: "/busca", banco });
++   /*
++     O ofício numerado e o envio por email. O envio recusa com `EMAIL_ATIVO=nao`,
++     que é o padrão, em vez de a rota sumir: rota ausente responde 404, e o
++     painel leria isso como "versão velha do servidor" em vez de "o município
++     ainda não ligou o envio".
++   */
++   await app.register(rotasOficios, {
++     prefix: "/oficios", banco, config, notificador,
++     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
++   });
++   // Única rota de escrita sem autenticação do produto. Ela grava pedido de
++   // contato e NÃO cria município: provisionar continua por linha de comando.
++   await app.register(rotasInteresse, { prefix: "/publico", banco });
++   /*
++     A ÚNICA rota de leitura sem autenticação que devolve dado de município, e
++     ela é assim de propósito: quem abre o ofício é uma pessoa do órgão
++     destinatário, sem conta no sistema. O que a protege não é token, é um
++     segredo de 32 bytes que só existe dentro do email enviado, que expira, que
++     abre uma vez só e cuja abertura fica registrada. Ver `rotas/oficios.ts`.
++   */
++   await app.register(rotasOficioPublico, {
++     prefix: "/publico", banco,
++     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
++   });
++   await app.register(rotasPrestacaoDeContas, { prefix: "/", banco });
++   /*
++     A saída de município: o pacote com tudo que é do município, em formato
++     aberto. Exige administrador e deixa trilha, e não apaga nada: a eliminação
++     é ato contratual, depois de o município conferir. Ver `rotas/saida.ts`.
++   */
++   await app.register(rotasSaida, {
++     prefix: "/saida", banco, armazenamento,
++     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
++   });
++   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
++   /*
++     Quanto o município ocupa de armazenamento. Prefixo separado e não `/evidencias`
++     porque a pergunta e o público são outros: a evidência é do agente e da
++     ocorrência, e isto é do contrato e do administrador.
++   */
++   await app.register(rotasArmazenamento, { prefix: "/armazenamento", banco });
++   await app.register(rotasDocumentos, {
++     prefix: "/documentos", banco, armazenamento, pdf,
++     // Enquanto o produto não estiver em uso oficial, todo documento sai
++     // marcado. Quem decide é `MARCA_DAGUA`, e não o ambiente: o piloto roda
++     // com NODE_ENV=production, então amarrar o carimbo ao ambiente o desligava
++     // justamente onde ele mais importa. Vazio desmarca, e é ato deliberado.
++     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
++   });
++
++   // Só existe quando a própria API guarda os bytes, o que a configuração
++   // proíbe em produção.
++   if ("guardar" in armazenamento) {
++     await app.register(rotasArmazenamentoLocal, {
++       prefix: "/armazenamento",
++       armazenamento: armazenamento as ArmazenamentoEmMemoria,
++     });
++   }
++
++   return app;
++ }
++
++ /** Identifica um ZodError mesmo vindo de outra instalação do zod. */
++ function ehErroDeValidacao(erro: unknown): erro is ZodError {
++   return (
++     typeof erro === "object" && erro !== null &&
++     (erro as { name?: string }).name === "ZodError" &&
++     Array.isArray((erro as { issues?: unknown }).issues)
++   );
++ }
++
++ export class NaoAutenticado extends Error {}
++
++ /**
++  * As rotas que um token de senha provisória abre. Só a troca: `/auth/sair`
++  * não exige token de acesso e continua funcionando por isso. Comparado com
++  * `req.routeOptions.url`, que é o PADRÃO da rota registrada, e não a URL
++  * pedida: não há como forjar um caminho que case.
++  */
++ export const ROTAS_ABERTAS_COM_SENHA_PROVISORIA: ReadonlySet<string> = new Set([
++   "/auth/trocar-senha",
++   /*
++     Encerrar as próprias sessões não é ato administrativo, é a mesma família
++     de "/auth/sair" (que nem passa por aqui, por não exigir token de acesso):
++     retirar o próprio acesso de um aparelho perdido não pode esperar a troca
++     de senha, e às vezes é justamente o que a pessoa quer fazer ANTES dela.
++   */
++   "/auth/encerrar-sessoes",
++ ]);
++
++ /** A sessão nasceu de senha provisória e só serve para trocá-la. Vira 403. */
++ export class TrocaDeSenhaObrigatoria extends Error {
++   readonly codigo = "troca_de_senha_obrigatoria" as const;
++   constructor() {
++     super(
++       "Você entrou com uma senha provisória. Defina a sua senha em Minha conta "
++       + "antes de continuar.",
++     );
++     this.name = "TrocaDeSenhaObrigatoria";
++   }
++ }
++
++ /** Erro previsto de domínio: o cliente pode entender e corrigir. */
++ export class RegraDeNegocio extends Error {
++   readonly codigo: string;
++   readonly status: number;
++   /**
++    * Os campos recusados, no formato do 422 de validação (`campo` pontuado como
++    * o Zod o devolve, `mensagem` em português). Opcional: a maioria das regras
++    * recusa o ato inteiro, não um campo. Existe para a recusa que a rota só
++    * consegue fazer depois de ler o banco (ex.: data anterior à abertura da
++    * ocorrência) sair com a mesma forma que a recusa do esquema, porque o
++    * aparelho decide pelo `campos` se oferece corrigir ou repetir.
++    */
++   readonly campos?: ReadonlyArray<{ campo: string; mensagem: string }>;
++   constructor(
++     codigo: string,
++     mensagem: string,
++     status = 409,
++     campos?: ReadonlyArray<{ campo: string; mensagem: string }>,
++   ) {
++     super(mensagem);
++     this.codigo = codigo;
++     this.status = status;
++     if (campos && campos.length > 0) this.campos = campos;
++   }
++ }
++
++ /** Açúcar para as rotas: autentica e confere a permissão de uma vez. */
++ export async function autorizar(
++   app: FastifyInstance,
++   req: FastifyRequest,
++   acao: Acao,
++ ): Promise<Identidade> {
++   const identidade = await app.exigirAutenticacao(req);
++   exigirPermissao(identidade.papel, acao);
++   return identidade;
++ }
++
+
+ ❯ mutar test/codigos-de-erro.test.ts:868:66
+    866|     function mutar(relativo: string, de: string, para: string): string…
+    867|       const { nome, texto } = real(relativo);
+    868|       expect(texto, `${relativo} tem de conter o trecho mutado`).toCon…
+       |                                                                  ^
+    869|       expect(reprovacoes(varrerFonte(texto, nome), REGRAS_DA_API), "o …
+    870|       return reprovacoes(varrerFonte(texto.replace(de, para), nome), R…
+ ❯ test/codigos-de-erro.test.ts:910:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M1b subclasse de RegraDeNegocio com super("x", .., 403)
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M3 importação com outro nome
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M6 importação como espaço de nomes
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c classe com codigo atribuído no construtor, enviada pelo tratador como erro.codigo
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M2c' o mesmo, com o código vindo do chamador
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M7 classe com getter codigo
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M8 classe com codigo como propriedade de parâmetro
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N18 corpo_invalido com status que não é o do Fastify
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N19 erro.codigo com `erro` sombreado no tratador
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M4 escrita direta com raw.writeHead(403)
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > M11 resposta.code(CONSTANTE_403) e o corpo no return
+AssertionError: o original passa: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/servidor.ts:594: código calculado (`\"sem_\" + \"perm\"`) em resposta de acesso (status 403), fora da lista de repasses conhecidos",
++ ]
+
+ ❯ mutarTrecho test/codigos-de-erro.test.ts:923:88
+    921|       const novo = aplicar(texto);
+    922|       expect(novo, "a mutação mudou o texto").not.toBe(texto);
+    923|       expect(reprovacoes(varrerFonte(texto, nome), REGRAS_DA_API), "o …
+       |                                                                                        ^
+    924|       return reprovacoes(varrerFonte(novo, nome), REGRAS_DA_API);
+    925|     };
+ ❯ test/codigos-de-erro.test.ts:955:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo com código que ninguém emite: aponta como morto
+AssertionError: expected [ 'sem_permissao', 'codigo_inventado' ] to deeply equal [ 'codigo_inventado' ]
+
+- Expected
++ Received
+
+  [
++   "sem_permissao",
+    "codigo_inventado",
+  ]
+
+ ❯ test/codigos-de-erro.test.ts:966:95
+    964| 
+    965|     it("catálogo com código que ninguém emite: aponta como morto", () …
+    966|       expect(codigosMortos(api, [...LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO…
+       |                                                                                               ^
+    967|     });
+    968|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+

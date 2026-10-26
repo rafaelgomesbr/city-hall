@@ -1,0 +1,13 @@
+diff --git a/dc360/apps/campo/src/dados/sessao.tsx b/dc360/apps/campo/src/dados/sessao.tsx
+index ed55474..72644a7 100644
+--- a/dc360/apps/campo/src/dados/sessao.tsx
++++ b/dc360/apps/campo/src/dados/sessao.tsx
+@@ -3,3 +3,3 @@ import * as SecureStore from "expo-secure-store";
+ import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, type Identidade } from "./api";
+-import { acolherNoAparelho, apagarDadosLocais, marcarDonoDosDadosLocais } from "./banco-local";
++import { apagarDadosLocais, marcarDonoDosDadosLocais } from "./banco-local";
+ import { esquecerFicha, fichaGuardada } from "../push/ficha-do-aparelho";
+@@ -184,3 +184,2 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
+     */
+-    await acolherNoAparelho(r.identidade.usuarioId);
+     credenciais.current = r.credenciais;

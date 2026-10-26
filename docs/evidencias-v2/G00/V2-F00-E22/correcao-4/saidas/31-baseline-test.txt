@@ -1,0 +1,40 @@
+$ node --test scripts/baseline.test.mjs
+(cwd dc360/, código de saída 0)
+
+✔ redige um JWT colado num texto (1.146958ms)
+✔ redige o valor de Authorization Bearer e Basic (0.08325ms)
+✔ redige usuário e senha de uma URL de banco (0.069167ms)
+✔ troca o nome do usuário nas pastas pessoais (0.071375ms)
+✔ troca o travessão, que a regra de conteúdo proíbe em docs (0.20875ms)
+✔ não mexe em texto comum (0.044542ms)
+✔ lê as contagens do vitest (0.507209ms)
+✔ lê as contagens do node --test e do jest (0.246416ms)
+✔ sem contagem na saída o resultado é vazio, não zero (0.0635ms)
+✔ avaliar confere quando o resultado é o esperado, vermelho inclusive (0.149292ms)
+✔ avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda (0.083958ms)
+✔ avaliar não aceita a ausência de contagem como confere (0.054959ms)
+✔ a lista de passos tem ids únicos e o total de scripts soma a própria etapa (0.771167ms)
+✔ o E2E do painel local declara o servidor que o teste exige (0.110125ms)
+✔ o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02) (0.178792ms)
+✔ o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende (0.123ms)
+✔ as opções recusam o que não conhecem e os filtros recusam passo inexistente (0.264208ms)
+✔ --so-listar imprime os comandos, não executa nada e não cria a pasta de saída (29.919916ms)
+✔ o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada (0.08925ms)
+✔ os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13) (0.091166ms)
+✔ a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente (0.0955ms)
+✔ passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos (0.046834ms)
+✔ o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3) (0.044917ms)
+✔ o resumo conta as divergências explicadas e diz por quê (0.141291ms)
+✔ o conferidor de contagens reprova o número velho plantado e passa com o certo (0.103584ms)
+✔ o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera (0.046375ms)
+✔ suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também (0.071417ms)
+✔ todo passo do roteiro com total esperado aparece na medição do conferir:numeros (0.189542ms)
+✔ o registro da deriva V-DEP-4 existe e diz que foi fechada (0.365041ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81.771084

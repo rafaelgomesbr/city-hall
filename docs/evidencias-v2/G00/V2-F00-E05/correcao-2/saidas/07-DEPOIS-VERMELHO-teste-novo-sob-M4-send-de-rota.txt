@@ -1,0 +1,256 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/codigos-de-erro.test.ts (61 tests | 4 failed | 22 skipped) 1311ms
+   ↓ Cada código do catálogo sai do servidor real > token vencido, adulterado ou ausente responde 401 nao_autenticado: o cliente renova e repete
+   ↓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde
+   ↓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada
+   ↓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve
+   ↓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada
+   ↓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou
+   ↓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > coordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo
+   ↓ As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05) > URL assinada sem assinatura responde 403 assinatura, sem token: a assinatura é a credencial
+   ↓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum
+   ↓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token
+   ↓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir 7ms
+     → expected [ …(2) ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o console do fornecedor só responde 401 e 403 com os códigos do contrato dele 1ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo e a lista da entrada não carregam código morto: o servidor emite cada um 1ms
+     → expected [ 'assinatura' ] to deeply equal []
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > ninguém escreve `erro: "sessao"` à mão em lugar nenhum da API 3ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo tem os dez códigos e cada um tem ação e mensagem 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .code(403) e código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send com .status(401) e o nome antigo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send no meio de uma cadeia com header 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: send pelo corpo numa constante 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: tratador global 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 403 em várias linhas 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: RegraDeNegocio com 401 e o nome antigo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: FalhaAutenticacao com código novo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: classe de erro com codigo literal 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: recusa montada em função (status e corpo) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo com o status trocado 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > reprova: código do catálogo na regra de negócio sem status (vira 409) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 401 sem o campo erro 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 sem send na mesma cadeia 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: 403 com corpo que não é objeto nem constante 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: código calculado em resposta 403 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status calculado com código fora do catálogo 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode escrito à mão 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: status atribuído fora de code() 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por httpErrors 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: erro do Fastify por createError 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: statusCode declarado na classe 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > falha para o lado seguro: Error enviado direto num 403 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > não reprova o que é do catálogo, da entrada ou de outro status (controles negativos da mordida) 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde em cada forma de emitir (fonte de exemplo) > um repasse só vale para o arquivo e a expressão que foram conferidos 1ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) do tratador global: `posto_insuficiente` vira `inativo` 12ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403: `email_so_por_administrador` vira o nome antigo `sessao` 10ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > RegraDeNegocio com 403 em outra rota: `posto_insuficiente_para_dado_pessoal` vira `inativo` 10ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) de rota: `assinatura` vira `url_vencida` 3ms
+     → rotas/armazenamento-local.ts tem de conter o trecho mutado: expected 'import type { FastifyInstance } from …' to contain 'erro: "assinatura"'
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > FalhaAutenticacao: `nao_autenticado` vira `token_vencido` 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > classe de erro: `acesso_suspenso` vira `contrato_suspenso` 2ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > o tratador global: `sem_permissao` com o status trocado para 401 12ms
+   ✓ Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo sem `posto_insuficiente`: o servidor emite um código que a lista não tem 1ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo com código que ninguém emite: aponta como morto 1ms
+     → expected [ 'assinatura', 'codigo_inventado' ] to deeply equal [ 'codigo_inventado' ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir
+AssertionError: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/rotas/armazenamento-local.ts:30: código `url_vencida` (send, status 403) em resposta de acesso e fora do catálogo",
++   "src/rotas/armazenamento-local.ts:71: código `url_vencida` (send, status 403) em resposta de acesso e fora do catálogo",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:611:45
+    609|   it("toda resposta 401 ou 403 da API carrega um código do catálogo ou…
+    610|     expect(api.emissoes.length, "a varredura leu alguma coisa").toBeGr…
+    611|     expect(reprovacoes(api, REGRAS_DA_API)).toEqual([]);
+       |                                             ^
+    612|   });
+    613| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > o catálogo e a lista da entrada não carregam código morto: o servidor emite cada um
+AssertionError: expected [ 'assinatura' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "assinatura",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:621:109
+    619| 
+    620|   it("o catálogo e a lista da entrada não carregam código morto: o ser…
+    621|     expect(codigosMortos(api, [...LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO, …
+       |                                                                                                             ^
+    622|   });
+    623| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > send({ erro }) de rota: `assinatura` vira `url_vencida`
+AssertionError: rotas/armazenamento-local.ts tem de conter o trecho mutado: expected 'import type { FastifyInstance } from …' to contain 'erro: "assinatura"'
+
+- Expected
++ Received
+
+- erro: "assinatura"
++ import type { FastifyInstance } from "fastify";
++ import type { ArmazenamentoEmMemoria } from "../armazenamento/memoria.js";
++ import { TAMANHO_MAXIMO_BYTES, tipoAceito } from "../armazenamento/tipos.js";
++
++ /**
++  * Recebe e serve os bytes quando o armazenamento é o da própria API.
++  *
++  * Existe só para desenvolvimento e teste, e a configuração recusa subir em
++  * produção sem armazenamento externo. Mas as garantias são as mesmas do
++  * provedor de verdade: a URL precisa estar assinada e dentro da validade, o
++  * tipo precisa estar na lista, e o tamanho tem teto. Fosse um caminho aberto,
++  * o teste passaria sem exercitar nada do que importa.
++  */
++ export async function rotasArmazenamentoLocal(
++   app: FastifyInstance,
++   { armazenamento }: { armazenamento: ArmazenamentoEmMemoria },
++ ): Promise<void> {
++   // Foto de vistoria não cabe no limite de payload de negócio.
++   app.addContentTypeParser(
++     ["image/jpeg", "image/png", "image/webp", "image/heic", "application/octet-stream"],
++     { parseAs: "buffer", bodyLimit: TAMANHO_MAXIMO_BYTES },
++     (_req, corpo, feito) => { feito(null, corpo); },
++   );
++
++   app.put("/objeto", async (req, resposta) => {
++     const consulta = req.query as Record<string, string | undefined>;
++     const chave = consulta["chave"] ?? "";
++     const conferencia = armazenamento.conferirAssinatura("PUT", chave, consulta);
++     if (!conferencia.valida) {
++       return resposta.code(403).send({ erro: "url_vencida", mensagem: conferencia.motivo });
++     }
++
++     const tipo = String(req.headers["content-type"] ?? "");
++     if (!tipoAceito(tipo)) {
++       return resposta.code(415).send({ erro: "tipo_recusado", mensagem: "Tipo de arquivo não aceito." });
++     }
++
++     const corpo = req.body as Buffer;
++     if (!Buffer.isBuffer(corpo) || corpo.length === 0) {
++       return resposta.code(400).send({ erro: "corpo_vazio", mensagem: "Nenhum conteúdo recebido." });
++     }
++
++     /*
++       ESCRITA ÚNICA, como o provedor de verdade faz com `if-none-match: *`
++       assinado (ver `armazenamento/s3.ts`). Sem isto, o teste que prova que a
++       prova confirmada não se troca passaria aqui e falharia contra o R2, ou o
++       contrário, que é o pior tipo de diferença entre as duas implementações
++       desta porta. 412 é o status do provedor para a mesma recusa.
++
++       Incondicional, e não "só se o cabeçalho vier": no S3 o cabeçalho é
++       obrigatório porque está assinado, então a única forma de o aparelho
++       chegar sem ele é adulterar a URL, que lá responde 403. Aqui, exigir o
++       cabeçalho abriria a sobrescrita para quem o omitisse.
++     */
++     if (armazenamento.ler(chave)) {
++       return resposta.code(412).send({
++         erro: "objeto_ja_existe",
++         mensagem: "Já existe um arquivo nesta chave, e ele não pode ser sobrescrito.",
++       });
++     }
++
++     armazenamento.guardar(chave, corpo, tipo);
++     return resposta.code(200).send();
++   });
++
++   app.get("/objeto", async (req, resposta) => {
++     const consulta = req.query as Record<string, string | undefined>;
++     const chave = consulta["chave"] ?? "";
++     const conferencia = armazenamento.conferirAssinatura("GET", chave, consulta);
++     if (!conferencia.valida) {
++       return resposta.code(403).send({ erro: "url_vencida", mensagem: conferencia.motivo });
++     }
++
++     const objeto = armazenamento.ler(chave);
++     if (!objeto) {
++       return resposta.code(404).send({ erro: "nao_encontrado", mensagem: "Objeto não encontrado." });
++     }
++
++     return resposta
++       .header("content-type", objeto.tipoConteudo)
++       // Evidência não é conteúdo de cache compartilhado.
++       .header("cache-control", "private, max-age=60")
++       /*
++         A política padrão do helmet é `same-site`, e ela bloqueia a imagem
++         quando o painel está numa origem e a API noutra, que é exatamente o
++         arranjo de produção (painel do município, API do fornecedor). Aqui a
++         proteção do arquivo é a URL assinada de vida curta, não a política de
++         origem: sem a assinatura correta esta rota devolve 403 antes de chegar
++         neste ponto. Vale só para a entrega do objeto, e não para a API.
++       */
++       .header("cross-origin-resource-policy", "cross-origin")
++       .send(objeto.corpo);
++   });
++ }
++
+
+ ❯ mutar test/codigos-de-erro.test.ts:707:66
+    705|     function mutar(relativo: string, de: string, para: string): string…
+    706|       const { nome, texto } = real(relativo);
+    707|       expect(texto, `${relativo} tem de conter o trecho mutado`).toCon…
+       |                                                                  ^
+    708|       expect(reprovacoes(varrerFonte(texto, nome), REGRAS_DA_API), "o …
+    709|       return reprovacoes(varrerFonte(texto.replace(de, para), nome), R…
+ ❯ test/codigos-de-erro.test.ts:732:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > catálogo com código que ninguém emite: aponta como morto
+AssertionError: expected [ 'assinatura', 'codigo_inventado' ] to deeply equal [ 'codigo_inventado' ]
+
+- Expected
++ Received
+
+  [
++   "assinatura",
+    "codigo_inventado",
+  ]
+
+ ❯ test/codigos-de-erro.test.ts:760:95
+    758| 
+    759|     it("catálogo com código que ninguém emite: aponta como morto", () …
+    760|       expect(codigosMortos(api, [...LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO…
+       |                                                                                               ^
+    761|     });
+    762|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 35 passed | 22 skipped (61)
+   Start at  01:09:29
+   Duration  1.99s (transform 204ms, setup 15ms, collect 493ms, tests 1.31s, environment 0ms, prepare 30ms)
+

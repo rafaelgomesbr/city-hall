@@ -1,0 +1,375 @@
+diff --git a/dc360/apps/web/src/componentes/Modal.tsx b/dc360/apps/web/src/componentes/Modal.tsx
+index cfecb91..ed8951b 100644
+--- a/dc360/apps/web/src/componentes/Modal.tsx
++++ b/dc360/apps/web/src/componentes/Modal.tsx
+@@ -168,6 +168,29 @@ export function interditarFundo(irmaos: readonly ElementoInterditavel[]): () =>
+   };
+ }
+ 
++/**
++ * Quanto o painel da janela rola (para baixo, positivo; para cima, negativo)
++ * para o controle ficar inteiro dentro da parte visível dele, com um respiro de
++ * cada lado quando cabe (o anel de foco é uma sombra de alguns pixels, e uma
++ * borda de painel que rola a corta). Zero quando já está. Controle mais alto
++ * que o painel não cabe: o começo dele vai ao começo do painel.
++ */
++export function rolagemParaVerNoPainel(a: {
++  painelTopo: number;
++  painelBase: number;
++  alvoTopo: number;
++  alvoBase: number;
++  respiro: number;
++}): number {
++  const altura = a.painelBase - a.painelTopo;
++  const alturaDoAlvo = a.alvoBase - a.alvoTopo;
++  if (alturaDoAlvo >= altura) return a.alvoTopo - a.painelTopo;
++  const respiro = Math.max(0, Math.min(a.respiro, (altura - alturaDoAlvo) / 2));
++  if (a.alvoTopo < a.painelTopo + respiro - 0.5) return a.alvoTopo - (a.painelTopo + respiro);
++  if (a.alvoBase > a.painelBase - respiro + 0.5) return a.alvoBase - (a.painelBase - respiro);
++  return 0;
++}
++
+ /**
+  * Clique fora fecha? Só quando o clique foi no fundo mesmo e a janela permite.
+  *
+@@ -415,10 +438,55 @@ export function Modal({
+       return r.top >= p.top - 0.5 && r.bottom <= p.bottom + 0.5;
+     };
+     const alvo = focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current);
+-    alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });
++    alvo?.focus({ preventScroll: true });
+     if (painel.current) painel.current.scrollTop = 0;
++    /*
++      O foco inicial pedido (o "Cancelar" de `ConfirmarAcao`) TEM DE ESTAR À
++      VISTA dentro da janela (WCAG 2.4.7 e 2.4.11; achado 1 da acessibilidade na
++      rodada 8 da V2-F00-E09, correção 7). O `scrollTop = 0` de cima faz a janela
++      abrir no topo, e quando o painel rola (zoom de 300 e 400 por cento, celular
++      deitado) o botão fica 150 a 190 px abaixo da borda: a pessoa via o título
++      e o texto, nenhum botão e nenhum anel de foco, em Chromium e Firefox (o
++      WebKit rolava sozinho). Quem pediu um foco inicial pediu um CONTROLE, e
++      um controle fora da vista não é foco: o painel rola o mínimo para
++      mostrá-lo, com o respiro de sempre, e o título que sai por cima é lido
++      pelo leitor de tela na abertura (`aria-labelledby`). Sem foco pedido, o
++      caminho é o de antes (o foco vai ao painel, e a janela abre no topo).
++    */
++    const levarOFocoInicialAVista = () => {
++      const botao = focoInicial?.current;
++      const corpo = painel.current;
++      if (!botao || !corpo || document.activeElement !== botao) return;
++      const caixaDoPainel = corpo.getBoundingClientRect();
++      const caixaDoAlvo = botao.getBoundingClientRect();
++      const topoUtil = caixaDoPainel.top + corpo.clientTop;
++      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
++      corpo.scrollTop += rolagemParaVerNoPainel({
++        painelTopo: topoUtil, painelBase: topoUtil + corpo.clientHeight,
++        alvoTopo: caixaDoAlvo.top, alvoBase: caixaDoAlvo.bottom, respiro,
++      });
++    };
++    let observador: MutationObserver | null = null;
++    if (focoInicial?.current && alvo === focoInicial.current && painel.current) {
++      levarOFocoInicialAVista();
++      /*
++        O conteúdo da janela muda DEPOIS de aberta: "Encerrar sessões" abre com
++        "Conferindo quantas sessões estão abertas." e troca pela frase da
++        contagem (16 px mais alta a 320 px), "Redefinir senha" e as outras acrescentam o
++        erro do servidor. Cada mudança acima do botão o empurra para fora da
++        parte visível (a 320x256, de 178..222 para 194..238 numa janela que
++        vai até 234), e a medida única da abertura não vê. Enquanto o foco
++        continua no botão, o painel refaz a conta a cada mudança de conteúdo;
++        quem já passou para outro controle não é puxado de volta.
++      */
++      if (typeof MutationObserver === "function") {
++        observador = new MutationObserver(levarOFocoInicialAVista);
++        observador.observe(painel.current, { childList: true, subtree: true, characterData: true });
++      }
++    }
+ 
+     return () => {
++      observador?.disconnect();
+       restaurar();
+       hospedeiro.remove();
+       liberarAvisos();
+diff --git a/dc360/apps/web/src/componentes/usar-bordas-fixas.ts b/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
+index 3b5868b..2b19b32 100644
+--- a/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
++++ b/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
+@@ -166,22 +166,55 @@ export function focoDoPonteiro(agora: number, ultimoPonteiro: number | null): bo
+  * bordas (o topo, a barra do pé, o "Pular para o conteúdo"), o `<main>` que
+  * recebe o foco do "Pular" e a janela de diálogo, que tem a própria rolagem.
+  */
++/**
++ * Leva um elemento para a faixa livre da página: inteiro entre a borda de baixo
++ * do topo fixo e a de cima da barra do pé. É o miolo do ajuste do Tab, solto
++ * aqui para quem move o foco POR CÓDIGO depois de uma ação de ponteiro, onde o
++ * `focusin` não ajusta (ver `JANELA_DO_PONTEIRO_MS`) e o motor nem sempre rola.
++ *
++ * O caso que obrigou a soltá-lo (V2-F00-E09, correção 7, achado 1 da rodada 8):
++ * no WebKit, depois de confirmar "Encerrar minhas outras sessões" por clique ou
++ * toque, a frase de sucesso recebe o foco, mas o WebKit não a leva à vista
++ * quando a lista de sessões, relida logo depois, encolhe a página e a rolagem
++ * é corrigida por baixo. A frase ficava atrás do topo ou acima da janela (de
++ * 10..94 com o topo até 129, a 360x640, a -136..-52 a 320x568). Chromium e
++ * Firefox rolavam por conta própria.
++ */
++export function levarAFaixaDasBordas(alvo: HTMLElement): void {
++  const topo = document.querySelector<HTMLElement>(".topo");
++  const barra = document.querySelector<HTMLElement>(".lateral");
++  const faixaDe = topo && topoPreso(getComputedStyle(topo)) ? topo.getBoundingClientRect().bottom : 0;
++  const faixaAte = barra && barraPresaNoPe(getComputedStyle(barra))
++    ? barra.getBoundingClientRect().top : window.innerHeight;
++  alvo.scrollIntoView({ block: "nearest", inline: "nearest" });
++  const caixa = alvo.getBoundingClientRect();
++  const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
++  const desvio = deslocamentoParaAFaixa({ topo: caixa.top, altura: caixa.height, faixaDe, faixaAte, respiro });
++  if (desvio !== 0) window.scrollBy(0, desvio);
++}
++
++/**
++ * Mantém o elemento na faixa livre enquanto ele tem o foco, em três passadas
++ * (na hora, numa tarefa logo depois e no quadro seguinte), pelo mesmo motivo do
++ * Tab: cada motor rola e relê o layout no seu tempo. Devolve a função que
++ * cancela as passadas pendentes. Só age enquanto o foco continua no elemento:
++ * a pessoa que já seguiu adiante não é puxada de volta.
++ */
++export function manterNaFaixaDasBordas(alvo: HTMLElement): () => void {
++  const passada = () => { if (alvo.isConnected && document.activeElement === alvo) levarAFaixaDasBordas(alvo); };
++  passada();
++  const tarefa = setTimeout(passada, 0);
++  const quadro = requestAnimationFrame(passada);
++  return () => { clearTimeout(tarefa); cancelAnimationFrame(quadro); };
++}
++
+ export function useFocoForaDasBordas(desenhada: boolean): void {
+   useEffect(() => {
+     if (!desenhada) return;
+     const ajustar = (alvo: HTMLElement) => {
+       if (document.activeElement !== alvo) return;
+       if (alvo.closest(".topo, .lateral, .pular-para-conteudo, [role=\"dialog\"]") || alvo.id === "conteudo") return;
+-      const topo = document.querySelector<HTMLElement>(".topo");
+-      const barra = document.querySelector<HTMLElement>(".lateral");
+-      const faixaDe = topo && topoPreso(getComputedStyle(topo)) ? topo.getBoundingClientRect().bottom : 0;
+-      const faixaAte = barra && barraPresaNoPe(getComputedStyle(barra))
+-        ? barra.getBoundingClientRect().top : window.innerHeight;
+-      alvo.scrollIntoView({ block: "nearest", inline: "nearest" });
+-      const caixa = alvo.getBoundingClientRect();
+-      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
+-      const desvio = deslocamentoParaAFaixa({ topo: caixa.top, altura: caixa.height, faixaDe, faixaAte, respiro });
+-      if (desvio !== 0) window.scrollBy(0, desvio);
++      levarAFaixaDasBordas(alvo);
+     };
+     let ultimoPonteiro: number | null = null;
+     const aoApontar = () => { ultimoPonteiro = performance.now(); };
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index 2013817..5f33a89 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -18,6 +18,7 @@ import {
+ } from "./sessoes-regras";
+ import { useTitulo } from "../seo/titulo";
+ import { focarPrimeiroInvalido } from "../componentes/foco";
++import { manterNaFaixaDasBordas } from "../componentes/usar-bordas-fixas";
+ import { useFocoDepoisDeRenderizar } from "../componentes/usar-foco";
+ import { erroDaSenhaAtual } from "./senha-provisoria-regras";
+ 
+@@ -283,6 +284,22 @@ function MinhasOutrasSessoes() {
+     if (sucesso) confirmacao.current?.focus();
+   }, [sucesso]);
+ 
++  /*
++    A CONFIRMAÇÃO TEM DE FICAR À VISTA, e não só focada (WCAG 2.4.11; achado 1 da
++    rodada 8 da V2-F00-E09, correção 7). O foco por código não leva o elemento
++    à vista no WebKit depois que a lista relida encolhe a página: a frase
++    ficava atrás do topo fixo ou acima da janela (de 10..94 com o topo até 129,
++    a 360x640, a -136..-52 a 320x568) para quem encerrou por toque ou clique. O
++    ajuste do Tab não cobre este caso, porque ele ignora o foco que chega até
++    800 ms depois de um toque. Aqui o ajuste é explícito, no instante da
++    confirmação e de novo quando a lista chega (`sessoes`): é a leitura que
++    encolhe a página, e o motor corrige a rolagem por baixo dela.
++  */
++  useEffect(() => {
++    if (!sucesso || !confirmacao.current) return;
++    return manterNaFaixaDasBordas(confirmacao.current);
++  }, [sucesso, sessoes]);
++
+   const carregar = useCallback((): (() => void) => {
+     let cancelado = false;
+     setErroDeLeitura(null);
+diff --git a/dc360/apps/web/test/correcao-4-da-e09.test.ts b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+index 5c6d7c2..71861a1 100644
+--- a/dc360/apps/web/test/correcao-4-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+@@ -86,7 +86,7 @@ describe("Defeito 2: com janela aberta o aviso passageiro espera", () => {
+     const modal = fonte("componentes", "Modal.tsx");
+     expect(modal).toContain("const liberarAvisos = registrarModalAberto();");
+     // A liberação mora na limpeza do mesmo efeito que abriu a janela.
+-    expect(modal).toMatch(/return \(\) => \{\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
++    expect(modal).toMatch(/return \(\) => \{\s+observador\?\.disconnect\(\);\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
+   });
+ 
+   it("o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada", () => {
+@@ -197,7 +197,8 @@ describe("Revisão 4: um email de parte comprida não empurra a coluna Ação",
+ describe("Revisão 5: a janela abre no topo", () => {
+   it("o foco inicial não rola o painel, e o painel começa em zero", () => {
+     const modal = fonte("componentes", "Modal.tsx");
+-    expect(modal).toContain("alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });");
++    // Desde a correção 7 o focus() nunca rola (quem pediu o foco inicial rola o painel pela conta de `rolagemParaVerNoPainel`).
++    expect(modal).toContain("alvo?.focus({ preventScroll: true });");
+     expect(modal).toContain("if (painel.current) painel.current.scrollTop = 0;");
+     // Primeiro controle fora da parte visível (o botão do pé): o foco vai ao painel.
+     expect(modal).toContain("focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current)");
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index 9663c6f..3ff26f0 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -997,8 +997,8 @@ console.log("\n== 13. O campo focado depois do erro fica inteiro entre o topo fi
+   640x450 de CSS com dois pixels de tela por pixel de CSS; o de 400 por cento
+   de uma tela de 1280x1024 é 320x256.
+ */
+-async function contextoDeFoco(largura, altura, dpr = 1) {
+-  const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr });
++async function contextoDeFoco(largura, altura, dpr = 1, toque = false) {
++  const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr, hasTouch: toque });
+   const pg = await ctx.newPage();
+   pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+   pg.on("console", (m) => {
+@@ -1413,6 +1413,140 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+   }
+ }
+ 
++console.log("\n== 14. A confirmação das sessões e o foco da janela de confirmação ficam à vista (V2-F00-E09, correção 7) ==");
++/*
++  A rodada 8 da validação (sobre 60cbc2f) reprovou por duas coisas da mesma
++  classe do foco fora da vista, que as seções 7 e 2 não mediam porque a 390x900
++  a página nem rola e a janela cabe:
++
++  1. No WebKit, depois de confirmar "Encerrar minhas outras sessões" por clique
++     ou toque, a frase "A outra sessão foi encerrada. Esta continua aberta.",
++     que recebe o foco, ficava atrás do topo fixo ou acima da janela (10..94 com
++     o topo até 129 a 360x640; -136..-52 a 320x568). Pelo teclado passava.
++  2. A janela de `ConfirmarAcao` abria com o foco em "Cancelar", mas, quando o
++     painel rola (zoom de 300 e 400 por cento, celular deitado), o botão ficava
++     150 a 190 px abaixo da borda da janela, em Chromium e Firefox: título,
++     texto, nenhum botão e nenhum anel de foco (WCAG 2.4.7 e 2.4.11).
++
++  A medida é a do portão visual: o retângulo do elemento focado, inteiro, dentro
++  da faixa livre da página (entre o topo fixo e a barra do pé) no caso 1, e
++  dentro da parte visível do painel da janela no caso 2, sempre com o ponto do
++  meio sem nada por cima (`elementFromPoint`).
++*/
++{
++  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++  let n = 0;
++  async function contaComOutrasSessoes() {
++    n++;
++    const email = `sete.${n}.${sufixo}@serraalta.exemplo.gov.br`;
++    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++      corpo: { nome: `Sessões Sete ${n}`, matricula: `S7-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
++    if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} da seção 14 não foi criada (${r.status})`);
++    // Duas sessões a mais, abertas por outro "aparelho": é o que dá o que encerrar.
++    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
++    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
++    return email;
++  }
++  const botaoDeEncerrar = (pg) => pg.getByRole("button", { name: "Encerrar minhas outras sessões" });
++
++  // A) A frase de confirmação, inteira entre o topo fixo e a barra do pé, por clique, toque e teclado.
++  for (const [l, a, d] of [[360, 640, 1], [390, 664, 1], [375, 667, 1], [375, 553, 1], [320, 568, 1], [640, 450, 2], [1024, 600, 1]]) {
++    for (const via of ["clique", "toque", "teclado"]) {
++      const email = await contaComOutrasSessoes();
++      const { ctx, pg } = await contextoDeFoco(l, a, d, via === "toque");
++      await entrar(email, SENHA_DO_TESTE, pg);
++      await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++      await pg.waitForTimeout(400);
++      const botao = botaoDeEncerrar(pg);
++      await botao.scrollIntoViewIfNeeded();
++      if (via === "teclado") { await botao.focus(); await pg.keyboard.press("Enter"); }
++      else if (via === "toque") await botao.tap();
++      else await botao.click();
++      const janela = pg.getByRole("dialog");
++      await janela.waitFor({ timeout: 10_000 });
++      const confirmar = janela.getByRole("button", { name: /^Encerrar (a outra sessão|as outras \d+ sessões)$/ });
++      if (via === "teclado") { await confirmar.focus(); await pg.keyboard.press("Enter"); }
++      else if (via === "toque") await confirmar.tap();
++      else await confirmar.click();
++      await pg.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
++      await botao.waitFor({ state: "detached", timeout: 20_000 });
++      await pg.waitForTimeout(1200);
++      const m = await pg.evaluate(() => {
++        const el = document.activeElement;
++        if (!el || !el.classList.contains("aviso--sucesso")) return { ok: false, txt: `o foco não está na confirmação (${el?.tagName})` };
++        const r = el.getBoundingClientRect();
++        const elTopo = document.querySelector(".topo");
++        const topo = elTopo && ["sticky", "fixed"].includes(getComputedStyle(elTopo).position) ? elTopo.getBoundingClientRect().bottom : 0;
++        const barra = document.querySelector(".lateral");
++        const rb = barra?.getBoundingClientRect();
++        const pe = barra && getComputedStyle(barra).position === "sticky" && rb.top > innerHeight / 2 ? rb.top : innerHeight;
++        const meio = document.elementFromPoint(r.left + Math.min(r.width / 2, 20), r.top + r.height / 2);
++        const livre = meio === el || el.contains(meio);
++        return { ok: r.top >= topo - 0.5 && r.bottom <= pe + 0.5 && livre, txt: `a frase em ${Math.round(r.top)}..${Math.round(r.bottom)}, topo até ${Math.round(topo)}, pé desde ${Math.round(pe)}, sem nada por cima: ${livre}` };
++      });
++      ok(`Minha conta a ${tamanho(l, a, d)}, depois de encerrar as outras sessões por ${via}: a frase de confirmação, que tem o foco, fica inteira à vista`,
++         m.ok, `(${m.txt})`);
++      await ctx.close();
++    }
++  }
++
++  // B) O foco inicial da janela de confirmação (o "Cancelar") fica dentro da parte visível do painel, sem rolagem horizontal.
++  async function focoDaJanelaAVista(pg) {
++    return pg.evaluate(() => {
++      const painel = document.querySelector(".modal__painel");
++      const el = document.activeElement;
++      if (!painel || !el || !painel.contains(el)) return { ok: false, txt: "o foco não está dentro da janela" };
++      const p = painel.getBoundingClientRect(), r = el.getBoundingClientRect();
++      const topoUtil = p.top + painel.clientTop, baseUtil = topoUtil + painel.clientHeight;
++      const meio = document.elementFromPoint(r.left + r.width / 2, Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
++      const livre = meio === el || el.contains(meio);
++      const cs = getComputedStyle(el);
++      const anel = cs.boxShadow !== "none" || (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0);
++      const inteiro = r.top >= topoUtil - 0.5 && r.bottom <= baseUtil + 0.5;
++      const semRolagemLateral = !(document.documentElement.scrollWidth > innerWidth + 1) && !(painel.scrollWidth > painel.clientWidth + 1);
++      return {
++        ok: inteiro && livre && anel && semRolagemLateral,
++        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}`,
++      };
++    });
++  }
++  const TAMANHOS_DA_JANELA = [[320, 256, 1], [320, 450, 1], [390, 450, 1], [640, 300, 1], [568, 320, 1], [640, 450, 2], [1280, 720, 1]];
++  for (const [l, a, d] of TAMANHOS_DA_JANELA) {
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++    await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++    for (const nome of ["Redefinir senha", "Encerrar sessões"]) {
++      const gatilho = pg.getByRole("button", { name: nome, exact: true }).first();
++      await gatilho.focus();
++      await pg.keyboard.press("Enter");
++      await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
++      await pg.waitForTimeout(500);
++      const m = await focoDaJanelaAVista(pg);
++      ok(`Usuários a ${tamanho(l, a, d)}, a janela "${nome}" abre com o foco em "Cancelar" à vista dentro da janela`,
++         m.ok && /Cancelar/.test(m.txt), `(${m.txt})`);
++      await pg.keyboard.press("Escape");
++      await pg.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
++    }
++    await ctx.close();
++  }
++  for (const [l, a, d] of [[320, 256, 1], [568, 320, 1], [640, 300, 1]]) {
++    const email = await contaComOutrasSessoes();
++    const { ctx, pg } = await contextoDeFoco(l, a, d);
++    await entrar(email, SENHA_DO_TESTE, pg);
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.waitForTimeout(400);
++    await botaoDeEncerrar(pg).focus();
++    await pg.keyboard.press("Enter");
++    await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(500);
++    const m = await focoDaJanelaAVista(pg);
++    ok(`Minha conta a ${tamanho(l, a, d)}, a janela "Encerrar minhas outras sessões" abre com o foco em "Cancelar" à vista dentro da janela`,
++       m.ok && /Cancelar/.test(m.txt), `(${m.txt})`);
++    await ctx.close();
++  }
++}
++
+ await navegador.close();
+ 
+ console.log(`\n${"=".repeat(52)}`);

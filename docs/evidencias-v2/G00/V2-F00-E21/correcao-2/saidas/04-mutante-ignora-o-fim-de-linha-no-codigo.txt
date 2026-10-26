@@ -1,0 +1,43 @@
+▶ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa)
+  ✔ evidência em ordem: código 0 e a linha final diz OK (30.453875ms)
+  ✔ INDEX adulterado (o SHA-256 de um arquivo não é o do disco): código 1 e a linha final diz quantos índices não batem (30.4085ms)
+  ✔ CRLF: o arquivo está no disco com CRLF e o índice tem o hash do LF: código 1 e a mensagem aponta a causa (29.513709ms)
+  ✔ pasta de etapa sem INDEX.md e arquivo que o índice não lista também dão código 1 (60.99225ms)
+  ✔ chamado por um caminho com link simbólico, confere do mesmo jeito (antes saía 0 sem conferir nada) (29.544792ms)
+  ✖ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (111.433041ms)
+✖ conferir-indices-de-evidencia: como comando (o código de saída que o CI usa) (292.876458ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 340.459375
+
+✖ failing tests:
+
+test at conferir-indices-de-evidencia.test.mjs:361:3
+✖ sem argumento o script confere o repositório onde mora, incluindo o fim de linha no git: tudo certo dá 0, CRLF no disco dá 1 (111.433041ms)
+  AssertionError [ERR_ASSERTION]: Índices de evidência: 1 INDEX.md, 1 arquivo(s) conferido(s) byte a byte.
+  FALHA fim de linha no git: docs/evidencias-v2/G00/V2-F00-E99/NOTA.md está no disco com fim de linha crlf e o git o devolve em LF (i/lf    w/crlf  attr/text=auto eol=lf): o SHA-256 de um INDEX calculado agora não bate num clone novo
+  RESULTADO: 0 índice(s) não batem, 1 arquivo(s) com fim de linha errado no git
+  
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/scripts/conferir-indices-de-evidencia.test.mjs:388:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+saida=1

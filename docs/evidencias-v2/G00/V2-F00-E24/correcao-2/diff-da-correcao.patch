@@ -1,0 +1,114 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index b0f5997..f3fd906 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -1014,6 +1014,9 @@ recurso é alguém enxergar o prazo estourado, e quem está na sala às três da
+ de uma noite de temporal é o operador de plantão. Restringir à coordenação seria
+ escolher a elegância da tabela contra a finalidade da coisa, e o custo do erro é
+ um agente no morro sem ninguém olhando.
++Esse acompanhamento está em construção: a tela existe, mas o aplicativo do agente
++ainda não declara a saída (V2-F14-E01, ver o quadro de estado da seção "O agente
++que sobe o morro sozinho"), e por isso hoje ela fica vazia.
+ 
+ ## Como rodar
+ 
+diff --git a/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md b/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+index d090d50..182ac2e 100644
+--- a/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
++++ b/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+@@ -37,7 +37,7 @@ coordenador em outro turno.
+ | Registrar ocorrência (gera o protocolo) | Classificar severidade |
+ | Registrar a resposta de uma providência | Despachar equipe |
+ | Consultar os ofícios de encaminhamento (só leitura) | Encerrar ocorrência |
+-| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito | Emitir documento |
++| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito (em construção, ver abaixo) | Emitir documento |
+ | | Emitir ou enviar ofício |
+ 
+ **Por que a linha é essa:** classificar severidade é decisão técnica com
+@@ -52,6 +52,10 @@ Restringir à coordenação seria escolher a arrumação da tabela contra a fina
+ da coisa, e o custo do erro é um agente no morro sem ninguém olhando. Ele também
+ encerra a saída, porque é ele quem chama o agente pelo rádio: ver o alerta sem
+ poder registrar o que fez deixaria o fato aberto na tela e o ato invisível.
++**Estado do recurso: em construção.** A tela da coordenação e a permissão já
++existem, mas o aplicativo do agente ainda não declara a saída (previsto na
++V2-F14-E01, sem data). Até lá a tela fica vazia e nenhum prazo estourado
++aparece: o operador não deve contar com ela para saber quem está no morro.
+ 
+ **Por que ele responde providência:** é ele quem atende o telefone quando a
+ secretaria liga de volta dizendo o que fez. Fazer essa pessoa anotar num papel
+diff --git a/dc360/docs/PRIVACIDADE.md b/dc360/docs/PRIVACIDADE.md
+index e5a9fa5..20f9752 100644
+--- a/dc360/docs/PRIVACIDADE.md
++++ b/dc360/docs/PRIVACIDADE.md
+@@ -93,11 +93,15 @@ interdição responde pelo ato, e a trilha é o que permite ao próprio servidor
+ provar o que fez e quando. Por isso usuário **não se apaga**: se desativa. Um
+ usuário apagado deixaria laudos assinados por ninguém.
+ 
+-Desde 14/09/2026 há mais uma categoria, e ela precisa ser dita por extenso: a
+-**saída a campo declarada pelo agente**, com o protocolo para onde ele foi, o
+-tempo que ele previu, se ele foi sozinho, e o prazo de retorno. É dado sobre o
+-servidor, ele mesmo declara, e existe para a coordenação saber que alguém não
+-deu notícia.
++Desde 14/09/2026 o servidor prevê mais uma categoria, e ela precisa ser dita
++por extenso: a **saída a campo declarada pelo agente**, com o protocolo para
++onde ele foi, o tempo que ele previu, se ele foi sozinho, e o prazo de retorno.
++É dado sobre o servidor, ele mesmo declara, e existe para a coordenação saber
++que alguém não deu notícia. **Recurso em construção:** o aplicativo do agente
++ainda não declara a saída (previsto na V2-F14-E01, sem data), então hoje
++nenhuma saída é declarada e esta categoria fica vazia na prática. Ela já está
++descrita aqui para que a política valha desde o primeiro dia em que o recurso
++for ligado.
+ 
+ **O que o sistema NÃO faz com isso, e é a parte que importa:** não acompanha a
+ localização do agente, nem durante a saída nem depois. O que fica guardado é para
+diff --git a/dc360/docs/apresentacao/2026-09-15-para-o-alyson.html b/dc360/docs/apresentacao/2026-09-15-para-o-alyson.html
+index 0f721a8..5ea94c7 100644
+--- a/dc360/docs/apresentacao/2026-09-15-para-o-alyson.html
++++ b/dc360/docs/apresentacao/2026-09-15-para-o-alyson.html
+@@ -369,7 +369,7 @@
+           <tr><td>Correção de coordenada</td><td><span class="pilula p-ok">Em uso</span></td><td>Ocorrência aberta com o ponto na quadra errada se corrige com motivo, e o evento guarda o ponto anterior e o novo. Vale depois da vistoria e do laudo, de propósito: a reimpressão sai com o ponto certo e o evento anota que já havia documento</td></tr>
+           <tr><td>Ícones de criticidade</td><td><span class="pilula p-ok">Em uso</span></td><td>Uma forma por severidade (círculo, quadrado, triângulo, octógono), desenhada uma vez no pacote compartilhado e lida pelos dois canais. Severidade nunca viaja só em cor</td></tr>
+           <tr><td>Documentos oficiais</td><td><span class="pilula p-ok">Em uso</span></td><td>Laudo, termo de interdição, termo de desinterdição e ofício, gerados no servidor a partir de um modelo só, em HTML para impressão e em PDF do mesmo HTML, com as duas datas (vistoria em campo, recebimento pelo sistema) e código de validação. Marca d'água enquanto o município não homologar</td></tr>
+-          <tr><td>Sino do painel</td><td><span class="pilula p-ok">Em uso</span></td><td>Vistoria recebida, prazo vencido, providência respondida e agente com retorno não confirmado, sem ficar atualizando a tela</td></tr>
++          <tr><td>Sino do painel</td><td><span class="pilula p-ok">Em uso</span></td><td>Vistoria recebida, prazo vencido, providência respondida e agente com retorno não confirmado, sem ficar atualizando a tela. O aviso de retorno não confirmado depende da saída a campo, que está em construção no aplicativo do agente (V2-F14-E01)</td></tr>
+           <tr><td>Ofício para outro órgão por email</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Numerado por município e por ano; o email leva só o número e um link que abre uma vez, e o uso único é do banco. O cliente fala o contrato do Resend, conferido contra a documentação. Falta a conta e a chave: nunca falou com o Resend de verdade</td></tr>
+           <tr><td>Recuperação de senha por email</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Mesmo motivo do item acima. No piloto quem esquece a senha pede à coordenação, que redefine por dentro e derruba as sessões da pessoa</td></tr>
+           <tr><td>SEO e identidade do painel</td><td><span class="pilula p-ok">Em uso</span></td><td>Marca em SVG, favicon, manifesto, imagem de compartilhamento, título por tela e as telas internas fora dos buscadores. O endereço real é dc360-painel-web.vercel.app</td></tr>
+@@ -495,7 +495,7 @@
+         <tbody>
+           <tr><td>Administrador da organização</td><td><span class="pilula p-ok">Feito</span></td><td>Papel "administrador", posto 3, teto do município: altera os dados do órgão, gerencia equipes e usuários, e é o único que administra outro administrador. Nunca enxerga outro ente (RLS). Não configura formulários nem modelos: são fixos, por decisão</td></tr>
+           <tr><td>Coordenador da Defesa Civil</td><td><span class="pilula p-ok">Feito</span></td><td>Posto 2: triagem, despacho, providência, encerramento, laudo e termo, trilha e exportação. "Ativa incidente" é fase 3; "aprova documentos" virou "emite": não há fluxo rascunho, revisão, aprovado</td></tr>
+-          <tr><td>Operador / plantonista</td><td><span class="pilula p-parcial">Parcial</span></td><td>Registra chamado com a pessoa na linha, vê a duplicidade, registra resposta de providência e acompanha quem está em campo. Classificar e despachar ficaram com o coordenador, pelo sistema de postos: quem despacha responde pelo despacho</td></tr>
++          <tr><td>Operador / plantonista</td><td><span class="pilula p-parcial">Parcial</span></td><td>Registra chamado com a pessoa na linha, vê a duplicidade, registra resposta de providência e acompanha quem está em campo (em construção: a tela da coordenação existe, mas o aplicativo do agente ainda não declara a saída, V2-F14-E01). Classificar e despachar ficaram com o coordenador, pelo sistema de postos: quem despacha responde pelo despacho</td></tr>
+           <tr><td>Agente / vistoriador</td><td><span class="pilula p-ok">Feito</span></td><td>Só as tarefas da equipe dele, offline, com o histórico do imóvel ("o que já aconteceu nesta casa"). Não cai no painel do coordenador: tem tela própria no painel e o aplicativo</td></tr>
+           <tr><td>Técnico responsável</td><td><span class="pilula p-falta">Não feito</span></td><td>Não existe papel próprio nem fluxo de validação de laudo. Quem emite é coordenador ou administrador, e a autoria fica na trilha. Entra junto com DOC-04</td></tr>
+           <tr><td>Órgão parceiro</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Sem login para o órgão: ele recebe ofício numerado por email com link de uso único, e a resposta (atendida, parcial, recusada) é registrada pelo operador ou pelo coordenador, sem edição depois. Login de terceiro no sistema do município é superfície de ataque que o piloto não precisa</td></tr>
+diff --git a/docs/apresentacao-produto-alyson.html b/docs/apresentacao-produto-alyson.html
+index a7782d7..b765dc1 100644
+--- a/docs/apresentacao-produto-alyson.html
++++ b/docs/apresentacao-produto-alyson.html
+@@ -330,7 +330,7 @@
+       <div class="role-card">
+         <span class="tag">Operador</span>
+         <h3>Atende o telefone</h3>
+-        <p>Registra o chamado, responde providência quando outra secretaria retorna e acompanha quem está em campo, inclusive de madrugada.</p>
++        <p>Registra o chamado, responde providência quando outra secretaria retorna e, quando a saída a campo estiver no aplicativo (em construção), acompanha quem está em campo, inclusive de madrugada.</p>
+         <div class="acesso"><b>Não decide o fluxo:</b> não tria, não despacha, não encerra ocorrência.</div>
+       </div>
+       <div class="role-card">
+@@ -378,13 +378,13 @@
+           <tr><td>Encaminhar providência</td><td class="nao">–</td><td class="nao">–</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
+           <tr><td>Responder providência</td><td class="sim">Sim</td><td class="nao">–</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
+           <tr><td>Encerrar ocorrência</td><td class="nao">–</td><td class="nao">–</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
+-          <tr><td>Acompanhar quem está em campo</td><td class="sim">Sim</td><td class="nao">–</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
++          <tr><td>Acompanhar quem está em campo (em construção)</td><td class="sim">Sim</td><td class="nao">–</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
+           <tr><td>Gerenciar equipes, usuários e auditoria</td><td class="nao">–</td><td class="nao">–</td><td class="sim">Sim</td><td class="sim">Sim</td></tr>
+           <tr><td>Configurar retenção, armazenamento e saída do município</td><td class="nao">–</td><td class="nao">–</td><td class="nao">–</td><td class="sim">Sim</td></tr>
+         </tbody>
+       </table>
+     </div>
+-    <p class="matrix-nota">A última linha é a única diferença operacional entre coordenador e administrador. As demais vêm da hierarquia de conta, não da tela: coordenador e administrador enxergam o mesmo painel do dia a dia.</p>
++    <p class="matrix-nota">A última linha é a única diferença operacional entre coordenador e administrador. As demais vêm da hierarquia de conta, não da tela: coordenador e administrador enxergam o mesmo painel do dia a dia. Acompanhar quem está em campo está em construção: a tela da coordenação já existe, mas o aplicativo do agente ainda não declara a saída, e por isso a tela fica vazia até lá.</p>
+   </section>
+ 
+   <section id="funcionalidades">

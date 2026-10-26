@@ -1,0 +1,29 @@
+PASS src/dados/evidencia-no-disco.test.ts
+  a foto recém tirada
+    ✓ é copiada do cache para o diretório de documentos (2 ms)
+    ✓ declara o tamanho do arquivo que ficou, e não o do original
+    ✓ o tamanho vem dos bytes de verdade, e não do `size` que pode vir zerado
+    ✓ zero bytes é arquivo perdido, e não um tamanho: a foto não entra na coleta (6 ms)
+    ✓ a cópia recusada pelo sistema (Promise rejeitada) sai em português e com o que fazer, e não em inglês (1 ms)
+    ✓ a recusa que sai síncrona (destino inválido) também sai em português
+    ✓ ESPERA a cópia terminar antes de medir (a cópia do expo-file-system é assíncrona)
+    ✓ duas fotos no mesmo milissegundo não viram uma só
+  a leitura dos bytes na hora de enviar
+    ✓ lê o arquivo que está lá
+    ✓ arquivo que sumiu vira falha PERMANENTE, e não tentativa eterna
+    ✓ e a frase é em português, com o código que a fila reconhece (1 ms)
+  a fotografia que o agente mandou apagar
+    ✓ sai do disco de verdade
+    ✓ arquivo que já não existe não é erro
+    ✓ o sistema que recusa apagar não derruba quem chamou
+  a medida de um arquivo na hora de concluir
+    ✓ devolve os bytes do arquivo que existe
+    ✓ devolve zero para o arquivo que não existe, sem estourar
+    ✓ usa o tamanho que o sistema informa, sem ler os bytes (2 ms)
+    ✓ com o `size` zerado ou nulo, cai para os bytes de verdade
+
+Test Suites: 1 passed, 1 total
+Tests:       18 passed, 18 total
+Snapshots:   0 total
+Time:        0.264 s, estimated 1 s
+Ran all test suites matching /src\/dados\/evidencia-no-disco.test.ts/i.

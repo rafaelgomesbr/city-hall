@@ -1,0 +1,43 @@
+== mutação A_ponto em src/rotas/orgaos.ts ==
+    const dados = orgaoSchema.parse(req.body);
+    const recusaA: { erro: string; mensagem: string } = { erro: "sem_permissao", mensagem: "Sem permissão." };
+    recusaA.erro = "vazou_por_ponto";
+    if (dados.nome === "Mutacao A") return resposta.code(403).send(recusaA);
+
+    try {
+      const criado
+
+$ npx tsc -p tsconfig.json --noEmit
+
+codigo=0
+
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir 8ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > A: campo `erro` trocado depois de declarar a constante 7ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > B: `let` reatribuída antes do send 6ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > C: code e send chamados por colchete 5ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N: `statusCode` abreviado num objeto com código do Fastify 4ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N2: o mesmo, espalhado num erro 4ms
+   × Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > D: parâmetro homônimo de uma constante de corpo do módulo 4ms
+ Test Files  1 failed (1)
+      Tests  7 failed | 162 passed (169)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > toda resposta 401 ou 403 da API carrega um código do catálogo ou da entrada, em qualquer forma de emitir
+AssertionError: expected [ …(2) ] to deeply equal []
+- Expected
++ Received
++   "src/rotas/orgaos.ts:117: escrita em `erro` de um objeto (`recusaA.erro`): o código da resposta pode mudar sem o texto mostrar",
++   "src/rotas/orgaos.ts:118: resposta 403 com corpo que a varredura não resolve (`recusaA`): a constante é usada na linha 117 de um jeito que não é só leitura (`recusaA.erro`)",
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > A: campo `erro` trocado depois de declarar a constante
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > B: `let` reatribuída antes do send
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > C: code e send chamados por colchete
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N: `statusCode` abreviado num objeto com código do Fastify
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > N2: o mesmo, espalhado num erro
+ FAIL  test/codigos-de-erro.test.ts > Nada de acesso sai fora do catálogo (varredura do código-fonte) > a varredura morde no fonte REAL, mutado em memória (nada é gravado) > D: parâmetro homônimo de uma constante de corpo do módulo
+AssertionError: rotas/orgaos.ts tem de conter o trecho mutado: expected 'import type { FastifyInstance } from …' to contain '    const dados = orgaoSchema.parse(r…'
+- Expected
++ Received
++     recusaA.erro = "vazou_por_ponto";
+codigo=1
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+codigo=0

@@ -1,0 +1,35 @@
+308c308
+<         <img src="http://127.0.0.1:55651/armazenamento/objeto?expira=1792071675&amp;assinatura=lTLP3UHh4VbTRviGo-dSNV15xkTsqkMZfmfqmUBXhsg&amp;chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c3%2Ftalude-fundos.jpg" alt="Fotografia da vistoria 1">
+---
+>         <img src="../../evidencias/000473-2026/talude-fundos.jpg" alt="Fotografia da vistoria 1">
+313,318c313,314
+<       </figure></div><h2>Registros capturados que não puderam ser recuperados</h2>
+<     <p class="nota">Os registros abaixo foram capturados durante esta vistoria e não puderam ser recuperados do aparelho no momento da transmissão, então não constam deste documento. A vistoria foi recebida sem eles, por decisão do agente que a coletou, e a perda está registrada na trilha de auditoria. A linha de assinatura ao final desta folha sai sem o traço por essa razão, e não por ausência de quem assinou.</p>
+<     <ul class="nota"><li>Fotografia: Muro de arrimo que sumiu, capturada em 14/10/2026, 08:11.</li><li>Assinatura de quem estava no local, capturada em 14/10/2026, 08:11.</li></ul><h2>Fotografias anexadas ao protocolo</h2>
+<     <p class="nota">As imagens abaixo foram anexadas ao protocolo fora do fluxo de vistoria, então não integram o registro fotográfico desta vistoria e não têm agente responsável por elas.</p>
+<     <div class="fotos"><figure class="foto">
+<         <img src="http://127.0.0.1:55651/armazenamento/objeto?expira=1792071675&amp;assinatura=p9JPwzsbucO8wyfbRhm74pHIdhTWRfeTDY3j3DgKcUQ&amp;chave=tenant%2F11111111-1111-4111-8111-000000000001%2Focorrencias%2F11111111-1111-4111-8111-0000000000c3%2Favulsa-do-joao.jpg" alt="Fotografia 1 anexada ao protocolo">
+---
+>       </figure><figure class="foto">
+>         <img src="../../evidencias/000473-2026/avulsa-do-joao.jpg" alt="Fotografia da vistoria 2">
+320,322c316,317
+<           Anexo 1. Avulsa do Joao<br>
+<           Capturada em 15/10/2026, 07:11<br>
+<           Anexada por autor não registrado
+---
+>           Foto 2. Avulsa do Joao<br>
+>           Capturada em 15/10/2026, 07:11
+334c329
+<     <div class="traco-ausente">Assinatura coletada em campo e não recuperada do aparelho</div>
+---
+>     <div class="traco-ausente">Assinatura não coletada</div>
+344c339
+<       por Helena Vasques Coutinho (coordenador)
+---
+>       por Rita Sampaio Lopes (administrador)
+347,348c342,343
+<       <div class="selo-identificador" aria-hidden="true">C1F28CD40BBD</div>
+<       <div>Identificador da emissão<br><strong>C1F28CD40BBD</strong></div>
+---
+>       <div class="selo-identificador" aria-hidden="true">4B711B50235A</div>
+>       <div>Identificador da emissão<br><strong>4B711B50235A</strong></div>

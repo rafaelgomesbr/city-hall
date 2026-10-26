@@ -59,11 +59,13 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 | API: certificado de teste do banco | 13 casos (1 suíte) | E21 | feito e provado na V2-F00-E21 |
 | scripts: três testes de portabilidade e de configuração | 3 | E17 | idem |
 | API: código de erro da sessão | 3 arquivos, 7 ocorrências | E05 (e E07) | idem |
-| API: espera fixa de 20 ms | 1 instável (e 10 pontos a medir) | a definir (proposta: E21) | proposta, sem etapa aceita |
+| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos (feito) | correção 1 da E03 (o 1); correção 4 da E03 (os 10) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos feitos e provados na correção 4 da V2-F00-E03 (2026-10-15), fechando V-INS-02 do registro |
 | fila do campo: 401 e 403 de sessão deixam de ser permanentes | 3 (2 no pacote, 1 na integração com a API) | E06 | feito e provado na V2-F00-E06 |
 | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
 | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
 | painel, e2e contra a API no Firefox: miniatura com `loading="lazy"` e os abortos de propósito no console | 1 verificação e o portão de console | E18 | feito e provado na V2-F00-E18 |
+| API e app: renovação de conta desativada, provada só por UPDATE direto | 1 asserção reescrita (`api.test.ts`), mais 1 acréscimo (6 casos na API, 6 no app, 1 no pacote do campo, 1 seção no e2e do painel) | E05, correção 1 | feito e provado na correção 1 da V2-F00-E05 |
+| fila do campo: 403 `troca_de_senha_obrigatoria` e a autoria da foto | 0 reescritos, 61 acrescentados (35 no pacote do campo, 13 na API, 13 no app) | E06, correção 1 | feito e provado na correção 1 da V2-F00-E06 |
 
 ## Registros
 
@@ -142,14 +144,20 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   de `componentes/Modal.tsx:254-259` (commit eafc4ca, 2026-09-09) tem 6 linhas
   e a regra do próprio teste diz que a razão "costuma não caber em uma". O
   portão é que está estreito: o elemento (`Modal.tsx:260`) tem a exceção escrita.
-- **Depois (previsto, E13):** o portão procura a marca no bloco de comentário
-  contíguo acima do elemento, sem janela fixa; um caso sintético prova que um
-  `onClick` sem exceção ainda reprova.
+- **Depois (feito na E13, 2026-10-06; completado na correção 1 da E03,
+  2026-10-13):** `comentarioAcima` em `acessibilidade.test.ts` sobe linha a
+  linha a partir do elemento, atravessa linhas em branco e a abertura do
+  comentário JSX, e para no começo do bloco ou na primeira linha que não é
+  comentário; fora de comentário nada é lido, então a marca continua precisando
+  estar escrita num comentário. A janela fixa (`slice(el.linha - 5, el.linha - 1)`)
+  saiu e `Modal.tsx` não foi tocado. Nenhuma asserção foi enfraquecida: o
+  `onClick` em elemento não interativo ainda exige foco e tecla, ou a marca de
+  exceção com a razão escrita. Passa hoje (`correcao-1/brutas/prova-web.txt`).
 - **Evidência:** `V2-F00-E01/saidas/07-teste-web.txt:331-340`; leitura de
   `Modal.tsx:253-260`. Teste irmão: os demais casos do mesmo arquivo passam.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
-  V2-F00-E13. A E13 não lista este arquivo em "Documentação a atualizar": deve
-  completar este registro.
+  V2-F00-E13. O "Depois" foi completado na correção 1 da E03 (2026-10-13),
+  porque a E13 não lista este arquivo em "Documentação a atualizar".
 
 ### shared: varredura de travessão (E20)
 
@@ -163,11 +171,16 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   O que muda é a fonte do acerto. A E01 já trocou o travessão por `[travessao]`
   nas saídas novas que arquiva; os relatórios históricos não se reescrevem
   (seriam evidência apagada).
-- **Depois (previsto, E20):** o literal vira escape (`"\u2014"`) com a mesma
-  asserção; `CAMINHOS_IGNORADOS` cobre `docs/auditoria-v2/raw` e
-  `docs/evidencias-v2` só para arquivos que não são `.md`, e o arquivo
-  `docs/AUDITORIA-2026-09-30.md`, cada um com o motivo; casos de âncora provam
-  que a isenção não é mais larga.
+- **Depois (feito na E20, 2026-10-07; completado na correção 1 da E03,
+  2026-10-13):** o literal de `trilha-detalhe.test.ts` virou escape
+  (`"\u2014"`) com a mesma asserção; `CAMINHOS_IGNORADOS` ganhou o campo
+  `alcance` e cobre `docs/auditoria-v2/raw` e `docs/evidencias-v2` só para
+  arquivos que não são `.md` (`pasta-fora-de-md`) e `docs/AUDITORIA-2026-09-30.md`
+  pelo nome exato (`arquivo`), cada um com o motivo; dois casos de âncora num
+  repositório sintético provam que a isenção não é mais larga (travessão novo em
+  documento, evidência escrita à mão e produto reprova; só a saída bruta e o
+  relatório histórico passam). Passa hoje, 8 de 8
+  (`correcao-1/brutas/prova-shared.txt`).
 - **Evidência:** `V2-F00-E01/saidas/02-teste-shared.txt:40-47`.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
   V2-F00-E20 (lista de isenções aprovada por Rafael).
@@ -235,18 +248,21 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   23:28; o teste é de bcb02c0, 2026-09-15 17:03). Para este terceiro não existe
   teste irmão que afirme o mesmo: por isso a reescrita precisa afirmar a
   constante E os dois usos, e não só apagar o regex.
-- **Depois (previsto, E17):** o primeiro usa a invocação portátil de
+- **Depois (feito na E17, 2026-10-07; completado na correção 1 da E03,
+  2026-10-13):** o primeiro usa a invocação portátil de
   `scripts/testar-campo.mjs:103`; o segundo monta os caminhos com `join` e
   `resolve` a partir da raiz da plataforma e continua recusando repositório,
   iCloud, Dropbox, Google Drive, OneDrive e Área de Trabalho; o terceiro confere
   que `PERFIL_DE_PRODUCAO` nasce de `EAS_BUILD_PROFILE === "producao"` e alimenta
   o `mode` do plugin e `extra.pushAmbiente`, e reprova se o `mode` voltar a ser
-  escrito à mão.
+  escrito à mão (`problemasDaEscolhaDoAmbiente`, mais um caso negativo que
+  estraga o rascunho de propósito). Nenhuma asserção foi enfraquecida. Os três
+  passam hoje (`correcao-1/brutas/prova-scripts.txt`).
 - **Evidência:** `V2-F00-E01/saidas/10-test-scripts.txt:214,248,354` (casos 35,
   38 e 53 na numeração atual; 19, 22 e 37 na antiga).
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
-  V2-F00-E17. A E17 não lista este arquivo em "Documentação a atualizar": deve
-  completar este registro.
+  V2-F00-E17. O "Depois" foi completado na correção 1 da E03 (2026-10-13),
+  porque a E17 não lista este arquivo em "Documentação a atualizar".
 
 ### API: código de erro da sessão (E05, com efeito na E07)
 
@@ -260,8 +276,12 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   por `sessao_encerrada`. É decisão do roadmap, ainda não implementada. A
   primeira asserção do `senha-provisoria.test.ts:183` (o status 401) é defeito
   real e não se reescreve: é a que falha hoje e fecha na E07.
-- **Depois (previsto, E05 e E07):** só o valor do código muda; o status e o
-  comportamento afirmados ficam.
+- **Depois (feito na E05, 2026-10-06, e na E07; completado na correção 1 da
+  E03, 2026-10-13):** só o valor do código mudou, de `sessao` para
+  `sessao_encerrada` (`senha-provisoria.test.ts:191`, `sessao-e-entrada.test.ts`);
+  o status 401 e o comportamento afirmados ficaram. O detalhe das ocorrências
+  está na seção "API e painel: o código `sessao` deixa de existir", mais abaixo,
+  e `codigos-de-erro.test.ts` impede o código antigo de voltar.
 - **Evidência:** `V2-F00-E01/saidas/05-teste-api.txt:789-805`.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
   V2-F00-E05.
@@ -275,15 +295,50 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Decisão que o torna velho:** nenhuma decisão superada: é instabilidade. Falhou
   uma vez em três rodadas completas (E02, `V2-F00-E02/saidas/regressao-npm-test/04-teste-api.txt:565-580`)
   e passou isolado 3 de 3 e na segunda rodada completa.
-- **Depois (proposto):** espera com condição e limite (por exemplo `vi.waitFor`
-  com teto de 2 s) no lugar do tempo fixo, afirmando a mesma coisa. A mesma
-  espera fixa aparece em outros 10 pontos de 4 arquivos (`desinterdicao`,
-  `fotos-do-documento`, `identificador-da-emissao`, `segunda-via-nao-reinterdita`):
-  medir antes de trocar.
+- **Depois (feito na correção 1 da E03, 2026-10-13):** `vi.waitFor` com
+  `timeout: 5000` e `interval: 10` no lugar do `setTimeout(resolve, 20)`,
+  afirmando a mesma coisa (a conexão é fechada assim que os cabeçalhos chegam),
+  com a mesma mensagem de falha. Nenhuma asserção foi enfraquecida: o teste só
+  reprova agora se a conexão NÃO fechar em 5 s, que é o defeito que ele existe
+  para pegar. Prova: 10 rodadas isoladas e 10 sob carga sintética, 37 de 37 em
+  todas; o mutante (servidor que não registra o `close`) reprova com a mensagem
+  do teste (`correcao-1/brutas/resolver-link-*.txt`). A carga sintética NÃO
+  reproduziu a falha da versão antiga (10 de 10 verdes), então a causa "carga
+  da máquina" segue hipótese. A mesma espera fixa aparece em outros 10 pontos
+  de 4 arquivos (`desinterdicao`, `fotos-do-documento`, `identificador-da-emissao`,
+  `segunda-via-nao-reinterdita`) e há outras 6 de 10 a 100 ms em 3 arquivos de
+  push e recuperação: seguem abertos como V-INS-02 (dono `rafael`, prazo
+  2026-10-27), medir antes de trocar.
 - **Evidência:** classificação, seção 6.
-- **Etapa e data:** proposta feita na V2-F00-E03 em 2026-10-05; nenhuma etapa
-  existente a cobre (a E21 é a mais próxima). Aguarda Rafael aceitar o quarto
-  item da E21 ou abrir etapa própria.
+- **Etapa e data:** proposta feita na V2-F00-E03 em 2026-10-05; o primeiro
+  ponto trocado na correção 1 da V2-F00-E03 em 2026-10-13. A troca nos demais
+  pontos aguarda Rafael aceitar o quarto item da E21 (pergunta Q4 da seção 8.6
+  da classificação).
+
+**Atualização de 2026-10-15 (correção 4 da V2-F00-E03, V-INS-02 do registro).**
+Os 10 pontos de `setTimeout(r, 20)` em `desinterdicao`, `fotos-do-documento`,
+`identificador-da-emissao` e `segunda-via-nao-reinterdita` foram trocados por
+`esperarORelogioAndar()` (`apps/api/test/esperar-o-relogio.ts`): `vi.waitFor`
+com limite de 2 s até o relógio passar do instante em que o ato anterior
+terminou, que é a condição que as asserções precisam (o segundo ato com carimbo
+estritamente maior). Das esperas de 10 a 100 ms, três de polling viraram
+`vi.waitFor` com limite e mensagem (`push-rodada-diz-o-que-fez`, `push-sem-resposta`
+e `recuperacao-sem-oraculo`, esta agora esperando a linha da falha no log), e
+três ficaram de propósito: são janelas de silêncio (provam que NÃO veio uma
+segunda rodada), onde esperar pouco só dá falso verde. Nenhuma asserção foi
+enfraquecida. Medido: nenhum dos pontos falhou antes nem depois, e o mutante
+sem espera nenhuma também fica verde, então a troca é preventiva; a prova é de
+5 rodadas dos 7 arquivos (71 de 71) sob carga
+(`V2-F00-E03/correcao-4/saidas/01` e `02`).
+
+### Estabilidade sob carga: limites explícitos, `ENOENT` e cessão do laço (correção 4 da V2-F00-E03, 2026-10-15)
+
+- **Testes:** `packages/shared/test/dominio.test.ts` ("ninguém redefine o checklist..."), `packages/shared/test/regras-de-conteudo.test.ts` (as varreduras), `db/test/isolamento.test.ts` (o caso das seis vias de privilégio e o arquivo todo) e a seção 23 de `apps/web/test/fluxo-api.e2e.mjs`.
+- **Antes:** o shared dependia do limite padrão de 5 s e da certeza de que nenhum arquivo some durante a varredura; o banco tinha 60 s no caso das 23 varreduras e rodava o arquivo inteiro sem devolver o laço de eventos; a seção 23 navegava no segundo contexto sem esperar o painel aceitar conexão.
+- **Decisão que o torna velho:** nenhuma: são instabilidades (V-INS-03 a V-INS-06 do registro), e a política manda trocar espera fixa por condição com limite (R6).
+- **Depois:** limite explícito de 60 s nos casos de varredura do shared; `ENOENT` tolerado (só ele) na varredura de `regras-de-conteudo.test.ts`, com 2 casos novos; no banco, limite de 240 s no caso das seis vias e cessão do laço (`setImmediate`) após cada caso e a cada varredura, porque a sonda mediu um único atraso de 83 s do laço no arquivo inteiro sob carga; na seção 23, `irParaQuandoOPainelResponder` repete a navegação só quando a conexão é recusada, por até 30 s. **Nenhuma asserção foi enfraquecida ou tirada.**
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E03/correcao-4/saidas/` (03 a 15) e a seção 9 de `classificacao-dos-vermelhos.md`.
+- **Etapa e data:** V2-F00-E03, correção 4, 2026-10-15.
 
 ### API: `tokens.coordA` do `api.test.ts` entra de novo depois do teste de reuso
 
@@ -348,3 +403,60 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Depois:** rola até a miniatura e espera o `load` (ou o `error`, que reprova) por até 15 s; `naturalWidth` zero continua reprovando. A lista ganhou três padrões estreitos, presos ao caminho abortado (`/ocorrencias/duplicidades/consulta?` e `/auth/recuperar.`) e ao código de aborto da fonte. Bloqueio de CORS em qualquer outro caminho e fonte ausente de verdade (outro status) continuam reprovando. Nenhuma asserção foi enfraquecida.
 - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E18/saidas/11-e2e-api-firefox-rodada-1-miniatura-lazy.txt` (a miniatura e os dois abortos), `12-e2e-api-firefox-rodada-2-console-dos-abortos.txt` (271 de 271, só o console) e `04-e2e-api-firefox-final.txt` (verde).
 - **Etapa e data:** V2-F00-E18, 2026-10-07.
+
+### API e app: a renovação de conta desativada deixa de ser provada só por UPDATE direto (uma asserção reescrita e um acréscimo)
+
+- **Teste reescrito:** `apps/api/test/api.test.ts`, "desativar usuário derruba as sessões dele na hora". **Antes:** depois de desativar pelo endpoint, a renovação do desativado esperava `401`. **Decisão que o torna velho:** a correção 1 da E05 (`tratarTokenRecusado` em `auth/servico.ts`, migração 048): quem apresenta uma renovação que o servidor reconhece e cuja conta está desativada recebe `403 conta_desativada`. O teste irmão que afirma isso pelo mesmo caminho do produto é `codigos-de-erro.test.ts`, "desativada pelo painel, a renovação do aparelho responde 403 conta_desativada". **Depois:** espera `403`, o código `conta_desativada` e nenhum par de tokens; a outra metade do teste (a sessão fica revogada no banco) não mudou. Nenhuma asserção foi enfraquecida.
+- **Teste acrescentado:** `apps/api/test/codigos-de-erro.test.ts`, "Renovar com a conta desativada" ("responde 403 conta_desativada, e a renovação não emite par nenhum"), e `apps/web/test/fluxo-api.e2e.mjs`, seção 23b.
+- **Antes:** o caso desativava a conta por `UPDATE usuarios SET ativo = false`, sem revogar as sessões, e a seção 23b provava a frase pelo token de acesso ainda vivo (a janela de 15 minutos). Isso é um estado que o produto nunca produz: desativar pelo painel (`PATCH /usuarios/:id/situacao`) revoga as sessões na mesma transação. O teste ficava verde enquanto, pelo caminho real, a renovação respondia 401 `sessao_encerrada`.
+- **Decisão:** o QA e o UX da rodada 1 da E05 reprovaram a etapa por isso. É defeito real de código (a renovação não distinguia a conta desativada de quem tem a sessão revogada), e defeito real se conserta no código; o código foi consertado. O caso por UPDATE continua, porque ainda descreve um estado possível (conta desativada por SQL com a sessão de pé, o ramo `!sessao.ativo`), e ganhou ao lado os casos pelo caminho do produto.
+- **Depois:** seis casos novos na API desativam e reativam pelo ENDPOINT real: renovação 403 `conta_desativada` sem par novo e repetível; token já rotacionado; negativos (token desconhecido e conta ativa encerrada com corpos idênticos; encerrada por quem administra sem desativar continua `sessao_encerrada`; desativada e reativada volta a `sessao_encerrada`; entrar continua com a recusa genérica). No app, a renovação recusada por conta desativada passa a ser lida pelo obtentor de token (seis casos em `token.test.ts` e um em `pausa-de-sessao.test.ts`). No painel, a seção 23c do e2e vence o token de acesso e prova a frase pela renovação.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E05/correcao-1/saidas/` (antes: 4 dos 22 casos de `codigos-de-erro.test.ts` e 5 dos 6 casos novos do app reprovam; depois: todos passam, e `api.test.ts` só passa com o `403` novo).
+- **Etapa e data:** V2-F00-E05, correção 1, 2026-10-13.
+
+### Fila do campo: o 403 `troca_de_senha_obrigatoria` e a autoria da foto (nenhum teste reescrito)
+
+- **Teste reescrito:** nenhum. Nenhuma asserção existente mudou nem foi enfraquecida.
+- **Teste acrescentado:** `packages/campo/test/pausa-por-senha-provisoria.test.ts` (35 casos: a matriz status x código x rota x estado final do item, a senha provisória, as corridas de troca de conta), `apps/api/test/evidencia-so-do-autor.test.ts` (11), dois casos em `apps/api/test/campo-integracao.test.ts`, e 13 casos no aplicativo (`falha-de-atualizacao.test.ts`, `pausa-da-fila.test.ts`, `fila-pausada-pela-sessao.test.tsx`, `faixa-de-sincronizacao.test.tsx` e `troca-de-conta-com-pedido-em-voo.test.ts`).
+- **Antes:** a suíte da E06 (86 casos no motor) ficava verde com o 403 `troca_de_senha_obrigatoria` bloqueando toda a fila: a mutação inversa da rodada 1 da validação (classificar `trocar_a_senha` como pausa) deixava 187 de 187 casos passando, ou seja, nenhum teste fixava a classificação desse código. Nenhum teste cobria a corrida de troca de conta com o envio em voo, nem a conferência de autor na autorização e na confirmação da foto.
+- **Decisão que o torna velho:** a validação da E06 (SHA `7005a60`) provou, contra a API e o motor reais, que o procedimento padrão de recuperação de conta (a coordenação redefine a senha, o agente entra com a provisória) bloqueava todas as coletas com "Descartar" ao lado. A decisão da E07 registrada em `apps/campo/PENDENCIAS.md` (item 14), de deixar esse 403 como recusa permanente, foi invertida: ele pausa a fila, como `conta_desativada`. E a foto de campo passou a ter o autor conferido pelo servidor (409 `autor_divergente`), como a vistoria e a devolução já tinham.
+- **Depois:** o 403 de CONTA pausa (`conta_desativada`, `troca_de_senha_obrigatoria`), o 403 do PAPEL (`sem_permissao`) e o 409 `autor_divergente` continuam permanentes por desenho, e `acesso_suspenso` é temporário. A matriz inteira está em um teste só, pelo transporte real e pela fila real.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E06/correcao-1/saidas/` (antes: 12 dos 35 casos do motor, 9 dos 28 da API e 11 dos 68 do aplicativo reprovam; depois: todos passam).
+- **Etapa e data:** V2-F00-E06, correção 1, 2026-10-13.
+
+### App de campo, tela da vistoria: a sessão encerrada oferece "Entrar de novo", e não "Sair e entrar de novo" (um teste reescrito)
+
+- **Teste reescrito:** `apps/campo/src/__tests__/vistoria-ainda-nao-baixada.test.tsx`, "o 401 nomeia a sessão encerrada e oferece entrar de novo, sem apagar nada" (antes: "... oferece sair e entrar de novo"). Dois negativos do mesmo arquivo ("o acesso suspenso ..." e "a falha sem nome ...") passam a afirmar também a ausência de "Entrar de novo", porque a ausência de "Sair e entrar de novo" sozinha ficou verdadeira por construção.
+- **Antes:** tocava em "Sair e entrar de novo" e exigia `expect(mockSair).toHaveBeenCalledTimes(1)`. O dublê de `useSessao` só definia `sair`, nem sequer tinha `encerrarSessaoVencida`: o teste só conseguia exigir o verbo que apaga.
+- **Decisão que o torna velho:** o objetivo da V2-F00-E15 ("o agente deixa de perder vistoria começada ao sair da conta sem ser avisado"). `sair()` apaga rascunho, fotos e assinatura (`apagarDadosLocais`), e a tela da vistoria é justamente a de quem pode ter uma vistoria começada no disco. A lista de tarefas (`index.tsx`) e a fila (`fila.tsx`) já usavam `encerrarSessaoVencida`, que derruba a credencial e deixa o disco como está; a validação da rodada 1 (SHA `7005a60`, QA e Testes em FAIL) provou, com sessão, banco e tela reais, que só esta tela ainda chamava `sair()`. O teste travava o defeito, e o conserto o reprovava (a validação confirmou: com `encerrarSessaoVencida` na tela, a linha do `toHaveBeenCalledTimes(1)` falhava). É defeito real de código, e defeito real se conserta no código: a tela foi consertada, e o teste passou a exigir o certo.
+- **Depois:** o dublê ganhou `encerrarSessaoVencida`; o teste exige `mockEncerrarSessaoVencida` chamado uma vez, `mockSair` NUNCA chamado e `router.replace("/entrar")`. Nenhuma asserção foi enfraquecida: a de navegação ficou igual, e a de verbo passou de "o que apaga" para "o que não apaga, e só ele". Como um dublê esconde exatamente a diferença entre os dois verbos, o acréscimo que vale é o teste com os módulos reais, `apps/campo/src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx` (4 casos): `ProvedorDeSessao`, `banco-local` e `rascunho` de verdade sobre SQLite do Node e a tela real, 401 na baixa; o rascunho com foto e assinatura sobrevive ao toque, reaparece quando a mesma pessoa entra de novo, a saída explícita continua apagando (controle) e o rótulo antigo não existe mais.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E15/correcao-1/saidas/` (antes: 3 dos 4 casos novos reprovam com o código velho, o controle passa; o teste antigo reprova com o código novo; depois: todos passam).
+- **Etapa e data:** V2-F00-E15, correção 1, 2026-10-13.
+
+### App de campo, vistoria: "Precisão de 1 metros" vira "Precisão de 1 metro" (uma asserção reescrita, registro que faltava da E15)
+
+- **Teste reescrito:** `apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`, "abaixo de meio metro vira 1, e não zero". **Antes:** `expect(screen.getByText("Precisão de 1 metros")).toBeTruthy()`. **Depois:** `expect(screen.getByText("Precisão de 1 metro")).toBeTruthy()`. A troca foi feita na V2-F00-E15 e a validação da E16 (rodada 1, `testes.md`) apontou que não estava registrada aqui.
+- **Decisão que o torna velho:** o piso de 1 metro da E15 (`precisaoDoGpsEmMetros`, `dados/precisao-do-gps.ts`). Antes dele, a leitura de GPS abaixo de meio metro arredondava para 0 e o esquema (`gpsPrecisaoMetrosSchema`, `positive()`) a recusava com 422; com o piso, "1" passou a ser a leitura do MELHOR GPS do plantão, e "Precisão de 1 metros" é erro de escrita justamente nela. É texto da tela, não regra: o conserto está em `vistoria/[id].tsx` (singular quando o valor é 1), e a asserção passou a cobrar o texto certo. O valor gravado (`gpsPrecisaoMetros` igual a 1) continua afirmado na linha de cima do mesmo caso.
+- **Depois:** nenhuma asserção foi enfraquecida: o texto exato continua cobrado, só que o correto. A leitura comum ("Precisão de 12 metros") continua no plural no caso vizinho.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E15/` (RESUMO e saídas da etapa) e este registro, da correção 1 da E16.
+- **Etapa e data:** feita na V2-F00-E15 em 2026-10-07; registrada na V2-F00-E16, correção 1, em 2026-10-13.
+
+### App de campo, fila e pausa: as frases deixam de prometer envio sem o aplicativo aberto (dois testes reescritos)
+
+- **Testes reescritos:** (1) `apps/campo/src/ui/fila-como-produto.test.tsx`, "o estado de desistência diz que nada se perdeu, porque nada se perdeu"; (2) `apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx`, "o cartão da coleta não promete ..." (nome e regex) e a asserção de "Guardada" do mesmo caso.
+- **Antes:** (1) exigia `/continua no aparelho e sai sozinho/`; (2) exigia a ausência de `/Vai sair assim que houver sinal/` e a presença de `/Sobe sozinha depois que você entrar de novo/` nos dois cartões.
+- **Decisão que os torna velhos:** a DoD da V2-F00-E16 ("nenhuma promessa de segundo plano na interface") e a arbitragem em Opus da rodada 1 (`validacao/7005a60/arbitragem.md`): a fila só drena com o aplicativo ABERTO (`iniciarSincronizacaoContinua`, no layout das abas), não existe tarefa de fundo, e a sincronização em segundo plano é a F14-E06, só se o CP-24 aprovar. As frases que dizem "sai sozinho", "sobe sozinha" ou "assim que houver sinal" sem a condição são lidas por quem fecha o aplicativo sem sinal como "vai subir". É defeito real de texto de produto; o código foi consertado e os testes acompanham a frase nova.
+- **Depois:** (1) exige `/continua no aparelho e sai quando o aplicativo estiver aberto/`; (2) exige a ausência da frase nova no cartão da coleta pausada pela sessão (que não sai nem com o aplicativo aberto) e da velha, e a presença de `/Sobe depois que você entrar de novo/`. Nenhuma asserção foi enfraquecida: os dois testes continuam travando a mesma coisa (o que a tela diz), com a frase certa. A ausência da frase velha no cartão pausado continua cobrada, agora com as DUAS redações.
+- **Testes acrescentados:** o portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs` (varre a fonte do aplicativo inteiro, 4 casos, incluindo o de que morde e o de que não pune comentário); 5 casos em `fila-como-produto.test.tsx` (fila zerada, com sinal, sem sinal, muitas tentativas, fila que não abriu); casos de frase em `pausa-da-fila.test.ts` e `falha-de-atualizacao.test.ts`; e, na tela da vistoria, o `catch` de `Linking.openSettings` (rejeição não tratada) e o fallback de `FotoNaoGuardada` (erro sem mensagem e valor que não é `Error`), que as mutações da validação mostraram sobreviverem.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E16/correcao-1/saidas/` (antes: o portão lista 15 achados em 5 arquivos e 12 casos de jest reprovam; depois: todos passam).
+- **Etapa e data:** V2-F00-E16, correção 1, 2026-10-13.
+
+
+### API: certificado de teste do banco, o caso de OPENSSL_CONF válido (correção 5 da V2-F00-E03, 2026-10-19)
+
+- **Teste:** `apps/api/test/openssl-do-teste.test.ts`, caso "respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado".
+- **O que afirmava:** que a configuração válida em `OPENSSL_CONF` é lida de verdade. A prova era o campo `ca` do certificado: `false` com a variável (a configuração pede `CA:FALSE`) e `true` sem ela.
+- **Decisão que o torna velho:** nenhuma decisão superada: é ambiente (R3). O `ca === true` sem a variável depende do `openssl.cnf` padrão da máquina mandar `x509_extensions = v3_ca`, e não da família do `openssl`. O do macOS (LibreSSL 3.3.6) não manda, então `ca` é falso e a asserção reprovava num Mac desde 2026-10-14. Medido nas duas famílias: com um `openssl.cnf` sem extensões, OpenSSL 3.0.7 e LibreSSL dão `ca=false`; com `v3_ca`, os dois dão `ca=true`. O produto não chama `openssl`; só este helper de teste.
+- **O que passa a afirmar:** a configuração pede também um uso estendido de chave (`extendedKeyUsage = 1.3.6.1.5.5.7.3.4`); com a variável válida o certificado sai com `keyUsage` igual a esse OID (e `ca` falso, o que a configuração pede), sem ela sai sem uso estendido. Vale igual no OpenSSL 3 e no LibreSSL. A asserção do `ca` sem configuração saiu, porque provaria o arquivo da máquina e não o que o caso promete; a intenção do caso (a configuração válida é respeitada e a quebrada é descartada) ficou inteira e a prova ficou mais forte, não mais fraca. Nada é pulado e o helper não mudou.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E03/correcao-5/saidas/`: o teste de HEAD reprova no LibreSSL e passa no OpenSSL 3.0.7 (`04`), o novo passa nos dois (`02`), quatro mutantes do gerador reprovam nos dois (`05`), e a medição do `ca` por `openssl.cnf` (`10`).
+- **Etapa e data:** V2-F00-E03, correção 5, 2026-10-19.

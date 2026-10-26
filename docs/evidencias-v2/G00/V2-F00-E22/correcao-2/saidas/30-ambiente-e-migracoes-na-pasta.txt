@@ -1,0 +1,29 @@
+$ ls db/migrations | wc -l; openssl version; xcrun simctl list; ls apps/campo/ios; node --version
+
+      50
+001_base.sql
+048_dono_do_token_diz_se_a_conta_esta_ativa.sql
+049_renovacao_e_encerramento_na_mesma_trava.sql
+050_login_e_suspensao_na_mesma_linha.sql
+
+openssl version:
+LibreSSL 3.3.6
+
+xcrun simctl list devices available (primeiras linhas):
+== Devices ==
+-- iOS 26.4 --
+    iPhone 17 Pro (8558DEB2-33AF-4C1B-931A-4C6C418A3BE3) (Shutdown) 
+    iPhone 17 Pro Max (A2995918-D761-47A1-A9E5-F28B3B3E60C8) (Shutdown) 
+    iPhone 17e (C5502892-5BF8-40E6-9DE8-5E1581CD79F1) (Shutdown) 
+    iPhone Air (EA2F335A-A117-44DF-8290-57A532F72F60) (Shutdown) 
+
+ls apps/campo/ios (existe, saida do expo prebuild, fora do git):
+DefesaCivil360
+DefesaCivil360.xcodeproj
+DefesaCivil360.xcworkspace
+dc360/apps/campo/.gitignore:19:ios/	apps/campo/ios
+
+v24.15.0
+ProductName:		macOS
+ProductVersion:		26.4.1
+BuildVersion:		25E253

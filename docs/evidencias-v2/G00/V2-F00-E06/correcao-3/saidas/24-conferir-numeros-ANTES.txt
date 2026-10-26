@@ -1,0 +1,59 @@
+
+> dc360@0.1.0 conferir:numeros
+> node scripts/conferir-numeros.mjs
+
+Lendo a lista de testes de cada pacote (sem executar)...
+
+Contagens reais:
+  3321  total de testes automatizados
+   193  testes do pacote compartilhado
+   231  testes do motor de campo
+  1590  testes da API
+   274  testes do console do fornecedor
+   688  testes de fonte do painel
+   345  testes do banco
+   137  testes de isolamento (CA-06)
+    17  testes do aplicador de migrações
+    17  testes de integração do campo contra a API
+    58  testes da fila de sincronização
+     9  testes do depósito SQLite
+    70  verificações no navegador, modo local
+   258  verificações no navegador, contra a API
+   328  verificações no navegador, somadas
+  1983  testes do aplicativo de campo
+  5304  total de testes automatizados, somando o aplicativo
+
+Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
+  0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.
+  4 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    1 em apps/api/test/renovacao-contra-encerramento.test.ts
+    3 em db/test/busca.test.ts
+
+Afirmações conferidas: 21
+
+O roteiro da linha de base não confere com a árvore (1):
+
+  teste-campo-app (npx jest --silent): o roteiro (scripts/baseline.mjs) espera 1942 casos e a árvore tem 1983 (+41). A etapa que mexeu nos testes declara a diferença em MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA.
+
+Atualize as tabelas de esperado em scripts/baseline.mjs: o roteiro não pode esperar um número velho.
+
+Afirmações que não batem (4):
+
+  README.md:16
+    afirma: | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila 
+    a frase fala de uma grandeza cujo valor real é 1983 ou 5304, e não 1942
+
+  README.md:1519
+    afirma: npm run test:campo          # tipos e os 1942 testes do aplicativo de campo
+    a frase fala de uma grandeza cujo valor real é 1983 ou 5304, e não 1942
+
+  docs/COLOCAR-DE-PE.md:41
+    afirma: - **5263 testes somando o aplicativo** (contagem estática de `npm run
+    a frase fala de uma grandeza cujo valor real é 1983 ou 5304, e não 5263
+
+  docs/COLOCAR-DE-PE.md:352
+    afirma: npm run verificar          # typecheck, 5263 testes com o aplicativo, auditar, números
+    a frase fala de uma grandeza cujo valor real é 1983 ou 5304, e não 5263
+
+Corrija o texto, ou registre o número em VERDADE se ele mede algo novo.
+codigo 1

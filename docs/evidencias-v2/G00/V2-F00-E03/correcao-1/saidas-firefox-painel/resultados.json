@@ -1,0 +1,12 @@
+[
+  {
+    "id": "e2e",
+    "cmd": "npm run test:e2e",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 42553,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-e2e.txt"
+  }
+]

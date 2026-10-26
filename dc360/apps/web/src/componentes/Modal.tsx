@@ -1,6 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as EventoDeTecla, ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
+import { acompanharAJanela } from "./acompanhar-janela";
+import { registrarModalAberto } from "./modais-abertos";
+
+/* A conta da rolagem do painel mora com o resto do acompanhamento; continua exportada daqui. */
+export { rolagemParaVerNoPainel } from "./acompanhar-janela";
 
 /**
  * A janela modal que o painel não tinha.
@@ -178,6 +183,35 @@ export function deveFecharPeloFundo(permitido: boolean, alvoEhOFundo: boolean): 
   return permitido && alvoEhOFundo;
 }
 
+/**
+ * Aplica a decisão de teclado da janela a uma tecla de verdade. É a mesma para
+ * a tecla que chega ao painel (o foco está dentro dele) e para a que chega ao
+ * documento com o foco no `<body>`, que o painel não recebe: um só caminho para
+ * as duas, ou o Esc passaria a valer num caso e não no outro (rodada 9 da
+ * V2-F00-E09: depois de um erro do servidor ou de um clique no fundo, o Esc
+ * morria).
+ */
+function tratarTecla(
+  evento: { key: string; shiftKey: boolean; preventDefault(): void },
+  painel: HTMLElement | null,
+  aoFechar: () => void,
+): void {
+  const intencao = decidirTecla<HTMLElement>({
+    tecla: evento.key,
+    comShift: evento.shiftKey,
+    focaveis: focaveisDentro(painel),
+    ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  });
+  if (intencao.acao === "seguir") return;
+  // Tudo o que não é "seguir" substitui o comportamento do navegador:
+  // sem isto o Tab moveria o foco DUAS vezes, o nosso e o dele.
+  evento.preventDefault();
+  if (intencao.acao === "fechar") aoFechar();
+  if (intencao.acao === "mover") intencao.alvo.focus();
+  // "prender": nada focável dentro (tudo travado gravando); o foco fica onde está, no painel.
+  if (intencao.acao === "prender") painel?.focus({ preventScroll: true });
+}
+
 /* ============================================================
    A peça visual, sem comportamento
    ============================================================ */
@@ -204,11 +238,29 @@ const ESTILO_PAINEL: CSSProperties = {
   padding: "var(--ds-sp-5)",
 };
 
+/*
+  O título fica preso no topo do painel quando ele rola (V2-F00-E09, correção 8,
+  achado 4 da rodada 9). Em janela baixa (zoom de 400 por cento, celular
+  deitado) o "Cancelar" focado exige rolar o painel, e o título, que é a
+  primeira coisa que se lê, saía por cima. Preso, ele fica à vista sem esconder
+  o campo focado: `acompanhar-janela.ts` conta a altura dele como parte coberta
+  do painel e a repassa ao `scroll-padding-top`. Em repouso nada muda de lugar:
+  a folga de cima do painel (`--ds-sp-5`) passa para dentro do cabeçalho, com a
+  margem negativa de mesmo valor, para o título preso ter o mesmo respiro.
+*/
 const ESTILO_CABECALHO: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: "var(--ds-sp-3)",
-  marginBottom: "var(--ds-sp-3)",
+  position: "sticky",
+  /* A borda de cima do cabeçalho preso encosta na borda do painel, e não na folga (padding) dele: sem o valor negativo, o texto que rola passava por cima do título, naquela folga. */
+  top: "calc(-1 * var(--ds-sp-5))",
+  zIndex: 1,
+  background: "var(--ds-surface)",
+  margin: "calc(-1 * var(--ds-sp-5)) 0 calc(var(--ds-sp-3) - var(--ds-sp-2))",
+  paddingTop: "var(--ds-sp-5)",
+  /* Um respiro embaixo do título preso: o texto que rola por baixo dele não encosta nas letras. Em repouso a soma com a margem é a de antes (`--ds-sp-3`). */
+  paddingBottom: "var(--ds-sp-2)",
 };
 
 const ESTILO_RODAPE: CSSProperties = {
@@ -260,6 +312,18 @@ export function CorpoDoModal({
     <div
       className="modal"
       style={ESTILO_FUNDO}
+      /*
+        Apertar o botão do mouse (ou tocar) no fundo escurecido tira o foco de
+        onde ele estava e o leva ao `<body>`, e dali o Esc não chega ao painel.
+        O fundo não é controle nenhum, então o gesto não precisa mover o foco:
+        sem isto, clicar fora de uma janela destrutiva (que de propósito não
+        fecha) a deixava sem foco (V2-F00-E09, correção 8). O clique continua
+        valendo, e `acompanhar-janela.ts` ainda devolve o foco se algum motor
+        o perder por outro caminho.
+      */
+      onMouseDown={(evento) => {
+        if (evento.target === evento.currentTarget) evento.preventDefault();
+      }}
       onClick={(evento) => {
         if (deveFecharPeloFundo(fecharAoClicarFora, evento.target === evento.currentTarget)) {
           aoFechar();
@@ -334,6 +398,9 @@ export function Modal({
   focoInicial, rodape, children,
 }: PropsModal) {
   const painel = useRef<HTMLDivElement>(null);
+  /* O ouvinte do documento vive uma abertura inteira; o `aoFechar` dele não pode ser o da primeira renderização. */
+  const aoFecharAtual = useRef(aoFechar);
+  aoFecharAtual.current = aoFechar;
   const tituloId = useId();
   const descricaoId = useId();
 
@@ -379,6 +446,12 @@ export function Modal({
 
     const quemAbriu = document.activeElement;
     document.body.appendChild(hospedeiro);
+    /*
+      Avisa quem não pode aparecer por cima da janela (o aviso passageiro, ver
+      `modais-abertos.ts`). Vem antes da interdição porque o aviso que estava
+      na tela sai dela agora, e não depois de a página virar `inert`.
+    */
+    const liberarAvisos = registrarModalAberto();
     const restaurar = interditarFundo(
       [...document.body.children].filter((filho) => filho !== hospedeiro),
     );
@@ -389,12 +462,62 @@ export function Modal({
       lá atrás, e a pessoa continuaria digitando numa página que ela não vê
       mais.
     */
-    const alvo = focoInicial?.current ?? focaveisDentro(painel.current)[0] ?? painel.current;
-    alvo?.focus();
+    /*
+      A janela abre NO TOPO (V2-F00-E09, correção 4, revisão). O painel rola
+      (`overflow-y: auto`, 84vh) e `focus()` rola até o elemento focado: a 320x568
+      a janela da senha temporária abria rolada 229 px, porque o primeiro botão
+      fica no pé dela, e o título, que é o que se lê primeiro, ficava fora da
+      vista. Quando ninguém pediu um foco inicial e o primeiro controle está fora da
+      parte visível do painel, o foco vai para o próprio painel (que se anuncia
+      pelo título e pela descrição, e o Tab segue para o primeiro botão), sem
+      rolar. Se o primeiro controle está à vista (a janela cabe, ou o botão
+      Fechar do cabeçalho de uma janela alta), nada muda: o foco vai a ele.
+    */
+    const primeiro = focaveisDentro(painel.current)[0];
+    const aVista = (el: HTMLElement | undefined): boolean => {
+      if (!el || !painel.current) return false;
+      const p = painel.current.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      return r.top >= p.top - 0.5 && r.bottom <= p.bottom + 0.5;
+    };
+    const alvo = focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current);
+    alvo?.focus({ preventScroll: true });
+    if (painel.current) painel.current.scrollTop = 0;
+    /*
+      O foco inicial pedido (o "Cancelar" de `ConfirmarAcao`) TEM DE ESTAR À
+      VISTA dentro da janela (WCAG 2.4.7 e 2.4.11; achado 1 da acessibilidade na
+      rodada 8 da V2-F00-E09, correção 7). O `scrollTop = 0` de cima faz a janela
+      abrir no topo, e quando o painel rola (zoom de 300 e 400 por cento, celular
+      deitado) o botão fica 150 a 190 px abaixo da borda: a pessoa via o título
+      e o texto, nenhum botão e nenhum anel de foco, em Chromium e Firefox (o
+      WebKit rolava sozinho). Quem pediu um foco inicial pediu um CONTROLE, e
+      um controle fora da vista não é foco: o painel rola o mínimo para
+      mostrá-lo, com o respiro de sempre, e o título que sai por cima é lido
+      pelo leitor de tela na abertura (`aria-labelledby`). Sem foco pedido, o
+      caminho é o de antes (o foco vai ao painel, e a janela abre no topo).
+    */
+    /*
+      Daqui para a frente a janela é ACOMPANHADA (ver `acompanhar-janela.ts`):
+      o foco inicial é levado à vista agora e de novo a cada mudança do
+      conteúdo (a contagem de sessões que chega, o erro do servidor), do
+      tamanho da janela do navegador (girar o celular, dar zoom) e da janela
+      visual; o foco que cai no `<body>` volta a um controle da janela; e o
+      Esc e o Tab valem mesmo com o foco fora do painel. Tudo desligado no
+      fechamento.
+    */
+    const acompanhamento = acompanharAJanela({
+      painel: () => painel.current,
+      focoInicial: () => focoInicial?.current,
+      focaveis: () => focaveisDentro(painel.current),
+      aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),
+    });
+    if (focoInicial?.current && alvo === focoInicial.current) acompanhamento.ajustarOFocoInicial();
 
     return () => {
+      acompanhamento.parar();
       restaurar();
       hospedeiro.remove();
+      liberarAvisos();
       /*
         Quem abriu pode ter sumido: encerrar a ocorrência tira da tela o
         próprio botão de encerrar. `focus()` em nó desconectado não falha e não
@@ -424,20 +547,7 @@ export function Modal({
       fecharAoClicarFora={fecharAoClicarFora}
       mostrarBotaoFechar={mostrarBotaoFechar}
       refPainel={painel}
-      aoTeclar={(evento) => {
-        const intencao = decidirTecla<HTMLElement>({
-          tecla: evento.key,
-          comShift: evento.shiftKey,
-          focaveis: focaveisDentro(painel.current),
-          ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
-        });
-        if (intencao.acao === "seguir") return;
-        // Tudo o que não é "seguir" substitui o comportamento do navegador:
-        // sem isto o Tab moveria o foco DUAS vezes, o nosso e o dele.
-        evento.preventDefault();
-        if (intencao.acao === "fechar") aoFechar();
-        if (intencao.acao === "mover") intencao.alvo.focus();
-      }}
+      aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}
     >
       {children}
     </CorpoDoModal>,

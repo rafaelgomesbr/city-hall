@@ -1,0 +1,51 @@
+$ node scripts/roadmap/conferir-evidencia.mjs V2-F00-Enn --sha 4d6ee71f864edd081b0cad543165f30401a327b7   (linhas do indice, as 25 etapas)
+== V2-F00-E01
+OK    indice: INDEX.md bate com os 55 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E02
+OK    indice: INDEX.md bate com os 21 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E03
+OK    indice: INDEX.md bate com os 58 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E04
+OK    indice: INDEX.md bate com os 38 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E05
+OK    indice: INDEX.md bate com os 58 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E06
+OK    indice: INDEX.md bate com os 63 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E07
+OK    indice: INDEX.md bate com os 112 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E08
+OK    indice: INDEX.md bate com os 33 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E09
+OK    indice: INDEX.md bate com os 257 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E10
+OK    indice: INDEX.md bate com os 174 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E11
+OK    indice: INDEX.md bate com os 45 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E12
+OK    indice: INDEX.md bate com os 81 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E13
+OK    indice: INDEX.md bate com os 61 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E14
+OK    indice: INDEX.md bate com os 15 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E15
+OK    indice: INDEX.md bate com os 26 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E16
+OK    indice: INDEX.md bate com os 70 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E17
+OK    indice: INDEX.md bate com os 24 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E18
+OK    indice: INDEX.md bate com os 27 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E19
+OK    indice: INDEX.md bate com os 76 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E20
+OK    indice: INDEX.md bate com os 12 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E21
+OK    indice: INDEX.md bate com os 44 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E22
+OK    indice: INDEX.md bate com os 62 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E23
+OK    indice: INDEX.md bate com os 23 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E24
+OK    indice: INDEX.md bate com os 46 arquivo(s) listado(s), SHA-256 a SHA-256
+== V2-F00-E25
+OK    indice: INDEX.md bate com os 83 arquivo(s) listado(s), SHA-256 a SHA-256

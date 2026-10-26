@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
 import { eRecorteDoAgente } from "./recorte-do-agente.js";
+import { ROTA_GET_COM_EFEITO } from "../servidor.js";
 
 /**
  * O sino de avisos do painel, do lado servidor.
@@ -191,15 +192,21 @@ export async function rotasAvisos(
    * As duas precisam do município no contexto, e nada neste produto roda com
    * município no contexto sem alguém logado: é assim que o RLS funciona aqui.
    * Um relógio de servidor, como o do push, só enxerga município nenhum, e a
-   * saída seria uma função `SECURITY DEFINER` a mais. O produto tem doze
-   * dessas e um portão que reprova a décima terceira, de propósito, porque
-   * cada uma é um buraco na parede do isolamento. Gastar essa vaga com um
+   * saída seria uma função `SECURITY DEFINER` a mais. O produto tem um teto
+   * dessas (27, em `db/test/isolamento.test.ts`) e um portão que reprova a
+   * seguinte, de propósito, porque cada uma é um buraco na parede do
+   * isolamento. Gastar essa vaga com um
    * sino, que é o recurso menos crítico da lista, seria a troca errada.
    *
    * As duas escritas são idempotentes, limitadas por lote e restritas ao
    * município do token. Nenhuma delas depende do que veio na requisição.
+   *
+   * Como escreve, a rota leva `ROTA_GET_COM_EFEITO`: conta desativada, papel
+   * rebaixado e sessão encerrada não materializam nem expurgam nada por aqui
+   * (V2-F00-E04, correção 1). Quando a F07-E03 tirar a escrita de dentro do
+   * GET, a marca sai junto.
    */
-  app.get("/", async (req) => {
+  app.get("/", ROTA_GET_COM_EFEITO, async (req) => {
     /*
       SEM `exigirPermissao`, e a razão é a mesma da rota de aparelhos.
       O sino não decide nada: ele mostra que um fato do próprio município
@@ -305,8 +312,9 @@ export async function rotasAvisos(
         passagem do tempo, exatamente como o prazo vencido logo acima, e por
         isso mora no mesmo lugar e pelo mesmo motivo. O push deste produto sai
         de um relógio sem ninguém logado, e relógio sem contexto de município
-        precisa de função `SECURITY DEFINER`: o orçamento está em quinze de
-        quinze e o portão CA-06 reprova a décima sexta.
+        precisa de função `SECURITY DEFINER`: o teto é de 27, hoje cheio (portão
+        CA-06, em `db/test/isolamento.test.ts`), e o portão reprova a vigésima
+        oitava.
 
         O QUE ISSO CUSTA, e está dito em voz alta no guia do coordenador em vez
         de disfarçado: o aviso só nasce quando alguém daquele município consulta

@@ -1,0 +1,13 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/packages/shared
+
+ ✓ test/regras-de-conteudo.test.ts (10 tests) 1391ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  443ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  759ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  01:13:30
+   Duration  1.80s (transform 73ms, setup 0ms, collect 78ms, tests 1.39s, environment 0ms, prepare 78ms)
+
+codigo 0

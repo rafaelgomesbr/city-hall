@@ -1,0 +1,13 @@
+A função `irParaQuandoOPainelResponder` (o MESMO texto de fluxo-api.e2e.mjs) contra um painel que só sobe 2,5 s depois do pedido.
+
+===== Firefox =====
+1. goto simples, painel fora do ar: FALHA como no relato -> page.goto: NS_ERROR_CONNECTION_REFUSED
+2. com a espera, painel sobe em 2,5 s: status 200 depois de 2.6 s
+3. painel que não sobe: reprovou em 2.1 s -> o painel nao aceitou conexao em 2 s (http://127.0.0.1:4782/entrar): page.goto: NS_ERROR_CONNECTION_REFUSED
+4. erro que não é de conexão recusada: sobe na hora (0.0 s) -> page.goto: NS_ERROR_UNKNOWN_HOST
+
+===== Chromium =====
+1. goto simples, painel fora do ar: FALHA como no relato -> page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4781/entrar
+2. com a espera, painel sobe em 2,5 s: status 200 depois de 2.7 s
+3. painel que não sobe: reprovou em 2.1 s -> o painel nao aceitou conexao em 2 s (http://127.0.0.1:4782/entrar): page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4782/entrar
+4. erro que não é de conexão recusada: sobe na hora (0.0 s) -> page.goto: net::ERR_NAME_NOT_RESOLVED at http://host-que-nao-existe.invalid/

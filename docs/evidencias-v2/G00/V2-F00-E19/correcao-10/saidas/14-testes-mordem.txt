@@ -1,0 +1,25 @@
+## Mutação 1: foraDoCaminho sempre falso (a restrição de caminho some)
+  ✖ somenteEm: a exceção vale só para a cópia no caminho nomeado, e a cópia do projeto reprova (E19, correção 10) (0.586458ms)
+ℹ tests 77
+ℹ pass 76
+ℹ fail 1
+✖ somenteEm: a exceção vale só para a cópia no caminho nomeado, e a cópia do projeto reprova (E19, correção 10) (0.586458ms)
+
+## Mutação 2: a exceção do zod sem somenteEm
+  ✖ problemasDasExcecoes recusa `somenteEm` malformado e a lista real do aplicativo o usa para o zod do Expo (1.4135ms)
+ℹ tests 77
+ℹ pass 76
+ℹ fail 1
+✖ problemasDasExcecoes recusa `somenteEm` malformado e a lista real do aplicativo o usa para o zod do Expo (1.4135ms)
+
+## Mutação 3: braces volta à lista do aplicativo
+  ✖ problemasDasExcecoes recusa `somenteEm` malformado e a lista real do aplicativo o usa para o zod do Expo (1.174625ms)
+ℹ tests 77
+ℹ pass 76
+ℹ fail 1
+✖ problemasDasExcecoes recusa `somenteEm` malformado e a lista real do aplicativo o usa para o zod do Expo (1.174625ms)
+
+## Restaurado
+ℹ tests 77
+ℹ pass 77
+ℹ fail 0

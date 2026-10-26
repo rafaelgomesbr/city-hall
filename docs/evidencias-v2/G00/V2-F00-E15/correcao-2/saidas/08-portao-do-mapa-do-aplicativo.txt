@@ -1,0 +1,22 @@
+✔ a varredura enxerga os arquivos de verdade (7.3585ms)
+✔ nenhum arquivo do aplicativo chama geocodificação, Places ou Directions (107.24575ms)
+✔ na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama (85.394792ms)
+✔ o portão do caminho MORDE fora do arquivo permitido, e só fora dele (0.229584ms)
+✔ as próprias regras pegam o que deveriam pegar (0.102709ms)
+✔ a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro (0.076666ms)
+✔ as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru (0.078208ms)
+✔ todo MapView do aplicativo pede o provedor Google, explicitamente (39.065292ms)
+✔ a regra do provedor pega um MapView sem ele (0.424792ms)
+✔ a chave do mapa vem do ambiente, e não escrita no app.config.ts (1.432167ms)
+✔ cada plataforma tem a SUA chave, e nenhuma delas fica sem (1.166833ms)
+✔ o plugin de configuração do react-native-maps carrega (57.531125ms)
+✔ react-native-maps está fixado numa versão e é transformado pelo jest (0.189333ms)
+✔ o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho (0.179042ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 407.496208

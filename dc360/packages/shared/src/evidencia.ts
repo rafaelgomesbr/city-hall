@@ -94,13 +94,14 @@ export const pedidoDeEvidenciaSchema = z.object({
     .min(1, "Informe o nome do arquivo.")
     .max(200, "O nome do arquivo passa de 200 caracteres."),
   tipoConteudo: z.enum(TIPOS_ACEITOS, {
-    errorMap: () => ({
-      message: "Tipo de arquivo não aceito: só entram JPEG, PNG, WebP e HEIC.",
-    }),
+    error: "Tipo de arquivo não aceito: só entram JPEG, PNG, WebP e HEIC.",
   }),
   tamanhoBytes: z.number({
-    invalid_type_error: "O tamanho do arquivo precisa ser um número de bytes.",
-    required_error: "O tamanho do arquivo não foi informado.",
+    /* Zod 4: uma função só, no lugar de `invalid_type_error` e `required_error`.
+       Ausente é uma frase; presente e não numérico é outra. */
+    error: (problema) => problema.input === undefined
+      ? "O tamanho do arquivo não foi informado."
+      : "O tamanho do arquivo precisa ser um número de bytes.",
   })
     .int("O tamanho do arquivo precisa ser um número inteiro de bytes.")
     /*
@@ -124,6 +125,17 @@ export const pedidoDeEvidenciaSchema = z.object({
     .min(0, "A ordem da fotografia não pode ser negativa.")
     .max(200, "Uma vistoria não pode ter mais de 200 fotografias.")
     .default(0),
+  /**
+   * Quem fez a coleta a que a foto pertence, como o aparelho a carimbou.
+   *
+   * OPCIONAL, pelo mesmo motivo de `coletadaPor` no envelope da vistoria:
+   * aparelho em campo com coleta gravada antes deste campo não tem como
+   * declará-lo. Quando vem, o servidor o confere com o token e responde 409
+   * `autor_divergente` se forem pessoas diferentes. O portão de cliente não é
+   * controle de acesso; este campo existe para o servidor poder recusar a troca
+   * de conta que acontece com a foto em voo, e não para confiar no aparelho.
+   */
+  coletadaPor: uuidSchema.optional(),
 });
 
 export type PedidoDeEvidencia = z.infer<typeof pedidoDeEvidenciaSchema>;

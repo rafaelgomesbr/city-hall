@@ -1,0 +1,48 @@
+# mutacao em src/app/(agente)/perfil.tsx
+# - destrutiva: true,
+          aoTocar: () => void (async () => {
+            await sair();
+# + destrutiva: false,
+          aoTocar: () => void (async () => {
+            await sair();
+# teste: src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+FAIL src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+  a pergunta antes de sair, com vistoria começada
+    ✓ diz quantas vistorias começadas serão apagadas, e que as fotos vão junto (109 ms)
+    ✓ uma só, sem foto: singular, e sem prometer foto que não existe (40 ms)
+    ✕ o botão de confirmar é o de perigo, porque o ato apaga (39 ms)
+    ✓ a pergunta se chama 'Sair da conta?' e a ação vem antes da recusa (36 ms)
+    ✓ o item que está sendo enviado agora também conta como não enviado (43 ms)
+    ✓ o disco respondeu zero e na segunda pergunta falha: avisa, e não repete o zero de antes (33 ms)
+    ✓ o disco não responde: o diálogo avisa do mesmo jeito, e não promete que não há nada (19 ms)
+    ✓ o item recusado pelo servidor também conta como coleta não enviada (23 ms)
+    ✓ sem vistoria começada e sem fila, a pergunta não fala em apagar (18 ms)
+  a fila lida ao vivo, e não uma vez
+    ✓ quando a fila esvazia, o chip e o aviso de esperar somem sem trocar de aba (17 ms)
+    ✓ o diálogo de saída conta a fila de AGORA, e não a da montagem (22 ms)
+
+  ● a pergunta antes de sair, com vistoria começada › o botão de confirmar é o de perigo, porque o ato apaga
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "#331D1D"
+    Received: "#A78BFA"
+
+      216 |     const estiloConfirmar = StyleSheet.flatten(confirmar.props.style);
+      217 |     const estiloRecusar = StyleSheet.flatten(recusar.props.style);
+    > 218 |     expect(estiloConfirmar.backgroundColor).toBe(refPerigo.backgroundColor);
+          |                                             ^
+      219 |     expect(estiloConfirmar.backgroundColor).not.toBe(refPrimario.backgroundColor);
+      220 |     expect(estiloConfirmar.backgroundColor).not.toBe(estiloRecusar.backgroundColor);
+      221 |     expect(
+
+      at Object.toBe (src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx:218:45)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 passed, 11 total
+Snapshots:   0 total
+Time:        1.103 s, estimated 2 s
+Ran all test suites matching /src\/ui\/dialogo-na-conta-com-vistoria-comecada.test.tsx/i.
+codigo 1

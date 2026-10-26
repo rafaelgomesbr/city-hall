@@ -1,0 +1,12 @@
+PASS src/__tests__/vistoria-como-produto.test.tsx (23.825 s)
+
+Test Suites: 127 passed, 127 total
+Tests:       1861 passed, 1861 total
+Snapshots:   0 total
+Time:        25.063 s, estimated 47 s
+Ran all test suites.
+Test results written to: node_modules\.cache\dc360-contagem.json
+
+A leitura do código e o jest concordam: 1861 casos.
+
+O aplicativo de campo passou: tipos limpos e testes verdes.

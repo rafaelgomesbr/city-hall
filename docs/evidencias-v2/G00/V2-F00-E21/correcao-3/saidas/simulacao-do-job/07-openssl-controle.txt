@@ -1,0 +1,7 @@
+OPENSSL_CONF=/nao/existe/psqlODBC/etc/openssl.cnf
+openssl: /usr/bin/openssl
+WARNING: can't open config file: /nao/existe/psqlODBC/etc/openssl.cnf
+LibreSSL 3.3.6
+WARNING: can't open config file: /nao/existe/psqlODBC/etc/openssl.cnf
+Unable to load config info from /nao/existe/psqlODBC/etc/openssl.cnf
+controle: o openssl cru reprova com a variável quebrada, como na máquina do autor

@@ -1,0 +1,182 @@
+FAIL src/dados/obter-fila-uma-so.test.ts
+  obterFila sob chamadas simultâneas
+    ✕ quatro chamadas ao mesmo tempo devolvem a MESMA instância (114 ms)
+    ✓ o banco local é aberto uma vez só (23 ms)
+    ✕ a chamada seguinte, depois de a fila existir, também devolve a mesma (19 ms)
+    ✕ se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo (26 ms)
+
+  ● obterFila sob chamadas simultâneas › quatro chamadas ao mesmo tempo devolvem a MESMA instância
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+      80 |     ]);
+      81 |
+    > 82 |     expect(filas[1]).toBe(filas[0]);
+         |                      ^
+      83 |     expect(filas[2]).toBe(filas[0]);
+      84 |     expect(filas[3]).toBe(filas[0]);
+      85 |   });
+
+      at Object.toBe (src/dados/obter-fila-uma-so.test.ts:82:22)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● obterFila sob chamadas simultâneas › a chamada seguinte, depois de a fila existir, também devolve a mesma
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+      106 |     const depois = await obterFila("http://api.exemplo", async () => "outro", () => quem.atual);
+      107 |
+    > 108 |     expect(depois).toBe(primeira);
+          |                    ^
+      109 |   });
+      110 |
+      111 |   it("se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo", async () => {
+
+      at Object.toBe (src/dados/obter-fila-uma-so.test.ts:108:20)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● obterFila sob chamadas simultâneas › se abrir o banco falhar, a falha não fica gravada: a chamada seguinte tenta de novo
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+      135 |
+      136 |     expect(a).toBeDefined();
+    > 137 |     expect(b).toBe(a);
+          |               ^
+      138 |   });
+      139 | });
+      140 |
+
+      at Object.toBe (src/dados/obter-fila-uma-so.test.ts:137:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/ui/faixa-ligada-a-fila-real.test.tsx
+  a faixa global com a fila real parada pela sessão
+    ✕ 401 sessao_encerrada: a faixa diz 'Sessão encerrada', e não 'Tudo sincronizado' (1051 ms)
+    ✕ 403 troca_de_senha_obrigatoria: a faixa diz 'Defina a sua senha' (1030 ms)
+    ✕ a fila da faixa e a do laço de fundo são a mesma (32 ms)
+
+  ● a faixa global com a fila real parada pela sessão › 401 sessao_encerrada: a faixa diz 'Sessão encerrada', e não 'Tudo sincronizado'
+
+    Unable to find an element with text: Sessão encerrada
+
+    [36m<View[39m
+      [33maccessibilityLabel[39m=[32m"Tudo sincronizado. Nada pendente no aparelho. Toque para ver a fila de envio."[39m
+      [33maccessibilityRole[39m=[32m"button"[39m
+      [33maccessible[39m=[32m{true}[39m
+      [33mtestID[39m=[32m"faixa-de-sincronizacao"[39m
+    [36m>[39m
+      [36m<View[39m
+        [33mtestID[39m=[32m"emblema-da-faixa"[39m
+      [36m>[39m
+        [36m<Text>[39m
+          [0m✓[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+      [36m<View>[39m
+        [36m<Text>[39m
+          [0mTudo sincronizado[0m
+        [36m</Text>[39m
+        [36m<Text>[39m
+          [0mNada pendente no aparelho[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+      [36m<View>[39m
+        [36m<Text>[39m
+          [0mver fila[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</View>[39m
+
+      135 |     await act(async () => { await fila.drenar(); });
+      136 |
+    > 137 |     await waitFor(() => expect(screen.getByText("Sessão encerrada")).toBeTruthy());
+          |                  ^
+      138 |     expect(screen.getByText(/Entre de novo: suas coletas continuam guardadas/)).toBeTruthy();
+      139 |     expect(screen.queryByText("Tudo sincronizado")).toBeNull();
+      140 |     expect(screen.queryByText(/esperando envio/)).toBeNull();
+
+      at Object.<anonymous> (src/ui/faixa-ligada-a-fila-real.test.tsx:137:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a faixa global com a fila real parada pela sessão › 403 troca_de_senha_obrigatoria: a faixa diz 'Defina a sua senha'
+
+    Unable to find an element with text: Defina a sua senha
+
+    [36m<View[39m
+      [33maccessibilityLabel[39m=[32m"Tudo sincronizado. Nada pendente no aparelho. Toque para ver a fila de envio."[39m
+      [33maccessibilityRole[39m=[32m"button"[39m
+      [33maccessible[39m=[32m{true}[39m
+      [33mtestID[39m=[32m"faixa-de-sincronizacao"[39m
+    [36m>[39m
+      [36m<View[39m
+        [33mtestID[39m=[32m"emblema-da-faixa"[39m
+      [36m>[39m
+        [36m<Text>[39m
+          [0m✓[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+      [36m<View>[39m
+        [36m<Text>[39m
+          [0mTudo sincronizado[0m
+        [36m</Text>[39m
+        [36m<Text>[39m
+          [0mNada pendente no aparelho[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+      [36m<View>[39m
+        [36m<Text>[39m
+          [0mver fila[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</View>[39m
+
+      149 |     await act(async () => { await fila.drenar(); });
+      150 |
+    > 151 |     await waitFor(() => expect(screen.getByText("Defina a sua senha")).toBeTruthy());
+          |                  ^
+      152 |     expect(screen.queryByText("Tudo sincronizado")).toBeNull();
+      153 |   });
+      154 |
+
+      at Object.<anonymous> (src/ui/faixa-ligada-a-fila-real.test.tsx:151:18)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a faixa global com a fila real parada pela sessão › a fila da faixa e a do laço de fundo são a mesma
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: {"abrirMaoDasEvidenciasPerdidas": [Function abrirMaoDasEvidenciasPerdidas], "aguardarProximaJanela": [Function aguardarProximaJanela], "assinar": [Function assinar], "assumir": [Function assumir], "cancelar": [Function cancelar], "descartar": [Function descartar], "drenar": [Function drenar], "enfileirar": [Function enfileirar], "enfileirarDevolucao": [Function enfileirarDevolucao], "itens": [Function itens], "reenviar": [Function reenviar], "resumo": [Function resumo], "retirarParaCorrecao": [Function retirarParaCorrecao]}
+    Received: serializes to the same string
+
+      159 |     const outra = await obterFila("http://api.exemplo", mockSessao.obterToken, mockSessao.lerIdentidade);
+      160 |
+    > 161 |     expect(outra).toBe(doLaco);
+          |                   ^
+      162 |   });
+      163 | });
+      164 |
+
+      at Object.toBe (src/ui/faixa-ligada-a-fila-real.test.tsx:161:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 2 failed, 2 total
+Tests:       6 failed, 1 passed, 7 total
+Snapshots:   0 total
+Time:        2.959 s
+Ran all test suites matching /src\/dados\/obter-fila-uma-so.test.ts|src\/ui\/faixa-ligada-a-fila-real.test.tsx/i.

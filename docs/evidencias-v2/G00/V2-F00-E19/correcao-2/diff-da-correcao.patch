@@ -1,0 +1,256 @@
+diff --git a/.github/workflows/verificar.yml b/.github/workflows/verificar.yml
+index f26f12f..71ac916 100644
+--- a/.github/workflows/verificar.yml
++++ b/.github/workflows/verificar.yml
+@@ -695,8 +695,8 @@ jobs:
+     # (V2-F00-E01, correção 1). Ele sai com:
+     #   0  todo passo "confere";
+     #   1  há divergência, mas SÓ de passo que declara `divergenciaExplicada`
+-    #      (achado nomeado, com o registro onde está descrito; hoje o
+-    #      `expo-doctor` 20 de 21, V-DEP-4) e cuja saída bate com a descrição
++    #      (achado nomeado, com o registro onde está descrito; hoje
++    #      nenhum: o `expo-doctor` 20 de 21, V-DEP-4, foi fechado em 2026-10-13) e cuja saída bate com a descrição
+     #      inteira;
+     #   3  há divergência SEM explicação (defeito, deriva externa nova ou
+     #      contabilidade atrasada);
+@@ -716,7 +716,7 @@ jobs:
+     #
+     # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
+     # de rede e da base de avisos do dia. O `expo-doctor` espera 21 de 21 e hoje
+-    # dá 20 de 21 (explicada, V-DEP-4); os dois `npm audit` esperam vermelho por
++    # dá 21 de 21 (a deriva V-DEP-4 foi fechada em 2026-10-13); os dois `npm audit` esperam vermelho por
+     # desenho (a política do CP-03 está em `npm run auditar`, que espera 0). Um
+     # `npm audit` que fechar em 0, ou um advisory que derrube o `auditar`, faz o
+     # job FALHAR: é o que se quer, alguém precisa explicar.
+diff --git a/dc360/README.md b/dc360/README.md
+index 2c0c990..df0a083 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -13,7 +13,7 @@ build) valem lá, não aqui.
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 649 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1299 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` dá 20 de 21 (medido em 2026-10-13; eram 21 de 21 em 2026-10-08): a única verificação que falha é a de versões, por seis pacotes do Expo um patch atrás, pendência 17 de `apps/campo/PENDENCIAS.md`. O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` dá 21 de 21 (medido em 2026-10-13, depois de subir seis pacotes do Expo um patch atrás; registro na pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 144f37a..78ceacb 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -20,7 +20,7 @@ O que É verificável daqui, e está verificado:
+ | Verificação | Como rodar | Resultado |
+ | --- | --- | --- |
+ | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+-| Saúde do projeto Expo | `npx expo-doctor` | **20 de 21** em 2026-10-13 (era 21 de 21 em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57). A única verificação que falha é a de versões: seis pacotes (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`) ficaram um patch atrás porque o Expo publicou patches depois. Nada foi atualizado; `PENDENCIAS.md`, item 17, tem o dono e o comando. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
++| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-13, depois de subir seis pacotes um patch atrás (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`; eles tinham ficado para trás porque o Expo publicou patches depois do 21 de 21 de 2026-10-08, e a pendência 17 de `PENDENCIAS.md` guarda o registro). A cada patch novo do Expo a deriva pode voltar. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
+ | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-13: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as seis exceções nomeadas do CP-03 (`decode-uri-component`, `brace-expansion`, `braces`, `node-forge`, `shell-quote`, `sprintf-js`), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
+ | A fila que ele consome | `npm test --workspace @dc360/campo` | 223 testes do motor de campo |
+ 
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index 3f71408..dba69ea 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -553,7 +553,18 @@ impede a volta (varre a fonte, menos comentários). Frases novas são texto de
+ produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
+ Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.
+ 
+-## 17. `expo-doctor` dá 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1)
++## 17. `expo-doctor` deu 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1; RESOLVIDO em 2026-10-13, correção 2)
++
++**RESOLVIDO em 2026-10-13 (V2-F00-E19, correção 2).** O Rafael decidiu atualizar (D1 do
++roteiro de aprovação). `npx expo install --fix` em `apps/campo` subiu os seis pacotes
++(`expo` ~57.0.28, `expo-crypto` ~57.0.4, `expo-location` ~57.0.21, `expo-router`
++~57.0.26, `expo-splash-screen` ~57.0.10, `jest-expo` ~57.0.6) e o
++`package-lock.json`. Depois: `npx expo-doctor` **21 de 21**, `npm run test:campo`
++1903 de 1903, testes do pacote `campo` 223 de 223, `npm run typecheck` com código 0 e
++`npm run auditar` com código 0 (runtime em zero e nenhuma advisory nova no aplicativo).
++Prova em `docs/evidencias-v2/G00/V2-F00-E19/correcao-2/`. O texto abaixo é o registro
++da deriva como ela estava em 2026-10-13, antes da correção. A deriva volta a cada patch
++novo do Expo: quando voltar, é um item novo.
+ 
+ **Deriva externa, não defeito do projeto.** Em 2026-10-13, `npx expo-doctor` em
+ `apps/campo` deu **20 de 21**. A única verificação que falha é "Check that
+@@ -573,5 +584,4 @@ pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
+   (esperado 21 de 21). Pode entrar junto com a subida do SDK que fecha o CP-03
+   (prazo das exceções: 2027-01-05).
+ - **Efeito no G00:** o critério "`expo-doctor` 21 de 21" da E19 e do gate G00
+-  está BLOQUEADO enquanto isso não for feito. Aceitar o 20 de 21 como risco é
+-  decisão do gatekeeper e do Rafael, não do implementador.
++  estava BLOQUEADO; deixou de estar com a correção 2 (21 de 21).
+diff --git a/dc360/apps/campo/package.json b/dc360/apps/campo/package.json
+index fc62bcc..8e51e16 100644
+--- a/dc360/apps/campo/package.json
++++ b/dc360/apps/campo/package.json
+@@ -17,24 +17,24 @@
+   "dependencies": {
+     "@dc360/campo": "file:../../packages/campo",
+     "@dc360/shared": "file:../../packages/shared",
+-    "expo": "~57.0.27",
++    "expo": "~57.0.28",
+     "expo-blur": "~57.0.2",
+     "expo-camera": "~57.0.6",
+     "expo-clipboard": "~57.0.2",
+     "expo-constants": "~57.0.13",
+-    "expo-crypto": "~57.0.3",
++    "expo-crypto": "~57.0.4",
+     "expo-file-system": "~57.0.5",
+     "expo-font": "~57.0.1",
+     "expo-haptics": "~57.0.0",
+     "expo-image-manipulator": "~57.0.21",
+     "expo-image-picker": "~57.0.20",
+     "expo-linking": "~57.0.12",
+-    "expo-location": "~57.0.20",
++    "expo-location": "~57.0.21",
+     "expo-network": "~57.0.2",
+     "expo-notifications": "~57.0.22",
+-    "expo-router": "~57.0.25",
++    "expo-router": "~57.0.26",
+     "expo-secure-store": "~57.0.4",
+-    "expo-splash-screen": "~57.0.9",
++    "expo-splash-screen": "~57.0.10",
+     "expo-sqlite": "~57.0.4",
+     "expo-status-bar": "~57.0.1",
+     "react": "19.2.3",
+@@ -53,7 +53,7 @@
+     "@testing-library/react-native": "^14.0.1",
+     "@types/jest": "29.5.14",
+     "jest": "~29.7.0",
+-    "jest-expo": "~57.0.5",
++    "jest-expo": "~57.0.6",
+     "typescript": "~6.0.3"
+   },
+   "overrides": {
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index b01d93a..5e21e50 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -24,8 +24,8 @@
+  *    - "divergente-explicada": o passo declara em `divergenciaExplicada` um
+  *      achado NOMEADO (id, onde está registrado, motivo, código de saída e o
+  *      trecho exato da saída). Só vale se a saída bater com a descrição inteira;
+- *      saída diferente da descrita volta a ser "divergente". Hoje há uma só: o
+- *      `expo-doctor` (V-DEP-4).
++ *      saída diferente da descrita volta a ser "divergente". Hoje não há
++ *      nenhuma: a última foi o `expo-doctor` (V-DEP-4), fechada em 2026-10-13.
+  *    - "divergente": sem explicação, ou com a explicação não casando. É defeito
+  *      do produto, deriva externa nova ou contabilidade atrasada; nunca é
+  *      maquiado: ou se conserta, ou se nomeia e se registra.
+@@ -529,15 +529,13 @@ export const PASSOS = [
+   { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
+   { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
+   /*
+-    O esperado é o verde de verdade: 21 de 21. Hoje a árvore dá 20 de 21 por
+-    DERIVA EXTERNA, e o roteiro a nomeia em vez de aceitá-la calado: o Expo
+-    publicou patches (seis pacotes um patch atrás do que o SDK 57 exige) depois
+-    do 21 de 21 de 2026-10-08, e o repositório não subiu nenhum de propósito
+-    (subir patch sem a suíte do aplicativo e o prebuild não é conserto de uma
+-    linha, e o CP-03 não quer misturar SDK 57 e 58). Registro: item 17 de
+-    `apps/campo/PENDENCIAS.md`; na classificação da E03 é V-DEP-4. Quando o
+-    Rafael subir os patches, o passo passa a "confere" sozinho e a explicação
+-    deve sair daqui.
++    O esperado é o verde de verdade: 21 de 21. Em 2026-10-13 a árvore deu 20 de 21
++    por deriva externa (o Expo publicou patches de seis pacotes depois do 21 de 21
++    de 2026-10-08, V-DEP-4); o Rafael decidiu atualizar (D1) e a E19, correção 2,
++    subiu os seis patches com `npx expo install --fix`, rodou a suíte do aplicativo
++    e voltou a 21 de 21. Se a deriva voltar (e ela volta a cada patch novo do
++    Expo), o passo diverge de propósito: descreva-a em `divergenciaExplicada`, com
++    o registro onde está, só se decidir não atualizar na hora.
+   */
+   {
+     id: "expo-doctor",
+@@ -545,13 +543,6 @@ export const PASSOS = [
+     cmd: "npx expo-doctor",
+     cwd: "apps/campo",
+     esperado: { codigo: 0, contem: "21/21 checks passed" },
+-    divergenciaExplicada: {
+-      id: "V-DEP-4",
+-      onde: "dc360/apps/campo/PENDENCIAS.md, item 17",
+-      motivo: "seis pacotes do Expo um patch atrás do que o SDK 57 exige hoje (deriva externa, o 21 de 21 era de 2026-10-08); atualizar é decisão do Rafael",
+-      codigo: 1,
+-      contem: ["20/21 checks passed", "Check that packages match versions required by installed Expo SDK"],
+-    },
+   },
+   {
+     id: "e2e",
+diff --git a/dc360/scripts/baseline.test.mjs b/dc360/scripts/baseline.test.mjs
+index 9e1379e..fab92db 100644
+--- a/dc360/scripts/baseline.test.mjs
++++ b/dc360/scripts/baseline.test.mjs
+@@ -213,18 +213,31 @@ const SAIDA_EXPO_20_DE_21 = [
+   "\u2716 Check that packages match versions required by installed Expo SDK",
+ ].join("\n");
+ 
+-test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, nomeando a deriva", () => {
++test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada", () => {
+   assert.deepEqual(PASSOS.find((p) => p.id === "auditar").esperado, { codigo: 0 });
+   const expo = PASSOS.find((p) => p.id === "expo-doctor");
+   assert.deepEqual(expo.esperado, { codigo: 0, contem: "21/21 checks passed" });
+-  assert.equal(expo.divergenciaExplicada.id, "V-DEP-4");
++  assert.equal(expo.divergenciaExplicada, undefined, "a deriva V-DEP-4 foi fechada em 2026-10-13: nenhuma explicação sobrevive no passo");
+   // Os dois `npm audit` crus seguem vermelhos por desenho (a política do CP-03 está no `auditar`).
+   assert.equal(PASSOS.find((p) => p.id === "audit-raiz").esperado.codigo, "falha");
+   assert.equal(PASSOS.find((p) => p.id === "audit-campo").esperado.codigo, "falha");
+ });
+ 
+-test("o expo-doctor 20 de 21 é divergência EXPLICADA e nomeada, e saída diferente da descrita continua divergente", () => {
+-  const expo = PASSOS.find((p) => p.id === "expo-doctor");
++test("a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente", () => {
++  const real = PASSOS.find((p) => p.id === "expo-doctor");
++  // O passo real não descreve nada: 20 de 21 hoje seria deriva nova e sem explicação.
++  assert.equal(avaliar(real, SAIDA_EXPO_20_DE_21, 1).status, "divergente");
++  // O mecanismo continua coberto com um passo sintético que descreve a deriva V-DEP-4 de 2026-10-13.
++  const expo = {
++    ...real,
++    divergenciaExplicada: {
++      id: "V-DEP-4",
++      onde: "dc360/apps/campo/PENDENCIAS.md, item 17",
++      motivo: "seis pacotes do Expo um patch atrás do que o SDK 57 exige",
++      codigo: 1,
++      contem: ["20/21 checks passed", "Check that packages match versions required by installed Expo SDK"],
++    },
++  };
+   const explicada = avaliar(expo, SAIDA_EXPO_20_DE_21, 1);
+   assert.equal(explicada.status, "divergente-explicada");
+   assert.equal(explicada.explicacao.id, "V-DEP-4");
+@@ -312,12 +325,10 @@ test("todo passo do roteiro com total esperado aparece na medição do conferir:
+   }
+ });
+ 
+-test("a divergência explicada aponta para registros que existem", () => {
++test("o registro da deriva V-DEP-4 existe e diz que foi fechada", () => {
+   const raiz = fileURLToPath(new URL("../..", import.meta.url));
+-  const expo = PASSOS.find((p) => p.id === "expo-doctor").divergenciaExplicada;
+   const pendencias = readFileSync(join(raiz, "dc360/apps/campo/PENDENCIAS.md"), "utf8");
+-  assert.ok(expo.onde.includes("PENDENCIAS.md, item 17"));
+-  assert.match(pendencias, /^## 17\. `expo-doctor` dá 20 de 21/m);
++  assert.match(pendencias, /^## 17\. `expo-doctor` deu 20 de 21 .*RESOLVIDO em 2026-10-13/m);
+   const registro = readFileSync(join(raiz, "docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md"), "utf8");
+-  assert.ok(registro.includes(expo.id), `${expo.id} não está na classificação dos vermelhos`);
++  assert.ok(registro.includes("V-DEP-4"), "V-DEP-4 não está na classificação dos vermelhos");
+ });
+diff --git a/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md b/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
+index d220b2c..528f18d 100644
+--- a/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
++++ b/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
+@@ -257,7 +257,7 @@ Todas têm dono, issue e prazo. Nenhuma está pulada: o portão de skip não tem
+ | --- | --- | --- | --- | --- | --- |
+ | V-DEP-2b | `npm audit` da raiz lista 3 avisos só de desenvolvimento: `@vitest/mocker` (moderada), `tinypool` (crítica, 2 avisos de execução remota de código no processo de teste) e `vitest` (crítica, só por depender dos dois). O `auditar` sai 0 e diz "Não reprova, e precisa de dono" | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | Subir `vitest` para 5 (salto de major, `npm audit fix --force`), ou registrar exceção nomeada com dono e prazo na lista do CP-03. A escolha é de Rafael (Q5). Não é runtime: `npm audit --omit=dev` dá 0 |
+ | V-DEP-3 | `apps/campo`: `npm audit` lista 59 (55 fora de desenvolvimento: 8 moderadas, 46 altas, 1 crítica), todas da cadeia de ferramenta do Expo. O `auditar` aceita 6 pelo nome | `rafael` | `CP-03` (decidido em 2026-10-07) e `V2-F00-E19` | 2027-01-05 (o prazo do CP-03; o portão reprova depois dele) | Subir o SDK do Expo por inteiro (a saída que o CP-03 registrou; `npm audit fix` descartado por misturar SDK 57 e 58). Tolerado por decisão já tomada |
+-| V-DEP-4 | `npx expo-doctor` dá 20 de 21: 6 pacotes com deriva de patch (`expo` 57.0.27 contra ~57.0.28, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`). Estava 21 de 21 em 2026-10-08; a deriva é externa, por patch novo publicado | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | `npx expo install --check` e `--fix` dentro do SDK 57. Muda pacote nativo: o próximo binário precisa ser recompilado, por isso não foi feito aqui. Como a deriva reabre sozinha a cada patch, Rafael decide se vira aviso na política (Q5) |
++| V-DEP-4 | `npx expo-doctor` dá 20 de 21: 6 pacotes com deriva de patch (`expo` 57.0.27 contra ~57.0.28, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`). Estava 21 de 21 em 2026-10-08; a deriva é externa, por patch novo publicado | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | FECHADA em 2026-10-13 (V2-F00-E19, correção 2): Rafael decidiu atualizar (D1); `npx expo install --fix` subiu os seis pacotes dentro do SDK 57 e o `expo-doctor` voltou a 21 de 21 (prova em `V2-F00-E19/correcao-2/`). Muda pacote nativo: o próximo binário precisa ser recompilado. A deriva reabre sozinha a cada patch novo do Expo, e então é item novo |
+ | V-ROT-01 (novo) | O roteiro `dc360/scripts/baseline.mjs` diverge numa árvore verde: espera 643 testes no painel (rodam 649), 1880 no jest (1903), 226 casos em `test:scripts` (230), 271 verificações no e2e da API (279 mais as 50 da largura estreita) e vermelho no `auditar` (agora verde). Sai com código 1. Também falta o passo do Firefox (D-4) | `rafael` | `V2-F00-E01` (correção 1) | 2026-10-20 | Atualizar as tabelas de esperado do roteiro com as contagens de cada correção. Não é desta etapa: a E01 tem a correção própria; este item fecha quando o roteiro sair 0 numa árvore verde |
+ | V-INS-02 (novo) | Os outros 10 pontos com `setTimeout(r, 20)` em 4 arquivos da API (`desinterdicao` 3, `fotos-do-documento` 2, `identificador-da-emissao` 2, `segunda-via-nao-reinterdita` 3) e 6 esperas fixas de 10 a 100 ms em `push-rodada-diz-o-que-fez`, `push-sem-resposta` e `recuperacao-sem-oraculo`. Nenhum falhou em nenhuma rodada medida | `rafael` | `V2-F00-E21` (a proposta de 2026-10-05 de quarto item, STATUS seção 11, ainda sem aceite) | 2026-10-27 | Medir e trocar por `vi.waitFor` com limite onde o teste espera um evento (a mesma troca de V-INS-01), com registro em `DECISOES-DE-TESTE-DA-FASE-00.md`. Depende de Q4 |
+ | V-INS-03 (novo) | `packages/shared/test/dominio.test.ts` ("ninguém redefine o checklist fora do pacote compartilhado") estoura os 5 s do limite padrão sob carga. Falhou em 2 de cerca de 7 rodadas completas de `npm test` na validação de 2026-10-13, e uma vez na E10; passa isolado em 252 ms | `rafael` | `V2-F00-E21` | 2026-10-27 | Causa provável: a varredura lê o código-fonte de todo o produto e disputa disco e CPU com o resto da suíte; HIPÓTESE, não medida. Tratamento: limite explícito e generoso por teste (`it(..., 60_000)`) e, se medido, o cache da lista de arquivos. Não pular, não repetir até passar. Depende de Q4 |
+@@ -302,8 +302,8 @@ Nada aqui foi decidido por quem implementou. A situação de cada pergunta é a
+ | Q2 | Os 14 defeitos do campo (V-CAM-07 a V-CAM-20) são defeitos reais? | Tratados como reais; consertados no código pelas E15 e E16 e provados (8.2) | 14 linhas fechadas | Fica como está | Cada linha que ele disser que não é defeito: o conserto da E15 ou da E16 é revisto e o teste correspondente é reescrito com registro |
+ | Q3 | As 13 reescritas (V-CAM-01 a V-CAM-06, V-WEB-01, V-WEB-03, V-SHA-1, V-API-S1, V-SCR-1 a V-SCR-3) podem ficar como foram feitas, com o registro de `DECISOES-DE-TESTE-DA-FASE-00.md`? | Feitas e registradas nas E13, E14, E17, E20 e E21 | 13 linhas fechadas | Fica como está | A reescrita escolhida é revertida (o diff de cada uma está no registro) |
+ | Q4 | Aceita trocar espera fixa por espera com condição e limite nos testes instáveis? Feita em `resolver-link.test.ts` (um arquivo, desfazível) | Feita só em `resolver-link.test.ts` | V-INS-01 (fechada), V-INS-02, V-INS-03 e V-INS-04 | A E21 ganha o quarto item e as três linhas abertas se tratam | Reverter o patch de `resolver-link.test.ts` (volta V-INS-01 a aberta) e Rafael diz como tratar a instabilidade |
+-| Q5 | Aviso de ferramenta que muda sem o código mudar (3 advisories de desenvolvimento da raiz e a deriva de patch do Expo): corrigir já, ou virar aviso com dono e prazo na política do CP-03? | Abertas, com prazo 2026-11-12 | V-DEP-2b e V-DEP-4 | Corrige (`vitest` 5, `expo install --fix`) ou entra na lista do CP-03, conforme ele disser | Mantém aberto até o prazo |
++| Q5 | Aviso de ferramenta que muda sem o código mudar (3 advisories de desenvolvimento da raiz e a deriva de patch do Expo): corrigir já, ou virar aviso com dono e prazo na política do CP-03? | V-DEP-4 (Expo) foi fechada em 2026-10-13 por atualização (D1); V-DEP-2b segue aberta, com prazo 2026-11-12 | V-DEP-2b (e V-DEP-4, já fechada) | Corrige (`vitest` 5, `expo install --fix`) ou entra na lista do CP-03, conforme ele disser | Mantém aberto até o prazo |
+ 
+ ### 8.7 Contagem final
+ 
+-**Abertos: 9** (V-DEP-2b, V-DEP-3, V-DEP-4, V-ROT-01, V-INS-02 a V-INS-06), todos com dono, issue e prazo; um deles (V-DEP-3) é tolerado por decisão já tomada (CP-03, até 2027-01-05). **Fechados: 62 de 71** (as 63 linhas do baseline da E01, com V-DEP-2 dividida em 2a e 2b, mais V-INS-01 a V-INS-06 e V-ROT-01). **Pendentes de decisão humana: 5 perguntas** (Q1 a Q5), de que dependem 27 das 62 linhas fechadas (13 reescritas e 14 defeitos do campo, sem repetição) e 5 das 9 abertas (V-INS-02 a V-INS-04 em Q4, V-DEP-2b e V-DEP-4 em Q5). O item do G00 "o registro da E03 tem zero itens abertos e a regra de BZ-N:N.3 está decidida por Rafael" NÃO está satisfeito hoje: há 9 linhas abertas e a decisão é pendente.
++**Abertos: 8** (V-DEP-2b, V-DEP-3, V-ROT-01, V-INS-02 a V-INS-06), todos com dono, issue e prazo; um deles (V-DEP-3) é tolerado por decisão já tomada (CP-03, até 2027-01-05). **Fechados: 63 de 71** (as 63 linhas do baseline da E01, com V-DEP-2 dividida em 2a e 2b, mais V-INS-01 a V-INS-06 e V-ROT-01). **Pendentes de decisão humana: 5 perguntas** (Q1 a Q5), de que dependem 27 das 63 linhas fechadas (13 reescritas e 14 defeitos do campo, sem repetição) e 4 das 8 abertas (V-INS-02 a V-INS-04 em Q4 e V-DEP-2b em Q5). O item do G00 "o registro da E03 tem zero itens abertos e a regra de BZ-N:N.3 está decidida por Rafael" NÃO está satisfeito hoje: há 8 linhas abertas e a decisão é pendente.

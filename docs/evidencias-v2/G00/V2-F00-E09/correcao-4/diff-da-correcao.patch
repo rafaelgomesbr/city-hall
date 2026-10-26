@@ -1,0 +1,1672 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 637acc2..b33ab64 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,8 +10,8 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 669 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1451 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1464 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+@@ -1466,9 +1466,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3140 testes em seis pacotes
++npm test                    # 3172 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1451 testes da API
++npm run test:api            # 1464 testes da API
+ npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+ npm run test:campo          # tipos e os 1932 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/src/auth/segundo-fator.ts b/dc360/apps/api/src/auth/segundo-fator.ts
+index cc46926..64deab5 100644
+--- a/dc360/apps/api/src/auth/segundo-fator.ts
++++ b/dc360/apps/api/src/auth/segundo-fator.ts
+@@ -338,7 +338,7 @@ export function servicoDeSegundoFator(banco: Banco, config: Config) {
+         [quem.usuarioId],
+       );
+       if (!(await conferirSenha(senhaAtual, atual.rows[0]?.senha_hash ?? null))) {
+-        throw new RegraDeNegocio("senha_nao_confere", "A senha atual nao confere.", 422);
++        throw new RegraDeNegocio("senha_nao_confere", "A senha atual não confere. Confira e digite de novo.", 422);
+       }
+ 
+       const linha = await lerLinha(c, quem.usuarioId);
+diff --git a/dc360/apps/api/src/auth/servico.ts b/dc360/apps/api/src/auth/servico.ts
+index 6c2ede3..225b013 100644
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts
+@@ -1091,7 +1091,7 @@ export function servicoDeAutenticacao(
+     }
+ 
+     if (!(await conferirSenha(senhaAtual, atual?.senha_hash ?? null))) {
+-      throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
++      throw new FalhaAutenticacao("credenciais", "A senha atual não confere. Confira e digite de novo.");
+     }
+ 
+     const hash = await derivarSenha(senhaNova);
+@@ -1175,7 +1175,7 @@ export function servicoDeAutenticacao(
+         throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+       }
+       if (agora.senha_hash !== hashConferido) {
+-        throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
++        throw new FalhaAutenticacao("credenciais", "A senha atual não confere. Confira e digite de novo.");
+       }
+ 
+       /*
+diff --git a/dc360/apps/api/test/mensagens-visiveis-com-acento.test.ts b/dc360/apps/api/test/mensagens-visiveis-com-acento.test.ts
+new file mode 100644
+index 0000000..5fa6578
+--- /dev/null
++++ b/dc360/apps/api/test/mensagens-visiveis-com-acento.test.ts
+@@ -0,0 +1,148 @@
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { describe, expect, it } from "vitest";
++import {
++  fontesDe, palavraSemAcento, varrerFonte, varrerPasta, type Achado,
++} from "./varredura-de-acentos.js";
++
++/**
++ * AS FRASES QUE A PESSOA LÊ SAEM COM ACENTO (V2-F00-E09, correção 4, defeito 1
++ * da arbitragem da rodada 5).
++ *
++ * "A senha atual nao confere." saía da API sem acento, em três pontos
++ * (`auth/servico.ts`, duas vezes, e `auth/segundo-fator.ts`), e o painel a
++ * mostrava como estava, em Minha conta e na tela "Defina a sua senha" que vem
++ * depois da senha temporária. A etapa tinha acentuado "as mensagens de
++ * `/auth/trocar-senha` que aparecem no painel" e deixou esta: a conferência foi
++ * feita por quem se lembrou de olhar, e não por um teste.
++ *
++ * Este arquivo é o teste. Ele lê o código pela árvore sintática e confere o que
++ * a pessoa lê, nos quatro lugares onde frase de tela nasce neste repositório: a
++ * API (a mensagem de erro que o servidor devolve), o painel, o pacote
++ * compartilhado (catálogo e esquemas) e o motor do aplicativo de campo. Como a
++ * varredura funciona, e por que comentário e linha de log ficam de fora, está no
++ * cabeçalho de `varredura-de-acentos.ts`.
++ *
++ * Duas provas, e uma não substitui a outra: a varredura MORDE (uma fonte
++ * sintética com o erro de verdade reprova), e a árvore real passa limpa.
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const RAIZ = join(AQUI, "..", "..", "..");
++
++/**
++ * O que a varredura acha e NÃO é frase de tela, com o motivo. Lista curta e
++ * explícita de propósito: exceção nova pede uma linha aqui, à vista de quem
++ * revisa, e não uma palavra a mais no dicionário.
++ */
++const EXCECOES: ReadonlyArray<{ arquivo: string; texto: string; motivo: string }> = [
++  {
++    arquivo: "apps/api/src/rotas/aparelhos.ts",
++    texto: "Ambiente precisa ser producao ou teste",
++    motivo: "a frase cita o valor aceito do enum, que se escreve `producao` e `teste`, "
++      + "sem acento (AMBIENTES_APNS); acentuar o valor na frase mandaria a pessoa enviar um valor que a API recusa",
++  },
++  {
++    arquivo: "apps/api/src/push/envio.ts",
++    texto: "nao esta configurado neste servidor",
++    motivo: "detalhe do registro de envio, lido por quem opera o servidor; "
++      + "dc360/docs/IMPLANTACAO.md cita a frase exata na tabela de sintomas",
++  },
++];
++
++const ESCOPOS: ReadonlyArray<{ pasta: string; modo: "mensagens" | "tudo"; minimoDeArquivos: number }> = [
++  { pasta: "apps/api/src", modo: "mensagens", minimoDeArquivos: 60 },
++  { pasta: "apps/console/src", modo: "mensagens", minimoDeArquivos: 5 },
++  { pasta: "apps/web/src", modo: "tudo", minimoDeArquivos: 60 },
++  { pasta: "packages/shared/src", modo: "tudo", minimoDeArquivos: 10 },
++  { pasta: "packages/campo/src", modo: "tudo", minimoDeArquivos: 8 },
++  { pasta: "apps/campo/src", modo: "tudo", minimoDeArquivos: 20 },
++];
++
++const relativo = (a: Achado) => ({ ...a, arquivo: a.arquivo.slice(RAIZ.length + 1).split("\\").join("/") });
++
++describe("A varredura de acentos morde", () => {
++  it("acha o erro de verdade: a frase da senha atual, sem acento, num erro de negócio", () => {
++    const fonte = `
++      throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
++    `;
++    const achados = varrerFonte("exemplo.ts", fonte, "mensagens");
++    expect(achados).toHaveLength(1);
++    expect(achados[0]).toMatchObject({ palavra: "nao", linha: 2 });
++  });
++
++  it("acha na propriedade `mensagem` da resposta e no texto que o Zod devolve", () => {
++    const fonte = `
++      resposta.code(422).send({ erro: "x", mensagem: "Informe a descricao da ocorrencia" });
++      const esquema = z.string().min(1, "Informe o endereco");
++    `;
++    const achados = varrerFonte("exemplo.ts", fonte, "mensagens");
++    expect(achados.map((a) => a.palavra).sort()).toEqual(["descricao", "endereco"]);
++  });
++
++  it("não acha o que a pessoa não lê: comentário, log, erro de desenvolvedor, código e SQL", () => {
++    const fonte = `
++      // A senha atual nao confere. (comentário)
++      /* sessao nao encontrada */
++      log.warn("sessao nao encontrada");
++      throw new Error("Elemento #root nao encontrado");
++      throw new RegraDeNegocio("autodesativacao", "Você não pode desativar a própria conta.", 422);
++      const sql = "SELECT id FROM sessoes WHERE usuario_id = $1 AND descricao IS NULL";
++    `;
++    expect(varrerFonte("exemplo.ts", fonte, "mensagens")).toEqual([]);
++  });
++
++  it("no modo `tudo`, acha o texto da tela em JSX e em cadeia, e deixa passar classe, email de exemplo e variável", () => {
++    const fonte = `
++      export const A = () => <p>Nao foi possivel carregar</p>;
++      const B = "A sessao expirou";
++      const classes = "botao botao--primario tabela__secundario--frase";
++      const exemplo = "Informe um email completo, como nome@orgao.gov.br.";
++      const dica = "Sem PUSH_ATIVO=nao o servidor sobe";
++    `;
++    const achados = varrerFonte("exemplo.tsx", fonte, "tudo");
++    expect(achados.map((a) => a.palavra).sort()).toEqual(["Nao", "sessao"]);
++  });
++
++  it("a palavra com acento e as que também se escrevem sem acento passam", () => {
++    for (const ok of [
++      "A senha atual não confere. Confira e digite de novo.",
++      "Sessão expirada. Entre novamente.",
++      "Fala com a secretaria do município, na primeira página.",
++      "Ofício de secretaria",
++    ]) expect(palavraSemAcento(ok), ok).toBeNull();
++    for (const ruim of [
++      "A senha atual nao confere.", "Sem conexao com o servidor.", "A autorizacao de envio venceu.",
++      "Servidor indisponivel", "Voce nao pode", "A sessao terminou",
++    ]) expect(palavraSemAcento(ruim), ruim).not.toBeNull();
++  });
++});
++
++describe("Nenhuma frase de tela sai sem acento", () => {
++  for (const { pasta, modo, minimoDeArquivos } of ESCOPOS) {
++    it(`${pasta} (${modo})`, () => {
++      const caminho = join(RAIZ, pasta);
++      // Varredura que não alcança nada passa em silêncio: confere que ela leu a pasta toda.
++      expect(fontesDe(caminho).length, `${pasta}: a varredura não encontrou os arquivos`).toBeGreaterThanOrEqual(minimoDeArquivos);
++
++      const achados = varrerPasta(caminho, modo).map(relativo).filter(
++        (a) => !EXCECOES.some((e) => e.arquivo === a.arquivo && a.texto.includes(e.texto)),
++      );
++      expect(
++        achados.map((a) => `${a.arquivo}:${a.linha} [${a.palavra}] ${a.texto}`),
++        "frase sem acento onde o português pede: acentue, ou, se NÃO é frase de tela, registre em EXCECOES com o motivo",
++      ).toEqual([]);
++    });
++  }
++
++  it("cada exceção ainda existe (lista velha esconde regressão)", () => {
++    for (const e of EXCECOES) {
++      const pasta = ESCOPOS.find((s) => e.arquivo.startsWith(s.pasta))!;
++      const achados = varrerPasta(join(RAIZ, pasta.pasta), pasta.modo).map(relativo);
++      expect(
++        achados.some((a) => a.arquivo === e.arquivo && a.texto.includes(e.texto)),
++        `a exceção "${e.texto}" (${e.arquivo}) não aparece mais: tire-a da lista`,
++      ).toBe(true);
++    }
++  });
++});
+diff --git a/dc360/apps/api/test/senha-provisoria.test.ts b/dc360/apps/api/test/senha-provisoria.test.ts
+index 537aced..97ca1f2 100644
+--- a/dc360/apps/api/test/senha-provisoria.test.ts
++++ b/dc360/apps/api/test/senha-provisoria.test.ts
+@@ -106,6 +106,32 @@ describe("A senha temporária de quem administra", () => {
+     expect(depois.statusCode, depois.body).toBe(200);
+   });
+ 
++  /*
++    A FRASE DA SENHA ERRADA NA TROCA (V2-F00-E09, correção 4, arbitragem da
++    rodada 5). Saía "A senha atual nao confere.", sem acento, e a tela
++    "Defina a sua senha" a mostrava como estava: português errado, e nenhuma
++    pista do que fazer. A frase vem do servidor e chega ao painel inteira, então
++    é aqui que ela se prende: com acento e dizendo o que fazer.
++  */
++  it("a senha atual errada na troca responde em português correto e diz o que fazer", async () => {
++    const temporaria = await redefinirDiego();
++    try {
++      const sessao = await entrar(DIEGO_EMAIL, temporaria);
++      const errada = await app.inject({
++        method: "POST", url: "/auth/trocar-senha", headers: com(sessao.acesso),
++        payload: { senhaAtual: "provisoria-digitada-errada", senha: "frase-nova-do-diego-2026" },
++      });
++      expect(errada.statusCode, errada.body).toBe(401);
++      expect(errada.json().erro).toBe("credenciais");
++      expect(errada.json().mensagem).toBe("A senha atual não confere. Confira e digite de novo.");
++    } finally {
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_hash = $2, senha_provisoria_ate = NULL WHERE id = $1",
++        [DIEGO, await derivarSenha(SENHA)],
++      );
++    }
++  }, 300_000);
++
+   it("enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403", async () => {
+     const temporaria = await redefinirDiego();
+     try {
+diff --git a/dc360/apps/api/test/varredura-de-acentos.ts b/dc360/apps/api/test/varredura-de-acentos.ts
+new file mode 100644
+index 0000000..3a68233
+--- /dev/null
++++ b/dc360/apps/api/test/varredura-de-acentos.ts
+@@ -0,0 +1,187 @@
++import { readdirSync, readFileSync, statSync } from "node:fs";
++import { join } from "node:path";
++import ts from "typescript";
++
++/**
++ * A varredura das mensagens que a pessoa lê, sem acento onde o português pede
++ * (V2-F00-E09, correção 4, arbitragem da rodada 5).
++ *
++ * O defeito que a originou: "A senha atual nao confere." saía da API sem acento
++ * e o painel a mostrava como estava, em Minha conta e na tela "Defina a sua
++ * senha". Os comentários e os identificadores deste repositório, de propósito,
++ * não levam acento (`ocorrencia`, `sessao`), então a regra não pode ser "nenhuma
++ * palavra sem acento no arquivo": ela precisa saber o que a pessoa LÊ.
++ *
++ * Por isso a leitura é pela árvore sintática do TypeScript, e não por texto:
++ * comentário não é literal de cadeia e nunca entra. E o que entra depende de
++ * onde o texto mora:
++ *
++ * - "mensagens" (a API e o aplicativo de campo): só o que vira frase de erro
++ *   para quem está do outro lado. É o argumento de `new RegraDeNegocio`,
++ *   `new FalhaAutenticacao`, `new FalhaTemporaria` e `new FalhaPermanente`; o
++ *   valor de uma propriedade `mensagem`, `message`, `detalhe`, `titulo`,
++ *   `rotulo` ou `aviso`; e o argumento de texto dos métodos de esquema do Zod
++ *   (`.min(1, "...")`, `.refine(fn, "...")`). Linha de log e `throw new Error`
++ *   são para quem opera o servidor, não para a tela, e ficam de fora.
++ * - "tudo" (o painel e o pacote compartilhado): toda frase, porque ali quase
++ *   tudo é texto de tela. Ficam de fora a cadeia de uma palavra só (código,
++ *   caminho, nome de classe) e o que parece SQL, HTML ou CSS.
++ *
++ * O dicionário é de palavras que NUNCA se escrevem sem acento ou cedilha em
++ * prosa (`nao`, `voce`, `sessao`, `ocorrencia`, qualquer `-cao`). Não é um
++ * corretor ortográfico: acha o erro de quem digitou sem acento, que é o erro
++ * real que apareceu. Palavra do dicionário que é de fato código (`PUSH_ATIVO=nao`)
++ * entra na lista de exceções do teste, com o motivo.
++ */
++
++export type Achado = { arquivo: string; linha: number; palavra: string; texto: string };
++
++const PALAVRAS = [
++  "nao", "voce", "voces", "tambem", "invalido", "invalida", "invalidos", "invalidas",
++  "obrigatorio", "obrigatoria", "ja", "ate", "alem", "apos", "ultimo", "ultima",
++  "proximo", "proxima", "pagina", "paginas", "numero", "numeros", "codigo", "codigos",
++  "endereco", "enderecos", "municipio", "municipios", "orgao", "orgaos", "servico",
++  "servicos", "historico", "disponivel", "indisponivel", "possivel", "impossivel",
++  "necessario", "necessaria", "producao", "periodo", "periodos", "relatorio",
++  "ocorrencia", "ocorrencias", "referencia", "ausencia", "vigencia", "competencia",
++  "excecao", "descricao", "usuario", "usuarios", "unico", "unica", "publico", "publica",
++  "provisoria", "provisorio", "duvida", "duvidas", "experiencia", "emergencia",
++  "responsavel", "politica", "tecnico", "tecnica", "pratica", "analise", "conexao",
++  "entao", "atraves", "porem", "tres", "facil", "dificil", "util", "rapido", "unicos",
++];
++/*
++  `-cao`, `-sao`, `-xao` e os plurais em `-coes`/`-soes`/`-xoes` nunca se escrevem
++  sem til em prosa (`sessao`, `autorizacao`, `conexao`). `secretaria`, `historia`
++  e `primario` FICAM FORA de propósito: sem acento também é português.
++*/
++const SUFIXOS = /^[a-z]{2,}(?:cao|coes|sao|soes|xao|xoes)$/;
++const DICIONARIO = new Set(PALAVRAS);
++
++/** Só a palavra inteira, em minúsculas ou com a primeira maiúscula: `useSessao` e `NAO_FAZ` não são prosa. */
++function ehPalavraDeProsa(palavra: string): boolean {
++  return /^[A-Za-z][a-z]*$/.test(palavra);
++}
++
++/**
++ * Acha, num texto, a primeira palavra que pede acento e vem sem. Devolve `null`
++ * quando o texto está limpo.
++ */
++export function palavraSemAcento(texto: string): string | null {
++  for (const pedaco of texto.split(/\s+/)) {
++    // Endereço de email, caminho, variável de ambiente e nome de classe não são prosa.
++    if (/[@/_=#\-]/.test(pedaco)) continue;
++    for (const bruto of pedaco.match(/[A-Za-zÀ-ÿ]+/g) ?? []) {
++      if (!ehPalavraDeProsa(bruto)) continue;
++      const p = bruto.toLowerCase();
++      if (DICIONARIO.has(p) || SUFIXOS.test(p)) return bruto;
++    }
++  }
++  return null;
++}
++
++/**
++ * Parece SQL, HTML ou CSS, base64, ou é uma cadeia de uma palavra só (código,
++ * caminho, nome de classe): não é frase que alguém lê.
++ */
++function naoEhFraseDeTela(texto: string): boolean {
++  const t = texto.trim();
++  if (!/\s/.test(t)) return true;
++  if (t.split(/\s+/).some((pedaco) => pedaco.length > 40)) return true;
++  if (/\b(SELECT|UPDATE|INSERT|DELETE|FROM|WHERE|CREATE|ALTER|RETURNING|VALUES)\b/.test(t)) return true;
++  if (/[<>{};]/.test(t)) return true;
++  return false;
++}
++
++const CONSTRUTORES_DE_ERRO = new Set([
++  "RegraDeNegocio", "FalhaAutenticacao", "FalhaTemporaria", "FalhaPermanente",
++]);
++const PROPRIEDADES_DE_TEXTO = new Set([
++  "mensagem", "message", "detalhe", "titulo", "rotulo", "aviso",
++]);
++const METODOS_DO_ZOD = new Set([
++  "min", "max", "length", "regex", "refine", "superRefine", "email", "url", "uuid",
++  "startsWith", "endsWith", "includes", "int", "positive", "negative", "nonnegative",
++  "nonempty", "datetime", "multipleOf", "finite", "gt", "gte", "lt", "lte", "check",
++]);
++
++function textosDe(no: ts.Node): ts.Node[] {
++  const achados: ts.Node[] = [];
++  const visitar = (n: ts.Node) => {
++    if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)
++      || ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) achados.push(n);
++    ts.forEachChild(n, visitar);
++  };
++  visitar(no);
++  return achados;
++}
++
++function nomeDaPropriedade(n: ts.PropertyAssignment): string | null {
++  const nome = n.name;
++  if (ts.isIdentifier(nome) || ts.isStringLiteral(nome)) return nome.text;
++  return null;
++}
++
++export function varrerFonte(
++  arquivo: string, fonte: string, modo: "mensagens" | "tudo",
++): Achado[] {
++  const sf = ts.createSourceFile(
++    arquivo, fonte, ts.ScriptTarget.Latest, true,
++    arquivo.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
++  );
++  const candidatos = new Set<ts.Node>();
++
++  const visitar = (n: ts.Node) => {
++    if (modo === "tudo") {
++      if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)
++        || ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)
++        || ts.isJsxText(n)) candidatos.add(n);
++    } else {
++      if (ts.isNewExpression(n) && ts.isIdentifier(n.expression)
++        && CONSTRUTORES_DE_ERRO.has(n.expression.text)) {
++        for (const argumento of n.arguments ?? []) textosDe(argumento).forEach((t) => candidatos.add(t));
++      }
++      if (ts.isPropertyAssignment(n)) {
++        const nome = nomeDaPropriedade(n);
++        if (nome && PROPRIEDADES_DE_TEXTO.has(nome)) textosDe(n.initializer).forEach((t) => candidatos.add(t));
++      }
++      if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)
++        && METODOS_DO_ZOD.has(n.expression.name.text)) {
++        for (const argumento of n.arguments) {
++          if (ts.isStringLiteral(argumento) || ts.isNoSubstitutionTemplateLiteral(argumento)) candidatos.add(argumento);
++        }
++      }
++    }
++    ts.forEachChild(n, visitar);
++  };
++  visitar(sf);
++
++  const achados: Achado[] = [];
++  for (const no of candidatos) {
++    const texto = ts.isJsxText(no) ? no.text : (no as ts.StringLiteral).text;
++    if (naoEhFraseDeTela(texto)) continue;
++    const palavra = palavraSemAcento(texto);
++    if (palavra === null) continue;
++    const { line } = sf.getLineAndCharacterOfPosition(no.getStart());
++    achados.push({ arquivo, linha: line + 1, palavra, texto: texto.replace(/\s+/g, " ").trim().slice(0, 120) });
++  }
++  return achados.sort((a, b) => a.linha - b.linha);
++}
++
++/** Todos os `.ts` e `.tsx` de uma pasta, menos teste, dependência e saída de build. */
++export function fontesDe(pasta: string): string[] {
++  const saida: string[] = [];
++  const andar = (d: string) => {
++    for (const nome of readdirSync(d)) {
++      if (nome === "node_modules" || nome === "dist" || nome === "test") continue;
++      const caminho = join(d, nome);
++      if (statSync(caminho).isDirectory()) andar(caminho);
++      else if (/\.tsx?$/.test(nome) && !/\.(test|e2e)\./.test(nome) && !nome.endsWith(".d.ts")) saida.push(caminho);
++    }
++  };
++  andar(pasta);
++  return saida;
++}
++
++export function varrerPasta(pasta: string, modo: "mensagens" | "tudo"): Achado[] {
++  return fontesDe(pasta).flatMap((f) => varrerFonte(f, readFileSync(f, "utf8"), modo));
++}
+diff --git a/dc360/apps/web/src/componentes/EmailQuebravel.tsx b/dc360/apps/web/src/componentes/EmailQuebravel.tsx
+new file mode 100644
+index 0000000..16a57ef
+--- /dev/null
++++ b/dc360/apps/web/src/componentes/EmailQuebravel.tsx
+@@ -0,0 +1,42 @@
++import { Fragment } from "react";
++
++/**
++ * Onde um email pode quebrar de linha: depois do "@" e depois de cada ponto, e
++ * em nenhum outro lugar.
++ *
++ * O defeito (V2-F00-E09, correção 4, defeito 3 da arbitragem da rodada 5): a
++ * linha do email na coluna "Pessoa" de Usuários usava `overflow-wrap: anywhere`,
++ * que deixa o navegador cortar onde a coluna acabar, e a coluna acabava no meio
++ * de "serraalta.ex / emplo.gov.br" e de "exemplo.gov.b / r". Email cortado no
++ * meio da palavra é ilegível e, pior, parece outro endereço. Quebrar depois do
++ * "@" e dos pontos mantém cada pedaço inteiro e deixa a linha seguinte
++ * reconhecível (menos o último ponto: o fim, "gov.br", anda junto).
++ *
++ * A função é pura e separada do componente para poder ser provada sem navegador:
++ * os pedaços, juntos, têm de dar o email de volta, sem perder nem acrescentar
++ * caractere (o `<wbr>` não é caractere, e por isso copiar o email da tela
++ * continua dando o endereço certo).
++ */
++export function pedacosDoEmail(email: string): string[] {
++  const pedacos = email.match(/[^@.]+[@.]?|[@.]/g) ?? [email];
++  /*
++    O último ponto NÃO é lugar de quebra: "gov." numa linha e "br" sozinho na
++    seguinte (visto a 1440 px) deixa a sílaba final órfã e o endereço
++    ilegível. O fim ("gov.br", "com.br") anda junto.
++  */
++  const ultimo = pedacos.length - 1;
++  if (ultimo >= 1 && pedacos[ultimo - 1]!.endsWith(".")) {
++    return [...pedacos.slice(0, ultimo - 1), pedacos[ultimo - 1]! + pedacos[ultimo]!];
++  }
++  return pedacos;
++}
++
++export function EmailQuebravel({ email }: { email: string }) {
++  return (
++    <>
++      {pedacosDoEmail(email).map((pedaco, i) => (
++        <Fragment key={i}>{i > 0 && <wbr />}{pedaco}</Fragment>
++      ))}
++    </>
++  );
++}
+diff --git a/dc360/apps/web/src/componentes/Modal.tsx b/dc360/apps/web/src/componentes/Modal.tsx
+index cd7b939..cfecb91 100644
+--- a/dc360/apps/web/src/componentes/Modal.tsx
++++ b/dc360/apps/web/src/componentes/Modal.tsx
+@@ -1,6 +1,7 @@
+ import { useEffect, useId, useRef, useState } from "react";
+ import type { CSSProperties, KeyboardEvent as EventoDeTecla, ReactNode, RefObject } from "react";
+ import { createPortal } from "react-dom";
++import { registrarModalAberto } from "./modais-abertos";
+ 
+ /**
+  * A janela modal que o painel não tinha.
+@@ -379,6 +380,12 @@ export function Modal({
+ 
+     const quemAbriu = document.activeElement;
+     document.body.appendChild(hospedeiro);
++    /*
++      Avisa quem não pode aparecer por cima da janela (o aviso passageiro, ver
++      `modais-abertos.ts`). Vem antes da interdição porque o aviso que estava
++      na tela sai dela agora, e não depois de a página virar `inert`.
++    */
++    const liberarAvisos = registrarModalAberto();
+     const restaurar = interditarFundo(
+       [...document.body.children].filter((filho) => filho !== hospedeiro),
+     );
+@@ -389,12 +396,32 @@ export function Modal({
+       lá atrás, e a pessoa continuaria digitando numa página que ela não vê
+       mais.
+     */
+-    const alvo = focoInicial?.current ?? focaveisDentro(painel.current)[0] ?? painel.current;
+-    alvo?.focus();
++    /*
++      A janela abre NO TOPO (V2-F00-E09, correção 4, revisão). O painel rola
++      (`overflow-y: auto`, 84vh) e `focus()` rola até o elemento focado: a 320x568
++      a janela da senha temporária abria rolada 229 px, porque o primeiro botão
++      fica no pé dela, e o título, que é o que se lê primeiro, ficava fora da
++      vista. Quando ninguém pediu um foco inicial e o primeiro controle está fora da
++      parte visível do painel, o foco vai para o próprio painel (que se anuncia
++      pelo título e pela descrição, e o Tab segue para o primeiro botão), sem
++      rolar. Se o primeiro controle está à vista (a janela cabe, ou o botão
++      Fechar do cabeçalho de uma janela alta), nada muda: o foco vai a ele.
++    */
++    const primeiro = focaveisDentro(painel.current)[0];
++    const aVista = (el: HTMLElement | undefined): boolean => {
++      if (!el || !painel.current) return false;
++      const p = painel.current.getBoundingClientRect();
++      const r = el.getBoundingClientRect();
++      return r.top >= p.top - 0.5 && r.bottom <= p.bottom + 0.5;
++    };
++    const alvo = focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current);
++    alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });
++    if (painel.current) painel.current.scrollTop = 0;
+ 
+     return () => {
+       restaurar();
+       hospedeiro.remove();
++      liberarAvisos();
+       /*
+         Quem abriu pode ter sumido: encerrar a ocorrência tira da tela o
+         próprio botão de encerrar. `focus()` em nó desconectado não falha e não
+diff --git a/dc360/apps/web/src/componentes/Toast.tsx b/dc360/apps/web/src/componentes/Toast.tsx
+index 7445e06..16cc4fc 100644
+--- a/dc360/apps/web/src/componentes/Toast.tsx
++++ b/dc360/apps/web/src/componentes/Toast.tsx
+@@ -1,6 +1,7 @@
+ import { useEffect, useRef, useState } from "react";
+ import type { CSSProperties, ReactNode } from "react";
+ import { IconeAlerta, IconeCheck } from "./Icones";
++import { useHaModalAberto } from "./modais-abertos";
+ 
+ /**
+  * O aviso passageiro, e o que ele nunca pode ser.
+@@ -134,9 +135,20 @@ export function Toast({ mensagem, tom = "info", duracao = DURACAO_PADRAO, aoFech
+   */
+   const [interagindo, setInteragindo] = useState(false);
+ 
++  /*
++    Com uma janela modal aberta o aviso ESPERA: não é desenhado e o relógio não
++    corre (ver `modais-abertos.ts`, onde está o defeito inteiro). A pausa por
++    ponteiro é zerada junto: o aviso que sai da tela com o mouse em cima nunca
++    recebe o `pointerleave`, e voltaria para ficar parado para sempre.
++  */
++  const esperandoJanela = useHaModalAberto();
++  useEffect(() => { if (esperandoJanela) setInteragindo(false); }, [esperandoJanela]);
++
+   useEffect(() => agendarFechamento(
+-    duracaoComPausa(duracao, interagindo), () => ultimoFechar.current(),
+-  ), [duracao, interagindo]);
++    duracaoComPausa(duracao, interagindo || esperandoJanela), () => ultimoFechar.current(),
++  ), [duracao, interagindo, esperandoJanela]);
++
++  if (esperandoJanela) return null;
+ 
+   return (
+     <div className="toast" role="status" aria-live="polite"
+diff --git a/dc360/apps/web/src/componentes/comuns.tsx b/dc360/apps/web/src/componentes/comuns.tsx
+index b533d88..6b089f2 100644
+--- a/dc360/apps/web/src/componentes/comuns.tsx
++++ b/dc360/apps/web/src/componentes/comuns.tsx
+@@ -391,9 +391,13 @@ export function iniciais(nome: string): string {
+  * que o campo referencia em `aria-describedby`, para que a pessoa navegando
+  * por teclado ouça o motivo ao chegar no campo, e não só ao submeter.
+  */
+-export function ErroCampo({ id, children }: { id: string; children: ReactNode }) {
++export function ErroCampo({ id, children, focavel = false }: {
++  id: string; children: ReactNode;
++  /** Para a mensagem que a tela leva o foco a ela (erro que não é de um campo só). */
++  focavel?: boolean;
++}) {
+   return (
+-    <p className="campo__erro" id={id} role="alert">
++    <p className="campo__erro" id={id} role="alert" tabIndex={focavel ? -1 : undefined}>
+       <IconeAlerta tamanho={14} />
+       <span>{children}</span>
+     </p>
+diff --git a/dc360/apps/web/src/componentes/modais-abertos.ts b/dc360/apps/web/src/componentes/modais-abertos.ts
+new file mode 100644
+index 0000000..d50fd47
+--- /dev/null
++++ b/dc360/apps/web/src/componentes/modais-abertos.ts
+@@ -0,0 +1,61 @@
++import { useSyncExternalStore } from "react";
++
++/**
++ * Quantas janelas modais estão abertas agora, para quem não pode aparecer por
++ * cima delas.
++ *
++ * O defeito (V2-F00-E09, correção 4, defeito 2 da arbitragem da rodada 5): o
++ * aviso passageiro ("Sessões de ... encerradas") fica no `z-index` do aviso (50),
++ * acima do da janela (40), e vive dentro da página, que a janela torna `inert`.
++ * A 320x568 ele ficava desenhado em cima de "Copiar senha" e de "Já anotei a
++ * senha" da janela da senha temporária. Pior: como o aviso está num ramo
++ * `inert`, o navegador o ignora no toque, e o toque no TEXTO do aviso caía no
++ * botão escondido embaixo. Quem tocava "para fechar o aviso" fechava a janela, e
++ * a senha de uso único, que não aparece de novo, se perdia. O "Fechar" do aviso,
++ * dentro de uma subárvore `inert`, não respondia a nada.
++ *
++ * Subir o `z-index` do aviso não resolve: ele continuaria `inert` e cobrindo o
++ * rodapé da janela. Subir o da janela também não: o aviso é só confirmação do
++ * que acabou de acontecer, e a janela ainda é a decisão da pessoa. A regra é a
++ * mais simples: com janela aberta, o aviso espera. Ele reaparece quando a
++ * última janela fecha, com o relógio do começo (`Toast`), e então não é mais
++ * `inert`, de modo que o "Fechar" dele funciona.
++ *
++ * É um contador de módulo, e não um contexto do React, porque a janela vive num
++ * portal colado no `<body>` e o aviso na árvore da tela: não há ancestral comum
++ * por onde passar o valor.
++ */
++
++let abertas = 0;
++const ouvintes = new Set<() => void>();
++
++function avisar(): void {
++  for (const ouvinte of [...ouvintes]) ouvinte();
++}
++
++/** Marca uma janela como aberta e devolve o desfazer, que só vale uma vez. */
++export function registrarModalAberto(): () => void {
++  abertas += 1;
++  avisar();
++  let desfeito = false;
++  return () => {
++    if (desfeito) return;
++    desfeito = true;
++    abertas -= 1;
++    avisar();
++  };
++}
++
++export function haModalAberto(): boolean {
++  return abertas > 0;
++}
++
++function assinar(ouvinte: () => void): () => void {
++  ouvintes.add(ouvinte);
++  return () => { ouvintes.delete(ouvinte); };
++}
++
++/** Verdadeiro enquanto houver janela modal aberta. Fora do navegador, sempre falso. */
++export function useHaModalAberto(): boolean {
++  return useSyncExternalStore(assinar, haModalAberto, () => false);
++}
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 2855b59..1537d8c 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -526,6 +526,33 @@ a:hover { color: var(--ds-accent-hover); }
+   legítimo; no meio da palavra, não.
+ */
+ .tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
++/*
++  Email na linha secundária: quebra SÓ onde o componente `EmailQuebravel` põe um
++  `<wbr>` (depois do "@" e de cada ponto). Sem `normal` aqui, o `anywhere` da
++  regra-mãe voltaria a cortar "exemplo.gov.br" no meio, e o `<wbr>` não valeria
++  de nada. Se um pedaço sozinho for mais largo que a coluna, quem cede é a
++  tabela (que rola), e não a palavra.
++*/
++.tabela__secundario--email { overflow-wrap: break-word; word-break: normal; }
++/*
++  O teto da linha do email (V2-F00-E09, correção 4, revisão): um email com uma
++  parte de uns 48 caracteres sem ponto ("joanaplantao24horas...@") tem largura
++  mínima de quase 300 px, a coluna Pessoa cresce junto, a tabela passa a rolar a
++  1280 px e a coluna Ação sai da tela. Com o teto, a linha quebra nos pontos
++  permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
++  (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
++  `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
++  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
++*/
++@media (max-width: 1399px) {
++  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
++}
++/*
++  Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
++  se a coluna for estreita demais quem cede é a tabela, que rola.
++*/
++.tabela__secundario--telefone { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
++.campo__erro svg { flex-shrink: 0; }
+ 
+ .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+ .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
+@@ -1497,7 +1524,7 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
+   tabela dividia o que sobrava de modo que o nome quebrava em três linhas
+   ("Diego / Nakamura / Alves"). O piso de largura segura o nome em até duas
+-  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, continua quebrando onde precisar.
++  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, quebra só depois do "@" e dos pontos (`EmailQuebravel`), nunca no meio de uma palavra.
+ */
+ .tabela__pessoa {
+   display: flex; align-items: center; gap: var(--ds-sp-3);
+diff --git a/dc360/apps/web/src/main.tsx b/dc360/apps/web/src/main.tsx
+index a240acb..26498fb 100644
+--- a/dc360/apps/web/src/main.tsx
++++ b/dc360/apps/web/src/main.tsx
+@@ -7,7 +7,7 @@ import "./estilos/tokens.css";
+ import "./estilos/app.css";
+ 
+ const raiz = document.getElementById("root");
+-if (!raiz) throw new Error("Elemento #root nao encontrado");
++if (!raiz) throw new Error("Elemento #root não encontrado");
+ 
+ createRoot(raiz).render(
+   <StrictMode>
+diff --git a/dc360/apps/web/src/paginas/Entrar.tsx b/dc360/apps/web/src/paginas/Entrar.tsx
+index 63f12bd..f4d6b5c 100644
+--- a/dc360/apps/web/src/paginas/Entrar.tsx
++++ b/dc360/apps/web/src/paginas/Entrar.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useState } from "react";
++import { useEffect, useRef, useState } from "react";
+ import { Link, useLocation, useNavigate } from "react-router-dom";
+ import { ROTULO_PAPEL, errosPorCampo } from "@dc360/shared";
+ import {
+@@ -13,8 +13,9 @@ import {
+ import { Campo } from "../componentes/Campo";
+ import { AtivarSegundoFator } from "../componentes/SegundoFator";
+ import { useTitulo } from "../seo/titulo";
++import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
+ import { conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada } from "./entrar-regras";
+-import { conferirSenhaNova, passoDepoisDeEntrar } from "./senha-provisoria-regras";
++import { conferirSenhaNova, erroDaSenhaAtual, passoDepoisDeEntrar } from "./senha-provisoria-regras";
+ 
+ /**
+  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
+@@ -511,6 +512,19 @@ function PassoDaSenhaNova(
+   const [erro, setErro] = useState<string | null>(null);
+   const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
+   const [enviando, setEnviando] = useState(false);
++  const formulario = useRef<HTMLFormElement>(null);
++
++  /*
++    O foco depois de enviar (V2-F00-E09, correção 4, revisão): o botão fica
++    desabilitado enquanto grava e, ao terminar, o foco estava no `<body>`. Erro
++    de campo leva ao campo inválido; erro que não é de campo, à própria
++    mensagem (`#senha-nova-erro`, focável por código).
++  */
++  function levarOFocoAoErro() {
++    depoisDePintar(() => {
++      if (!focarPrimeiroInvalido(formulario.current)) document.getElementById("senha-nova-erro")?.focus();
++    });
++  }
+ 
+   async function enviar(evento: React.FormEvent) {
+     evento.preventDefault();
+@@ -518,6 +532,7 @@ function PassoDaSenhaNova(
+     const conferida = conferirSenhaNova({ atual, nova, repetida });
+     if (!conferida.ok) {
+       setErrosDeCampo(conferida.erros);
++      levarOFocoAoErro();
+       return;
+     }
+     setErrosDeCampo({});
+@@ -526,12 +541,17 @@ function PassoDaSenhaNova(
+       await trocarSenha(atual, nova);
+       aoConcluir();
+     } catch (e: unknown) {
+-      if (e instanceof ErroDaApi && e.campos.length > 0) {
++      const daSenha = erroDaSenhaAtual(e, "senha-provisoria");
++      if (daSenha) {
++        // O erro mora no campo que a pessoa digitou errado, com o nome que ele tem na tela.
++        setErrosDeCampo({ atual: daSenha });
++      } else if (e instanceof ErroDaApi && e.campos.length > 0) {
+         setErrosDeCampo(errosPorCampo(e.campos));
+       } else {
+         setErro(e instanceof Error ? e.message : String(e));
+       }
+       setEnviando(false);
++      levarOFocoAoErro();
+     }
+   }
+ 
+@@ -544,7 +564,7 @@ function PassoDaSenhaNova(
+           entrada. Escolha agora a senha que vai usar daqui em diante: pelo
+           menos 12 caracteres, e que só você saiba.
+         </Aviso>
+-        <form onSubmit={enviar} noValidate>
++        <form onSubmit={enviar} noValidate ref={formulario}>
+           <AvisoDeObrigatorios />
+           <Campo id="senha-nova-atual" rotulo="Senha provisória que você recebeu"
+                  erro={errosDeCampo["atual"]}>
+@@ -567,7 +587,7 @@ function PassoDaSenhaNova(
+             )}
+           </Campo>
+ 
+-          {erro && <ErroCampo id="senha-nova-erro">{erro}</ErroCampo>}
++          {erro && <ErroCampo id="senha-nova-erro" focavel>{erro}</ErroCampo>}
+ 
+           <button type="submit" className="botao botao--primario" style={{ width: "100%" }}
+                   disabled={enviando}>
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index 8255f05..b3c646d 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -17,6 +17,8 @@ import {
+   SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
+ } from "./sessoes-regras";
+ import { useTitulo } from "../seo/titulo";
++import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
++import { erroDaSenhaAtual } from "./senha-provisoria-regras";
+ 
+ /**
+  * A conta de quem está usando o sistema, e a troca da própria senha.
+@@ -43,6 +45,27 @@ export function MinhaConta() {
+   const [erro, setErro] = useState<string | null>(null);
+   const [sucesso, setSucesso] = useState<string | null>(null);
+   const [enviando, setEnviando] = useState(false);
++  const formulario = useRef<HTMLFormElement>(null);
++  const avisoDeErro = useRef<HTMLDivElement>(null);
++  const confirmacaoDaTroca = useRef<HTMLDivElement>(null);
++
++  /*
++    O FOCO DEPOIS DE ENVIAR (V2-F00-E09, correção 4, revisão).
++
++    O botão "Trocar senha" fica desabilitado enquanto grava, e elemento
++    desabilitado perde o foco: ao terminar, quem usa teclado ou leitor de tela
++    estava no `<body>`, sem saber se deu certo nem onde errou. Erro de campo leva
++    o foco ao campo inválido (`focarPrimeiroInvalido`, o mesmo gesto dos outros
++    formulários); erro que não é de campo e a confirmação são o próprio alvo do
++    foco (`Aviso` com `foco`, que por isso não é região viva: um mecanismo só, o
++    mesmo das sessões, abaixo).
++  */
++  useEffect(() => {
++    if (erro) avisoDeErro.current?.focus();
++  }, [erro]);
++  useEffect(() => {
++    if (sucesso) confirmacaoDaTroca.current?.focus();
++  }, [sucesso]);
+ 
+   async function submeter(evento: React.FormEvent) {
+     evento.preventDefault();
+@@ -65,18 +88,28 @@ export function MinhaConta() {
+       setErrosDeCampo(problemas);
+       setErro(null);
+       setSucesso(null);
++      depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
+       return;
+     }
+ 
+     setErrosDeCampo({});
+     setErro(null);
++    // A confirmação da troca anterior sai agora: junto de um erro novo ela
++    // diria "Senha trocada" e "não confere" na mesma tela.
++    setSucesso(null);
+     setEnviando(true);
+     try {
+       const mensagem = await trocarSenha(atual, nova);
+       setSucesso(mensagem);
+       setAtual(""); setNova(""); setRepetida("");
+     } catch (e: unknown) {
+-      setErro(e instanceof Error ? e.message : String(e));
++      const daSenha = erroDaSenhaAtual(e, "minha-conta");
++      if (daSenha) {
++        setErrosDeCampo({ atual: daSenha });
++        depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
++      } else {
++        setErro(e instanceof Error ? e.message : String(e));
++      }
+     } finally {
+       setEnviando(false);
+     }
+@@ -123,15 +156,15 @@ export function MinhaConta() {
+               </Aviso>
+             ) : (
+               <>
+-                {erro && <Aviso tom="perigo">{erro}</Aviso>}
+-                {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
++                {erro && <Aviso tom="perigo" foco={avisoDeErro}>{erro}</Aviso>}
++                {sucesso && <Aviso tom="sucesso" foco={confirmacaoDaTroca}>{sucesso}</Aviso>}
+ 
+                 <p className="campo__dica" style={{ marginTop: 0 }}>
+                   Trocar a senha encerra as suas outras sessões, em outros
+                   navegadores e aparelhos. Esta continua aberta.
+                 </p>
+ 
+-                <form onSubmit={submeter} noValidate>
++                <form onSubmit={submeter} noValidate ref={formulario}>
+                   <AvisoDeObrigatorios />
+                   <Campo
+                     id="conta-senha-atual"
+diff --git a/dc360/apps/web/src/paginas/Orgaos.tsx b/dc360/apps/web/src/paginas/Orgaos.tsx
+index f338c75..9fff124 100644
+--- a/dc360/apps/web/src/paginas/Orgaos.tsx
++++ b/dc360/apps/web/src/paginas/Orgaos.tsx
+@@ -11,6 +11,7 @@ import { Campo } from "../componentes/Campo";
+ import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
+ import { IconeMais } from "../componentes/Icones";
+ import { Toast } from "../componentes/Toast";
++import { EmailQuebravel } from "../componentes/EmailQuebravel";
+ import { FORMULARIO_VAZIO, conferirMotivo, conferirOrgao } from "./orgaos-regras";
+ import { useTitulo } from "../seo/titulo";
+ 
+@@ -296,8 +297,10 @@ export function Orgaos() {
+                             importa, porque é ela que decide se o ofício sai do
+                             sistema ou vai impresso.
+                           */}
+-                          <div className="tabela__secundario">{o.email ?? "Sem email"}</div>
+-                          <div className="tabela__secundario">{o.telefone ?? "Sem telefone"}</div>
++                          <div className="tabela__secundario tabela__secundario--email">
++                            {o.email ? <EmailQuebravel email={o.email} /> : "Sem email"}
++                          </div>
++                          <div className="tabela__secundario tabela__secundario--telefone">{o.telefone ?? "Sem telefone"}</div>
+                         </td>
+                         <td className="mono">
+                           {o.providencias} {o.abertas > 0 && `(${o.abertas} em aberto)`}
+diff --git a/dc360/apps/web/src/paginas/Usuarios.tsx b/dc360/apps/web/src/paginas/Usuarios.tsx
+index 5d070b2..071fbbc 100644
+--- a/dc360/apps/web/src/paginas/Usuarios.tsx
++++ b/dc360/apps/web/src/paginas/Usuarios.tsx
+@@ -23,6 +23,7 @@ import { Modal } from "../componentes/Modal";
+ import { Toast } from "../componentes/Toast";
+ import { useTitulo } from "../seo/titulo";
+ import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
++import { EmailQuebravel } from "../componentes/EmailQuebravel";
+ 
+ /**
+  * Usuários do município.
+@@ -370,7 +371,7 @@ export function Usuarios() {
+                             </span>
+                             <span>
+                               <div className="tabela__principal">{u.nome}</div>
+-                              <div className="tabela__secundario">{u.email}</div>
++                              <div className="tabela__secundario tabela__secundario--email"><EmailQuebravel email={u.email} /></div>
+                             </span>
+                           </div>
+                         </td>
+diff --git a/dc360/apps/web/src/paginas/senha-provisoria-regras.ts b/dc360/apps/web/src/paginas/senha-provisoria-regras.ts
+index 2f964c5..89b3afe 100644
+--- a/dc360/apps/web/src/paginas/senha-provisoria-regras.ts
++++ b/dc360/apps/web/src/paginas/senha-provisoria-regras.ts
+@@ -43,3 +43,35 @@ export function conferirSenhaNova(
+   if (dados.repetida !== dados.nova) erros["repetida"] = "As duas senhas não são iguais";
+   return Object.keys(erros).length > 0 ? { ok: false, erros } : { ok: true };
+ }
++
++/**
++ * A frase da senha atual errada, com o nome do campo que a pessoa está vendo.
++ *
++ * O servidor responde 401 `credenciais` com uma frase só ("A senha atual não
++ * confere. Confira e digite de novo."), porque ele não sabe qual tela chamou.
++ * Mas o MESMO pedido (`/auth/trocar-senha`) é feito por duas telas que dão
++ * nomes diferentes ao campo: em Minha conta ele é "Senha que você usa hoje", e
++ * na tela "Defina a sua senha", depois de uma senha temporária, é "Senha
++ * provisória que você recebeu". Quem acabou de receber a provisória por
++ * telefone não tem "senha atual" nenhuma na cabeça, e a frase do servidor
++ * apontava para um campo que não existe na tela (V2-F00-E09, correção 4,
++ * defeito 1 da arbitragem da rodada 5).
++ *
++ * Devolve `null` para qualquer outro erro, que continua com a frase que o
++ * servidor mandou. Só o código `credenciais` é reconhecido, e por ele, e não
++ * pelo texto: o texto é de quem lê e muda sem aviso.
++ */
++export type OndeSeDigitouASenhaAtual = "minha-conta" | "senha-provisoria";
++
++export const FRASE_DA_SENHA_ATUAL_ERRADA: Record<OndeSeDigitouASenhaAtual, string> = {
++  "minha-conta": "A senha que você usa hoje não confere. Confira e digite de novo.",
++  "senha-provisoria":
++    "A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo.",
++};
++
++export function erroDaSenhaAtual(erro: unknown, onde: OndeSeDigitouASenhaAtual): string | null {
++  if (!(erro instanceof Error)) return null;
++  return (erro as { codigo?: unknown }).codigo === "credenciais"
++    ? FRASE_DA_SENHA_ATUAL_ERRADA[onde]
++    : null;
++}
+diff --git a/dc360/apps/web/test/correcao-4-da-e09.test.ts b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+new file mode 100644
+index 0000000..5a6e330
+--- /dev/null
++++ b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+@@ -0,0 +1,212 @@
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { createElement as h } from "react";
++import { renderToStaticMarkup } from "react-dom/server";
++import { describe, expect, it } from "vitest";
++
++import { EmailQuebravel, pedacosDoEmail } from "../src/componentes/EmailQuebravel";
++import { haModalAberto, registrarModalAberto } from "../src/componentes/modais-abertos";
++import {
++  FRASE_DA_SENHA_ATUAL_ERRADA, erroDaSenhaAtual,
++} from "../src/paginas/senha-provisoria-regras";
++import { ErroDaApi } from "../src/dados/http";
++import { lerFonte } from "./ler-fonte";
++
++/**
++ * Os três defeitos da arbitragem da rodada 5 da V2-F00-E09, na parte que roda
++ * sem navegador. A prova de geometria e de toque (o aviso por cima da janela, o
++ * email no meio da palavra, a frase na tela) está em
++ * `test/layout-estreito.e2e.mjs`, seções 8, 9 e 10, e este arquivo guarda a
++ * causa de cada um.
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const fonte = (...partes: string[]) => lerFonte(join(AQUI, "..", "src", ...partes));
++
++describe("Defeito 1: a frase da senha atual errada nomeia o campo da tela", () => {
++  const erroDeCredencial = new ErroDaApi(401, {
++    erro: "credenciais", mensagem: "A senha atual não confere. Confira e digite de novo.",
++  });
++
++  it("em Minha conta fala da senha que a pessoa usa hoje, e na tela da provisória fala da provisória", () => {
++    expect(erroDaSenhaAtual(erroDeCredencial, "minha-conta"))
++      .toBe("A senha que você usa hoje não confere. Confira e digite de novo.");
++    expect(erroDaSenhaAtual(erroDeCredencial, "senha-provisoria"))
++      .toBe("A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo.");
++  });
++
++  it("os nomes dos campos nas frases são os nomes que a tela dá a eles", () => {
++    // Frase que cita um campo que não existe na tela é o defeito de origem.
++    expect(fonte("paginas", "MinhaConta.tsx")).toContain('rotulo="Senha que você usa hoje"');
++    expect(fonte("paginas", "Entrar.tsx")).toContain('rotulo="Senha provisória que você recebeu"');
++    expect(FRASE_DA_SENHA_ATUAL_ERRADA["minha-conta"]).toContain("senha que você usa hoje");
++    expect(FRASE_DA_SENHA_ATUAL_ERRADA["senha-provisoria"]).toContain("senha provisória que você recebeu");
++  });
++
++  it("toda frase tem acento onde o português pede e diz o que fazer", () => {
++    for (const frase of Object.values(FRASE_DA_SENHA_ATUAL_ERRADA)) {
++      expect(frase).toContain("não confere");
++      expect(frase).toMatch(/digite de novo\.$/);
++      expect(frase).not.toMatch(/\bnao\b/);
++    }
++  });
++
++  it("só o código `credenciais` é reconhecido: outro erro segue com a frase do servidor", () => {
++    expect(erroDaSenhaAtual(new ErroDaApi(422, { erro: "validacao", mensagem: "x" }), "minha-conta")).toBeNull();
++    expect(erroDaSenhaAtual(new ErroDaApi(500, { mensagem: "caiu" }), "senha-provisoria")).toBeNull();
++    expect(erroDaSenhaAtual(new Error("rede"), "minha-conta")).toBeNull();
++    expect(erroDaSenhaAtual("texto", "minha-conta")).toBeNull();
++    expect(erroDaSenhaAtual(null, "minha-conta")).toBeNull();
++  });
++
++  it("as duas telas usam a função, e põem a frase no campo da senha atual (não no aviso de cima)", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    expect(conta).toContain('erroDaSenhaAtual(e, "minha-conta")');
++    expect(conta).toMatch(/if \(daSenha\) \{\s+setErrosDeCampo\(\{ atual: daSenha \}\);/);
++    const entrar = fonte("paginas", "Entrar.tsx");
++    expect(entrar).toContain('erroDaSenhaAtual(e, "senha-provisoria")');
++    expect(entrar).toMatch(/setErrosDeCampo\(\{ atual: daSenha \}\)/);
++  });
++});
++
++describe("Defeito 2: com janela aberta o aviso passageiro espera", () => {
++  it("o contador sobe e desce, e o desfazer só vale uma vez", () => {
++    expect(haModalAberto()).toBe(false);
++    const a = registrarModalAberto();
++    const b = registrarModalAberto();
++    expect(haModalAberto()).toBe(true);
++    a();
++    a(); // repetido: não pode descontar a janela do outro
++    expect(haModalAberto(), "o desfazer repetido fechou a janela do vizinho").toBe(true);
++    b();
++    expect(haModalAberto()).toBe(false);
++  });
++
++  it("a janela se registra ao abrir e se solta ao fechar", () => {
++    const modal = fonte("componentes", "Modal.tsx");
++    expect(modal).toContain("const liberarAvisos = registrarModalAberto();");
++    // A liberação mora na limpeza do mesmo efeito que abriu a janela.
++    expect(modal).toMatch(/return \(\) => \{\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
++  });
++
++  it("o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada", () => {
++    const toast = fonte("componentes", "Toast.tsx");
++    expect(toast).toContain("const esperandoJanela = useHaModalAberto();");
++    expect(toast).toMatch(/if \(esperandoJanela\) return null;/);
++    expect(toast).toContain("duracaoComPausa(duracao, interagindo || esperandoJanela)");
++    expect(toast).toMatch(/if \(esperandoJanela\) setInteragindo\(false\)/);
++    // O `return null` vem DEPOIS dos hooks: antes dele seria hook condicional.
++    expect(toast.indexOf("if (esperandoJanela) return null;"))
++      .toBeGreaterThan(toast.indexOf("duracaoComPausa(duracao, interagindo || esperandoJanela)"));
++  });
++});
++
++describe("Defeito 3: o email quebra só depois do @ e dos pontos", () => {
++  const EMAILS = [
++    "diego.alves@serraalta.exemplo.gov.br",
++    "helena.coutinho@serraalta.exemplo.gov.br",
++    "rita.lopes@serraalta.exemplo.gov.br",
++    "sem-arroba",
++    "a@b.c",
++  ];
++
++  it("os pedaços, juntos, dão o email de volta, sem perder nem acrescentar caractere", () => {
++    for (const email of EMAILS) expect(pedacosDoEmail(email).join(""), email).toBe(email);
++  });
++
++  it("todo pedaço, menos o último, termina em @ ou em ponto, e o fim do endereço anda junto", () => {
++    for (const email of EMAILS) {
++      const pedacos = pedacosDoEmail(email);
++      for (const p of pedacos.slice(0, -1)) expect(p, `${email}: "${p}"`).toMatch(/[@.]$/);
++    }
++    expect(pedacosDoEmail("diego.alves@serraalta.exemplo.gov.br"))
++      .toEqual(["diego.", "alves@", "serraalta.", "exemplo.", "gov.br"]);
++    expect(pedacosDoEmail("a@b.c")).toEqual(["a@", "b.c"]);
++  });
++
++  it("o componente põe <wbr> entre os pedaços e nenhum caractere a mais", () => {
++    const html = renderToStaticMarkup(h(EmailQuebravel, { email: "rita.lopes@serraalta.exemplo.gov.br" }));
++    expect(html).toBe("rita.<wbr/>lopes@<wbr/>serraalta.<wbr/>exemplo.<wbr/>gov.br");
++    expect(html.replace(/<wbr\/>/g, "")).toBe("rita.lopes@serraalta.exemplo.gov.br");
++  });
++
++  it("a coluna Pessoa usa o componente e a regra de CSS que desliga a quebra em qualquer lugar", () => {
++    expect(fonte("paginas", "Usuarios.tsx"))
++      .toContain('<div className="tabela__secundario tabela__secundario--email"><EmailQuebravel email={u.email} /></div>');
++    const css = fonte("estilos", "app.css");
++    expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: break-word; word-break: normal; \}/);
++    // A regra nova vem DEPOIS da regra-mãe (`anywhere`), senão a ordem a desfaz.
++    expect(css.indexOf(".tabela__secundario--email {"))
++      .toBeGreaterThan(css.indexOf(".tabela__secundario { color"));
++  });
++});
++
++/**
++ * A segunda rodada da correção 4: seis itens da revisão independente. A prova no
++ * navegador (geometria, foco real, rolagem) está em `layout-estreito.e2e.mjs`,
++ * seções 10 a 12; aqui ficam as causas, na fonte.
++ */
++describe("Revisão 1: o ícone do erro de campo não encolhe", () => {
++  it("o svg do `.campo__erro` não é espremido pelo texto (flex-shrink: 0)", () => {
++    // Sem isto o ícone de 14 px, irmão do texto num flex, media 4,9x14 px a 320 px.
++    expect(fonte("estilos", "app.css")).toMatch(/\.campo__erro svg \{ flex-shrink: 0; \}/);
++  });
++});
++
++describe("Revisão 2: confirmação e erro não ficam juntos na troca de senha", () => {
++  it("o envio limpa a confirmação anterior antes de gravar", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    const envio = conta.slice(conta.indexOf("setErrosDeCampo({});"), conta.indexOf("setEnviando(true);"));
++    expect(envio).toContain("setSucesso(null);");
++  });
++});
++
++describe("Revisão 3: depois de enviar o foco não cai em BODY", () => {
++  it("Minha conta leva o foco ao campo inválido, ao erro e à confirmação", () => {
++    const conta = fonte("paginas", "MinhaConta.tsx");
++    expect(conta).toContain("depoisDePintar(() => focarPrimeiroInvalido(formulario.current));");
++    expect(conta).toContain("<Aviso tom=\"perigo\" foco={avisoDeErro}>");
++    expect(conta).toContain("<Aviso tom=\"sucesso\" foco={confirmacaoDaTroca}>");
++    expect(conta).toMatch(/if \(erro\) avisoDeErro\.current\?\.focus\(\);/);
++    expect(conta).toMatch(/if \(sucesso\) confirmacaoDaTroca\.current\?\.focus\(\);/);
++    expect(conta).toContain("<form onSubmit={submeter} noValidate ref={formulario}>");
++  });
++
++  it("a tela da senha provisória leva o foco ao campo inválido ou à mensagem focável", () => {
++    const entrar = fonte("paginas", "Entrar.tsx");
++    expect(entrar).toContain('document.getElementById("senha-nova-erro")?.focus()');
++    expect(entrar).toContain('<ErroCampo id="senha-nova-erro" focavel>');
++    expect(entrar).toContain("<form onSubmit={enviar} noValidate ref={formulario}>");
++    // As três saídas do envio passam por ele: conferência da tela, recusa e erro de rede.
++    expect(entrar.match(/levarOFocoAoErro\(\);/g)?.length).toBe(2);
++    expect(fonte("componentes", "comuns.tsx")).toContain("tabIndex={focavel ? -1 : undefined}");
++  });
++});
++
++describe("Revisão 4: um email de parte comprida não empurra a coluna Ação", () => {
++  it("a linha do email tem teto até 1399 px e quebra a palavra só se ela não couber", () => {
++    const css = fonte("estilos", "app.css");
++    expect(css).toMatch(/@media \(max-width: 1399px\) \{\s+\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}\s+\}/);
++    expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: break-word;/);
++  });
++});
++
++describe("Revisão 5: a janela abre no topo", () => {
++  it("o foco inicial não rola o painel, e o painel começa em zero", () => {
++    const modal = fonte("componentes", "Modal.tsx");
++    expect(modal).toContain("alvo?.focus(focoInicial?.current ? undefined : { preventScroll: true });");
++    expect(modal).toContain("if (painel.current) painel.current.scrollTop = 0;");
++    // Primeiro controle fora da parte visível (o botão do pé): o foco vai ao painel.
++    expect(modal).toContain("focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current)");
++  });
++});
++
++describe("Revisão 6: a lista de órgãos usa a mesma regra de email e de telefone", () => {
++  it("o email do órgão quebra pelo EmailQuebravel e o telefone nunca é partido", () => {
++    const orgaos = fonte("paginas", "Orgaos.tsx");
++    expect(orgaos).toContain("<EmailQuebravel email={o.email} />");
++    expect(orgaos).toContain('className="tabela__secundario tabela__secundario--email"');
++    expect(orgaos).toContain('className="tabela__secundario tabela__secundario--telefone"');
++    expect(fonte("estilos", "app.css")).toMatch(/\.tabela__secundario--telefone \{[^}]*white-space: nowrap;/);
++  });
++});
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index 595e40c..ce5f43d 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -453,6 +453,317 @@ ok("a confirmação é o próprio aviso (tabindex -1), sem papel de região viva
+    foco.eOAviso && foco.tabindex === "-1" && foco.papel === null && !foco.regiaoViva, `(${JSON.stringify(foco)})`);
+ await ctxConta.close();
+ 
++
++console.log("\n== 8. O aviso passageiro não cobre a janela da senha temporária (V2-F00-E09, correção 4) ==");
++/*
++  O defeito da arbitragem da rodada 5: encerrar as sessões de alguém e, logo em
++  seguida, redefinir a senha dessa mesma pessoa (o "perdi o celular"). O aviso de
++  "sessões encerradas" ficava por cima da janela da senha temporária, no
++  `z-index` 50 contra os 40 da janela; a 320x568 escondia "Copiar senha" e "Já
++  anotei a senha", e o toque no texto do aviso caía no botão escondido e fechava
++  a janela, perdendo a senha de uso único.
++
++  Mede o que a pessoa vê e toca: nenhum aviso visível sobrepõe o retângulo da
++  janela, e o centro de cada botão da janela recebe o toque (o que o navegador
++  entrega a `elementFromPoint`, que já ignora o ramo `inert`).
++*/
++for (const [largura, altura] of [[320, 568], [390, 844], [1280, 900]]) {
++  await page.setViewportSize({ width: largura, height: altura });
++  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++  const alvo = page.locator("tbody tr", { hasText: emailLongo });
++  await alvo.getByRole("button", { name: "Encerrar sessões", exact: true }).scrollIntoViewIfNeeded();
++  await alvo.getByRole("button", { name: "Encerrar sessões", exact: true }).click();
++  const confirmacao = page.getByRole("dialog");
++  await confirmacao.waitFor({ timeout: 10_000 });
++  await confirmacao.getByRole("button", { name: /^Encerrar sessões de Marcos/ }).click();
++  await page.waitForSelector(".toast", { timeout: 20_000 });
++  await alvo.getByRole("button", { name: "Redefinir senha", exact: true }).click();
++  const janelaSenha = page.getByRole("dialog");
++  await janelaSenha.waitFor({ timeout: 10_000 });
++  await janelaSenha.getByRole("button", { name: /^Redefinir a senha de Marcos/ }).click();
++  await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).waitFor({ timeout: 20_000 });
++  await page.waitForTimeout(500);
++  const medida = await page.evaluate(() => {
++    const painel = document.querySelector(".modal__painel").getBoundingClientRect();
++    const visiveis = [...document.querySelectorAll(".toast")].filter(
++      (t) => t.getClientRects().length > 0 && getComputedStyle(t).visibility !== "hidden",
++    );
++    const sobre = visiveis.filter((t) => {
++      const a = t.getBoundingClientRect();
++      return !(a.right <= painel.left || a.left >= painel.right || a.bottom <= painel.top || a.top >= painel.bottom);
++    });
++    const focoDentro = document.querySelector(".modal__painel").contains(document.activeElement);
++    // Medido DEPOIS de abrir no topo e de rolar o painel até cada botão, como a pessoa faz.
++    const rolagemDeAbertura = document.querySelector(".modal__painel").scrollTop;
++    const botoes = [...document.querySelectorAll(".modal__painel button")].map((b) => {
++      b.scrollIntoView({ block: "nearest" });
++      const r = b.getBoundingClientRect();
++      const topo = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
++      return { texto: b.textContent.trim(), recebeOToque: topo?.closest("button") === b };
++    });
++    document.querySelector(".modal__painel").scrollTop = rolagemDeAbertura;
++    // A janela abre NO TOPO: o painel rola, e o foco inicial o rolava até o botão do pé.
++    const painelEl = document.querySelector(".modal__painel");
++    const titulo = painelEl.querySelector("h2").getBoundingClientRect();
++    const topoDoPainel = painelEl.getBoundingClientRect().top;
++    return {
++      visiveis: visiveis.length, sobreAJanela: sobre.length, botoes,
++      rolagemDoPainel: painelEl.scrollTop, focoDentro,
++      tituloVisivel: titulo.top >= topoDoPainel - 0.5 && titulo.bottom <= window.innerHeight,
++    };
++  });
++  ok(`a ${largura} px, com a janela da senha temporária aberta, nenhum aviso passageiro a cobre`,
++     medida.sobreAJanela === 0, `(${medida.sobreAJanela} aviso(s) sobre a janela)`);
++  ok(`a ${largura} px, o centro de cada botão da janela da senha temporária recebe o toque`,
++     medida.botoes.length >= 2 && medida.botoes.every((b) => b.recebeOToque),
++     `(${JSON.stringify(medida.botoes)})`);
++  ok(`a ${largura} px, a janela da senha temporária abre no topo (painel sem rolagem) e o título está à vista`,
++     medida.rolagemDoPainel === 0 && medida.tituloVisivel, `(rolagem ${medida.rolagemDoPainel}, título à vista: ${medida.tituloVisivel})`);
++  ok(`a ${largura} px, o foco está dentro da janela da senha temporária (no painel ou no primeiro botão)`, medida.focoDentro);
++  // Fechar a janela pelo botão dela: o aviso, que esperava, volta, e o "Fechar" dele responde.
++  await janelaSenha.getByRole("button", { name: "Já anotei a senha" }).click();
++  await janelaSenha.waitFor({ state: "detached", timeout: 10_000 });
++  const aviso = page.locator(".toast");
++  await aviso.waitFor({ timeout: 10_000 });
++  ok(`a ${largura} px, fechada a janela, o aviso de sessões encerradas aparece (esperou, não se perdeu)`,
++     /Marcos/.test((await aviso.textContent()) ?? ""));
++  await aviso.getByRole("button", { name: "Fechar" }).click({ timeout: 5_000 });
++  await aviso.waitFor({ state: "detached", timeout: 5_000 });
++  ok(`a ${largura} px, o Fechar do aviso responde e o aviso sai da tela`, (await page.locator(".toast").count()) === 0);
++}
++
++console.log("\n== 9. O email da lista de usuários não quebra no meio da palavra (V2-F00-E09, correção 4) ==");
++/*
++  Mede por caractere (Range), e não por classe CSS: o defeito era o navegador
++  cortar "serraalta.exemplo.gov.br" onde a coluna acabava ("serraalta.ex /
++  emplo.gov.br", "exemplo.gov.b / r"). Toda linha de email, menos a última,
++  tem de terminar em "@" ou em ponto; e o email inteiro tem de caber na célula.
++*/
++async function quebrasDosEmails(pg) {
++  return pg.evaluate(() => {
++    const saida = [];
++    for (const el of document.querySelectorAll("tbody td .tabela__secundario")) {
++      if (!el.textContent.includes("@")) continue;
++      const nos = [];
++      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
++      while (w.nextNode()) nos.push(w.currentNode);
++      const linhas = [];
++      let atual = "", y = null;
++      for (const no of nos) {
++        for (let i = 0; i < no.textContent.length; i++) {
++          const r = document.createRange();
++          r.setStart(no, i); r.setEnd(no, i + 1);
++          const ry = Math.round(r.getBoundingClientRect().top);
++          if (y !== null && ry > y + 2) { linhas.push(atual); atual = ""; }
++          y = ry; atual += no.textContent[i];
++        }
++      }
++      linhas.push(atual);
++      const celula = el.closest("td").getBoundingClientRect();
++      const texto = el.getBoundingClientRect();
++      saida.push({
++        email: nos.map((n) => n.textContent).join(""), linhas,
++        noMeioDaPalavra: linhas.slice(0, -1).filter((l) => !/[@.]$/.test(l)),
++        passaDaCelula: texto.right > celula.right + 0.5,
++      });
++    }
++    return saida;
++  });
++}
++await page.setViewportSize({ width: 1280, height: 900 });
++await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++for (const largura of [1440, 1280, 768, 390, 320]) {
++  await page.setViewportSize({ width: largura, height: 900 });
++  await page.waitForTimeout(200);
++  const emails = await quebrasDosEmails(page);
++  ok(`a ${largura} px a lista mostra pelo menos 5 emails para medir`, emails.length >= 5, `(${emails.length})`);
++  const mal = emails.filter((e) => e.noMeioDaPalavra.length > 0);
++  ok(`a ${largura} px nenhum email quebra no meio da palavra`,
++     mal.length === 0, `(${mal.map((e) => e.linhas.join(" / ")).join(" | ")})`);
++  const estouro = emails.filter((e) => e.passaDaCelula);
++  ok(`a ${largura} px nenhum email passa da própria célula`,
++     estouro.length === 0, `(${estouro.map((e) => e.email).join(", ")})`);
++}
++
++console.log("\n== 10. A senha atual errada diz o que fazer, com acento, no campo certo (V2-F00-E09, correção 4) ==");
++/*
++  Duas telas fazem o mesmo pedido (`/auth/trocar-senha`) e dão nomes diferentes
++  ao campo: "Senha que você usa hoje" em Minha conta e "Senha provisória que você
++  recebeu" em "Defina a sua senha". A frase tem de nomear o campo da tela, ter
++  acento e dizer o que fazer. O 401 que o teste provoca é esperado e fica fora do
++  registro de erros de console; qualquer outro erro continua reprovando.
++*/
++async function contextoQueEsperaOs401() {
++  const ctx = await navegador.newContext({ locale: "pt-BR" });
++  const pg = await ctx.newPage();
++  pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
++  pg.on("console", (m) => {
++    if (m.type() !== "error") return;
++    if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
++    erros.push(`console: ${m.text()}`);
++  });
++  return { ctx, pg };
++}
++/** O texto do erro do campo, ou uma frase que reprova com clareza se o campo não mostrou erro nenhum. */
++async function textoDoErro(erro) {
++  try {
++    await erro.waitFor({ timeout: 8_000 });
++    return ((await erro.textContent()) ?? "").trim();
++  } catch {
++    return "(o campo não mostrou erro nenhum)";
++  }
++}
++{
++  const { ctx, pg } = await contextoQueEsperaOs401();
++  await entrar(emailCoordenacao, SENHA_DO_TESTE, pg);
++  for (const [largura, altura] of [[1280, 900], [390, 844], [320, 568]]) {
++    await pg.setViewportSize({ width: largura, height: altura });
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.locator("#conta-senha-atual").fill("senha-que-nao-e-a-dela");
++    await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
++    await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
++    await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
++    const erro = pg.locator("#conta-senha-atual-erro");
++    const texto = await textoDoErro(erro);
++    ok(`Minha conta a ${largura} px: a frase da senha errada nomeia a senha que a pessoa usa hoje e diz o que fazer`,
++       texto.endsWith("A senha que você usa hoje não confere. Confira e digite de novo."), `("${texto}")`);
++    const icone = await erro.locator("svg").evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
++    ok(`Minha conta a ${largura} px: o ícone do erro não é espremido (14x14)`,
++       icone[0] >= 13.5 && icone[1] >= 13.5, `(${icone.map((n) => n.toFixed(1)).join("x")})`);
++    ok(`Minha conta a ${largura} px: depois do envio o foco está no campo da senha atual, e não em BODY`,
++       (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual",
++       `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
++    ok(`Minha conta a ${largura} px: o erro está ligado ao campo (aria-describedby) e a frase não tem português sem acento`,
++       ((await pg.locator("#conta-senha-atual").getAttribute("aria-describedby")) ?? "").includes("conta-senha-atual-erro")
++         && !/\bnao\b/.test(texto), `("${texto}")`);
++  }
++  /*
++    Troca certa e, logo depois, senha errada: a confirmação verde da primeira não
++    pode ficar na tela junto do erro vermelho da segunda, e o foco acompanha cada
++    resultado (a confirmação no sucesso, o campo no erro).
++  */
++  await pg.setViewportSize({ width: 390, height: 844 });
++  await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++  await pg.locator("#conta-senha-atual").fill(SENHA_DO_TESTE);
++  await pg.locator("#conta-senha-nova").fill("frase-nova-bem-comprida-2026");
++  await pg.locator("#conta-senha-repetida").fill("frase-nova-bem-comprida-2026");
++  await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
++  await pg.locator(".aviso--sucesso").waitFor({ timeout: 20_000 });
++  await pg.waitForTimeout(300);
++  ok("Minha conta: depois da troca certa o foco vai à confirmação (e não a BODY)",
++     await pg.evaluate(() => document.activeElement?.classList.contains("aviso--sucesso") === true),
++     `(${await pg.evaluate(() => document.activeElement?.className || document.activeElement?.tagName)})`);
++  await pg.locator("#conta-senha-atual").fill("outra-senha-errada-12345");
++  await pg.locator("#conta-senha-nova").fill("outra-frase-comprida-2026-b");
++  await pg.locator("#conta-senha-repetida").fill("outra-frase-comprida-2026-b");
++  await pg.getByRole("button", { name: "Trocar senha", exact: true }).click();
++  await pg.locator("#conta-senha-atual-erro").waitFor({ timeout: 20_000 });
++  await pg.waitForTimeout(300);
++  ok("Minha conta: a senha errada logo depois de uma troca certa tira a confirmação verde da tela",
++     (await pg.locator(".aviso--sucesso").count()) === 0, `(${await pg.locator(".aviso--sucesso").count()} confirmação(ões) na tela)`);
++  ok("Minha conta: e o foco vai ao campo da senha atual",
++     (await pg.evaluate(() => document.activeElement?.id)) === "conta-senha-atual");
++  await ctx.close();
++}
++{
++  const admin = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++  const redefinida = await viaApi(`/usuarios/${criada.json.id}/redefinir-senha`, { metodo: "POST", token: admin.json.acesso, corpo: {} });
++  ok("a administradora redefine a senha da pessoa de teste (200 com senha temporária)",
++     redefinida.status === 200 && typeof redefinida.json.senhaTemporaria === "string", `(${redefinida.status})`);
++  const { ctx, pg } = await contextoQueEsperaOs401();
++  await pg.setViewportSize({ width: 390, height: 844 });
++  await pg.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
++  await pg.locator("#entrada-email").fill(emailLongo);
++  await pg.locator("#entrada-senha").fill(redefinida.json.senhaTemporaria);
++  await pg.getByRole("button", { name: "Entrar", exact: true }).click();
++  await pg.getByRole("heading", { name: "Defina a sua senha" }).waitFor({ timeout: 30_000 });
++  for (const [largura, altura] of [[390, 844], [1280, 900], [320, 568]]) {
++    await pg.setViewportSize({ width: largura, height: altura });
++    await pg.locator("#senha-nova-atual").fill("provisoria-digitada-errada");
++    await pg.locator("#senha-nova").fill("frase-nova-do-teste-2026");
++    await pg.locator("#senha-nova-repetida").fill("frase-nova-do-teste-2026");
++    await pg.getByRole("button", { name: "Definir senha e entrar" }).click();
++    const erro = pg.locator("#senha-nova-atual-erro");
++    const texto = await textoDoErro(erro);
++    ok(`"Defina a sua senha" a ${largura} px: a frase da provisória errada nomeia a provisória e diz o que fazer`,
++       texto.endsWith("A senha provisória que você recebeu não confere. Confira como ela foi anotada e digite de novo."),
++       `("${texto}")`);
++    const iconeProv = await erro.locator("svg").evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
++    ok(`"Defina a sua senha" a ${largura} px: o ícone do erro não é espremido (14x14)`,
++       iconeProv[0] >= 13.5 && iconeProv[1] >= 13.5, `(${iconeProv.map((n) => n.toFixed(1)).join("x")})`);
++    ok(`"Defina a sua senha" a ${largura} px: depois do envio o foco está no campo da provisória, e não em BODY`,
++       (await pg.evaluate(() => document.activeElement?.id)) === "senha-nova-atual",
++       `(${await pg.evaluate(() => document.activeElement?.id || document.activeElement?.tagName)})`);
++    ok(`"Defina a sua senha" a ${largura} px: o erro está no campo da provisória, e não na senha nova`,
++       ((await pg.locator("#senha-nova-atual").getAttribute("aria-describedby")) ?? "").includes("senha-nova-atual-erro")
++         && (await pg.locator("#senha-nova-erro").count()) === 0 && !/\bnao\b/.test(texto), `("${texto}")`);
++  }
++  await ctx.close();
++}
++
++
++console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a lista de órgãos não parte email nem telefone (V2-F00-E09, correção 4, revisão) ==");
++{
++  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++  const mat = () => `RV-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
++  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixo}@serraalta.exemplo.gov.br`;
++  const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
++  for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
++    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++      corpo: { nome, matricula: mat(), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
++    ok(`${nome} foi cadastrada para a medida`, r.status === 201 || r.status === 200, `(${r.status})`);
++  }
++  const org = await viaApi("/orgaos", { metodo: "POST", token: adm.json.acesso,
++    corpo: { nome: `Companhia de Saneamento ${sufixo}`, sigla: "CSR", email: `atendimento.emergencial.${sufixo}@saneamento.serraalta.exemplo.gov.br`, telefone: "(35) 3333-0000" } });
++  ok("o órgão de teste foi cadastrado", org.status === 201 || org.status === 200, `(${org.status})`);
++
++  // A coluna Pessoa a 1280 e 1440 px: a tabela não rola, e os botões de ação ficam dentro dela.
++  await page.setViewportSize({ width: 1280, height: 900 });
++  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++  for (const largura of [1280, 1440]) {
++    await page.setViewportSize({ width: largura, height: 900 });
++    await page.waitForTimeout(250);
++    const m = await page.evaluate(() => {
++      const t = document.querySelector("table.tabela"); const env = t.parentElement;
++      const caixa = env.getBoundingClientRect();
++      const fora = [...t.querySelectorAll(".tabela__acoes button")].filter((b) => b.getBoundingClientRect().right > caixa.right + 0.5);
++      return { rola: env.scrollWidth > env.clientWidth + 1, largura: `${env.scrollWidth}/${env.clientWidth}`, acoesFora: fora.length };
++    });
++    ok(`a ${largura} px, com um email de parte comprida na lista, a tabela não rola`, !m.rola, `(${m.largura})`);
++    ok(`a ${largura} px, todos os botões de ação continuam dentro da tabela`, m.acoesFora === 0, `(${m.acoesFora} fora)`);
++    const ana = (await quebrasDosEmails(page)).find((e) => e.email === subdominios);
++    ok(`a ${largura} px, o email de subdomínios quebra só depois do @ e dos pontos`,
++       Boolean(ana) && ana.noMeioDaPalavra.length === 0, `(${ana?.linhas.join(" / ")})`);
++  }
++
++  // A lista de órgãos: o email quebra só nos pontos permitidos e o telefone nunca é partido.
++  await page.goto(`${BASE}/orgaos`, { waitUntil: "networkidle" });
++  await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++  for (const largura of [1440, 1280, 768, 390, 320]) {
++    await page.setViewportSize({ width: largura, height: 900 });
++    await page.waitForTimeout(250);
++    const emails = await quebrasDosEmails(page);
++    const meu = emails.find((e) => e.email.includes(sufixo));
++    ok(`Órgãos a ${largura} px: o email do órgão quebra só depois do @ e dos pontos`,
++       Boolean(meu) && meu.noMeioDaPalavra.length === 0, `(${meu?.linhas.join(" / ")})`);
++    const telefones = await page.evaluate(() => [...document.querySelectorAll("tbody td .tabela__secundario")]
++      .filter((el) => /\d{4}-\d{4}/.test(el.textContent)).map((el) => {
++        const no = el.firstChild; const topos = new Set();
++        for (let i = 0; i < no.textContent.length; i++) {
++          const r = document.createRange(); r.setStart(no, i); r.setEnd(no, i + 1);
++          topos.add(Math.round(r.getBoundingClientRect().top));
++        }
++        return { texto: no.textContent, linhas: topos.size };
++      }));
++    ok(`Órgãos a ${largura} px: há telefone para medir`, telefones.length >= 1, `(${telefones.length})`);
++    ok(`Órgãos a ${largura} px: nenhum telefone é partido em duas linhas`,
++       telefones.every((t) => t.linhas === 1), `(${telefones.filter((t) => t.linhas > 1).map((t) => t.texto).join(", ")})`);
++  }
++}
++
+ await navegador.close();
+ 
+ console.log(`\n${"=".repeat(52)}`);
+diff --git a/dc360/apps/web/test/toast.test.ts b/dc360/apps/web/test/toast.test.ts
+index 5bf61da..01916be 100644
+--- a/dc360/apps/web/test/toast.test.ts
++++ b/dc360/apps/web/test/toast.test.ts
+@@ -117,11 +117,11 @@ describe("O componente usa o próprio relógio", () => {
+       chegaria ao fim, num painel que se atualiza sozinho.
+     */
+     expect(FONTE).toMatch(/useRef\(aoFechar\)/);
+-    // E a lista de dependências do efeito é a duração e a pausa, nada mais: o
++    // E a lista de dependências do efeito é a duração e as duas pausas (ponteiro e janela aberta), nada mais: o
+     // `aoFechar` entrando ali é o defeito que o ref existe para impedir.
+-    expect(FONTE).toMatch(/agendarFechamento\([\s\S]*?\), \[duracao, interagindo\]\);/);
++    expect(FONTE).toMatch(/agendarFechamento\([\s\S]*?\), \[duracao, interagindo, esperandoJanela\]\);/);
+     expect(FONTE).not.toMatch(/\[duracao, aoFechar\]/);
+-    expect(FONTE).not.toMatch(/\[duracao, interagindo, aoFechar\]/);
++    expect(FONTE).not.toMatch(/\[duracao, interagindo, esperandoJanela, aoFechar\]/);
+   });
+ });
+ 
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index dcd581a..e1affbd 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5072 testes somando o aplicativo** (contagem estática de `npm run
++- **5104 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5072 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5104 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/campo/src/transporte.ts b/dc360/packages/campo/src/transporte.ts
+index e39b155..e8af6bc 100644
+--- a/dc360/packages/campo/src/transporte.ts
++++ b/dc360/packages/campo/src/transporte.ts
+@@ -217,13 +217,13 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
+     metodo = "POST",
+   ): Promise<T> {
+     const { resposta, corpo: lido } = await pedir(
+-      caminho, corpo, metodo, "Sem conexao com o servidor.",
++      caminho, corpo, metodo, "Sem conexão com o servidor.",
+     );
+ 
+     if (resposta.ok) return (await lerCorpo(resposta)) as T;
+ 
+     if (resposta.status >= 500 || resposta.status === 429) {
+-      throw new FalhaTemporaria(`Servidor indisponivel (${resposta.status}).`);
++      throw new FalhaTemporaria(`Servidor indisponível (${resposta.status}).`);
+     }
+ 
+     throw falhaDaResposta(resposta.status, lido ?? await lerCorpo(resposta));
+@@ -265,7 +265,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
+           signal: cancelador.signal,
+         });
+       } catch (erro) {
+-        throw new FalhaTemporaria("Sem conexao com o armazenamento.", erro);
++        throw new FalhaTemporaria("Sem conexão com o armazenamento.", erro);
+       } finally {
+         clearTimeout(relogio);
+       }
+@@ -273,11 +273,11 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
+       if (resposta.ok) return;
+ 
+       if (resposta.status >= 500 || resposta.status === 429) {
+-        throw new FalhaTemporaria(`Armazenamento indisponivel (${resposta.status}).`);
++        throw new FalhaTemporaria(`Armazenamento indisponível (${resposta.status}).`);
+       }
+       // 403 aqui costuma ser URL vencida, e a proxima tentativa pede outra.
+       if (resposta.status === 403) {
+-        throw new FalhaTemporaria("A autorizacao de envio venceu.");
++        throw new FalhaTemporaria("A autorização de envio venceu.");
+       }
+       throw new FalhaPermanente(
+         `O armazenamento recusou o arquivo (${resposta.status}).`,
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 6e48ae7..17a1c72 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -455,6 +455,16 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     não muda (1356) e o `vitest run` soma 2 (1390, com 34 pulados).
+   */
+   "V2-F00-E07-correcao-4-complemento": { total: 2, falhas: 0, puladas: 2 },
++  /*
++    V2-F00-E09, correção 4 (2026-10-19), arbitragem da rodada 5:
++    `mensagens-visiveis-com-acento.test.ts` é novo, com 12 casos (a varredura
++    morde numa fonte sintética, e a árvore real da API, do painel, do
++    compartilhado e do motor de campo não tem frase de tela sem acento), e
++    `senha-provisoria.test.ts` ganha 1 caso de PGlite (a senha atual errada na
++    troca responde 401 com a frase acentuada que diz o que fazer). Soma 13 na
++    lista e 13 no `vitest run`, sem pulo novo.
++  */
++  "V2-F00-E09-correcao-4": { total: 13, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -526,6 +536,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
+   "V2-F00-E10-correcao-2": { total: 10, falhas: 0 },
+   // V2-F00-E05, correção 2: `sessao-e-entrada.test.ts` ganha 4 casos (403 de cada código novo do catálogo, sem ação, não renova nem derruba a tela).
+   "V2-F00-E05-correcao-2": { total: 4, falhas: 0 },
++  // V2-F00-E09, correção 4: `correcao-4-da-e09.test.ts` é novo, com 19 casos (a frase da senha atual errada por tela, o contador de janelas abertas e o aviso que espera, o email que quebra só depois do "@" e dos pontos, e os seis itens da revisão: ícone do erro, confirmação limpa no envio, foco depois de enviar, teto da linha do email, janela aberta no topo, órgãos). Nenhuma falha nova.
++  "V2-F00-E09-correcao-4": { total: 19, falhas: 0 },
+ };
+ export function esperadoDoTesteWeb() {
+   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
+@@ -795,13 +807,18 @@ export const PASSOS = [
+     temas, geometria a 320 px): 288 verificacoes executadas no fluxo contra a
+     API (as `ok(` no inicio de linha, que o `conferir` conta, sao 258) e 64 na
+     largura estreita. Medido no Mac, Node 24, Chromium.
++
++    Correcao 4 da E09 (2026-10-19): `layout-estreito.e2e.mjs` ganha tres secoes
++    (o aviso passageiro por cima da janela da senha temporaria, o email que nao
++    quebra no meio da palavra e a frase da senha atual errada nas duas telas):
++    de 64 para 149 verificacoes executadas na largura estreita (104 na primeira rodada, mais 45 da revisao: icone, foco, janela no topo, teto do email e orgaos).
+   */
+   {
+     id: "e2e-api",
+     titulo: "npm run test:e2e:api",
+     cmd: "npm run test:e2e:api",
+     cwd: ".",
+-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 64   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 149   Falhou: 0"] },
+   },
+ ];
+ 

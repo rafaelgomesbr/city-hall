@@ -1,0 +1,23 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| 01-typecheck.txt | eac32ad14a3d7ad7e7f2712841ef2f3606583777e82ff21ab17277d1465db2d7 |
+| 02-teste-shared.txt | ae607dffe3d65219a19e29ac2e46ec61ab4f641c4617fd2a14cacddd60bde84b |
+| 03-teste-db.txt | a0fe06b98d69cb402376b246e302c1ce9332d869c87ff1acd364b10133e62333 |
+| 04-teste-campo-pacote.txt | 70e8d99bb4b85ba523c15ce78d8017ff84fda6791e250cd4d4db044ee6cd2d44 |
+| 05-teste-api.txt | df0b99dd62d98d036f7f644496352cfac26781151d95ebb9a0ba5db1eb1b5172 |
+| 06-teste-console.txt | c6e772a35e0f8baa8cc1d20805eccc1799900c5db7d582285503265424e4819e |
+| 07-teste-web.txt | 680555157b16c236c00442cc41f7bb46b4322d31e3e5b4ac0fb65e3406827ffc |
+| 08-teste-campo-app.txt | f372e0436d11d1ee985f4de25ec48cd515ce497d08d87ec4e7f4d34e0399fca2 |
+| 09-test-campo.txt | 8309ee588b24afd7fb2294688fda074607787c7e70ff7bcb170a804108554149 |
+| 10-test-scripts.txt | ca735c3952c8def3b640bd269fed657b25d4c504f7b768e0acc12fed1ad4e896 |
+| 11-conferir-numeros.txt | abc66cfbc4a286f75c10d27a042b952829e20c5c45fa9387d57151d016c1934a |
+| 12-auditar.txt | 7c01f4dfb1938250e0c1ce7021f1fbd77d0aecbc45c02d70e87b2f536840571f |
+| 13-audit-raiz.txt | 2f4069b66f9394fe8bab0ea2337dbdeb286e93f122d9a3ea75b5ed4fa1f90cca |
+| 14-audit-campo.txt | d1d1db48d92e1a5ce434f66004ec0cfebb76ca76b7d372d40d56f4c7f5ef5dc6 |
+| 15-expo-doctor.txt | 9bb8d6229a95582cb1a86c473fb0e4dd35e626aa32491b1ae40cacd518e9fb90 |
+| 16-e2e.txt | d154b7728d671bbc1acdfb3f7690f4fbf840544b4c4ae11023d69867912b7007 |
+| 17-e2e-api.txt | 7840d45b0f1e5e88f3f7a86699c0bd745914d2c55993c24a489f309208d01f8e |
+| RESUMO.md | 1d927d623efc21a4dc1bd9e2f70a2549204f43190a68cb03a184f7e35fb391b4 |
+| resultados.json | e82d7d36eed372964ef4a5a6847d25494a4e4c64f9600af0d4910e1715aee101 |

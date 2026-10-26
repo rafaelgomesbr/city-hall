@@ -1,0 +1,5 @@
+-- bash
+FALHAS: nenhuma
+-- zsh
+FALHAS: nenhuma
+-- blocos: os 14 blocos do documento final sao identicos aos executados nos dois shells (cmp de cada .orig), e nenhum bloco tem '#'.

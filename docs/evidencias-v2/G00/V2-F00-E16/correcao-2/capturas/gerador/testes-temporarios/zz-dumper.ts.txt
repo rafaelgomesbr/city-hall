@@ -1,0 +1,22 @@
+/* TEMPORARIO: gerador das árvores para a captura. Apagado depois da rodada. */
+import { StyleSheet } from "react-native";
+import { writeFileSync } from "node:fs";
+export const PASTA = "/private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/arvores";
+type No = { type: string; props: Record<string, unknown>; children: unknown[] | null } | string;
+export function serializar(no: unknown): unknown {
+  if (no === null || no === undefined) return null;
+  if (typeof no === "string") return no;
+  if (Array.isArray(no)) return no.map(serializar);
+  const n = no as { type: string; props: Record<string, unknown>; children: unknown[] | null };
+  const { style, ...resto } = n.props ?? {};
+  const mantidas: Record<string, unknown> = {};
+  for (const k of ["accessibilityLabel", "accessibilityRole", "testID", "accessibilityState", "source", "d", "fill", "stroke", "strokeWidth", "viewBox", "width", "height", "cx", "cy", "r", "x", "y", "x1", "x2", "y1", "y2", "points", "strokeLinecap", "strokeLinejoin", "opacity", "numberOfLines", "name", "gradient", "gradientUnits", "gradientTransform", "matrix"]) {
+    if (k in resto) mantidas[k] = resto[k];
+  }
+  let estilo: unknown = {};
+  try { estilo = StyleSheet.flatten(style as never) ?? {}; } catch { estilo = {}; }
+  return { type: n.type, props: mantidas, style: estilo, children: (n.children ?? []).map(serializar) };
+}
+export function gravar(nome: string, arvore: unknown): void {
+  writeFileSync(`${PASTA}/${nome}.json`, JSON.stringify(serializar(arvore)));
+}

@@ -1,0 +1,32 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | 9600609e146b05b6647309dab597016f2b7af4cb286213e64d0b3140890dea28 |
+| diff-da-correcao.patch | 2db81b49682dc4202be10aeddeca4d48a2b6b6101eb15421c365e5398e0f431f |
+| saidas/01-ANTES-VERMELHO-tabela-de-permissoes-do-readme.txt | 038a1422f6721c4677e8ae010f1f7098b2897e0063bab7851091a0e9538326db |
+| saidas/02-DEPOIS-VERDE-tabela-de-permissoes-do-readme.txt | 9192ea618e67479bfeeb196dfa64fa8d28685b5941b2c53356d5210a9dfb2945 |
+| saidas/03-MUTACAO-1-acao-nova-no-codigo-sem-README.txt | 4e0a4edd40172102bc8c7a1044eab14ba7b72c7535e6064f531a3c63e1085a05 |
+| saidas/04-MUTACAO-2-acao-tirada-do-codigo-sobra-no-README.txt | 8807a1adf623c7a01eec3f38d4c705818d5c8711a81f9e0abf22b5a6fc0f537a |
+| saidas/05-MUTACAO-3-operador-perde-consultar_oficio-README-e-PAPEIS-acusam.txt | 59925324baa1e27bcb3736b9f45ec14887465c360f01d04f1eb50a25bb77f710 |
+| saidas/06-MUTACAO-4-colunas-trocadas-no-cabecalho-de-PAPEIS.txt | 1e0be4779a3340ff6f5ab6d5e7ca0490cb8ccd9570ff08658c5bb1b45214cb77 |
+| saidas/10-test-api-completo-com-16-falhas-por-parada-da-maquina.txt | 24dbbe9b38c0a455d3aeb7fede2bd9afce80df15245ec06d23fee86b497f4e4b |
+| saidas/11-test-api-dos-7-arquivos-que-falharam-sozinhos-VERDE.txt | f5707b850e22c60c17df11713db35c8ccc3631d1b5cb6e8f5d87bb43f29bb89e |
+| saidas/12-test-api-completo-VERDE.txt | 9ae21599b8427041af80256f6e7d1d3bd88e27693073635bfbe3c629e27bda51 |
+| saidas/20-referencias-a-arquivo-inexistentes.txt | 0e1433b8c2a0b9a9e0222a9ec911e516c9eed2229c9c1cacfc3dc181a2ebaab3 |
+| saidas/21-variaveis-e-rotas-citadas.txt | dd58aae2d6ab65472fffa6934dcf30e8d12a8538d1e590a44d4c39bbb6efae41 |
+| saidas/22-sem-travessao-nos-arquivos-tocados.txt | a6c46a3656a1457f8009937085f067b5316803271392a7537ef3014c8adf447f |
+| saidas/30-conferir-numeros-DEPOIS-VERDE.txt | 8071f5142445bd813b1f3801367dc86f617482cece007c7d0713ea9583870349 |
+| saidas/31-baseline-test.txt | b1b31c01188970dabb61cbfe280c304df2a05408a5b5a8edd6c0769b6b368316 |
+| saidas/32-portao-de-conteudo.txt | cd8dbee7e6e9b1bf97168c8a28cc37c1d71807db703d00cd2f8de21552c36239 |
+| saidas/33-shared-completo.txt | 74f17705e2e63fc9d3898d9d7b43938d67c894e41dfe0195d72cdd8b52cdc554 |
+| saidas/34-typecheck-inclui-tsc-da-api.txt | d9910c896aca808b10b1e930d357e6fb4042e0d60e9df476308d4b7236ddc009 |
+| saidas/35-npm-run-auditar.txt | fbc4a97381984b41687ef059f378ade238547f5b33b2284119a12392a69c3ac2 |
+| saidas/36-api-testes-dos-arquivos-com-comentario-alterado.txt | 2d7be8fc462ff71cd5ffe006b23ffb6b3fd9da41a142a9f6116daaa50e631f5e |
+| saidas/37-ancoras-da-declaracao.txt | 456547c63e072df463664e4097bdd75d0d227e8d467faae1e2290a397dcb4866 |
+| saidas/38-prova-dinamica-matriz-de-alcance.json.txt | 7327c8e99bf2f7294faa6ec83c6ab1dad39098d5c5a1177006e29e04d6d93990 |
+| sondas/contar-funcoes-privilegiadas.mjs | b854584c6a5aab67716de29b0d6b60167b381b365520aa9e53da365c30abaa52 |
+| sondas/referencias-a-arquivo.mjs | 3dca3e65020866f0d46a1418d713ac05316f78fb6e7bb46c3c78c6578fdd3619 |
+| sondas/tabelas-fora-do-dicionario.mjs | 3f37825d0098336088948ae908dc93ce1707eeb6e050cc9094d1fcb928de630a |
+| sondas/travessao-nos-arquivos-tocados.mjs | 4dce5ba109aa2f5329fbdd6c9ee6f2e48e262f9e04c0df9a53bad536762d10ad |
+| sondas/variaveis-e-rotas-citadas.mjs | 08337d9f7aa8b9c4a4e8389c262d3dbe169a6a51ac3c01b0b1026bf3e1d7326f |

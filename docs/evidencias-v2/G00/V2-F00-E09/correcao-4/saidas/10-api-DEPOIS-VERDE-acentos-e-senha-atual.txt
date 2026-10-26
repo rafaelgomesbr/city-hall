@@ -1,0 +1,18 @@
+
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+ ✓ test/mensagens-visiveis-com-acento.test.ts (12 tests) 752ms
+ ✓ test/senha-provisoria.test.ts (9 tests) 7119ms
+   ✓ A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera  1053ms
+   ✓ A senha temporária de quem administra > a senha atual errada na troca responde em português correto e diz o que fazer  1019ms
+   ✓ A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403  759ms
+   ✓ A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha  931ms
+   ✓ A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova  762ms
+   ✓ A senha temporária de quem administra > a escrita comum com a senha provisória vencida responde 401 sessao_encerrada, e não 403  746ms
+   ✓ A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa  497ms
+
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+   Start at  18:32:33
+   Duration  7.84s (transform 246ms, setup 35ms, collect 696ms, tests 7.87s, environment 0ms, prepare 67ms)
+

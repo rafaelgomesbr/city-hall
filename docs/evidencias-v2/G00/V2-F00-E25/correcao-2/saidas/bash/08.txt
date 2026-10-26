@@ -1,0 +1,5 @@
+$ # bloco 08 (texto do documento, antes das 5 substituicoes de placeholder)
+pg_restore -h 127.0.0.1 -p $PORTA_DESTINO -U dc360_setup --dbname=prova_e25_restaurado --exit-on-error "$PASTA_RESTORE/dc360.dump"
+
+--- saida ---
+--- bloco terminou: sim ---

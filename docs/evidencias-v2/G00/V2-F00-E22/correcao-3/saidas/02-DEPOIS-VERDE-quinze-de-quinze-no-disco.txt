@@ -1,0 +1,4 @@
+$ git grep -n -i -E 'quinze de quinze|décima sexta' -- dc360 ':!dc360/db/migrations'; echo '(sobram so as migracoes 031 e 035, registro historico)'   (em .)
+codigo=0
+
+(sobram so as migracoes 031 e 035, registro historico)

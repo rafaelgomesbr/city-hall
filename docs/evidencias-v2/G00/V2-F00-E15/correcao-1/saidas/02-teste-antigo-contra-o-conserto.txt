@@ -1,0 +1,153 @@
+# O teste antigo de vistoria-ainda-nao-baixada (de a1760af) contra a tela consertada: reprova, porque exigia o verbo que apaga. Motivo da decisao em docs/DECISOES-DE-TESTE-DA-FASE-00.md.
+
+FAIL src/__tests__/zz-antigo.test.tsx
+  √ explica que a tarefa ainda não chegou, em vez de parecer defeito (135 ms)
+  √ oferece baixar a lista ali mesmo, sem mandar o agente voltar (7 ms)
+  √ baixa a lista e abre a vistoria em seguida (162 ms)
+  √ mantém o botão de tentar de novo quando a rede falha (11 ms)
+  √ nomeia a sessão vencida em vez de culpar o sinal (12 ms)
+  × o 401 nomeia a sessão encerrada e oferece sair e entrar de novo (11 ms)
+  √ o acesso suspenso pelo fornecedor não manda entrar de novo (11 ms)
+  √ a falha sem nome continua pedindo para tentar daqui a pouco (10 ms)
+  √ 'Voltar para as tarefas' sem histórico vai para a lista, em vez de não fazer nada (5 ms)
+
+  ● o 401 nomeia a sessão encerrada e oferece sair e entrar de novo
+
+    Unable to find an element with text: Sair e entrar de novo
+
+    <RCTScrollView>
+      <View>
+        <View>
+          <Text>
+            Esta tarefa ainda não está neste aparelho
+          </Text>
+          <Text>
+            Ela foi despachada depois da última vez que você baixou a lista. Com sinal, baixe agora e ela abre em seguida.
+          </Text>
+        </View>
+        <View
+          accessibilityRole="alert"
+        >
+          <View>
+            <View
+              accessibilityLabel="Perigo"
+              accessible={true}
+            >
+              <Text>
+                ×
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Sua sessão terminou
+              </Text>
+              <Text>
+                O servidor não reconhece mais a sua entrada neste aparelho, então nenhuma tarefa nova desce até você entrar outra vez. Toque em "Entrar de novo" e entre com o seu email e a sua senha. Nada é apagado: a vistoria começada, as fotos e o que você já coletou continuam neste aparelho e voltam para você assim que entrar com a sua conta.
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Entrar de novo com o seu email e a sua senha, sem apagar a vistoria começada"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="entrar-de-novo"
+          >
+            <View
+              testID="entrar-de-novo-rotulo"
+            >
+              <Text>
+                Entrar de novo
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View
+          testID="acoes-de-baixar"
+        >
+          <View
+            accessibilityLabel="Baixar tarefas agora"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="baixar-para-abrir"
+          >
+            <RNSVGSvgView
+              pointerEvents="none"
+            >
+              <RNSVGGroup>
+                <RNSVGDefs>
+                  <RNSVGLinearGradient />
+                </RNSVGDefs>
+                <RNSVGRect />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+            <View
+              testID="baixar-para-abrir-rotulo"
+            >
+              <Text>
+                Baixar tarefas agora
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Voltar para as tarefas"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="voltar-das-tarefas"
+          >
+            <View
+              testID="voltar-das-tarefas-rotulo"
+            >
+              <Text>
+                Voltar para as tarefas
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </RCTScrollView>
+
+      238 |
+      239 |   await act(async () => {
+    > 240 |     fireEvent.press(screen.getByText("Sair e entrar de novo"));
+          |                            ^
+      241 |   });
+      242 |   await act(async () => {});
+      243 |
+
+      at getByText (src/__tests__/zz-antigo.test.tsx:240:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (node_modules/@testing-library/react-native/src/act.ts:30:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:29:25)
+      at _act (node_modules/@testing-library/react-native/src/act.ts:72:10)
+      at Object.<anonymous> (src/__tests__/zz-antigo.test.tsx:239:12)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 8 passed, 9 total
+Snapshots:   0 total
+Time:        3.322 s
+Ran all test suites matching /src\\__tests__\\zz-antigo/i.

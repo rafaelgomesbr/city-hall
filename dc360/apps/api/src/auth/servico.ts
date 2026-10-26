@@ -1,6 +1,6 @@
 import type { Papel } from "@dc360/shared";
 import type { Config } from "../config.js";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import { conferirSenha, gastarTempoEquivalente } from "./senha.js";
 import {
   DESAFIO_MINUTOS, emitirAcesso, emitirDesafio, gerarTokenRenovacao, hashDoToken,
@@ -12,7 +12,7 @@ import { encerrarSessoes } from "./sessoes.js";
 import { exigirAcessoAtivo } from "./suspensao.js";
 import { ContaDesativada } from "./conta-desativada.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { mensagemDeRecuperacao, semOsEnderecos, type Mensagem, type Notificador } from "./notificador.js";
 import { resumirAparelho } from "./aparelho.js";
 
@@ -133,6 +133,36 @@ type LinhaCredencial = {
  * primeiro caso.
  */
 const MENSAGEM_GENERICA = "Email ou senha inválidos.";
+
+/**
+ * A credencial mudou entre a conferência da senha e a abertura da sessão
+ * (`emitirPar`). Só existe para desfazer a transação; quem chama a traduz na
+ * recusa genérica.
+ */
+class CredencialMudou extends Error {}
+
+/**
+ * A impressão da credencial que o desafio do segundo fator carrega (`cr`,
+ * V2-F00-E07, correção 3, achado 5 da validação de 52952a1).
+ *
+ * O desafio vale cinco minutos, e a sessão só nasce na segunda etapa. Sem
+ * isto, quem tinha a senha antiga e o código abria sessão depois de uma troca
+ * ou redefinição de senha feita nesses cinco minutos. A segunda etapa não tem
+ * o hash que a primeira conferiu, então o desafio leva uma impressão dele, e
+ * `emitirPar` relê o hash sob a trava e compara.
+ *
+ * HMAC com o segredo de assinatura, e não o hash puro nem um resumo dele: o
+ * desafio é legível por quem o carrega (é assinado, não cifrado), e nada
+ * derivado da senha precisa sair do servidor de um jeito que dê para
+ * comparar fora dele. Muda a cada troca porque cada derivação sorteia um sal
+ * novo. Sem hash (conta sem senha) a impressão é de uma cadeia vazia e nunca
+ * confere com uma conta que tem senha.
+ */
+function impressaoDaCredencial(segredo: Uint8Array, senhaHash: string | null): string {
+  return createHmac("sha256", segredo)
+    .update(`dc360.credencial-do-desafio:${senhaHash ?? ""}`)
+    .digest("base64url");
+}
 
 /**
  * O contador de falhas dos emails que NÃO EXISTEM, em memória, com teto.
@@ -372,7 +402,9 @@ export function servicoDeAutenticacao(
       return desafiar(linha, exigencia);
     }
 
-    return emitirPar(linha, contexto);
+    // A sessão só nasce se a credencial ainda for a que o scrypt conferiu
+    // acima. Ver `emitirPar`.
+    return emitirPar(linha, contexto, (atual) => atual === linha.senha_hash);
   }
 
   /**
@@ -397,6 +429,7 @@ export function servicoDeAutenticacao(
       papel: linha.papel,
       nome: linha.nome,
       pp: proposito,
+      cr: impressaoDaCredencial(config.jwtSegredos[0], linha.senha_hash),
     });
 
     return {
@@ -467,7 +500,9 @@ export function servicoDeAutenticacao(
     await exigirAcessoAtivo(banco, conteudo.org);
 
     return {
-      ...(await emitirPar(linha, contexto)),
+      // A senha pode ter mudado depois de o desafio sair (até cinco minutos):
+      // a sessão só nasce se a credencial ainda for a que ele atesta.
+      ...(await emitirPar(linha, contexto, (atual) => credencialDoDesafioConfere(conteudo.cr, atual))),
       codigosDeRecuperacaoRestantes: resultado.codigosRestantes,
       entrouComCodigoDeRecuperacao: resultado.viaCodigoDeRecuperacao,
     };
@@ -490,13 +525,67 @@ export function servicoDeAutenticacao(
     organizacaoId: string,
     usuarioId: string,
     contexto: { userAgent?: string; ip?: string },
+    /** A impressão da credencial que o desafio de ativação carrega (`cr`). */
+    credencialDoDesafio: string,
   ): Promise<Autenticado> {
     const linha = await lerCredencialPorId(organizacaoId, usuarioId);
     if (!linha || !linha.ativo) {
       throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
     await exigirAcessoAtivo(banco, organizacaoId);
-    return emitirPar(linha, contexto);
+    return emitirPar(linha, contexto, (atual) => credencialDoDesafioConfere(credencialDoDesafio, atual));
+  }
+
+  /**
+   * A credencial de agora é a que o desafio atesta? Confere contra todo
+   * segredo da lista, como a assinatura: o desafio emitido pouco antes de uma
+   * troca de segredo continua valendo pelos seus cinco minutos.
+   */
+  function credencialDoDesafioConfere(impressao: string, senhaHashAtual: string | null): boolean {
+    return config.jwtSegredos.some((s) => impressaoDaCredencial(s, senhaHashAtual) === impressao);
+  }
+
+  /**
+   * A mesma pergunta, para quem usa o desafio de ativação ANTES de haver
+   * sessão (as rotas de ligar o segundo fator): a conta segue ativa e a
+   * senha é a que o desafio atesta. Leitura sob o município do desafio
+   * assinado, pelo caminho comum (RLS), como `lerCredencialPorId`.
+   */
+  async function credencialDoDesafioVale(
+    organizacaoId: string, usuarioId: string, impressao: string,
+  ): Promise<boolean> {
+    const atual = await banco.comTenant(organizacaoId, async (c) => {
+      const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+        "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
+      );
+      return r.rows[0] ?? null;
+    });
+    return atual !== null && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
+  }
+
+  /**
+   * A mesma pergunta, DENTRO da transação de quem chama e sob a trava da
+   * pessoa (complemento da correção 3 da E07). É a de `confirmarAtivacao`:
+   * a conferência de `credencialDoDesafioVale` roda numa transação própria,
+   * antes, e a senha podia mudar entre ela e a que liga o recurso, ligando o
+   * segundo fator com o aparelho de quem tinha a senha antiga. Aqui a
+   * releitura vem depois da trava, como em `emitirPar`: mudança que confirmou
+   * antes é vista; mudança que chega depois para na trava (toda troca,
+   * redefinição e desativação a toma depois de atualizar `usuarios`) e só
+   * confirma depois de o recurso estar ligado, como se tivesse chegado um
+   * instante depois. A trava vem antes da linha de `segundo_fator` e não
+   * segura linha de `usuarios` nem do município, então não fecha ciclo com
+   * os caminhos da 049.
+   */
+  async function credencialDoDesafioValeSobTrava(
+    c: Consulta, usuarioId: string, impressao: string,
+  ): Promise<boolean> {
+    await c.query("SELECT travar_sessoes_do_usuario($1)", [usuarioId]);
+    const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+      "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
+    );
+    const atual = r.rows[0];
+    return atual !== undefined && atual.ativo && credencialDoDesafioConfere(impressao, atual.senha_hash);
   }
 
   /**
@@ -528,33 +617,109 @@ export function servicoDeAutenticacao(
   }
 
   /**
-   * Abre a sessão e emite o par de tokens. `familiaId` só a renovação informa:
-   * a sessão nova entra na cadeia da que acabou de ser rotacionada. Sem ele é
-   * um login, e o banco abre uma família nova (migração 047).
+   * Abre a sessão no banco, na transação de quem chama. `familiaId` só a
+   * renovação informa: a sessão nova entra na cadeia da que acabou de ser
+   * rotacionada. Sem ele é um login, e o banco abre uma família nova
+   * (migração 047).
+   */
+  async function abrirSessao(
+    c: Consulta,
+    linha: LinhaCredencial,
+    contexto: { userAgent?: string; ip?: string },
+    renovacao: string,
+    familiaId: string | null,
+  ): Promise<string> {
+    const r = await c.query<{ abrir_sessao: string }>(
+      "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
+      [
+        linha.organizacao_id,
+        linha.usuario_id,
+        hashDoToken(renovacao),
+        `${config.RENOVACAO_DIAS} days`,
+        contexto.userAgent ?? null,
+        contexto.ip ?? null,
+        familiaId,
+      ],
+    );
+    return r.rows[0]!.abrir_sessao;
+  }
+
+  /**
+   * Login: abre a sessão (família nova) e emite o par de tokens, SÓ SE a
+   * credencial ainda for a que foi conferida (V2-F00-E07, correção 3).
+   *
+   * O DEFEITO, provado pela validação de 52952a1 em Postgres 17: o login lia o
+   * hash numa transação, gastava o scrypt (cerca de 230 ms) e abria a sessão
+   * em OUTRA, sem trava e sem reler nada. Se a troca de senha pela própria
+   * pessoa, a redefinição por quem administra ou a desativação confirmava
+   * nesse intervalo, o UPDATE de `sessoes` delas não via a sessão que ainda
+   * não existia, e o login a abria depois, viva: com a senha ANTIGA, e
+   * renovando por catorze dias (13 de 30 rodadas na troca pela própria
+   * pessoa, que é o remédio de quem desconfia que a senha vazou).
+   *
+   * O CONSERTO, numa transação só, nesta ordem:
+   *
+   *   1. `abrir_sessao`, que no login lê a linha do município com FOR SHARE
+   *      (migração 050);
+   *   2. a trava da pessoa (`travar_sessoes_do_usuario`, migração 049), num
+   *      comando próprio;
+   *   3. a releitura de `senha_hash` e `ativo`, que em READ COMMITTED tira
+   *      fotografia nova depois da trava. Se a credencial não é mais a que
+   *      `confere` aceita, ou a conta foi desativada, a transação volta
+   *      atrás inteira (a sessão some junto) e a resposta é a recusa
+   *      genérica de senha errada: a senha digitada de fato não vale mais.
+   *
+   * As duas ordens da disputa ficam fechadas. Mudança que confirmou antes da
+   * trava: a releitura a enxerga e recusa. Mudança que chega depois da trava:
+   * ela atualiza `usuarios` (sem esperar o login, que só lê a linha) e para na
+   * trava; o login confirma a sessão e solta a trava, e o UPDATE de `sessoes`
+   * da mudança, que vem depois da trava, enxerga a sessão e a encerra.
+   *
+   * POR QUE ESSA ORDEM, e não a trava primeiro: a suspensão pelo console
+   * atualiza a linha do município e SÓ DEPOIS toma a trava de cada pessoa
+   * (049). Se o login tomasse a trava e depois pedisse a linha do município
+   * (o FOR SHARE da 050), as duas se esperariam em ordem inversa e o Postgres
+   * mataria uma com 40P01. Linha do município antes da trava, como a
+   * suspensão; e o login nunca trava a linha de `usuarios` (a chave
+   * estrangeira de `sessoes` só pede FOR KEY SHARE, que não conflita com o
+   * UPDATE de quem troca a senha), então a regra da 049 (linha de `usuarios`
+   * antes da trava) continua sem ciclo.
+   *
+   * `confere` recebe o hash de agora: o login compara com o hash que o scrypt
+   * conferiu; o segundo fator e a ativação, que não têm o hash, comparam com a
+   * impressão que o desafio carrega (`impressaoDaCredencial`).
    */
   async function emitirPar(
     linha: LinhaCredencial,
     contexto: { userAgent?: string; ip?: string },
-    familiaId: string | null = null,
+    confere: (senhaHashAtual: string | null) => boolean,
   ): Promise<Autenticado> {
     const renovacao = gerarTokenRenovacao();
-
-    const sessaoId = await banco.semTenant(async (c) => {
-      const r = await c.query<{ abrir_sessao: string }>(
-        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
-        [
-          linha.organizacao_id,
-          linha.usuario_id,
-          hashDoToken(renovacao),
-          `${config.RENOVACAO_DIAS} days`,
-          contexto.userAgent ?? null,
-          contexto.ip ?? null,
-          familiaId,
-        ],
+    const sessaoId = await banco.comTenant(linha.organizacao_id, async (c) => {
+      const id = await abrirSessao(c, linha, contexto, renovacao, null);
+      await c.query("SELECT travar_sessoes_do_usuario($1)", [linha.usuario_id]);
+      const r = await c.query<{ senha_hash: string | null; ativo: boolean }>(
+        "SELECT senha_hash, ativo FROM usuarios WHERE id = $1", [linha.usuario_id],
       );
-      return r.rows[0]!.abrir_sessao;
+      const atual = r.rows[0];
+      if (!atual || !atual.ativo || !confere(atual.senha_hash)) throw new CredencialMudou();
+      return id;
+    }).catch((erro: unknown) => {
+      if (erro instanceof CredencialMudou) return null;
+      throw erro;
     });
+    if (sessaoId === null) {
+      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
+    }
+    return montarPar(linha, sessaoId, renovacao);
+  }
 
+  /** O par de tokens de uma sessão já aberta. */
+  async function montarPar(
+    linha: LinhaCredencial,
+    sessaoId: string,
+    renovacao: string,
+  ): Promise<Autenticado> {
     // Vencida não chega aqui: `entrar` e `renovar` recusam antes. O que sobra
     // é "provisória e no prazo", que vira a marca no token.
     const provisoria = linha.senha_provisoria_ate !== null;
@@ -620,7 +785,11 @@ export function servicoDeAutenticacao(
     });
 
     if (!sessao) {
-      await derrubarSePossivelReuso(hash);
+      // `sessao_por_token` não devolve sessão revogada, e desativar a conta
+      // pelo painel REVOGA as sessões dela. Sem esta pergunta, a pessoa
+      // desativada que volta depois do token de acesso vencer caía aqui e lia
+      // "sessão encerrada" (V2-F00-E05, correção 1).
+      if (await tratarTokenRecusado(hash) === "conta_desativada") throw new ContaDesativada();
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
@@ -655,56 +824,97 @@ export function servicoDeAutenticacao(
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
-    /*
-      A FAMÍLIA da sessão que vai ser rotacionada, lida ANTES da rotação e sob
-      tenant (`sessoes` está sob RLS, e `sessao_por_token` não a devolve: a
-      função da 046 não mudou). A sessão nova entra na mesma cadeia, e é isso
-      que permite à vigência saber que o token de acesso emitido na antiga
-      ainda pertence a uma cadeia viva (migração 047).
-    */
-    const familiaId = await banco.comTenant(sessao.organizacao_id, async (c) => {
-      const r = await c.query<{ familia_id: string }>(
-        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
-      );
-      return r.rows[0]?.familia_id ?? null;
-    });
+    const linha: LinhaCredencial = {
+      usuario_id: sessao.usuario_id,
+      organizacao_id: sessao.organizacao_id,
+      nome: sessao.nome,
+      matricula: sessao.matricula,
+      papel: sessao.papel,
+      senha_hash: null,
+      ativo: true,
+      bloqueado_ate: null,
+      senha_provisoria_ate: sessao.senha_provisoria_ate,
+      organizacao_nome: sessao.organizacao_nome,
+      municipio: sessao.municipio,
+      uf: sessao.uf,
+    };
+    const renovacao = gerarTokenRenovacao();
 
     /*
-      H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leem a sessão
-      de pé acima; só um consegue revogá-la. `revogar_sessao` devolve quantas
-      linhas mudou, e ZERO significa que outro pedido acabou de rotacionar
-      este token. O perdedor ABORTA aqui, sem emitir par nenhum: emitir seria
-      entregar duas sessões vivas para um token só, e a segunda para quem
-      chegou depois, que é exatamente o cenário do token roubado.
+      A ROTAÇÃO É UMA TRANSAÇÃO SÓ, E SOB A TRAVA DA PESSOA (V2-F00-E07,
+      correção 2). Até aqui revogar a antiga e abrir a nova eram duas
+      transações, e entre elas a família ficava sem sessão viva: quem
+      administra encerrava as sessões nesse instante, não achava nada da
+      cadeia para encerrar (respondia 200), e a renovação abria a sessão nova
+      herdando a família encerrada. A validação de 4b96ea7 viu sobrar sessão
+      viva em 5 de 60 corridas.
+
+      Uma transação só não basta: em READ COMMITTED o UPDATE de quem encerra
+      não enxerga a linha que esta transação inseriu e ainda não confirmou.
+      Por isso a trava (`travar_sessoes_do_usuario`, migração 049) vem
+      primeiro e só sai no COMMIT, com a sessão nova já aberta, e todo
+      encerramento em massa toma a mesma trava num comando anterior ao UPDATE
+      (`auth/sessoes.ts` e as funções da 049). Quem chega depois espera e
+      encerra também a sessão nova; quem chegou antes faz o `revogar_sessao`
+      abaixo devolver zero, e a renovação desiste sem emitir par.
+
+      De brinde, a escrita com o token de acesso anterior à renovação deixa de
+      cair num instante sem sessão viva na família (a "janela na renovação"
+      que `apps/api/PENDENCIAS.md` registrava): quem lê vê a antiga de pé ou a
+      nova de pé, nunca nenhuma.
     */
-    const revogadas = await banco.semTenant(async (c) => {
-      const r = await c.query<{ revogar_sessao: number }>(
+    const sessaoNova = await banco.comTenant(sessao.organizacao_id, async (c) => {
+      await c.query("SELECT travar_sessoes_do_usuario($1)", [sessao.usuario_id]);
+
+      /*
+        H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leram a
+        sessão de pé acima; só um consegue revogá-la. `revogar_sessao` devolve
+        quantas linhas mudou, e ZERO significa que outro pedido acabou de
+        rotacionar este token (ou que um encerramento chegou antes). O perdedor
+        ABORTA aqui, sem emitir par nenhum: emitir seria entregar duas sessões
+        vivas para um token só, e a segunda para quem chegou depois, que é
+        exatamente o cenário do token roubado.
+      */
+      const revogada = await c.query<{ revogar_sessao: number }>(
         "SELECT revogar_sessao($1, $2) AS revogar_sessao", [hash, "rotacionada na renovacao"],
       );
-      return Number(r.rows[0]?.revogar_sessao ?? 0);
+      if (Number(revogada.rows[0]?.revogar_sessao ?? 0) === 0) return null;
+
+      /*
+        A FAMÍLIA da sessão rotacionada, lida sob tenant (`sessoes` está sob
+        RLS, e `sessao_por_token` não a devolve: a função da 046 não mudou). A
+        sessão nova entra na mesma cadeia, e é isso que permite à vigência
+        saber que o token de acesso emitido na antiga ainda pertence a uma
+        cadeia viva (migração 047).
+      */
+      const familia = await c.query<{ familia_id: string }>(
+        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
+      );
+      return abrirSessao(c, linha, contexto, renovacao, familia.rows[0]?.familia_id ?? null);
+    }).catch((erro: unknown) => {
+      // A segunda barreira (migração 049): `abrir_sessao` recusa herdar família
+      // encerrada. Com a trava não acontece; se acontecer, é sessão encerrada,
+      // e a transação inteira voltou atrás.
+      if ((erro as { code?: unknown }).code === "DC369") return null;
+      throw erro;
     });
-    if (revogadas === 0) {
+    if (sessaoNova === null) {
+      /*
+        PERDEU A TRAVA, e quem ganhou pode ter sido a desativação da conta
+        (V2-F00-E07, correção 3, achado 2 da validação de 52952a1). A leitura
+        acima viu a conta ativa; a desativação confirmou antes de a trava sair.
+        Responder `sessao_encerrada` aqui mandava o painel pedir login, e a
+        pessoa lia a recusa genérica ao entrar: o desfecho que a correção 1
+        da E05 consertou, de volta numa janela estreita. A mesma pergunta do
+        token recusado acima decide, e ela também trata o reúso: quem perdeu
+        para outra renovação com o MESMO token cai como reúso, que é o que já
+        acontecia quando o segundo pedido chegava um instante depois.
+      */
+      if (await tratarTokenRecusado(hash) === "conta_desativada") throw new ContaDesativada();
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
-    return emitirPar(
-      {
-        usuario_id: sessao.usuario_id,
-        organizacao_id: sessao.organizacao_id,
-        nome: sessao.nome,
-        matricula: sessao.matricula,
-        papel: sessao.papel,
-        senha_hash: null,
-        ativo: true,
-        bloqueado_ate: null,
-        senha_provisoria_ate: sessao.senha_provisoria_ate,
-        organizacao_nome: sessao.organizacao_nome,
-        municipio: sessao.municipio,
-        uf: sessao.uf,
-      },
-      contexto,
-      familiaId,
-    );
+    return montarPar(linha, sessaoNova, renovacao);
   }
 
   /** Migração 046: provisória e já no passado. */
@@ -713,30 +923,58 @@ export function servicoDeAutenticacao(
   }
 
   /**
-   * Um token de renovação que já foi ROTACIONADO continua existindo no banco,
-   * revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
-   * reúso (o legítimo e o atacante passaram a alternar), e aí a família
-   * inteira cai.
+   * O que fazer com um token de renovação que `sessao_por_token` não aceitou
+   * (revogado, vencido ou desconhecido). Uma pergunta ao banco, duas decisões.
    *
-   * SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
-   * revogada ou expirada", e esta função derrubava tudo por um token que só
-   * VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
-   * pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
-   * painel da coordenação caía por um token que ninguém roubou. A migração
-   * 046 faz a função devolver o motivo e o vencimento, e o que não é
-   * rotação responde 401 e nada mais.
+   * 1. CONTA DESATIVADA (V2-F00-E05, correção 1). Se o servidor RECONHECE o
+   *    token (a sessão existe, mesmo revogada) e a conta do dono está
+   *    desativada AGORA, quem o apresenta recebe `conta_desativada`: ele já
+   *    tem uma credencial que o servidor emitiu para esta conta, e entrar de
+   *    novo não resolve. O estado vem de `dono_do_token` (migração 048), e
+   *    não do motivo da revogação: conta desativada e depois reativada tem
+   *    sessões revogadas por `usuario desativado` e está ativa, e dizer
+   *    "desativada" a ela mandaria a pessoa parar sem motivo.
+   *
+   *    NÃO abre oráculo para quem não tem credencial: token DESCONHECIDO não
+   *    devolve linha e sai como `sessao_encerrada`, igual ao de conta ativa
+   *    cuja sessão foi encerrada. `/auth/entrar` e `/auth/recuperar` não
+   *    mudam. A desativação continua revogando tudo (idempotente).
+   *
+   * 2. REÚSO. Um token que já foi ROTACIONADO continua existindo no banco,
+   *    revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
+   *    reúso (o legítimo e o atacante passaram a alternar), e aí a família
+   *    inteira cai.
+   *
+   *    SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
+   *    revogada ou expirada", e esta função derrubava tudo por um token que só
+   *    VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
+   *    pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
+   *    painel da coordenação caía por um token que ninguém roubou. A migração
+   *    046 faz a função devolver o motivo e o vencimento, e o que não é
+   *    rotação responde 401 e nada mais.
    */
-  async function derrubarSePossivelReuso(hash: string): Promise<void> {
+  async function tratarTokenRecusado(hash: string): Promise<"conta_desativada" | "sessao_encerrada"> {
     // `sessoes` está sob RLS e não é legível sem contexto de tenant, que é
     // exatamente o que ainda não temos aqui. A pergunta passa pela função
-    // nomeada da migração 002 (redefinida na 046).
+    // nomeada da migração 002 (redefinida na 046 e na 048).
     const dono = await banco.semTenant(async (c) => {
       const r = await c.query<{
         usuario_id: string; revogada_em: string | null;
         motivo_revogacao: string | null; expira_em: string;
+        // Ausente num banco que ainda não aplicou a 048: só `false` conta.
+        usuario_ativo?: boolean;
       }>("SELECT * FROM dono_do_token($1)", [hash]);
       return r.rows[0] ?? null;
     }).catch(() => null);
+
+    if (dono && dono.usuario_ativo === false) {
+      await banco.semTenant((c) =>
+        c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [
+          dono.usuario_id, "usuario desativado",
+        ]),
+      );
+      return "conta_desativada";
+    }
 
     if (dono && dono.revogada_em !== null && dono.motivo_revogacao === "rotacionada na renovacao") {
       await banco.semTenant((c) =>
@@ -745,6 +983,7 @@ export function servicoDeAutenticacao(
         ]),
       );
     }
+    return "sessao_encerrada";
   }
 
   /**
@@ -852,39 +1091,122 @@ export function servicoDeAutenticacao(
     }
 
     if (!(await conferirSenha(senhaAtual, atual?.senha_hash ?? null))) {
-      throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
+      throw new FalhaAutenticacao("credenciais", "A senha atual não confere. Confira e digite de novo.");
     }
 
     const hash = await derivarSenha(senhaNova);
-    /*
-      `trocar_senha` grava o hash e derruba as outras sessões. A senha deixa
-      de ser provisória no MESMO UPDATE, por gatilho do banco (migração 046):
-      a regra "senha escolhida pela pessoa não é provisória" mora lá, e vale
-      para este caminho e para o link de recuperação.
-    */
-    await banco.semTenant((c) =>
-      c.query("SELECT trocar_senha($1,$2,$3)", [
-        identidade.usuarioId, hash, identidade.sessaoId,
-      ]),
-    );
+    const hashConferido = atual?.senha_hash ?? null;
 
     /*
-      UM TOKEN DE ACESSO NOVO PARA A MESMA SESSÃO, e sempre, não só quando a
-      senha era provisória. A sessão de onde a pessoa trocou é preservada;
-      o token que ela tem na mão foi emitido antes da troca e, se a senha era
-      provisória, carrega a marca que tranca todo o resto. Sem isto, quem
-      acabou de definir a própria senha continuaria trancado por até quinze
-      minutos. Sempre, porque devolver o token só às vezes obrigaria o
-      painel a tratar dois formatos de resposta.
+      A GRAVAÇÃO SÓ VALE SE NADA MUDOU DESDE A CONFERÊNCIA (V2-F00-E07,
+      correção 4, achado 1 da validação de bb0f654).
+
+      O DEFEITO: a senha atual era conferida numa transação, os dois scrypt
+      (conferir a atual e derivar a nova, cerca de 450 ms) rodavam fora do
+      banco, e só então `trocar_senha` gravava o hash novo em OUTRA transação,
+      sem conferir nada. Quem tinha a senha antiga e uma sessão mandava a troca;
+      se nesse intervalo quem administra redefinia a senha (o remédio contra
+      invasão), a própria pessoa trocava a dela em outro aparelho, usava o link
+      do email ou a conta era desativada, a reação respondia 200 e encerrava a
+      sessão do invasor, e a troca dele confirmava depois e gravava a senha
+      DELE, definitiva, com sessão viva. Nenhuma ordem serial produz isso:
+      antes da reação a troca seria sobrescrita, depois dela seria recusada.
+
+      O CONSERTO, numa transação só, nesta ordem (o desenho de `emitirPar`):
+
+        1. a linha da pessoa em `usuarios`, com FOR NO KEY UPDATE (o mesmo
+           modo que o UPDATE de `trocar_senha` tomaria). Toda mudança de
+           credencial ou de `ativo` atualiza essa linha ANTES de tomar a trava
+           da pessoa (049); se uma delas está no meio, esperamos ela confirmar,
+           e o FOR NO KEY UPDATE devolve a versão nova da linha;
+        2. a trava da pessoa (`travar_sessoes_do_usuario`, 049), num comando
+           próprio, para a leitura das sessões enxergar todo encerramento e
+           toda renovação já confirmados;
+        3. a releitura, na ordem de `exigirVigencia`: conta desativada é 403
+           `conta_desativada`; a cadeia da sessão de quem pede sem sessão de pé
+           (encerrada por quem administra, pela redefinição, por outra troca,
+           pelo link) ou a provisória vencida é 401 `sessao_encerrada`; o hash
+           diferente do que o scrypt conferiu é a mesma recusa da senha atual
+           errada (401 `credenciais`), porque ela de fato não é mais a atual;
+        4. `trocar_senha`, que atualiza a linha que já seguramos e encerra as
+           outras sessões, preservando a sessão VIVA da cadeia de quem pede
+           (achado 2 da mesma validação: com o token de antes de uma
+           renovação, o `sid` é a sessão já rotacionada, e preservar só ela
+           derrubava a própria cadeia enquanto a resposta dizia o contrário).
+
+      A ORDEM DAS TRAVAS, sem ciclo com a 049 e a 050: linha de `usuarios`
+      antes da trava da pessoa, como a redefinição, a desativação, o link e a
+      própria `trocar_senha`. O login e a renovação seguram a trava da pessoa
+      e só pedem a linha de `usuarios` em FOR KEY SHARE (a chave estrangeira
+      de `sessoes`), que não conflita com FOR NO KEY UPDATE. Esta transação não
+      toca a linha do município, então não cruza com a suspensão pelo console
+      (linha do município, depois a trava). Invertida (trava antes da linha),
+      ela fecharia ciclo com a redefinição por quem administra: o caso 7 do
+      bloco de Postgres real de `renovacao-contra-encerramento.test.ts` mede.
+
+      Nenhuma migração: `trocar_senha` (049) continua a mesma, só passa a ser
+      chamada dentro da transação que conferiu tudo, sob o município (RLS).
+    */
+    const sessaoPreservada = await banco.comTenant(identidade.organizacaoId, async (c) => {
+      const linha = await c.query<{
+        ativo: boolean; senha_hash: string | null; senha_provisoria_ate: string | null; papel: Papel;
+      }>(
+        "SELECT ativo, senha_hash, senha_provisoria_ate, papel FROM usuarios WHERE id = $1 FOR NO KEY UPDATE",
+        [identidade.usuarioId],
+      );
+      await c.query("SELECT travar_sessoes_do_usuario($1)", [identidade.usuarioId]);
+      const viva = await c.query<{ id: string }>(
+        `SELECT v.id
+           FROM sessoes s
+           JOIN sessoes v ON v.familia_id = s.familia_id
+                         AND v.usuario_id = s.usuario_id
+                         AND v.revogada_em IS NULL
+                         AND v.expira_em > now()
+          WHERE s.id = $2 AND s.usuario_id = $1
+            AND (s.revogada_em IS NULL OR s.motivo_revogacao = 'rotacionada na renovacao')
+          ORDER BY v.criada_em DESC
+          LIMIT 1`,
+        [identidade.usuarioId, identidade.sessaoId],
+      );
+
+      const agora = linha.rows[0];
+      if (agora && !agora.ativo) throw new ContaDesativada();
+      if (!agora || !viva.rows[0] || senhaProvisoriaVencida(agora)) {
+        throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+      }
+      if (agora.senha_hash !== hashConferido) {
+        throw new FalhaAutenticacao("credenciais", "A senha atual não confere. Confira e digite de novo.");
+      }
+
+      /*
+        `trocar_senha` grava o hash e derruba as outras sessões. A senha deixa
+        de ser provisória no MESMO UPDATE, por gatilho do banco (migração 046):
+        a regra "senha escolhida pela pessoa não é provisória" mora lá, e vale
+        para este caminho e para o link de recuperação.
+      */
+      await c.query("SELECT trocar_senha($1,$2,$3)", [identidade.usuarioId, hash, viva.rows[0].id]);
+      return { id: viva.rows[0].id, papel: agora.papel };
+    });
+
+    /*
+      UM TOKEN DE ACESSO NOVO PARA A SESSÃO PRESERVADA, e sempre, não só
+      quando a senha era provisória. O token que a pessoa tem na mão foi
+      emitido antes da troca e, se a senha era provisória, carrega a marca que
+      tranca todo o resto. Sem isto, quem acabou de definir a própria senha
+      continuaria trancado por até quinze minutos. Sempre, porque devolver o
+      token só às vezes obrigaria o painel a tratar dois formatos de resposta.
+      O `sid` é o da sessão viva da cadeia, e o papel é o relido sob a trava
+      (correção 4): se o papel mudou no meio, o token novo já nasce com o de
+      agora, em vez de cunhar mais quinze minutos de leitura com o anterior.
     */
     const acesso = await emitirAcesso(
       config.jwtSegredos[0],
       {
         sub: identidade.usuarioId,
         org: identidade.organizacaoId,
-        papel: identidade.papel,
+        papel: sessaoPreservada.papel,
         nome: identidade.nome,
-        sid: identidade.sessaoId,
+        sid: sessaoPreservada.id,
       },
       config.ACESSO_MINUTOS,
     );
@@ -983,7 +1305,7 @@ export function servicoDeAutenticacao(
    *
    * A PRESERVACAO VALE DE VERDADE desde a migracao 046: se um dos aparelhos
    * derrubados tentar renovar sozinho com o token que acabou de cair,
-   * `derrubarSePossivelReuso` le o MOTIVO da revogacao ("encerradas pelo
+   * `tratarTokenRecusado` le o MOTIVO da revogacao ("encerradas pelo
    * proprio usuario"), ve que nao e rotacao, e responde 401 sem derrubar mais
    * nada. Antes disso `dono_do_token` (migracao 002) devolvia so o dono, e a
    * duvida entre "foi o proprio usuario" e "e um token roubado" caia para o
@@ -1052,7 +1374,8 @@ export function servicoDeAutenticacao(
   }
 
   return {
-    entrar, conferirSegundoFator, sessaoAposAtivacao, renovar, sair,
+    entrar, conferirSegundoFator, sessaoAposAtivacao, credencialDoDesafioVale,
+    credencialDoDesafioValeSobTrava, renovar, sair,
     pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
     listarMinhasSessoes, esperarEnvios,
   };

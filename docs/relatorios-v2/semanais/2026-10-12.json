@@ -1,0 +1,1801 @@
+{
+  "versao": 1,
+  "periodo": {
+    "desde": "2026-10-05",
+    "ate": "2026-10-07"
+  },
+  "geradoEm": "2026-10-07",
+  "base": {
+    "sha": "0b32d38d6c38b041265cdd44f2b40e35c2d007d5",
+    "shaCurto": "0b32d38",
+    "ramo": "v2/f00",
+    "alteracoesNaoCommitadas": 10,
+    "statusFinal": {
+      "tipo": "copia-de-trabalho",
+      "sha": null
+    },
+    "statusBase": {
+      "sha": "afde25cd108b32f8cf696a1c17d559f83fd59397",
+      "shaCurto": "afde25c",
+      "data": "2026-10-06",
+      "motivo": "primeiro commit que tem o STATUS (nenhum anterior a 2026-10-05)",
+      "etapasPresumidasPendentes": true
+    }
+  },
+  "fase": {
+    "fase": "F00",
+    "nome": "Estabilização obrigatória",
+    "ordem": 1,
+    "totalDeFases": 36,
+    "gate": "G00",
+    "nomeDoGate": "BASE CONFIÁVEL",
+    "statusDoGate": "NÃO INICIADO",
+    "gateMdPresente": false,
+    "etapas": 25
+  },
+  "contagens": {
+    "EM ANDAMENTO": 24,
+    "BLOQUEADA": 1
+  },
+  "etapasDaFase": [
+    {
+      "id": "V2-F00-E01",
+      "titulo": "Baseline atual reproduzível em máquina limpa",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-05, 17 de 17 conferem; falta validação humana (segunda pessoa com `npm ci` e run do CI)."
+    },
+    {
+      "id": "V2-F00-E02",
+      "titulo": "Política T42 para teste vermelho e skip",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-05: portão com 17 testes (árvore atual verde, 594 arquivos, 10 skips por ambiente contados, 1 incondicional marcado), `test:scripts` 198 com as 3 falhas da E17."
+    },
+    {
+      "id": "V2-F00-E03",
+      "titulo": "Classificar os vermelhos por causa e registrar",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Registro feito em 2026-10-05, só documentação: 40 testes vermelhos, 13 casos da suíte `banco-tls`, 5 pulados da vigência, 13 afirmações de números, typecheck do campo, 4 passos de dependência e 3 e2e, cada um com classe, regra, etapa e dono; soma fechada contra o baseline da E01 (17 de 17)."
+    },
+    {
+      "id": "V2-F00-E04",
+      "titulo": "Religar a vigência de conta, papel e sessão na escrita e tirar o skip",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: vigência religada em `servidor.ts`, skip e marca T42 fora, sonda 6 de 13 vermelhos antes e 13 de 13 verdes depois, API 1113 testes com 1 falha (E12) e 13 pulados (`banco-tls`), isolamento e superfície verdes."
+    },
+    {
+      "id": "V2-F00-E05",
+      "titulo": "Códigos de erro 401 nao_autenticado, 401 sessao_encerrada e 403 conta_desativada, com catálogo",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: catálogo no shared (seis códigos), `sessao_encerrada` e `conta_desativada` emitidos e testados (16 casos novos na API, 8 vermelhos com o código velho), painel com as três frases, `/auth/entrar` intacta, 404 de outro município intacto; API 1129 testes com 1 fal..."
+    },
+    {
+      "id": "V2-F00-E06",
+      "titulo": "Fila do campo trata os três códigos sem perder item (`packages/campo/src/transporte.ts`)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: `FalhaDeSessao` (nova), 401 `nao_autenticado` renova UMA vez e repete, 401 `sessao_encerrada` e 403 `conta_desativada` (e sem token) param a fila e mantêm o item pendente (zero bloqueado, tentativas inalteradas, `paradaPor` no dreno, `pausadaPor` no resumo), 4..."
+    },
+    {
+      "id": "V2-F00-E07",
+      "titulo": "Papel alterado, sessão rotacionada e senha provisória",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: migração 047 (`sessoes.familia_id`, `abrir_sessao` com a família opcional), sessão rotacionada só vale enquanto a cadeia vive (administrador, própria pessoa, sair, reuso e troca de senha derrubam o token anterior à renovação), papel diferente do token é 401 `n..."
+    },
+    {
+      "id": "V2-F00-E08",
+      "titulo": "Fechar vazamentos P0 de leitura ao agente: GET /oficios, GET /oficios/:id e GET /avisos (que escreve)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: ação `consultar_oficio` (operador, coordenador, administrador), 403 `sem_permissao` ao agente nas duas rotas de ofício, sino e contagem do agente recortados à equipe (`POST /avisos/lidos` também), painel e modo local alinhados; sonda 9 de 14 vermelhos antes e..."
+    },
+    {
+      "id": "V2-F00-E09",
+      "titulo": "Telas de sessões e de redefinição de senha no painel",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: `GET /auth/sessoes` e `GET /usuarios/:id/sessoes` (sem IP nem user-agent), botões de redefinir senha e encerrar sessões por linha com confirmação, janela da senha temporária única, Minha conta com a lista de sessões e \"encerrar minhas outras sessões\"; o modo l..."
+    },
+    {
+      "id": "V2-F00-E10",
+      "titulo": "Recuperação de senha por e-mail: fluxo completo com notificador de teste",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: o pedido responde 202 igual para e-mail que existe, que não existe e que passou do teto por hora (envio depois da resposta, falha do provedor só no log), `GET /auth/recuperacao`, as duas telas com todos os estados, o token fora da barra de endereço, pedido sem..."
+    },
+    {
+      "id": "V2-F00-E11",
+      "titulo": "Bug /pacote.zip e prova do pacote de saída ponta a ponta contra a API real",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Interrompida pela pausa de 2026-10-06 e RETOMADA e terminada no mesmo dia."
+    },
+    {
+      "id": "V2-F00-E12",
+      "titulo": "Pacote de saída: laudo com aviso de equipe divergente",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06: a consulta de vistorias de `apps/api/src/saida/pacote.ts` ganhou `LEFT JOIN equipes ed` por `v.equipe_designada_id` e `LEFT JOIN equipes ea` por `v.equipe_do_agente_id` e passou a selecionar os dois nomes, iguais às de `rotas/documentos.ts`, então `avisoDeEqui..."
+    },
+    {
+      "id": "V2-F00-E13",
+      "titulo": "Vermelhos do painel (14), incluindo \"entrar a partir de /\" que leva a \"Esta página não existe\"",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-06."
+    },
+    {
+      "id": "V2-F00-E14",
+      "titulo": "Vermelhos do app de campo por texto velho e mock velho reescritos conforme decisão de 2026-09-15",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E15",
+      "titulo": "Defeitos reais do campo, parte 1: sair da conta não apaga vistoria começada; precisão de GPS abaixo de 0,5 m (CMP-52, CMP-33)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E16",
+      "titulo": "Defeitos reais do campo, parte 2: mensagem de foto vazia, teclado e câmera na área segura, permissão sem botão de ajustes (CMP-35, CMP-89)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E17",
+      "titulo": "Scripts e conferência de números: test:scripts (3 falhas) e conferir:numeros (13 afirmações)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07, no Windows."
+    },
+    {
+      "id": "V2-F00-E18",
+      "titulo": "E2E de navegador (3) e CORS do PUT de evidência",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E19",
+      "titulo": "npm audit conforme política aprovada (raiz e campo) e expo-doctor",
+      "status": "BLOQUEADA",
+      "pendenciaHumana": false,
+      "observacao": "BLOQUEADA pelo CP-03 (política de npm audit, ABERTO)."
+    },
+    {
+      "id": "V2-F00-E20",
+      "titulo": "Portão de conteúdo: zerar as linhas vermelhas pré-existentes (`trilha-detalhe.test.ts:181`, `AUDITORIA-2026-09-30.md:313`, `docs/auditoria-v2/raw`)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E21",
+      "titulo": "Ambiente: CRLF em ocorrencia-encerramento, OPENSSL_CONF em banco-tls, Windows e Linux",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07, no Windows (Git Bash e PowerShell)."
+    },
+    {
+      "id": "V2-F00-E22",
+      "titulo": "Documentação desatualizada ou falsa (README números, PENDENCIAS, ADR 0008, SAIDA cap. 2 x 5, LEIA-ME do campo, comentários de vigência)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E23",
+      "titulo": "Teste de contrato mínimo painel x API (caminhos de `dados/http.ts` contra as rotas registradas)",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    },
+    {
+      "id": "V2-F00-E24",
+      "titulo": "K14: ajustar documentação e apresentação conforme a decisão sobre saída a campo, antes de nova demonstração",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07 (só documentação; API, painel e aplicativo intocados)."
+    },
+    {
+      "id": "V2-F00-E25",
+      "titulo": "Restore das 46 migrações provado em máquina limpa (CA-08) e roteiro mínimo",
+      "status": "EM ANDAMENTO",
+      "pendenciaHumana": true,
+      "observacao": "Implementada e medida em 2026-10-07."
+    }
+  ],
+  "fasesConcluidas": [],
+  "proximasFases": [
+    {
+      "fase": "F01",
+      "nome": "Fundação de engenharia e ambientes",
+      "gate": "G01",
+      "etapas": 22
+    },
+    {
+      "fase": "F02",
+      "nome": "API v1 e contratos",
+      "gate": "G02",
+      "etapas": 9
+    }
+  ],
+  "gates": [
+    {
+      "fase": "F00",
+      "gate": "G00",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F01",
+      "gate": "G01",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F02",
+      "gate": "G02",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F03",
+      "gate": "G03",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F04",
+      "gate": "G04",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F05",
+      "gate": "G05",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F06",
+      "gate": "G06",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F07",
+      "gate": "G07",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F08",
+      "gate": "G08",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F32",
+      "gate": "G32",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F09",
+      "gate": "G09",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F10",
+      "gate": "G10",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F11",
+      "gate": "G11",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F12",
+      "gate": "G12",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F13",
+      "gate": "G13",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F14",
+      "gate": "G14",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F33",
+      "gate": "G33",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F15",
+      "gate": "G15",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F16",
+      "gate": "G16",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F17",
+      "gate": "G17",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F18",
+      "gate": "G18",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F34",
+      "gate": "G34",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F19",
+      "gate": "G19",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F29",
+      "gate": "G29",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F30",
+      "gate": "G30",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F31",
+      "gate": "G31",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F35",
+      "gate": "G35",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F20",
+      "gate": "G20",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F21",
+      "gate": "G21",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F22",
+      "gate": "G22",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F23",
+      "gate": "G23",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F24",
+      "gate": "G24",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F25",
+      "gate": "G25",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F26",
+      "gate": "G26",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F27",
+      "gate": "G27",
+      "status": "NÃO INICIADO"
+    },
+    {
+      "fase": "F28",
+      "gate": "G28",
+      "status": "NÃO INICIADO"
+    }
+  ],
+  "statusPorEtapa": {
+    "V2-F00-E01": "EM ANDAMENTO",
+    "V2-F00-E02": "EM ANDAMENTO",
+    "V2-F00-E03": "EM ANDAMENTO",
+    "V2-F00-E04": "EM ANDAMENTO",
+    "V2-F00-E05": "EM ANDAMENTO",
+    "V2-F00-E06": "EM ANDAMENTO",
+    "V2-F00-E07": "EM ANDAMENTO",
+    "V2-F00-E08": "EM ANDAMENTO",
+    "V2-F00-E09": "EM ANDAMENTO",
+    "V2-F00-E10": "EM ANDAMENTO",
+    "V2-F00-E11": "EM ANDAMENTO",
+    "V2-F00-E12": "EM ANDAMENTO",
+    "V2-F00-E13": "EM ANDAMENTO",
+    "V2-F00-E14": "EM ANDAMENTO",
+    "V2-F00-E15": "EM ANDAMENTO",
+    "V2-F00-E16": "EM ANDAMENTO",
+    "V2-F00-E17": "EM ANDAMENTO",
+    "V2-F00-E18": "EM ANDAMENTO",
+    "V2-F00-E19": "BLOQUEADA",
+    "V2-F00-E20": "EM ANDAMENTO",
+    "V2-F00-E21": "EM ANDAMENTO",
+    "V2-F00-E22": "EM ANDAMENTO",
+    "V2-F00-E23": "EM ANDAMENTO",
+    "V2-F00-E24": "EM ANDAMENTO",
+    "V2-F00-E25": "EM ANDAMENTO",
+    "V2-F01-E01": "PENDENTE",
+    "V2-F01-E02": "PENDENTE",
+    "V2-F01-E03": "PENDENTE",
+    "V2-F01-E04": "PENDENTE",
+    "V2-F01-E05": "PENDENTE",
+    "V2-F01-E06": "PENDENTE",
+    "V2-F01-E07": "PENDENTE",
+    "V2-F01-E08": "PENDENTE",
+    "V2-F01-E09": "PENDENTE",
+    "V2-F01-E10": "PENDENTE",
+    "V2-F01-E11": "PENDENTE",
+    "V2-F01-E12": "PENDENTE",
+    "V2-F01-E13": "PENDENTE",
+    "V2-F01-E14": "PENDENTE",
+    "V2-F01-E15": "PENDENTE",
+    "V2-F01-E16": "PENDENTE",
+    "V2-F01-E17": "PENDENTE",
+    "V2-F01-E18": "PENDENTE",
+    "V2-F01-E19": "PENDENTE",
+    "V2-F01-E20": "PENDENTE",
+    "V2-F01-E21": "PENDENTE",
+    "V2-F01-E22": "PENDENTE",
+    "V2-F02-E01": "PENDENTE",
+    "V2-F02-E02": "PENDENTE",
+    "V2-F02-E03": "PENDENTE",
+    "V2-F02-E04": "PENDENTE",
+    "V2-F02-E05": "PENDENTE",
+    "V2-F02-E06": "PENDENTE",
+    "V2-F02-E07": "PENDENTE",
+    "V2-F02-E08": "PENDENTE",
+    "V2-F02-E09": "PENDENTE",
+    "V2-F03-E01": "PENDENTE",
+    "V2-F03-E02": "PENDENTE",
+    "V2-F03-E03": "PENDENTE",
+    "V2-F03-E04": "PENDENTE",
+    "V2-F03-E05": "PENDENTE",
+    "V2-F03-E06": "PENDENTE",
+    "V2-F03-E07": "PENDENTE",
+    "V2-F03-E08": "PENDENTE",
+    "V2-F03-E09": "PENDENTE",
+    "V2-F03-E10": "PENDENTE",
+    "V2-F03-E11": "PENDENTE",
+    "V2-F03-E12": "PENDENTE",
+    "V2-F03-E13": "PENDENTE",
+    "V2-F03-E14": "PENDENTE",
+    "V2-F03-E15": "PENDENTE",
+    "V2-F03-E16": "PENDENTE",
+    "V2-F03-E17": "PENDENTE",
+    "V2-F03-E18": "PENDENTE",
+    "V2-F03-E19": "PENDENTE",
+    "V2-F03-E20": "PENDENTE",
+    "V2-F03-E21": "PENDENTE",
+    "V2-F04-E01": "PENDENTE",
+    "V2-F04-E02": "PENDENTE",
+    "V2-F04-E03": "PENDENTE",
+    "V2-F04-E04": "PENDENTE",
+    "V2-F04-E05": "PENDENTE",
+    "V2-F04-E06": "PENDENTE",
+    "V2-F04-E07": "PENDENTE",
+    "V2-F04-E08": "PENDENTE",
+    "V2-F04-E09": "PENDENTE",
+    "V2-F04-E10": "PENDENTE",
+    "V2-F04-E11": "PENDENTE",
+    "V2-F04-E12": "PENDENTE",
+    "V2-F04-E13": "PENDENTE",
+    "V2-F04-E14": "PENDENTE",
+    "V2-F04-E15": "PENDENTE",
+    "V2-F04-E16": "PENDENTE",
+    "V2-F04-E17": "PENDENTE",
+    "V2-F05-E01": "PENDENTE",
+    "V2-F05-E02": "PENDENTE",
+    "V2-F05-E03": "PENDENTE",
+    "V2-F05-E04": "PENDENTE",
+    "V2-F05-E05": "PENDENTE",
+    "V2-F05-E06": "PENDENTE",
+    "V2-F05-E07": "PENDENTE",
+    "V2-F05-E08": "PENDENTE",
+    "V2-F05-E09": "PENDENTE",
+    "V2-F05-E10": "PENDENTE",
+    "V2-F05-E11": "PENDENTE",
+    "V2-F05-E12": "PENDENTE",
+    "V2-F05-E13": "PENDENTE",
+    "V2-F05-E14": "PENDENTE",
+    "V2-F05-E15": "PENDENTE",
+    "V2-F06-E01": "PENDENTE",
+    "V2-F06-E02": "PENDENTE",
+    "V2-F06-E03": "PENDENTE",
+    "V2-F06-E04": "PENDENTE",
+    "V2-F06-E05": "PENDENTE",
+    "V2-F06-E06": "PENDENTE",
+    "V2-F06-E07": "PENDENTE",
+    "V2-F06-E08": "PENDENTE",
+    "V2-F06-E09": "PENDENTE",
+    "V2-F06-E10": "PENDENTE",
+    "V2-F06-E11": "PENDENTE",
+    "V2-F06-E12": "PENDENTE",
+    "V2-F06-E13": "PENDENTE",
+    "V2-F06-E14": "PENDENTE",
+    "V2-F06-E15": "PENDENTE",
+    "V2-F06-E16": "PENDENTE",
+    "V2-F06-E17": "PENDENTE",
+    "V2-F06-E18": "PENDENTE",
+    "V2-F06-E19": "PENDENTE",
+    "V2-F06-E20": "PENDENTE",
+    "V2-F06-E21": "PENDENTE",
+    "V2-F06-E22": "PENDENTE",
+    "V2-F06-E23": "PENDENTE",
+    "V2-F07-E01": "PENDENTE",
+    "V2-F07-E02": "PENDENTE",
+    "V2-F07-E03": "PENDENTE",
+    "V2-F07-E04": "PENDENTE",
+    "V2-F07-E05": "PENDENTE",
+    "V2-F07-E06": "PENDENTE",
+    "V2-F07-E07": "PENDENTE",
+    "V2-F07-E08": "PENDENTE",
+    "V2-F07-E09": "PENDENTE",
+    "V2-F07-E10": "PENDENTE",
+    "V2-F07-E11": "PENDENTE",
+    "V2-F07-E12": "PENDENTE",
+    "V2-F07-E13": "PENDENTE",
+    "V2-F08-E01": "PENDENTE",
+    "V2-F08-E02": "PENDENTE",
+    "V2-F08-E03": "PENDENTE",
+    "V2-F08-E04": "PENDENTE",
+    "V2-F08-E05": "PENDENTE",
+    "V2-F08-E06": "PENDENTE",
+    "V2-F08-E07": "PENDENTE",
+    "V2-F08-E08": "PENDENTE",
+    "V2-F08-E09": "PENDENTE",
+    "V2-F08-E10": "PENDENTE",
+    "V2-F08-E11": "PENDENTE",
+    "V2-F08-E12": "PENDENTE",
+    "V2-F08-E13": "PENDENTE",
+    "V2-F32-E01": "PENDENTE",
+    "V2-F32-E02": "PENDENTE",
+    "V2-F32-E03": "PENDENTE",
+    "V2-F32-E04": "PENDENTE",
+    "V2-F32-E05": "PENDENTE",
+    "V2-F32-E06": "PENDENTE",
+    "V2-F32-E07": "PENDENTE",
+    "V2-F32-E08": "PENDENTE",
+    "V2-F32-E09": "PENDENTE",
+    "V2-F32-E10": "PENDENTE",
+    "V2-F32-E11": "PENDENTE",
+    "V2-F32-E12": "PENDENTE",
+    "V2-F32-E13": "PENDENTE",
+    "V2-F32-E14": "PENDENTE",
+    "V2-F32-E15": "PENDENTE",
+    "V2-F32-E16": "PENDENTE",
+    "V2-F09-E01": "PENDENTE",
+    "V2-F09-E02": "PENDENTE",
+    "V2-F09-E03": "PENDENTE",
+    "V2-F09-E04": "PENDENTE",
+    "V2-F09-E05": "PENDENTE",
+    "V2-F09-E06": "PENDENTE",
+    "V2-F09-E07": "PENDENTE",
+    "V2-F09-E08": "PENDENTE",
+    "V2-F09-E09": "PENDENTE",
+    "V2-F09-E10": "PENDENTE",
+    "V2-F09-E11": "PENDENTE",
+    "V2-F09-E12": "PENDENTE",
+    "V2-F09-E13": "PENDENTE",
+    "V2-F09-E14": "PENDENTE",
+    "V2-F09-E15": "PENDENTE",
+    "V2-F09-E16": "PENDENTE",
+    "V2-F09-E17": "PENDENTE",
+    "V2-F09-E18": "PENDENTE",
+    "V2-F09-E19": "PENDENTE",
+    "V2-F09-E20": "PENDENTE",
+    "V2-F09-E21": "PENDENTE",
+    "V2-F09-E22": "PENDENTE",
+    "V2-F09-E23": "PENDENTE",
+    "V2-F09-E24": "PENDENTE",
+    "V2-F09-E25": "PENDENTE",
+    "V2-F09-E26": "PENDENTE",
+    "V2-F09-E27": "PENDENTE",
+    "V2-F09-E28": "PENDENTE",
+    "V2-F10-E01": "PENDENTE",
+    "V2-F10-E02": "PENDENTE",
+    "V2-F10-E03": "PENDENTE",
+    "V2-F10-E04": "PENDENTE",
+    "V2-F10-E05": "PENDENTE",
+    "V2-F10-E06": "PENDENTE",
+    "V2-F10-E07": "PENDENTE",
+    "V2-F10-E08": "PENDENTE",
+    "V2-F10-E09": "PENDENTE",
+    "V2-F10-E10": "PENDENTE",
+    "V2-F10-E11": "PENDENTE",
+    "V2-F10-E12": "PENDENTE",
+    "V2-F10-E13": "PENDENTE",
+    "V2-F10-E14": "PENDENTE",
+    "V2-F10-E15": "PENDENTE",
+    "V2-F10-E16": "PENDENTE",
+    "V2-F10-E17": "PENDENTE",
+    "V2-F10-E18": "PENDENTE",
+    "V2-F10-E19": "PENDENTE",
+    "V2-F10-E20": "PENDENTE",
+    "V2-F10-E21": "PENDENTE",
+    "V2-F10-E22": "PENDENTE",
+    "V2-F10-E23": "PENDENTE",
+    "V2-F10-E24": "PENDENTE",
+    "V2-F10-E25": "PENDENTE",
+    "V2-F10-E26": "PENDENTE",
+    "V2-F10-E27": "PENDENTE",
+    "V2-F10-E28": "PENDENTE",
+    "V2-F10-E29": "PENDENTE",
+    "V2-F10-E30": "PENDENTE",
+    "V2-F10-E31": "PENDENTE",
+    "V2-F10-E32": "PENDENTE",
+    "V2-F10-E33": "PENDENTE",
+    "V2-F10-E34": "PENDENTE",
+    "V2-F10-E35": "PENDENTE",
+    "V2-F10-E36": "PENDENTE",
+    "V2-F11-E01": "PENDENTE",
+    "V2-F11-E02": "PENDENTE",
+    "V2-F11-E03": "PENDENTE",
+    "V2-F11-E04": "PENDENTE",
+    "V2-F11-E05": "PENDENTE",
+    "V2-F11-E06": "PENDENTE",
+    "V2-F11-E07": "PENDENTE",
+    "V2-F11-E08": "PENDENTE",
+    "V2-F11-E09": "PENDENTE",
+    "V2-F11-E10": "PENDENTE",
+    "V2-F11-E11": "PENDENTE",
+    "V2-F11-E12": "PENDENTE",
+    "V2-F11-E13": "PENDENTE",
+    "V2-F11-E14": "PENDENTE",
+    "V2-F11-E15": "PENDENTE",
+    "V2-F11-E16": "PENDENTE",
+    "V2-F11-E17": "PENDENTE",
+    "V2-F11-E18": "PENDENTE",
+    "V2-F11-E19": "PENDENTE",
+    "V2-F11-E20": "PENDENTE",
+    "V2-F11-E21": "PENDENTE",
+    "V2-F11-E22": "PENDENTE",
+    "V2-F11-E23": "PENDENTE",
+    "V2-F11-E24": "PENDENTE",
+    "V2-F11-E25": "PENDENTE",
+    "V2-F11-E26": "PENDENTE",
+    "V2-F11-E27": "PENDENTE",
+    "V2-F11-E28": "PENDENTE",
+    "V2-F11-E29": "PENDENTE",
+    "V2-F11-E30": "PENDENTE",
+    "V2-F12-E01": "PENDENTE",
+    "V2-F12-E02": "PENDENTE",
+    "V2-F12-E03": "PENDENTE",
+    "V2-F12-E04": "PENDENTE",
+    "V2-F12-E05": "PENDENTE",
+    "V2-F12-E06": "PENDENTE",
+    "V2-F12-E07": "PENDENTE",
+    "V2-F12-E08": "PENDENTE",
+    "V2-F13-E01": "PENDENTE",
+    "V2-F13-E02": "PENDENTE",
+    "V2-F13-E03": "PENDENTE",
+    "V2-F13-E04": "PENDENTE",
+    "V2-F13-E05": "PENDENTE",
+    "V2-F13-E06": "PENDENTE",
+    "V2-F13-E07": "PENDENTE",
+    "V2-F13-E08": "PENDENTE",
+    "V2-F13-E09": "PENDENTE",
+    "V2-F13-E10": "PENDENTE",
+    "V2-F13-E11": "PENDENTE",
+    "V2-F14-E01": "PENDENTE",
+    "V2-F14-E02": "PENDENTE",
+    "V2-F14-E03": "PENDENTE",
+    "V2-F14-E04": "PENDENTE",
+    "V2-F14-E05": "PENDENTE",
+    "V2-F14-E06": "PENDENTE",
+    "V2-F14-E07": "PENDENTE",
+    "V2-F14-E08": "PENDENTE",
+    "V2-F14-E09": "PENDENTE",
+    "V2-F14-E10": "PENDENTE",
+    "V2-F14-E11": "PENDENTE",
+    "V2-F14-E12": "PENDENTE",
+    "V2-F14-E13": "PENDENTE",
+    "V2-F14-E14": "PENDENTE",
+    "V2-F14-E15": "PENDENTE",
+    "V2-F14-E16": "PENDENTE",
+    "V2-F14-E17": "PENDENTE",
+    "V2-F14-E18": "PENDENTE",
+    "V2-F14-E19": "PENDENTE",
+    "V2-F14-E20": "PENDENTE",
+    "V2-F14-E21": "PENDENTE",
+    "V2-F14-E22": "PENDENTE",
+    "V2-F33-E01": "PENDENTE",
+    "V2-F33-E02": "PENDENTE",
+    "V2-F33-E03": "PENDENTE",
+    "V2-F33-E04": "PENDENTE",
+    "V2-F33-E05": "PENDENTE",
+    "V2-F33-E06": "PENDENTE",
+    "V2-F33-E07": "PENDENTE",
+    "V2-F33-E08": "PENDENTE",
+    "V2-F33-E09": "PENDENTE",
+    "V2-F33-E10": "PENDENTE",
+    "V2-F33-E11": "PENDENTE",
+    "V2-F33-E12": "PENDENTE",
+    "V2-F33-E13": "PENDENTE",
+    "V2-F33-E14": "PENDENTE",
+    "V2-F33-E15": "PENDENTE",
+    "V2-F33-E16": "PENDENTE",
+    "V2-F15-E01": "PENDENTE",
+    "V2-F15-E02": "PENDENTE",
+    "V2-F15-E03": "PENDENTE",
+    "V2-F15-E04": "PENDENTE",
+    "V2-F15-E05": "PENDENTE",
+    "V2-F15-E06": "PENDENTE",
+    "V2-F15-E07": "PENDENTE",
+    "V2-F15-E08": "PENDENTE",
+    "V2-F15-E09": "PENDENTE",
+    "V2-F15-E10": "PENDENTE",
+    "V2-F15-E11": "PENDENTE",
+    "V2-F15-E12": "PENDENTE",
+    "V2-F15-E13": "PENDENTE",
+    "V2-F15-E14": "PENDENTE",
+    "V2-F15-E15": "PENDENTE",
+    "V2-F15-E16": "PENDENTE",
+    "V2-F15-E17": "PENDENTE",
+    "V2-F15-E18": "PENDENTE",
+    "V2-F16-E01": "PENDENTE",
+    "V2-F16-E02": "PENDENTE",
+    "V2-F16-E03": "PENDENTE",
+    "V2-F16-E04": "PENDENTE",
+    "V2-F16-E05": "PENDENTE",
+    "V2-F16-E06": "PENDENTE",
+    "V2-F16-E07": "PENDENTE",
+    "V2-F16-E08": "PENDENTE",
+    "V2-F16-E09": "PENDENTE",
+    "V2-F16-E10": "PENDENTE",
+    "V2-F16-E11": "PENDENTE",
+    "V2-F16-E12": "PENDENTE",
+    "V2-F16-E13": "PENDENTE",
+    "V2-F16-E14": "PENDENTE",
+    "V2-F16-E15": "PENDENTE",
+    "V2-F16-E16": "PENDENTE",
+    "V2-F17-E01": "PENDENTE",
+    "V2-F17-E02": "PENDENTE",
+    "V2-F17-E03": "PENDENTE",
+    "V2-F17-E04": "PENDENTE",
+    "V2-F17-E05": "PENDENTE",
+    "V2-F17-E06": "PENDENTE",
+    "V2-F17-E07": "PENDENTE",
+    "V2-F17-E08": "PENDENTE",
+    "V2-F17-E09": "PENDENTE",
+    "V2-F17-E10": "PENDENTE",
+    "V2-F17-E11": "PENDENTE",
+    "V2-F17-E12": "PENDENTE",
+    "V2-F17-E13": "PENDENTE",
+    "V2-F17-E14": "PENDENTE",
+    "V2-F17-E15": "PENDENTE",
+    "V2-F17-E16": "PENDENTE",
+    "V2-F17-E17": "PENDENTE",
+    "V2-F17-E18": "PENDENTE",
+    "V2-F17-E19": "PENDENTE",
+    "V2-F17-E20": "PENDENTE",
+    "V2-F18-E01": "PENDENTE",
+    "V2-F18-E02": "PENDENTE",
+    "V2-F18-E03": "PENDENTE",
+    "V2-F18-E04": "PENDENTE",
+    "V2-F18-E05": "PENDENTE",
+    "V2-F18-E06": "PENDENTE",
+    "V2-F18-E07": "PENDENTE",
+    "V2-F18-E08": "PENDENTE",
+    "V2-F18-E09": "PENDENTE",
+    "V2-F18-E10": "PENDENTE",
+    "V2-F18-E11": "PENDENTE",
+    "V2-F18-E12": "PENDENTE",
+    "V2-F18-E13": "PENDENTE",
+    "V2-F34-E01": "PENDENTE",
+    "V2-F34-E02": "PENDENTE",
+    "V2-F34-E03": "PENDENTE",
+    "V2-F34-E04": "PENDENTE",
+    "V2-F34-E05": "PENDENTE",
+    "V2-F34-E06": "PENDENTE",
+    "V2-F34-E07": "PENDENTE",
+    "V2-F34-E08": "PENDENTE",
+    "V2-F34-E09": "PENDENTE",
+    "V2-F34-E10": "PENDENTE",
+    "V2-F34-E11": "PENDENTE",
+    "V2-F34-E12": "PENDENTE",
+    "V2-F34-E13": "PENDENTE",
+    "V2-F34-E14": "PENDENTE",
+    "V2-F34-E15": "PENDENTE",
+    "V2-F34-E16": "PENDENTE",
+    "V2-F34-E17": "PENDENTE",
+    "V2-F34-E18": "PENDENTE",
+    "V2-F34-E19": "PENDENTE",
+    "V2-F34-E20": "PENDENTE",
+    "V2-F19-E01": "PENDENTE",
+    "V2-F19-E02": "PENDENTE",
+    "V2-F19-E03": "PENDENTE",
+    "V2-F19-E04": "PENDENTE",
+    "V2-F19-E05": "PENDENTE",
+    "V2-F19-E06": "PENDENTE",
+    "V2-F19-E07": "PENDENTE",
+    "V2-F29-E01": "PENDENTE",
+    "V2-F29-E02": "PENDENTE",
+    "V2-F29-E03": "PENDENTE",
+    "V2-F29-E04": "PENDENTE",
+    "V2-F29-E05": "PENDENTE",
+    "V2-F29-E06": "PENDENTE",
+    "V2-F29-E07": "PENDENTE",
+    "V2-F29-E08": "PENDENTE",
+    "V2-F29-E09": "PENDENTE",
+    "V2-F29-E10": "PENDENTE",
+    "V2-F29-E11": "PENDENTE",
+    "V2-F29-E12": "PENDENTE",
+    "V2-F29-E13": "PENDENTE",
+    "V2-F29-E14": "PENDENTE",
+    "V2-F29-E15": "PENDENTE",
+    "V2-F29-E16": "PENDENTE",
+    "V2-F29-E17": "PENDENTE",
+    "V2-F29-E18": "PENDENTE",
+    "V2-F30-E01": "PENDENTE",
+    "V2-F30-E02": "PENDENTE",
+    "V2-F30-E03": "PENDENTE",
+    "V2-F30-E04": "PENDENTE",
+    "V2-F30-E05": "PENDENTE",
+    "V2-F30-E06": "PENDENTE",
+    "V2-F30-E07": "PENDENTE",
+    "V2-F30-E08": "PENDENTE",
+    "V2-F30-E09": "PENDENTE",
+    "V2-F30-E10": "PENDENTE",
+    "V2-F30-E11": "PENDENTE",
+    "V2-F30-E12": "PENDENTE",
+    "V2-F30-E13": "PENDENTE",
+    "V2-F30-E14": "PENDENTE",
+    "V2-F30-E15": "PENDENTE",
+    "V2-F30-E16": "PENDENTE",
+    "V2-F30-E17": "PENDENTE",
+    "V2-F30-E18": "PENDENTE",
+    "V2-F31-E01": "PENDENTE",
+    "V2-F31-E02": "PENDENTE",
+    "V2-F31-E03": "PENDENTE",
+    "V2-F31-E04": "PENDENTE",
+    "V2-F31-E05": "PENDENTE",
+    "V2-F31-E06": "PENDENTE",
+    "V2-F31-E07": "PENDENTE",
+    "V2-F31-E08": "PENDENTE",
+    "V2-F31-E09": "PENDENTE",
+    "V2-F31-E10": "PENDENTE",
+    "V2-F31-E11": "PENDENTE",
+    "V2-F31-E12": "PENDENTE",
+    "V2-F31-E13": "PENDENTE",
+    "V2-F31-E14": "PENDENTE",
+    "V2-F31-E15": "PENDENTE",
+    "V2-F31-E16": "PENDENTE",
+    "V2-F31-E17": "PENDENTE",
+    "V2-F31-E18": "PENDENTE",
+    "V2-F31-E19": "PENDENTE",
+    "V2-F31-E20": "PENDENTE",
+    "V2-F35-E01": "PENDENTE",
+    "V2-F35-E02": "PENDENTE",
+    "V2-F35-E03": "PENDENTE",
+    "V2-F35-E04": "PENDENTE",
+    "V2-F35-E05": "PENDENTE",
+    "V2-F35-E06": "PENDENTE",
+    "V2-F35-E07": "PENDENTE",
+    "V2-F35-E08": "PENDENTE",
+    "V2-F35-E09": "PENDENTE",
+    "V2-F35-E10": "PENDENTE",
+    "V2-F35-E11": "PENDENTE",
+    "V2-F35-E12": "PENDENTE",
+    "V2-F35-E13": "PENDENTE",
+    "V2-F35-E14": "PENDENTE",
+    "V2-F20-E01": "PENDENTE",
+    "V2-F20-E02": "PENDENTE",
+    "V2-F20-E03": "PENDENTE",
+    "V2-F20-E04": "PENDENTE",
+    "V2-F20-E05": "PENDENTE",
+    "V2-F20-E06": "PENDENTE",
+    "V2-F20-E07": "PENDENTE",
+    "V2-F20-E08": "PENDENTE",
+    "V2-F20-E09": "PENDENTE",
+    "V2-F20-E10": "PENDENTE",
+    "V2-F20-E11": "PENDENTE",
+    "V2-F20-E12": "PENDENTE",
+    "V2-F20-E13": "PENDENTE",
+    "V2-F20-E14": "PENDENTE",
+    "V2-F20-E15": "PENDENTE",
+    "V2-F20-E16": "PENDENTE",
+    "V2-F20-E17": "PENDENTE",
+    "V2-F20-E18": "PENDENTE",
+    "V2-F20-E19": "PENDENTE",
+    "V2-F21-E01": "PENDENTE",
+    "V2-F21-E02": "PENDENTE",
+    "V2-F21-E03": "PENDENTE",
+    "V2-F21-E04": "PENDENTE",
+    "V2-F21-E05": "PENDENTE",
+    "V2-F21-E06": "PENDENTE",
+    "V2-F21-E07": "PENDENTE",
+    "V2-F21-E08": "PENDENTE",
+    "V2-F21-E09": "PENDENTE",
+    "V2-F21-E10": "PENDENTE",
+    "V2-F21-E11": "PENDENTE",
+    "V2-F21-E12": "PENDENTE",
+    "V2-F21-E13": "PENDENTE",
+    "V2-F21-E14": "PENDENTE",
+    "V2-F22-E01": "PENDENTE",
+    "V2-F22-E02": "PENDENTE",
+    "V2-F22-E03": "PENDENTE",
+    "V2-F22-E04": "PENDENTE",
+    "V2-F22-E05": "PENDENTE",
+    "V2-F22-E06": "PENDENTE",
+    "V2-F22-E07": "PENDENTE",
+    "V2-F22-E08": "PENDENTE",
+    "V2-F22-E09": "PENDENTE",
+    "V2-F22-E10": "PENDENTE",
+    "V2-F22-E11": "PENDENTE",
+    "V2-F23-E01": "PENDENTE",
+    "V2-F23-E02": "PENDENTE",
+    "V2-F23-E03": "PENDENTE",
+    "V2-F23-E04": "PENDENTE",
+    "V2-F23-E05": "PENDENTE",
+    "V2-F23-E06": "PENDENTE",
+    "V2-F23-E07": "PENDENTE",
+    "V2-F23-E08": "PENDENTE",
+    "V2-F23-E09": "PENDENTE",
+    "V2-F23-E10": "PENDENTE",
+    "V2-F23-E11": "PENDENTE",
+    "V2-F23-E12": "PENDENTE",
+    "V2-F23-E13": "PENDENTE",
+    "V2-F24-E01": "PENDENTE",
+    "V2-F24-E02": "PENDENTE",
+    "V2-F24-E03": "PENDENTE",
+    "V2-F24-E04": "PENDENTE",
+    "V2-F24-E05": "PENDENTE",
+    "V2-F24-E06": "PENDENTE",
+    "V2-F24-E07": "PENDENTE",
+    "V2-F24-E08": "PENDENTE",
+    "V2-F24-E09": "PENDENTE",
+    "V2-F24-E10": "PENDENTE",
+    "V2-F24-E11": "PENDENTE",
+    "V2-F24-E12": "PENDENTE",
+    "V2-F24-E13": "PENDENTE",
+    "V2-F24-E14": "PENDENTE",
+    "V2-F25-E01": "PENDENTE",
+    "V2-F25-E02": "PENDENTE",
+    "V2-F25-E03": "PENDENTE",
+    "V2-F25-E04": "PENDENTE",
+    "V2-F25-E05": "PENDENTE",
+    "V2-F25-E06": "PENDENTE",
+    "V2-F25-E07": "PENDENTE",
+    "V2-F25-E08": "PENDENTE",
+    "V2-F25-E09": "PENDENTE",
+    "V2-F25-E10": "PENDENTE",
+    "V2-F25-E11": "PENDENTE",
+    "V2-F25-E12": "PENDENTE",
+    "V2-F25-E13": "PENDENTE",
+    "V2-F25-E14": "PENDENTE",
+    "V2-F25-E15": "PENDENTE",
+    "V2-F25-E16": "PENDENTE",
+    "V2-F25-E17": "PENDENTE",
+    "V2-F25-E18": "PENDENTE",
+    "V2-F25-E19": "PENDENTE",
+    "V2-F25-E20": "PENDENTE",
+    "V2-F25-E21": "PENDENTE",
+    "V2-F26-E01": "PENDENTE",
+    "V2-F26-E02": "PENDENTE",
+    "V2-F26-E03": "PENDENTE",
+    "V2-F26-E04": "PENDENTE",
+    "V2-F26-E05": "PENDENTE",
+    "V2-F26-E06": "PENDENTE",
+    "V2-F26-E07": "PENDENTE",
+    "V2-F26-E08": "PENDENTE",
+    "V2-F26-E09": "PENDENTE",
+    "V2-F26-E10": "PENDENTE",
+    "V2-F26-E11": "PENDENTE",
+    "V2-F26-E12": "PENDENTE",
+    "V2-F27-E01": "PENDENTE",
+    "V2-F27-E02": "PENDENTE",
+    "V2-F27-E03": "PENDENTE",
+    "V2-F27-E04": "PENDENTE",
+    "V2-F27-E05": "PENDENTE",
+    "V2-F27-E06": "PENDENTE",
+    "V2-F27-E07": "PENDENTE",
+    "V2-F27-E08": "PENDENTE",
+    "V2-F27-E09": "PENDENTE",
+    "V2-F28-E01": "PENDENTE",
+    "V2-F28-E02": "PENDENTE",
+    "V2-F28-E03": "PENDENTE",
+    "V2-F28-E04": "PENDENTE",
+    "V2-F28-E05": "PENDENTE",
+    "V2-F28-E06": "PENDENTE",
+    "V2-F28-E07": "PENDENTE",
+    "V2-F28-E08": "PENDENTE",
+    "V2-F28-E09": "PENDENTE",
+    "V2-F28-E10": "PENDENTE",
+    "V2-F28-E11": "PENDENTE",
+    "V2-F28-E12": "PENDENTE",
+    "V2-F28-E13": "PENDENTE",
+    "V2-F28-E14": "PENDENTE",
+    "V2-F28-E15": "PENDENTE",
+    "V2-F28-E16": "PENDENTE"
+  },
+  "mudancas": {
+    "etapas": [
+      {
+        "id": "V2-F00-E01",
+        "fase": "F00",
+        "titulo": "Baseline atual reproduzível em máquina limpa",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-05, 17 de 17 conferem; falta validação humana (segunda pessoa com `npm ci` e run do CI)."
+      },
+      {
+        "id": "V2-F00-E02",
+        "fase": "F00",
+        "titulo": "Política T42 para teste vermelho e skip",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-05: portão com 17 testes (árvore atual verde, 594 arquivos, 10 skips por ambiente contados, 1 incondicional marcado), `test:scripts` 198 com as 3 falhas da E17."
+      },
+      {
+        "id": "V2-F00-E03",
+        "fase": "F00",
+        "titulo": "Classificar os vermelhos por causa e registrar",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Registro feito em 2026-10-05, só documentação: 40 testes vermelhos, 13 casos da suíte `banco-tls`, 5 pulados da vigência, 13 afirmações de números, typecheck do campo, 4 passos de dependência e 3 e2e, cada um com classe, regra, etapa e dono; soma fechada contra o baseline da E01 (17 de 17)."
+      },
+      {
+        "id": "V2-F00-E04",
+        "fase": "F00",
+        "titulo": "Religar a vigência de conta, papel e sessão na escrita e tirar o skip",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: vigência religada em `servidor.ts`, skip e marca T42 fora, sonda 6 de 13 vermelhos antes e 13 de 13 verdes depois, API 1113 testes com 1 falha (E12) e 13 pulados (`banco-tls`), isolamento e superfície verdes."
+      },
+      {
+        "id": "V2-F00-E05",
+        "fase": "F00",
+        "titulo": "Códigos de erro 401 nao_autenticado, 401 sessao_encerrada e 403 conta_desativada, com catálogo",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: catálogo no shared (seis códigos), `sessao_encerrada` e `conta_desativada` emitidos e testados (16 casos novos na API, 8 vermelhos com o código velho), painel com as três frases, `/auth/entrar` intacta, 404 de outro município intacto; API 1129 testes com 1 fal..."
+      },
+      {
+        "id": "V2-F00-E06",
+        "fase": "F00",
+        "titulo": "Fila do campo trata os três códigos sem perder item (`packages/campo/src/transporte.ts`)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: `FalhaDeSessao` (nova), 401 `nao_autenticado` renova UMA vez e repete, 401 `sessao_encerrada` e 403 `conta_desativada` (e sem token) param a fila e mantêm o item pendente (zero bloqueado, tentativas inalteradas, `paradaPor` no dreno, `pausadaPor` no resumo), 4..."
+      },
+      {
+        "id": "V2-F00-E07",
+        "fase": "F00",
+        "titulo": "Papel alterado, sessão rotacionada e senha provisória",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: migração 047 (`sessoes.familia_id`, `abrir_sessao` com a família opcional), sessão rotacionada só vale enquanto a cadeia vive (administrador, própria pessoa, sair, reuso e troca de senha derrubam o token anterior à renovação), papel diferente do token é 401 `n..."
+      },
+      {
+        "id": "V2-F00-E08",
+        "fase": "F00",
+        "titulo": "Fechar vazamentos P0 de leitura ao agente: GET /oficios, GET /oficios/:id e GET /avisos (que escreve)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: ação `consultar_oficio` (operador, coordenador, administrador), 403 `sem_permissao` ao agente nas duas rotas de ofício, sino e contagem do agente recortados à equipe (`POST /avisos/lidos` também), painel e modo local alinhados; sonda 9 de 14 vermelhos antes e..."
+      },
+      {
+        "id": "V2-F00-E09",
+        "fase": "F00",
+        "titulo": "Telas de sessões e de redefinição de senha no painel",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: `GET /auth/sessoes` e `GET /usuarios/:id/sessoes` (sem IP nem user-agent), botões de redefinir senha e encerrar sessões por linha com confirmação, janela da senha temporária única, Minha conta com a lista de sessões e \"encerrar minhas outras sessões\"; o modo l..."
+      },
+      {
+        "id": "V2-F00-E10",
+        "fase": "F00",
+        "titulo": "Recuperação de senha por e-mail: fluxo completo com notificador de teste",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: o pedido responde 202 igual para e-mail que existe, que não existe e que passou do teto por hora (envio depois da resposta, falha do provedor só no log), `GET /auth/recuperacao`, as duas telas com todos os estados, o token fora da barra de endereço, pedido sem..."
+      },
+      {
+        "id": "V2-F00-E11",
+        "fase": "F00",
+        "titulo": "Bug /pacote.zip e prova do pacote de saída ponta a ponta contra a API real",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Interrompida pela pausa de 2026-10-06 e RETOMADA e terminada no mesmo dia."
+      },
+      {
+        "id": "V2-F00-E12",
+        "fase": "F00",
+        "titulo": "Pacote de saída: laudo com aviso de equipe divergente",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06: a consulta de vistorias de `apps/api/src/saida/pacote.ts` ganhou `LEFT JOIN equipes ed` por `v.equipe_designada_id` e `LEFT JOIN equipes ea` por `v.equipe_do_agente_id` e passou a selecionar os dois nomes, iguais às de `rotas/documentos.ts`, então `avisoDeEqui..."
+      },
+      {
+        "id": "V2-F00-E13",
+        "fase": "F00",
+        "titulo": "Vermelhos do painel (14), incluindo \"entrar a partir de /\" que leva a \"Esta página não existe\"",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-06."
+      },
+      {
+        "id": "V2-F00-E14",
+        "fase": "F00",
+        "titulo": "Vermelhos do app de campo por texto velho e mock velho reescritos conforme decisão de 2026-09-15",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E15",
+        "fase": "F00",
+        "titulo": "Defeitos reais do campo, parte 1: sair da conta não apaga vistoria começada; precisão de GPS abaixo de 0,5 m (CMP-52, CMP-33)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E16",
+        "fase": "F00",
+        "titulo": "Defeitos reais do campo, parte 2: mensagem de foto vazia, teclado e câmera na área segura, permissão sem botão de ajustes (CMP-35, CMP-89)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E17",
+        "fase": "F00",
+        "titulo": "Scripts e conferência de números: test:scripts (3 falhas) e conferir:numeros (13 afirmações)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07, no Windows."
+      },
+      {
+        "id": "V2-F00-E18",
+        "fase": "F00",
+        "titulo": "E2E de navegador (3) e CORS do PUT de evidência",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E19",
+        "fase": "F00",
+        "titulo": "npm audit conforme política aprovada (raiz e campo) e expo-doctor",
+        "antes": "PENDENTE",
+        "depois": "BLOQUEADA",
+        "tipo": "bloqueada",
+        "observacao": "BLOQUEADA pelo CP-03 (política de npm audit, ABERTO)."
+      },
+      {
+        "id": "V2-F00-E20",
+        "fase": "F00",
+        "titulo": "Portão de conteúdo: zerar as linhas vermelhas pré-existentes (`trilha-detalhe.test.ts:181`, `AUDITORIA-2026-09-30.md:313`, `docs/auditoria-v2/raw`)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E21",
+        "fase": "F00",
+        "titulo": "Ambiente: CRLF em ocorrencia-encerramento, OPENSSL_CONF em banco-tls, Windows e Linux",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07, no Windows (Git Bash e PowerShell)."
+      },
+      {
+        "id": "V2-F00-E22",
+        "fase": "F00",
+        "titulo": "Documentação desatualizada ou falsa (README números, PENDENCIAS, ADR 0008, SAIDA cap. 2 x 5, LEIA-ME do campo, comentários de vigência)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E23",
+        "fase": "F00",
+        "titulo": "Teste de contrato mínimo painel x API (caminhos de `dados/http.ts` contra as rotas registradas)",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      },
+      {
+        "id": "V2-F00-E24",
+        "fase": "F00",
+        "titulo": "K14: ajustar documentação e apresentação conforme a decisão sobre saída a campo, antes de nova demonstração",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07 (só documentação; API, painel e aplicativo intocados)."
+      },
+      {
+        "id": "V2-F00-E25",
+        "fase": "F00",
+        "titulo": "Restore das 46 migrações provado em máquina limpa (CA-08) e roteiro mínimo",
+        "antes": "PENDENTE",
+        "depois": "EM ANDAMENTO",
+        "tipo": "avanco",
+        "observacao": "Implementada e medida em 2026-10-07."
+      }
+    ],
+    "gates": [],
+    "checkpoints": [],
+    "obrigatorias": [
+      "V2-F00-E19"
+    ]
+  },
+  "bloqueios": {
+    "checkpointsAbertos": [
+      {
+        "id": "CP-03",
+        "assunto": "Política de npm audit",
+        "quemDecide": "🛑 Rafael",
+        "quem": [
+          "rafael"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F00",
+        "daFase": "atual",
+        "travaEtapas": [
+          "V2-F00-E19"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-19",
+        "assunto": "Contratação para uso externo (e-mail, storage, banco, erro)",
+        "quemDecide": "🛑 Rafael",
+        "quem": [
+          "rafael"
+        ],
+        "status": "ABERTO",
+        "observacao": "Trava só o ENVIO REAL de e-mail (provedor e domínio).",
+        "fase": "F00",
+        "daFase": "atual",
+        "travaEtapas": [
+          "V2-F00-E10"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-03",
+        "assunto": "Política de npm audit",
+        "quemDecide": "🛑 Rafael",
+        "quem": [
+          "rafael"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E03",
+          "V2-F01-E06"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-04",
+        "assunto": "Entidade, domínio, contas de loja, marca e bundle ids",
+        "quemDecide": "🛑 Rafael, Alyson",
+        "quem": [
+          "rafael",
+          "alyson"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E10",
+          "V2-F01-E13"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-05",
+        "assunto": "Contratação do ambiente de homologação",
+        "quemDecide": "🛑 Rafael",
+        "quem": [
+          "rafael"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E11"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-06",
+        "assunto": "Ferramenta de erro e de log, residência do dado",
+        "quemDecide": "🛑 Rafael e ⚖️ jurídico",
+        "quem": [
+          "rafael",
+          "juridico-dpo"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E14"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-07",
+        "assunto": "Segunda pessoa com acesso e plantão",
+        "quemDecide": "🛑 Rafael",
+        "quem": [
+          "rafael"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E16"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-43",
+        "assunto": "Licenças de dependência permitidas e proibidas",
+        "quemDecide": "🛑 Rafael e ⚖️ jurídico",
+        "quem": [
+          "rafael",
+          "juridico-dpo"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E19"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      },
+      {
+        "id": "CP-44",
+        "assunto": "PostGIS no provedor gerenciado de HML e de produção",
+        "quemDecide": "🛑 Rafael",
+        "quem": [
+          "rafael"
+        ],
+        "status": "ABERTO",
+        "observacao": "",
+        "fase": "F01",
+        "daFase": "proxima",
+        "travaEtapas": [
+          "V2-F01-E22"
+        ],
+        "noCabecalho": true,
+        "bloqueia": true
+      }
+    ],
+    "etapasBloqueadas": [
+      {
+        "id": "V2-F00-E19",
+        "titulo": "npm audit conforme política aprovada (raiz e campo) e expo-doctor",
+        "motivo": "BLOQUEADA pelo CP-03 (política de npm audit, ABERTO).",
+        "checkpoints": [
+          "CP-03"
+        ]
+      }
+    ],
+    "porQuem": {
+      "tecnico": [],
+      "rafael": [
+        "CP-03",
+        "CP-19"
+      ],
+      "alyson": [],
+      "juridico-dpo": [],
+      "externo": []
+    }
+  },
+  "pendenciasHumanas": [
+    {
+      "id": "V2-F00-E01",
+      "titulo": "Baseline atual reproduzível em máquina limpa",
+      "status": "EM ANDAMENTO",
+      "falta": "falta validação humana (segunda pessoa com `npm ci` e run do CI)"
+    },
+    {
+      "id": "V2-F00-E02",
+      "titulo": "Política T42 para teste vermelho e skip",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana: Rafael lê a política e confirma prazo máximo e dono padrão (premissas)"
+    },
+    {
+      "id": "V2-F00-E03",
+      "titulo": "Classificar os vermelhos por causa e registrar",
+      "status": "EM ANDAMENTO",
+      "falta": "Faltam: a decisão de Rafael sobre BZ-N:N.3 e os 14 defeitos do campo (hoje premissa, seção 9) e a leitura das divergências (D-1 a D-7)"
+    },
+    {
+      "id": "V2-F00-E04",
+      "titulo": "Religar a vigência de conta, papel e sessão na escrita e tirar o skip",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael vê a sonda antes e depois) e o E2E de navegador (fica para a E05); não implantar sem E05 e E06"
+    },
+    {
+      "id": "V2-F00-E05",
+      "titulo": "Códigos de erro 401 nao_autenticado, 401 sessao_encerrada e 403 conta_desativada, com catálogo",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael aprova as três frases) e o E2E completo do painel (`e2e-api` cai na seção 13, E18; a seção 23 foi provada em cópia aparada)"
+    },
+    {
+      "id": "V2-F00-E06",
+      "titulo": "Fila do campo trata os três códigos sem perder item (`packages/campo/src/transporte.ts`)",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana: Rafael vê a frase e a coleta preservada no aparelho ou no emulador e aprova as frases; NÃO há captura de tela nem E2E em emulador (o Expo não renderiza no ambiente da etapa), só teste de componente e o texto que a..."
+    },
+    {
+      "id": "V2-F00-E07",
+      "titulo": "Papel alterado, sessão rotacionada e senha provisória",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael vê as três sondas) e o E2E completo do painel (`e2e-api` cai na seção 13, E18; a seção 24 foi provada em cópia aparada, com 8 capturas)"
+    },
+    {
+      "id": "V2-F00-E08",
+      "titulo": "Fechar vazamentos P0 de leitura ao agente: GET /oficios, GET /oficios/:id e GET /avisos (que escreve)",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael vê a sonda do agente antes e depois) e o E2E completo (`e2e-api` cai na seção 13, E18; a seção 25 foi provada em cópia aparada, 14 de 14, com 8 capturas)"
+    },
+    {
+      "id": "V2-F00-E09",
+      "titulo": "Telas de sessões e de redefinição de senha no painel",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA a validação humana (Rafael faz o fluxo e confere a frase da senha única)"
+    },
+    {
+      "id": "V2-F00-E10",
+      "titulo": "Recuperação de senha por e-mail: fluxo completo com notificador de teste",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA a validação humana (Rafael faz o fluxo com o notificador de arquivo e confere que a produção segue desligada) e o ENVIO REAL de e-mail, que é o CP-19 (aberto)"
+    },
+    {
+      "id": "V2-F00-E11",
+      "titulo": "Bug /pacote.zip e prova do pacote de saída ponta a ponta contra a API real",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael baixa o pacote pelo painel e abre o ZIP)"
+    },
+    {
+      "id": "V2-F00-E12",
+      "titulo": "Pacote de saída: laudo com aviso de equipe divergente",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael compara as duas folhas)"
+    },
+    {
+      "id": "V2-F00-E13",
+      "titulo": "Vermelhos do painel (14), incluindo \"entrar a partir de /\" que leva a \"Esta página não existe\"",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael digita só o domínio e confere a tela do papel; aprova as seis frases de confirmação) e falta a E21 para o painel somar zero"
+    },
+    {
+      "id": "V2-F00-E14",
+      "titulo": "Vermelhos do app de campo por texto velho e mock velho reescritos conforme decisão de 2026-09-15",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael lê as frases finais da sessão encerrada; decide BZ-N:N.3, premissa da E03)"
+    },
+    {
+      "id": "V2-F00-E15",
+      "titulo": "Defeitos reais do campo, parte 1: sair da conta não apaga vistoria começada; precisão de GPS abaixo de 0,5 m (CMP-52, CMP-33)",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana (Rafael faz os dois fluxos no aparelho, LEIA-ME passo 8, e aprova as frases do diálogo); não há captura porque o app não renderiza aqui"
+    },
+    {
+      "id": "V2-F00-E16",
+      "titulo": "Defeitos reais do campo, parte 2: mensagem de foto vazia, teclado e câmera na área segura, permissão sem botão de ajustes (CMP-35, CMP-89)",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA (validação humana, F14-E12): no iPhone, negar a câmera e tocar no botão (abre os Ajustes), digitar o nome com o teclado aberto e tocar em \"Tirar foto\" no primeiro toque, ver o obturador acima da barra do sistema; foto do aparelho"
+    },
+    {
+      "id": "V2-F00-E17",
+      "titulo": "Scripts e conferência de números: test:scripts (3 falhas) e conferir:numeros (13 afirmações)",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA: rodar `test:scripts` e `conferir:numeros` em Linux ou macOS (sem WSL nem Docker aqui; o CI não roda `test:scripts` até a F01-E03); Rafael roda os dois na máquina dele"
+    },
+    {
+      "id": "V2-F00-E18",
+      "titulo": "E2E de navegador (3) e CORS do PUT de evidência",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA: Rafael ver a foto subir na seção 13"
+    },
+    {
+      "id": "V2-F00-E20",
+      "titulo": "Portão de conteúdo: zerar as linhas vermelhas pré-existentes (`trilha-detalhe.test.ts:181`, `AUDITORIA-2026-09-30.md:313`, `docs/auditoria-v2/raw`)",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA: Rafael aprovar a lista de isenções"
+    },
+    {
+      "id": "V2-F00-E21",
+      "titulo": "Ambiente: CRLF em ocorrencia-encerramento, OPENSSL_CONF em banco-tls, Windows e Linux",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA (por isso não CONCLUÍDA): os três casos em LINUX (CI na F01-E03 ou contêiner; esta máquina não tem WSL nem Docker) e Rafael rodar `npm run verificar` (que ainda sai vermelho por `auditar`, E19)"
+    },
+    {
+      "id": "V2-F00-E22",
+      "titulo": "Documentação desatualizada ou falsa (README números, PENDENCIAS, ADR 0008, SAIDA cap. 2 x 5, LEIA-ME do campo, comentários de vigência)",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA: Rafael ler a tabela antes e depois; rodada final de `auditar` depois da E19 (bloqueada)"
+    },
+    {
+      "id": "V2-F00-E23",
+      "titulo": "Teste de contrato mínimo painel x API (caminhos de `dados/http.ts` contra as rotas registradas)",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA: Rafael ver o teste reprovar com `/pacote.zip` reintroduzido numa cópia de trabalho"
+    },
+    {
+      "id": "V2-F00-E24",
+      "titulo": "K14: ajustar documentação e apresentação conforme a decisão sobre saída a campo, antes de nova demonstração",
+      "status": "EM ANDAMENTO",
+      "falta": "Falta validação humana: Rafael e Alyson confirmam a D-25 e leem a apresentação antes de qualquer demonstração; item K14 do G00 se marca no gate"
+    },
+    {
+      "id": "V2-F00-E25",
+      "titulo": "Restore das 46 migrações provado em máquina limpa (CA-08) e roteiro mínimo",
+      "status": "EM ANDAMENTO",
+      "falta": "FALTA (validação humana): segunda pessoa em máquina limpa de verdade, Postgres 17, Linux e macOS, origem Supabase com o esquema atual; item \"restore\" do G00 só no gate"
+    }
+  ],
+  "riscosAceitos": [],
+  "gatesReabertos": [],
+  "decisoesNovas": [
+    {
+      "id": "D-30",
+      "frase": "Sistema de execução, validação e relatórios (2026-10-07): validação por agente independente sobre o SHA do commit candidato, gatekeeper fail-closed, RISCO ACEITO separado de PASS com lista de critérios sem aceite, por..."
+    }
+  ],
+  "diario": [
+    {
+      "data": "2026-10-05",
+      "resumo": "Rafael disse \"prossiga\"; implementação iniciada.",
+      "texto": "Rafael disse \"prossiga\"; implementação iniciada. V2-F00-E01: roteiro `baseline.mjs`, `.nvmrc`, README e COLOCAR-DE-PE; medição 17 de 17 confere com o baseline; achados: a saída bruta com travessão faz a evidência reprovar o teste de conteúdo (redação nova) e o E2E local precisa do painel servido",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-05",
+      "resumo": "V2-F00-E02: política T42 (`POLITICA-DE-TESTE-VERMELHO.md`), portão `portao-de-skip.test.mjs` com 17 testes dentro de `test:scripts` (198 no total, 3 falhas pré-existentes da E17), marca T42 na vigência (E04, 2026-11-05), `DECISOES-DE-TESTE-DA-FASE-00.md`; esperado do roteiro `baseline.mjs` ajusta...",
+      "texto": "V2-F00-E02: política T42 (`POLITICA-DE-TESTE-VERMELHO.md`), portão `portao-de-skip.test.mjs` com 17 testes dentro de `test:scripts` (198 no total, 3 falhas pré-existentes da E17), marca T42 na vigência (E04, 2026-11-05), `DECISOES-DE-TESTE-DA-FASE-00.md`; esperado do roteiro `baseline.mjs` ajustado por `TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS`; regressão sem mudança (API teve 1 falha intermitente de tempo em `resolver-link.test.ts`, verde na rodada seguinte); premissas na seção 9",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-05",
+      "resumo": "V2-F00-E03: vermelhos do baseline da E01 conferidos nas saídas e no código e classificados (`classificacao-dos-vermelhos.md`); regra de BZ-N:N.3 na política como premissa; registro por teste em `DECISOES-DE-TESTE-DA-FASE-00.md`; 7 divergências com o roadmap (maior: `npm audit` da E19 com números...",
+      "texto": "V2-F00-E03: vermelhos do baseline da E01 conferidos nas saídas e no código e classificados (`classificacao-dos-vermelhos.md`); regra de BZ-N:N.3 na política como premissa; registro por teste em `DECISOES-DE-TESTE-DA-FASE-00.md`; 7 divergências com o roadmap (maior: `npm audit` da E19 com números velhos, `fastify` alto em execução); `resolver-link.test.ts` classificado como instável; só documentação, sem regressão",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E04: vigência de conta, papel e sessão religada na escrita (`servidor.ts`), `describe.skip` da vigência e marca T42 removidos, 4 casos de borda novos, ajuste de fixture em `api.test.ts` (o reuso de renovação passa a derrubar o token da Helena de verdade), portão de skip e esperado da API n...",
+      "texto": "V2-F00-E04: vigência de conta, papel e sessão religada na escrita (`servidor.ts`), `describe.skip` da vigência e marca T42 removidos, 4 casos de borda novos, ajuste de fixture em `api.test.ts` (o reuso de renovação passa a derrubar o token da Helena de verdade), portão de skip e esperado da API no `baseline.mjs` atualizados; sonda 6 de 13 vermelhos antes e 13 de 13 depois; API 1113 testes, 1 falha (E12), 13 pulados; a falha de senha provisória da E07 ficou verde sozinha; README e PENDENCIAS atualizados",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E05: catálogo de códigos de erro de acesso no shared; API emite `sessao_encerrada` (401, o antigo `sessao` sai) e `conta_desativada` (403, também na renovação), com a conta desativada antes da sessão encerrada; `/auth/entrar` e o 404 de outro município provados intactos; o código solto `in...",
+      "texto": "V2-F00-E05: catálogo de códigos de erro de acesso no shared; API emite `sessao_encerrada` (401, o antigo `sessao` sai) e `conta_desativada` (403, também na renovação), com a conta desativada antes da sessão encerrada; `/auth/entrar` e o 404 de outro município provados intactos; o código solto `inativo` do segundo fator virou `credenciais`; painel reconhece as três respostas e a tela de entrada diz a frase de cada uma (sessão expirou, encerrada, conta desativada); 16 casos novos na API (8 vermelhos com o código velho), 10 no shared, 7 no web, seção 23 do e2e (provada em cópia aparada); `baseline.mjs` com esperado por etapa também para shared e web; as oito ocorrências de `sessao` nos testes registradas em `DECISOES-DE-TESTE-DA-FASE-00.md`; README, PENDENCIAS e guia do coordenador atualizados",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E06: transporte do campo lê os três códigos do catálogo (`FalhaDeSessao`, renovação única do token com a trava e o piso de `token.ts`), fila para e guarda o item pendente em 401 `sessao_encerrada` e 403 `conta_desativada` (e sem token), 403 `sem_permissao` segue bloqueando; faixa, aviso e...",
+      "texto": "V2-F00-E06: transporte do campo lê os três códigos do catálogo (`FalhaDeSessao`, renovação única do token com a trava e o piso de `token.ts`), fila para e guarda o item pendente em 401 `sessao_encerrada` e 403 `conta_desativada` (e sem token), 403 `sem_permissao` segue bloqueando; faixa, aviso e cartão \"Guardada\" no app e motivo `conta-desativada` na lista de hoje; 28 testes novos no pacote, 35 no app, 5 na integração com a API (4 contra a API real); três testes que afirmavam \"401 é permanente\" reescritos e registrados em `DECISOES-DE-TESTE-DA-FASE-00.md`; `baseline.mjs` com esperado por etapa para o pacote e o app; sonda 16/86, 13/86 e 7/9 vermelhos antes do conserto; sem captura de tela (Expo não renderiza no ambiente), prova por teste de componente; README, PENDENCIAS, LEIA-ME e guia do coordenador atualizados",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E07: migração 047 (família da sessão, `abrir_sessao` com a família opcional), vigência com a regra da cadeia e papel diferente do token como 401 `nao_autenticado`, `renovar` herda a família, `trocarSenha` recusa a provisória vencida, painel acompanha o papel da renovação (`aoRenovar`), 20...",
+      "texto": "V2-F00-E07: migração 047 (família da sessão, `abrir_sessao` com a família opcional), vigência com a regra da cadeia e papel diferente do token como 401 `nao_autenticado`, `renovar` herda a família, `trocarSenha` recusa a provisória vencida, painel acompanha o papel da renovação (`aoRenovar`), 20 casos novos na API, 12 no banco, 2 no painel e a seção 24 do E2E (9 verificações, 8 capturas), três testes da E05 reescritos com registro, `baseline.mjs` com esperado por etapa também para o banco. Sonda 11 de 20 antes, 20 de 20 depois; API 1154 com 1 falha (E12) e 13 pulados, isolamento 330, `migrar` e `--conferir` em Postgres 18.3 real. Status EM ANDAMENTO (falta validação humana das sondas). Evidência em `docs/evidencias-v2/G00/V2-F00-E07/`.",
+      "quem": ""
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E08: ação `consultar_oficio` no shared, 403 ao agente em `GET /oficios` e `GET /oficios/:id` (permissão antes do id), sino do agente (lista, contagem e marcar como lido) recortado à equipe dele, painel e modo local alinhados, escrita do GET registrada em PENDENCIAS; 14 casos novos na API (...",
+      "texto": "V2-F00-E08: ação `consultar_oficio` no shared, 403 ao agente em `GET /oficios` e `GET /oficios/:id` (permissão antes do id), sino do agente (lista, contagem e marcar como lido) recortado à equipe dele, painel e modo local alinhados, escrita do GET registrada em PENDENCIAS; 14 casos novos na API (9 vermelhos antes), 3 no shared, 4 no painel e a seção 25 do e2e (14 verificações, 8 capturas); `baseline.mjs` com esperado por etapa (API +14, shared +3, web +4); README corrigido (126 verificações de e2e). Sem migração. Status EM ANDAMENTO (falta validação humana da sonda). Evidência em `docs/evidencias-v2/G00/V2-F00-E08/`.",
+      "quem": ""
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E09: `GET /auth/sessoes` e `GET /usuarios/:id/sessoes` (só quantidade, datas e aparelho em uma frase), botões Redefinir senha e Encerrar sessões em Usuários, janela da senha temporária única, Minha conta com a lista de sessões e o botão de encerrar as outras, modo local explicando; 27 caso...",
+      "texto": "V2-F00-E09: `GET /auth/sessoes` e `GET /usuarios/:id/sessoes` (só quantidade, datas e aparelho em uma frase), botões Redefinir senha e Encerrar sessões em Usuários, janela da senha temporária única, Minha conta com a lista de sessões e o botão de encerrar as outras, modo local explicando; 27 casos novos na API (11 reprovam sem as rotas), 18 no painel, os 8 de `seguranca-da-conta.test.ts` verdes sem mudar o teste (painel de 14 falhas para 6), seção 26 do e2e (50 verificações) e 68 capturas; ajuste de layout da lista de usuários achado nas capturas. `baseline.mjs` com esperado por etapa (API +27, web +18 e 8 falhas a menos). Sem migração. Status EM ANDAMENTO (falta validação humana do fluxo). Evidência em `docs/evidencias-v2/G00/V2-F00-E09/`.",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E10: recuperação de senha por e-mail com notificador de teste: `POST /auth/recuperar` envia depois da resposta e conta pedidos por e-mail (sem oráculo por relógio nem por status), `GET /auth/recuperacao`, mensagens com acento, as duas telas com todos os estados, token fora da barra de ende...",
+      "texto": "V2-F00-E10: recuperação de senha por e-mail com notificador de teste: `POST /auth/recuperar` envia depois da resposta e conta pedidos por e-mail (sem oráculo por relógio nem por status), `GET /auth/recuperacao`, mensagens com acento, as duas telas com todos os estados, token fora da barra de endereço, pedido sem sessão (o link vencido derrubava a sessão de quem estava logado), `Referrer-Policy` e `noindex` só nas duas rotas, produção desligada provada por teste; 25 casos novos na API (8 reprovam antes), 40 no painel (3 reprovam antes), seção 27 do e2e (33 verificações, cópia aparada) e a 14 mantida, 96 capturas em 1280 e 390, contraste AA medido; falta a validação humana e o CP-19",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "Pausa pedida por Rafael: agente da E11 parado, evidências redigidas (JWT de teste) e commits `afde25c` e `5d6bc57` feitos; E11 parcial",
+      "texto": "Pausa pedida por Rafael: agente da E11 parado, evidências redigidas (JWT de teste) e commits `afde25c` e `5d6bc57` feitos; E11 parcial",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E11 retomada e terminada: o parcial de `5d6bc57` foi conferido inteiro e remedido.",
+      "texto": "V2-F00-E11 retomada e terminada: o parcial de `5d6bc57` foi conferido inteiro e remedido. O botão baixa o ZIP de `POST /saida/pacote.zip` (o caminho anterior nunca existiu) por `chamar` com `arquivo: true`, com renovação de 401 e a frase do servidor na recusa; 8 casos de contrato na API, 7 no painel e a seção 28 do e2e (36 verificações, cópia aparada, verde em Chromium e em Firefox, com o ZIP aberto e conferido arquivo a arquivo); 20 capturas em 1280 e 390, claro e escuro. ACHADO: o parcial tinha deixado um `setTimeout` solto em `Organizacao.tsx`, que reprovava o portão de temporizadores do painel (7 falhas em vez de 6); corrigido com `useEffect` com limpeza e remedido. Regressão inteira conferindo; falta a validação humana",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E12: o laudo de dentro do pacote passou a imprimir o aviso de equipe divergente, como o laudo que a rota emite.",
+      "texto": "V2-F00-E12: o laudo de dentro do pacote passou a imprimir o aviso de equipe divergente, como o laudo que a rota emite. A consulta de vistorias de `saida/pacote.ts` ganhou as duas junções de `equipes` (designada e do agente) e os dois nomes, iguais às de `rotas/documentos.ts`; `LEFT JOIN` porque as colunas são nulas antes da migração 024. 6 casos novos em `saida-de-municipio.test.ts` (3 reprovam sem o conserto) e a seção 29 do e2e (15 verificações, com a divergência montada pela API de verdade e os dois documentos comparados palavra por palavra; 51 de 51 com a seção 28, em Chromium e em Firefox). A API fechou com ZERO falhas de teste. ACHADO fora do escopo: a consulta do pacote também não lê `v.latitude` nem `v.longitude`, então o laudo do pacote imprime \"Coordenada capturada no local: não registrada\" onde o da rota imprime a coordenada; registrado em `apps/api/PENDENCIAS.md` e na seção 11, para a F09-E02. Falta a validação humana",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-06",
+      "resumo": "V2-F00-E13: o painel saiu de 6 falhas para 1.",
+      "texto": "V2-F00-E13: o painel saiu de 6 falhas para 1. O título da etapa fala em 14, mas 8 já tinham sido zerados pela E09: a conferência antes de mexer deu 628 testes com 6 falhas, e a que sobra é a de CRLF, da E21, por decisão da própria etapa. Entregues as 5 correções: Toast com `role=\"status\"` nas gravações de Usuários, Equipes e Órgãos; raio do ícone da marca por token na folha; o portão de acessibilidade lendo o bloco de comentário inteiro (a exceção de `Modal.tsx` tem 7 linhas e a janela fixa de 4 a cortava); rota índice em `App.tsx` e `rotaInterna` recusando `/`. Com isso o E2E do painel, vermelho desde a linha de base, fechou VERDE pela primeira vez: 70 de 70 em Chromium e em Firefox, e o esperado do passo `e2e` no `baseline.mjs` virou `codigo: 0`. DOIS DEFEITOS achados no caminho e consertados: sair de propósito deixava caminho de volta para a pessoa seguinte (apareceu na seção 11 do e2e, que nunca tinha rodado), e no celular o aviso passageiro era desenhado em cima da barra de navegação, com fundo translúcido no tema escuro. ACHADO do orquestrador conferido com sonda: a barra a 390 px rola na horizontal de propósito (toque arrasta, Tab alcança os dez), mas o Tab parava em 4 itens pela metade; consertado com `onFocus` e `scrollIntoView`. Falta a validação humana",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E14: os 6 testes velhos do app de campo (2 de frase da sessão encerrada, 4 do logout com dublê incompleto) foram reescritos para a decisão de 15/09/2026, com 1 caso novo de deriva do dublê e duas sondas provando que os testes reescritos ainda pegam o defeito.",
+      "texto": "V2-F00-E14: os 6 testes velhos do app de campo (2 de frase da sessão encerrada, 4 do logout com dublê incompleto) foram reescritos para a decisão de 15/09/2026, com 1 caso novo de deriva do dublê e duas sondas provando que os testes reescritos ainda pegam o defeito. Nenhum arquivo de produto mudou. Jest do app: 1837 testes, 14 falhas (eram 20), todas defeitos reais da E15 e da E16. Na execução, a primeira versão do caso de deriva (`import \"node:fs\"`) acrescentou 5 erros ao typecheck do app, que não tem os tipos do Node; corrigido antes da medição final. Falta a validação humana",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E15: sair da conta passou a dizer o que apaga (vistorias começadas, fotos e assinatura) e o Perfil passou a assinar a fila; o GPS abaixo de meio metro grava 1 e conclui sem 422, com o esquema sem afrouxar.",
+      "texto": "V2-F00-E15: sair da conta passou a dizer o que apaga (vistorias começadas, fotos e assinatura) e o Perfil passou a assinar a fila; o GPS abaixo de meio metro grava 1 e conclui sem 422, com o esquema sem afrouxar. Achado e consertado no caminho: `useResumoDaFila` reassinava a cada desenho quando a sessão entregava função nova, prendendo o número velho. 26 testes novos, inclusive a prova sobre SQLite real de que a fila e a vistoria da mesma pessoa não se perdem. Jest do app: 1857 testes, 7 falhas (eram 14), todas da E16. Falta a validação humana no aparelho",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E16: a vistoria deixou de prometer envio com o aplicativo fechado, o primeiro toque com o teclado aberto passou a agir, a câmera reserva a área segura de baixo, a permissão negada de câmera e de localização ganhou \"Abrir os ajustes do aparelho\" (e só ela) e a foto vazia mostra \"Tire a foto...",
+      "texto": "V2-F00-E16: a vistoria deixou de prometer envio com o aplicativo fechado, o primeiro toque com o teclado aberto passou a agir, a câmera reserva a área segura de baixo, a permissão negada de câmera e de localização ganhou \"Abrir os ajustes do aparelho\" (e só ela) e a foto vazia mostra \"Tire a foto de novo\". Cuidado de desenho: a frase e o botão dos ajustes moram no mesmo estado, porque um booleano separado deixaria o botão aceso na falha seguinte de outra natureza (caso de teste novo). Jest do app: 1861 testes, 0 falhas (eram 7), pela primeira vez sem vermelho desde a linha de base; typecheck com a mesma lista de 2 erros (E21). Falta a validação humana no aparelho",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E17: `test:scripts` verde no Windows (199 testes, 0 falhas, 4 pulados por ambiente) e `conferir:numeros` sem divergência (22 conferidas).",
+      "texto": "V2-F00-E17: `test:scripts` verde no Windows (199 testes, 0 falhas, 4 pulados por ambiente) e `conferir:numeros` sem divergência (22 conferidas). Os três casos reprovavam por motivo de plataforma ou por regex velha, e não pelo que protegem; a reescrita manteve o que cada um recusa e ganhou um negativo para o `mode` escrito à mão. O título falava em 13 afirmações e eram 17: as 4 a mais vieram da E12 e da E13 (verificações no navegador), e uma quinta (\"103 contra a API\") escapava da regex. Falta a rodada em Linux",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E18: CORS libera `if-none-match` (nome a nome, origens intocadas) com teste de preflight de 8 casos; os três e2e de navegador verdes (local 70 em Chromium e Firefox; contra a API 271 em Chromium e Firefox, arquivo inteiro, sem cópia aparada).",
+      "texto": "V2-F00-E18: CORS libera `if-none-match` (nome a nome, origens intocadas) com teste de preflight de 8 casos; os três e2e de navegador verdes (local 70 em Chromium e Firefox; contra a API 271 em Chromium e Firefox, arquivo inteiro, sem cópia aparada). O arquivo inteiro achou um defeito de produto (frase de rede ao registrar sem sinal, consertado com 3 casos), um teste velho da seção 15 e dois ajustes do Firefox (registrados), e o roteiro `e2e-api.mjs` que nunca terminava no sucesso (consertado). API 1245, painel 636, `conferir:numeros` 0",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E20: portão de conteúdo verde (shared 168, 0 falhas).",
+      "texto": "V2-F00-E20: portão de conteúdo verde (shared 168, 0 falhas). Literal do teste do painel vira escape; saída bruta não `.md` das evidências e do `raw` da auditoria e o relatório `AUDITORIA-2026-09-30.md` saem da varredura sem edição; 3 casos de âncora provam o recorte (11 reprovam, 4 passam), sondas reprovam com recorte errado. Números do README e do COLOCAR-DE-PE corrigidos (`conferir:numeros` 22 e 0). EM ANDAMENTO: falta Rafael aprovar as isenções.",
+      "quem": "agente executor"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E21: os vermelhos de ambiente da F00 fecharam no Windows.",
+      "texto": "V2-F00-E21: os vermelhos de ambiente da F00 fecharam no Windows. `.gitattributes` na raiz fixa LF (`.ps1` em CRLF, binários marcados); o teste de encerramento do painel lê a fonte por `ler-fonte.ts` e passa na árvore CRLF; `banco-tls` RODA 13 de 13 com o `OPENSSL_CONF` quebrado do driver ODBC (o filho do `openssl` recebe ambiente sem a variável só nesse caso) e, achado no caminho, também no PowerShell, onde o `openssl` não está no PATH; `test:campo` apaga o cache `.expo/types` de 2026-08-27 que não conhecia `/avisos`, `/mapa` e `/perfil`. `npm test`, `test:api`, painel e `test:campo` saem com código 0: API 1255 sem pulado, painel 643 sem falha, app 1861. Linux não provado (sem WSL nem Docker): EM ANDAMENTO",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E22: documentação que mentia sobre o código corrigida nos oito itens, cada um com a prova de hoje (README, `db/PENDENCIAS.md`, `apps/api/PENDENCIAS.md`, `apps/web/PENDENCIAS.md`, ADR 0008 por nota datada, `SAIDA-DE-MUNICIPIO.md`, `LEIA-ME` do campo, comentários de vigência).",
+      "texto": "V2-F00-E22: documentação que mentia sobre o código corrigida nos oito itens, cada um com a prova de hoje (README, `db/PENDENCIAS.md`, `apps/api/PENDENCIAS.md`, `apps/web/PENDENCIAS.md`, ADR 0008 por nota datada, `SAIDA-DE-MUNICIPIO.md`, `LEIA-ME` do campo, comentários de vigência). `conferir:numeros` passou a pegar \"N contra a API\" (24 conferidas). `npm test` código 0, `baseline.mjs` 13 de 13 conferem; `auditar`, `npm audit` e `expo-doctor` seguem vermelhos (E19). Achado: `npm run auditar` morre com ENOENT no Windows antes de auditar. EM ANDAMENTO (falta a leitura do Rafael e a rodada de `auditar` depois da E19)",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E23: contrato mínimo painel x API.",
+      "texto": "V2-F00-E23: contrato mínimo painel x API. `contrato-do-painel.test.ts` (12 casos) confronta as 71 chamadas de `apps/web/src/dados/http.ts` com as rotas do servidor montado (`printRoutes`), com âncora de contagem (74 = 71 + 3 do mecanismo) e casos sintéticos; todas casam, nenhuma exceção. Sonda real com `/pacote.zip` reprova; arquivo restaurado com SHA-256 igual. API 1267, painel 643, `test:isolamento` 327, `npm test` código 0, `conferir:numeros` 24 e 0. EM ANDAMENTO (falta Rafael ver a sonda numa cópia de trabalho)",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E24: K14 fechado na documentação.",
+      "texto": "V2-F00-E24: K14 fechado na documentação. Com o CP-02 por premissa (D-25, implementar), `SEGURANCA-DO-AGENTE.md`, cartão de bolso, guia do coordenador, `docs/LEIA-ME.md`, README e a apresentação de 2026-09-15 dizem o estado real (servidor e painel prontos, aplicativo ainda não declara, planejado sem data); selo da apresentação de Pronto para Parcial, PDF regenerado (24 páginas, 0 erro). `npm test` código 0, saída a campo 38 + 4, `conferir:numeros` 24 e 0, conteúdo 8 de 8. EM ANDAMENTO (falta Rafael e Alyson confirmarem a D-25 e lerem a apresentação)",
+      "quem": "Claude"
+    },
+    {
+      "data": "2026-10-07",
+      "resumo": "V2-F00-E25: restore do esquema atual (47 migrações, não 46) provado entre dois clusters PostgreSQL 18.3 descartáveis no Windows, com a semente sintética: `diff` de linhas e estrutura, RLS ativada e forçada nas 35 tabelas de negócio, isolamento e trilha append-only conferidos como `dc360_app` no r...",
+      "texto": "V2-F00-E25: restore do esquema atual (47 migrações, não 46) provado entre dois clusters PostgreSQL 18.3 descartáveis no Windows, com a semente sintética: `diff` de linhas e estrutura, RLS ativada e forçada nas 35 tabelas de negócio, isolamento e trilha append-only conferidos como `dc360_app` no restaurado, API contra a cópia 9 de 9; três negativos (sem `dc360_console`, sem `pg_trgm` no dump, sem derrubar o `public`). Achados: o job `implantavel` do CI para na 041 por falta de `CREATE` no banco para o setup; o dump não leva a concessão da 025 nem o `USAGE` do `public`. Roteiro em `dc360/docs/RESTORE-DO-BANCO.md`. EM ANDAMENTO: falta segunda pessoa em máquina limpa e Postgres 17.",
+      "quem": ""
+    }
+  ],
+  "commits": [
+    {
+      "sha": "0b32d38",
+      "data": "2026-10-07",
+      "assunto": "D-30: estado gerado, pacote de contexto, tags, mapa de impacto e conferencia de evidencia"
+    },
+    {
+      "sha": "2f103cd",
+      "data": "2026-10-07",
+      "assunto": "D-30: skills de execucao e validacao, operacao do ambiente"
+    },
+    {
+      "sha": "6df957e",
+      "data": "2026-10-07",
+      "assunto": "V2-F00-E21: correcao 1, CI como prova de execucao em Linux"
+    },
+    {
+      "sha": "80170ce",
+      "data": "2026-10-07",
+      "assunto": "D-30: sistema de execucao, validacao e relatorios da V2"
+    },
+    {
+      "sha": "99390e0",
+      "data": "2026-10-07",
+      "assunto": "V2-F00-E11 a E25: F00 implementada e medida, E19 bloqueada pelo CP-03"
+    },
+    {
+      "sha": "0045680",
+      "data": "2026-10-06",
+      "assunto": "STATUS: registra os commits e a V2-F00-E11 interrompida"
+    },
+    {
+      "sha": "5d6bc57",
+      "data": "2026-10-06",
+      "assunto": "V2-F00-E01 a E10: base de estabilizacao da F00, E11 interrompida"
+    },
+    {
+      "sha": "afde25c",
+      "data": "2026-10-06",
+      "assunto": "Roadmap V2 (36 fases, 618 etapas), auditoria Baseline Zero e evidencias da F00"
+    }
+  ],
+  "avisos": [
+    "O STATUS.md só passa a existir no git em 2026-10-06 (afde25c), dentro do período: as mudanças de etapa foram comparadas com a hipótese de que todas começaram PENDENTES. Confira com o diário."
+  ]
+}

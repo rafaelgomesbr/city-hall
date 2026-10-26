@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -128,6 +128,14 @@ const CAMINHOS_IGNORADOS: Isencao[] = [
     outro relatório em `docs/` continua varrido.
   */
   { caminho: join("docs", "AUDITORIA-2026-09-30.md"), alcance: "arquivo" },
+  /*
+    Relatório do validador de QA da E22 na rodada 8 (registro 4f4871c). Ele
+    prova que este portão morde citando uma norma inventada de propósito como
+    cenário negativo. É evidência de validação com INDEX.md: reescrever a frase
+    seria falsificá-la. Isento pelo nome exato; os outros relatórios continuam
+    varridos.
+  */
+  { caminho: join("docs", "evidencias-v2", "G00", "V2-F00-E22", "validacao", "60cbc2f", "qa.md"), alcance: "arquivo" },
 ];
 
 /** `relativo` é o caminho a partir da raiz do repositório, com o separador do sistema. */
@@ -138,18 +146,58 @@ function isento(relativo: string): boolean {
       // O separador no fim impede que `docs/evidencias-v2-outra` herde a isenção.
       return relativo.startsWith(caminho + sep) && !relativo.endsWith(".md");
     }
-    return relativo.startsWith(caminho);
+    // `pasta`: o próprio caminho ou o que está abaixo dele, com o separador no fim da comparação
+    // (sem isso `docs/referencia-outra` herdaria a isenção de `docs/referencia`; D4, 2026-10-13).
+    return relativo === caminho || relativo.startsWith(caminho + sep);
   });
+}
+
+/**
+ * Limite de tempo EXPLÍCITO dos casos que varrem a árvore inteira (V-INS-04 do
+ * registro da E03). O padrão do vitest é 5 s, e a varredura lê o repositório
+ * todo: com a máquina carregada (a suíte inteira, um `npm install` do Expo
+ * gravando em `node_modules`, outro processo no disco) ela leva muito mais que
+ * os cerca de 200 ms que leva livre. 60 s é folga larga sobre isso e continua
+ * sendo limite: varredura presa reprova com "Test timed out", não fica
+ * pendurada.
+ */
+const LIMITE_DA_VARREDURA_MS = 60_000;
+
+/**
+ * Lê um arquivo de texto, ou devolve `null` se ele sumiu entre a listagem e a
+ * leitura (`ENOENT`). Só o ENOENT é tolerado: arquivo que sumiu não tem mais
+ * travessão nem norma a achar. Qualquer outro erro (permissão, `EISDIR`, disco)
+ * continua derrubando a varredura, porque aí o portão não olhou o que devia.
+ */
+function lerSeExistir(caminho: string): string | null {
+  try {
+    return readFileSync(caminho, "utf8");
+  } catch (erro) {
+    if ((erro as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw erro;
+  }
 }
 
 function arquivos(raiz: string, raizRepo: string = RAIZ_REPO): string[] {
   const encontrados: string[] = [];
 
   function percorrer(pasta: string): void {
-    for (const nome of readdirSync(pasta)) {
+    let nomes: string[];
+    try {
+      nomes = readdirSync(pasta);
+    } catch (erro) {
+      // A pasta sumiu entre a listagem do pai e a dela: não há o que varrer.
+      if ((erro as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw erro;
+    }
+    for (const nome of nomes) {
       if (PASTAS_IGNORADAS.has(nome)) continue;
       const caminho = join(pasta, nome);
-      if (statSync(caminho).isDirectory()) {
+      // `throwIfNoEntry: false`: o arquivo (ou o alvo do link simbólico) pode
+      // sumir entre a listagem e esta leitura; some também da varredura.
+      const info = statSync(caminho, { throwIfNoEntry: false });
+      if (!info) continue;
+      if (info.isDirectory()) {
         percorrer(caminho);
       } else if (EXTENSOES.some((e) => nome.endsWith(e))) {
         if (isento(relative(raizRepo, caminho))) continue;
@@ -182,7 +230,7 @@ function nome(caminho: string, raizRepo: string = RAIZ_REPO): string {
 function achadosDeTravessao(raizRepo: string = RAIZ_REPO): string[] {
   const achados: string[] = [];
   for (const caminho of superficiesDoProduto(raizRepo)) {
-    readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
+    (lerSeExistir(caminho) ?? "").split("\n").forEach((linha, i) => {
       if (linha.includes(TRAVESSAO)) {
         achados.push(`${nome(caminho, raizRepo)}:${i + 1}  ${linha.trim().slice(0, 90)}`);
       }
@@ -206,7 +254,7 @@ describe("Regras de conteúdo", () => {
     expect(lista.some((a) => a.endsWith("dc360/fly.toml"))).toBe(true);
     // E a isenção da pesquisa está de fato valendo.
     expect(lista.some((a) => a.startsWith("docs/referencia"))).toBe(false);
-  });
+  }, LIMITE_DA_VARREDURA_MS);
 
   it("nenhum travessão em texto nenhum", () => {
     const achados = achadosDeTravessao();
@@ -217,13 +265,13 @@ describe("Regras de conteúdo", () => {
         ? ""
         : `travessão encontrado; use vírgula, dois pontos ou parênteses:\n${achados.join("\n")}`,
     ).toEqual([]);
-  });
+  }, LIMITE_DA_VARREDURA_MS);
 
   it("nenhuma norma citada fora da lista autorizada", () => {
     const achados: string[] = [];
 
     for (const caminho of superficiesDoProduto()) {
-      readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
+      (lerSeExistir(caminho) ?? "").split("\n").forEach((linha, i) => {
         for (const casou of linha.matchAll(CITACAO_DE_NORMA)) {
           if (!NORMAS_AUTORIZADAS.has(casou[1]!)) {
             achados.push(`${nome(caminho)}:${i + 1}  ${casou[0].trim()}`);
@@ -239,7 +287,7 @@ describe("Regras de conteúdo", () => {
         : "norma fora da lista de docs/CONTEXTO.md. Um número de lei errado num " +
           `termo de interdição é motivo para anular o ato:\n${achados.join("\n")}`,
     ).toEqual([]);
-  });
+  }, LIMITE_DA_VARREDURA_MS);
 
   it("nenhum número de artigo em documento oficial", () => {
     /*
@@ -256,14 +304,14 @@ describe("Regras de conteúdo", () => {
 
     const achados: string[] = [];
     for (const caminho of geradores) {
-      readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
+      (lerSeExistir(caminho) ?? "").split("\n").forEach((linha, i) => {
         if (/\bart(?:\.|igo)\s*\d/i.test(linha)) {
           achados.push(`${nome(caminho)}:${i + 1}  ${linha.trim().slice(0, 90)}`);
         }
       });
     }
     expect(achados).toEqual([]);
-  });
+  }, LIMITE_DA_VARREDURA_MS);
 
   it("as isenções da E20 valem só no recorte, e na árvore real", () => {
     // Âncora na árvore de verdade: o que é escrito à mão continua entrando.
@@ -278,7 +326,7 @@ describe("Regras de conteúdo", () => {
     expect(lista).not.toContain("docs/auditoria-v2/raw/teste-shared.txt");
     expect(lista.some((a) => a.startsWith("docs/evidencias-v2/") && !a.endsWith(".md"))).toBe(false);
     expect(lista.some((a) => a.startsWith("docs/auditoria-v2/raw/") && !a.endsWith(".md"))).toBe(false);
-  });
+  }, LIMITE_DA_VARREDURA_MS);
 
   describe("recorte das isenções num repositório sintético", () => {
     /*
@@ -300,6 +348,8 @@ describe("Regras de conteúdo", () => {
       "dc360/apps/api/src/produto-novo.ts",
       "dc360/apps/web/src/Tela.tsx",
       "mockup/app/tela.js",
+      // Vizinho de nome de uma pasta isenta: NÃO herda a isenção (D4).
+      "docs/referencia-outra/nota.md",
     ];
     const PASSAM = [
       "docs/evidencias-v2/G00/V2-F00-E99/saida-do-teste.txt",
@@ -327,7 +377,7 @@ describe("Regras de conteúdo", () => {
       } finally {
         rmSync(raiz, { recursive: true, force: true });
       }
-    });
+    }, LIMITE_DA_VARREDURA_MS);
 
     it("deixa passar só a saída bruta e o relatório histórico pelo nome exato", () => {
       const raiz = montar();
@@ -337,7 +387,44 @@ describe("Regras de conteúdo", () => {
       } finally {
         rmSync(raiz, { recursive: true, force: true });
       }
-    });
+    }, LIMITE_DA_VARREDURA_MS);
+
+    it("tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura", () => {
+      /*
+        V-INS-04 do registro da E03. A varredura lista a pasta e só depois
+        abre cada arquivo; entre uma coisa e outra outro processo pode apagar ou
+        trocar o arquivo (o `npm install` do Expo, uma evidência sendo
+        regravada). Um link simbólico pendurado reproduz o instante exato:
+        `readdirSync` o lista e `statSync` falha com ENOENT. O arquivo que sumiu
+        não tem mais travessão a achar; o resto da varredura precisa seguir.
+      */
+      const raiz = montar();
+      try {
+        symlinkSync(
+          join(raiz, "alvo-que-nao-existe.md"),
+          join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+        );
+        const achados = achadosDeTravessao(raiz).map((a) => a.split(":")[0]);
+        expect(achados).not.toContain("docs/sumiu-depois-da-listagem.md");
+        for (const relativo of REPROVAM) expect(achados).toContain(relativo);
+      } finally {
+        rmSync(raiz, { recursive: true, force: true });
+      }
+    }, LIMITE_DA_VARREDURA_MS);
+
+    it("só tolera ENOENT: outro erro de leitura continua derrubando a varredura", () => {
+      const raiz = montar();
+      try {
+        // Uma PASTA com nome de arquivo de texto: listada, e a leitura falha com EISDIR.
+        mkdirSync(join(raiz, "docs", "pasta-que-parece-arquivo.md"));
+        // `arquivos()` a trata como pasta (não lê); o erro que não é ENOENT só
+        // aparece na leitura de arquivo, então provamos pela função de leitura.
+        expect(() => lerSeExistir(join(raiz, "docs", "pasta-que-parece-arquivo.md"))).toThrow(/EISDIR/);
+        expect(lerSeExistir(join(raiz, "docs", "nao-existe.md"))).toBeNull();
+      } finally {
+        rmSync(raiz, { recursive: true, force: true });
+      }
+    }, LIMITE_DA_VARREDURA_MS);
   });
 
   it("as próprias expressões funcionam", () => {

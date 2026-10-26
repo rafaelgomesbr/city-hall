@@ -12,6 +12,7 @@ import {
 import { bancoLocal } from "./banco-local";
 import { arquivosDoAparelho } from "./evidencia-no-disco";
 import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
+import { geracaoDaSessao } from "./geracao-da-sessao";
 
 /**
  * Onde a parte testada encontra o aparelho.
@@ -24,7 +25,21 @@ import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
  * ATENÇÃO: nunca foi executado em aparelho. Ver `apps/campo/LEIA-ME.md`.
  */
 
-let fila: FilaDeSincronizacao | null = null;
+/**
+ * A PROMESSA da fila, e não a fila (V2-F00-E06, correção 2).
+ *
+ * Esta variável já foi `FilaDeSincronizacao | null`, conferida logo na
+ * primeira linha de `obterFila`. Mas a fila só existe depois de `await
+ * bancoLocal()`, e na abertura do aplicativo a faixa, a barra de abas, o laço
+ * de fundo e a tela da fila a pedem no mesmo instante: todas passavam pela
+ * conferência com a variável ainda nula e cada uma montava a sua fila. Cada
+ * instância tem a sua pausa da sessão, a sua marca de cancelamento e o seu
+ * `drenando`, então a pausa nascia numa fila que ninguém mais escutava, e a
+ * faixa global mostrava "Tudo sincronizado" sobre uma coleta parada (achado no
+ * emulador Android pela validação de 13/10/2026). Guardar a promessa faz quem
+ * chega em segundo esperar a mesma criação em vez de começar outra.
+ */
+let fila: Promise<FilaDeSincronizacao> | null = null;
 
 /**
  * A fila, criada uma vez e reaproveitada.
@@ -42,13 +57,44 @@ let fila: FilaDeSincronizacao | null = null;
  * uma sessão derrubada: é um laudo assinado pela pessoa errada. Ver
  * `sessaoAtual` logo abaixo.
  */
-export async function obterFila(
+export function obterFila(
   baseUrl: string,
   obterToken: ObterToken,
   lerIdentidade: () => Identidade | null,
 ): Promise<FilaDeSincronizacao> {
-  if (fila) return fila;
+  fila ??= criarFila(baseUrl, obterToken, lerIdentidade).catch((erro: unknown) => {
+    /*
+      A falha NÃO fica guardada AQUI: a variável da fila volta a nula, para a
+      próxima chamada tentar criar de novo em vez de receber a mesma promessa
+      rejeitada. Isso é só metade do caminho. `criarFila` começa por
+      `bancoLocal()`, e ele memoiza a PRÓPRIA promessa, rejeitada inclusive
+      (ver `banco-local.ts`): se foi a abertura do banco que falhou, a nova
+      tentativa recebe a mesma rejeição até `esquecerConexao()` ou o aplicativo
+      ser reaberto. Falha em outro ponto da criação (depois de o banco abrir)
+      é a que a nova chamada de fato refaz.
+    */
+    fila = null;
+    throw erro;
+  });
+  return fila;
+}
 
+/**
+ * Só para teste: esquece a fila, para o caso seguinte começar do zero.
+ *
+ * Mesmo papel de `esquecerConexao` em `banco-local.ts`, e deve ser usada junto
+ * com ela (a fila guarda o banco que foi aberto). A fila é um singleton do
+ * aparelho; sem isto, um teste herda o estado do anterior.
+ */
+export function esquecerFila(): void {
+  fila = null;
+}
+
+async function criarFila(
+  baseUrl: string,
+  obterToken: ObterToken,
+  lerIdentidade: () => Identidade | null,
+): Promise<FilaDeSincronizacao> {
   /*
     O banco é aberto uma vez, em `banco-local.ts`, e é o MESMO que o rascunho
     e a lista de pendências usam.
@@ -62,7 +108,7 @@ export async function obterFila(
   const db = await bancoLocal();
   await prepararSqlite(db);
 
-  fila = criarFilaDeSincronizacao({
+  return criarFilaDeSincronizacao({
     deposito: depositoSobreChaveValor(lojaSqlite(db)),
     transporte: transporteHttp({ baseUrl, obterToken }),
     /*
@@ -90,6 +136,8 @@ export async function obterFila(
         organizacaoId: eu.organizacaoId,
       };
     },
+    /* A pausa por sessão cai quando a pessoa entra de novo (correção 3 da E06). */
+    geracaoDaSessao,
     /*
       A leitura dos bytes, com o cuidado de dizer em português (e como falha
       permanente) quando o arquivo não está mais no aparelho. Ver
@@ -102,8 +150,6 @@ export async function obterFila(
       tentativa perdida, gastando bateria e dados duas vezes.
     */
   });
-
-  return fila;
 }
 
 /**

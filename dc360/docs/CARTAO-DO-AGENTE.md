@@ -57,16 +57,19 @@ depende de abrigo público. Em branco significa **não contei**, e não zero.
 ## SEM SINAL
 
 **Trabalhe normalmente.** A vistoria fica guardada no aparelho e sobe sozinha
-quando o sinal voltar.
+quando o sinal voltar, **com o aplicativo aberto**: fechado, ele não envia nada.
 
 A faixa no alto da tela diz em que pé está:
 
 | A faixa diz | Significa |
 | --- | --- |
-| Tudo sincronizado | Nada esperando. Pode desligar |
-| Sem sinal, N na fila | Guardado no aparelho. **Não se perde** |
+| Tudo sincronizado | Nada pendente no aparelho. Pode desligar |
+| Sem sinal, salvando neste aparelho | Guardado no aparelho. **Não se perde** |
+| Com sinal, N esperando envio | Vai subir. Deixe o aplicativo aberto |
 | Enviando | Subindo agora |
-| N item precisa de você | Abra a fila de envio e veja o motivo |
+| Precisa de correção | Abra a fila de envio, leia o motivo e corrija |
+| Coleta de outro agente no aparelho | Ela só sobe quando quem a fez entrar neste aparelho |
+| Sessão encerrada, Conta desativada ou Defina a sua senha | O envio parou e as coletas continuam guardadas. Faça o que a frase da faixa manda |
 
 **Nunca reinstale o aplicativo com item na fila.** Reinstalar apaga o que ainda
 não subiu.
@@ -77,7 +80,7 @@ não subiu.
 
 | Situação | O que fazer |
 | --- | --- |
-| A tarefa sumiu da lista | O aplicativo explica o motivo (concluída, cancelada, devolvida, mudou de equipe). Não é falha |
+| A tarefa sumiu da lista | O aplicativo ainda NÃO diz o motivo: a tarefa só sai da lista. Pode ter sido concluída, encerrada, devolvida ou passado para outra equipe. Não é falha. Pergunte à coordenação, com o protocolo |
 | "Esta ocorrência já foi coletada neste aparelho" | Você já vistoriou. Se precisar mesmo refazer, existe o botão, e ele pergunta antes |
 | Preciso parar no meio | **Salvar e sair.** Volta depois de onde parou |
 | Fica "Carregando" | Depois de 6 segundos aparece uma saída. Use a lista guardada e siga trabalhando |

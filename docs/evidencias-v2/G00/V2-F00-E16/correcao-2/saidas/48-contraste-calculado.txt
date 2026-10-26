@@ -1,0 +1,11 @@
+Razao de contraste WCAG (luminancia relativa), calculada com os tokens reais de apps/campo/src/ui/tokens.ts.
+Visor da camera: visor.fundo = #000000 nos dois temas.
+
+ANTES (botao secundario com o tema claro do aparelho):
+  rotulo  tinta.t900 #14191D sobre #000000 = 1.19 (exigido 4.5, WCAG 1.4.3)
+  contorno tinta.t500 #5A6B76 sobre #000000 = 3.80
+DEPOIS (SobreOVisor: botao com a paleta do tema escuro):
+  rotulo  tinta.gelo #ECF1F4 sobre #000000 = 18.46 (>= 4.5)
+  contorno tinta.t400 #9BAAB5 sobre #000000 = 8.81 (>= 3, WCAG 1.4.11)
+O teste vistoria-camera-legivel-sobre-o-visor.test.tsx mede o estilo REAL renderizado nos dois temas do aparelho
+(light e dark); sem SobreOVisor o claro mede 1.1865 e reprova.

@@ -1,0 +1,632 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index d2b8446..0ec0427 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,7 +10,7 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 716 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 723 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1616,7 +1616,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3546 testes em seis pacotes
++npm test                    # 3553 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1717 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+diff --git a/dc360/apps/web/src/componentes/usar-bordas-fixas.ts b/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
+index bd0f379..3b5868b 100644
+--- a/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
++++ b/dc360/apps/web/src/componentes/usar-bordas-fixas.ts
+@@ -94,56 +94,110 @@ export function useBordasFixas(
+  * rodada 7 da V2-F00-E09, WCAG 2.4.11). Cada motor rola o elemento que recebe o
+  * Tab do seu jeito: o Chromium deixava a caixa "Descrição" da Nova ocorrência
+  * pela metade atrás da barra do pé a 320 px, porque um elemento já à vista em
+- * parte não é rolado. Depois da rolagem do próprio motor, o foco que caiu no
+- * conteúdo é levado à vista com `nearest`, que respeita o `scroll-padding`
+- * medido acima e não mexe em nada se o elemento já está inteiro na faixa livre.
++ * parte não é rolado.
+  *
+- * O que é mais alto que a faixa livre (a caixa que rola uma tabela larga, que o
+- * Firefox põe no Tab) não cabe inteiro: aí o que importa é o COMEÇO dele à
+- * vista, e ele só é rolado (`start`) quando a borda de cima está fora da faixa.
++ * Diz quantos pixels a página tem de rolar na vertical para o elemento focado
++ * ficar inteiro entre a borda de baixo do topo fixo (`faixaDe`) e a de cima da
++ * barra do pé (`faixaAte`), com um respiro de cada lado quando cabe. Zero quando
++ * já está.
+  *
+- * Fica de fora o que mora nas próprias bordas (o topo, a barra do pé, o "Pular
+- * para o conteúdo"), o `<main>` que recebe o foco do "Pular" e a janela de
+- * diálogo, que tem a própria rolagem.
++ * A conta é sobre as bordas REAIS, e não sobre o `scroll-padding` (que já soma o
++ * respiro): a versão anterior decidia pela faixa com as folgas, e o elemento que
++ * cabia na faixa real mas não na faixa com folgas (a caixa que rola o painel no
++ * Firefox, a 390x400) era tratado como alto demais e ficava 6 px escondido sob a
++ * barra (revisão da correção 6). O que é mais alto que a faixa real não cabe
++ * inteiro: aí o começo dele vai para o começo da faixa, o máximo que se pode
++ * mostrar (antes só rolava quando o começo estava fora, e a caixa de Órgãos a
++ * 390x400 ficava com 26 px à vista).
+  */
+-export function comoLevarAoFocar(alvo: {
+-  naBorda: boolean;
+-  ehRegiao: boolean;
++export function deslocamentoParaAFaixa(alvo: {
+   topo: number;
+   altura: number;
+-  /** Onde a faixa livre começa e termina, na janela (as duas folgas já descontadas). */
+   faixaDe: number;
+   faixaAte: number;
+-}): "nearest" | "start" | null {
+-  if (alvo.naBorda || alvo.ehRegiao) return null;
+-  if (alvo.altura <= alvo.faixaAte - alvo.faixaDe) return "nearest";
+-  const comecoAVista = alvo.topo >= alvo.faixaDe - 0.5 && alvo.topo < alvo.faixaAte;
+-  return comecoAVista ? null : "start";
++  respiro: number;
++}): number {
++  const faixa = alvo.faixaAte - alvo.faixaDe;
++  const baixo = alvo.topo + alvo.altura;
++  if (alvo.altura > faixa) {
++    const desvio = alvo.topo - alvo.faixaDe;
++    return Math.abs(desvio) < 1 ? 0 : desvio;
++  }
++  const respiro = Math.max(0, Math.min(alvo.respiro, (faixa - alvo.altura) / 2));
++  if (alvo.topo < alvo.faixaDe - 0.5) return alvo.topo - (alvo.faixaDe + respiro);
++  if (baixo > alvo.faixaAte + 0.5) return baixo - (alvo.faixaAte - respiro);
++  return 0;
+ }
+ 
+-/** Liga o ajuste do Tab enquanto a estrutura (com as bordas fixas) está na tela. */
++/**
++ * Quanto tempo depois de um toque ou clique o foco ainda é "do ponteiro".
++ *
++ * O ajuste é do TECLADO (WCAG 2.4.11 fala do foco de quem navega por teclado).
++ * No foco que vem do ponteiro ele não pode rolar: o foco chega no `pointerdown`,
++ * e rolar a página ali faz o `pointerup` cair em outro lugar, e o clique se
++ * perde. Visto no WebKit, que não foca o botão clicado e leva o foco ao
++ * envoltório focável de fora (`#cartao-coordenada`, `tabIndex={-1}`): a página
++ * rolava sob o dedo e "Corrigir a coordenada" não abria (correção 6b).
++ */
++export const JANELA_DO_PONTEIRO_MS = 800;
++
++export function focoDoPonteiro(agora: number, ultimoPonteiro: number | null): boolean {
++  return ultimoPonteiro !== null && agora - ultimoPonteiro >= 0 && agora - ultimoPonteiro < JANELA_DO_PONTEIRO_MS;
++}
++
++/**
++ * Liga o ajuste do Tab enquanto a estrutura (com as bordas fixas) está na tela.
++ *
++ * O ajuste roda TRÊS vezes: na hora, dentro do `focusin`; numa tarefa logo
++ * depois (`setTimeout` sem espera), quando a rolagem do próprio motor já
++ * aconteceu; e de novo no quadro seguinte. Era só no quadro seguinte
++ * (`requestAnimationFrame`), e no WebKit sem tela do Linux (o CI, run
++ * 39488319365) o quadro demorava mais que o Tab seguinte: o campo ficava parado
++ * sob a barra do pé (a 640x450, "Senha nova" em 407..451 com a barra desde 371)
++ * ou nem rolava (a 390x844, "Repita a senha" em 857..901, abaixo da janela).
++ * Reproduzido no Mac atrasando o quadro em 1 s: os três motores deixavam campos
++ * fora da faixa livre. Rodando na hora, o elemento já está inteiro na faixa
++ * quando o motor faz a rolagem dele, que só rola o que não está à vista. Em
++ * todas as passadas, o que já está na faixa não se mexe.
++ *
++ * Cada passada leva o elemento à vista na horizontal, dentro da caixa que rola
++ * uma tabela larga (`inline: "nearest"`), e acerta a vertical da página pela
++ * conta de `deslocamentoParaAFaixa`. Fica de fora o que mora nas próprias
++ * bordas (o topo, a barra do pé, o "Pular para o conteúdo"), o `<main>` que
++ * recebe o foco do "Pular" e a janela de diálogo, que tem a própria rolagem.
++ */
+ export function useFocoForaDasBordas(desenhada: boolean): void {
+   useEffect(() => {
+     if (!desenhada) return;
++    const ajustar = (alvo: HTMLElement) => {
++      if (document.activeElement !== alvo) return;
++      if (alvo.closest(".topo, .lateral, .pular-para-conteudo, [role=\"dialog\"]") || alvo.id === "conteudo") return;
++      const topo = document.querySelector<HTMLElement>(".topo");
++      const barra = document.querySelector<HTMLElement>(".lateral");
++      const faixaDe = topo && topoPreso(getComputedStyle(topo)) ? topo.getBoundingClientRect().bottom : 0;
++      const faixaAte = barra && barraPresaNoPe(getComputedStyle(barra))
++        ? barra.getBoundingClientRect().top : window.innerHeight;
++      alvo.scrollIntoView({ block: "nearest", inline: "nearest" });
++      const caixa = alvo.getBoundingClientRect();
++      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
++      const desvio = deslocamentoParaAFaixa({ topo: caixa.top, altura: caixa.height, faixaDe, faixaAte, respiro });
++      if (desvio !== 0) window.scrollBy(0, desvio);
++    };
++    let ultimoPonteiro: number | null = null;
++    const aoApontar = () => { ultimoPonteiro = performance.now(); };
+     const aoFocar = (evento: FocusEvent) => {
+       const alvo = evento.target;
+       if (!(alvo instanceof HTMLElement)) return;
+-      requestAnimationFrame(() => {
+-        if (document.activeElement !== alvo) return;
+-        const folgas = getComputedStyle(document.documentElement);
+-        const caixa = alvo.getBoundingClientRect();
+-        const bloco = comoLevarAoFocar({
+-          naBorda: alvo.closest(".topo, .lateral, .pular-para-conteudo") !== null,
+-          ehRegiao: alvo.id === "conteudo" || alvo.closest('[role="dialog"]') !== null,
+-          topo: caixa.top,
+-          altura: caixa.height,
+-          faixaDe: parseFloat(folgas.scrollPaddingTop) || 0,
+-          faixaAte: window.innerHeight - (parseFloat(folgas.scrollPaddingBottom) || 0),
+-        });
+-        if (bloco) alvo.scrollIntoView({ block: bloco });
+-      });
++      if (focoDoPonteiro(performance.now(), ultimoPonteiro)) return;
++      ajustar(alvo);
++      setTimeout(() => ajustar(alvo), 0);
++      requestAnimationFrame(() => ajustar(alvo));
+     };
++    document.addEventListener("pointerdown", aoApontar, true);
+     document.addEventListener("focusin", aoFocar);
+-    return () => document.removeEventListener("focusin", aoFocar);
++    return () => {
++      document.removeEventListener("pointerdown", aoApontar, true);
++      document.removeEventListener("focusin", aoFocar);
++    };
+   }, [desenhada]);
+ }
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 5099bde..d0d55cc 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -557,11 +557,15 @@ a:hover { color: var(--ds-accent-hover); }
+   permitidos (`<wbr>`), e só a parte que sozinha não cabe é cortada
+   (`overflow-wrap: break-word` só age quando a palavra não cabe). 2,2 passos de
+   `--ds-sp-8` é o que a coluna aguenta a 1280 px sem a tabela rolar (medido: 2,5
+-  já rola 3 px). Em tela larga a coluna tem folga, e o email segue numa linha só.
++  já rola 3 px).
++
++  Valia só até 1399 px, na conta de que "em tela larga a coluna tem folga". A
++  revisão da correção 6 mostrou que a folga depende das letras: com um email de
++  parte local larga ("...municipalmwmwmwmw@") a tabela rolava a 1440 px nos três
++  motores (1083 de 1062) e "Encerrar sessões" saía da tela. O teto vale em
++  qualquer largura; o email ainda quebra só nos `<wbr>`.
+ */
+-@media (max-width: 1399px) {
+-  .tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
+-}
++.tabela__secundario--email { max-width: calc(var(--ds-sp-8) * 2.2); }
+ /*
+   Telefone: nunca partido no meio do número, nem no hífen. Tem 15 caracteres, e
+   se a coluna for estreita demais quem cede é a tabela, que rola.
+@@ -812,13 +816,19 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ 
+ /* ---------- Paginação ---------- */
+ 
++/*
++  A paginação quebra em linhas: a 320 px "Página 1 de 3" e os dois botões não
++  cabem lado a lado, e "Próxima" saía da tela (Ocorrências em 325 de 320 px e
++  Prestação de contas em 330, nos três motores; revisão da correção 6 da
++  V2-F00-E09).
++*/
+ .paginacao {
+-  display: flex; align-items: center; justify-content: space-between;
++  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+   gap: var(--ds-sp-3); padding: var(--ds-sp-3) var(--ds-sp-4);
+   border-top: 1px solid var(--ds-border);
+   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+ }
+-.paginacao__controles { display: flex; gap: var(--ds-sp-2); }
++.paginacao__controles { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+ 
+ /* ---------- Detalhe ---------- */
+ 
+@@ -1110,12 +1120,15 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   de CSS; o celular deitado de 568x320): o topo de duas linhas (129 px) e a
+   barra do pé (79 px) deixavam 48 px de página, menos que um rótulo com o campo
+   embaixo, e qualquer campo focado ficava atrás de um dos dois (WCAG 2.4.11,
+-  correção 6 da V2-F00-E09). Abaixo de 360 px de altura os dois deixam de ser
++  correção 6 da V2-F00-E09). Abaixo de 340 px de altura os dois deixam de ser
+   fixos e rolam com a página: a navegação continua lá, no fim dela, e o topo, no
+   começo. A medida de `usar-bordas-fixas.ts` vê que não estão presos e zera a
+-  folga.
++  folga. Era 360 px; desceu para 340 (correção 6b) para o Android deitado
++  (640x360, 740x360) manter a navegação fixa, onde o campo focado ainda cabe
++  inteiro entre as duas bordas (medido). A altura é decisão de desenho a
++  confirmar pelo Rafael.
+ */
+-@media (max-height: 360px) {
++@media (max-height: 340px) {
+   .topo, .lateral { position: static; }
+   /* Sem barra presa no pé, o aviso passageiro volta ao canto, sem o desvio dela. */
+   .toast { bottom: var(--ds-sp-4); }
+diff --git a/dc360/apps/web/src/paginas/Ocorrencias.tsx b/dc360/apps/web/src/paginas/Ocorrencias.tsx
+index d16de12..1ba23ae 100644
+--- a/dc360/apps/web/src/paginas/Ocorrencias.tsx
++++ b/dc360/apps/web/src/paginas/Ocorrencias.tsx
+@@ -200,9 +200,17 @@ export function Ocorrencias() {
+         onSubmit={(e) => { e.preventDefault(); trocar("busca", rascunhoBusca.trim() || null); }}
+       >
+         <label className="oculto-visualmente" htmlFor="filtro-busca">Buscar ocorrência</label>
++        {/*
++          O texto de exemplo é o único que se vê (o rótulo é só para quem ouve a
++          tela), então ele tem de caber a 320 px: saía cortado em "...solicitante
++          ou r" (revisão da correção 6 da V2-F00-E09), e "pessoa" no lugar de
++          "solicitante" ainda cortava no WebKit ("...pessoa ou relat"), que guarda
++          o lugar do "x" do campo de busca. A busca continua achando pelo nome do
++          solicitante; o exemplo não precisa listar tudo.
++        */}
+         <input id="filtro-busca" type="search" value={rascunhoBusca}
+                onChange={(e) => setRascunhoBusca(e.target.value)}
+-               placeholder="Protocolo, endereço, solicitante ou relato"
++               placeholder="Protocolo, endereço ou relato"
+                className="campo--longo" />
+         <button type="submit" className="botao botao--secundario">Buscar</button>
+         {(busca || soAtrasadas || severidade !== "todas" || status !== "ativas") && (
+diff --git a/dc360/apps/web/test/correcao-4-da-e09.test.ts b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+index 07066e5..5c6d7c2 100644
+--- a/dc360/apps/web/test/correcao-4-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+@@ -187,9 +187,9 @@ describe("Revisão 3: depois de enviar o foco não cai em BODY", () => {
+ });
+ 
+ describe("Revisão 4: um email de parte comprida não empurra a coluna Ação", () => {
+-  it("a linha do email tem teto até 1399 px e quebra a palavra só se ela não couber", () => {
++  it("a linha do email tem teto (desde a correção 6b, em qualquer largura) e quebra a palavra só se ela não couber", () => {
+     const css = fonte("estilos", "app.css");
+-    expect(css).toMatch(/@media \(max-width: 1399px\) \{\s+\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}\s+\}/);
++    expect(css).toMatch(/^\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}$/m);
+     expect(css).toMatch(/\.tabela__secundario--email \{ overflow-wrap: break-word;/);
+   });
+ });
+diff --git a/dc360/apps/web/test/correcao-6-da-e09.test.ts b/dc360/apps/web/test/correcao-6-da-e09.test.ts
+index 4e74cb4..fa3fc52 100644
+--- a/dc360/apps/web/test/correcao-6-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-6-da-e09.test.ts
+@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
+ 
+ import { focarPrimeiroInvalido, SELETOR_MOLDURA, type NoFocavel } from "../src/componentes/foco";
+ import {
+-  barraPresaNoPe, comoLevarAoFocar, folgaDaBorda, topoPreso, VARIAVEL_PE, VARIAVEL_TOPO,
++  barraPresaNoPe, deslocamentoParaAFaixa, focoDoPonteiro, folgaDaBorda, JANELA_DO_PONTEIRO_MS, topoPreso, VARIAVEL_PE, VARIAVEL_TOPO,
+ } from "../src/componentes/usar-bordas-fixas";
+ import { estadoDoEnvio, rotuloDasTentativas } from "../src/paginas/oficio-regras";
+ import { lerFonte } from "./ler-fonte";
+@@ -101,26 +101,26 @@ describe("Achados 1 e 2: as folgas do topo e da barra do pé são medidas", () =
+   });
+ 
+   it("em janela muito baixa (zoom de 400 por cento, 320x256) o topo e a barra rolam com a página, e a medida os ignora", () => {
+-    const baixa = blocoDaMidia(css(), "@media (max-height: 360px) {");
++    // Correção 6b: a altura desceu de 360 para 340 px (o Android deitado, 640x360, mantém a navegação fixa).
++    const baixa = blocoDaMidia(css(), "@media (max-height: 340px) {");
+     expect(baixa).toMatch(/\.topo, \.lateral \{ position: static; \}/);
+     expect(topoPreso({ position: "sticky" })).toBe(true);
+     expect(topoPreso({ position: "static" })).toBe(false);
+     expect(fonte("componentes", "usar-bordas-fixas.ts")).toMatch(/folgaDaBorda\(preso \? topo\.getBoundingClientRect\(\)\.height : 0\)/);
+   });
+ 
+-  it("o Tab também respeita as bordas: o foco que cai no conteúdo é levado à vista, e o que mora nas bordas não", () => {
+-    const base = { naBorda: false, ehRegiao: false, topo: 500, altura: 44, faixaDe: 141, faixaAte: 549 };
+-    expect(comoLevarAoFocar(base)).toBe("nearest");
+-    expect(comoLevarAoFocar({ ...base, naBorda: true })).toBeNull();
+-    expect(comoLevarAoFocar({ ...base, ehRegiao: true })).toBeNull();
+-    // Mais alto que a faixa livre (a caixa da tabela no Tab do Firefox, 267 px numa faixa de 218): o começo à vista basta.
+-    const alta = { ...base, altura: 267, faixaDe: 153, faixaAte: 359 };
+-    expect(comoLevarAoFocar({ ...alta, topo: 200 })).toBeNull();
+-    expect(comoLevarAoFocar({ ...alta, topo: 400 })).toBe("start");
+-    expect(comoLevarAoFocar({ ...alta, topo: 100 })).toBe("start");
++  it("o Tab também respeita as bordas: o foco que cai no conteúdo é levado inteiro à faixa entre o topo e a barra do pé", () => {
++    const faixa = { faixaDe: 129, faixaAte: 765, respiro: 12 };
++    // Já inteiro na faixa: não mexe.
++    expect(deslocamentoParaAFaixa({ ...faixa, topo: 300, altura: 44 })).toBe(0);
++    // Sob a barra do pé: sobe até a barra, com o respiro.
++    expect(deslocamentoParaAFaixa({ ...faixa, topo: 857, altura: 44 })).toBe(857 + 44 - (765 - 12));
++    // Sob o topo: desce até o topo, com o respiro.
++    expect(deslocamentoParaAFaixa({ ...faixa, topo: 100, altura: 44 })).toBe(100 - (129 + 12));
+     const hook = fonte("componentes", "usar-bordas-fixas.ts");
+     expect(hook).toMatch(/document\.addEventListener\("focusin", aoFocar\)/);
+-    expect(hook).toMatch(/if \(bloco\) alvo\.scrollIntoView\(\{ block: bloco \}\);/);
++    expect(hook).toMatch(/if \(desvio !== 0\) window\.scrollBy\(0, desvio\);/);
++    expect(hook).toMatch(/alvo\.closest\("\.topo, \.lateral, \.pular-para-conteudo, \[role=\\"dialog\\"\]"\) \|\| alvo\.id === "conteudo"/);
+     expect(fonte("componentes", "Estrutura.tsx")).toMatch(/useFocoForaDasBordas\(Boolean\(sessao\)\);/);
+   });
+ 
+@@ -133,6 +133,60 @@ describe("Achados 1 e 2: as folgas do topo e da barra do pé são medidas", () =
+   });
+ });
+ 
++describe("Correção 6b: o ajuste do Tab não espera o quadro seguinte", () => {
++  it("roda na hora, dentro do focusin, numa tarefa logo depois e de novo no quadro seguinte (no WebKit do Linux o quadro chegava tarde)", () => {
++    const hook = fonte("componentes", "usar-bordas-fixas.ts");
++    const corpo = hook.slice(hook.indexOf("const aoFocar = (evento: FocusEvent) => {"), hook.indexOf('document.addEventListener("focusin", aoFocar);'));
++    expect(corpo).toMatch(/\n\s+ajustar\(alvo\);\n\s+setTimeout\(\(\) => ajustar\(alvo\), 0\);\n\s+requestAnimationFrame\(\(\) => ajustar\(alvo\)\);/);
++    // E cada passada confere que o foco ainda está no mesmo elemento antes de rolar.
++    expect(hook).toMatch(/const ajustar = \(alvo: HTMLElement\) => \{\n\s+if \(document\.activeElement !== alvo\) return;/);
++  });
++});
++
++describe("Correção 6b: o ajuste é do teclado, e não rola a página sob o clique", () => {
++  it("o foco que chega logo depois de um toque ou clique não é ajustado (rolar no pointerdown perde o clique)", () => {
++    expect(focoDoPonteiro(1000, null)).toBe(false);
++    expect(focoDoPonteiro(1000, 900)).toBe(true);
++    expect(focoDoPonteiro(1000 + JANELA_DO_PONTEIRO_MS, 1000)).toBe(false);
++    const hook = fonte("componentes", "usar-bordas-fixas.ts");
++    expect(hook).toMatch(/document\.addEventListener\("pointerdown", aoApontar, true\);/);
++    expect(hook).toMatch(/if \(focoDoPonteiro\(performance\.now\(\), ultimoPonteiro\)\) return;\n\s+ajustar\(alvo\);/);
++  });
++});
++
++describe("Correção 6b, revisão: a conta do Tab usa as bordas reais", () => {
++  it("o que cabe na faixa real mas não na faixa com respiro vai inteiro, com o respiro que sobra (a caixa do painel a 390x400)", () => {
++    // Faixa real de 192 px (129 a 321), caixa de 180 px: sobram 6 px de cada lado.
++    expect(deslocamentoParaAFaixa({ topo: 147, altura: 180, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(147 + 180 - (321 - 6));
++    expect(deslocamentoParaAFaixa({ topo: 135, altura: 180, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(0);
++  });
++
++  it("o que é mais alto que a faixa real vai com o começo ao começo da faixa (a caixa de Órgãos a 390x400)", () => {
++    expect(deslocamentoParaAFaixa({ topo: 295, altura: 267, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(295 - 129);
++    expect(deslocamentoParaAFaixa({ topo: 129.4, altura: 267, faixaDe: 129, faixaAte: 321, respiro: 12 })).toBe(0);
++  });
++});
++
++describe("Correção 6b, revisão: nada rola na horizontal a 320 px, e a tabela não estoura em tela larga", () => {
++  it("o teto do email da tabela vale em qualquer largura, e não só até 1399 px", () => {
++    const folha = css();
++    expect(folha).toMatch(/^\.tabela__secundario--email \{ max-width: calc\(var\(--ds-sp-8\) \* 2\.2\); \}$/m);
++    expect(folha).not.toMatch(/@media \(max-width: 1399px\) \{\n  \.tabela__secundario--email/);
++  });
++
++  it("a paginação e os controles dela quebram em linhas", () => {
++    const folha = css();
++    expect(folha).toMatch(/\.paginacao \{\n  display: flex; flex-wrap: wrap;/);
++    expect(folha).toMatch(/\.paginacao__controles \{ display: flex; flex-wrap: wrap; gap: var\(--ds-sp-2\); \}/);
++  });
++
++  it("o texto de exemplo do filtro de Ocorrências é o curto, que cabe a 320 px", () => {
++    const tela = fonte("paginas", "Ocorrencias.tsx");
++    expect(tela).toMatch(/placeholder="Protocolo, endereço ou relato"/);
++    expect(tela).not.toMatch(/solicitante ou relato/);
++  });
++});
++
+ describe("Achado 3: o email longo da tentativa de envio não sai do cartão", () => {
+   it("a coluna do ofício e o texto da linha podem encolher abaixo da palavra mais longa", () => {
+     const folha = css();
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index d298a28..9663c6f 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -791,7 +791,15 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a
+ {
+   const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
+   const mat = () => `RV-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+-  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixo}@serraalta.exemplo.gov.br`;
++  /*
++    O sufixo do email de parte comprida é de PIOR CASO, e não ao acaso (revisão
++    da correção 6): com o \`Date.now().toString(36)\` a largura mudava a cada
++    execução, e com letras largas a tabela rolava a 1440 px (1083 de 1062) numa
++    execução e não na outra. Aqui o sufixo só tem "m" e "w", as letras mais
++    largas, e é único por execução (o relógio em binário, uma letra por bit).
++  */
++  const sufixoLargo = Date.now().toString(2).slice(-16).replace(/0/g, "m").replace(/1/g, "w");
++  const longo = `joanaplantao24horasdefesacivilmunicipal${sufixoLargo}@serraalta.exemplo.gov.br`;
+   const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
+   for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
+     const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
+@@ -996,10 +1004,35 @@ async function contextoDeFoco(largura, altura, dpr = 1) {
+   pg.on("console", (m) => {
+     if (m.type() !== "error") return;
+     if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
++    // A mesma exceção do contexto principal: a fonte cuja carga o Firefox aborta ao trocar de página.
++    if (/downloadable font: download failed .*status=2152398850 /.test(m.text())) return;
+     erros.push(`console: ${m.text()}`);
+   });
+   return { ctx, pg };
+ }
++/**
++ * O texto de exemplo de um campo cabe inteiro? Medido pelo layout do próprio
++ * motor, e não pelo canvas: um <span> com a fonte computada do campo, contra a
++ * caixa de conteúdo dele, menos a reserva do "x" que o WebKit guarda no campo de
++ * busca (a medida pelo canvas aprovou "Protocolo, endereço, pessoa ou relato",
++ * que o WebKit mostrava cortado em "...ou relat").
++ */
++async function exemploCabe(pg, seletor) {
++  return pg.evaluate((sel) => {
++    const campo = document.querySelector(sel);
++    const cs = getComputedStyle(campo);
++    const regua = document.createElement("span");
++    regua.textContent = campo.placeholder;
++    regua.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${cs.font};letter-spacing:${cs.letterSpacing}`;
++    document.body.append(regua);
++    const texto = regua.getBoundingClientRect().width;
++    regua.remove();
++    const area = campo.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)
++      - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
++    const reservaDoX = campo.type === "search" ? 24 : 0;
++    return { cabe: texto + reservaDoX <= area + 0.5, texto, area, reservaDoX, exemplo: campo.placeholder };
++  }, seletor);
++}
+ /** Rótulo e campo focados, inteiros entre o topo fixo e a barra do pé, sem nada por cima. */
+ async function campoFocadoAVista(pg) {
+   return pg.evaluate(() => {
+@@ -1040,7 +1073,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+   }
+ 
+   // A) Minha conta, senha atual errada (o 401 do servidor): uma conta por tamanho, para não chegar ao bloqueio por tentativas.
+-  for (const [l, a, d] of [[640, 450, 2], [320, 256, 1], [601, 700, 1], [700, 600, 1], [768, 600, 1], [900, 600, 1], [1024, 600, 1], [1280, 600, 1], [390, 700, 1], [360, 700, 1], [320, 568, 1]]) {
++  for (const [l, a, d] of [[640, 450, 2], [320, 256, 1], [640, 360, 1], [740, 360, 1], [601, 700, 1], [700, 600, 1], [768, 600, 1], [900, 600, 1], [1024, 600, 1], [1280, 600, 1], [390, 700, 1], [360, 700, 1], [320, 568, 1]]) {
+     const email = await contaDeOperador();
+     const { ctx, pg } = await contextoDeFoco(l, a, d);
+     await entrar(email, SENHA_DO_TESTE, pg);
+@@ -1081,7 +1114,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+ 
+   // C) Nova ocorrência: o nome do solicitante e Enter (o "Ir" do teclado do celular); o primeiro campo que falta, Endereço, está abaixo da janela.
+   const emailDaOcorrencia = await contaDeOperador();
+-  for (const [l, a, d] of [[320, 640, 1], [390, 844, 1], [640, 450, 2], [320, 256, 1], [768, 600, 1], [1280, 600, 1]]) {
++  for (const [l, a, d] of [[320, 640, 1], [390, 844, 1], [640, 450, 2], [320, 256, 1], [640, 360, 1], [740, 360, 1], [768, 600, 1], [1280, 600, 1]]) {
+     const { ctx, pg } = await contextoDeFoco(l, a, d);
+     await entrar(emailDaOcorrencia, SENHA_DO_TESTE, pg);
+     await pg.goto(`${BASE}/ocorrencias/nova`, { waitUntil: "networkidle" });
+@@ -1230,10 +1263,30 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+     Safari, o Tab não para em botão nem link; lá cada elemento que o Tab
+     alcançaria recebe o foco por código, na ordem do documento, que faz a mesma
+     rolagem do motor.
++
++    Correção 6b: no WebKit sem tela do Linux (CI, run 39488319365) o ajuste do
++    painel, que rodava só no quadro seguinte, chegava tarde e os campos ficavam
++    sob a barra do pé a 640x450 e abaixo da janela a 390x844. A rodada com o
++    QUADRO LENTO (o `requestAnimationFrame` atrasado em 1 s em qualquer motor)
++    reproduz essa condição no Mac e prova que o foco fica à vista sem depender
++    do quadro seguinte.
++  */
++  /*
++    A revisão da correção 6 achou ainda o Tab do Firefox na caixa que rola uma
++    tabela (Painel e Órgãos a 390x400, a caixa ficava 6 px ou quase inteira sob a
++    barra do pé), e pediu o Android deitado (640x360 e 740x360), onde topo e
++    barra continuam fixos.
+   */
+-  for (const [l, a, d] of [[390, 844, 1], [320, 640, 1], [640, 450, 2], [320, 256, 1]]) {
+-    for (const rota of ["/ocorrencias/nova", "/minha-conta", "/orgaos"]) {
++  const TAMANHOS_DO_TAB = [[390, 844, 1, 0], [320, 640, 1, 0], [640, 450, 2, 0], [320, 256, 1, 0], [390, 400, 1, 0], [640, 360, 1, 0], [740, 360, 1, 0], [390, 844, 1, 1000], [640, 450, 2, 1000]];
++  for (const [l, a, d, atrasoDoQuadro] of TAMANHOS_DO_TAB) {
++    for (const rota of ["/ocorrencias/nova", "/minha-conta", "/orgaos", "/painel"]) {
+       const { ctx, pg } = await contextoDeFoco(l, a, d);
++      if (atrasoDoQuadro) {
++        await ctx.addInitScript((ms) => {
++          const original = window.requestAnimationFrame.bind(window);
++          window.requestAnimationFrame = (acao) => { setTimeout(() => original(acao), ms); return 0; };
++        }, atrasoDoQuadro);
++      }
+       await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
+       await pg.goto(`${BASE}${rota}`, { waitUntil: "networkidle" });
+       await pg.waitForTimeout(300);
+@@ -1279,7 +1332,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+           const m = await medirParada(); if (!m) continue; paradas++; if (!m.ok) fora.push(m.nome);
+         }
+       }
+-      ok(`Tab em ${rota} a ${tamanho(l, a, d)}: as ${paradas} paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé`,
++      ok(`Tab em ${rota} a ${tamanho(l, a, d)}${atrasoDoQuadro ? ", com o quadro lento" : ""}: as ${paradas} paradas no conteúdo ficam inteiras entre o topo fixo e a barra do pé`,
+          paradas > 0 && fora.length === 0, `(${fora.slice(0, 4).join("; ")})`);
+       await ctx.close();
+     }
+@@ -1307,19 +1360,57 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+   for (const largura of [320, 360]) {
+     await pg.setViewportSize({ width: largura, height: 700 });
+     await pg.waitForTimeout(200);
+-    const m = await pg.evaluate(() => {
+-      const campo = document.querySelector("#busca-global");
+-      const cs = getComputedStyle(campo);
+-      const regua = document.createElement("canvas").getContext("2d");
+-      regua.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+-      const area = campo.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth)
+-        - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+-      return { texto: regua.measureText(campo.placeholder).width, area };
+-    });
++    const m = await exemploCabe(pg, "#busca-global");
+     ok(`a ${largura} px, o texto de exemplo da busca do topo cabe inteiro no campo`,
+-       m.texto <= m.area + 0.5, `(texto ${m.texto.toFixed(1)} px, área ${m.area.toFixed(1)} px)`);
++       m.cabe, `(texto ${m.texto.toFixed(1)} px mais ${m.reservaDoX} do "x", área ${m.area.toFixed(1)} px)`);
+   }
+   await ctx.close();
++
++  /*
++    I) Nenhuma tela logada rola na horizontal a 320 px, nos dois temas (revisão
++    da correção 6: Ocorrências em 325 de 320 e Prestação de contas em 330, com
++    "Próxima" da paginação fora da tela). E o texto de exemplo do filtro de
++    Ocorrências cabe inteiro ("...solicitante ou r" saía cortado).
++  */
++  // "Meu trabalho" é a tela do agente de campo: a administradora recebe 403 nela, então ela é medida com um agente, logo abaixo.
++  const TELAS_LOGADAS = ["/painel", "/minha-conta", "/ocorrencias", "/ocorrencias/nova", `/ocorrencias/${OC_DO_OFICIO}`,
++    "/mapa", "/quem-esta-em-campo", "/equipes", "/orgaos", "/usuarios", "/auditoria", "/organizacao"];
++  const equipes = await viaApi("/equipes", { token: adm.json.acesso });
++  const equipeId = (equipes.json.itens ?? equipes.json)[0]?.id;
++  const emailDoAgente = `agente.320.${sufixo}@serraalta.exemplo.gov.br`;
++  const agente = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++    corpo: { nome: "Agente da Tela Estreita", matricula: `AG-${sufixo}`.toUpperCase(), email: emailDoAgente, papel: "agente_campo", equipeId, senha: SENHA_DO_TESTE } });
++  ok("o agente de campo de teste foi cadastrado (para medir \"Meu trabalho\")", agente.status === 201 || agente.status === 200, `(${agente.status})`);
++  for (const tema of ["claro", "escuro"]) {
++    const { ctx: c320, pg: p320 } = await contextoDeFoco(320, 640);
++    await c320.addInitScript((t) => { try { localStorage.setItem("dc360:tema", t); } catch { /* sem armazenamento */ } }, tema);
++    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, p320);
++    const rolam = [];
++    for (const rota of TELAS_LOGADAS) {
++      await p320.goto(`${BASE}${rota}`, { waitUntil: "networkidle" });
++      await p320.waitForTimeout(300);
++      const largura = await p320.evaluate(() => document.documentElement.scrollWidth);
++      if (largura > 321) rolam.push(`${rota} (${largura} de 320)`);
++    }
++    {
++      const { ctx: cAg, pg: pAg } = await contextoDeFoco(320, 640);
++      await cAg.addInitScript((t) => { try { localStorage.setItem("dc360:tema", t); } catch { /* sem armazenamento */ } }, tema);
++      await entrar(emailDoAgente, SENHA_DO_TESTE, pAg);
++      await pAg.goto(`${BASE}/meu-trabalho`, { waitUntil: "networkidle" });
++      await pAg.waitForTimeout(300);
++      const doAgente = await pAg.evaluate(() => document.documentElement.scrollWidth);
++      if (doAgente > 321) rolam.push(`/meu-trabalho (${doAgente} de 320)`);
++      await cAg.close();
++    }
++    ok(`a 320 px, no tema ${tema}, nenhuma das ${TELAS_LOGADAS.length + 1} telas logadas rola na horizontal`, rolam.length === 0, `(${rolam.join("; ")})`);
++    if (tema === "claro") {
++      await p320.goto(`${BASE}/ocorrencias`, { waitUntil: "networkidle" });
++      const f = await exemploCabe(p320, "#filtro-busca");
++      ok(`a 320 px, o texto de exemplo do filtro de Ocorrências ("${f.exemplo}") cabe inteiro no campo`,
++         f.cabe, `(texto ${f.texto.toFixed(1)} px mais ${f.reservaDoX} do "x", área ${f.area.toFixed(1)} px)`);
++    }
++    await c320.close();
++  }
+ }
+ 
+ await navegador.close();
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 6e9a420..d7f192c 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5543 testes somando o aplicativo** (contagem estática de `npm run
++- **5550 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5543 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5550 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 35bd645..59b5fd6 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -616,6 +616,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
+   "V2-F00-E09-correcao-5": { total: 11, falhas: 0 },
+   // V2-F00-E09, correção 6: `correcao-6-da-e09.test.ts` é novo, com 17 casos (o foco que leva à vista a moldura do campo e depois o controle, as folgas medidas do topo e da barra do pé, a janela muito baixa em que os dois rolam com a página, o Tab que respeita as bordas, a margem do rótulo em qualquer largura, o ofício que encolhe abaixo da palavra mais longa, o singular e o plural das tentativas, a busca a 320 px e o nome do link de Minha conta). `correcao-5-da-e09.test.ts` trocou duas asserções no lugar (a folga medida e a regra do ofício), sem caso novo. Nenhuma falha nova.
+   "V2-F00-E09-correcao-6": { total: 17, falhas: 0 },
++  // V2-F00-E09, correção 6b: `correcao-6-da-e09.test.ts` ganha 7 casos (o ajuste do Tab roda na hora, numa tarefa logo depois e no quadro seguinte; o foco que vem do toque ou do clique não é ajustado; a conta do Tab pelas bordas reais, para o que cabe e para o que é mais alto que a faixa; o teto do email em qualquer largura; a paginação que quebra em linhas; o texto de exemplo curto do filtro de Ocorrências). Dois casos da correção 6 e um da correção 4 trocaram a asserção no lugar (a altura de 340 px, a conta do Tab e o teto do email em qualquer largura). Nenhuma falha nova.
++  "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
+ };
+ export function esperadoDoTesteWeb() {
+   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
+@@ -928,13 +930,22 @@ export const PASSOS = [
+     quatro tamanhos (12), a linha do oficio na tela de verdade a 320 e 360 px
+     (7), a busca do topo a 320 e 360 px (2) e o nome do link de Minha conta (3).
+     Medido no Mac, Node 24: 255 no Chromium e no Firefox, 254 no WebKit.
++
++    Correcao 6b da E09 (2026-10-20): de 255 para 287 (mais 32): o Tab com o
++    quadro lento (requestAnimationFrame atrasado em 1 s, a condicao do WebKit
++    sem tela do Linux que reprovou no CI, run 39488319365), a 390x400 e no
++    Android deitado (640x360 e 740x360), agora em quatro telas com o Painel
++    (de 12 para 36), Minha conta e Nova ocorrencia no Android deitado (4), e a
++    rolagem horizontal a 320 px de todas as telas logadas nos dois temas, mais o
++    texto de exemplo do filtro de Ocorrencias e o cadastro do agente (4). 287 no
++    Chromium e no Firefox, 286 no WebKit.
+   */
+   {
+     id: "e2e-api",
+     titulo: "npm run test:e2e:api",
+     cmd: "npm run test:e2e:api",
+     cwd: ".",
+-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 255   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 287   Falhou: 0"] },
+   },
+ ];
+ 

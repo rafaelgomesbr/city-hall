@@ -1,0 +1,33 @@
+Com o conserto (o destino é apagado antes da recusa). Saída do jest.
+
+PASS src/dados/evidencia-no-disco.test.ts
+  a foto recém tirada
+    ✓ é copiada do cache para o diretório de documentos (2 ms)
+    ✓ declara o tamanho do arquivo que ficou, e não o do original (1 ms)
+    ✓ o tamanho vem dos bytes de verdade, e não do `size` que pode vir zerado (2 ms)
+    ✓ zero bytes é arquivo perdido, e não um tamanho: a foto não entra na coleta (3 ms)
+    ✓ o arquivo vazio que a cópia deixou é apagado antes de a recusa subir (2 ms)
+    ✓ o pedaço que uma cópia interrompida deixou também é apagado (2 ms)
+    ✓ a cópia recusada pelo sistema (Promise rejeitada) sai em português e com o que fazer, e não em inglês (1 ms)
+    ✓ a recusa que sai síncrona (destino inválido) também sai em português
+    ✓ ESPERA a cópia terminar antes de medir (a cópia do expo-file-system é assíncrona) (2 ms)
+    ✓ duas fotos no mesmo milissegundo não viram uma só (3 ms)
+  a leitura dos bytes na hora de enviar
+    ✓ lê o arquivo que está lá
+    ✓ arquivo que sumiu vira falha PERMANENTE, e não tentativa eterna
+    ✓ e a frase é em português, com o código que a fila reconhece
+  a fotografia que o agente mandou apagar
+    ✓ sai do disco de verdade
+    ✓ arquivo que já não existe não é erro (1 ms)
+    ✓ o sistema que recusa apagar não derruba quem chamou
+  a medida de um arquivo na hora de concluir
+    ✓ devolve os bytes do arquivo que existe
+    ✓ devolve zero para o arquivo que não existe, sem estourar
+    ✓ usa o tamanho que o sistema informa, sem ler os bytes
+    ✓ com o `size` zerado ou nulo, cai para os bytes de verdade
+
+Test Suites: 1 passed, 1 total
+Tests:       20 passed, 20 total
+Snapshots:   0 total
+Time:        0.25 s, estimated 1 s
+Ran all test suites matching /src\/dados\/evidencia-no-disco/i.

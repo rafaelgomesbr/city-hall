@@ -1,0 +1,12 @@
+ RUN  v3.2.7 /Users/rafaelgomes/Documents/city-hall/dc360
+
+ ✓ packages/shared/test/regras-de-conteudo.test.ts (10 tests) 2702ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  688ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  977ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  789ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  01:14:19
+   Duration  12.66s (transform 374ms, setup 0ms, collect 579ms, tests 2.70s, environment 0ms, prepare 704ms)
+

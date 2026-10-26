@@ -1,0 +1,1527 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 95275b1..83bf1a7 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,7 +10,7 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 224 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 737 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 770 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1616,7 +1616,7 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3568 testes em seis pacotes
++npm test                    # 3601 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1717 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+diff --git a/dc360/apps/web/src/componentes/Modal.tsx b/dc360/apps/web/src/componentes/Modal.tsx
+index ed8951b..410bd7e 100644
+--- a/dc360/apps/web/src/componentes/Modal.tsx
++++ b/dc360/apps/web/src/componentes/Modal.tsx
+@@ -1,8 +1,12 @@
+ import { useEffect, useId, useRef, useState } from "react";
+ import type { CSSProperties, KeyboardEvent as EventoDeTecla, ReactNode, RefObject } from "react";
+ import { createPortal } from "react-dom";
++import { acompanharAJanela } from "./acompanhar-janela";
+ import { registrarModalAberto } from "./modais-abertos";
+ 
++/* A conta da rolagem do painel mora com o resto do acompanhamento; continua exportada daqui. */
++export { rolagemParaVerNoPainel } from "./acompanhar-janela";
++
+ /**
+  * A janela modal que o painel não tinha.
+  *
+@@ -168,29 +172,6 @@ export function interditarFundo(irmaos: readonly ElementoInterditavel[]): () =>
+   };
+ }
+ 
+-/**
+- * Quanto o painel da janela rola (para baixo, positivo; para cima, negativo)
+- * para o controle ficar inteiro dentro da parte visível dele, com um respiro de
+- * cada lado quando cabe (o anel de foco é uma sombra de alguns pixels, e uma
+- * borda de painel que rola a corta). Zero quando já está. Controle mais alto
+- * que o painel não cabe: o começo dele vai ao começo do painel.
+- */
+-export function rolagemParaVerNoPainel(a: {
+-  painelTopo: number;
+-  painelBase: number;
+-  alvoTopo: number;
+-  alvoBase: number;
+-  respiro: number;
+-}): number {
+-  const altura = a.painelBase - a.painelTopo;
+-  const alturaDoAlvo = a.alvoBase - a.alvoTopo;
+-  if (alturaDoAlvo >= altura) return a.alvoTopo - a.painelTopo;
+-  const respiro = Math.max(0, Math.min(a.respiro, (altura - alturaDoAlvo) / 2));
+-  if (a.alvoTopo < a.painelTopo + respiro - 0.5) return a.alvoTopo - (a.painelTopo + respiro);
+-  if (a.alvoBase > a.painelBase - respiro + 0.5) return a.alvoBase - (a.painelBase - respiro);
+-  return 0;
+-}
+-
+ /**
+  * Clique fora fecha? Só quando o clique foi no fundo mesmo e a janela permite.
+  *
+@@ -202,6 +183,35 @@ export function deveFecharPeloFundo(permitido: boolean, alvoEhOFundo: boolean):
+   return permitido && alvoEhOFundo;
+ }
+ 
++/**
++ * Aplica a decisão de teclado da janela a uma tecla de verdade. É a mesma para
++ * a tecla que chega ao painel (o foco está dentro dele) e para a que chega ao
++ * documento com o foco no `<body>`, que o painel não recebe: um só caminho para
++ * as duas, ou o Esc passaria a valer num caso e não no outro (rodada 9 da
++ * V2-F00-E09: depois de um erro do servidor ou de um clique no fundo, o Esc
++ * morria).
++ */
++function tratarTecla(
++  evento: { key: string; shiftKey: boolean; preventDefault(): void },
++  painel: HTMLElement | null,
++  aoFechar: () => void,
++): void {
++  const intencao = decidirTecla<HTMLElement>({
++    tecla: evento.key,
++    comShift: evento.shiftKey,
++    focaveis: focaveisDentro(painel),
++    ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
++  });
++  if (intencao.acao === "seguir") return;
++  // Tudo o que não é "seguir" substitui o comportamento do navegador:
++  // sem isto o Tab moveria o foco DUAS vezes, o nosso e o dele.
++  evento.preventDefault();
++  if (intencao.acao === "fechar") aoFechar();
++  if (intencao.acao === "mover") intencao.alvo.focus();
++  // "prender": nada focável dentro (tudo travado gravando); o foco fica onde está, no painel.
++  if (intencao.acao === "prender") painel?.focus({ preventScroll: true });
++}
++
+ /* ============================================================
+    A peça visual, sem comportamento
+    ============================================================ */
+@@ -228,11 +238,29 @@ const ESTILO_PAINEL: CSSProperties = {
+   padding: "var(--ds-sp-5)",
+ };
+ 
++/*
++  O título fica preso no topo do painel quando ele rola (V2-F00-E09, correção 8,
++  achado 4 da rodada 9). Em janela baixa (zoom de 400 por cento, celular
++  deitado) o "Cancelar" focado exige rolar o painel, e o título, que é a
++  primeira coisa que se lê, saía por cima. Preso, ele fica à vista sem esconder
++  o campo focado: `acompanhar-janela.ts` conta a altura dele como parte coberta
++  do painel e a repassa ao `scroll-padding-top`. Em repouso nada muda de lugar:
++  a folga de cima do painel (`--ds-sp-5`) passa para dentro do cabeçalho, com a
++  margem negativa de mesmo valor, para o título preso ter o mesmo respiro.
++*/
+ const ESTILO_CABECALHO: CSSProperties = {
+   display: "flex",
+   alignItems: "flex-start",
+   gap: "var(--ds-sp-3)",
+-  marginBottom: "var(--ds-sp-3)",
++  position: "sticky",
++  /* A borda de cima do cabeçalho preso encosta na borda do painel, e não na folga (padding) dele: sem o valor negativo, o texto que rola passava por cima do título, naquela folga. */
++  top: "calc(-1 * var(--ds-sp-5))",
++  zIndex: 1,
++  background: "var(--ds-surface)",
++  margin: "calc(-1 * var(--ds-sp-5)) 0 calc(var(--ds-sp-3) - var(--ds-sp-2))",
++  paddingTop: "var(--ds-sp-5)",
++  /* Um respiro embaixo do título preso: o texto que rola por baixo dele não encosta nas letras. Em repouso a soma com a margem é a de antes (`--ds-sp-3`). */
++  paddingBottom: "var(--ds-sp-2)",
+ };
+ 
+ const ESTILO_RODAPE: CSSProperties = {
+@@ -284,6 +312,18 @@ export function CorpoDoModal({
+     <div
+       className="modal"
+       style={ESTILO_FUNDO}
++      /*
++        Apertar o botão do mouse (ou tocar) no fundo escurecido tira o foco de
++        onde ele estava e o leva ao `<body>`, e dali o Esc não chega ao painel.
++        O fundo não é controle nenhum, então o gesto não precisa mover o foco:
++        sem isto, clicar fora de uma janela destrutiva (que de propósito não
++        fecha) a deixava sem foco (V2-F00-E09, correção 8). O clique continua
++        valendo, e `acompanhar-janela.ts` ainda devolve o foco se algum motor
++        o perder por outro caminho.
++      */
++      onMouseDown={(evento) => {
++        if (evento.target === evento.currentTarget) evento.preventDefault();
++      }}
+       onClick={(evento) => {
+         if (deveFecharPeloFundo(fecharAoClicarFora, evento.target === evento.currentTarget)) {
+           aoFechar();
+@@ -358,6 +398,9 @@ export function Modal({
+   focoInicial, rodape, children,
+ }: PropsModal) {
+   const painel = useRef<HTMLDivElement>(null);
++  /* O ouvinte do documento vive uma abertura inteira; o `aoFechar` dele não pode ser o da primeira renderização. */
++  const aoFecharAtual = useRef(aoFechar);
++  aoFecharAtual.current = aoFechar;
+   const tituloId = useId();
+   const descricaoId = useId();
+ 
+@@ -453,40 +496,25 @@ export function Modal({
+       pelo leitor de tela na abertura (`aria-labelledby`). Sem foco pedido, o
+       caminho é o de antes (o foco vai ao painel, e a janela abre no topo).
+     */
+-    const levarOFocoInicialAVista = () => {
+-      const botao = focoInicial?.current;
+-      const corpo = painel.current;
+-      if (!botao || !corpo || document.activeElement !== botao) return;
+-      const caixaDoPainel = corpo.getBoundingClientRect();
+-      const caixaDoAlvo = botao.getBoundingClientRect();
+-      const topoUtil = caixaDoPainel.top + corpo.clientTop;
+-      const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
+-      corpo.scrollTop += rolagemParaVerNoPainel({
+-        painelTopo: topoUtil, painelBase: topoUtil + corpo.clientHeight,
+-        alvoTopo: caixaDoAlvo.top, alvoBase: caixaDoAlvo.bottom, respiro,
+-      });
+-    };
+-    let observador: MutationObserver | null = null;
+-    if (focoInicial?.current && alvo === focoInicial.current && painel.current) {
+-      levarOFocoInicialAVista();
+-      /*
+-        O conteúdo da janela muda DEPOIS de aberta: "Encerrar sessões" abre com
+-        "Conferindo quantas sessões estão abertas." e troca pela frase da
+-        contagem (16 px mais alta a 320 px), "Redefinir senha" e as outras acrescentam o
+-        erro do servidor. Cada mudança acima do botão o empurra para fora da
+-        parte visível (a 320x256, de 178..222 para 194..238 numa janela que
+-        vai até 234), e a medida única da abertura não vê. Enquanto o foco
+-        continua no botão, o painel refaz a conta a cada mudança de conteúdo;
+-        quem já passou para outro controle não é puxado de volta.
+-      */
+-      if (typeof MutationObserver === "function") {
+-        observador = new MutationObserver(levarOFocoInicialAVista);
+-        observador.observe(painel.current, { childList: true, subtree: true, characterData: true });
+-      }
+-    }
++    /*
++      Daqui para a frente a janela é ACOMPANHADA (ver `acompanhar-janela.ts`):
++      o foco inicial é levado à vista agora e de novo a cada mudança do
++      conteúdo (a contagem de sessões que chega, o erro do servidor), do
++      tamanho da janela do navegador (girar o celular, dar zoom) e da janela
++      visual; o foco que cai no `<body>` volta a um controle da janela; e o
++      Esc e o Tab valem mesmo com o foco fora do painel. Tudo desligado no
++      fechamento.
++    */
++    const acompanhamento = acompanharAJanela({
++      painel: () => painel.current,
++      focoInicial: () => focoInicial?.current,
++      focaveis: () => focaveisDentro(painel.current),
++      aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),
++    });
++    if (focoInicial?.current && alvo === focoInicial.current) acompanhamento.ajustarOFocoInicial();
+ 
+     return () => {
+-      observador?.disconnect();
++      acompanhamento.parar();
+       restaurar();
+       hospedeiro.remove();
+       liberarAvisos();
+@@ -519,20 +547,7 @@ export function Modal({
+       fecharAoClicarFora={fecharAoClicarFora}
+       mostrarBotaoFechar={mostrarBotaoFechar}
+       refPainel={painel}
+-      aoTeclar={(evento) => {
+-        const intencao = decidirTecla<HTMLElement>({
+-          tecla: evento.key,
+-          comShift: evento.shiftKey,
+-          focaveis: focaveisDentro(painel.current),
+-          ativo: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+-        });
+-        if (intencao.acao === "seguir") return;
+-        // Tudo o que não é "seguir" substitui o comportamento do navegador:
+-        // sem isto o Tab moveria o foco DUAS vezes, o nosso e o dele.
+-        evento.preventDefault();
+-        if (intencao.acao === "fechar") aoFechar();
+-        if (intencao.acao === "mover") intencao.alvo.focus();
+-      }}
++      aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}
+     >
+       {children}
+     </CorpoDoModal>,
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index 5f33a89..36b9fff 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -416,8 +416,10 @@ function MinhasOutrasSessoes() {
+         titulo="Encerrar minhas outras sessões"
+         consequencia={
+           <>
+-            Os outros navegadores e aparelhos da sua conta saem agora e precisam entrar de novo
+-            com a sua senha. Esta sessão continua aberta, e a senha não muda.
++            Os outros navegadores e aparelhos da sua conta deixam de poder renovar a sessão e de
++            gravar agora, e precisam entrar de novo com a sua senha. Uma tela já aberta neles
++            pode continuar mostrando consultas por até 15 minutos. Esta sessão continua aberta,
++            e a senha não muda.
+           </>
+         }
+         rotuloDaAcao={rotuloDeEncerrarOutras(outras)}
+diff --git a/dc360/apps/web/src/paginas/Usuarios.tsx b/dc360/apps/web/src/paginas/Usuarios.tsx
+index 095eab5..881590a 100644
+--- a/dc360/apps/web/src/paginas/Usuarios.tsx
++++ b/dc360/apps/web/src/paginas/Usuarios.tsx
+@@ -549,8 +549,9 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
+         titulo="Redefinir senha"
+         consequencia={
+           <>
+-            A senha atual de {alvo.nome} deixa de valer agora e as sessões abertas
+-            caem. O sistema sorteia uma senha temporária, mostrada uma única vez,
++            A senha atual de {alvo.nome} deixa de valer agora, e as sessões abertas deixam
++            de renovar e de gravar (uma tela já aberta pode seguir mostrando consultas por
++            até 15 minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
+             que vale por 72 horas e precisa ser trocada na primeira entrada.
+           </>
+         }
+@@ -647,9 +648,10 @@ function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
+         titulo="Encerrar sessões"
+         consequencia={
+           <>
+-            {alvo.nome} sai de todos os navegadores e aparelhos agora e precisa entrar de
+-            novo com a própria senha, que não muda. Quem está em campo fica sem sincronizar
+-            até entrar outra vez.
++            {alvo.nome} deixa de poder renovar a sessão e de gravar qualquer coisa agora, e
++            precisa entrar de novo com a própria senha, que não muda. Uma tela que já estava
++            aberta pode continuar mostrando consultas por até 15 minutos. Quem está em campo
++            fica sem sincronizar até entrar outra vez.
+           </>
+         }
+         rotuloDaAcao={`Encerrar sessões de ${alvo.nome}`}
+diff --git a/dc360/apps/web/test/correcao-4-da-e09.test.ts b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+index 71861a1..7c8aa9f 100644
+--- a/dc360/apps/web/test/correcao-4-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-4-da-e09.test.ts
+@@ -86,7 +86,7 @@ describe("Defeito 2: com janela aberta o aviso passageiro espera", () => {
+     const modal = fonte("componentes", "Modal.tsx");
+     expect(modal).toContain("const liberarAvisos = registrarModalAberto();");
+     // A liberação mora na limpeza do mesmo efeito que abriu a janela.
+-    expect(modal).toMatch(/return \(\) => \{\s+observador\?\.disconnect\(\);\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
++    expect(modal).toMatch(/return \(\) => \{\s+acompanhamento\.parar\(\);\s+restaurar\(\);\s+hospedeiro\.remove\(\);\s+liberarAvisos\(\);/);
+   });
+ 
+   it("o aviso não é desenhado nem corre enquanto há janela, e a pausa do ponteiro é zerada", () => {
+diff --git a/dc360/apps/web/test/correcao-7-da-e09.test.ts b/dc360/apps/web/test/correcao-7-da-e09.test.ts
+index 954fb86..5c72617 100644
+--- a/dc360/apps/web/test/correcao-7-da-e09.test.ts
++++ b/dc360/apps/web/test/correcao-7-da-e09.test.ts
+@@ -50,19 +50,22 @@ describe("Achado de acessibilidade 1: o foco inicial da janela de confirmação
+   });
+ 
+   it("o conteúdo que muda depois de aberta (a contagem de sessões que chega) refaz a conta enquanto o foco continua no botão, e o observador é desligado ao fechar", () => {
++    const acompanhamento = fonte("componentes", "acompanhar-janela.ts");
+     const modal = fonte("componentes", "Modal.tsx");
+-    expect(modal).toContain("if (!botao || !corpo || document.activeElement !== botao) return;");
+-    expect(modal).toContain("observador = new MutationObserver(levarOFocoInicialAVista);");
+-    expect(modal).toContain("observador.observe(painel.current, { childList: true, subtree: true, characterData: true });");
+-    expect(modal).toMatch(/return \(\) => \{\s+observador\?\.disconnect\(\);\s+restaurar\(\);/);
++    // A conta só age com o foco no botão pedido (quem já seguiu adiante não é puxado de volta).
++    expect(acompanhamento).toContain("if (!botao || document.activeElement !== botao) return;");
++    expect(acompanhamento).toContain("observador = new MutationObserver((registros) => {");
++    expect(acompanhamento).toContain("childList: true, subtree: true, characterData: true,");
++    expect(acompanhamento).toMatch(/parar: \(\) => \{\s+observador\?\.disconnect\(\);/);
++    expect(modal).toMatch(/return \(\) => \{\s+acompanhamento\.parar\(\);\s+restaurar\(\);/);
+   });
+ 
+   it("o Modal usa a conta depois de abrir no topo, só quando um foco inicial foi pedido, e já não deixa o focus() rolar a página", () => {
+     const modal = fonte("componentes", "Modal.tsx");
+     expect(modal).toContain("alvo?.focus({ preventScroll: true });");
+     expect(modal).toContain("if (painel.current) painel.current.scrollTop = 0;");
+-    expect(modal.indexOf("painel.current.scrollTop = 0;")).toBeLessThan(modal.indexOf("corpo.scrollTop += rolagemParaVerNoPainel({"));
+-    expect(modal).toContain("if (focoInicial?.current && alvo === focoInicial.current && painel.current) {");
++    expect(modal.indexOf("painel.current.scrollTop = 0;")).toBeLessThan(modal.indexOf("acompanhamento.ajustarOFocoInicial();"));
++    expect(modal).toContain("if (focoInicial?.current && alvo === focoInicial.current) acompanhamento.ajustarOFocoInicial();");
+     // Sem foco pedido, o caminho da correção 4 continua: primeiro controle à vista, senão o painel.
+     expect(modal).toContain("focoInicial?.current ?? (aVista(primeiro) ? primeiro : painel.current)");
+   });
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+index 3ff26f0..39f5363 100644
+--- a/dc360/apps/web/test/layout-estreito.e2e.mjs
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -54,6 +54,21 @@ async function viaApi(caminho, { metodo = "GET", token, corpo } = {}) {
+   return { status: r.status, json: await r.json().catch(() => ({})) };
+ }
+ 
++/**
++ * O token de acesso da administradora vale 15 minutos, e a seção 13 sozinha passa
++ * disso em máquina carregada (a execução inteira foi de 10 a mais de 25 minutos): o
++ * token da primeira linha da seção virava 401 no meio dela. Reentra quando o que
++ * se tem tem mais de 5 minutos.
++ */
++let ultimoTokenDoAdm = { em: 0, token: "" };
++async function tokenDoAdm() {
++  if (Date.now() - ultimoTokenDoAdm.em > 5 * 60_000) {
++    const r = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++    ultimoTokenDoAdm = { em: Date.now(), token: r.json.acesso };
++  }
++  return ultimoTokenDoAdm.token;
++}
++
+ const navegador = await lancador.launch();
+ const contexto = await navegador.newContext({ locale: "pt-BR" });
+ const page = await contexto.newPage();
+@@ -802,11 +817,11 @@ console.log("\n== 11. Email de parte comprida não esconde a coluna Ação, e a
+   const longo = `joanaplantao24horasdefesacivilmunicipal${sufixoLargo}@serraalta.exemplo.gov.br`;
+   const subdominios = `ana.${sufixo}@coordenadoria.defesacivil.secretaria.serraalta.exemplo.gov.br`;
+   for (const [nome, email] of [["Joana Semponto", longo], ["Ana Subdominios", subdominios]]) {
+-    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
+       corpo: { nome, matricula: mat(), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+     ok(`${nome} foi cadastrada para a medida`, r.status === 201 || r.status === 200, `(${r.status})`);
+   }
+-  const org = await viaApi("/orgaos", { metodo: "POST", token: adm.json.acesso,
++  const org = await viaApi("/orgaos", { metodo: "POST", token: await tokenDoAdm(),
+     corpo: { nome: `Companhia de Saneamento ${sufixo}`, sigla: "CSR", email: `atendimento.emergencial.${sufixo}@saneamento.serraalta.exemplo.gov.br`, telefone: "(35) 3333-0000" } });
+   ok("o órgão de teste foi cadastrado", org.status === 201 || org.status === 200, `(${org.status})`);
+ 
+@@ -997,13 +1012,15 @@ console.log("\n== 13. O campo focado depois do erro fica inteiro entre o topo fi
+   640x450 de CSS com dois pixels de tela por pixel de CSS; o de 400 por cento
+   de uma tela de 1280x1024 é 320x256.
+ */
+-async function contextoDeFoco(largura, altura, dpr = 1, toque = false) {
++async function contextoDeFoco(largura, altura, dpr = 1, toque = false, esperaOErro500 = false) {
+   const ctx = await navegador.newContext({ locale: "pt-BR", viewport: { width: largura, height: altura }, deviceScaleFactor: dpr, hasTouch: toque });
+   const pg = await ctx.newPage();
+   pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
+   pg.on("console", (m) => {
+     if (m.type() !== "error") return;
+     if (/Failed to load resource: the server responded with a status of 401/.test(m.text())) return;
++    // O 500 que a seção 15 provoca de propósito (a janela depois de um erro do servidor); só ali.
++    if (esperaOErro500 && /Failed to load resource: the server responded with a status of 500/.test(m.text())) return;
+     // A mesma exceção do contexto principal: a fonte cuja carga o Firefox aborta ao trocar de página.
+     if (/downloadable font: download failed .*status=2152398850 /.test(m.text())) return;
+     erros.push(`console: ${m.text()}`);
+@@ -1065,7 +1082,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+   async function contaDeOperador() {
+     n++;
+     const email = `foco.${n}.${sufixo}@serraalta.exemplo.gov.br`;
+-    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
+       corpo: { nome: `Foco à Vista ${n}`, matricula: `FV-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+     if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} não foi criada (${r.status})`);
+     idDasContas.set(email, r.json.id);
+@@ -1136,11 +1153,11 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+     rodada 7 usou: parte local de 38 letras sem ponto.
+   */
+   const OC_DO_OFICIO = "11111111-1111-4111-8111-0000000000c4";
+-  let oficio = (await viaApi(`/oficios?ocorrenciaId=${OC_DO_OFICIO}`, { token: adm.json.acesso })).json.itens?.[0];
++  let oficio = (await viaApi(`/oficios?ocorrenciaId=${OC_DO_OFICIO}`, { token: await tokenDoAdm() })).json.itens?.[0];
+   if (!oficio) {
+-    const pendentes = await viaApi("/ocorrencias/providencias/pendentes", { token: adm.json.acesso });
++    const pendentes = await viaApi("/ocorrencias/providencias/pendentes", { token: await tokenDoAdm() });
+     const daOcorrencia = pendentes.json.itens.find((p) => p.ocorrencia_id === OC_DO_OFICIO);
+-    const emitido = await viaApi("/oficios", { metodo: "POST", token: adm.json.acesso, corpo: { providenciaId: daOcorrencia?.id } });
++    const emitido = await viaApi("/oficios", { metodo: "POST", token: await tokenDoAdm(), corpo: { providenciaId: daOcorrencia?.id } });
+     oficio = { id: emitido.json.id };
+   }
+   ok("há um ofício emitido na ocorrência da Equipe Alfa para medir", Boolean(oficio?.id));
+@@ -1197,7 +1214,7 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+   for (const [l, a, d] of TAMANHOS_DAS_OUTRAS) {
+     // "Defina a sua senha" (tela pública, sem topo fixo): a provisória digitada errada.
+     const email = await contaDeOperador();
+-    const provisoria = (await viaApi(`/usuarios/${idDasContas.get(email)}/redefinir-senha`, { metodo: "POST", token: adm.json.acesso, corpo: {} })).json.senhaTemporaria;
++    const provisoria = (await viaApi(`/usuarios/${idDasContas.get(email)}/redefinir-senha`, { metodo: "POST", token: await tokenDoAdm(), corpo: {} })).json.senhaTemporaria;
+     const { ctx, pg } = await contextoDeFoco(l, a, d);
+     await pg.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+     await pg.locator("#entrada-email").fill(email);
+@@ -1375,10 +1392,10 @@ const tamanho = (l, a, d) => `${l}x${a}${d > 1 ? " (zoom de 200 por cento)" : l
+   // "Meu trabalho" é a tela do agente de campo: a administradora recebe 403 nela, então ela é medida com um agente, logo abaixo.
+   const TELAS_LOGADAS = ["/painel", "/minha-conta", "/ocorrencias", "/ocorrencias/nova", `/ocorrencias/${OC_DO_OFICIO}`,
+     "/mapa", "/quem-esta-em-campo", "/equipes", "/orgaos", "/usuarios", "/auditoria", "/organizacao"];
+-  const equipes = await viaApi("/equipes", { token: adm.json.acesso });
++  const equipes = await viaApi("/equipes", { token: await tokenDoAdm() });
+   const equipeId = (equipes.json.itens ?? equipes.json)[0]?.id;
+   const emailDoAgente = `agente.320.${sufixo}@serraalta.exemplo.gov.br`;
+-  const agente = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++  const agente = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
+     corpo: { nome: "Agente da Tela Estreita", matricula: `AG-${sufixo}`.toUpperCase(), email: emailDoAgente, papel: "agente_campo", equipeId, senha: SENHA_DO_TESTE } });
+   ok("o agente de campo de teste foi cadastrado (para medir \"Meu trabalho\")", agente.status === 201 || agente.status === 200, `(${agente.status})`);
+   for (const tema of ["claro", "escuro"]) {
+@@ -1439,7 +1456,7 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
+   async function contaComOutrasSessoes() {
+     n++;
+     const email = `sete.${n}.${sufixo}@serraalta.exemplo.gov.br`;
+-    const r = await viaApi("/usuarios", { metodo: "POST", token: adm.json.acesso,
++    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
+       corpo: { nome: `Sessões Sete ${n}`, matricula: `S7-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
+     if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} da seção 14 não foi criada (${r.status})`);
+     // Duas sessões a mais, abertas por outro "aparelho": é o que dá o que encerrar.
+@@ -1504,9 +1521,14 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
+       const anel = cs.boxShadow !== "none" || (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0);
+       const inteiro = r.top >= topoUtil - 0.5 && r.bottom <= baseUtil + 0.5;
+       const semRolagemLateral = !(document.documentElement.scrollWidth > innerWidth + 1) && !(painel.scrollWidth > painel.clientWidth + 1);
++      // Correção 8: o título também fica à vista (preso no topo do painel quando ele rola).
++      const titulo = painel.querySelector(".modal__titulo");
++      const t = titulo ? titulo.getBoundingClientRect() : null;
++      const tituloLivre = t ? document.elementFromPoint(t.left + Math.min(t.width / 2, 20), t.top + t.height / 2) : null;
++      const tituloOk = Boolean(t && t.top >= topoUtil - 0.5 && t.bottom <= baseUtil + 0.5 && tituloLivre && (tituloLivre === titulo || titulo.contains(tituloLivre)));
+       return {
+-        ok: inteiro && livre && anel && semRolagemLateral,
+-        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}`,
++        ok: inteiro && livre && anel && semRolagemLateral && tituloOk,
++        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}, título à vista: ${tituloOk}`,
+       };
+     });
+   }
+@@ -1547,6 +1569,217 @@ console.log("\n== 14. A confirmação das sessões e o foco da janela de confirm
+   }
+ }
+ 
++console.log("\n== 15. A janela de confirmação aberta acompanha a mudança de tamanho e não perde o foco (V2-F00-E09, correção 8) ==");
++/*
++  A rodada 9 da validação (sobre dda7557) reprovou pela quarta vez, ainda pela
++  classe do foco fora da vista, em dois caminhos que as seções 7 e 14 não
++  exercitavam porque ambas abrem a janela já no tamanho final e nunca a
++  estragam depois de aberta:
++
++  1. Com a janela de confirmação ABERTA, girar o celular (320x568 para 568x320)
++     ou dar zoom (1280x720 para 320x256) deixava "Cancelar" com o foco, mas
++     fora da parte visível do painel, nos três motores: o ajuste só rodava na
++     abertura e a cada mudança de conteúdo, nunca quando o tamanho mudava.
++  2. Depois de um erro do servidor ou de um clique no fundo escurecido, o foco
++     caía em BODY e o Esc deixava de fechar a janela (as teclas eram ouvidas
++     pelo painel, que não recebe tecla com o alvo em BODY); no WebKit nem o Tab
++     saía de lá.
++
++  O zoom é o equivalente em pixels de CSS (400 por cento de 1280x1024 é 320x256),
++  feito por `setViewportSize` com a janela já aberta, e a medida é a de sempre:
++  o retângulo do foco, inteiro, dentro da parte visível do painel, com o ponto
++  do meio livre. Duas medidas, 0,7 s e 1,7 s depois, provam que não há laço (a
++  rolagem do painel não muda entre elas).
++*/
++{
++  const adm = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++  let n = 0;
++  async function contaDeOitoComSessoes() {
++    n++;
++    const email = `oito.${n}.${sufixo}@serraalta.exemplo.gov.br`;
++    const r = await viaApi("/usuarios", { metodo: "POST", token: await tokenDoAdm(),
++      corpo: { nome: `Sessões Oito ${n}`, matricula: `S8-${n}-${sufixo}`.toUpperCase().slice(0, 20), email, papel: "operador", equipeId: null, senha: SENHA_DO_TESTE } });
++    if (r.status !== 201 && r.status !== 200) throw new Error(`a conta de teste ${n} da seção 15 não foi criada (${r.status})`);
++    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
++    await viaApi("/auth/entrar", { metodo: "POST", corpo: { email, senha: SENHA_DO_TESTE } });
++    return email;
++  }
++  const rotulo = (l, a) => `${l}x${a}`;
++
++  /** O foco está num CONTROLE da janela (botão habilitado), inteiro na parte visível do painel, com o ponto do meio livre. */
++  async function focoNaJanela(pg, { comAnel = true } = {}) {
++    return pg.evaluate((comAnel) => {
++      const painel = document.querySelector(".modal__painel");
++      const el = document.activeElement;
++      if (!painel) return { ok: false, txt: "a janela não está aberta" };
++      if (!el || el === document.body || !painel.contains(el)) return { ok: false, txt: `o foco não está dentro da janela (${el ? el.tagName.toLowerCase() : "nada"})` };
++      if (el === painel) return { ok: false, txt: "o foco está no painel, e não num controle" };
++      const p = painel.getBoundingClientRect(), r = el.getBoundingClientRect();
++      const topoUtil = p.top + painel.clientTop, baseUtil = topoUtil + painel.clientHeight;
++      const meio = document.elementFromPoint(r.left + r.width / 2, Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1));
++      const livre = meio === el || el.contains(meio);
++      const cs = getComputedStyle(el);
++      const anel = cs.boxShadow !== "none" || (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0);
++      const inteiro = r.top >= topoUtil - 0.5 && r.bottom <= baseUtil + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5;
++      const semRolagemLateral = !(document.documentElement.scrollWidth > innerWidth + 1) && !(painel.scrollWidth > painel.clientWidth + 1);
++      // O título, que é a primeira coisa que se lê, também fica à vista e sem nada por cima (achado 4 da rodada 9).
++      const titulo = painel.querySelector(".modal__titulo");
++      const t = titulo ? titulo.getBoundingClientRect() : null;
++      const tituloLivre = t ? document.elementFromPoint(t.left + Math.min(t.width / 2, 20), t.top + t.height / 2) : null;
++      const tituloOk = Boolean(t && t.top >= topoUtil - 0.5 && t.bottom <= baseUtil + 0.5 && tituloLivre && (tituloLivre === titulo || titulo.contains(tituloLivre)));
++      return {
++        ok: inteiro && livre && (anel || !comAnel) && semRolagemLateral && !el.disabled,
++        tituloOk,
++        txt: `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}" em ${Math.round(r.top)}..${Math.round(r.bottom)}, parte visível da janela ${Math.round(topoUtil)}..${Math.round(baseUtil)} de ${innerHeight}, sem nada por cima: ${livre}, com anel: ${anel}, sem rolagem lateral: ${semRolagemLateral}; título em ${t ? `${Math.round(t.top)}..${Math.round(t.bottom)}` : "ausente"}, à vista: ${tituloOk}`,
++      };
++    }, comAnel);
++  }
++  const rolagemDoPainel = (pg) => pg.evaluate(() => document.querySelector(".modal__painel")?.scrollTop ?? null);
++  const botaoDeEncerrarNaConta = (pg) => pg.getByRole("button", { name: "Encerrar minhas outras sessões" });
++
++  // A) O tamanho muda com a janela aberta: rotação e zoom de 200 e de 400 por cento.
++  const MUDANCAS = [
++    ["rotação do celular", 320, 568, 568, 320],
++    ["rotação de volta", 568, 320, 320, 568],
++    ["rotação de um celular maior", 390, 844, 844, 390],
++    ["zoom de 400 por cento", 1280, 1024, 320, 256],
++    ["zoom de 200 por cento", 1280, 720, 640, 360],
++    ["zoom de 400 por cento, de uma tela baixa", 1280, 720, 320, 180],
++    ["zoom de 200 e depois de 400 por cento", 1280, 1024, 640, 512, 320, 256],
++    ["zoom que volta ao normal", 320, 256, 1280, 720],
++  ];
++  {
++    const { ctx, pg } = await contextoDeFoco(1280, 720);
++    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++    await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++    for (const nome of ["Redefinir senha", "Encerrar sessões"]) {
++      for (const [quando, l0, a0, ...resto] of MUDANCAS) {
++        await pg.setViewportSize({ width: l0, height: a0 });
++        await pg.waitForTimeout(300);
++        const gatilho = pg.getByRole("button", { name: nome, exact: true }).first();
++        await gatilho.scrollIntoViewIfNeeded();
++        await gatilho.focus();
++        await pg.keyboard.press("Enter");
++        await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
++        await pg.waitForTimeout(500);
++        for (let i = 0; i < resto.length; i += 2) {
++          await pg.setViewportSize({ width: resto[i], height: resto[i + 1] });
++          await pg.waitForTimeout(700);
++          const m = await focoNaJanela(pg);
++          const r1 = await rolagemDoPainel(pg);
++          await pg.waitForTimeout(1000);
++          const r2 = await rolagemDoPainel(pg);
++          ok(`Usuários, ${quando} com a janela "${nome}" aberta (${rotulo(l0, a0)} para ${rotulo(resto[i], resto[i + 1])}): o foco em "Cancelar" continua à vista e o título também`,
++             m.ok && m.tituloOk && /Cancelar/.test(m.txt) && r1 === r2, `(${m.txt}; rolagem do painel ${r1} e depois ${r2})`);
++        }
++        await pg.keyboard.press("Escape");
++        await pg.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
++      }
++    }
++    await ctx.close();
++  }
++  for (const [quando, l0, a0, l1, a1] of [MUDANCAS[0], MUDANCAS[3], MUDANCAS[5]]) {
++    const email = await contaDeOitoComSessoes();
++    const { ctx, pg } = await contextoDeFoco(l0, a0);
++    await entrar(email, SENHA_DO_TESTE, pg);
++    await pg.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++    await pg.waitForTimeout(400);
++    await botaoDeEncerrarNaConta(pg).focus();
++    await pg.keyboard.press("Enter");
++    await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(500);
++    await pg.setViewportSize({ width: l1, height: a1 });
++    await pg.waitForTimeout(700);
++    const m = await focoNaJanela(pg);
++    ok(`Minha conta, ${quando} com a janela "Encerrar minhas outras sessões" aberta (${rotulo(l0, a0)} para ${rotulo(l1, a1)}): o foco em "Cancelar" continua à vista e o título também`,
++       m.ok && m.tituloOk && /Cancelar/.test(m.txt), `(${m.txt})`);
++    await ctx.close();
++  }
++
++  // B) O clique no fundo escurecido e o foco que cai em BODY: o foco volta a um controle da janela e o Esc fecha.
++  for (const [l, a, via] of [[1280, 720, "clique"], [390, 844, "clique"], [320, 568, "toque"], [568, 320, "clique"]]) {
++    const { ctx, pg } = await contextoDeFoco(l, a, 1, via === "toque");
++    await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++    await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++    await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++    const gatilho = pg.getByRole("button", { name: "Redefinir senha", exact: true }).first();
++    await gatilho.scrollIntoViewIfNeeded();
++    await gatilho.focus();
++    await pg.keyboard.press("Enter");
++    await pg.getByRole("dialog").waitFor({ timeout: 10_000 });
++    await pg.waitForTimeout(500);
++    if (via === "toque") await pg.touchscreen.tap(3, 3); else await pg.mouse.click(3, 3);
++    await pg.waitForTimeout(500);
++    const aposFundo = await focoNaJanela(pg, { comAnel: false });
++    ok(`a ${rotulo(l, a)}, depois de um ${via} no fundo escurecido da janela destrutiva: ela continua aberta e o foco está num controle dela, à vista`,
++       aposFundo.ok, `(${aposFundo.txt})`);
++    // O foco que escapa por outro caminho (um script de terceiro, uma extensão, o motor): volta sozinho a um controle da janela...
++    await pg.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
++    await pg.waitForTimeout(400);
++    const aposPerder = await focoNaJanela(pg, { comAnel: false });
++    ok(`a ${rotulo(l, a)}, com o foco arrancado da janela (blur), ele volta sozinho a um controle da janela, à vista`, aposPerder.ok, `(${aposPerder.txt})`);
++    // ... e a tecla que chega ao DOCUMENTO (alvo fora do painel, como com o foco em BODY) vale: o Tab move o foco dentro da janela e o Esc fecha.
++    const tabNoCorpo = await pg.evaluate(() => {
++      const antes = document.activeElement;
++      const e = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
++      document.body.dispatchEvent(e);
++      return { impedido: e.defaultPrevented, mudou: document.activeElement !== antes, dentro: Boolean(document.querySelector(".modal__painel")?.contains(document.activeElement)) };
++    });
++    ok(`a ${rotulo(l, a)}, o Tab que chega ao documento é tratado pela janela: o foco anda dentro dela`, tabNoCorpo.impedido && tabNoCorpo.mudou && tabNoCorpo.dentro, `(${JSON.stringify(tabNoCorpo)})`);
++    await pg.evaluate(() => document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
++    await pg.getByRole("dialog").waitFor({ state: "detached", timeout: 5_000 }).then(
++      () => ok(`a ${rotulo(l, a)}, o Esc que chega ao documento fecha a janela`, true),
++      () => ok(`a ${rotulo(l, a)}, o Esc que chega ao documento fecha a janela`, false, "(a janela continua aberta)"),
++    );
++    await ctx.close();
++  }
++
++  // C) Erro do servidor na janela de confirmação: durante a gravação o foco fica na janela, depois do erro volta a um controle, e o Esc fecha.
++  const CORS = { "access-control-allow-origin": new URL(BASE).origin, "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
++  for (const [l, a, via, atraso] of [[1280, 720, "teclado", 0], [1280, 720, "teclado", 1200], [390, 844, "clique", 1200], [320, 568, "teclado", 1200], [568, 320, "teclado", 1200]]) {
++    for (const nome of ["Redefinir senha", "Encerrar sessões"]) {
++      const { ctx, pg } = await contextoDeFoco(l, a, 1, false, true);
++      await pg.route(/\/usuarios\/[^/]+\/(redefinir-senha|encerrar-sessoes)$/, async (rota) => {
++        if (rota.request().method() === "OPTIONS") return rota.fulfill({ status: 204, headers: CORS });
++        if (atraso) await new Promise((r) => setTimeout(r, atraso));
++        return rota.fulfill({ status: 500, headers: { ...CORS, "content-type": "application/json" },
++          body: JSON.stringify({ codigo: "erro_interno", mensagem: "Erro do servidor" }) });
++      });
++      await entrar("rita.lopes@serraalta.exemplo.gov.br", SENHA, pg);
++      await pg.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++      await pg.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++      const gatilho = pg.getByRole("button", { name: nome, exact: true }).first();
++      await gatilho.scrollIntoViewIfNeeded();
++      await gatilho.focus();
++      await pg.keyboard.press("Enter");
++      const janela = pg.getByRole("dialog");
++      await janela.waitFor({ timeout: 10_000 });
++      await pg.waitForTimeout(600);
++      const confirmar = janela.locator(".modal__rodape button").first();
++      if (via === "teclado") { await confirmar.focus(); await pg.keyboard.press("Enter"); } else await confirmar.click();
++      if (atraso) {
++        await pg.waitForTimeout(Math.min(500, atraso / 2));
++        const durante = await pg.evaluate(() => {
++          const painel = document.querySelector(".modal__painel"); const el = document.activeElement;
++          return { dentro: Boolean(painel && el && el !== document.body && painel.contains(el)), txt: el ? el.tagName.toLowerCase() : "nada" };
++        });
++        ok(`a ${rotulo(l, a)}, "${nome}": enquanto grava (botões travados), o foco continua dentro da janela`, durante.dentro, `(${durante.txt})`);
++      }
++      await janela.locator('[role="alert"], .aviso--perigo').first().waitFor({ timeout: 10_000 });
++      await pg.waitForTimeout(600);
++      const depois = await focoNaJanela(pg, { comAnel: false });
++      ok(`a ${rotulo(l, a)}, "${nome}": depois do erro do servidor (${atraso ? "com demora" : "na hora"}), o foco está num controle da janela, à vista`, depois.ok, `(${depois.txt})`);
++      await pg.keyboard.press("Escape");
++      await janela.waitFor({ state: "detached", timeout: 5_000 }).then(
++        () => ok(`a ${rotulo(l, a)}, "${nome}": depois do erro, o Esc fecha a janela`, true),
++        () => ok(`a ${rotulo(l, a)}, "${nome}": depois do erro, o Esc fecha a janela`, false, "(a janela continua aberta)"),
++      );
++      await ctx.close();
++    }
++  }
++}
++
+ await navegador.close();
+ 
+ console.log(`\n${"=".repeat(52)}`);
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 77aa29f..bf85dec 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5565 testes somando o aplicativo** (contagem estática de `npm run
++- **5598 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5565 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5598 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index edddf1f..d1f0693 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -622,6 +622,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
+   "V2-F00-E09-correcao-6b": { total: 7, falhas: 0 },
+   // V2-F00-E09, correção 7: `correcao-7-da-e09.test.ts` é novo, com 14 casos (a conta que rola o painel da janela até o foco inicial, para baixo, para cima, quando já está à vista e quando o controle é mais alto que o painel; o Modal que a usa depois de abrir no topo e que a refaz quando o conteúdo muda depois de aberto; o ajuste que leva a confirmação das sessões à faixa livre entre o topo e a barra do pé, com o foco e sem ele; Minha conta que o chama quando a confirmação aparece e quando a lista relida chega; e a seção 14 do layout-estreito). `correcao-4-da-e09.test.ts` trocou uma asserção no lugar (o focus() do Modal nunca rola). Nenhuma falha nova.
+   "V2-F00-E09-correcao-7": { total: 14, falhas: 0 },
++  // V2-F00-E09, correção 8: `correcao-8-da-e09.test.ts` é novo, com 33 casos (a parte do painel que a pessoa enxerga com e sem teclado virtual e zoom de pinça; o acompanhamento da janela aberta com um DOM mínimo: resize, orientationchange e a janela visual, a mesma conta no quadro seguinte, sem laço, e tudo desligado em parar(), sem acumular ouvinte em 50 aberturas; o foco que cai na página volta ao último controle, o botão travado gravando e devolvido quando volta a valer, o WebKit que leva o foco ao painel; o Esc e o Tab ouvidos no documento só com o alvo fora do painel; o Modal ligado ao acompanhamento, o fundo que não tira o foco e o título preso; as três frases que deixam de prometer a saída imediata; e a seção 15 do layout-estreito). Doze mutações do código novo, todas vermelhas. `correcao-7-da-e09.test.ts` e `correcao-4-da-e09.test.ts` trocaram asserções no lugar (o observador e a limpeza passaram para `acompanhar-janela.ts`). Nenhuma falha nova.
++  "V2-F00-E09-correcao-8": { total: 33, falhas: 0 },
+ };
+ export function esperadoDoTesteWeb() {
+   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
+@@ -950,13 +952,23 @@ export const PASSOS = [
+     inicial de "Cancelar" a vista dentro da janela de confirmacao em Usuarios
+     ("Redefinir senha" e "Encerrar sessoes", 7 tamanhos, 14) e em Minha conta
+     (3). 325 no Chromium e no Firefox, 324 no WebKit.
++
++    Correcao 8 da E09 (2026-10-25): de 325 para 390 (mais 65), secao 15, e o
++    titulo da janela a vista passou a valer tambem na secao 14 (sem verificacao
++    nova). A janela de confirmacao ABERTA acompanha a mudanca de tamanho (rotacao
++    e zoom de 200 e de 400 por cento por mudanca de viewport, em Usuarios, 2
++    janelas x 9 passos = 18 verificacoes, mais 3 em Minha conta), o clique e o
++    toque no fundo escurecido, o foco que volta sozinho, o Tab e o Esc ouvidos
++    no documento (4 tamanhos x 4 = 16) e o erro do servidor (5 tamanhos x 2
++    janelas, durante a gravacao, depois do erro e o Esc: 28). 390 no Chromium e
++    no Firefox, 389 no WebKit.
+   */
+   {
+     id: "e2e-api",
+     titulo: "npm run test:e2e:api",
+     cmd: "npm run test:e2e:api",
+     cwd: ".",
+-    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 325   Falhou: 0"] },
++    esperado: { codigo: 0, contem: ["Passou: 288   Falhou: 0", "Passou: 390   Falhou: 0"] },
+   },
+ ];
+ 
+diff --git a/dc360/apps/web/src/componentes/acompanhar-janela.ts b/dc360/apps/web/src/componentes/acompanhar-janela.ts
+new file mode 100644
+index 0000000..6375649
+--- /dev/null
++++ b/dc360/apps/web/src/componentes/acompanhar-janela.ts
+@@ -0,0 +1,319 @@
++/**
++ * O que a janela modal faz DEPOIS de aberta para o foco continuar à vista e
++ * dentro dela (V2-F00-E09, correção 8).
++ *
++ * A abertura do `Modal` acerta o foco e a rolagem uma vez. A rodada 9 da
++ * validação (quarta reprovação pela mesma classe: foco ou confirmação fora da
++ * vista) mostrou que o mundo muda depois da abertura, e que cada conserto
++ * anterior tratou UM caminho por vez:
++ *
++ * 1. **O tamanho muda.** Girar o celular ou dar zoom com a janela aberta
++ *    deixava "Cancelar" com o foco e fora da parte visível do painel, nos três
++ *    motores: o ajuste rodava na abertura e a cada mudança de conteúdo, nunca
++ *    quando a janela do navegador mudava de tamanho.
++ * 2. **O foco cai na página.** Depois de um erro do servidor (os botões ficam
++ *    `disabled` enquanto grava e o foco se perde com eles) ou de um clique no
++ *    fundo escurecido, o foco ia para o `<body>`, e o Esc deixava de fechar a
++ *    janela porque quem ouvia a tecla era o painel, que não recebe tecla com o
++ *    alvo no `<body>`. No WebKit nem o Tab saía de lá.
++ *
++ * A classe, dita de uma vez: o foco tem de estar num controle VISÍVEL da
++ * janela em todo instante em que ela está aberta, e o que o mantém assim não
++ * pode depender de ninguém ter lembrado de chamar o ajuste. Por isso tudo isto
++ * mora num lugar só, é ligado na abertura e desligado por inteiro no
++ * fechamento, e está escrito sobre `document` e `window` lidos na hora (e não
++ * guardados), para o teste substituí-los.
++ *
++ * Nada aqui cria laço: a rolagem do painel não gera `resize`, não gera
++ * mutação e não move o foco, e cada ajuste só age quando o foco já está num
++ * controle da janela.
++ */
++
++/**
++ * Quanto o painel da janela rola (para baixo, positivo; para cima, negativo)
++ * para o controle ficar inteiro dentro da parte visível dele, com um respiro de
++ * cada lado quando cabe (o anel de foco é uma sombra de alguns pixels, e uma
++ * borda de painel que rola a corta). Zero quando já está. Controle mais alto
++ * que o painel não cabe: o começo dele vai ao começo do painel.
++ */
++export function rolagemParaVerNoPainel(a: {
++  painelTopo: number;
++  painelBase: number;
++  alvoTopo: number;
++  alvoBase: number;
++  respiro: number;
++}): number {
++  const altura = a.painelBase - a.painelTopo;
++  const alturaDoAlvo = a.alvoBase - a.alvoTopo;
++  if (alturaDoAlvo >= altura) return a.alvoTopo - a.painelTopo;
++  const respiro = Math.max(0, Math.min(a.respiro, (altura - alturaDoAlvo) / 2));
++  if (a.alvoTopo < a.painelTopo + respiro - 0.5) return a.alvoTopo - (a.painelTopo + respiro);
++  if (a.alvoBase > a.painelBase - respiro + 0.5) return a.alvoBase - (a.painelBase - respiro);
++  return 0;
++}
++
++/** O que a janela visual (`visualViewport`) diz da parte da tela que a pessoa enxerga. */
++export type JanelaVisual = { offsetTop: number; height: number; scale: number };
++
++/**
++ * A parte do painel que a pessoa de fato enxerga: a do painel, cortada pela
++ * janela visual quando ela é menor (o teclado virtual aberto, a barra de
++ * endereço que volta). Com zoom de pinça (`scale` acima de 1) a janela visual é
++ * só o pedaço que a pessoa escolheu olhar, e rolar o painel para dentro dele
++ * brigaria com o gesto dela: aí vale o painel inteiro.
++ */
++export function areaVisivelDoPainel(a: {
++  topo: number;
++  base: number;
++  visual?: JanelaVisual | null;
++}): { topo: number; base: number } {
++  const v = a.visual;
++  if (!v || !Number.isFinite(v.height) || !Number.isFinite(v.offsetTop) || v.scale > 1.01) {
++    return { topo: a.topo, base: a.base };
++  }
++  const topo = Math.max(a.topo, v.offsetTop);
++  const base = Math.min(a.base, v.offsetTop + v.height);
++  // Janela visual que nem toca o painel: não é medida confiável, vale o painel.
++  return base - topo < 1 ? { topo: a.topo, base: a.base } : { topo, base };
++}
++
++export type OpcoesDoAcompanhamento = {
++  /** O painel da janela (o que rola). `null` enquanto não está na tela. */
++  painel: () => HTMLElement | null;
++  /** O botão pedido como foco inicial (o "Cancelar"); a janela sem um não o mantém à vista nas mutações. */
++  focoInicial: () => HTMLElement | null | undefined;
++  /** As paradas de Tab de agora (o destino do foco quando ele se perde). */
++  focaveis: () => HTMLElement[];
++  /** A tecla que chegou FORA do painel (o foco no `<body>`): a mesma decisão do teclado do painel. */
++  aoTeclarFora: (evento: KeyboardEvent) => void;
++};
++
++export type Acompanhamento = {
++  /** Leva o foco inicial à vista agora (a abertura chama depois de rolar ao topo). */
++  ajustarOFocoInicial: () => void;
++  /** Desliga tudo: ouvintes, observador e quadros pendentes. */
++  parar: () => void;
++};
++
++/**
++ * A altura que o cabeçalho cola em cima do painel quando ele rola (`sticky`):
++ * é a parte do topo que cobre o conteúdo, e portanto não conta como "à vista".
++ */
++function coberturaDoCabecalho(painel: HTMLElement): number {
++  const cabecalho = painel.querySelector<HTMLElement>(".modal__cabecalho");
++  if (!cabecalho || getComputedStyle(cabecalho).position !== "sticky") return 0;
++  return cabecalho.getBoundingClientRect().height;
++}
++
++export function acompanharAJanela(o: OpcoesDoAcompanhamento): Acompanhamento {
++  const painelNaTela = (): HTMLElement | null => {
++    const p = o.painel();
++    return p && p.isConnected ? p : null;
++  };
++
++  /**
++   * O `scroll-padding-top` do painel é a altura do cabeçalho preso: sem ele, o
++   * Tab que leva um campo à vista o encostaria por baixo do título.
++   */
++  const medirOCabecalho = () => {
++    const painel = painelNaTela();
++    if (painel) painel.style.scrollPaddingTop = `${Math.ceil(coberturaDoCabecalho(painel))}px`;
++  };
++
++  /** Rola o painel o mínimo para o elemento ficar inteiro na parte visível dele. */
++  const levarAVista = (elemento: HTMLElement) => {
++    const painel = painelNaTela();
++    if (!painel || !painel.contains(elemento)) return;
++    const caixaDoPainel = painel.getBoundingClientRect();
++    const caixaDoAlvo = elemento.getBoundingClientRect();
++    const topoUtil = caixaDoPainel.top + painel.clientTop;
++    const area = areaVisivelDoPainel({
++      topo: topoUtil + coberturaDoCabecalho(painel),
++      base: topoUtil + painel.clientHeight,
++      visual: window.visualViewport,
++    });
++    const respiro = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ds-sp-3")) || 0;
++    painel.scrollTop += rolagemParaVerNoPainel({
++      painelTopo: area.topo, painelBase: area.base,
++      alvoTopo: caixaDoAlvo.top, alvoBase: caixaDoAlvo.bottom, respiro,
++    });
++  };
++
++  const ajustarOFocoInicial = () => {
++    const botao = o.focoInicial();
++    if (!botao || document.activeElement !== botao) return;
++    levarAVista(botao);
++  };
++
++  /* ------------------------------------------------------------
++     1. O tamanho muda: girar, zoom, barra do navegador, teclado
++     ------------------------------------------------------------ */
++
++  /** Só quem já tem o foco num CONTROLE da janela é acompanhado; o painel, que recebe o foco quando não há controle, não rola. */
++  const acompanharOFocoNoTamanhoNovo = () => {
++    const painel = painelNaTela();
++    const ativo = document.activeElement;
++    if (!painel || !(ativo instanceof HTMLElement) || ativo === painel || !painel.contains(ativo)) return;
++    levarAVista(ativo);
++  };
++
++  let quadro: number | null = null;
++  const noQuadroSeguinte = () => {
++    if (quadro !== null) cancelAnimationFrame(quadro);
++    quadro = requestAnimationFrame(() => {
++      quadro = null;
++      medirOCabecalho();
++      acompanharOFocoNoTamanhoNovo();
++    });
++  };
++  /* O tamanho mudou: acerta na hora e de novo no quadro seguinte (alguns motores só terminam o layout depois do evento). */
++  const aoMudarOTamanho = () => {
++    medirOCabecalho();
++    acompanharOFocoNoTamanhoNovo();
++    noQuadroSeguinte();
++  };
++  /* A janela visual rolou ou mudou: só o quadro seguinte, porque o evento é frequente e a conta é a mesma. */
++  const aoMudarAJanelaVisual = () => noQuadroSeguinte();
++
++  window.addEventListener("resize", aoMudarOTamanho);
++  window.addEventListener("orientationchange", aoMudarOTamanho);
++  const visual = window.visualViewport;
++  visual?.addEventListener("resize", aoMudarAJanelaVisual);
++  visual?.addEventListener("scroll", aoMudarAJanelaVisual);
++
++  /* ------------------------------------------------------------
++     2. O foco cai na página: devolve a um controle da janela
++     ------------------------------------------------------------ */
++
++  /** O último CONTROLE da janela que teve o foco (o painel, que só recebe foco como último recurso, não conta). */
++  let ultimoControle: HTMLElement | null = null;
++  /**
++   * Quem espera o foco de volta: enquanto a janela grava, os botões ficam
++   * `disabled`, o foco espera no painel (que recebe tecla, e portanto o Esc), e
++   * quando o botão volta a valer (o erro do servidor chegou) o foco volta para
++   * ele. Fica nulo assim que o foco vai a qualquer controle por outro caminho.
++   */
++  let esperando: HTMLElement | null = null;
++
++  const habilitado = (painel: HTMLElement, el: HTMLElement | null | undefined): el is HTMLElement =>
++    Boolean(el && el.isConnected && painel.contains(el) && !el.matches(":disabled"));
++
++  const aoGanharOFoco = (evento: FocusEvent) => {
++    const alvo = evento.target;
++    if (!(alvo instanceof HTMLElement)) return;
++    if (alvo === o.painel()) {
++      /*
++        O foco saiu de um controle para o painel (o WebKit não foca o botão
++        clicado e leva o foco ao painel; o motor que perde o botão travado faz
++        o mesmo): o controle espera, e volta se o botão voltar a valer.
++      */
++      if (ultimoControle) esperando = ultimoControle;
++      return;
++    }
++    ultimoControle = alvo;
++    esperando = null;
++  };
++
++  /** `reabilitou`: a chamada veio de um botão que voltou a valer (o atributo `disabled` mudou), o único momento em que o foco que espera no painel volta. */
++  const devolverOFoco = (reabilitou: boolean) => {
++    const painel = painelNaTela();
++    if (!painel) return;
++    const ativo = document.activeElement;
++    const dentro = ativo instanceof HTMLElement && ativo !== document.body && painel.contains(ativo);
++    if (dentro && ativo.matches(":disabled")) {
++      // O motor deixou o foco num botão travado (ele não recebe tecla): o painel o guarda.
++      esperando = ativo;
++      painel.focus({ preventScroll: true });
++      return;
++    }
++    if (dentro && ativo === painel && esperando) {
++      // O botão que tinha o foco voltou a valer: o foco volta para ele.
++      if (reabilitou && habilitado(painel, esperando)) {
++        const volta = esperando;
++        volta.focus({ preventScroll: true });
++        levarAVista(volta);
++      }
++      return;
++    }
++    if (dentro) return;
++    // O foco está fora da janela (no `<body>`): volta a um controle dela, à vista.
++    const inicial = o.focoInicial();
++    const destino = [ultimoControle, inicial].find((el) => habilitado(painel, el)) ?? o.focaveis()[0] ?? painel;
++    if (destino === painel) {
++      // Nada habilitado (gravando): o painel segura o foco, e o último controle espera.
++      esperando = ultimoControle ?? inicial ?? null;
++      painel.focus({ preventScroll: true });
++      return;
++    }
++    destino.focus({ preventScroll: true });
++    levarAVista(destino);
++  };
++
++  let tarefa: ReturnType<typeof setTimeout> | null = null;
++  const aoPerderOFoco = (evento: FocusEvent) => {
++    // `relatedTarget` nulo: o foco não foi para outro elemento. Espera o motor assentar (ele pode estar só trocando de controle).
++    if (evento.relatedTarget !== null) return;
++    if (tarefa !== null) clearTimeout(tarefa);
++    tarefa = setTimeout(() => { tarefa = null; devolverOFoco(false); }, 0);
++  };
++  const painelDaAbertura = o.painel();
++  // O foco da abertura chegou antes dos ouvintes: o controle que já o tem é o último.
++  if (document.activeElement instanceof HTMLElement && document.activeElement !== painelDaAbertura
++    && painelDaAbertura?.contains(document.activeElement)) ultimoControle = document.activeElement;
++  painelDaAbertura?.addEventListener("focusout", aoPerderOFoco);
++  painelDaAbertura?.addEventListener("focusin", aoGanharOFoco);
++
++  /* O Esc e o Tab com o foco fora do painel: o painel não os recebe, o documento sim. */
++  const aoTeclarNoDocumento = (evento: KeyboardEvent) => {
++    const painel = painelNaTela();
++    if (!painel || evento.defaultPrevented) return;
++    if (evento.target instanceof Node && painel.contains(evento.target)) return;
++    o.aoTeclarFora(evento);
++  };
++  document.addEventListener("keydown", aoTeclarNoDocumento);
++
++  /* ------------------------------------------------------------
++     3. O conteúdo muda: a contagem que chega, o erro, o botão que volta a valer
++     ------------------------------------------------------------ */
++
++  /*
++    "Encerrar sessões" abre com "Conferindo quantas sessões estão abertas." e
++    troca pela frase da contagem (16 px mais alta a 320 px), e as outras
++    acrescentam o erro do servidor. Cada mudança acima do botão o empurra para
++    fora da parte visível, e a medida única da abertura não vê. O atributo
++    `disabled` entra na observação porque é ele que trava e destrava os botões
++    durante a gravação, e é nessa volta que o foco perdido é devolvido.
++    Quem já passou para outro controle não é puxado de volta.
++  */
++  let observador: MutationObserver | null = null;
++  if (typeof MutationObserver === "function" && painelDaAbertura) {
++    observador = new MutationObserver((registros) => {
++      devolverOFoco(registros.some((registro) => registro.type === "attributes"));
++      ajustarOFocoInicial();
++    });
++    observador.observe(painelDaAbertura, {
++      childList: true, subtree: true, characterData: true,
++      attributes: true, attributeFilter: ["disabled"],
++    });
++  }
++
++  medirOCabecalho();
++
++  return {
++    ajustarOFocoInicial,
++    parar: () => {
++      observador?.disconnect();
++      window.removeEventListener("resize", aoMudarOTamanho);
++      window.removeEventListener("orientationchange", aoMudarOTamanho);
++      visual?.removeEventListener("resize", aoMudarAJanelaVisual);
++      visual?.removeEventListener("scroll", aoMudarAJanelaVisual);
++      document.removeEventListener("keydown", aoTeclarNoDocumento);
++      painelDaAbertura?.removeEventListener("focusout", aoPerderOFoco);
++      painelDaAbertura?.removeEventListener("focusin", aoGanharOFoco);
++      if (quadro !== null) cancelAnimationFrame(quadro);
++      if (tarefa !== null) clearTimeout(tarefa);
++      quadro = null;
++      tarefa = null;
++    },
++  };
++}
+diff --git a/dc360/apps/web/test/correcao-8-da-e09.test.ts b/dc360/apps/web/test/correcao-8-da-e09.test.ts
+new file mode 100644
+index 0000000..cafa785
+--- /dev/null
++++ b/dc360/apps/web/test/correcao-8-da-e09.test.ts
+@@ -0,0 +1,451 @@
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
++
++import { acompanharAJanela, areaVisivelDoPainel } from "../src/componentes/acompanhar-janela";
++import { lerFonte } from "./ler-fonte";
++
++/**
++ * Os achados que reprovaram a V2-F00-E09 na rodada 9 (sobre dda7557), na parte
++ * que roda sem navegador. A prova no navegador, nos três motores, está em
++ * `test/layout-estreito.e2e.mjs`, seção 15. Aqui ficam as regras, as causas e
++ * a ausência de laço e de vazamento (o que se liga na abertura se desliga por
++ * inteiro no fechamento).
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const SRC = join(AQUI, "..", "src");
++const fonte = (...partes: string[]) => lerFonte(join(SRC, ...partes));
++
++describe("A parte do painel que a pessoa enxerga", () => {
++  const painel = { topo: 20, base: 236 };
++
++  it("sem janela visual, vale o painel inteiro", () => {
++    expect(areaVisivelDoPainel({ ...painel })).toEqual(painel);
++    expect(areaVisivelDoPainel({ ...painel, visual: null })).toEqual(painel);
++  });
++
++  it("com o teclado virtual aberto (janela visual mais baixa, sem zoom), a base é a da janela visual", () => {
++    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: 150, scale: 1 } })).toEqual({ topo: 20, base: 150 });
++  });
++
++  it("com a janela visual rolada para baixo, o topo é o dela", () => {
++    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 60, height: 400, scale: 1 } })).toEqual({ topo: 60, base: 236 });
++  });
++
++  it("com zoom de pinça (escala acima de 1) a janela visual é o pedaço que a pessoa escolheu olhar: vale o painel inteiro, para não brigar com o gesto", () => {
++    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: 100, scale: 2 } })).toEqual(painel);
++  });
++
++  it("janela visual que nem toca o painel, ou com números quebrados, não é medida confiável", () => {
++    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 500, height: 100, scale: 1 } })).toEqual(painel);
++    expect(areaVisivelDoPainel({ ...painel, visual: { offsetTop: 0, height: Number.NaN, scale: 1 } })).toEqual(painel);
++  });
++});
++
++/* ------------------------------------------------------------
++   Um DOM mínimo para o acompanhamento. Nada de jsdom: o que importa é
++   quais ouvintes entram, o que cada um faz e se saem todos.
++   ------------------------------------------------------------ */
++
++type Ouvinte = (evento: unknown) => void;
++
++class ElementoFalso {
++  disabled = false;
++  isConnected = true;
++  topo: number;
++  altura: number;
++  focado = vi.fn(() => { cenario.doc.activeElement = this; });
++  filhos = new Set<ElementoFalso>();
++  constructor(topo = 0, altura = 44) { this.topo = topo; this.altura = altura; }
++  matches(seletor: string): boolean { return seletor === ":disabled" && this.disabled; }
++  focus(): void { this.focado(); }
++  getBoundingClientRect() { return { top: this.topo, bottom: this.topo + this.altura, height: this.altura }; }
++}
++
++class PainelFalso extends ElementoFalso {
++  scrollTop = 0;
++  clientTop = 0;
++  clientHeight = 216;
++  style: Record<string, string> = {};
++  ouvintes = new Map<string, Ouvinte[]>();
++  contains(el: unknown): boolean { return el === this || (el instanceof ElementoFalso && this.filhos.has(el)); }
++  querySelector() { return null; }
++  addEventListener(tipo: string, f: Ouvinte) { this.ouvintes.set(tipo, [...(this.ouvintes.get(tipo) ?? []), f]); }
++  removeEventListener(tipo: string, f: Ouvinte) { this.ouvintes.set(tipo, (this.ouvintes.get(tipo) ?? []).filter((x) => x !== f)); }
++  total() { return [...this.ouvintes.values()].reduce((a, l) => a + l.length, 0); }
++}
++
++type Cenario = {
++  doc: { activeElement: unknown; body: ElementoFalso; documentElement: object; ouvintes: Map<string, Ouvinte[]>; addEventListener: (t: string, f: Ouvinte) => void; removeEventListener: (t: string, f: Ouvinte) => void };
++  janela: { ouvintes: Map<string, Ouvinte[]>; visualViewport: ReturnType<typeof criarVisual> };
++};
++// Atribuído em `montar`; a classe acima o lê na hora de focar.
++let cenario: Cenario;
++
++function criarVisual() {
++  const ouvintes = new Map<string, Ouvinte[]>();
++  return {
++    offsetTop: 0, height: 700, scale: 1, ouvintes,
++    addEventListener: (t: string, f: Ouvinte) => { ouvintes.set(t, [...(ouvintes.get(t) ?? []), f]); },
++    removeEventListener: (t: string, f: Ouvinte) => { ouvintes.set(t, (ouvintes.get(t) ?? []).filter((x) => x !== f)); },
++  };
++}
++
++function contar(m: Map<string, Ouvinte[]>): number {
++  return [...m.values()].reduce((a, l) => a + l.length, 0);
++}
++
++function montar() {
++  const quadros: Array<() => void> = [];
++  const visual = criarVisual();
++  const doc = {
++    activeElement: null as unknown,
++    body: new ElementoFalso(),
++    documentElement: {},
++    ouvintes: new Map<string, Ouvinte[]>(),
++    addEventListener(t: string, f: Ouvinte) { doc.ouvintes.set(t, [...(doc.ouvintes.get(t) ?? []), f]); },
++    removeEventListener(t: string, f: Ouvinte) { doc.ouvintes.set(t, (doc.ouvintes.get(t) ?? []).filter((x) => x !== f)); },
++  };
++  const janela = {
++    ouvintes: new Map<string, Ouvinte[]>(),
++    visualViewport: visual,
++    addEventListener(t: string, f: Ouvinte) { janela.ouvintes.set(t, [...(janela.ouvintes.get(t) ?? []), f]); },
++    removeEventListener(t: string, f: Ouvinte) { janela.ouvintes.set(t, (janela.ouvintes.get(t) ?? []).filter((x) => x !== f)); },
++  };
++  cenario = { doc, janela };
++  let observadores = 0;
++  let observadorAtual: { chamar: (r: unknown[]) => void; desligado: boolean; opcoes: unknown } | null = null;
++  class ObservadorFalso {
++    constructor(f: (r: unknown[]) => void) {
++      observadores++;
++      observadorAtual = { chamar: f, desligado: false, opcoes: null };
++    }
++    observe(_alvo: unknown, opcoes: unknown) { if (observadorAtual) observadorAtual.opcoes = opcoes; }
++    disconnect() { if (observadorAtual) observadorAtual.desligado = true; }
++  }
++  vi.stubGlobal("HTMLElement", ElementoFalso);
++  vi.stubGlobal("Node", ElementoFalso);
++  vi.stubGlobal("document", doc);
++  vi.stubGlobal("window", janela);
++  vi.stubGlobal("MutationObserver", ObservadorFalso);
++  vi.stubGlobal("getComputedStyle", () => ({ position: "static", getPropertyValue: () => "12" }));
++  vi.stubGlobal("requestAnimationFrame", (f: () => void) => { quadros.push(f); return quadros.length; });
++  vi.stubGlobal("cancelAnimationFrame", (id: number) => { quadros[id - 1] = () => {}; });
++
++  const painel = new PainelFalso(20, 216);
++  const cancelar = new ElementoFalso(170, 44);
++  const confirmar = new ElementoFalso(100, 44);
++  painel.filhos.add(cancelar).add(confirmar);
++  doc.activeElement = cancelar;
++  const aoTeclarFora = vi.fn();
++  const acompanhamento = acompanharAJanela({
++    painel: () => painel as unknown as HTMLElement,
++    focoInicial: () => cancelar as unknown as HTMLElement,
++    focaveis: () => [confirmar, cancelar].filter((e) => !e.disabled) as unknown as HTMLElement[],
++    aoTeclarFora,
++  });
++  const dispararQuadros = () => { while (quadros.length) quadros.shift()?.(); };
++  return {
++    painel, cancelar, confirmar, doc, janela, visual, acompanhamento, aoTeclarFora, dispararQuadros,
++    observador: () => observadorAtual, observadores: () => observadores,
++  };
++}
++
++afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
++
++describe("Achado 1: a janela aberta acompanha a mudança de tamanho", () => {
++  it("liga resize, orientationchange e a janela visual (resize e scroll)", () => {
++    const m = montar();
++    expect(m.janela.ouvintes.get("resize")).toHaveLength(1);
++    expect(m.janela.ouvintes.get("orientationchange")).toHaveLength(1);
++    expect(m.visual.ouvintes.get("resize")).toHaveLength(1);
++    expect(m.visual.ouvintes.get("scroll")).toHaveLength(1);
++    m.acompanhamento.parar();
++  });
++
++  it("o 'Cancelar' que o zoom empurrou para fora (424..468 numa janela de 20..236) volta à vista quando a janela muda de tamanho", () => {
++    const m = montar();
++    m.cancelar.topo = 424; // a parte visível continua 20..236 (216 de altura)
++    m.janela.ouvintes.get("resize")![0]!({});
++    // O painel rolou o necessário: o botão agora termina no respiro de baixo (236 - 12).
++    expect(m.painel.scrollTop).toBe(424 + 44 - (236 - 12));
++    m.acompanhamento.parar();
++  });
++
++  it("a mesma conta roda nos outros eventos e no quadro seguinte (alguns motores terminam o layout depois do evento)", () => {
++    const m = montar();
++    m.cancelar.topo = 300;
++    m.janela.ouvintes.get("orientationchange")![0]!({});
++    const depoisDoEvento = m.painel.scrollTop;
++    expect(depoisDoEvento).toBeGreaterThan(0);
++    m.cancelar.topo = 400; // o layout terminou de se acomodar: o botão está ainda mais abaixo
++    m.dispararQuadros();
++    expect(m.painel.scrollTop).toBeGreaterThan(depoisDoEvento);
++    m.visual.ouvintes.get("resize")![0]!({});
++    m.cancelar.topo = 500;
++    m.visual.ouvintes.get("scroll")![0]!({});
++    m.dispararQuadros();
++    expect(m.painel.scrollTop).toBeGreaterThan(depoisDoEvento);
++    m.acompanhamento.parar();
++  });
++
++  it("sem laço: com o botão já à vista, repetir o evento não rola nada", () => {
++    const m = montar();
++    m.cancelar.topo = 150; // à vista, com folga
++    for (let i = 0; i < 20; i++) { m.janela.ouvintes.get("resize")![0]!({}); m.dispararQuadros(); }
++    expect(m.painel.scrollTop).toBe(0);
++    m.cancelar.topo = 424;
++    m.janela.ouvintes.get("resize")![0]!({});
++    const uma = m.painel.scrollTop;
++    // O botão acompanha a rolagem (como no navegador): depois do ajuste ele está à vista, e repetir não muda mais nada.
++    m.cancelar.topo = 424 - uma;
++    for (let i = 0; i < 20; i++) { m.janela.ouvintes.get("resize")![0]!({}); m.dispararQuadros(); }
++    expect(m.painel.scrollTop).toBe(uma);
++    m.acompanhamento.parar();
++  });
++
++  it("o painel, que recebe o foco quando não há controle, não rola; um controle da janela com o foco, sim", () => {
++    const m = montar();
++    m.doc.activeElement = m.painel;
++    m.cancelar.topo = 424;
++    m.janela.ouvintes.get("resize")![0]!({});
++    expect(m.painel.scrollTop).toBe(0);
++    m.doc.activeElement = m.confirmar;
++    m.confirmar.topo = 424;
++    m.janela.ouvintes.get("resize")![0]!({});
++    expect(m.painel.scrollTop).toBeGreaterThan(0);
++    m.acompanhamento.parar();
++  });
++
++  it("com o teclado virtual aberto, a base é a da janela visual", () => {
++    const m = montar();
++    m.visual.height = 150; // só 0..150 da tela está à vista
++    m.cancelar.topo = 120; // à vista no painel, mas sob o teclado
++    m.janela.ouvintes.get("resize")![0]!({});
++    expect(m.painel.scrollTop).toBe(120 + 44 - (150 - 12));
++    m.acompanhamento.parar();
++  });
++
++  it("parar() desliga TUDO: ouvintes da janela, da janela visual, do documento e do painel, o observador e os quadros pendentes", () => {
++    const m = montar();
++    m.janela.ouvintes.get("resize")![0]!({}); // deixa um quadro pendente
++    expect(contar(m.janela.ouvintes) + contar(m.visual.ouvintes) + contar(m.doc.ouvintes) + m.painel.total()).toBeGreaterThan(0);
++    m.acompanhamento.parar();
++    expect(contar(m.janela.ouvintes)).toBe(0);
++    expect(contar(m.visual.ouvintes)).toBe(0);
++    expect(contar(m.doc.ouvintes)).toBe(0);
++    expect(m.painel.total()).toBe(0);
++    expect(m.observador()?.desligado).toBe(true);
++    m.cancelar.topo = 424;
++    m.dispararQuadros(); // o quadro pendente foi cancelado: nada acontece
++    expect(m.painel.scrollTop).toBe(0);
++  });
++
++  it("abrir e fechar muitas vezes não acumula ouvinte nem observador", () => {
++    for (let i = 0; i < 50; i++) {
++      const m = montar();
++      m.acompanhamento.parar();
++      expect(contar(m.janela.ouvintes) + contar(m.visual.ouvintes) + contar(m.doc.ouvintes) + m.painel.total()).toBe(0);
++    }
++  });
++
++  it("depois que o painel sai da tela (a janela fechou), nenhum ouvinte mexe em nada", () => {
++    const m = montar();
++    m.painel.isConnected = false;
++    m.cancelar.topo = 424;
++    m.janela.ouvintes.get("resize")![0]!({});
++    m.dispararQuadros();
++    expect(m.painel.scrollTop).toBe(0);
++    m.observador()!.chamar([{ type: "childList" }]);
++    expect(m.cancelar.focado).not.toHaveBeenCalled();
++    m.acompanhamento.parar();
++  });
++});
++
++describe("Achado 2: o foco que cai na página volta a um controle da janela, e o Esc e o Tab valem", () => {
++  it("a tecla que chega ao documento com o alvo FORA do painel é entregue à janela; a que vem de dentro, não (o painel já a trata)", () => {
++    const m = montar();
++    const noDocumento = m.doc.ouvintes.get("keydown")![0]!;
++    noDocumento({ key: "Escape", target: m.doc.body, defaultPrevented: false });
++    expect(m.aoTeclarFora).toHaveBeenCalledTimes(1);
++    noDocumento({ key: "Escape", target: m.cancelar, defaultPrevented: false });
++    noDocumento({ key: "Escape", target: m.doc.body, defaultPrevented: true });
++    expect(m.aoTeclarFora).toHaveBeenCalledTimes(1);
++    m.acompanhamento.parar();
++  });
++
++  it("o foco arrancado da janela (focusout sem destino) volta ao último controle que o teve", () => {
++    vi.useFakeTimers();
++    const m = montar();
++    m.doc.activeElement = m.doc.body; // o foco caiu em BODY
++    m.painel.ouvintes.get("focusout")![0]!({ relatedTarget: null });
++    vi.runAllTimers();
++    expect(m.cancelar.focado).toHaveBeenCalled();
++    expect(m.doc.activeElement).toBe(m.cancelar);
++    m.acompanhamento.parar();
++  });
++
++  it("focusout para outro elemento (o foco só mudou de controle) não é perda", () => {
++    vi.useFakeTimers();
++    const m = montar();
++    m.doc.activeElement = m.confirmar;
++    m.painel.ouvintes.get("focusout")![0]!({ relatedTarget: m.confirmar });
++    vi.runAllTimers();
++    expect(m.cancelar.focado).not.toHaveBeenCalled();
++    m.acompanhamento.parar();
++  });
++
++  it("o foco em BODY depois que os botões travaram gravando vai para o painel, e VOLTA ao botão quando ele volta a valer (o erro do servidor)", () => {
++    const m = montar();
++    // Gravando: os dois botões travam e o foco já caiu em BODY, sem evento nenhum (o motor só o perde).
++    m.cancelar.disabled = true;
++    m.confirmar.disabled = true;
++    m.doc.activeElement = m.doc.body;
++    m.observador()!.chamar([{ type: "attributes" }]);
++    expect(m.doc.activeElement).toBe(m.painel);
++    // O erro chega: os botões voltam a valer, e o foco volta para "Cancelar" (o último controle que o teve).
++    m.cancelar.disabled = false;
++    m.confirmar.disabled = false;
++    m.observador()!.chamar([{ type: "attributes" }, { type: "childList" }]);
++    expect(m.doc.activeElement).toBe(m.cancelar);
++    m.acompanhamento.parar();
++  });
++
++  it("o botão travado que o motor deixa com o foco (sem soltá-lo) também é guardado pelo painel e devolvido", () => {
++    const m = montar();
++    m.cancelar.disabled = true;
++    m.confirmar.disabled = true;
++    m.observador()!.chamar([{ type: "attributes" }]);
++    expect(m.doc.activeElement).toBe(m.painel);
++    m.cancelar.disabled = false;
++    m.confirmar.disabled = false;
++    m.observador()!.chamar([{ type: "attributes" }]);
++    expect(m.doc.activeElement).toBe(m.cancelar);
++    m.acompanhamento.parar();
++  });
++
++  it("o WebKit, que leva o foco ao painel quando um botão é clicado, também devolve o foco quando os botões voltam a valer", () => {
++    const m = montar();
++    // Clique em "confirmar": o WebKit não foca o botão, foca o painel.
++    m.painel.ouvintes.get("focusin")![0]!({ target: m.painel });
++    m.doc.activeElement = m.painel;
++    m.cancelar.disabled = true; m.confirmar.disabled = true;
++    m.observador()!.chamar([{ type: "attributes" }]);
++    m.cancelar.disabled = false; m.confirmar.disabled = false;
++    m.observador()!.chamar([{ type: "attributes" }]);
++    expect(m.doc.activeElement).toBe(m.cancelar);
++    m.acompanhamento.parar();
++  });
++
++  it("quem moveu o foco por conta própria para outro controle não é puxado de volta", () => {
++    const m = montar();
++    m.doc.activeElement = m.confirmar;
++    m.painel.ouvintes.get("focusin")![0]!({ target: m.confirmar });
++    m.cancelar.focado.mockClear();
++    m.observador()!.chamar([{ type: "childList" }, { type: "attributes" }]);
++    expect(m.doc.activeElement).toBe(m.confirmar);
++    expect(m.cancelar.focado).not.toHaveBeenCalled();
++    m.acompanhamento.parar();
++  });
++
++  it("o foco no painel que o usuário escolheu (sem nada esperando) não é tirado de lá por mutação", () => {
++    const m = montar();
++    m.doc.activeElement = m.painel;
++    m.observador()!.chamar([{ type: "childList" }, { type: "attributes" }]);
++    expect(m.doc.activeElement).toBe(m.painel);
++    m.acompanhamento.parar();
++  });
++
++  it("o observador também vê o atributo `disabled`, além do conteúdo", () => {
++    const m = montar();
++    expect(m.observador()?.opcoes).toEqual({
++      childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["disabled"],
++    });
++    m.acompanhamento.parar();
++  });
++
++  it("a mutação com o foco ainda no botão pedido o mantém à vista (o que a correção 7 já fazia)", () => {
++    const m = montar();
++    m.cancelar.topo = 424;
++    m.observador()!.chamar([{ type: "childList" }]);
++    expect(m.painel.scrollTop).toBeGreaterThan(0);
++    m.acompanhamento.parar();
++  });
++});
++
++describe("Os achados estão ligados ao Modal", () => {
++  const modal = fonte("componentes", "Modal.tsx");
++
++  it("o Modal liga o acompanhamento na abertura e o desliga no fechamento, e a conta da rolagem continua exportada dele", () => {
++    expect(modal).toContain("const acompanhamento = acompanharAJanela({");
++    expect(modal).toMatch(/return \(\) => \{\s+acompanhamento\.parar\(\);\s+restaurar\(\);/);
++    expect(modal).toContain('export { rolagemParaVerNoPainel } from "./acompanhar-janela";');
++  });
++
++  it("Esc e Tab têm UM caminho só, para o painel e para o documento, e o aoFechar do ouvinte do documento não fica velho", () => {
++    expect(modal).toContain("function tratarTecla(");
++    expect(modal).toContain("aoTeclar={(evento) => tratarTecla(evento, painel.current, aoFechar)}");
++    expect(modal).toContain("aoTeclarFora: (evento) => tratarTecla(evento, painel.current, aoFecharAtual.current),");
++    expect(modal).toContain("aoFecharAtual.current = aoFechar;");
++  });
++
++  it("apertar o mouse no fundo escurecido não tira o foco de onde estava", () => {
++    expect(modal).toMatch(/onMouseDown=\{\(evento\) => \{\s+if \(evento\.target === evento\.currentTarget\) evento\.preventDefault\(\);/);
++  });
++
++  it("o título fica preso no topo do painel, encostado na borda dele, sem mudar o repouso", () => {
++    expect(modal).toContain('position: "sticky",');
++    expect(modal).toContain('top: "calc(-1 * var(--ds-sp-5))",');
++    expect(modal).toContain('margin: "calc(-1 * var(--ds-sp-5)) 0 calc(var(--ds-sp-3) - var(--ds-sp-2))",');
++    expect(modal).toContain('paddingBottom: "var(--ds-sp-2)",');
++    expect(modal).toContain('paddingTop: "var(--ds-sp-5)",');
++    expect(modal).toContain('background: "var(--ds-surface)",');
++  });
++
++  it("o acompanhamento conta o cabeçalho preso como parte coberta do painel e o repassa ao scroll-padding-top", () => {
++    const acompanhamento = fonte("componentes", "acompanhar-janela.ts");
++    expect(acompanhamento).toContain('getComputedStyle(cabecalho).position !== "sticky"');
++    expect(acompanhamento).toContain("topo: topoUtil + coberturaDoCabecalho(painel),");
++    expect(acompanhamento).toContain("painel.style.scrollPaddingTop");
++  });
++});
++
++describe("Achado 3: as frases das janelas dizem o que o sistema faz, e nada além", () => {
++  const usuarios = fonte("paginas", "Usuarios.tsx");
++  const conta = fonte("paginas", "MinhaConta.tsx");
++
++  it("'Encerrar sessões' não promete que a pessoa sai de todos os navegadores agora", () => {
++    expect(usuarios).not.toContain("sai de todos os navegadores");
++    expect(usuarios).toContain("deixa de poder renovar a sessão e de gravar qualquer coisa agora");
++    expect(usuarios).toContain("Uma tela que já estava");
++    expect(usuarios).toContain("por até 15 minutos");
++  });
++
++  it("'Redefinir senha' não promete que as sessões abertas caem na hora", () => {
++    expect(usuarios).not.toMatch(/as sessões abertas\s+caem/);
++    expect(usuarios).toContain("as sessões abertas deixam");
++    expect(usuarios).toContain("até 15 minutos). O sistema sorteia");
++  });
++
++  it("'Encerrar minhas outras sessões' diz a mesma coisa, com as mesmas palavras de 15 minutos", () => {
++    expect(conta).not.toContain("saem agora e precisam entrar de novo");
++    expect(conta).toContain("deixam de poder renovar a sessão e de");
++    expect(conta).toContain("pode continuar mostrando consultas por até 15 minutos");
++  });
++});
++
++describe("A prova no navegador existe", () => {
++  it("a seção 15 do layout-estreito gira e dá zoom com a janela aberta, clica no fundo e provoca o erro do servidor", () => {
++    const e2e = fonte("..", "test", "layout-estreito.e2e.mjs");
++    expect(e2e).toContain("== 15. A janela de confirmação aberta acompanha a mudança de tamanho e não perde o foco");
++    expect(e2e).toContain("await pg.setViewportSize({ width: resto[i], height: resto[i + 1] });");
++    expect(e2e).toContain('["zoom de 400 por cento", 1280, 1024, 320, 256]');
++    expect(e2e).toContain('["rotação do celular", 320, 568, 568, 320]');
++    expect(e2e).toContain("depois de um ${via} no fundo escurecido da janela destrutiva");
++    expect(e2e).toContain("status: 500");
++    expect(e2e).toContain("o Esc que chega ao documento fecha a janela");
++  });
++});
++
++beforeEach(() => { vi.unstubAllGlobals(); });

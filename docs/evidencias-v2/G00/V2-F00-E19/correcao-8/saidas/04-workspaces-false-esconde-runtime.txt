@@ -1,0 +1,6 @@
+$ npm audit --json --omit=dev [bandeira]   (npm 11.12.1 real, na cópia raiz-com-dep: fast-uri 3.0.1 plantado e @electric-sql/pglite como dependência direta da raiz)
+=== bandeira: (nenhuma)
+    total=1 pacotes=["fast-uri"]
+=== bandeira: --workspaces=false
+    total=0 pacotes=[]
+Leitura: com --workspaces=false o npm aplica excludeWorkspacesDependencySet e audita só o que a raiz declara; fast-uri (de apps/api) some.

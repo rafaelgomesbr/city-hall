@@ -1,0 +1,10 @@
+$ node sondas/variaveis-e-rotas-citadas.mjs <os mesmos>
+
+variaveis citadas: 110; sem nenhuma ocorrencia no codigo: 6
+  sem codigo: CNAME
+  sem codigo: JSONB
+  sem codigo: PASTA_RESTORE
+  sem codigo: PGPASSFILE
+  sem codigo: TMPDIR
+  sem codigo: VACUUM
+rotas citadas: 38; sem registro: 0

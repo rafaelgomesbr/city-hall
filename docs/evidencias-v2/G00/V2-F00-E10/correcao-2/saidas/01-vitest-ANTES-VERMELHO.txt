@@ -1,0 +1,70 @@
+$ cd dc360/apps/web && npx vitest run test/minha-conta-estreita.test.ts test/recuperar-senha.test.ts (fonte de src/paginas e app.css da 4b96ea7, testes novos)
+situacao=VERMELHO esperado: 9 falhas, 36 aprovados (E10: 3 delas, as de relogio e confirmacao)
+
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/web-antes-tmp
+
+ ❯ test/minha-conta-estreita.test.ts (6 tests | 6 failed) 5ms
+   × O botão de Minha conta não passa da coluna em tela estreita > existe um modificador que deixa o rótulo quebrar em linhas e limita o botão à coluna 2ms
+     → regra .botao--quebra não encontrada
+   × O botão de Minha conta não passa da coluna em tela estreita > até 600 px o botão com o modificador ocupa a largura da coluna 1ms
+     → expected '@media (max-width: 600px) {\n  .modal…' to match /\.botao--quebra\s*\{\s*width:\s*100%/
+   × O botão de Minha conta não passa da coluna em tela estreita > o botão 'Encerrar minhas outras sessões' usa o modificador 0ms
+     → expected 'import { useCallback, useEffect, useS…' to match /className="botao botao--perigo botao-…/
+   × O botão de Minha conta não passa da coluna em tela estreita > o modificador só usa tokens do design system: nenhum número solto de espaço, cor ou duração 0ms
+     → regra .botao--quebra não encontrada
+   × Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.4.3) > a confirmação é um elemento focável por código (tabIndex -1) que a tela guarda por ref 0ms
+     → expected 'import { useCallback, useEffect, useS…' to match /const confirmacao = useRef<HTMLDivEle…/
+   × Depois de encerrar as outras sessões o foco não cai em BODY (WCAG 2.4.3) > um efeito sobre `sucesso` leva o foco para a confirmação, e não uma chamada solta no envio 0ms
+     → expected 'import { useCallback, useEffect, useS…' to match /useEffect\(\(\) => \{\s*if \(sucesso\…/
+ ❯ test/recuperar-senha.test.ts (39 tests | 3 failed) 19ms
+   ✓ Qual frase vale para qual falha > 503 recuperacao_desligada troca a tela inteira por 'procure quem administra' 1ms
+   ✓ Qual frase vale para qual falha > 401 é link que não vale mais, 429 é excesso, 422 é senha recusada, falta de rede é rede 0ms
+   ✓ Qual frase vale para qual falha > a falha de rede usa a frase própria dela, e as outras usam a da tela 0ms
+   ✓ Qual frase vale para qual falha > a mensagem do servidor nunca vai para a tela: ela pode vir de um proxy no meio do caminho 0ms
+   ✓ As conferências de digitação > email: vazio e formato torto são recusados, com a frase que diz o que digitar 0ms
+   ✓ As conferências de digitação > senha nova: vazia, curta, longa e diferente da repetição, cada erro no campo certo 0ms
+   ✓ As conferências de digitação > os limites passam: 12 e 200 caracteres iguais nos dois campos são aceitos 0ms
+   ✓ As conferências de digitação > sem regra de composição: senha longa só de letras minúsculas passa 0ms
+   ✓ Tela de pedir o link, estado por estado > normal: um campo de email com rótulo, dica, e o botão que diz o ato 0ms
+   ✓ Tela de pedir o link, estado por estado > vazio com erro: o campo é marcado inválido e a frase diz o que digitar 0ms
+   ✓ Tela de pedir o link, estado por estado > carregando o pedido: o botão diz Enviando, fica desligado e o formulário avisa que está ocupado 0ms
+   ✓ Tela de pedir o link, estado por estado > verificando se a recuperação está ligada: anuncia por role=status, sem formulário 0ms
+   ✓ Tela de pedir o link, estado por estado > falha de envio: aviso de perigo com role=alert e o formulário continua para tentar de novo 0ms
+   ✓ Tela de pedir o link, estado por estado > enviado: a frase neutra, o apoio e o botão de pedir de novo 0ms
+   ✓ Tela de pedir o link, estado por estado > a frase de 'enviado' não diz se a conta existe: nada de 'encontrado', 'cadastrado' sem condicional 0ms
+   ✓ Tela de pedir o link, estado por estado > desligada: manda procurar quem administra e aponta o botão Redefinir senha da lista de Usuários 0ms
+   ✓ Tela de pedir o link, estado por estado > modo de demonstração: explica e não deixa enviar 0ms
+   ✓ Tela de pedir o link, estado por estado > a saída da tela é um link comum (recarrega), e nunca o Link do roteador 1ms
+   ✓ Tela de definir a senha nova, estado por estado > normal: dois campos de senha com autocomplete new-password e o botão que diz o ato 0ms
+   ✓ Tela de definir a senha nova, estado por estado > senha curta: o erro fica na senha nova, e só nela 0ms
+   ✓ Tela de definir a senha nova, estado por estado > senhas diferentes: o erro fica na repetição, e só nela 0ms
+   ✓ Tela de definir a senha nova, estado por estado > carregando: o botão diz Salvando e fica desligado 0ms
+   ✓ Tela de definir a senha nova, estado por estado > falha de rede ou de servidor: aviso de perigo acima do botão, campos sem erro 0ms
+   ✓ Tela de definir a senha nova, estado por estado > link que não vale mais (vencido, usado ou trocado): UMA frase, e o caminho de pedir outro 0ms
+   ✓ Tela de definir a senha nova, estado por estado > endereço sem link (vazio): diz que o link veio incompleto e oferece pedir outro 0ms
+   ✓ Tela de definir a senha nova, estado por estado > recuperação desligada: as mesmas instruções da tela de pedir, sem formulário 0ms
+   × Tela de definir a senha nova, estado por estado > sucesso: confirma com role=status e oferece o botão Entrar, sem prometer ida automática 3ms
+     → expected 'DC Nova senha Sua senha foi alterada …' not to match /será levad|em instantes|redirecion/i
+   ✓ O link de uso único não fica na barra de endereço > o token é lido uma vez para o estado e a barra de endereço é limpa com history.replaceState 0ms
+   ✓ O link de uso único não fica na barra de endereço > depois do sucesso a ida para a entrada é um link de navegação completa, para a política de referenciador não seguir a pessoa 0ms
+   ✓ O link de uso único não fica na barra de endereço > a página que carrega o link não é indexada: o cabeçalho X-Robots-Tag cobre as duas rotas 0ms
+   × A confirmação da senha nova não some por tempo (WCAG 2.2.1) > a tela de redefinição não tem relógio nem navegação por código: nada leva a pessoa embora sozinho 0ms
+     → RecuperarSenha.tsx contém /setTimeout\s*\(/: expected 'import { useEffect, useState } from "…' not to match /setTimeout\s*\(/
+   × A confirmação da senha nova não some por tempo (WCAG 2.2.1) > não sobrou a constante de espera que alimentava o redirecionamento 4ms
+     → expected 'import { useEffect, useState } from "…' not to contain 'ESPERA_ATE_A_ENTRADA'
+   ✓ Referrer-Policy no painel > as duas telas de recuperação são servidas com Referrer-Policy: no-referrer e X-Robots-Tag: noindex 0ms
+   ✓ Referrer-Policy no painel > nenhum bloco global põe no-referrer: a chave do Google Maps é restrita por referenciador HTTP 0ms
+   ✓ O texto das duas telas > nenhuma frase tem travessão 3ms
+   ✓ O texto das duas telas > nenhuma frase supõe o gênero de quem lê nem de quem administra 0ms
+   ✓ O texto das duas telas > português com acento: nenhuma das palavras que já saíram sem acento 0ms
+   ✓ O texto das duas telas > rótulo de botão não é vago: nenhum é só 'OK', 'Enviar' ou 'Sim' 0ms
+   ✓ O texto das duas telas > o rótulo do campo diz o que digitar 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ [... bloco de pilhas de erro omitido; as falhas estão listadas acima ...]
+
+ Test Files  2 failed (2)
+      Tests  9 failed | 36 passed (45)
+   Start at  11:11:00
+   Duration  498ms (transform 207ms, setup 0ms, collect 353ms, tests 24ms, environment 0ms, prepare 65ms)
+

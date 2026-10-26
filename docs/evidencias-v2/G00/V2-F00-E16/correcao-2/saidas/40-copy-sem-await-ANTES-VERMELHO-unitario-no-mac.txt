@@ -1,0 +1,102 @@
+FAIL src/dados/evidencia-no-disco.test.ts
+  a foto recém tirada
+    ✕ é copiada do cache para o diretório de documentos (1 ms)
+    ✕ declara o tamanho do arquivo que ficou, e não o do original
+    ✕ ESPERA a cópia terminar antes de medir (a cópia do expo-file-system é assíncrona)
+    ○ skipped o tamanho vem dos bytes de verdade, e não do `size` que pode vir zerado
+    ○ skipped zero bytes é arquivo perdido, e não um tamanho: a foto não entra na coleta
+    ○ skipped a cópia recusada pelo sistema (Promise rejeitada) sai em português e com o que fazer, e não em inglês
+    ○ skipped a recusa que sai síncrona (destino inválido) também sai em português
+    ○ skipped duas fotos no mesmo milissegundo não viram uma só
+  a leitura dos bytes na hora de enviar
+    ○ skipped lê o arquivo que está lá
+    ○ skipped arquivo que sumiu vira falha PERMANENTE, e não tentativa eterna
+    ○ skipped e a frase é em português, com o código que a fila reconhece
+  a fotografia que o agente mandou apagar
+    ○ skipped sai do disco de verdade
+    ○ skipped arquivo que já não existe não é erro
+    ○ skipped o sistema que recusa apagar não derruba quem chamou
+  a medida de um arquivo na hora de concluir
+    ○ skipped devolve os bytes do arquivo que existe
+    ○ skipped devolve zero para o arquivo que não existe, sem estourar
+    ○ skipped usa o tamanho que o sistema informa, sem ler os bytes
+    ○ skipped com o `size` zerado ou nulo, cai para os bytes de verdade
+
+  ● a foto recém tirada › é copiada do cache para o diretório de documentos
+
+    A foto não ficou guardada neste aparelho (o arquivo saiu vazio). Tire a foto de novo.
+
+      86 |   const tamanhoBytes = medirArquivoNoAparelho(destino.uri);
+      87 |   if (tamanhoBytes === 0) {
+    > 88 |     throw new Error(
+         |           ^
+      89 |       "A foto não ficou guardada neste aparelho (o arquivo saiu vazio). "
+      90 |       + "Tire a foto de novo.",
+      91 |     );
+
+      at src/dados/evidencia-no-disco.ts:88:11
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/dados/evidencia-no-disco.ts:94:2)
+      at apply (src/dados/evidencia-no-disco.ts:25:44)
+      at Object.<anonymous> (src/dados/evidencia-no-disco.test.ts:116:42)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● a foto recém tirada › declara o tamanho do arquivo que ficou, e não o do original
+
+    A foto não ficou guardada neste aparelho (o arquivo saiu vazio). Tire a foto de novo.
+
+      86 |   const tamanhoBytes = medirArquivoNoAparelho(destino.uri);
+      87 |   if (tamanhoBytes === 0) {
+    > 88 |     throw new Error(
+         |           ^
+      89 |       "A foto não ficou guardada neste aparelho (o arquivo saiu vazio). "
+      90 |       + "Tire a foto de novo.",
+      91 |     );
+
+      at src/dados/evidencia-no-disco.ts:88:11
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/dados/evidencia-no-disco.ts:25:44)
+      at Object.<anonymous> (src/dados/evidencia-no-disco.test.ts:134:40)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● a foto recém tirada › ESPERA a cópia terminar antes de medir (a cópia do expo-file-system é assíncrona)
+
+    A foto não ficou guardada neste aparelho (o arquivo saiu vazio). Tire a foto de novo.
+
+      86 |   const tamanhoBytes = medirArquivoNoAparelho(destino.uri);
+      87 |   if (tamanhoBytes === 0) {
+    > 88 |     throw new Error(
+         |           ^
+      89 |       "A foto não ficou guardada neste aparelho (o arquivo saiu vazio). "
+      90 |       + "Tire a foto de novo.",
+      91 |     );
+
+      at src/dados/evidencia-no-disco.ts:88:11
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/dados/evidencia-no-disco.ts:25:44)
+      at Object.<anonymous> (src/dados/evidencia-no-disco.test.ts:203:42)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 15 skipped, 18 total
+Snapshots:   0 total
+Time:        0.295 s, estimated 1 s
+Ran all test suites matching /src\/dados\/evidencia-no-disco.test.ts/i with tests matching "ESPERA|declara o tamanho|é copiada".

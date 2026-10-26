@@ -1,0 +1,38 @@
+FAIL src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx
+  outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais
+    ✓ a sessão da Ana venceu: o Bruno entra e o aparelho vem sem rascunho, foto nem assinatura dela (15 ms)
+    ✓ a Ana saiu pelo 'Sair da conta': o Bruno entra e também não vê nada dela (5 ms)
+    ✕ a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo (29 ms)
+    ✓ sem dono marcado no disco, quem entra não apaga a vistoria e passa a ser o dono (3 ms)
+    ✓ a sessão vencida carimba a Ana como dona do disco, e o Bruno que entra depois limpa (3 ms)
+    ✓ contraste: a Ana que entra de novo depois de a sessão vencer reencontra tudo (1 ms)
+  a credencial e a identidade saem do cofre do aparelho
+    ✓ ao entrar, o cofre guarda as duas coisas (a base da conferência das outras) (1 ms)
+    ✓ 'Sair da conta' tira a credencial e a identidade do cofre (1 ms)
+    ✓ a sessão vencida tira a credencial e a identidade do cofre, mesmo sem apagar o dado (1 ms)
+    ✓ depois da saída e da entrada do Bruno, o cofre guarda só o Bruno (1 ms)
+
+  ● outra pessoa entra por `entrar` num aparelho com o turno da Ana, provedor e banco reais › a limpeza que demora segura a entrada: o Bruno só aparece depois de o aparelho estar limpo
+
+    expect(received).toBeNull()
+
+    Received: {"matricula": "0001", "municipio": "Teste", "nome": "Bruno de exemplo", "organizacaoNome": "Defesa Civil de Teste", "papel": "agente_campo", "uf": "SC", "usuarioId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"}
+
+      263 |
+      264 |     /* Limpeza presa: ninguém logado, nada do Bruno no cofre, dado da Ana ainda lá. */
+    > 265 |     expect(sessao?.identidade).toBeNull();
+          |                                ^
+      266 |     expect([...mockCofre.values()].join("\n")).not.toContain("bruno");
+      267 |
+      268 |     await act(async () => { solta(); await entrada; });
+
+      at Object.toBeNull (src/__tests__/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx:265:32)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 9 passed, 10 total
+Snapshots:   0 total
+Time:        0.516 s, estimated 1 s
+Ran all test suites matching /src\/__tests__\/entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx/i.
+jest-saida=1

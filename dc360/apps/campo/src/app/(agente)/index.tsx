@@ -13,6 +13,7 @@ import {
 } from "../../dados/pendencias";
 import { listarColetas, marcarEnviada } from "../../dados/coletas";
 import { obterFila } from "../../dados/fila";
+import { frasesDaPausa } from "../../dados/pausa-da-fila";
 import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
@@ -52,6 +53,7 @@ import {
   type DevolucaoNoAparelho,
   type FilaDeSincronizacao,
   type ItemFila,
+  type MotivoDeSessao,
 } from "@dc360/campo";
 import { DialogoDeDevolucao, type PedidoDeDevolucao } from "../../ui/DialogoDeDevolucao";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
@@ -584,6 +586,11 @@ export default function Tarefas() {
   const lerDoDiscoAgora = useRef(lerDoDisco);
   lerDoDiscoAgora.current = lerDoDisco;
 
+  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
+  /* A mesma pausa, lida por quem acorda DEPOIS de um `await` (o "Enviar agora"
+     espera o dreno, e o dreno avisa a fila no meio): a variável de estado de
+     uma função já começada fica com o valor de quando ela começou. */
+  const pausaAtual = useRef<MotivoDeSessao | null>(null);
   useEffect(() => {
     let vivo = true;
     let desassinar: (() => void) | undefined;
@@ -592,7 +599,16 @@ export default function Tarefas() {
         const aberta = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
         if (!vivo) return;
         fila.current = aberta;
-        desassinar = aberta.assinar(() => { void lerDoDiscoAgora.current(); });
+        desassinar = aberta.assinar((resumo) => {
+          /*
+            A pausa da sessão vem no resumo que a fila já entrega a cada aviso
+            (e uma vez na assinatura). O cartão da sugerida a usa para não
+            mandar esperar sinal quando o que falta é entrar de novo.
+          */
+          pausaAtual.current = resumo?.pausadaPor ?? null;
+          setPausadaPor(resumo?.pausadaPor ?? null);
+          void lerDoDiscoAgora.current();
+        });
       } catch {
         /* Sem fila não há devolução possível, e a lista continua servindo. */
       }
@@ -828,7 +844,7 @@ export default function Tarefas() {
     setEnviando(alvo.id);
     setEnvio(null);
     try {
-      await aberta.drenar();
+      const dreno = await aberta.drenar();
       const depois = await aberta.itens();
       const meu = depois.find((i) => i.tipo === "vistoria" && i.ocorrenciaId === alvo.id);
       await lerDoDisco();
@@ -839,7 +855,7 @@ export default function Tarefas() {
 
           A promoção da lápide e a saída da tarefa moram em `lerAFila`, que
           varre a fila procurando item confirmado. Esse caminho cobre o envio
-          que acontece sozinho, em segundo plano, sem ninguém tocar em nada.
+          que acontece sozinho com o aplicativo aberto, sem ninguém tocar em nada.
 
           Só que ele PERDE A CORRIDA no caminho do dedo: `drenar()` confirma e
           REMOVE o item da fila, então quando a leitura chega não há item
@@ -874,12 +890,49 @@ export default function Tarefas() {
           texto: "A coleta continua guardada. Abra a aba Envio para ver o que ele respondeu.",
         });
       } else {
-        setEnvio({
-          ocorrenciaId: alvo.id,
-          tom: "alerta",
-          titulo: "Ainda não deu para enviar",
-          texto: "A coleta continua guardada no aparelho e sai sozinha assim que houver sinal.",
-        });
+        /*
+          COM A FILA PAUSADA PELA SESSÃO, SINAL NÃO RESOLVE, e a tarja que
+          mandava esperá-lo contradizia a faixa do topo e o cartão da tarefa
+          (V2-F00-E06, correção 3). O item continua `pendente` de propósito,
+          então o estado dele não distingue "sem sinal" de "pausada": quem
+          distingue é o motivo, que vem do dreno (`paradaPor`) ou, quando outro
+          dreno já estava rodando e este voltou sem dizer, da pausa que a fila
+          já tinha avisado. As frases são as de `frasesDaPausa`, as mesmas da
+          faixa e do cartão: uma frase nova aqui divergiria das duas.
+        */
+        const motivo = dreno.paradaPor ?? pausaAtual.current;
+        if (motivo) {
+          const frases = frasesDaPausa(motivo);
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: frases.faixaTitulo,
+            texto: frases.doCartao,
+          });
+        } else if (falhaDeRede === "acesso-suspenso") {
+          /*
+            ACESSO SUSPENSO PELO FORNECEDOR: o motor trata o 403 como falha
+            temporária (o item espera, sem pausa), então nem `paradaPor` nem a
+            pausa da fila sabem dele. Quem sabe é a lista desta mesma tela, que
+            já diz "Acesso suspenso pelo fornecedor"; a tarja diz a mesma
+            coisa, com a mesma frase, em vez de mandar esperar sinal que não
+            resolve (V2-F00-E06, correção 3).
+          */
+          const frase = comoContarAFalha("acesso-suspenso", "");
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: frase.resumo,
+            texto: frase.detalhe,
+          });
+        } else {
+          setEnvio({
+            ocorrenciaId: alvo.id,
+            tom: "alerta",
+            titulo: "Ainda não deu para enviar",
+            texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
+          });
+        }
       }
     } finally {
       setEnviando(null);
@@ -935,6 +988,7 @@ export default function Tarefas() {
       agora: agora.getTime(),
       de: ondeEstou,
       jaColetadas,
+      pausadaPor,
     });
     const antes = ultimaOrdem.current;
     const igual = antes !== null
@@ -945,7 +999,7 @@ export default function Tarefas() {
     const resultado = igual ? antes : nova;
     ultimaOrdem.current = resultado;
     return resultado;
-  }, [naLista, agora, ondeEstou, jaColetadas]);
+  }, [naLista, agora, ondeEstou, jaColetadas, pausadaPor]);
 
   /** Metros até cada tarefa, quando há como medir. Para o item não recalcular. */
   const distancias = useMemo(

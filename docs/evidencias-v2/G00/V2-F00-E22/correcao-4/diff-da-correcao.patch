@@ -1,0 +1,1174 @@
+diff --git a/.gitattributes b/.gitattributes
+index 892eb5e..344f589 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -8 +8 @@
+-# em qualquer sistema. A única exceção é o PowerShell, que segue em CRLF.
++# em qualquer sistema. As exceções de fim de linha são os scripts do Windows (`.ps1`, `.bat` e `.cmd`), que seguem em CRLF; imagem, fonte, dump e afins são `binary`, abaixo.
+diff --git a/dc360/README.md b/dc360/README.md
+index 2525633..637acc2 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11 +11 @@ build) valem lá, não aqui.
+-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 175 testes do pacote compartilhado passando |
++| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 185 testes do pacote compartilhado passando |
+@@ -16 +16 @@ build) valem lá, não aqui.
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1932 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -39 +39 @@ O painel web não fala com nenhum dado falso em memória. Ele executa
+-`db/migrations/001_base.sql`, o mesmo arquivo que vai para o servidor, dentro de
++as migrações de `db/migrations/` (todas, na ordem), os mesmos arquivos que vão para o servidor, dentro de
+@@ -82,2 +82,3 @@ outro, e o papel voltando de `dc360_app` para `postgres`, que ignora RLS.
+-`SET LOCAL` mais consulta indivisível. Os dois últimos testes de CA-06 cobrem
+-exatamente esse caso, e reprovam se alguém trocar de volta.
++`SET LOCAL` mais consulta indivisível. Os testes do bloco "Isolamento sob concorrência na mesma conexão", em
++`db/test/isolamento.test.ts`, cobrem exatamente esse caso, e reprovam se alguém
++trocar de volta.
+@@ -94,2 +95,5 @@ contextos de tenant ao mesmo tempo.**
+-  DELETE. Com RLS forçada, a ausência nega: a trilha é append-only, e nem a
+-  aplicação reescreve histórico.
++  DELETE. Com RLS forçada, a ausência nega: a trilha é append-only para a aplicação
++  e para quem administra. As duas exceções são funções do banco, definidas nas
++  migrações: a minimização por prazo (043) troca o nome do assinante dentro do
++  evento `vistoria` por "removido por prazo", e a eliminação do município (038)
++  apaga o município inteiro, trilha inclusa, depois de sete dias de arrependimento.
+@@ -129 +133 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
+-| Senha | scrypt do `node:crypto`, N=2^17, r=8, p=1 (cerca de 128 MB por verificação; o hash guarda o N usado, então senha derivada antes com N=2^16 continua valendo) | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
++| Senha | scrypt do `node:crypto`, N=2^17, r=8, p=1 (cerca de 128 MB por verificação; o hash guarda o N usado, então senha derivada antes com N=2^16 continua valendo) | Aprovado no ASVS 4.0 (2.4.1), sem dependência nova e sem módulo nativo para compilar |
+@@ -223 +227 @@ conta desativada.
+-| `posto_insuficiente` | 403 | Nada a repetir | A pessoa administra usuários, mas não aquela conta (posto igual ou acima do dela). É 403 e não 404 porque a conta é do próprio município |
++| `posto_insuficiente` | 403 | Nada a repetir | A pessoa administra usuários, mas não aquela conta (de posto acima do dela; de posto igual, para quem não é administrador). É 403 e não 404 porque a conta é do próprio município |
+@@ -299,3 +303,3 @@ afirmar que os cinco nomes inventados **não** aparecem nele. Sem SDK, pela mesm
+-razão que a assinatura S3 é escrita à mão: o `npm audit` deste produto precisa
+-fechar em zero em execução (na raiz fecha; o aplicativo de campo tem exceções
+-nomeadas, ver "Como testar").
++razão que a assinatura S3 é escrita à mão: o `npm audit --omit=dev` da raiz
++precisa fechar em zero (o aplicativo de campo só passa com exceções nomeadas, ver
++"Como testar").
+@@ -439 +443,3 @@ Desde a V2-F00-E06 a fila distingue os códigos de acesso do catálogo
+-`FalhaDeSessao` (motivo `sessao_encerrada` ou `conta_desativada`) é diferente de
++`FalhaDeSessao` (motivo `sessao_encerrada`, `conta_desativada` ou
++`troca_de_senha_obrigatoria`; `acesso_suspenso` não entra aqui: é temporário, o item
++fica pendente e a fila tenta de novo mais tarde) é diferente de
+@@ -453 +459 @@ A persistência é uma porta (`ChaveValor`), não um SQLite direto: no aparelho
+-será `expo-sqlite`, nos testes é um mapa. A lógica não muda.
++é `expo-sqlite` (`packages/campo/src/deposito-sqlite.ts`), nos testes é um mapa. A lógica não muda.
+@@ -487,2 +493,5 @@ regras por CHECK, para valerem mesmo se outra ponta gravar direto.
+-para uma conta que precisa fechar em zero no `npm audit`, e o provedor
+-escolhido é S3-compatível (Cloudflare R2, por causa do egress), não a AWS.
++para uma conta que precisa fechar em zero no `npm audit --omit=dev` da raiz (o
++que `npm run auditar` prende; o `npm audit` puro não fecha, ver "Como testar"), e o provedor
++escolhido é S3-compatível, não a AWS (o levantamento apontava Cloudflare R2 por
++causa do egress; o `fly.toml` de hoje usa o Supabase Storage por S3, ver
++`docs/ARMAZENAMENTO.md`).
+@@ -509 +518 @@ ao processo. Montar em três lugares produziria três documentos com o mesmo
+-número de protocolo. Quando a geração de PDF entrar, ela renderiza exatamente
++número de protocolo. O PDF (adiante) renderiza exatamente
+@@ -599 +608 @@ coluna só no Excel em português.
+-Um CSV de ocorrências carrega nome, contato e relato de cidadãos, e sai do
++O CSV de ocorrências no nível completo (só o administrador) carrega nome, contato e relato de cidadãos, e sai do
+@@ -788,2 +797,3 @@ marcador e a razão na linha de cima: assim ela é uma decisão registrada, e n
+-um valor que ninguém percebeu. O teste tem dois casos que provam as expressões
+-funcionando e não produzindo falso positivo, para não depender de o código
++um valor que ninguém percebeu. O teste tem casos que provam as expressões
++funcionando e não produzindo falso positivo ("a varredura pega o que deveria
++pegar" e "a varredura não reclama do que está certo"), para não depender de o código
+@@ -816,2 +826,4 @@ O que a varredura encontrou na primeira execução, e foi corrigido:
+-- **Não havia atalho para pular a navegação.** Quem usa teclado atravessava os
+-  onze itens da lateral a cada troca de tela. Agora o primeiro Tab cai num
++- **Não havia atalho para pular a navegação.** Quem usa teclado atravessava
++  todos os itens da lateral (a navegação do código tem doze controles: dez
++  destinos mais "Tema" e "Sair"; o administrador alcança onze, porque "Meu
++  trabalho" é do agente) a cada troca de tela. Agora o primeiro Tab cai num
+@@ -846,3 +858,5 @@ portão nenhum, porque quem lê para de conferir à mão.
+-Os três portões moram em `scripts/`, ao lado de
+-`entitlements-do-ios.test.mjs`, e não dentro de `apps/campo`. A razão é de
+-ambiente: o pacote do aplicativo roda em `jest-expo`, que não tem os tipos de
++Os três portões da tabela moram em `scripts/`, ao lado de
++`entitlements-do-ios.test.mjs` e de outros portões do aplicativo
++(`portao-densidade-do-aplicativo`, `portao-do-mapa-do-aplicativo`,
++`portao-sem-promessa-de-segundo-plano-do-aplicativo`), e não dentro de
++`apps/campo`. A razão é de ambiente: o pacote do aplicativo roda em `jest-expo`, que não tem os tipos de
+@@ -870,3 +884,6 @@ dia em que ele passar a existir. A pendência de contraste da borda de controle
+-(1.30:1 no claro e 1.33:1 no escuro, contra os 3:1 da WCAG 1.4.11) aparece na
+-saída da execução e some obrigatoriamente quando o número passar. Exceção
+-temporária que ninguém poda é exceção permanente.
++(era 1.30:1 no claro e 1.33:1 no escuro, contra os 3:1 da WCAG 1.4.11) fechou:
++hoje `PENDENTES` em `scripts/portao-acessibilidade-do-aplicativo.test.mjs` está
++vazio e os dois pares da borda passam. O mecanismo continua: a pendência que
++voltar a entrar na lista aparece na saída da execução e some obrigatoriamente
++quando o número passar. Exceção temporária que ninguém poda é exceção
++permanente.
+@@ -905 +922,2 @@ O que a regra impede, imposto pelo servidor e não pela tela:
+-  rebaixamento.
++  rebaixamento (a conferência é por contagem sem trava: dois administradores, um
++  desativando ou rebaixando o outro no mesmo instante, ainda podem furá-la, ver `apps/api/PENDENCIAS.md`).
+@@ -1016 +1034 @@ definição: **você voltou quando o sistema soube que você voltou.**
+-| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O teto é de 27 funções e hoje está cheio (27 de 27, contadas no catálogo depois de aplicar as 50 migrações em 2026-10-15): o portão CA-06 (`db/test/isolamento.test.ts`) reprova a vigésima oitava. Cada subida do teto tem a razão escrita no próprio teste, e a mais recente foi justamente `varrer_tarefas_novas` (migração 042), que também é função de relógio. Não há vaga para gastar com um canal que o sino já cobre. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
++| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O teto é de 27 funções e hoje está cheio (27 de 27, contadas no catálogo depois de aplicar as migrações: 50 em 2026-10-15 e 51 em 2026-10-19, a 051 não acrescenta função privilegiada): o portão CA-06 (`db/test/isolamento.test.ts`) reprova a vigésima oitava. Cada subida do teto tem a razão escrita no próprio teste, e a mais recente foi justamente `varrer_tarefas_novas` (migração 042), que também é função de relógio. Não há vaga para gastar com um canal que o sino já cobre. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
+@@ -1046,5 +1064,11 @@ função de escrita do repositório começa por `exigirPermissao`, porque escond
+-um botão não impede nada de quem tem o console do navegador aberto. Quando a
+-API entrar, ela importa a mesma função em vez de redescobrir a regra.
+-
+-Esta tabela é gerada a partir de `acoesDoPapel`, e um teste reprova se ela
+-divergir do código. Ela já mentiu antes: dizia que o administrador fazia "o
++um botão não impede nada de quem tem o console do navegador aberto. A
++API importa a mesma função em vez de redescobrir a regra.
++
++Esta tabela é conferida contra o código por
++`packages/shared/test/permissoes-no-readme.test.ts`, que gera a tabela esperada
++em memória a partir de `acoesDoPapel`, `ROTULO_ACAO` e `ROTULO_PAPEL` (o README
++não é reescrito por script: quem altera as permissões cola a linha que a
++mensagem de falha traz) e reprova se ela divergir do código: ação que falta, ação que sobra, papel sem linha, ordem trocada ou marcador
++removido (a mensagem de falha traz a linha certa, para colar). Ela já mentiu antes
++(a rodada 4 da validação achou `levantar_interdicao` fora dela, porque o teste
++que esta frase prometia não existia): dizia que o administrador fazia "o
+@@ -1057,0 +1082 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
++| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, levantar a interdição de um imóvel, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+@@ -1060,2 +1085 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
+-| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+-| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
++| Administrador da organização | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, levantar a interdição de um imóvel, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+@@ -1071,2 +1095,2 @@ interdição entrou na mesma lista, e por motivo parecido: o documento reúne nu
+-página só o nome, o contato, o endereço, a vulnerabilidade da família e todas
+-as fotos da casa. Cada pedaço já circula em algum lugar; a concentração é que
++página só o nome do solicitante, o endereço, a vulnerabilidade da família e todas
++as fotos da casa (o contato não é impresso). Cada pedaço já circula em algum lugar; a concentração é que
+@@ -1188 +1212 @@ eram da máquina, e não do código, foram fechados no próprio repositório:
+-  para todo texto (`* text=auto eol=lf`), CRLF só para `.ps1`, e marca imagem,
++  para todo texto (`* text=auto eol=lf`), CRLF só para `.ps1`, `.bat` e `.cmd`, e marca imagem,
+@@ -1223 +1247 @@ eram da máquina, e não do código, foram fechados no próprio repositório:
+-| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | 2026-10-14: código 1, 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`"); **2026-10-19, depois do conserto V-API-3: código 0**, nenhuma falha e 20 pulados por ambiente (o Postgres real, sem `DC360_POSTGRES_DE_PROVA`) | CI, ver abaixo |
++| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | 2026-10-14: código 1, 1 falha de ambiente (LibreSSL, ver "`OPENSSL_CONF`"); **2026-10-19, depois do conserto V-API-3: código 0**, nenhuma falha e 20 pulados por ambiente (o Postgres real, sem `DC360_POSTGRES_DE_PROVA`); depois das correções da E07 e da E10 do mesmo dia o total passou a 1485 casos (a E07 e a E10 e também a correção 3 da E09, que acrescentou 13), com 34 pulados pelo mesmo motivo e 0 falhas | CI, ver abaixo |
+@@ -1238 +1262,5 @@ comando da tabela um a um, e é anterior às correções 3 da E07 e da E12, à
+-correção 1 da E21 e à correção 1 da E25: com a árvore de hoje ainda não houve run de CI. A
++correção 1 da E21 e à correção 1 da E25. Depois delas houve o run 39143791434
++(2026-10-18, sobre o registro `ecaad76`, candidato `bb0f654`), 9 de 9 verdes
++segundo o STATUS, que o gatekeeper da rodada 4 NÃO conseguiu ler (o `gh` estava
++sem login); e as correções posteriores a ele (E03, E05, E07, E09, E10, E15, E25
++e esta) ainda não passaram por CI. A
+@@ -1284 +1312,2 @@ todos os passos com código 0 (17 de 17 com `--sem-instalar` no Windows, 19 de 1
+-no Linux do CI), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
++no Linux do CI; o roteiro de hoje tem 20 passos, 18 sem instalar, porque a
++correção 4 da E03 acrescentou o `e2e-firefox`; o run 39143791434, verde segundo o STATUS e não lido pelo gatekeeper, já rodou o roteiro de 20 passos), e a deriva V-DEP-4 do `expo-doctor` foi fechada em 2026-10-13,
+@@ -1382,2 +1411,2 @@ O que a pessoa faz na primeira entrada, e é o passo que se esquece: abrir
+-telefone. A troca derruba as outras sessões e não depende de email, que é o
+-que ainda não existe.
++telefone. A troca derruba as outras sessões e não depende de email (o cliente de
++email existe, mas está desligado em produção até o CP-19).
+@@ -1427,4 +1456,9 @@ juntos não podem migrar em paralelo.
+-`Dockerfile` e `compose.yaml` estão no repositório. **Nenhum dos dois foi
+-construído ou executado**: o ambiente onde foram escritos não tem Docker. São
+-proposta revisável, não receita comprovada, e o primeiro deploy tem que
+-começar por subir os dois uma vez.
++`Dockerfile` (a imagem da API), `Dockerfile.console` (a do console), `fly.toml`,
++`fly.console.toml` e `compose.yaml` estão no repositório. O `Dockerfile` é a
++imagem de produção: o `fly.toml` (`[build] dockerfile`) manda o `fly deploy`
++construí-lo, e o próprio `Dockerfile` registra o 503 dos PDFs que a imagem deu em
++produção: o Chromium estava nela, mas o pacote `playwright` não, porque estava
++em `devDependencies` e a etapa `--omit=dev` não o instalava. O que não existe é prova arquivada: o CI não constrói
++a imagem (o trabalho `implantavel` sobe a API direto no Node) e não há log de
++build no repositório. Não há registro de execução do `compose.yaml`. Ver a
++Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+@@ -1435 +1469 @@ começar por subir os dois uma vez.
+-npm test                    # 3130 testes em seis pacotes
++npm test                    # 3140 testes em seis pacotes
+@@ -1464 +1498 @@ falta", mais abaixo), e o efeito colateral é que `npm test` na raiz não o
+-alcança: nada do que os cinco workspaces somam vem do aplicativo. Por isso
++alcança: nada do que os seis workspaces somam (`packages/campo`, `packages/shared`, `apps/api`, `apps/console`, `apps/web` e `db`) vem do aplicativo. Por isso
+@@ -1494,2 +1528,4 @@ roda no jest, que não tem equivalente de `vitest list` (`--listTests` lista
+-arquivos, não casos), e o trabalho de integração contínua que confere os
+-números nem instala as dependências dele. Então o script lê o código e conta
++arquivos, não casos), e conferir os números não deveria depender de instalar as dependências dele
++(o trabalho "Testes, tipos e scripts" do CI as instala por outro motivo, para os
++testes de `scripts/` que leem `apps/campo/node_modules`, mas o conferidor não
++conta com isso). Então o script lê o código e conta
+@@ -1722 +1758 @@ arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
+-| Testes e tipos | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
++| Testes, tipos e scripts | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
+@@ -1739,2 +1775,2 @@ e os relatórios brutos dele só são arquivados como evidência.
+-Na máquina, o mesmo se pede com `npm run verificar` e
+-`scripts/conferir-demo.ps1`. O `verificar` inclui `npm run test:campo`: por um
++Na máquina, o mesmo se pede com `npm run verificar` (em `dc360/`) e
++`scripts/conferir-demo.ps1` (na raiz do repositório, não em `dc360/`). O `verificar` inclui `npm run test:campo`: por um
+@@ -1765 +1801 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+-  emulador Android de E06 e E16 estão listadas em `apps/campo/LEIA-ME.md`). O que falta é o que só o
++  emulador Android de E06, E15 e E16 estão listadas em `apps/campo/LEIA-ME.md`). O que falta é o que só o
+@@ -1785,2 +1821,3 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+-  contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
+-  isso só se comprova com credencial em mão.
++  contra o vetor oficial da AWS, mas a varredura de órfãos (`ListObjectsV2`) nunca
++  falou com o provedor de verdade (`docs/ARMAZENAMENTO.md`); o armazenamento de
++  produção é o Supabase Storage por S3 (`fly.toml`).
+@@ -1810 +1847,3 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+-  falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
++  o bucket de produção é o Supabase Storage por S3 (`fly.toml`, `docs/ARMAZENAMENTO.md`).
++  O levantamento apontava Cloudflare R2 por causa do egress; a troca de provedor
++  é só configuração.
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index 4ac61f2..6eb5664 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -483,0 +484,17 @@ aplicação.
++4. **Encerrar sem triagem é regra só da tela.** `POST /ocorrencias/:id/encerramento`
++   (`src/rotas/ocorrencias.ts`) exige a permissão `encerrar_ocorrencia` e a
++   transição, e `TRANSICOES_PERMITIDAS` (`packages/shared/src/dominio.ts`) deixa
++   `rascunho` e `registrada` irem para `encerrada`. Quem esconde o botão antes
++   da triagem é `apps/web/src/paginas/ocorrencia-regras.ts`. Isso contraria a
++   regra do projeto de que regra de negócio mora no banco e no pacote
++   compartilhado, não na tela: ou a máquina de estados passa a exigir a
++   triagem, ou o documento assume que encerrar cedo é permitido (o comentário
++   da máquina diz que é, para o chamado improcedente). Achado da V2-F00-E22,
++   correção 4; decisão de produto (a F10, consolidação do painel, é uma sugestão de
++   dono, não decisão).
++5. **A API mede o motivo da desinterdição antes do `trim`.**
++   `desinterdicaoSchema` (`packages/shared/src/schemas.ts`) exige 15 caracteres
++   sobre o texto bruto, e a rota grava `motivo.trim()`: quem chamar a API direto
++   passa 15 espaços e uma letra. O painel não tem esse furo, porque apara antes de
++   validar (`apps/web/src/paginas/Ocorrencia.tsx`, `desinterdicaoSchema.safeParse({
++   motivo: motivo.trim() })`); o guia do coordenador descreve a tela. Anotado.
+diff --git a/dc360/apps/api/src/armazenamento/s3.ts b/dc360/apps/api/src/armazenamento/s3.ts
+index 07c7bf0..d019157 100644
+--- a/dc360/apps/api/src/armazenamento/s3.ts
++++ b/dc360/apps/api/src/armazenamento/s3.ts
+@@ -374 +374 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
+- * `npm audit` deste produto fecha em zero, e o que precisa ser lido aqui são
++ * `npm audit --omit=dev` da raiz do produto fecha em zero (o aplicativo de campo só passa com exceções aceitas, ver `scripts/auditar.mjs`), e o que precisa ser lido aqui são
+diff --git a/dc360/apps/api/src/auth/senha.ts b/dc360/apps/api/src/auth/senha.ts
+index d98e6a8..4b04d5f 100644
+--- a/dc360/apps/api/src/auth/senha.ts
++++ b/dc360/apps/api/src/auth/senha.ts
+@@ -23 +23 @@ function scryptAsync(
+- * aprovada do OWASP ASVS 4.0 (2.4.3), vem no `node:crypto` (nenhuma
++ * aprovada do OWASP ASVS 4.0 (2.4.1), vem no `node:crypto` (nenhuma
+diff --git a/dc360/apps/api/src/servidor.ts b/dc360/apps/api/src/servidor.ts
+index 592846d..829efca 100644
+--- a/dc360/apps/api/src/servidor.ts
++++ b/dc360/apps/api/src/servidor.ts
+@@ -684,4 +684,7 @@ export async function construirServidor(
+-   * `esquemaEmDia: false` é a informação que importa num rolling deploy: um
+-   * processo novo servindo requisição contra banco sem a coluna que o código
+-   * espera falha de um jeito difícil de diagnosticar. Melhor o balanceador
+-   * saber que este processo ainda não está pronto.
++   * A resposta traz `ultimaMigracao` (a última versão aplicada no banco), que
++   * quem opera um rolling deploy pode comparar com a que o código novo espera.
++   * Não existe campo `esquemaEmDia`: processo com esquema atrasado nem chega a
++   * subir (o boot confere e sai com erro, ver `index.ts`), então um processo
++   * que responde aqui já nasceu com o esquema em dia. O 503 sai só quando a
++   * consulta ao banco falha. Junto vão `eliminacoes` e `push`, sem nome de município nem de pessoa (contagens, e
++   * o instante da última rodada do push).
+diff --git a/dc360/apps/api/test/acesso-suspenso.test.ts b/dc360/apps/api/test/acesso-suspenso.test.ts
+index 31e8690..8e76b53 100644
+--- a/dc360/apps/api/test/acesso-suspenso.test.ts
++++ b/dc360/apps/api/test/acesso-suspenso.test.ts
+@@ -370,3 +370,6 @@ describe("Sessao viva de municipio suspenso", () => {
+-      minutos de leitura não criam registro nenhum sob o contrato suspenso. O
+-      que se compra com isso é nenhuma consulta a mais em nenhuma leitura, que
+-      é a maior parte do tráfego de uma noite de chuva. O argumento inteiro
++      minutos de leitura não praticam ato nem mudam dado do município (a
++      leitura do dossiê e a busca gravam só o registro de que foram lidas, em
++      `ocorrencia_consultas`, e por isso o dossiê não tem a marca de vigência:
++      ver `auth/suspensao.ts`). O que se compra com isso é nenhuma consulta a
++      mais em nenhuma leitura, que é a maior parte do tráfego de uma noite de
++      chuva. O argumento inteiro
+diff --git a/dc360/apps/api/test/vigencia-na-escrita.test.ts b/dc360/apps/api/test/vigencia-na-escrita.test.ts
+index 27c2abc..109bb4f 100644
+--- a/dc360/apps/api/test/vigencia-na-escrita.test.ts
++++ b/dc360/apps/api/test/vigencia-na-escrita.test.ts
+@@ -124 +124 @@ describe("Token vivo de quem já não pode", () => {
+-  it("papel rebaixado escreve como o papel NOVO, não como o do token", async () => {
++  it("papel rebaixado: a escrita com o token do papel antigo leva 401 nao_autenticado (vale o banco; renovar e repetir)", async () => {
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 52ebb49..f43febc 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -18 +18 @@ Emulador é outra coisa, e há um pouco dele arquivado: os validadores das
+-etapas E06 e E16 rodaram o aplicativo no emulador Android (AVD
++etapas E06, E15 e E16 rodaram o aplicativo no emulador Android (AVD
+@@ -24,2 +24,4 @@ da faixa de envio pausadas pela sessão encerrada e pela senha provisória) e em
+-da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), e o
+-relato está nos `qa.md` dessas duas pastas. Duas ressalvas: parte delas foi
++da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), mais
++uma da E15 em `docs/evidencias-v2/G00/V2-F00-E15/validacao/4b96ea7/anexos/`
++(`E15-dialogo-sair-da-conta.png`, o diálogo "Sair da conta?" com a coleta
++guardada no aparelho), e o relato está nos `qa.md` dessas três pastas. Duas ressalvas: parte delas foi
+@@ -28,2 +30,7 @@ e emulador não prova câmera, GPS nem `expo-sqlite` sob morte de processo num
+-aparelho de verdade. Não há nenhum registro de execução no simulador de iOS
+-(ele só existe em Mac, e depende da máquina de quem roda).
++aparelho de verdade. Do simulador de iOS há só o relato, e sem captura no
++repositório: o validador da E06 (rodada 3, `qa.md` em
++`docs/evidencias-v2/G00/V2-F00-E06/validacao/52952a1/`) construiu o aplicativo
++em Debug e o abriu no Simulador (iPhone 17 Pro, iOS 26.5) apontando para uma API
++local, e o da E15 repete a frase; ninguém conseguiu dirigir a interface lá (a
++captura da tela de entrada que o `qa.md` cita não está no repositório). Ou
++seja: compila e abre no simulador de iOS, e nada além disso foi visto.
+diff --git a/dc360/apps/campo/LOJAS.md b/dc360/apps/campo/LOJAS.md
+index cd3f2b1..f52c2b0 100644
+--- a/dc360/apps/campo/LOJAS.md
++++ b/dc360/apps/campo/LOJAS.md
+@@ -274 +274 @@ npm run typecheck
+-npm run auditar --prefix ..   # política do CP-03: dependência de runtime em zero;
++npm run auditar --prefix ../..   # política do CP-03: dependência de runtime em zero;
+@@ -299 +299 @@ código escrito de código comprovado.
+-  capturas e relato de emulador Android das validações de E06 e E16 (ver o
++  capturas e relato de emulador Android das validações de E06, E15 e E16 (ver o
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index e9bc43b..fc37656 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -56,22 +56,18 @@ está torto é o caminho de volta:
+-## 2. API: vistoria não pode morrer porque um arquivo sumiu
+-
+-**Fora da faixa.** Exige campo no envelope e decisão de produto sobre o laudo.
+-
+-As fotos sobem ANTES do envelope, de propósito (o laudo não pode apontar para
+-arquivo que não existe). A consequência: se um arquivo não estiver mais no
+-aparelho, a leitura falha e o envelope inteiro (checklist, GPS, assinatura,
+-observações, órgãos a acionar) nunca sai. Uma foto perdida destrói a vistoria
+-inteira.
+-
+-Neste turno isso deixou de ser silencioso e deixou de ser eterno: a foto passou a
+-ser copiada para o diretório de documentos na hora da captura
+-(`src/dados/evidencia-no-disco.ts`), e o arquivo ausente virou falha permanente
+-com frase em português que termina numa ação, em vez de erro cru do sistema
+-repetido a cada cinco minutos para sempre.
+-
+-O que falta, e é decisão de produto antes de ser código: **a vistoria deveria
+-poder subir SEM o arquivo perdido, com a perda registrada.** Isso exige um campo
+-no envelope (algo como `evidenciasPerdidas: [{ idempotencyKey, capturadaEm }]`),
+-um evento na trilha, e uma linha no laudo dizendo que houve registro fotográfico
+-que não pôde ser recuperado. Sem esse registro, subir a vistoria sem a foto seria
+-entregar um laudo que parece completo e não é, que é pior do que não entregar.
++## 2. ~~API: vistoria não pode morrer porque um arquivo sumiu~~ (feita)
++
++**Resolvido, conferido em 2026-10-19 (V2-F00-E22, correção 4).** Este item
++descrevia como pendente o que o código já tem. O envelope ganhou
++`evidenciasPerdidas` (`packages/shared/src/schemas.ts`), o motor
++`abrirMaoDasEvidenciasPerdidas` (`packages/campo/src/fila.ts`) solta o item que
++travou por `arquivo_sumiu` quando o agente assume a perda, a tela da fila
++pergunta antes (`fila.tsx`: "Enviar sem os registros perdidos", com a contagem
++e a assinatura dita à parte), a API grava a perda em `vistoria_evidencias_perdidas`
++(`apps/api/src/rotas/sincronizacao.ts`) e o laudo ganha a seção que declara a
++causa (`apps/api/src/documentos/laudo.ts`). O pacote de saída de município
++também leva a tabela (`docs/SAIDA-DE-MUNICIPIO.md`).
++
++O que continua verdade do texto antigo, e vale conhecer: as fotos sobem ANTES do
++envelope, de propósito (o laudo não pode apontar para arquivo que não existe), e
++o aplicativo só marca como perdido o arquivo que SUMIU do disco (ou ficou com zero
++byte), nunca decide sozinho jogar uma foto fora; a escolha de seguir sem ela é do agente, com a
++frase na tela. Nada disto rodou em aparelho (item 7).
+@@ -265,5 +261,5 @@ portão de design reprova quem escrever `fonteMinima` de novo.
+-- **A cascata de entrada de lista não tem uso ainda.** `cascata` e
+-  `atrasoEmCascata()` existem para as quatro frentes de tela usarem o MESMO
+-  ritmo, que é o defeito que a régua de densidade documenta (cinco frentes,
+-  cinco decisões certas sozinhas, uma tela poluída no fim). Enquanto nenhuma
+-  lista a chamar, ela é vocabulário e não comportamento.
++- ~~**A cascata de entrada de lista não tem uso ainda.**~~ Passou a ter, conferido
++  em 2026-10-19: `atrasoEmCascata()` é chamada em quatro telas (`avisos.tsx`,
++  `fila.tsx`, `index.tsx` e `perfil.tsx`), pelo `ItemDeLista`. O que resta do
++  argumento original é a régua de densidade: uma quinta tela deve usar o mesmo
++  ritmo, e não escolher o dela.
+@@ -318,2 +314,4 @@ consequências, e nenhuma delas quebra nada hoje:
+-O sino sincroniza quando a aba Perfil é aberta, e não em segundo plano: o crachá
+-na barra de abas mostra o que o último `sincronizarAvisos` trouxe. É escolha e
++O sino sincroniza quando a tela de avisos abre (se há sinal, ou se ainda não há
++cópia no aparelho) e quando a pessoa puxa a lista para atualizar, e não em
++segundo plano: o crachá na barra de abas mostra o que o último
++`sincronizarAvisos` trouxe. É escolha e
+@@ -680,0 +679,14 @@ pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
++
++## 18. A tarefa sai da lista sem o aplicativo dizer por quê (achado da V2-F00-E22, correção 4)
++
++`POST /sincronizacao/pendencias/reconciliar` (`apps/api/src/rotas/sincronizacao.ts`)
++devolve, para cada ocorrência que saiu da lista do agente, o `desfecho` (concluída,
++encerrada, devolvida ou passou para outra equipe, que é quem carrega os quatro
++casos) e o `motivo`, que só vem preenchido no encerramento (o texto da coordenação)
++e na devolução (o rótulo do motivo), e é nulo nos outros dois. O aplicativo só usa o `status` dessa resposta, para apagar a
++lápide da coleta já recebida (`aplicarReconciliacao`, `src/dados/pendencias.ts`); nenhuma
++tela lê `desfecho` nem `motivo`. Resultado: a tarefa some da lista e o agente não
++sabe se foi concluída, encerrada ou passada a um colega. `docs/CARTAO-DO-AGENTE.md`,
++`docs/IMPLANTACAO.md` e `docs/GUIA-DO-COORDENADOR.md` agora dizem isso. O conserto
++é uma frase na lista ou no sino a partir dos dois campos que já chegam; não foi
++feito aqui (resolver pendência não é desta etapa).
+diff --git a/dc360/apps/web/PENDENCIAS.md b/dc360/apps/web/PENDENCIAS.md
+index 6cc4da0..18c866b 100644
+--- a/dc360/apps/web/PENDENCIAS.md
++++ b/dc360/apps/web/PENDENCIAS.md
+@@ -22,0 +23,6 @@ citados existem; os pedidos de rede e o CORS não mudaram).
++**Terceira conferência de 2026-10-19 (correção 4 da V2-F00-E22).** A rodada 4 achou
++que a "janela de milissegundos na renovação" continuava listada como pendente de
++F03-E02 em três lugares (tabela, item 6.5 e item 9.3), e o código a fechou na
++V2-F00-E07 (migração 049). Saiu da tabela e os dois itens passaram a dizer que
++está resolvida.
++
+@@ -36 +41,0 @@ citados existem; os pedidos de rede e o CORS não mudaram).
+-| Janela de milissegundos na renovação | 9.3 | F03-E02 |
+@@ -270,2 +275,2 @@ O que não é desta etapa e continua aberto:
+-   viva da própria cadeia. O que continua de F03-E02 é só a janela de
+-   milissegundos da renovação (item 9.3).
++   viva da própria cadeia. A janela de milissegundos da renovação, que ficava
++   pendente aqui, também fechou (item 9.3).
+@@ -354 +359 @@ O que não é desta etapa e continua aberto:
+-   de propósito: dez destinos não cabem na largura, e o rótulo por extenso vale
++   de propósito: os destinos não cabem na largura (dez no código, mais "Tema" e "Sair"), e o rótulo por extenso vale
+@@ -361,2 +366,5 @@ O que não é desta etapa e continua aberto:
+-3. **A janela de milissegundos entre revogar e abrir sessão** na renovação
+-   continua como estava (F03-E02); esta etapa não tocou em sessão no servidor.
++3. ~~**A janela de milissegundos entre revogar e abrir sessão** na renovação.~~
++   RESOLVIDO na V2-F00-E07 (correção 2, migração 049): a renovação é uma
++   transação só, sob `travar_sessoes_do_usuario` (`apps/api/src/auth/servico.ts`),
++   e quem encerra sessões em massa toma a mesma trava; quem lê vê a sessão
++   antiga de pé ou a nova de pé, nunca nenhuma. Nada a fazer no painel.
+@@ -417,2 +425,3 @@ O que continua aberto:
+-1. **A barra ainda rola na horizontal** a 320 e 390 px (onze destinos, três ou
+-   quatro ladrilhos à vista). Já não corta rótulo, mas não há dica visual de que
++1. **A barra ainda rola na horizontal** a 320 e 390 px (até onze ladrilhos para o administrador: nove
++   destinos, que são todos menos "Meu trabalho", mais "Tema" e "Sair" da mesma
++   barra; três ou quatro à vista). Já não corta rótulo, mas não há dica visual de que
+diff --git a/dc360/apps/web/src/busca/pontuador.ts b/dc360/apps/web/src/busca/pontuador.ts
+index 1fa0a72..30f01fe 100644
+--- a/dc360/apps/web/src/busca/pontuador.ts
++++ b/dc360/apps/web/src/busca/pontuador.ts
+@@ -5 +5 @@
+- * `npm audit` fecha em zero e cada dependência é dívida, e a régua de
++ * `npm audit --omit=dev` da raiz fecha em zero (o aplicativo de campo só passa com exceções aceitas, ver `scripts/auditar.mjs`) e cada dependência é dívida, e a régua de
+diff --git a/dc360/db/PENDENCIAS.md b/dc360/db/PENDENCIAS.md
+index d237b80..2924cab 100644
+--- a/dc360/db/PENDENCIAS.md
++++ b/dc360/db/PENDENCIAS.md
+@@ -56,3 +56,3 @@ registrou que ela precisa entrar na política de privacidade junto com o resto.
+-Isso continua sem ser feito: `docs/PRIVACIDADE.md` não menciona
+-`metricas_municipio` (só lista o console do fornecedor entre o que, quando
+-entrar, muda a política).
++Isso continua sem ser feito: o corpo de `docs/PRIVACIDADE.md` não trata
++`metricas_municipio` nem o console do fornecedor; o documento só os cita na
++lista "Pendências desta política" (item 4), como o que falta escrever.
+diff --git a/dc360/docs/ARMAZENAMENTO.md b/dc360/docs/ARMAZENAMENTO.md
+index 9e0c413..35f7c76 100644
+--- a/dc360/docs/ARMAZENAMENTO.md
++++ b/dc360/docs/ARMAZENAMENTO.md
+@@ -296,2 +296,6 @@ operador, que traz a lista completa.
+-- **Não existe tela.** O número sai por rota e por comando, e nenhuma página do
+-  painel o mostra ainda.
++- **A tela do painel é só leitura.** O cartão "Uso de armazenamento" da página
++  Organização (`apps/web/src/paginas/Organizacao.tsx`, visível a quem tem
++  `gerenciar_organizacao`) lê `GET /armazenamento/uso` e mostra o número com a
++  situação (sem teto, normal, aviso, acima do teto, recusado). Quem amplia o teto
++  continua sendo a plataforma, por comando; o painel não tem botão para isso, e o
++  console do fornecedor continua sem o número (item acima).
+diff --git a/dc360/docs/CARTAO-DO-AGENTE.md b/dc360/docs/CARTAO-DO-AGENTE.md
+index 5585a2c..baaa621 100644
+--- a/dc360/docs/CARTAO-DO-AGENTE.md
++++ b/dc360/docs/CARTAO-DO-AGENTE.md
+@@ -83 +83 @@ não subiu.
+-| A tarefa sumiu da lista | O aplicativo explica o motivo (concluída, cancelada, devolvida, mudou de equipe). Não é falha |
++| A tarefa sumiu da lista | O aplicativo ainda NÃO diz o motivo: a tarefa só sai da lista. Pode ter sido concluída, encerrada, devolvida ou passado para outra equipe. Não é falha. Pergunte à coordenação, com o protocolo |
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 82ea970..dcd581a 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -41,2 +41,2 @@ D-U-N-S e a revisão não forem gargalo.
+-- **5062 testes somando o aplicativo** (contagem estática de `npm run
+-  conferir:numeros` em 2026-10-15; a execução imprime pulos por ambiente à
++- **5072 testes somando o aplicativo** (contagem estática de `npm run
++  conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+@@ -63 +63 @@ D-U-N-S e a revisão não forem gargalo.
+-  das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não contam como
++  das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não contam como
+@@ -222 +222 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
+-  registra o 503 dos botões de PDF que a imagem sem navegador deu em produção, e
++  registra o 503 dos botões de PDF que a imagem deu em produção (sem o pacote `playwright`, que estava em `devDependencies`; o Chromium estava lá), e
+@@ -352 +352 @@ npm ci
+-npm run verificar          # typecheck, 5062 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5072 testes com o aplicativo, auditar, números
+@@ -696,2 +696,7 @@ enquanto o piloto estiver de pé. O sinal de que ele continua válido é a linha
+-O formulário público grava em `interesse_municipio`. Ele é a única rota de
+-escrita sem autenticação do produto, e hoje **ninguém lê o que ele grava**. Um
++O formulário público grava em `interesse_municipio`. Ele é a única rota pública
++que grava um pedido de contato de gente de fora, e hoje **ninguém lê o que ele
++grava**. (Não é a única rota sem token que escreve: `/auth/entrar`, `/auth/recuperar`
++e afins mexem em credencial e sessão; `GET /publico/oficio/:token` grava a abertura
++do ofício em `oficio_aberturas`; e `PUT /armazenamento/objeto` grava o arquivo da
++foto, autenticado pela assinatura da URL. A lista inteira está em
++`apps/api/test/superficie-registrada.ts`.) Um
+diff --git a/dc360/docs/DECLARACAO-NAS-LOJAS.md b/dc360/docs/DECLARACAO-NAS-LOJAS.md
+index c73536f..2ffe58b 100644
+--- a/dc360/docs/DECLARACAO-NAS-LOJAS.md
++++ b/dc360/docs/DECLARACAO-NAS-LOJAS.md
+@@ -390,3 +390,5 @@ Observações que precisam ir junto, e que a Google aceita no campo de texto:
+-  `apps/campo/src/dados/api.ts#revogarAparelho`; do lado do servidor,
+-  `apps/api/src/rotas/aparelhos.ts#revogar` e a rota `/auth/sair` em
+-  `apps/api/src/rotas/autenticacao.ts#sair`), e apaga a cópia local
++  `apps/campo/src/dados/api.ts#sair`, que manda a ficha junto a `POST /auth/sair`;
++  do lado do servidor, a rota `/auth/sair` em
++  `apps/api/src/rotas/autenticacao.ts#sair`, que revoga a ficha. A rota
++  `POST /aparelhos/revogar`, de `apps/api/src/rotas/aparelhos.ts`, existe mas o
++  aplicativo não a chama hoje), e apaga a cópia local
+diff --git a/dc360/docs/DICIONARIO-DE-DADOS.md b/dc360/docs/DICIONARIO-DE-DADOS.md
+index 9165a72..fa5f58a 100644
+--- a/dc360/docs/DICIONARIO-DE-DADOS.md
++++ b/dc360/docs/DICIONARIO-DE-DADOS.md
+@@ -4,3 +4,3 @@
+-- **Para quê:** entregar junto com a exportação de saída de município
+-  (`SAIDA-DE-MUNICIPIO.md`), e servir de referência para quem for auditar ou
+-  migrar. `status = 'em_campo'` não se explica sozinho.
++- **Para quê:** ser entregue ao município junto com a exportação de saída
++  (`SAIDA-DE-MUNICIPIO.md`; hoje o pacote gerado pela API NÃO o inclui, a
++  entrega é à parte), e servir de referência para quem for auditar ou migrar. `status = 'em_campo'` não se explica sozinho.
+@@ -22,2 +22,10 @@ e nunca de parâmetro de requisição.
+-desativam. As chaves estrangeiras usam `ON DELETE RESTRICT` justamente para que
+-uma remoção acidental esbarre no banco.
++desativam. A maioria das chaves estrangeiras usa `ON DELETE RESTRICT`, para que
++uma remoção acidental esbarre no banco, mas não todas: desde a migração 001 há
++`CASCADE` no que só existe dentro do pai (por exemplo as evidências de uma
++vistoria) e `SET NULL` em vínculo opcional (por exemplo a equipe de um usuário).
++Por isso a barreira que vale não é a chave estrangeira. São duas: a ausência de
++`GRANT DELETE` nas tabelas centrais (as concessões são só `SELECT`, `INSERT` e
++`UPDATE`, desde as migrações 001, 002, 005, 016, 017 e 022) e a ausência de policy
++de `DELETE` sob RLS forçada (as migrações 032 a 034 recortaram as policies que
++valiam para tudo, para a segunda barreira existir). As exceções, como `avisos`,
++estão nomeadas nas migrações.
+diff --git a/dc360/docs/GUIA-DO-COORDENADOR.md b/dc360/docs/GUIA-DO-COORDENADOR.md
+index d6f4f00..009e67f 100644
+--- a/dc360/docs/GUIA-DO-COORDENADOR.md
++++ b/dc360/docs/GUIA-DO-COORDENADOR.md
+@@ -35,2 +35,2 @@ diferente.
+-| Aguardando triagem | Quantas ainda não foram classificadas. Fila que cresce aqui vira atraso lá na frente |
+-| Em campo | Quantas equipes estão trabalhando agora |
++| Na fila | Todas as ocorrências ainda abertas, **inclusive as que já estão em campo** (tudo que não está encerrado nem em rascunho). Fila que cresce aqui vira atraso lá na frente |
++| Em campo | Quantas ocorrências estão com equipe trabalhando agora |
+@@ -38 +38,3 @@ diferente.
+-| Providência pendente | Vistoria feita, decisão tomada, e falta alguém executar |
++| Críticas ativas | Quantas ocorrências de severidade crítica ainda estão abertas |
++| Encerradas em 7 dias | O que se fechou na última semana, para ver o ritmo |
++| Providências vencidas | Providência encaminhada cujo prazo de resposta já passou: falta cobrar o órgão. Clicar leva ao cartão "Providências aguardando resposta", abaixo da fila de atendimento, que lista TODAS as sem resposta (vencidas e ainda no prazo), no máximo 8, e só aparece se houver alguma |
+@@ -41 +43 @@ diferente.
+-encerrada, com prazo definido, cujo prazo já passou. O contador do painel e o
++encerrada e fora de rascunho, com prazo definido (a triagem o define), cujo prazo já passou. O contador do painel e o
+@@ -50 +52,2 @@ Classificar é o ato que dá **prazo** à ocorrência. Antes da triagem não exi
+-relógio.
++prazo gravado. Quando a triagem o grava, ele é contado desde o **registro** da
++ocorrência, e não desde o clique da triagem.
+@@ -57,2 +60,3 @@ conversar com o resto.
+-**Severidade:** decide o prazo. Os prazos por severidade são configurados pelo
+-município na implantação.
++**Severidade:** decide o prazo. Os prazos são os do sistema: baixa 72 horas, média
++48, alta 24 e crítica 4 (`PRAZO_PADRAO_HORAS`, no pacote compartilhado). Hoje o
++município não os altera por tela nenhuma.
+@@ -60,2 +64,3 @@ município na implantação.
+-**Duplicidade:** ao registrar, o sistema avisa se já existe ocorrência no mesmo
+-endereço. Duas ocorrências para o mesmo evento significam duas equipes na mesma
++**Duplicidade:** ao registrar, o sistema avisa se já existe ocorrência ativa do
++mesmo tipo, aberta nas últimas 48 horas, com endereço parecido (compara o começo
++do endereço, até a primeira vírgula). Duas ocorrências para o mesmo evento significam duas equipes na mesma
+@@ -71 +76 @@ equipe na próxima vez que eles baixarem a lista.
+-**O despacho não mexe no prazo.** O relógio começou na triagem e continua
++**O despacho não mexe no prazo.** O prazo foi gravado na triagem, contado desde o registro, e continua
+@@ -77 +82,2 @@ relate imediatamente.)
+-possível, e o agente anterior é avisado do motivo pelo aplicativo.
++possível. A tarefa sai da lista do agente anterior; o aplicativo dele ainda não
++mostra o motivo, então avise-o pelo meio de plantão.
+@@ -104,2 +110,2 @@ Leia antes de decidir. O que olhar, nesta ordem:
+-| Interdição | Risco não permite permanência | Termo de interdição, para imprimir e assinar |
+-| Desinterdição | Risco cessou, com nova vistoria | Termo de levantamento, ligado ao termo anterior |
++| Interdição | Risco não permite permanência. **Quem indica é a vistoria de campo** (o item "interdição indicada" do checklist): o sistema só emite o termo quando a vistoria vigente a indicou, e a coordenação não interdita por conta própria | Termo de interdição, para imprimir e assinar |
++| Desinterdição | Risco cessou. O sistema exige o motivo escrito (15 caracteres ou mais; o painel tira os espaços das pontas antes de contar, então pela tela espaços não valem; a API conta o texto bruto, ver `apps/api/PENDENCIAS.md`); a vistoria nova é o que sustenta o motivo, mas não é exigência dele | Termo de levantamento, ligado ao termo anterior |
+@@ -155,2 +161,4 @@ usuário apagado deixaria documentos assinados por ninguém.
+-O município **nunca fica sem administrador ativo**: o sistema recusa a
+-desativação ou o rebaixamento do último.
++O sistema recusa a desativação ou o rebaixamento do **último** administrador
++ativo, para o município não ficar sem ele. A conferência não é à prova de dois
++administradores que se desativam no mesmo instante (`apps/api/PENDENCIAS.md`):
++combine antes quem fica.
+@@ -162,3 +170,13 @@ procure a coordenação do seu município. Nada do que você já registrou se
+-perdeu." Quando só a sessão foi encerrada (por você, em "encerrar sessões", ou
+-por uma troca de papel), a frase é outra, "Sua sessão foi encerrada", e entrar
+-de novo resolve. Tentar entrar com a conta desativada recusa com a mesma frase de
++perdeu." Quando só a sessão foi encerrada (por você, em "encerrar sessões"), a frase é
++outra, "Sua sessão foi encerrada", e entrar de novo resolve. **Trocar o papel de
++alguém NÃO encerra a sessão dela.** O que vale é o papel gravado, e só na
++ESCRITA: no primeiro registro que ela tentar gravar depois da troca, o servidor
++recusa o acesso antigo com `nao_autenticado`; o painel renova sozinho e repete, e
++a renovação já traz o papel novo. No aplicativo de campo só a fila de envio faz
++isso (uma vez); as outras escritas diretas do aplicativo não renovam nem repetem.
++Na LEITURA nada muda até o acesso vencer (15 minutos, por padrão, que é o teto):
++quem foi rebaixado continua lendo, por exemplo a trilha de auditoria, com o papel
++de antes. Com o painel aberto e a aba visível, porém, o sino consulta `GET /avisos` a cada cerca de
++30 segundos, e essa rota confere o papel: o painel costuma perceber a troca em
++meio minuto, renova e passa a ver só o que o papel novo permite. Ela não perde nada do
++que estava fazendo. Tentar entrar com a conta desativada recusa com a mesma frase de
+@@ -186 +204,2 @@ não vê o botão na sua própria linha (a sua senha se troca em **Minha conta**
+-na linha de quem tem o mesmo posto ou um posto acima do seu.
++na linha de quem tem posto acima do seu; o coordenador também não o vê na linha de
++outro coordenador. Só o administrador administra outro administrador.
+@@ -195,2 +214,3 @@ para o mesmo e-mail os seguintes não enviam nada. Se a pessoa disser que o link
+-"não vale mais", ele venceu, já foi usado ou foi trocado por um pedido mais novo: ela
+-pede outro, ou você redefine a senha pelo botão acima.
++"não vale mais", ele venceu, já foi usado, foi trocado por um pedido mais novo, ou a senha da
++conta mudou ou a conta foi desativada depois do pedido (toda mudança de senha e
++toda desativação gastam os links pendentes): ela pede outro, ou você redefine a senha pelo botão acima.
+@@ -238 +258 @@ na tela "Quem está em campo", e o sino toca.
+-| Ordena a lista com quem foi sozinho na frente | Não avisa quem não estiver com o painel aberto |
++| Ordena as saídas vencidas com quem foi sozinho na frente (as que ainda estão no prazo ficam por prazo) | Não avisa quem não estiver com o painel aberto |
+@@ -256,2 +276,2 @@ pessoa, voltou à base, acionei apoio, foi engano) e isso entra na trilha com se
+-nome e a hora. "Acionei apoio" exige dizer o que foi acionado: é a linha que uma
+-apuração vai procurar. "O agente confirmou o retorno" não está na sua lista, de
++nome e a hora. "Acionei apoio" exige uma observação (3 a 300 caracteres) dizendo o que foi
++acionado: é a linha que uma apuração vai procurar. "O agente confirmou o retorno" não está na sua lista, de
+@@ -265,2 +285,6 @@ Quem fez o quê, quando. **Não se reescreve**, nem por você, nem por nós: o b
+-não tem permissão de alteração nem de remoção nessa tabela. Correção entra como
+-evento novo.
++não tem política de alteração nem de remoção para a aplicação nessa tabela.
++Correção entra como evento novo. Há duas exceções, ambas funções do banco: quando
++o prazo da privacidade vence, o nome de quem assinou a vistoria, dentro do evento
++"vistoria", vira "removido por prazo" (e isso fica registrado); e a eliminação do
++município, que o fornecedor só agenda com sete dias de arrependimento, apaga tudo
++do município, trilha inclusa.
+@@ -277 +301,5 @@ vistoria fica guardada até o sinal voltar. Quem para é o painel.
+-Registre no papel e digite depois, com a **data real do atendimento**.
++Registre no papel e digite depois. **O sistema não tem campo para a data real do
++atendimento**: a ocorrência nasce com a data e a hora da digitação, e o prazo da
++severidade conta daí. Escreva a data e a hora reais do atendimento no relato
++(campo de descrição), para a trilha não afirmar que o chamado chegou na hora em
++que o sinal voltou.
+@@ -282 +310 @@ Procedimento completo e contatos em `INDISPONIBILIDADE.md`.
+-## 12. Cinco coisas que você não consegue fazer, e por quê
++## 12. O que você não consegue fazer, e por quê
+@@ -290 +318 @@ Procedimento completo e contatos em `INDISPONIBILIDADE.md`.
+-| Encerrar antes de classificar | Encerramento é decisão sobre ocorrência classificada |
++| Encerrar antes da triagem, **pela tela** | O painel só oferece o botão a partir da triagem. Isso é regra de tela, não do servidor: a API aceita encerrar ocorrência em rascunho ou registrada (a máquina de estados permite, para o chamado improcedente). Não conte com a tela como trava |
+diff --git a/dc360/docs/IMPLANTACAO.md b/dc360/docs/IMPLANTACAO.md
+index 43784a3..f512611 100644
+--- a/dc360/docs/IMPLANTACAO.md
++++ b/dc360/docs/IMPLANTACAO.md
+@@ -25 +25 @@ Nada disto é software, e tudo isto trava a implantação se ficar para depois.
+-| Prazos por severidade | Município | O relógio de atraso não tem base |
++| Concordar com os prazos por severidade do sistema (72, 48, 24 e 4 horas; hoje não há tela para o município mudá-los) | Município | O relógio de atraso não teria o aval de quem responde por ele |
+@@ -39 +39 @@ gente resolve depois" chega no primeiro temporal com isso não resolvido.
+-| 1 | Provisionamento do município e do primeiro administrador, por linha de comando. A senha inicial é impressa **uma vez** e entregue em mãos | 1 hora |
++| 1 | Provisionamento do município e do primeiro administrador, por linha de comando ou pela tela "Cadastrar prefeitura" do console do fornecedor (nunca pelo painel do município). A senha inicial é impressa **uma vez** e entregue em mãos | 1 hora |
+@@ -41 +41 @@ gente resolve depois" chega no primeiro temporal com isso não resolvido.
+-| 3 | Cadastro dos prazos por severidade e da lista de órgãos | 1 hora |
++| 3 | Cadastro da lista de órgãos (os prazos por severidade são os do sistema, não se cadastram) | 1 hora |
+@@ -79 +79,4 @@ Ele também sai sabendo três coisas que evitam chamado de suporte:
+-- Tarefa que sumiu da lista tem explicação, e o aplicativo diz qual.
++- Tarefa que sumiu da lista tem explicação (concluída, encerrada, devolvida ou
++  passou para outra equipe), mas o aplicativo ainda não a mostra: o servidor
++  devolve o desfecho (e o motivo, quando há) e a tela do aplicativo não os lê. O agente aprende a perguntar
++  à coordenação, com o protocolo.
+diff --git a/dc360/docs/INDISPONIBILIDADE.md b/dc360/docs/INDISPONIBILIDADE.md
+index ecaae36..78b1b98 100644
+--- a/dc360/docs/INDISPONIBILIDADE.md
++++ b/dc360/docs/INDISPONIBILIDADE.md
+@@ -112 +112 @@ a frio, num clone limpo no macOS e nos dois shells (`zsh` e `bash`), com as 50
+-migrações de hoje; e o CI repete uma versão dele em Postgres 17, num job que hoje só
++migrações daquele dia (hoje são 51; o roteiro vigente é a versão 3 de 2026-10-19, ver `RESTORE-DO-BANCO.md`); e o CI repete uma versão dele em Postgres 17, num job que hoje só
+@@ -156 +156 @@ desculpa, não relatório.
+-   `GET /saude` na API (responde 503 com banco fora ou esquema atrasado) e
++   `GET /saude` na API (responde 503 quando a consulta ao banco falha; o esquema atrasado não vira 503 aqui, ele impede a partida do processo, ver `apps/api/src/index.ts`, e a rota informa a última migração aplicada, as contagens do relógio de eliminação e o resultado da última rodada do push) e
+@@ -158,2 +158,4 @@ desculpa, não relatório.
+-   `IMPLANTACAO.md`, 6.4). Não existe sonda de armazenamento nem de push: para
+-   o push, o que existe é a varredura registrando falha no log da API.
++   `IMPLANTACAO.md`, 6.4). Não existe sonda de armazenamento. Para o push, o `GET /saude` já
++   devolve `push` (`null` se desligado; senão a última rodada: `rodadaEm`,
++   `reivindicadas`, `entregues`, `falhas`, `revogados`, só números), e o motivo
++   de cada falha continua só no log da API, agregado.
+@@ -193,9 +195,12 @@ existia antes do sistema, e continua sendo o plano B.
+-Ao voltar, o registro do papel entra no sistema com a **data real do
+-atendimento**, e não a data de digitação. Isso importa: o laudo já distingue
+-"vistoria em campo" de "recebida pelo sistema", exatamente para não afirmar que
+-a vistoria aconteceu na hora em que o sinal voltou. A mesma distinção vale para
+-o que foi feito no papel.
+-
+-**Pendência conhecida:** hoje o registro retroativo depende de digitar a data à
+-mão, e nada impede errar. Um campo declarado de "atendimento feito fora do
+-sistema", com a data e o motivo, tornaria isso auditável. Não está feito.
++Ao voltar, o registro do papel é digitado no sistema. A ocorrência nasce com a
++data e a hora da **digitação** (`criado_em` é `now()`, e o prazo da severidade
++conta daí): o sistema não tem campo para a data real do atendimento. O laudo de
++vistoria feito no aparelho já distingue "vistoria em campo" de "recebida pelo
++sistema", exatamente para não afirmar que a vistoria aconteceu na hora em que o
++sinal voltou; para o chamado registrado a partir do papel, não há essa
++distinção.
++
++**Pendência conhecida:** hoje a data real do atendimento só pode ser escrita à
++mão no relato, e nada impede errar nem esquecer. Um campo declarado de
++"atendimento feito fora do sistema", com a data e o motivo, tornaria isso
++auditável e acertaria o prazo. Não está feito.
+diff --git a/dc360/docs/LEIA-ME.md b/dc360/docs/LEIA-ME.md
+index 8316420..1aecf75 100644
+--- a/dc360/docs/LEIA-ME.md
++++ b/dc360/docs/LEIA-ME.md
+@@ -38 +38 @@ inventadas, e enquanto houver um `[[ ]]` o documento não vai para o ar.
+-| [DICIONARIO-DE-DADOS.md](DICIONARIO-DE-DADOS.md) | O que cada tabela e cada coluna significam. Vai junto com a exportação de saída |
++| [DICIONARIO-DE-DADOS.md](DICIONARIO-DE-DADOS.md) | O que cada tabela e cada coluna significam. Deve acompanhar a exportação de saída, mas o pacote gerado pela API ainda não o inclui: é entregue à parte |
+diff --git a/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md b/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+index 182ac2e..b580459 100644
+--- a/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
++++ b/dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+@@ -8,2 +8,6 @@ deste documento existir.
+-Gerado a partir de `packages/shared/src/permissoes.ts` em 28/08/2026. Um teste
+-reprova se esta tabela divergir do código.
++Gerado a partir de `packages/shared/src/permissoes.ts` em 28/08/2026 e
++reconferido em 19/10/2026 (V2-F00-E22, correção 4). A tabela "A tabela, de uma
++vez", no fim da primeira metade, é presa ao código por
++`packages/shared/test/permissoes-no-readme.test.ts`: o teste reprova se faltar ou
++sobrar ação, ou se um "sim" ou "não" divergir de `acoesDoPapel`. O texto em
++volta, não: ele é lido por gente.
+@@ -18 +22,2 @@ providência para outra secretaria e é encerrada com motivo. Tudo isso deixa
+-rastro que não se reescreve.
++rastro que a aplicação não reescreve (as duas exceções, definidas no banco, estão
++em "Três regras que valem para todos").
+@@ -107 +112,4 @@ primeiro dia.
+-providências". O produto não dá: ele coleta e cala.
++providências". O produto dá a metade: no checklist ele marca "Necessário acionar
++outro órgão" e indica QUAIS órgãos (a lista fica em `vistoria_orgaos_indicados`),
++o que é uma proposta de encaminhamento; mas ele não cria a providência, que só a
++coordenação encaminha.
+@@ -122,0 +131,2 @@ providências". O produto não dá: ele coleta e cala.
++- Levantar a interdição de um imóvel (desinterdição, com motivo escrito)
++- Acompanhar quem está em campo agora (em construção, como no operador)
+@@ -124 +134,2 @@ providências". O produto não dá: ele coleta e cala.
+-- Consultar a trilha de auditoria e exportar dados
++- Consultar a trilha de auditoria e exportar dados (a exportação com dados
++  pessoais, o CSV completo, é só do administrador; a do coordenador é a básica)
+@@ -130,3 +141,3 @@ encerrou e por quê.
+-**Por que a emissão de documento é dele:** o laudo reúne numa página só o nome,
+-o contato, o endereço, a descrição da vulnerabilidade da família e todas as
+-fotos da casa. Cada pedaço já circula em algum lugar do sistema; a
++**Por que a emissão de documento é dele:** o laudo reúne numa página só o nome
++do solicitante, o endereço, a coordenada, a descrição da vulnerabilidade da família
++e todas as fotos da casa (o contato do solicitante não é impresso). Cada pedaço já circula em algum lugar do sistema; a
+@@ -146 +157,2 @@ com a linha de assinatura do **agente de campo**, e a permissão de emitir é da
+-município.
++município, exportar o CSV completo com dados pessoais, gerar o pacote de saída do
++município e trocar o e-mail de outra pessoa.
+@@ -150,6 +162,8 @@ postos: administrador é posto 3, coordenador é posto 2, operador e agente são
+-posto 1. **Ninguém gerencia uma conta de posto igual ou acima do seu.** Um
+-coordenador não rebaixa um administrador, e ninguém se promove.
+-
+-**Não existe papel acima dele.** Nem para nós, os fornecedores. Não há
+-super-administrador que enxergue todos os municípios, e isso é decisão de
+-arquitetura registrada: o dia em que existir uma conta capaz de ver dois
++posto 1. **Ninguém gerencia uma conta de posto acima do seu, e só o administrador
++gerencia uma de posto igual** (alguém precisa poder criar o segundo
++administrador): o coordenador não gerencia outro coordenador, não rebaixa um
++administrador, e ninguém se promove.
++
++**Não existe papel de aplicação acima dele.** Nenhum papel do painel ou do
++aplicativo enxerga dois municípios, e isso é decisão de arquitetura registrada
++(ADR 0008): o dia em que existir uma conta capaz de ler os dados de dois
+@@ -158,2 +172,20 @@ municípios, o isolamento vira promessa em vez de mecanismo.
+-**Consequência prática:** provisionar um município novo é feito por linha de
+-comando, com credencial de banco, não por uma tela.
++**O que o fornecedor tem, e é outra coisa:** o console do fornecedor
++(`apps/console`), um processo separado, com segundo fator obrigatório e credencial
++própria. Ele **lista todos os municípios com contagens**. A tela mostra, por
++município (nome e UF): o sinal (em dia, ou "calado" depois de 36 horas sem o
++resumo diário do município escrever), o estado do acesso e, em números,
++ocorrências que entraram, encerradas, vistorias recebidas, abertas, atrasadas,
++servidores ativos, aparelhos sumidos e a mediana de minutos até a vistoria. (A
++consulta do console devolve ainda ofícios emitidos e aparelhos ativos, que a tela
++não desenha.) Ele
++**faz**: cadastrar prefeitura, suspender e reativar o acesso, e agendar a
++eliminação do município (com prazo de arrependimento de sete dias, em que o
++cancelamento é possível); quem executa o apagamento é o relógio da API, não o
++console, e só o dono do console desativa e elimina. Ele **não vê** nome,
++contato, relato, endereço, foto nem trilha de nenhum cidadão ou ocorrência:
++só números e o cadastro do município.
++
++**Consequência prática:** provisionar um município novo não é feito pelo painel
++do município. É feito por linha de comando (`scripts/cadastrar-prefeitura.mjs`,
++com credencial de banco) ou pela tela "Cadastrar prefeitura" do console do
++fornecedor, que é outro processo, com segundo fator.
+@@ -174,0 +207,3 @@ comando, com credencial de banco, não por uma tela.
++| Consultar os ofícios de encaminhamento | sim | não | sim | sim |
++| Levantar a interdição de um imóvel | não | não | sim | sim |
++| Acompanhar quem está em campo agora | sim | não | sim | sim |
+@@ -204,2 +239,8 @@ antigos, e apagar reescreveria o histórico.
+-desativam. A trilha de auditoria não tem como ser alterada nem excluída, nem
+-pela aplicação, nem por quem administra: correção entra como evento novo.
++desativam. A trilha de auditoria não tem policy de alteração nem de exclusão: nem
++a aplicação, nem quem administra, reescreve ou apaga um evento; correção entra
++como evento novo. Duas exceções existem, e as duas são funções do banco, não
++telas: a minimização por prazo (`minimizar_por_prazo`, migração 043) troca o nome de
++quem assinou a vistoria, dentro do evento `vistoria` da trilha, por "removido por
++prazo" quando o prazo da privacidade vence, e registra que fez isso; e a
++eliminação do município, agendada pelo console do fornecedor com sete dias de
++arrependimento, apaga tudo dele, trilha inclusa, depois do pacote de saída.
+@@ -268 +309 @@ Concretamente, `emitir_documento` vira duas ações:
+-| Gerar a **minuta** no aparelho, offline, logo após a vistoria | agente de campo | rascunho |
++| Gerar a **minuta** no aparelho, offline, logo após a vistoria (existe) | agente de campo | rascunho |
+@@ -273,2 +314,5 @@ Concretamente, `emitir_documento` vira duas ações:
+-A minuta sai marcada "MINUTA, SEM VALIDADE, AGUARDANDO APROVAÇÃO" e sem código
+-de validação. O agente entrega um papel na mão do morador ainda na porta da
++A minuta no aparelho JÁ existe (`packages/shared/src/minuta.ts`, tela
++`MinutaDoLaudo`), marcada "MINUTA SEM VALOR DE DOCUMENTO. Aguardando conferência
++e emissão pela coordenação."; o que falta é a aprovação e o papel entregue ao
++morador. A proposta é que ela saia marcada "MINUTA, SEM VALIDADE, AGUARDANDO
++APROVAÇÃO" e sem código de validação. O agente entrega um papel na mão do morador ainda na porta da
+diff --git a/dc360/docs/PRIVACIDADE.md b/dc360/docs/PRIVACIDADE.md
+index 5a054b9..fefd3f9 100644
+--- a/dc360/docs/PRIVACIDADE.md
++++ b/dc360/docs/PRIVACIDADE.md
+@@ -389,2 +389,6 @@ O que **ainda não** está pronto, dito aqui porque omitir seria enganar:
+-  ficou de fora por volume, e ela ainda devolve nome e contato junto: estreitar
+-  as colunas dela é o passo que falta.
++  ficou de fora por volume, e por isso ela foi estreitada: a resposta não leva o
++  contato, a descrição nem a descrição de vulnerabilidade
++  (`apps/api/src/privacidade/lista.ts`). Continuam na lista o nome de quem ligou,
++  o endereço e a coordenada, entre os outros campos da ocorrência, porque a
++  coordenação precisa reconhecer a família e achar o ponto no mapa. Quem precisa do resto abre a ocorrência, e
++  aquela rota registra a consulta.
+diff --git a/dc360/docs/RESTORE-DO-BANCO.md b/dc360/docs/RESTORE-DO-BANCO.md
+index 5f891c4..01b512d 100644
+--- a/dc360/docs/RESTORE-DO-BANCO.md
++++ b/dc360/docs/RESTORE-DO-BANCO.md
+@@ -242 +242 @@ O que se espera: o primeiro `migrar` imprime `aplicando 001_base.sql` até
+-`aplicando 050_...sql` (a última da pasta; 50 hoje); o segundo imprime `Esquema
++`aplicando 051_...sql` (a última da pasta; 51 hoje); o segundo imprime `Esquema
+diff --git a/dc360/docs/SAIDA-DE-MUNICIPIO.md b/dc360/docs/SAIDA-DE-MUNICIPIO.md
+index 77b810e..2fb40af 100644
+--- a/dc360/docs/SAIDA-DE-MUNICIPIO.md
++++ b/dc360/docs/SAIDA-DE-MUNICIPIO.md
+@@ -209 +209,8 @@ disse que está completo**. O console não sabe se o passo 5 aconteceu; quem sab
+-  segurança, e quinze minutos de leitura não criam registro nenhum.
++  segurança, e quinze minutos de leitura não praticam ato nem mudam dado do
++  município. Mas abrir o dossiê de uma ocorrência (e a busca) grava uma linha
++  em `ocorrencia_consultas` (o registro de quem leu dado de cidadão, sem o
++  dado), e essa linha entra mesmo sob suspensão: dizer que a leitura "não
++  cria registro nenhum" seria falso. Se o contrato exigir que nada novo
++  apareça no banco do município enquanto ele estiver suspenso, essa leitura
++  precisa passar a ser recusada, e isso é decisão de produto pendente
++  (a vigência da leitura é da F03-E03).
+diff --git a/dc360/docs/SEGURANCA-DO-AGENTE.md b/dc360/docs/SEGURANCA-DO-AGENTE.md
+index b008457..30c163c 100644
+--- a/dc360/docs/SEGURANCA-DO-AGENTE.md
++++ b/dc360/docs/SEGURANCA-DO-AGENTE.md
+@@ -155 +155 @@ O botão de encerrar pede **o que houve**, de uma lista curta:
+-| Acionei apoio | **Exige dizer o que foi acionado, e a que horas** |
++| Acionei apoio | **Exige dizer o que foi acionado** (observação de 3 a 300 caracteres). A tela sugere escrever também a que horas, mas o sistema só exige o tamanho do texto; a hora do encerramento é o carimbo do servidor |
+@@ -174,5 +174,11 @@ Quatro atos entram na trilha de auditoria da ocorrência: a saída declarada, ca
+-prorrogação, o retorno confirmado, e o encerramento pela coordenação. Com autor,
+-hora do aparelho e hora do servidor.
+-
+-A trilha **não se reescreve**, nem pela prefeitura nem por nós. Correção entra
+-como registro novo.
++prorrogação, o retorno confirmado, e o encerramento pela coordenação. Com autor e hora do
++servidor; nos três atos que o aparelho do agente faria (declarar, prorrogar,
++confirmar) a hora do aparelho também fica, e no encerramento pela coordenação só
++há a hora do servidor.
++
++A trilha **não se reescreve**, nem pela prefeitura nem por nós: nem a aplicação nem
++quem administra tem como alterar ou apagar um evento, e correção entra como
++registro novo. Duas exceções existem, ambas funções do banco: a minimização por
++prazo troca o nome de quem assinou a vistoria (dentro do evento "vistoria") por
++"removido por prazo", e a eliminação do município apaga tudo dele, trilha
++inclusa, depois dos sete dias de arrependimento.
+diff --git a/dc360/docs/SUBPROCESSADORES.md b/dc360/docs/SUBPROCESSADORES.md
+index 4465583..3b379e0 100644
+--- a/dc360/docs/SUBPROCESSADORES.md
++++ b/dc360/docs/SUBPROCESSADORES.md
+@@ -25 +25 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
+-| **Apple (APNs)** | Notificação no iPhone | Identificador do aparelho, o texto genérico, e os identificadores de município e de ocorrência mais a severidade | Estados Unidos |
++| **Apple (APNs)** | Notificação no iPhone | Identificador do aparelho, o texto genérico, e os identificadores de município e de ocorrência mais a severidade e o prazo | Estados Unidos |
+@@ -58,2 +58,4 @@ tarefa nova ou prazo vencendo, e não diz endereço, nome, protocolo nem
+-severidade. O detalhe viaja no corpo cifrado da mensagem e só é lido pelo
+-aplicativo depois que o agente destrava o aparelho.
++severidade. O detalhe (identificadores, severidade e prazo; nunca endereço nem protocolo)
++viaja no campo de dados da mensagem, que NÃO é cifrado por nós: atravessa Apple e
++Google em TLS, legível para eles, e o aplicativo só o usa depois que o agente
++destrava o aparelho.
+diff --git a/dc360/docs/VERCEL-PAINEL.md b/dc360/docs/VERCEL-PAINEL.md
+index 21d5b57..75ab5fe 100644
+--- a/dc360/docs/VERCEL-PAINEL.md
++++ b/dc360/docs/VERCEL-PAINEL.md
+@@ -31 +31,3 @@ pacotes compartilhados na ordem certa, e publica `apps/web/dist`.
+-Settings > Environment Variables, para Production:
++Desde a emenda de 08/09/2026 (no fim deste arquivo) a variável já vem declarada em
++`dc360/vercel.json`, no bloco `build.env`; não é preciso cadastrá-la no painel da
++Vercel. Esta seção explica o que ela faz e por que não pode faltar. Seu valor:
+@@ -47 +49 @@ diferentes. `apps/web/src/dados/repositorio.ts` decide o modo por
+-Se o objetivo é mostrar o sistema de verdade, a variável precisa estar lá.
++Se o objetivo é mostrar o sistema de verdade, a variável precisa estar no build (`vercel.json`).
+diff --git a/dc360/fly.toml b/dc360/fly.toml
+index b755337..6e2616c 100644
+--- a/dc360/fly.toml
++++ b/dc360/fly.toml
+@@ -112,3 +112,3 @@ kill_timeout = 30
+-  # `/saude` responde 503 enquanto o banco não responde ou o esquema está
+-  # atrasado, então o balanceador não manda tráfego para um processo que
+-  # ainda não pode servir. É rota pública e não vaza detalhe de erro.
++  # `/saude` responde 503 enquanto o banco não responde, então o balanceador não
++  # manda tráfego para um processo que ainda não pode servir. Esquema atrasado
++  # não vira 503 aqui: ele impede a partida do processo (apps/api/src/index.ts). É rota pública e não vaza detalhe de erro.
+diff --git a/dc360/packages/shared/src/schemas.ts b/dc360/packages/shared/src/schemas.ts
+index f4809ae..540dbb9 100644
+--- a/dc360/packages/shared/src/schemas.ts
++++ b/dc360/packages/shared/src/schemas.ts
+@@ -886 +886,4 @@ export const prorrogacaoDeSaidaSchema = z.object({
+-  /** Quantos minutos A MAIS, contados a partir do prazo corrente no servidor. */
++  /**
++   * Quantos minutos A MAIS, contados a partir de AGORA no servidor (`now()`); o prazo
++   * novo nunca fica abaixo do corrente (`GREATEST`, ver `rotas/saida-a-campo.ts`).
++   */
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index bd4ccc9..6e48ae7 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -493,0 +494,2 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
++  // V2-F00-E22, correção 4: `packages/shared/test/permissoes-no-readme.test.ts` (10 casos) prende a tabela de permissões do README e a de `docs/PAPEIS_E_RESPONSABILIDADES.md` ao catálogo `acoesDoPapel` (falta, sobra, papel sem linha, ordem, marcador, sim ou não trocado). A base do shared não conta puladas, por isso a entrada também não traz o campo.
++  "V2-F00-E22-correcao-4": { total: 10, falhas: 0 },
+diff --git a/dc360/packages/shared/test/permissoes-no-readme.test.ts b/dc360/packages/shared/test/permissoes-no-readme.test.ts
+new file mode 100644
+index 0000000..afdf4b1
+--- /dev/null
++++ b/dc360/packages/shared/test/permissoes-no-readme.test.ts
+@@ -0,0 +1,247 @@
++import { readFileSync } from "node:fs";
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { describe, expect, it } from "vitest";
++import { ACOES, PAPEIS, ROTULO_ACAO, ROTULO_PAPEL, acoesDoPapel, podeExecutar } from "../src/index.js";
++import type { Acao, Papel } from "../src/index.js";
++
++/**
++ * A tabela de permissões do `README.md` está presa ao catálogo (V2-F00-E22,
++ * correção 4).
++ *
++ * O README dizia que a tabela era "gerada a partir de `acoesDoPapel`, e um
++ * teste reprova se ela divergir do código", e o teste não existia: a tabela
++ * ficou sem `levantar_interdicao` (concedida a coordenador e administrador) e
++ * ninguém viu, porque documentação não quebra build. Este arquivo é o teste
++ * que a frase prometia.
++ *
++ * A tabela é GERADA aqui, linha a linha, de `acoesDoPapel`, `ROTULO_ACAO` e
++ * `ROTULO_PAPEL`, e comparada com a que está no README, entre o marcador
++ * `<!-- permissoes: gerado ... -->` e a primeira linha que não é de tabela.
++ * Reprova se faltar ação, se sobrar ação, se o papel não tiver linha, se tiver
++ * linha de papel que não existe, ou se a ordem divergir (a ordem é a de
++ * `PERMISSOES`, que é a de leitura). Quando reprovar, a mensagem traz a linha
++ * certa, pronta para colar.
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const README = join(AQUI, "..", "..", "..", "README.md");
++const MARCADOR = "<!-- permissoes: gerado a partir de packages/shared/src/permissoes.ts -->";
++
++/** A linha de tabela que o código manda ter para um papel. */
++function linhaGerada(papel: (typeof PAPEIS)[number]): string {
++  const pode = acoesDoPapel(papel).map((a) => ROTULO_ACAO[a]).join(", ");
++  return `| ${ROTULO_PAPEL[papel]} | ${pode} |`;
++}
++
++/** A tabela inteira que o código manda ter (cabeçalho, separador e uma linha por papel). */
++export function tabelaGerada(): string[] {
++  return ["| Papel | Pode |", "| --- | --- |", ...PAPEIS.map(linhaGerada)];
++}
++
++/** As linhas de tabela que seguem o marcador no texto do README. */
++export function tabelaDoReadme(texto: string): string[] {
++  const linhas = texto.split(/\r?\n/);
++  const i = linhas.indexOf(MARCADOR);
++  if (i < 0) throw new Error("README sem o marcador da tabela de permissões");
++  const tabela: string[] = [];
++  for (let k = i + 1; k < linhas.length; k++) {
++    const l = linhas[k]!;
++    if (l.trim() === "" && tabela.length === 0) continue;
++    if (!l.startsWith("|")) break;
++    tabela.push(l);
++  }
++  return tabela;
++}
++
++/** As diferenças, em português, entre a tabela do README e a do código. */
++export function diferencas(texto: string): string[] {
++  const esperada = tabelaGerada();
++  const real = tabelaDoReadme(texto);
++  const out: string[] = [];
++  for (const papel of PAPEIS) {
++    const cert = linhaGerada(papel);
++    const rotulo = `| ${ROTULO_PAPEL[papel]} |`;
++    const achada = real.find((l) => l.startsWith(rotulo));
++    if (!achada) { out.push(`falta a linha do papel ${papel}; deveria ser: ${cert}`); continue; }
++    if (achada === cert) continue;
++    const celula = (l: string) => l.slice(rotulo.length).replace(/\|\s*$/, "").trim();
++    const tem = new Set(celula(achada).split(", "));
++    const deve = new Set(celula(cert).split(", "));
++    const faltam = [...deve].filter((x) => !tem.has(x));
++    const sobram = [...tem].filter((x) => !deve.has(x));
++    out.push(
++      `${papel}: ${faltam.length ? `faltam [${faltam.join("; ")}]` : "nada falta"}, ` +
++      `${sobram.length ? `sobram [${sobram.join("; ")}]` : "nada sobra"}` +
++      `${!faltam.length && !sobram.length ? ", mas a ordem difere" : ""}. Linha certa: ${cert}`,
++    );
++  }
++  for (const l of real.slice(2)) {
++    if (!PAPEIS.some((p) => l.startsWith(`| ${ROTULO_PAPEL[p]} |`))) {
++      out.push(`linha de papel que o código não tem: ${l.slice(0, 60)}`);
++    }
++  }
++  if (!out.length && real.join("\n") !== esperada.join("\n")) {
++    out.push("cabeçalho ou separador da tabela diferem do esperado");
++  }
++  return out;
++}
++
++describe("Tabela de permissões do README presa ao catálogo do pacote compartilhado", () => {
++  const texto = readFileSync(README, "utf8");
++
++  it("o README traz exatamente a tabela gerada de acoesDoPapel (nem falta, nem sobra ação)", () => {
++    expect(diferencas(texto), "gere a tabela de novo e cole abaixo do marcador").toEqual([]);
++  });
++
++  it("o catálogo é coerente: todo rótulo é único e não vazio, e toda ação do catálogo é de alguém", () => {
++    // Rótulo repetido tornaria a tabela ambígua (duas ações com o mesmo texto).
++    const rotulos = ACOES.map((a) => ROTULO_ACAO[a]);
++    expect(new Set(rotulos).size).toBe(ACOES.length);
++    for (const r of rotulos) expect(r.trim()).not.toBe("");
++    // Ação que ninguém tem é ação morta ou concessão esquecida.
++    for (const a of ACOES) {
++      expect(PAPEIS.some((p) => acoesDoPapel(p).includes(a)), a).toBe(true);
++    }
++    // O rótulo não pode conter a vírgula que a tabela usa como separador.
++    for (const r of rotulos) expect(r).not.toContain(",");
++  });
++
++  it("o README lista, no total, todas as ações do catálogo (nenhuma some da tabela inteira)", () => {
++    const celulas = tabelaDoReadme(texto).slice(2).join(" ");
++    for (const a of ACOES) expect(celulas, a).toContain(ROTULO_ACAO[a]);
++  });
++
++  /*
++    MUTAÇÕES: provam que a comparação morde. Cada uma altera o TEXTO do README
++    em memória e exige que o teste acuse. (A mutação no código de permissões,
++    feita à mão e arquivada na evidência, é a de acrescentar uma ação ao
++    papel e ver o primeiro caso reprovar.)
++  */
++  describe("mordida", () => {
++    const igual = (t: string) => expect(diferencas(t)).toEqual([]);
++
++    it("a tabela atual passa (controle)", () => igual(texto));
++
++    it("ação que FALTA no README é acusada, com o nome do papel e da ação", () => {
++      const rotulo = ROTULO_ACAO.levantar_interdicao;
++      const mutado = texto.replace(`${rotulo}, `, "");
++      expect(mutado).not.toBe(texto);
++      const d = diferencas(mutado);
++      expect(d.length).toBeGreaterThan(0);
++      expect(d.join("\n")).toContain(`faltam [${rotulo}]`);
++    });
++
++    it("ação que SOBRA no README é acusada", () => {
++      const mutado = texto.replace("| Agente de campo | registrar vistoria |",
++        "| Agente de campo | registrar vistoria, exportar dados |");
++      expect(mutado).not.toBe(texto);
++      expect(diferencas(mutado).join("\n")).toContain("sobram [exportar dados]");
++    });
++
++    it("papel sem linha, linha de papel inexistente e ordem trocada são acusados", () => {
++      const sem = texto.split("\n").filter((l) => !l.startsWith("| Agente de campo |")).join("\n");
++      expect(diferencas(sem).join("\n")).toContain("falta a linha do papel agente_campo");
++      const extra = texto.replace("| Agente de campo | registrar vistoria |",
++        "| Fiscal | x |\n| Agente de campo | registrar vistoria |");
++      expect(diferencas(extra).join("\n")).toContain("linha de papel que o código não tem");
++      const op = linhaGerada("operador");
++      const [a, b] = acoesDoPapel("operador").map((x) => ROTULO_ACAO[x]);
++      const trocada = texto.replace(op, op.replace(`${a}, ${b}`, `${b}, ${a}`));
++      expect(trocada).not.toBe(texto);
++      expect(diferencas(trocada).join("\n")).toContain("a ordem difere");
++    });
++
++    it("README sem o marcador falha em voz alta (a tabela não pode perder a amarra)", () => {
++      expect(() => diferencas(texto.replace(MARCADOR, ""))).toThrow(/marcador/);
++    });
++  });
++});
++
++/**
++ * A segunda tabela da casa: "A tabela, de uma vez", em
++ * `docs/PAPEIS_E_RESPONSABILIDADES.md`, uma linha por ação e uma coluna por
++ * papel ("sim", "não", "**só ele**"). Ela também dizia "um teste reprova se esta
++ * tabela divergir do código" sem teste, e estava sem três das dezesseis ações.
++ * Aqui cada célula é conferida com `podeExecutar`, e cada ação do catálogo
++ * precisa ter linha (e linha sem ação do catálogo reprova).
++ */
++const PAPEIS_DOC = join(AQUI, "..", "..", "..", "docs", "PAPEIS_E_RESPONSABILIDADES.md");
++const COLUNAS: readonly Papel[] = ["operador", "agente_campo", "coordenador", "administrador"];
++
++export function diferencasDoDocumentoDePapeis(texto: string): string[] {
++  const linhas = texto.split(/\r?\n/);
++  const i = linhas.findIndex((l) => l.trim() === "## A tabela, de uma vez");
++  if (i < 0) throw new Error("documento sem a seção 'A tabela, de uma vez'");
++  const corpo: string[] = [];
++  for (let k = i + 1; k < linhas.length; k++) {
++    const l = linhas[k]!;
++    if (l.trim() === "" && corpo.length === 0) continue;
++    if (!l.startsWith("|")) break;
++    corpo.push(l);
++  }
++  const out: string[] = [];
++  const celulas = (l: string) => l.split("|").slice(1, -1).map((c) => c.trim());
++  // O cabeçalho amarra cada coluna a um papel: coluna trocada faria todo "sim" e "não" mentir
++  // sem que nenhuma linha mudasse. Cada título precisa ser o começo do rótulo do papel da coluna.
++  const cab = celulas(corpo[0] ?? "");
++  COLUNAS.forEach((papel, k) => {
++    const titulo = cab[k + 1] ?? "";
++    if (titulo === "" || !ROTULO_PAPEL[papel].startsWith(titulo)) {
++      out.push(`coluna ${k + 2} do cabeçalho deveria ser o papel ${papel} (${ROTULO_PAPEL[papel]}), e é "${titulo}"`);
++    }
++  });
++  const porRotulo = new Map<string, Acao>();
++  for (const a of ACOES) porRotulo.set(ROTULO_ACAO[a].toLowerCase(), a);
++  // O documento escreve o rótulo do jeito de gente; este mapa liga o texto da linha à ação.
++  const apelidos: Record<string, Acao> = {
++    "registrar ocorrência": "abrir_ocorrencia",
++    "responder providência": "responder_providencia",
++    "emitir laudo ou termo": "emitir_documento",
++    "consultar a trilha": "consultar_trilha",
++    "alterar dados do município": "gerenciar_organizacao",
++  };
++  const vistas = new Set<Acao>();
++  for (const l of corpo.slice(2)) {
++    const c = celulas(l);
++    const rotulo = c[0]!.toLowerCase();
++    const alvo = apelidos[rotulo] ?? porRotulo.get(rotulo);
++    if (!alvo) { out.push(`linha sem ação correspondente no catálogo: "${c[0]}"`); continue; }
++    vistas.add(alvo);
++    COLUNAS.forEach((papel, k) => {
++      const diz = !c[k + 1]!.toLowerCase().startsWith("não");
++      if (diz !== podeExecutar(papel, alvo)) {
++        out.push(`${alvo} para ${papel}: o documento diz "${c[k + 1]}" e o código diz ${podeExecutar(papel, alvo) ? "sim" : "não"}`);
++      }
++    });
++  }
++  for (const a of ACOES) if (!vistas.has(a)) out.push(`ação do catálogo sem linha no documento: ${a}`);
++  return out;
++}
++
++describe("Tabela de PAPEIS_E_RESPONSABILIDADES.md presa ao catálogo", () => {
++  const texto = readFileSync(PAPEIS_DOC, "utf8");
++
++  it("cada ação do catálogo tem linha, e cada sim ou não bate com podeExecutar", () => {
++    expect(diferencasDoDocumentoDePapeis(texto)).toEqual([]);
++  });
++
++  it("morde: célula trocada, linha removida e linha inventada são acusadas", () => {
++    const celulaTrocada = texto.replace("| Exportar dados | não | não | sim | sim |", "| Exportar dados | sim | não | sim | sim |");
++    expect(celulaTrocada).not.toBe(texto);
++    expect(diferencasDoDocumentoDePapeis(celulaTrocada).join("\n")).toContain("exportar_dados para operador");
++
++    const semLinha = texto.split("\n").filter((l) => !l.startsWith("| Levantar a interdição de um imóvel |")).join("\n");
++    expect(semLinha).not.toBe(texto);
++    expect(diferencasDoDocumentoDePapeis(semLinha).join("\n")).toContain("ação do catálogo sem linha no documento: levantar_interdicao");
++
++    const colunasTrocadas = texto.replace("| Ação | Operador | Agente | Coordenador | Administrador |", "| Ação | Coordenador | Agente | Operador | Administrador |");
++    expect(colunasTrocadas).not.toBe(texto);
++    const d = diferencasDoDocumentoDePapeis(colunasTrocadas).join("\n");
++    expect(d).toContain("coluna 2 do cabeçalho deveria ser o papel operador");
++    expect(d).toContain("coluna 4 do cabeçalho deveria ser o papel coordenador");
++
++    const inventada = texto.replace("| Exportar dados |", "| Apagar município | não | não | não | não |\n| Exportar dados |");
++    expect(diferencasDoDocumentoDePapeis(inventada).join("\n")).toContain("linha sem ação correspondente");
++  });
++});

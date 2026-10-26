@@ -1,0 +1,5 @@
+$ openssl version; ls -d dc360/apps/campo/ios   (medido em 2026-10-14, nesta mesma máquina, depois da linha de base)
+Registro dos dois fatos de ambiente que explicam as duas divergências de máquina em linha-de-base-final/ (05-teste-api.txt e 10-test-scripts.txt). Os números 1309, 9 e 1319 estão em 05-teste-api.txt; 345 e 3 em 03-teste-db.txt; 259 em 06-teste-console.txt; 665 em 07-teste-web.txt; o 0 pulados em 10-test-scripts.txt.
+
+LibreSSL 3.3.6
+dc360/apps/campo/ios

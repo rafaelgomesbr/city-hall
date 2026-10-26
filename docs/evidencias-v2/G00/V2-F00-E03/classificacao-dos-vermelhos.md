@@ -4,6 +4,8 @@ Data: 2026-10-05. Base: as saídas arquivadas da E01 (`docs/evidencias-v2/G00/V2
 
 Situação da decisão: a regra da seção 1 está aplicada como PREMISSA (STATUS, seção 9), porque Rafael ainda não decidiu BZ-N:N.3. A validação humana pedida está na seção 7.
 
+**Atualização de 2026-10-13 (correção 1 da E03).** As seções 1 a 7 são a fotografia de 2026-10-05, escrita antes das 22 etapas seguintes, e dizem "Fecha em" no futuro. A seção 8 é o registro vivo: cada linha com seu estado de hoje (FECHADO ou ABERTO), a etapa e o commit que fecharam, a prova do comando que rodou, e, para o que segue aberto, dono, issue e prazo pela política T42. As instabilidades conhecidas (`resolver-link.test.ts`, `dominio.test.ts`, `regras-de-conteudo`, `test:isolamento`, o e2e da API em Firefox) entram ali como linhas. A contagem final está em 8.7. Onde as seções antigas e a 8 divergirem, vale a 8.
+
 ## 1. Classes e regra aplicada
 
 | Classe | O que é | O que muda | Regra |
@@ -173,6 +175,8 @@ Classe F (instável). Não entra na soma do baseline, porque a E01 o mediu verde
 - **Alcance.** A mesma espera fixa de 20 ms aparece em outros 10 pontos de 4 arquivos da API (`desinterdicao.test.ts` 3, `fotos-do-documento.test.ts` 2, `identificador-da-emissao.test.ts` 2, `segunda-via-nao-reinterdita.test.ts` 3). Nenhum falhou nas três rodadas e nenhum foi classificado aqui: ficam listados.
 - **Quem trata.** Nenhuma etapa existente cabe com precisão: a E21 é a mais próxima (objetivo "a suíte inteira passa sem depender da máquina"), mas o escopo escrito dela é CRLF, `OPENSSL_CONF` e cache do campo. Registrado como achado novo no STATUS, seção 11, com a proposta de a E21 receber um quarto item ("esperas fixas sob carga"): trocar a espera de 20 ms por espera com condição e limite (por exemplo `vi.waitFor` com teto de 2 s) em `resolver-link.test.ts` e, depois de medir, nos outros 10 pontos. A troca é reescrita de teste e pede o registro que a política exige. Enquanto isso, quem vir o teste vermelho numa rodada completa roda o arquivo sozinho e registra a rodada; não pula e não repete até passar.
 
+**Atualização de 2026-10-13.** A espera de 20 ms de `resolver-link.test.ts` foi trocada por `vi.waitFor` com limite de 5 s (linha V-INS-01, fechada). Os outros 10 pontos de 20 ms e as demais esperas fixas seguem abertos, com dono, issue e prazo (V-INS-02). A carga sintética não reproduziu a falha da versão antiga: a causa "carga da máquina" continua hipótese (8.4).
+
 ## 7. Decisão pedida a Rafael
 
 Com esta tabela na mão, três respostas:
@@ -181,4 +185,240 @@ Com esta tabela na mão, três respostas:
 2. Os 14 defeitos do campo (V-CAM-07 a V-CAM-20) são defeitos reais? Situação hoje: tratados como defeitos reais, premissa assumida.
 3. Os 6 do campo e os 3 de scripts que a regra manda reescrever (V-CAM-01 a V-CAM-06, V-SCR-3, e os de classe C com mudança de teste) podem ser reescritos nas etapas E14, E17 e E21 com o registro já aberto?
 
-Resposta de Rafael: PENDENTE. O item "vermelhos classificados" do G00 só se marca com a decisão dele.
+Resposta de Rafael: dada em 2026-10-13 (ver a situação abaixo e a seção 8.6).
+
+Situação em 2026-10-13: DECIDIDA pelo Rafael, pergunta por pergunta no roteiro de aprovação da F00: Q1 sim, a regra vale; Q2 sim, os 14 defeitos do campo são reais; Q3 sim, as 13 reescritas ficam; Q4 sim, a troca de espera fixa por espera com condição vale e os outros 10 pontos entram numa etapa futura; Q5 aceitar o aviso do `vitest` como exceção com dono e prazo (o Expo foi atualizado, D1). A tabela abaixo é o que ela decidiu. A tabela pronta, com as cinco perguntas (as três acima, mais a troca de espera fixa por condição e a política dos avisos de ferramenta), as linhas que dependem de cada uma e o que muda no sim e no não, está na seção 8.6.
+
+## 8. Registro vivo em 2026-10-13 (correção 1 da E03)
+
+Base: HEAD `5dfc389` (depois das correções `4fcc241` a `5dfc389`) mais a troca de espera de `resolver-link.test.ts` feita nesta correção. Máquina: Windows 11, Node 22.17.0, a das medições da E01. As seções 1 a 7 ficam como a fotografia de 2026-10-05: o "Fecha em" delas é o que foi prometido, e esta seção diz o que aconteceu. Onde divergirem, vale esta.
+
+Estados: **FECHADO** (o teste passa hoje, com a prova ao lado) e **ABERTO** (segue vermelho ou avisando, e tem dono, issue e prazo pela T42). Dono padrão `rafael` (PREMISSA da E02). Os prazos das linhas abertas eram PROPOSTA deste registro, dentro do máximo de 30 dias que a política tinha então (até 2026-11-12); o teto passou a 5 dias em 2026-10-13 (D2) e os prazos vigentes estão em 8.8. A coluna "Commit" é o commit do código que fechou; as etapas E01 a E10 entraram em `5d6bc57`, as E11 a E25 em `99390e0`, e as correções 1 de 2026-10-13 têm o próprio commit.
+
+### 8.1 O que rodou hoje, e onde está a saída
+
+Saídas passadas por `redigir` de `dc360/scripts/baseline.mjs`, na pasta `docs/evidencias-v2/G00/V2-F00-E03/correcao-1/`.
+
+| Comando | Resultado | Arquivo |
+| --- | --- | --- |
+| `node scripts/baseline.mjs --sem-instalar` (17 passos) | 12 conferem, 5 divergem: ver V-ROT-01 (o roteiro, e não a árvore, está desatualizado) | `saidas/RESUMO.md` |
+| `npm run typecheck` | saída 0 | `saidas/01-typecheck.txt` |
+| `npm test` completo, 5 rodadas em sequência | saída 0 nas 5; contagens iguais nas 5: shared 168, campo (pacote) 223, API 1299, console 259, painel 649, banco 327 e 3 pulados por ambiente | `brutas/npm-test-rodada-1.txt` a `5` |
+| `npm run test:api` | 1299 de 1299, 99 arquivos | `saidas/05-teste-api.txt` |
+| `npm run test --workspace @dc360/web` | 649 de 649, 43 arquivos | `saidas/07-teste-web.txt` |
+| `npm run test:campo` | tipos limpos e 1903 de 1903 casos (129 suítes) | `saidas/09-test-campo.txt` |
+| `npx jest --silent` em `apps/campo` | 1903 de 1903 | `saidas/08-teste-campo-app.txt` |
+| `npm run test:scripts` | 230 casos, 226 ok, 0 falhas, 4 pulados por ambiente (sem `ios/`); o portão de skip diz "10 skips por ambiente em 3 arquivos; 0 incondicionais com marca T42" | `saidas/10-test-scripts.txt` |
+| `npm run conferir:numeros` | "Todos os números da documentação batem com a realidade." | `saidas/11-conferir-numeros.txt` |
+| `npm run test:isolamento` | 327 ok e 3 pulados por ambiente (`busca.test.ts`, `it.runIf`) | `saidas/03-teste-db.txt` |
+| `npm run test:e2e` (painel), Chromium | 70 passou, 0 falhou | `saidas/16-e2e.txt` |
+| `MOTOR=firefox npm run test:e2e` (painel) | 70 passou, 0 falhou | `saidas-firefox-painel/01-e2e.txt` |
+| `npm run test:e2e:api`, Chromium | 279 passou e 0 falhou (arquivo do fluxo), 50 e 0 (largura estreita) | `saidas/17-e2e-api.txt` |
+| `npm run test:e2e:api -- firefox`, 4 rodadas | 4 de 4 verdes, 279 e 50 em cada uma | `brutas/e2e-api-firefox-rodada-1.txt` a `4`, `brutas/e2e-api-firefox-rodadas.txt` |
+| `npm run auditar` | saída 0: runtime 0, 3 avisos de desenvolvimento, app de campo sem advisory nova | `saidas/12-auditar.txt` |
+| `npm audit` raiz / `apps/campo` / `npx expo-doctor` | 3 (1 moderada, 2 críticas, todas de desenvolvimento) / 59 / 20 de 21: ver V-DEP-2b, V-DEP-3 e V-DEP-4 | `saidas/13`, `14`, `15` |
+| Provas por linha (arquivo de teste com `--reporter=verbose`) | todos os testes nomeados na seção 3 passam: shared 8 de 8, painel 59 de 59 em 5 arquivos, API 61 de 61 em 4 arquivos, campo 44 de 44 em 6 arquivos, scripts 22 (18 ok, 4 pulados por ambiente) | `brutas/prova-shared.txt`, `prova-web.txt`, `prova-api.txt`, `prova-campo.txt`, `prova-scripts.txt` |
+
+A coluna "Prova" das tabelas abaixo cita estes arquivos. Os testes nomeados de cada linha aparecem com ✓ nos arquivos `brutas/prova-*.txt`.
+
+### 8.2 Linhas fechadas (62 de 71 na correção 1; 65 de 71 depois da correção 2, ver 8.8.4)
+
+| Linha(s) | Fechou em | Commit | Prova de hoje |
+| --- | --- | --- | --- |
+| V-SHA-1 | E20 | `99390e0` | `prova-shared.txt`: "nenhum travessão em texto nenhum" ✓, 8 de 8; o literal de `trilha-detalhe.test.ts` virou escape e as isenções têm casos de âncora |
+| V-WEB-01 | E13 | `99390e0` | `prova-web.txt`: "nenhum onClick pendurado em elemento que o teclado não alcança" ✓; o portão lê o bloco de comentário inteiro (`comentarioAcima`), e `Modal.tsx` não mudou desde 2026-09-09 |
+| V-WEB-02 | E13 | `99390e0` | `prova-web.txt`: design-system "nem no CSS, nem nos estilos escritos dentro do componente" ✓; `Estrutura.tsx` não tem mais `borderRadius: "8px"` (busca sem resultado) |
+| V-WEB-03 | E21 | `99390e0` | `prova-web.txt`: "nada grava o encerramento fora do ramo de confirmação" ✓ com a árvore em CRLF; `.gitattributes` e o leitor de fonte da E21 |
+| V-WEB-04 a V-WEB-11 | E09 | `5d6bc57`, correção `39051f7` | `prova-web.txt`: os 8 casos de `seguranca-da-conta.test.ts` ✓ (botões, pergunta antes, quem vê, senha temporária, Toast, modo de demonstração, Minha conta) |
+| V-WEB-12 a V-WEB-14 | E13 | `99390e0` | `prova-web.txt`: "anuncia o que gravou com um Toast" ✓ em `Usuarios.tsx`, `Equipes.tsx` e `Orgaos.tsx` |
+| V-API-1 | E04 (a vigência na escrita), E07 (o par que faltava) | `5d6bc57` | `prova-api.txt`: "uma sessão viva cuja senha provisória venceu no meio não escreve nem renova" ✓ |
+| V-API-2 | E12 | `99390e0`, correção `5dfc389` | `prova-api.txt`: "o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido" ✓ |
+| V-API-S1 | E21 | `99390e0` | `prova-api.txt`: `banco-tls.test.ts` 13 de 13 ✓ (não é mais suíte pulada). `OPENSSL_CONF` continua apontando para arquivo que não existe nesta máquina; o teste avisa em stderr e roda o `openssl` sem a variável |
+| V-API-S2 | E04 | `5d6bc57`, correção `4fcc241` | `prova-api.txt`: `vigencia-na-escrita.test.ts` roda inteiro, 13 de 13 ✓ (o `describe.skip` saiu; "conta desativada não escreve mais, no pedido seguinte" ✓); portão de skip: "0 incondicionais com marca T42" |
+| V-CAM-01 a V-CAM-06 | E14 | `99390e0` | `prova-campo.txt`: os 2 testes da sessão encerrada e os 4 do logout ✓; teste irmão `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` ✓ (3 casos). Regra R1 (depende de Q1 e Q3) |
+| V-CAM-07 a V-CAM-13 | E15 | `99390e0`, correção `a5da710` | `prova-campo.txt`: os 6 de `dialogo-na-conta-com-vistoria-comecada.test.tsx` ✓ e "abaixo de meio metro vira 1, e não zero" ✓. Defeitos reais (depende de Q2) |
+| V-CAM-14 a V-CAM-20 | E16 | `99390e0`, correção `81a5223` | `prova-campo.txt`: os 7 de `vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx` ✓ (segundo plano, toque fora, teclado, área segura, ajustes de câmera e de localização, frase certa). Defeitos reais (depende de Q2) |
+| V-TC-1 | E21 | `99390e0` | `saidas/09-test-campo.txt`: tipos limpos, 1903 casos |
+| V-SCR-1, V-SCR-2, V-SCR-3 | E17 | `99390e0` | `prova-scripts.txt`: "rodando da raiz, --conferir confere e NÃO aplica" ok, "a pasta de copias recusa o repositorio..." ok, "a escolha do ambiente continua morando no app.config.ts..." ok, mais o negativo novo ("reprova o mode escrito à mão") ok |
+| V-NUM-01 a V-NUM-13 | E17, rodada final na E22 | `99390e0`, `4fcc241`, `5dfc389` | `saidas/11-conferir-numeros.txt`: "Todos os números da documentação batem com a realidade." |
+| V-DEP-1 | E19 | `e2d4aec` | `saidas/12-auditar.txt`: o `auditar` roda no Windows (sem `ENOENT`) e sai 0 |
+| V-DEP-2a (`fastify` e `fast-uri`, de execução) | correção do CI da D-30 e E19 | `e16209b`, `e2d4aec` | `brutas/npm-audit-raiz-omit-dev.txt`: "found 0 vulnerabilities"; `fastify` 5.12.5 e `fast-uri` 4.2.1 no `package-lock.json`; `auditar`: "Runtime (vai para a imagem): 0 vulnerabilidade(s)" |
+| V-E2E-1, V-E2E-2 | E13 | `99390e0` | `saidas/16-e2e.txt` (Chromium) e `saidas-firefox-painel/01-e2e.txt` (Firefox): 70 passou, 0 falhou; a seção 2 não morre mais esperando `.indicador` |
+| V-E2E-3 | E18 | `99390e0` | `saidas/17-e2e-api.txt` e as 4 rodadas em Firefox: 279 e 50 passou, 0 falhou em todas |
+| V-INS-01 (`resolver-link.test.ts`, espera fixa de 20 ms) | esta correção (E03, classe F) | o commit desta correção | `vi.waitFor` com limite de 5 s no lugar de `setTimeout(resolve, 20)`; 10 rodadas isoladas e 10 sob carga sintética, 37 de 37 em todas; o mutante (ninguém avisa que fechou) reprova em 5 s. Ver 8.4 |
+
+Soma das linhas fechadas: 1 + 1 + 1 + 1 + 8 + 3 + 1 + 1 + 1 + 1 + 6 + 7 + 7 + 1 + 3 + 13 + 1 + 1 + 2 + 1 + 1 = 62.
+
+### 8.3 Linhas que estavam abertas (9); 3 fecharam em 2026-10-13 e restam 6 (prazos e etapas vigentes: 8.8.2)
+
+Todas têm dono, issue e prazo. Nenhuma está pulada: o portão de skip não tem o que marcar, e a T42 se aplica aqui como registro. Pela regra R6, nenhuma foi repetida até passar.
+
+| Linha | O que segue aberto | Dono | Issue | Prazo | Tratamento |
+| --- | --- | --- | --- | --- | --- |
+| V-DEP-2b | `npm audit` da raiz lista 3 avisos só de desenvolvimento: `@vitest/mocker` (moderada), `tinypool` (crítica, 2 avisos de execução remota de código no processo de teste) e `vitest` (crítica, só por depender dos dois). O `auditar` sai 0 e diz "Não reprova, e precisa de dono" | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | FECHADA em 2026-10-13: Rafael respondeu a Q5 (aceitar como aviso com dono e prazo). Os três pacotes entraram em `ACEITAS_EM_DESENVOLVIMENTO` (`scripts/auditar-excecoes.mjs`), dono Rafael, prazo 2027-01-05, e o `auditar` passou a dizer "todas aceitas com dono e prazo" em vez de "precisa de dono". Subir o `vitest` para 5 fica como etapa planejada. Não é runtime: `npm audit --omit=dev` dá 0 |
+| V-DEP-3 | `apps/campo`: `npm audit` lista 59 (55 fora de desenvolvimento: 8 moderadas, 46 altas, 1 crítica), todas da cadeia de ferramenta do Expo. O `auditar` aceita 6 pelo nome | `rafael` | `CP-03` (decidido em 2026-10-07) e `V2-F00-E19` | 2027-01-05 (o prazo do CP-03; o portão reprova depois dele) | Subir o SDK do Expo por inteiro (a saída que o CP-03 registrou; `npm audit fix` descartado por misturar SDK 57 e 58). Tolerado por decisão já tomada |
+| V-DEP-4 | `npx expo-doctor` dá 20 de 21: 6 pacotes com deriva de patch (`expo` 57.0.27 contra ~57.0.28, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`). Estava 21 de 21 em 2026-10-08; a deriva é externa, por patch novo publicado | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | FECHADA em 2026-10-13 (V2-F00-E19, correção 2): Rafael decidiu atualizar (D1); `npx expo install --fix` subiu os seis pacotes dentro do SDK 57 e o `expo-doctor` voltou a 21 de 21 (prova em `V2-F00-E19/correcao-2/`). Muda pacote nativo: o próximo binário precisa ser recompilado. A deriva reabre sozinha a cada patch novo do Expo, e então é item novo |
+| V-ROT-01 (novo) | O roteiro `dc360/scripts/baseline.mjs` diverge numa árvore verde: espera 643 testes no painel (rodam 649), 1880 no jest (1903), 226 casos em `test:scripts` (230), 271 verificações no e2e da API (279 mais as 50 da largura estreita) e vermelho no `auditar` (agora verde). Sai com código 1. Também falta o passo do Firefox (D-4) | `rafael` | `V2-F00-E01` (correção 1) | 2026-10-20 | FECHADA em 2026-10-13 pela correção 1 da E01 (`dd90dc2`): as tabelas de esperado passaram a ter fonte única conferida por `conferir:numeros`, o código de saída separa 0, 1 (só divergência explicada), 3 e 2, e com o `expo-doctor` de volta a 21 de 21 (E19, correção 2) não sobra divergência explicada. O passo do Firefox (D-4) segue fora do roteiro |
+| V-INS-02 (novo) | Os outros 10 pontos com `setTimeout(r, 20)` em 4 arquivos da API (`desinterdicao` 3, `fotos-do-documento` 2, `identificador-da-emissao` 2, `segunda-via-nao-reinterdita` 3) e 6 esperas fixas de 10 a 100 ms em `push-rodada-diz-o-que-fez`, `push-sem-resposta` e `recuperacao-sem-oraculo`. Nenhum falhou em nenhuma rodada medida | `rafael` | sem etapa (H03) (ver 8.8.2) | 2026-10-18 | Medir e trocar por `vi.waitFor` com limite onde o teste espera um evento (a mesma troca de V-INS-01), com registro em `DECISOES-DE-TESTE-DA-FASE-00.md`. Depende de Q4 |
+| V-INS-03 (novo) | `packages/shared/test/dominio.test.ts` ("ninguém redefine o checklist fora do pacote compartilhado") estoura os 5 s do limite padrão sob carga. Falhou em 2 de cerca de 7 rodadas completas de `npm test` na validação de 2026-10-13, e uma vez na E10; passa isolado em 252 ms | `rafael` | `V2-F00-E20` (encaixe parcial) (ver 8.8.2) | 2026-10-18 | Causa provável: a varredura lê o código-fonte de todo o produto e disputa disco e CPU com o resto da suíte; HIPÓTESE, não medida. Tratamento: limite explícito e generoso por teste (`it(..., 60_000)`) e, se medido, o cache da lista de arquivos. Não pular, não repetir até passar. Depende de Q4 |
+| V-INS-04 (novo) | `packages/shared/test/regras-de-conteudo.test.ts` ("nenhum travessão em texto nenhum"): falhou em 1 execução de `npm test` na E19 (mensagem não capturada, não reproduzida em 4 reexecuções) e nas rodadas completas da validação, junto com o item anterior | `rafael` | `V2-F00-E20` (ver 8.8.2) | 2026-10-18 | Causa provável: a varredura lê `docs/` inteiro enquanto outro processo grava arquivo (o `npm install` do Expo, uma evidência sendo escrita): HIPÓTESE. Tratamento: arquivar a saída bruta completa da próxima falha (a da E19 perdeu a mensagem), tolerar arquivo que some entre a listagem e a leitura (`ENOENT`), se for essa a causa, e fixar o limite de tempo. Depende de Q4 |
+| V-INS-05 (novo) | `npm run test:isolamento` (o portão número um, CA-06) falhou sob carga da máquina: em 2026-10-07, 4 rodadas com 1 saída diferente de 0 (2 com `Timeout calling "onTaskUpdate"` do vitest, com 327 passando, e 2 com a varredura de seis caminhos de privilégio passando de 60 s), com um `ng serve` de outro projeto a 50% de CPU | `rafael` | sem etapa (H03) (ver 8.8.2) | 2026-10-18 | Rodar com a máquina livre e medir; se repetir, subir o limite de tempo da varredura (ela passou de 60 s nas falhas) com a medição ao lado, e nunca afrouxar a asserção. O arquivo do CA-06 sozinho fecha 137 de 137 em 22 s |
+| V-INS-06 (novo) | `npm run test:e2e:api -- firefox` no Windows: 1 falha em 4 rodadas na validação de 2026-10-13, `CONNECTION_REFUSED` na seção 23 | `rafael` | `V2-F00-E18` (ver 8.8.2) | 2026-10-18 | Causa NÃO medida. A seção 23 abre um segundo contexto de navegador e navega de novo para o painel. Hipóteses a testar: o painel ainda não aceitava a conexão nesse instante, ou o Firefox no Windows resolveu `localhost` para IPv6 enquanto o servidor escuta em IPv4. Tratamento: na próxima falha arquivar a saída bruta e o trace (URL e hora da recusa), e então esperar o servidor responder, com limite, antes de abrir o contexto. O CI Linux roda o e2e da API e passa (run 37739535524) |
+
+Quatro dessas nove (V-INS-03 a V-INS-06) são instabilidades vistas fora desta correção (na E10, na E17, na E19 e na validação de 2026-10-13); hoje nenhuma reproduziu (ver 8.4). Elas ficam abertas porque a falta de reprodução não é prova de conserto, e a causa de nenhuma foi medida.
+
+### 8.4 Instabilidades: o que foi medido hoje
+
+Regra R6 da política: não se repete até passar e não se pula; mede-se e registra-se. Esta tabela é o que foi medido, com a máquina sem outro processo pesado (`ng serve` desligado).
+
+| Instável | Rodadas hoje | Resultado hoje | Antes | Leitura |
+| --- | --- | --- | --- | --- |
+| `resolver-link.test.ts`, "conecta no endereço conferido..." | 11 com a versão antiga (1 do roteiro e 10 sob carga sintética, a cópia de `git show HEAD:...`) e 25 com a nova (5 de `npm test` completo, 10 isoladas e 10 sob a mesma carga) | 0 falhas em 36. A carga sintética (12 processos Node em laço ocupado em 16 núcleos) NÃO reproduziu a falha da versão antiga (10 de 10 verdes) | 1 falha em 3 rodadas completas da E02 | A causa "carga da máquina" continua HIPÓTESE (a política exige dizer isto). O conserto não depende dela: a espera por condição com limite passa assim que a conexão fecha e só reprova se NÃO fechar em 5 s. O mutante (servidor que não avisa o `close`) reprova com a mensagem do teste |
+| `dominio.test.ts` e `regras-de-conteudo.test.ts` (shared) | 6 execuções completas (1 do roteiro, 5 de `npm test`) | 0 falhas em 6, shared 168 de 168 em todas; a rodada de prova isolada: `regras-de-conteudo` 8 de 8 | 2 de cerca de 7 rodadas na validação; 1 na E10; 1 na E19 | Não reproduziu hoje. Sem causa medida |
+| `test:isolamento` | 6 (1 do roteiro, 5 de `npm test`) | 0 falhas, 327 ok e 3 pulados em todas, 30 s no roteiro | 4 rodadas com 1 falha em 2026-10-07 (máquina com `ng serve`) | A falha só apareceu com a máquina carregada. Sem causa medida |
+| `test:e2e:api` em Firefox no Windows | 4 | 4 de 4 verdes, 279 e 50 verificações | 1 falha em 4 na validação (`CONNECTION_REFUSED`, seção 23) | Total medido: 1 falha em 8 rodadas em Firefox. Chromium: 1 de 1 verde hoje e verde no CI Linux |
+
+Arquivos: `brutas/resolver-link-10-rodadas.txt`, `brutas/resolver-link-sob-carga.txt`, `brutas/resolver-link-mutante.txt`, `brutas/npm-test-rodada-1.txt` a `5`, `brutas/e2e-api-firefox-rodadas.txt`.
+
+### 8.5 As divergências D-1 a D-7 da seção 5: situação
+
+| Divergência | Situação em 2026-10-13 |
+| --- | --- |
+| D-1, números de `npm audit` | Superada. Raiz: runtime 0, 3 avisos de desenvolvimento (V-DEP-2b). Campo: 59 no total, 55 fora de desenvolvimento, aceitos pelo CP-03 (V-DEP-3). O `fastify` alto de execução foi corrigido em `e16209b` (V-DEP-2a) |
+| D-2, o teste irmão é `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` | Fechada. O registro de decisões da E14 cita o arquivo certo, e ele passa hoje (3 casos) |
+| D-3, `Linking.openSettings` em `PortaExpo.ts` | Fechada. Era só uma citação a ajustar, e a E16 usa o padrão de `PortaExpo.ts` (V-CAM-18 e V-CAM-19 ✓) |
+| D-4, e2e de Firefox fora do roteiro | Parcial: o Firefox foi medido à mão (painel 70 de 70, API 4 de 4 rodadas), mas o `baseline.mjs` ainda não tem o passo. Entrava em V-ROT-01, que foi fechada sem ele; a rodada 2 apontou o órfão e a correção 3 abriu a linha V-ROT-02 (8.8.2), com dono, prazo 2026-10-18 e a E01 como etapa |
+| D-5, a causa de `banco-tls` não aparece na saída da E01 | Fechada. O teste de hoje avisa em stderr que `OPENSSL_CONF` aponta para arquivo inexistente e roda o `openssl` sem a variável (`prova-api.txt`) |
+| D-6, o teste velho do campo não é uniforme | Fechada. As reescritas da E14 e da E17 mantêm a intenção; o registro de decisões diz "nenhuma asserção foi enfraquecida" em cada uma, e a E17 acrescentou o caso negativo do `mode` escrito à mão |
+| D-7, reescritas sem registro previsto | Fechada. `DECISOES-DE-TESTE-DA-FASE-00.md` tem uma seção para cada reescrita (E05, E13, E14, E17, E20, E21), e nesta correção as quatro que ainda diziam "previsto" (E05, E13, E17, E20) receberam o diff real |
+
+### 8.6 Decisão de Rafael: a tabela pronta
+
+Nada aqui foi decidido por quem implementou. A situação de cada pergunta é a PREMISSA aplicada desde a E03 (STATUS, seção 9). A decisão só precisa de um "sim" ou de um "troque por X" por linha.
+
+| # | Pergunta | Hoje | Linhas que dependem | Se disser sim | Se disser não |
+| --- | --- | --- | --- | --- | --- |
+| Q1 | A regra de BZ-N:N.3 vale? Onde há decisão datada no código, posterior ao teste, e teste irmão passando, o código vale e o teste é reescrito com registro (R1). Onde o teste descreve defeito confirmado por leitura do código, o teste vale e o código é consertado (R2). Sem prova de uma das duas, trata-se como defeito | Premissa aplicada em todas as etapas | 40 linhas: 32 de classe A e 8 de classe B | Nada muda; o item "regra de BZ-N:N.3 decidida" fecha | Rafael diz a regra nova; as 8 reescritas da classe B (V-WEB-01, V-CAM-01 a V-CAM-06, V-SCR-3) voltam a ser defeito de código até a nova regra dizer outra coisa |
+| Q2 | Os 14 defeitos do campo (V-CAM-07 a V-CAM-20) são defeitos reais? | Tratados como reais; consertados no código pelas E15 e E16 e provados (8.2) | 14 linhas fechadas | Fica como está | Cada linha que ele disser que não é defeito: o conserto da E15 ou da E16 é revisto e o teste correspondente é reescrito com registro |
+| Q3 | As 13 reescritas (V-CAM-01 a V-CAM-06, V-WEB-01, V-WEB-03, V-SHA-1, V-API-S1, V-SCR-1 a V-SCR-3) podem ficar como foram feitas, com o registro de `DECISOES-DE-TESTE-DA-FASE-00.md`? | Feitas e registradas nas E13, E14, E17, E20 e E21 | 13 linhas fechadas | Fica como está | A reescrita escolhida é revertida (o diff de cada uma está no registro) |
+| Q4 | Aceita trocar espera fixa por espera com condição e limite nos testes instáveis? Feita em `resolver-link.test.ts` (um arquivo, desfazível) | Feita só em `resolver-link.test.ts` | V-INS-01 (fechada), V-INS-02, V-INS-03 e V-INS-04 | A E21 ganha o quarto item e as três linhas abertas se tratam | Reverter o patch de `resolver-link.test.ts` (volta V-INS-01 a aberta) e Rafael diz como tratar a instabilidade |
+| Q5 | (RESPONDIDA: aceitar como aviso com dono e prazo; o Expo já foi atualizado) Aviso de ferramenta que muda sem o código mudar (3 advisories de desenvolvimento da raiz e a deriva de patch do Expo): corrigir já, ou virar aviso com dono e prazo na política do CP-03? | V-DEP-4 (Expo) foi fechada em 2026-10-13 por atualização (D1); V-DEP-2b segue aberta, com prazo 2026-11-12 | V-DEP-2b (e V-DEP-4, já fechada) | Corrige (`vitest` 5, `expo install --fix`) ou entra na lista do CP-03, conforme ele disser | Mantém aberto até o prazo |
+
+### 8.7 Contagem final
+
+(Contagem da correção 2; a de hoje está em 8.8.4.) **Abertos: 6** (V-DEP-3, V-INS-02 a V-INS-06), todos com dono, issue e prazo; um deles (V-DEP-3) é tolerado por decisão já tomada (CP-03, até 2027-01-05) e os cinco V-INS são instabilidades que não reproduziram em 5 rodadas completas. **Fechados: 65 de 71** (entram hoje V-DEP-2b, V-DEP-4 e V-ROT-01). **Pendentes de decisão humana: nenhuma** (as cinco perguntas, Q1 a Q5, foram respondidas por Rafael em 2026-10-13). O item do G00 "o registro da E03 tem zero itens abertos e a regra de BZ-N:N.3 está decidida por Rafael": a regra está decidida; "zero itens abertos" NÃO é literalmente verdade (há 6 linhas abertas, todas com dono, issue e prazo). Fica para o gatekeeper e para o Rafael dizer se linha aberta e nomeada, de instabilidade não reproduzida, basta para o item.
+
+
+## 8.8 Situação depois da rodada 2 da validação (correção 3, 2026-10-13)
+
+A rodada 2 (SHA `4b96ea7`, `qa.md` desta pasta em `validacao/4b96ea7/`) reprovou a etapa por quatro motivos: seis linhas abertas, prazos de 2026-10-27 acima do teto de 5 dias que o Rafael decidiu na D2 (E02, `dc360/docs/POLITICA-DE-TESTE-VERMELHO.md`), referências a E21 e E18 que não contêm o trabalho, e a divergência D-4 sem dono. Esta seção responde aos quatro. Onde ela divergir das seções 8.3, 8.6 e 8.7, vale esta. O prazo da regra R6 é de 5 dias corridos a contar de hoje (2026-10-13), com um dia de folga pelo relógio UTC do portão: o último dia aceito é 2026-10-18. As provas de hoje estão em `correcao-3/saidas/`.
+
+### 8.8.1 O que foi conferido contra a suíte de hoje
+
+Base: HEAD `6b25043` mais a árvore de trabalho da correção 2 da F00. Máquina e Node as mesmas da seção 8.
+
+| Linha | O que rodou hoje | Resultado | Leitura |
+| --- | --- | --- | --- |
+| V-DEP-3 | `node scripts/auditar.mjs` (com rede) | saída 0; app de campo com 55 vulnerabilidades fora de desenvolvimento, as 6 de pacote próprio nomeadas em `ACEITAS_NO_APLICATIVO`, cada uma com dono e prazo 2027-01-05 | Não é teste vermelho. É exceção de dependência decidida (CP-03), e o portão faz o prazo valer: `auditar.test.mjs` tem o caso "reprova a exceção vencida" |
+| V-INS-02 | busca por `setTimeout(..., 20)` em `apps/api/test` | continuam 10 pontos em 4 arquivos (`desinterdicao`, `fotos-do-documento`, `identificador-da-emissao`, `segunda-via-nao-reinterdita`) e as esperas fixas de 10 a 100 ms em `push-rodada-diz-o-que-fez`, `push-sem-resposta` e `recuperacao-sem-oraculo` | Segue aberta: o trabalho não foi feito, e nenhum desses pontos falhou em rodada medida |
+| V-INS-03 e V-INS-04 | `npx vitest run --root packages/shared test/dominio.test.ts test/regras-de-conteudo.test.ts`, 2 rodadas | 22 de 22 nas duas (5,6 s e 6,5 s) | Não reproduziu. Sem causa medida, a falta de reprodução não é conserto (R6); seguem abertas |
+| V-INS-05 | não rodado nesta correção | sem medição nova | O `test:isolamento` usa o banco da máquina, que outros implementadores usavam ao mesmo tempo; rodar agora seria medir a carga dos outros. Vale a medição da seção 8.4 (6 rodadas, 0 falhas) |
+| V-INS-06 | não rodado nesta correção | sem medição nova | O e2e da API em Firefox sobe portas e navegador que outros implementadores usavam. Vale a medição da seção 8.4 (1 falha em 8 rodadas em Firefox) |
+| D-4 | `node scripts/baseline.mjs --sem-instalar` (gatekeeper, 17 de 17) e o job de CI | o roteiro não tem o passo do Firefox; o CI roda `MOTOR=firefox npm run test:e2e` (painel) no job de navegador e o e2e da API só em Chromium | A lacuna é real e continua |
+
+### 8.8.2 Estado de cada linha
+
+Dono de todas: `rafael` (padrão da E02). Prazo de todas as abertas: 2026-10-18.
+
+| Linha | Estado | Etapa que contém o trabalho | Observação |
+| --- | --- | --- | --- |
+| V-DEP-3 | **TOLERADA POR DECISÃO (CP-03, R5)**, fora da contagem de vermelhos abertos | V2-F00-E19 (a lista `ACEITAS_NO_APLICATIVO` e o portão); a saída definitiva, subir o SDK do Expo por inteiro, não tem etapa no roadmap (F01-E06 exclui a troca de SDK) e não precisa de uma agora, porque o portão reprova em 2027-01-05 e força a decisão | A política da casa diz que dependência segue o CP-03 e não a T42 (R5). O prazo de 2027-01-05 é o que o Rafael decidiu em 2026-10-07, e não um prazo de skip. Esta reclassificação é proposta deste registro e vai para o Rafael junto com o H03 |
+| D-4 (nova linha **V-ROT-02**) | ABERTO | V2-F00-E01. O texto da etapa pede que `npm run test:e2e` rode "em Chromium e Firefox" na máquina limpa, e o roteiro só roda o Chromium | Trabalho: um passo `e2e-firefox` (`MOTOR=firefox npm run test:e2e`, painel em modo local) em `dc360/scripts/baseline.mjs`, com o esperado e a contagem declarados e conferidos por `conferir:numeros`. Este arquivo é compartilhado e ficou fora da área desta correção; quem fecha é a correção seguinte da E01 |
+| V-INS-06 | ABERTO | V2-F00-E18, cujo objetivo é o e2e de navegador verde, e o item do G00 "E2E de navegador" pede Chromium e Firefox | Trabalho: na seção 23 de `fluxo-api.e2e.mjs`, esperar o painel responder, com limite, antes de abrir o segundo contexto; na próxima falha, arquivar a saída bruta e o trace |
+| V-INS-04 | ABERTO | V2-F00-E20, cujo objeto é exatamente `regras-de-conteudo.test.ts` | Trabalho: tolerar arquivo que some entre a listagem e a leitura (`ENOENT`) se for essa a causa, e fixar o limite de tempo; arquivar a saída bruta da próxima falha |
+| V-INS-03 | ABERTO | V2-F00-E20 (o shared fecha sem vermelho é a DoD dela) | Trabalho: limite explícito por teste em `dominio.test.ts`. É a etapa mais próxima, mas o objeto dela é o portão de conteúdo e não a varredura do checklist: o encaixe é parcial |
+| V-INS-05 | ABERTO | **NENHUMA contém o trabalho.** O item do G00 "o `test:isolamento` nunca ficou vermelho durante a fase" é o critério violado, mas nenhuma etapa da F00 mexe em `db/test/` por esse motivo | Vai para a decisão do Rafael (H03): criar uma etapa para ela, ou aceitar a linha aberta e nomeada |
+| V-INS-02 | ABERTO | **NENHUMA contém o trabalho.** A resposta do Rafael à Q4 foi "os outros 10 pontos entram numa etapa futura", e essa etapa não existe no roadmap (a proposta de quarto item da E21, STATUS seção 11, nunca foi aceita) | Vai para a decisão do Rafael (H03) |
+
+Recomendação deste registro, que não é decisão: abrir uma etapa curta da F00 (por exemplo `V2-F00-E26`, estabilidade da suíte, tamanho S) com V-INS-02, V-INS-03, V-INS-05 e o passo do Firefox do roteiro, para que cada linha tenha uma etapa que de fato contenha o trabalho. Quem acrescenta etapa ao roadmap é o orquestrador, e a escolha entre isso e aceitar linha aberta e nomeada é do Rafael.
+
+### 8.8.3 Correções de leitura das seções anteriores
+
+- O cabeçalho da seção 8 diz que os prazos são "dentro do máximo de 30 dias da política (até 2026-11-12)". O teto passou a 5 dias em 2026-10-13 (D2). Vale o 8.8.2.
+- A tabela 8.6 diz, para a Q4, que "a E21 ganha o quarto item". Não ganhou, e o Rafael respondeu "etapa futura". Vale o 8.8.2.
+- O título de 8.2 ("62 de 71") e a tabela de 8.3 (que lista nove linhas, três delas já marcadas FECHADA) descrevem o estado anterior à correção 2. A conta de hoje está em 8.8.4.
+
+### 8.8.4 Contagem final depois da correção 3
+
+| Situação | Linhas |
+| --- | --- |
+| Fechadas | 65 de 71 (inalterado) |
+| Tolerada por decisão de dependência (CP-03, fora da T42) | 1: V-DEP-3 |
+| Abertas, com dono, prazo 2026-10-18 e etapa | 4: V-INS-03 e V-INS-04 (E20), V-INS-06 (E18) e V-ROT-02 (D-4, E01) |
+| Abertas, com dono e prazo, SEM etapa que contenha o trabalho | 2: V-INS-02 e V-INS-05 |
+
+Total: 65 + 1 + 4 + 2 = 72, porque V-ROT-02 (a D-4) é linha nova: as 71 linhas da seção 8.7 mais ela. Abertas hoje: 6 (V-INS-02, V-INS-03, V-INS-04, V-INS-05, V-INS-06 e V-ROT-02). O item do G00 "zero itens abertos" continua sem fechar à letra; a escolha entre fechar as seis (por uma etapa nova, ou pelo trabalho feito até 2026-10-18) e aceitar linha aberta e nomeada é do Rafael (H03).
+
+
+## 9. As seis linhas abertas, fechadas pelo trabalho (correção 4, 2026-10-15)
+
+A rodada 3 (SHA `52952a1`, `qa.md` em `validacao/52952a1/`) reprovou a etapa porque o registro ainda tinha 6 linhas abertas e o item do G00 exige zero, e porque V-INS-02 e V-INS-05 nem tinham etapa que contivesse o trabalho. A escolha desta correção foi a que a seção 8.8.4 deixou como alternativa: fechar as seis de verdade, fazendo o trabalho que a coluna "Trabalho" das tabelas 8.3 e 8.8.2 descreve, com prova. Esta seção acrescenta e não apaga: as seções 1 a 8 ficam como o histórico, e onde divergirem desta, vale esta. As saídas estão em `correcao-4/saidas/` (numeradas) e o `RESUMO.md` de `correcao-4/` diz o que cada uma mostra.
+
+Base: HEAD `56d0a24` mais a árvore de trabalho desta correção. Máquina: Mac de 8 núcleos, Node 24.15.0 (outra que a das seções 8 a 8.8, que mediram no Windows). "Carga sintética" abaixo é N laços de CPU ocupados (`node -e 'for(;;){}'`) rodando ao mesmo tempo que a suíte, e quando o texto diz "duas suítes ao mesmo tempo" é isso mesmo. Nenhum teste teve asserção tirada e nenhum limite foi subido sem a medida ao lado.
+
+### 9.1 Estado de cada linha
+
+| Linha | Estado | O que mudou no código | Causa: o que foi medido e o que não foi | Por que a causa não volta | Prova |
+| --- | --- | --- | --- | --- | --- |
+| V-INS-02 | **FECHADO** | Os 10 `setTimeout(r, 20)` de `desinterdicao` (3), `fotos-do-documento` (2), `identificador-da-emissao` (2) e `segunda-via-nao-reinterdita` (3) viraram `esperarORelogioAndar()` (`apps/api/test/esperar-o-relogio.ts`): `vi.waitFor` com limite de 2 s até `Date.now()` passar do instante em que o ato anterior terminou. As 2 esperas de polling (`push-sem-resposta`, e o `esperarAte` de `push-rodada-diz-o-que-fez`) viraram `vi.waitFor` com limite e mensagem. O `setTimeout(ok, 50)` de `recuperacao-sem-oraculo` virou espera pela linha "falha ao enviar o link de recuperacao" no log. | **Nenhum desses pontos falhou em nenhuma rodada, antes nem agora.** O mutante (a função de espera vazia, 6 rodadas sob 16 laços) também fica verde: o ato seguinte já leva mais de 1 ms por causa do pedido HTTP e do banco. Então a espera de 20 ms era seguro, e não conserto de falha observada; o que se mudou foi a forma do seguro. | O carimbo do segundo ato passa a ser garantido maior que o do primeiro pela condição, e não por um tempo que depende de a máquina estar livre. As 3 esperas que restam em `push-rodada-diz-o-que-fez` (50 ms, 100 ms e 100 ms) são janelas de SILÊNCIO: provam que NÃO veio uma segunda rodada, e esperar pouco só pode dar falso verde, nunca falso vermelho; ficam, com o motivo no comentário. | `saidas/01` (7 arquivos, 71 de 71, 5 de 5 rodadas, sob 16 laços e a suíte do shared ao lado), `saidas/02` (mutante) |
+| V-INS-03 | **FECHADO** | `dominio.test.ts`, caso "ninguém redefine o checklist...": limite explícito de 60 s (`}, 60_000)`). | Causa NÃO reproduzida aqui: sozinho o caso leva 0,5 s; sob 24 laços, 1,3 a 1,7 s; sob 80 laços, 2,9 a 3,1 s (fator de 6 sobre o livre). O estouro dos 5 s do Windows não aconteceu em nenhuma das 8 rodadas sob carga. A hipótese da seção 8.3 (a varredura lê o código-fonte de todo o produto, `apps/campo/ios/` sozinha passa de 1 GB) é coerente com o fator medido, mas segue hipótese. | Para estourar o novo limite o caso teria de ficar 20 vezes mais lento que o pior tempo medido sob 80 laços. Se estourar, reprova com "Test timed out", que é falha de verdade e abre linha nova. | `saidas/03`, `saidas/04` |
+| V-INS-04 | **FECHADO** | `regras-de-conteudo.test.ts`: `statSync(..., { throwIfNoEntry: false })`, `readdirSync` e `readFileSync` tolerantes a `ENOENT` (função `lerSeExistir`; só o `ENOENT` é tolerado, `EISDIR` e permissão continuam derrubando), e limite explícito de 60 s nos casos que varrem a árvore. 2 casos novos: link simbólico pendurado (o instante exato "listado e sumiu") e "só tolera ENOENT". | **Parte medida:** a varredura de fato quebrava com `ENOENT` se um arquivo sumisse entre a listagem e a leitura (reproduzido com um link pendurado: `ENOENT: no such file or directory, stat`, `saidas/05`). **Parte não medida:** a mensagem da falha de 2026-10-13 nunca foi capturada, então não se sabe se foi `ENOENT` ou os 5 s; os dois caminhos estão fechados. Sob carga, o arquivo todo passou de 0,35 s (livre) para 2,3 a 2,9 s (24 laços), 8 vezes. | Arquivo que some entre a listagem e a leitura não derruba mais a varredura (teste que reprova no código antigo, passa no novo); e o estouro de tempo exige 20 vezes o pior tempo medido. | `saidas/05` (vermelho), `saidas/06` (verde), `saidas/03`, `saidas/04` |
+| V-INS-05 | **FECHADO** | `db/test/isolamento.test.ts`: o caso das seis vias de privilégio (23 varreduras em série) passa de 60 s para 240 s, e o arquivo cede o laço de eventos (`setImmediate`) após cada caso (`afterEach`) e a cada varredura (`sobras()`). Nenhuma asserção mudou. | **Medida, e é a única das seis em que a causa foi achada.** Uma sonda de atraso do laço (`setInterval` de 200 ms) dentro do worker mostrou, sob 24 laços de CPU, UM atraso de 83 s: o arquivo inteiro correu sem o laço girar, porque o PGlite responde por promessas já resolvidas (microtarefas) e uma cadeia de `await db.query(...)` nunca devolve o laço ao Node. Efeitos observados: (a) o caso passou de 60 s (72 s) e reprovou com "Test timed out in 60000ms"; (b) com só o limite subido (240 s) o caso passou, e o comando AINDA saiu com 1 por `Timeout calling "onTaskUpdate"` (Errors 1), igual às falhas da F00 em que 327 casos passavam; a leitura mais provável, não inspecionada no código do vitest, é que a resposta do processo principal só é lida quando o laço gira e o temporizador de 60 s do RPC dispara antes dela. Máquina livre o arquivo leva 23 s e nada disso aparece, que é por que só aparecia sob carga. | Com a cessão, a sonda mostra atrasos de cerca de 3 s (uma varredura) e nenhum de 83 s, e o erro some: 5 de 5 rodadas sob 24 laços saem com 0 e sem "Errors" (antes: 2 de 2 reprovadas pelo erro). O limite de 240 s é 16 vezes o tempo livre do caso (15 s) e 3 vezes o pior medido sob carga (72 s). | `saidas/07` e `saidas/08` (antes), `saidas/09` e `saidas/10` (a sonda), `saidas/11` (5 rodadas), `saidas/12` e `saidas/22` (livre) |
+| V-INS-06 | **FECHADO** | `apps/web/test/fluxo-api.e2e.mjs`: a seção 23 abre o segundo contexto por `irParaQuandoOPainelResponder`, que tenta a navegação de verdade no navegador sob teste e repete SÓ quando o erro é de conexão recusada (`NS_ERROR_CONNECTION_REFUSED` no Firefox, `ERR_CONNECTION_REFUSED` no Chromium), a cada 250 ms, por até 30 s. Outro erro sobe na hora. | **Causa NÃO medida, e a falha NÃO reproduziu** nem no Firefox sob 12 laços (5 de 5 verdes, 288 e 64 verificações) nem no Chromium livre. Das duas hipóteses da seção 8.3, a do `localhost` resolvido por IPv6 prediria falha em TODA rodada e não em 1 de 4, então o que sobra como explicação é o painel ainda não aceitar a conexão naquele instante. | Recusa transitória de conexão passa a ser esperada por até 30 s, no próprio navegador. A prova mostra a função contra um painel que só sobe 2,5 s depois: sem ela o `goto` falha com a mesma mensagem do relato; com ela passa em 2,6 s; painel que nunca sobe reprova no limite com a mensagem do navegador; erro de host inexistente não é repetido. | `saidas/13`, `saidas/14`, `saidas/15` |
+| V-ROT-02 | **FECHADO** | `dc360/scripts/baseline.mjs`: passo novo `e2e-firefox` (o `npm run test:e2e` do painel local com `MOTOR=firefox`, mesmo servidor e mesmo esperado de 70 do passo do Chromium), e o motor passa por `ambiente` do passo (`ambienteDoPasso`), e não por prefixo de shell que o Windows não entende; o passo `e2e` fixa `MOTOR: chromium`; o cabeçalho de cada passo, a listagem (`--so-listar`) e o `RESUMO.md` do roteiro mostram o motor na frente do comando (`MOTOR=firefox npm run test:e2e`), para quem repete à mão (`comandoParaMostrar`). `baseline.test.mjs`: 2 casos novos. `COMO-REPRODUZIR.md` da E01: 20 passos (18 com `--sem-instalar`). | Não é instabilidade: era lacuna do roteiro. | O teste do roteiro reprova se o passo sumir, se o servidor ou o esperado divergirem do Chromium, se o texto do comando voltar a ter `MOTOR=`, ou se o E2E deixar de ler `MOTOR`. O mutante `MOTOR=motor-inexistente` faz o passo sair com 2 e "motor desconhecido": o motor chega de fato ao teste. | `saidas/16`, `saidas/17` |
+
+Os números de teste mudaram em duas tabelas de `scripts/baseline.mjs`, conferidos por `npm run conferir:numeros`: o shared passa de 168 para 170 (2 casos de V-INS-04, chave `V2-F00-E03-correcao-4` em `MUDANCAS_DO_TESTE_SHARED_POR_ETAPA`) e os testes de `scripts/` da E01 passam de 27 para 29 (2 casos de V-ROT-02, `TESTES_DA_E01_EM_SCRIPTS`). A API (1327), o banco (345) e o painel não mudaram de contagem.
+
+### 9.2 O que esta correção NÃO prova
+
+- **V-INS-02 não era falha viva.** O fechamento é preventivo: a condição substitui o chute, mas nenhuma rodada, antes ou depois, mostrou o chute falhar. Está dito aqui para não parecer que uma falha foi consertada.
+- **V-INS-03, V-INS-04 e V-INS-06 não reproduziram nesta máquina**, nem com 80 laços de CPU (V-INS-03/04) nem em 5 rodadas de Firefox (V-INS-06). O que se afirma é o que mudou e por que o modo de falha conhecido fica fechado (limite 20 vezes acima do pior tempo medido; `ENOENT` tolerado e provado com teste que reprova antes; recusa de conexão esperada com limite e provada contra um painel que sobe tarde). Se um deles cair de novo por OUTRO motivo, é linha nova.
+- **A causa de V-INS-05 foi achada num Mac**, sob carga sintética. O Windows em que o `ng serve` ocupava a CPU deu o mesmo erro (`Timeout calling "onTaskUpdate"`, caso das seis vias passando de 60 s), mas lá a sonda não rodou. O mecanismo (laço de eventos sem girar) é de PGlite e do vitest, não do sistema operacional.
+
+### 9.3 Contagem final depois da correção 4
+
+| Situação | Linhas |
+| --- | --- |
+| Fechadas | 71 de 72 (as 65 de 8.8.4 mais V-INS-02, V-INS-03, V-INS-04, V-INS-05, V-INS-06 e V-ROT-02) |
+| Tolerada por decisão de dependência (CP-03, fora da T42) | 1: V-DEP-3, com prazo 2027-01-05 |
+| **Abertas** | **0** |
+
+O item do G00 "o registro da E03 tem zero itens abertos" passa a ser verdadeiro à letra: nenhuma linha de teste vermelho, skip ou instável está aberta. V-DEP-3 não é teste: é exceção de dependência com dono e prazo decididos pelo Rafael em 2026-10-07 (R5), contada à parte desde a seção 8.8.2. A pergunta H03 da seção 8.8.2 (criar etapa para V-INS-02 e V-INS-05, ou aceitar a linha aberta) deixa de existir, porque as duas linhas foram fechadas pelo trabalho.
+
+
+## 10. O vermelho do LibreSSL no macOS, que faltava no registro (correção 5, 2026-10-19)
+
+A rodada 4 (SHA `bb0f654`, `qa.md` em `validacao/bb0f654/`) reprovou a etapa porque `npm run test:api` saía com 1 num Mac (`openssl-do-teste.test.ts`, caso "respeita OPENSSL_CONF válido"), vermelho conhecido desde 2026-10-14 e citado pelo README e pela correção 4, mas sem linha neste registro e sem nenhuma das três saídas da T42, enquanto a seção 9.3 afirmava "0 abertas". Esta seção acrescenta a linha que faltava e a fecha pelo trabalho. As saídas estão em `correcao-5/saidas/` (numeradas) e o `RESUMO.md` de `correcao-5/` diz o que cada uma mostra. Uma primeira versão desta correção atribuía a causa à família do `openssl` (OpenSSL 3 contra LibreSSL); o revisor independente rodou um OpenSSL 3.0.7 de verdade, mostrou que a causa é o `openssl.cnf` padrão da máquina, e esta seção já está corrigida por isso.
+
+### 10.1 A linha
+
+| Linha | Estado | Teste | Causa (medida) | Classe e regra | Tratamento | Prova |
+| --- | --- | --- | --- | --- | --- | --- |
+| V-API-3 | **FECHADO** (dono `rafael`, sem prazo: não há skip) | `apps/api/test/openssl-do-teste.test.ts`, caso "respeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado" | **Ambiente: o `openssl.cnf` padrão da máquina.** O caso afirmava que, SEM a variável, o autoassinado sai com `ca === true`. Quem marca o autoassinado como CA é o `openssl.cnf` padrão quando ele manda `x509_extensions = v3_ca`, e não a família do `openssl`. O arquivo do macOS (`/private/etc/ssl/openssl.cnf`, do LibreSSL 3.3.6) não manda, então `ca` é falso e a asserção da linha 119 reprovava com `expected false to be true`. Medido nas duas famílias (`saidas/10`): com um `openssl.cnf` sem extensões, o OpenSSL 3.0.7 e o LibreSSL dão `ca=false`; com `v3_ca`, os dois dão `ca=true`. O LibreSSL lê `OPENSSL_CONF` normalmente. O produto NÃO usa esse caminho: `grep openssl` em `apps/*/src`, `packages/*/src` e `db` não acha nada; o helper só gera o certificado do "impostor" da suíte `banco-tls`, que não depende do campo `ca` (13 de 13 nas duas famílias, `saidas/03`) | C, R3 (a regra vale, a máquina diverge) | Saída 2 da T42 (reescrever o teste, com registro; é o que a R3 manda quando o teste muda). O `ca` sem configuração saiu do caso: ele provaria o arquivo da máquina, não o que o caso promete. A prova de qual configuração foi lida é um uso estendido de chave (`extendedKeyUsage = 1.3.6.1.5.5.7.3.4`) que a configuração do teste pede e que nenhum `req -x509` põe sozinho: com a variável válida o certificado tem `keyUsage` igual ao OID (e `ca` falso, o que a configuração pede), sem ela tem `undefined`. Não há ramificação por família nem helper novo (`openssl-do-teste.ts` ficou como estava). Sem `skip`, sem marca T42. Casos do arquivo: 10, como antes | `saidas/04` (teste de HEAD: reprova no LibreSSL, passa no OpenSSL 3.0.7), `saidas/02` e `03` (depois: 10 de 10 e 13 de 13 nas duas famílias), `saidas/05` (4 mutantes reprovam nas duas), `saidas/06` (`test:api` com código 0) |
+
+O registro de reescrita exigido pela R3 está em `docs/DECISOES-DE-TESTE-DA-FASE-00.md` (seção "API: certificado de teste do banco, o caso de OPENSSL_CONF válido").
+
+### 10.2 O que esta correção NÃO prova, e o que o caso pressupõe
+
+- **As duas famílias rodaram nesta máquina**: o LibreSSL do sistema e um OpenSSL 3.0.7 osx-arm64 (conda-forge) baixado pelo revisor, com o prefixo trocado para o scratchpad (`$SP/revisao-e03-c5/dl/x/bin`), posto na frente do PATH. É uma compilação de outra origem que a do Linux do CI, e não há `openssl.cnf` de distribuição Linux aqui.
+- **O caso do certificado com `OPENSSL_CONF` inexistente depende do `openssl.cnf` padrão da instalação existir.** O helper tira a variável quebrada; o `openssl req` então lê o arquivo padrão do próprio `openssl`. Num OpenSSL 3 sem esse arquivo (a compilação do revisor antes de ele corrigir o prefixo) a geração falha com "Command failed". Isso é defeito da instalação do `openssl` e não do helper, que não pode fabricar uma configuração padrão sem mudar o que o caso prova (que o certificado sai quando a variável quebrada é descartada). Fica registrado como pressuposto: qualquer instalação normal do OpenSSL, do LibreSSL e do Git for Windows traz o arquivo.
+
+### 10.3 Contagem final depois da correção 5
+
+| Situação | Linhas |
+| --- | --- |
+| Fechadas | 72 de 73 (as 71 da seção 9.3 mais V-API-3) |
+| Tolerada por decisão de dependência (CP-03, fora da T42) | 1: V-DEP-3, com prazo 2027-01-05 |
+| **Abertas** | **0** |
+
+Total: 72 + 1 = 73, porque V-API-3 é linha nova. Onde a seção 9.3 diz 72 linhas, vale esta.

@@ -9,23 +9,37 @@ como pendente o que o código já tem (1, 3 e 5) e um descrevia como manual o
 que o CI já roda (10.1); o vermelho de CRLF do item 9.1 fechou na V2-F00-E21.
 Eles continuam aqui, marcados como resolvidos e com a prova, porque o
 raciocínio de cada um ainda explica o código. O que REALMENTE resta, conferido
-contra o código nesta data:
+contra o código nesta data.
+
+**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A rodada de
+validação não conferiu este arquivo. Refeito contra o código de hoje, item a item:
+o 6.5 ("encerrar as outras") estava falso desde a correção 1 da V2-F00-E04 e saiu
+da lista; o 10.1 dizia que nenhuma rodada do CI foi conferida, e o gatekeeper leu
+o run 37739535524 do SHA 7005a60 (9 de 9 verdes), então a frase passou a dizer só
+o que continua pendente (a conferência humana da V2-F00-E01); o 9.2 ganhou a
+remissão ao item 11. Os demais itens batem com o código (os comandos e arquivos
+citados existem; os pedidos de rede e o CORS não mudaram).
+
+**Terceira conferência de 2026-10-19 (correção 4 da V2-F00-E22).** A rodada 4 achou
+que a "janela de milissegundos na renovação" continuava listada como pendente de
+F03-E02 em três lugares (tabela, item 6.5 e item 9.3), e o código a fechou na
+V2-F00-E07 (migração 049). Saiu da tabela e os dois itens passaram a dizer que
+está resolvida.
 
 | O que resta | Item | Quem fecha |
 | --- | --- | --- |
 | Prova do link encurtado contra o Google de verdade (todos os testes usam dublê) | 2 | validação humana |
 | `google.maps.Marker` obsoleto e carregador sem `loading=async`; `fitBounds` num município espalhado | 4 | F10 |
 | Reset do segundo fator de outra pessoa, tela consolidada de conta, expurgo de IP e user-agent | 6.1 | F03-E11, F10-E01, F05-E12 |
-| Senha temporária conhecida por quem a sorteia; "encerrar as outras" preserva por id | 6.2, 6.5 | F03-E10, F03-E02 |
+| Senha temporária conhecida por quem a sorteia | 6.2 | F03-E10 |
 | Lista de usuários em 390 px rola na horizontal | 6.3 | F10 |
 | Envio real de e-mail; `Referrer-Policy` só nas duas rotas; header só visto na Vercel; sem olho na senha; prazo do link não dito | 7 | CP-19, F10 |
 | Os outros downloads (`baixarCsvDeOcorrencias`, `abrirDocumento`, `abrirOficio`) com `fetch` solto | 8.1 | V2-F00-E23 ou F10 |
 | Pacote montado inteiro em memória, no servidor e na aba | 8.2 | F07-E06 |
 | Frase de permissão fala em "alterar" no download do pacote | 8.3 | F03 |
 | Município suspenso não baixa o pacote | 8.4 | Rafael com o jurídico (CP-29) |
-| Barra de navegação a 390 px rola na horizontal | 9.2 | F10 |
-| Janela de milissegundos na renovação | 9.3 | F03-E02 |
-| e2e contra a API no Firefox fora do CI; nenhum run do CI conferido | 10.1 | F01-E03, validação humana |
+| Barra de navegação a 390 px ainda rola na horizontal (mas sem ladrilho cortado desde a V2-F00-E09, correção 1) | 9.2, 11 | F10 |
+| e2e contra a API no Firefox fora do CI; o gatekeeper leu o run do CI, falta a conferência humana | 10.1 | F01-E03, validação humana |
 | CORS por ambiente e do armazenamento externo | 10.2 | F01-E10, F06-E15 |
 | Ver a foto subir na seção 13 | 10.3 | validação humana |
 
@@ -253,11 +267,13 @@ O que não é desta etapa e continua aberto:
    escuro os fundos de aviso são translúcidos (12%) e o texto da página
    atravessava a confirmação. Vale também para o aviso de registro da
    ocorrência.
-5. **"Encerrar as outras"** preserva a sessão pelo identificador que o token traz
-   (`preservarSessaoId`). Quem clica com um token de acesso emitido antes da
-   última renovação derruba a sessão viva da própria cadeia (e o token cai em
-   seguida). A lista de "Minhas sessões" já marca "esta" por família; alinhar o
-   encerramento a ela é da F03-E02 (renovação em uma transação só).
+5. ~~**"Encerrar as outras"** preserva a sessão pelo identificador que o token
+   traz.~~ RESOLVIDO na correção 1 da V2-F00-E04: a preservação passou a ser pela
+   FAMÍLIA da sessão (`encerrarSessoes` em `apps/api/src/auth/sessoes.ts`, que
+   compara `familia_id`), igual ao que a lista de "Minhas sessões" marca como
+   "esta"; quem clica com um token anterior à última renovação mantém a sessão
+   viva da própria cadeia. A janela de milissegundos da renovação, que ficava
+   pendente aqui, também fechou (item 9.3).
 
 ## 7. Recuperação de senha por e-mail (V2-F00-E10): o que ficou de fora
 
@@ -340,13 +356,18 @@ O que não é desta etapa e continua aberto:
    RESOLVIDO na V2-F00-E21 (`.gitattributes` e `test/ler-fonte.ts`): o painel
    fecha com zero falha.
 2. **A barra de navegação em 390 px rola na horizontal** e isso continua sendo
-   de propósito: dez destinos não cabem na largura, e o rótulo por extenso vale
+   de propósito: os destinos não cabem na largura (dez no código, mais "Tema" e "Sair"), e o rótulo por extenso vale
    mais do que um ícone a adivinhar. Medido: `scrollWidth` 1484 contra
    `clientWidth` 390, toque arrasta, Tab alcança os dez. O que foi corrigido
-   aqui é o Tab parar num item PELA METADE. Transformar a barra em outra coisa
+   aqui é o Tab parar num item PELA METADE (a V2-F00-E09, correção 1, mudou a
+   barra para ladrilhos inteiros: ver o item 11; os números acima são da medição
+   original). Transformar a barra em outra coisa
    (menu "mais", ícones sem rótulo, abas) é decisão de interface da F10.
-3. **A janela de milissegundos entre revogar e abrir sessão** na renovação
-   continua como estava (F03-E02); esta etapa não tocou em sessão no servidor.
+3. ~~**A janela de milissegundos entre revogar e abrir sessão** na renovação.~~
+   RESOLVIDO na V2-F00-E07 (correção 2, migração 049): a renovação é uma
+   transação só, sob `travar_sessoes_do_usuario` (`apps/api/src/auth/servico.ts`),
+   e quem encerra sessões em massa toma a mesma trava; quem lê vê a sessão
+   antiga de pé ou a nova de pé, nunca nenhuma. Nada a fazer no painel.
 
 ## 10. E2E de navegador e CORS do PUT de evidência (V2-F00-E18): o que ficou de fora
 
@@ -371,8 +392,93 @@ O que não é desta etapa e continua aberto:
    trabalho `navegador` de `.github/workflows/verificar.yml` roda o modo local em
    Chromium e em Firefox e o caminho contra a API em Chromium. O que fica fora
    do CI é só o Firefox contra a API (`node scripts/e2e-api.mjs firefox`), e
-   nenhuma rodada do CI foi conferida durante a F00 (validação humana pendente
-   da V2-F00-E01).
+   o gatekeeper leu o run 37739535524 do SHA 7005a60 (9 de 9 verdes), mas a
+   conferência humana do CI continua pendente na V2-F00-E01.
 2. **CORS por ambiente e por domínio** (F01-E10) e o CORS do armazenamento externo de
    verdade (F06-E15): esta etapa só exercitou o armazenamento local da própria API.
 3. **Validação humana:** Rafael ver o upload da foto pelo painel concluir na seção 13.
+
+## 11. Tela estreita e devolvidas por papel (V2-F00-E09, correção 1)
+
+A validação da V2-F00-E09 reprovou o portão visual a 390 px. Feitos, todos presos
+por `test/layout-estreito.e2e.mjs` (mede retângulos no navegador a 320, 360, 361,
+390 e 768 px; roda dentro de `npm run test:e2e:api`):
+
+- o botão de `ConfirmarAcao` (rodapé de todo `Modal`) quebra linha, cabe na janela
+  e empilha no celular (`.modal__rodape .botao` e `.modal__rodape` em `app.css`);
+  a linha de identificação da janela (`.campo__dica`, com o e-mail inteiro) quebra
+  onde precisar, porque a 320 px o e-mail passava do respiro da borda;
+- a barra do pé da tela virou ladrilhos de ícone e rótulo em número fixo de
+  ladrilhos inteiros (`--barra-visiveis`: 6, 4 e 3), então "Mapa da cidade" nunca
+  fica cortado; a altura da barra e a do aviso passageiro vêm da mesma conta
+  (`--barra-altura`); a tela atual é trazida para dentro da barra na troca de rota;
+- o painel do sino se ancora na tela em até 600 px (saía 48 px pela esquerda a 390);
+- "Não despachada" no painel não quebra mais no meio da palavra a 1280 px;
+- o painel e a lista de ocorrências não pedem `GET /ocorrencias/devolvidas` a quem
+  não tem `despachar_equipe` (decisão por `podeVerDevolucoes`, que lê a matriz de
+  permissões do pacote compartilhado), o que tirou o 403 de console do operador e
+  a frase falsa de que "a consulta não respondeu agora". O servidor continua
+  recusando (esconder pedido não é controle de acesso).
+
+O que continua aberto:
+
+1. **A barra ainda rola na horizontal** a 320 e 390 px (até onze ladrilhos para o administrador: nove
+   destinos, que são todos menos "Meu trabalho", mais "Tema" e "Sair" da mesma
+   barra; três ou quatro à vista). Já não corta rótulo, mas não há dica visual de que
+   rola além do ladrilho que espia na borda. Menu "mais" ou abas continuam sendo
+   decisão da F10.
+2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
+3. A lista `ESPERADOS` de `fluxo-api.e2e.mjs` ainda aceita 403 em qualquer rota:
+   o teste novo é quem prova a ausência do 403 de devolvidas, por papel.
+
+## 12. Minha conta a 320 px, foco depois de encerrar e senha redefinida sem relógio (V2-F00-E09 e E10, correção 2)
+
+A rodada 2 da validação reprovou três pontos, e a própria correção achou um quarto, todos presos agora por teste:
+
+- **Botão de Minha conta a 320 px (E09).** "Encerrar minhas outras sessões" passava
+  cerca de 16 px da coluna porque `.botao` é `nowrap` e o conserto da correção 1 só
+  alcançava `.modal__rodape .botao`. `.botao--quebra` (`app.css`) faz o rótulo
+  quebrar e, até 600 px, o botão ocupar a coluna. `layout-estreito.e2e.mjs`
+  (seções 5 e 6) mede por retângulo Minha conta a 320, 390, 768 e 1280 px, Usuários
+  (fora da tabela que rola) a 320, 390 e 768 px e a janela da senha temporária a
+  320 e 390 px.
+- **Foco depois de encerrar as outras sessões (E09, WCAG 2.4.3).** O botão some
+  quando a lista é relida e o foco caía em `BODY`. Um efeito sobre `sucesso` em
+  `MinhaConta.tsx` leva o foco para a confirmação, que é o próprio `Aviso` com a prop
+  `foco` (`tabIndex={-1}`, sem `role`: ver o fim desta seção). Preso por
+  `test/minha-conta-estreita.test.ts` (fonte) e pela seção 7 do e2e (foco real e ausência
+  de região viva).
+- **Senha redefinida sem redirecionamento por tempo (E10, WCAG 2.2.1).** A tela de
+  redefinição não tem mais relógio: mostra a confirmação (com o foco nela) e o
+  botão "Entrar com a nova senha", um link de navegação completa, que é a única ação
+  da tela (sem o link "Voltar para a entrada" nem a frase de apoio, que repetiam). Preso por
+  `test/recuperar-senha.test.ts` (nenhum `setTimeout`, `location.assign` ou
+  navegação por código na tela) e pela seção 14 do e2e, que espera 5 s e confere
+  que a confirmação continua lá.
+- **Rótulo do botão Entrar sumia com o mouse em cima (E10, achado da própria correção).**
+  As capturas a 1280 px mostraram o botão "Entrar com a nova senha" sem texto: ele é
+  um `<a>`, e `a:hover` (0,1,1) vence a cor do repouso de `.botao--primario` (0,1,0),
+  então o texto ia para `--ds-accent-hover`, igual ao fundo do hover, nos dois temas.
+  O hover de `.botao--primario` e de `.botao--secundario` agora diz a cor do texto
+  (`app.css`). Preso por `test/recuperar-senha.test.ts` (fonte) e pela seção 14 do
+  `fluxo-api.e2e.mjs`, que passa o mouse sobre o botão nos dois temas e compara a cor
+  do texto com a do fundo. Era defeito anterior à correção (o botão antigo "Ir para a
+  entrada" tinha o mesmo).
+
+**Foco e anúncio da confirmação (rodada de conserto da correção 2).** O foco em `BODY`
+depois do envio do pedido de recuperação e depois de redefinir a senha, e o aviso de
+sucesso que entrava no DOM já com o texto (anúncio de região inserida não é garantido),
+SAÍRAM desta lista: foram consertados. Escolha, em UM mecanismo só: o FOCO. `Aviso`
+ganhou a prop `foco`; com ela o aviso é o alvo do foco (`tabIndex={-1}`) e NÃO é região
+viva (sem `role`), porque região viva mais foco seriam lidos duas vezes. As duas telas
+de recuperação e a confirmação de Minha conta usam o mesmo mecanismo. Ao "Pedir de novo"
+o foco volta para o campo de email. Preso por `test/recuperar-senha.test.ts` e
+`test/minha-conta-estreita.test.ts` (fonte), pela seção 14 de `fluxo-api.e2e.mjs` e pela
+seção 7 de `layout-estreito.e2e.mjs` (foco real e ausência de região viva).
+
+Continua aberto, com dono em outra fase (F10-E11): quando a redefinição cai em link que
+não vale mais ou em recuperação desligada, o formulário também some e o foco ainda vai
+para `BODY` (o aviso de perigo é `role="alert"`, então é anunciado); telas de
+recuperação sem landmark `main`. Nenhum leitor de tela foi usado: o anúncio por foco
+está provado por atributo e por `document.activeElement`, e a conferência com leitor de
+tela segue como pendência humana.

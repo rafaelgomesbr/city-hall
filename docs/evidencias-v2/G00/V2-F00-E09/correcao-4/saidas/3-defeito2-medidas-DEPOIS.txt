@@ -1,0 +1,26 @@
+320x568 claro: com a janela aberta {"toastNaTela":false,"botoes":[{"texto":"Copiar senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Copiar senha"},{"texto":"Já anotei a senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Já anotei a senha"}]}
+alvo do 'Já anotei a senha' (centro): {"x":126.3671875,"y":439.4375}
+foco depois de Tab: Já anotei a senha
+320x568 claro: depois de fechar a janela {"toast":true,"texto":"Sessões de Diego Nakamura Alves encerradas. 1 sessão caiu.Fe"}
+320x568 claro: clique no Fechar do aviso aceito; avisos na tela = 0
+erros de console []
+320x568 escuro: com a janela aberta {"toastNaTela":false,"botoes":[{"texto":"Copiar senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Copiar senha"},{"texto":"Já anotei a senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Já anotei a senha"}]}
+320x568 escuro: depois de fechar a janela {"toast":true,"texto":"Diego Nakamura Alves não tinha sessão aberta. Nada foi encer"}
+320x568 escuro: clique no Fechar do aviso aceito; avisos na tela = 0
+erros de console []
+390x844 claro: com a janela aberta {"toastNaTela":false,"botoes":[{"texto":"Copiar senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Copiar senha"},{"texto":"Já anotei a senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Já anotei a senha"}]}
+390x844 claro: depois de fechar a janela {"toast":true,"texto":"Diego Nakamura Alves não tinha sessão aberta. Nada foi encer"}
+390x844 claro: clique no Fechar do aviso aceito; avisos na tela = 0
+erros de console []
+390x844 escuro: com a janela aberta {"toastNaTela":false,"botoes":[{"texto":"Copiar senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Copiar senha"},{"texto":"Já anotei a senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Já anotei a senha"}]}
+390x844 escuro: depois de fechar a janela {"toast":true,"texto":"Diego Nakamura Alves não tinha sessão aberta. Nada foi encer"}
+390x844 escuro: clique no Fechar do aviso aceito; avisos na tela = 0
+erros de console []
+1280x900 claro: com a janela aberta {"toastNaTela":false,"botoes":[{"texto":"Copiar senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Copiar senha"},{"texto":"Já anotei a senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Já anotei a senha"}]}
+1280x900 claro: depois de fechar a janela {"toast":true,"texto":"Diego Nakamura Alves não tinha sessão aberta. Nada foi encer"}
+1280x900 claro: clique no Fechar do aviso aceito; avisos na tela = 0
+erros de console []
+1280x900 escuro: com a janela aberta {"toastNaTela":false,"botoes":[{"texto":"Copiar senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Copiar senha"},{"texto":"Já anotei a senha","dentroDaTela":true,"coberto":false,"noCentroEsta":"Já anotei a senha"}]}
+1280x900 escuro: depois de fechar a janela {"toast":true,"texto":"Diego Nakamura Alves não tinha sessão aberta. Nada foi encer"}
+1280x900 escuro: clique no Fechar do aviso aceito; avisos na tela = 0
+erros de console []

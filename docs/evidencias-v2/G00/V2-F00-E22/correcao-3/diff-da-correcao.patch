@@ -1,0 +1,923 @@
+diff --git a/dc360/Dockerfile b/dc360/Dockerfile
+index b9bfd50..440bbfc 100644
+--- a/dc360/Dockerfile
++++ b/dc360/Dockerfile
+@@ -1,12 +1,16 @@
+ # =====================================================================
+ # Imagem da API.
+ #
+-# NÃO FOI CONSTRUÍDA NEM EXECUTADA AQUI: a máquina não tem Docker. A partida
+-# da API contra Postgres real foi provada À MÃO, contra um PostgreSQL 18
+-# nativo (sem contêiner), e é isso que garante que o produto sobe; a
+-# construção da imagem em si é conferida pelo job `implantavel` da integração
+-# contínua, onde há Docker. Construir e subir uma vez antes do primeiro deploy
+-# continua obrigatório.
++# O QUE PROVA ESTA IMAGEM: nada que esteja no repositório. A integração
++# contínua NÃO constrói a imagem (o `verificar.yml` não tem `docker build`): o
++# job `implantavel` sobe a API direto no Node, contra um Postgres 16 real, e é
++# isso que prova que o produto sobe, não a imagem. A partida contra Postgres
++# real também foi provada À MÃO, contra um PostgreSQL 18 nativo, sem contêiner.
++# Esta é a imagem de produção: `fly.toml` (`[build] dockerfile`) manda o
++# `fly deploy` construí-la no construtor do Fly, e foi assim que o servidor
++# em `defesa-civil.fly.dev` (o `eas.json` aponta para ele) subiu. Fora do Fly
++# só `docker build` a constrói, e nenhum log de construção está arquivado
++# aqui. O CI que constrói a imagem é a V2-F01-E08.
+ #
+ # Quatro escolhas que valem explicação:
+ #
+diff --git a/dc360/Dockerfile.console b/dc360/Dockerfile.console
+index 455c279..adf194a 100644
+--- a/dc360/Dockerfile.console
++++ b/dc360/Dockerfile.console
+@@ -9,11 +9,14 @@
+ # duas imagens e dois aplicativos, o console só tem acesso ao que foi escrito
+ # no aplicativo do console.
+ #
+-# NÃO FOI CONSTRUÍDA NEM EXECUTADA AQUI: esta máquina não tem Docker. O que foi
+-# provado à mão foi o `npm run build --workspace @dc360/console` fora de
+-# contêiner, que é a etapa que os quatro pontos abaixo tornam possível dentro
+-# dele. Construir a imagem uma vez antes do primeiro deploy continua
+-# obrigatório; ver docs/IMPLANTACAO.md.
++# O QUE PROVA ESTA IMAGEM: nada que esteja no repositório. O que foi provado à
++# mão foi o `npm run build --workspace @dc360/console` fora de contêiner, que
++# é a etapa que os quatro pontos abaixo tornam possível dentro dele. A
++# integração contínua não constrói esta imagem (nem a da API): ela só é
++# construída por `fly deploy -c fly.console.toml` ou `docker build`, e nenhum
++# registro dessa construção está arquivado aqui. Construir a imagem uma vez
++# antes do primeiro deploy continua obrigatório; ver docs/IMPLANTACAO.md. O CI
++# que constrói imagem é a V2-F01-E08.
+ #
+ # QUATRO ESCOLHAS que valem explicação, e a primeira é a razão de este arquivo
+ # existir em vez de reusar o `Dockerfile` da API:
+diff --git a/dc360/README.md b/dc360/README.md
+index f20d6ed..d95009a 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -8,12 +8,12 @@ build) valem lá, não aqui.
+ 
+ | Pacote | O que é | Situação |
+ | --- | --- | --- |
+-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
++| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 170 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1327 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -126,11 +126,11 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
+ 
+ | Peça | Escolha | Por quê |
+ | --- | --- | --- |
+-| Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
++| Senha | scrypt do `node:crypto`, N=2^17, r=8, p=1 (cerca de 128 MB por verificação; o hash guarda o N usado, então senha derivada antes com N=2^16 continua valendo) | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
+ | Token de acesso | JWT HS256, 15 minutos por padrão (`ACESSO_MINUTOS`, teto de 60) | Na LEITURA PURA (GET e HEAD de rota que só lê), verificado só pela assinatura: conta, papel e sessão NÃO são consultados, então conta desativada ainda lê até o token vencer (a F03-E03 fecha a leitura). Na ESCRITA, que é todo método que não é GET nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` e o HEAD delas (laudo, termo de interdição, termo de desinterdição e PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`, porque praticam um ato ou mudam dado do município; o dossiê e a busca, que só gravam o registro da própria leitura, seguem como leitura até a F03-E03; a lista é fixada por `apps/api/test/get-com-efeito.test.ts`), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
+ | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
+ | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
+-| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo |
++| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo, e depois toma a mesma trava da pessoa e relê a senha e a conta antes de a sessão existir: se a senha foi trocada ou redefinida, ou a conta desativada, enquanto o scrypt rodava, a sessão volta atrás e a resposta é a recusa genérica (V2-F00-E07, correção 3; a ordem é linha do município, depois trava, para não fechar ciclo com a suspensão) |
+ | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
+ | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
+ | Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
+@@ -174,6 +174,13 @@ O código antigo `sessao` deixou de existir. O esquema de erro único da API, co
+ o catálogo inteiro (validação, regra de negócio, conflito), é da V2-F02-E03, que
+ generaliza esta tabela.
+ 
++Um caso fora da tabela, porque não é de acesso: pedido cujo corpo o Fastify não
++consegue ler (JSON vazio com `content-type: application/json`, JSON torto, corpo
++grande demais, tipo de conteúdo que nenhuma rota aceita) responde o 4xx do próprio
++Fastify (400, 413 ou 415) com `erro: "corpo_invalido"` e uma frase em português, e
++não mais 500 com "informe o código ao suporte" (V2-F00-E07, correção 3;
++`apps/api/test/corpo-ilegivel.test.ts`).
++
+ Trocar o papel de uma pessoa **não revoga as sessões dela** (decisão da
+ V2-F00-E07): a escrita seguinte com o token velho responde 401 `nao_autenticado`,
+ o cliente renova e repete sem a pessoa notar, e a renovação lê o papel do banco.
+@@ -257,6 +264,7 @@ que deixa entrar com um aviso é exigência de mentira.
+ | Teto | Contador próprio, separado do da senha | O da senha zera a cada acerto de senha: com um contador só, adivinhar seis dígitos teria tentativas infinitas |
+ | Códigos de recuperação | Oito, 80 bits cada, mostrados uma vez, guardados como resumo, cada um vale uma vez | Sem eles, telefone perdido vira SQL na produção com o papel que ignora o isolamento |
+ | Ativação | Confere um código ANTES de ligar | Relógio de telefone errado ou leitura que não guardou nada trancariam a pessoa do lado de fora |
++| Desafio e senha trocada | O desafio leva uma impressão da senha conferida na primeira etapa (HMAC com o segredo de assinatura, campo `cr`), e a segunda etapa só abre sessão, ou liga o recurso, se a senha ainda for a mesma (V2-F00-E07, correção 3) | O desafio vale cinco minutos. Sem isto, quem tinha a senha antiga e o código abria sessão depois de uma troca ou redefinição feita nesse intervalo, ou ligava o segundo fator com o aparelho dele na conta de quem acabara de trocar a senha. Desafio emitido antes dessa versão não traz a impressão e é recusado como expirado |
+ | Desligar | Exige a senha atual, apaga o segredo e derruba os códigos | O painel esquecido aberto na recepção não desliga a proteção de ninguém |
+ 
+ O código QR da ativação é desenhado pelo próprio painel
+@@ -305,9 +313,11 @@ exatamente o que alguém vai querer auditar depois. O registro é escrito em
+ transação própria, senão o ROLLBACK da recusa o levaria junto.
+ 
+ O campo é **opcional**, e a razão tem data de validade escrita no esquema: há
+-aparelho em campo com coleta gravada antes dele, e não existe tela para
+-desbloquear item recusado. Obrigatório agora, essas coletas virariam 422 para
+-sempre, e uma vistoria de morro seria destruída por uma mudança de esquema. Ele
++aparelho em campo com coleta gravada antes dele, e a fila não reenvia o item
++recusado por causa do dado (o botão "Tentar de novo" some; sobram "Esta coleta é
++minha", a correção e o descarte, em `apps/campo/src/app/(agente)/fila.tsx`).
++Obrigatório agora, essas coletas virariam 422 para sempre, e uma vistoria de
++morro seria destruída por uma mudança de esquema. Ele
+ passa a obrigatório quando não restar coleta antiga em nenhum aparelho.
+ 
+ ### Rodar
+@@ -718,7 +728,7 @@ some sem nada reclamar.
+ `apps/web/test/acessibilidade.test.ts` calcula. Ele lê `tokens.css`, resolve as
+ cadeias de `var()`, achata a transparência dos selos sobre a superfície de
+ baixo (senão o número do tema escuro seria ficção, porque o selo tem 12% de
+-opacidade) e aplica a fórmula de luminância da WCAG a dezessete pares de
++opacidade) e aplica a fórmula de luminância da WCAG a 21 pares de
+ frente e fundo, **nos dois temas**. Onde o alvo não é texto, o mínimo cai para
+ 3:1, e a razão está escrita ao lado do par.
+ 
+@@ -869,7 +879,8 @@ não encerra. Ele via tudo o que não é da conta dele e nada do que é.
+ 
+ E a tela diz, em destaque, o que seria desastroso deixar implícito: **este
+ painel precisa de conexão.** O trabalho sem sinal é o do aplicativo de campo,
+-que guarda no aparelho e envia sozinho quando o sinal volta. Um agente que
++que guarda no aparelho e envia sozinho quando o sinal volta, com o aplicativo
++aberto (não há envio em segundo plano). Um agente que
+ descobrisse isso no barranco perderia a vistoria inteira.
+ 
+ O menu dele também mudou: começa em "Meu trabalho" e não oferece painel nem a
+@@ -929,7 +940,7 @@ definição: **você voltou quando o sistema soube que você voltou.**
+ 
+ | Peça | Decisão | Por quê |
+ | --- | --- | --- |
+-| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o portão CA-06 reprova a décima sexta. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
++| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O teto é de 27 funções e hoje está cheio (27 de 27, contadas no catálogo depois de aplicar as 50 migrações em 2026-10-15): o portão CA-06 (`db/test/isolamento.test.ts`) reprova a vigésima oitava. Cada subida do teto tem a razão escrita no próprio teste, e a mais recente foi justamente `varrer_tarefas_novas` (migração 042), que também é função de relógio. Não há vaga para gastar com um canal que o sino já cobre. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
+ | Prorrogar | Existe, e é contado | Sem isso, todo serviço que demora mais que o previsto vira alarme falso, e alarme falso repetido é o único jeito conhecido de matar o recurso: a coordenação aprende a ignorar a tela. O novo prazo conta a partir de AGORA, senão uma saída vencida há duas horas continuaria vencida depois de prorrogada |
+ | "O agente confirmou o retorno" | A coordenação **não** consegue marcar isso | Quem diz "voltei" é quem voltou. Se ela pudesse, a linha afirmaria que o agente confirmou quando outra pessoa decidiu por ele, e é essa a linha que alguém vai ler depois de um acidente |
+ 
+@@ -1141,9 +1152,13 @@ A coluna Linux ficou "não provado" até existir um run de verdade do CI, e agor
+ existe: o trabalho "Linha de base (baseline.mjs) em Linux" rodou o roteiro
+ inteiro (19 de 19 passos, código 0) no run 38445527075, do SHA `c9895e9`, que o
+ gatekeeper da V2-F00-E25 leu (`docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`);
+-o mesmo run passou os demais trabalhos. Isso cobre o roteiro, não cada comando
+-da tabela um a um, e é anterior às correções 2 de 2026-10-14: com a árvore de
+-hoje não houve run de CI. A coluna do macOS vem do roteiro rodado nesta máquina
++o mesmo run passou os demais trabalhos. Depois dele, o run 38618369218, do SHA
++`7585801` (candidato `52952a1`, de 2026-10-15), repetiu o roteiro (19 de 19,
++código 0) e fechou 9 de 9 trabalhos verdes, lido pelo gatekeeper em
++`docs/evidencias-v2/G00/V2-F00-E22/VEREDITO.md`. Isso cobre o roteiro, não cada
++comando da tabela um a um, e é anterior às correções 3 da E07 e da E12, à
++correção 1 da E21 e à correção 1 da E25: com a árvore de hoje ainda não houve run de CI. A
++coluna do macOS vem do roteiro rodado nesta máquina
+ (`docs/evidencias-v2/G00/V2-F00-E22/correcao-2/saidas/baseline/`). A evidência
+ da coluna do Windows está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+ 
+@@ -1336,7 +1351,7 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2987 testes em seis pacotes
++npm test                    # 2989 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1327 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+@@ -1592,7 +1607,7 @@ E das funções `SECURITY DEFINER`, que são portas abertas na parede do RLS:
+ | --- | --- |
+ | Todas fixam `search_path` | Sem isso, quem controla o search_path faz a função chamar código dele com privilégio de dono. É a escalada clássica, e não precisa de bug no SQL |
+ | Nenhuma executável por `PUBLIC` | O padrão do Postgres é conceder `EXECUTE` a PUBLIC: esquecer o `REVOKE` abre a função para qualquer papel conectado |
+-| No máximo doze | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto |
++| No máximo 27 | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto. Começou em doze e subiu por razão escrita, uma a uma, no próprio teste (a última, de 26 para 27, foi `varrer_tarefas_novas`, migração 042) |
+ | `dc360_app` não é superusuário, não ignora RLS e não é dono de tabela | Se fosse, todo o resto viraria enfeite |
+ 
+ Verifiquei o portão contra migrações descuidadas de propósito: uma tabela nova
+@@ -1609,26 +1624,34 @@ mesmo papel sem privilégio que a API usará em produção.
+ 
+ ## Integração contínua
+ 
+-`.github/workflows/verificar.yml` roda a cada push e a cada pull request, em
++`.github/workflows/verificar.yml` roda a cada push em `main`, `master` ou `v2/**`
++e a cada pull request, em
+ trabalhos paralelos (os cinco principais abaixo; há ainda o de dependências,
+-`npm run auditar`, o do restore do banco e o de ferramentas do roadmap):
++`npm run auditar`, o da linha de base em Linux (`baseline.mjs`), o do restore do
++banco e o de ferramentas do roadmap, que também confere os `INDEX.md` da
++evidência com `scripts/conferir-indices-de-evidencia.mjs`: nove ao todo; os
++dois longos, linha de base e restore, hoje só rodam em push cujo commit traga
++`[ci completo]`: o disparo manual e a agenda de segunda-feira estão escritos no
++arquivo, mas só valem quando o `verificar.yml` chegar ao ramo padrão, e o de
++`origin/master` ainda não os tem):
+ 
+ <!-- numeros: nao sao contagem -->
+ | Trabalho | O que ele impõe |
+ | --- | --- |
+-| Testes e tipos | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
++| Testes e tipos | TypeScript estrito, depois o portão CA-06 sozinho e antes da suíte, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
+ | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
+ | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
+ | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
+ | Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
+ 
+-O CA-06 roda separado e antes de tudo de propósito: isolamento entre
+-municípios é a regra número um, e se ela quebrar nada mais importa.
++O CA-06 roda separado e antes da suíte inteira de propósito (o TypeScript
++estrito vem antes dele no job): isolamento entre municípios é a regra número
++um, e se ela quebrar nada mais importa.
+ 
+ A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
+ do CI foi conferida por uma pessoa durante a F00 (é validação humana pendente
+ da V2-F00-E01); o gatekeeper leu o run 37739535524 do SHA 7005a60, com 9 jobs
+-verdes. O CI decide dependência por `npm run auditar` (job `dependencias`), e não por
++verdes, e depois o 38618369218 do SHA 7585801, também com 9 de 9. O CI decide dependência por `npm run auditar` (job `dependencias`), e não por
+ `npm audit` puro; o `npm audit` puro ainda lista os avisos aceitos pelo CP-03,
+ e os relatórios brutos dele só são arquivados como evidência.
+ 
+@@ -1655,7 +1678,8 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   a analogia com a D1 para esses cinco pacotes); passa no
+   `npm run auditar` conforme o CP-03 (V2-F00-E19), que sai com código 2 e não
+   aprova quando o registro de avisos está fora do ar. Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+-  de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
++  de aparelho físico está arquivado**, e relato não é prova (as capturas de
++  emulador Android de E06 e E16 estão listadas em `apps/campo/LEIA-ME.md`). O que falta é o que só o
+   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+   aparelho fica sem sinal (V2-F14-E12).
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index 2cf5e5e..b3e1ebd 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -143,8 +143,8 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
+   depois de VER a outra conexão parada na trava (`pg_locks`), e reprovam se
+   ela não parar.
+ - **Entrar no mesmo instante da suspensão (consertado na migração 050):** o
+-  login abre sessão sem família e não passa pela trava por pessoa, e
+-  `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
++  login abria sessão sem família e (até a correção 3 da E07, abaixo) não passava
++  pela trava por pessoa, e `abrir_sessao` lia a suspensão com um SELECT comum. Medido em Postgres 16
+   real nas duas ordens (o login primeiro, a suspensão primeiro): a sessão do
+   login escapava da suspensão e, depois da reativação, renovava. A 050 faz o
+   login (só ele) ler a suspensão com `FOR SHARE`, que conflita com o UPDATE de
+diff --git a/dc360/apps/api/src/armazenamento/cli.ts b/dc360/apps/api/src/armazenamento/cli.ts
+index 8e156d7..2a7c32e 100644
+--- a/dc360/apps/api/src/armazenamento/cli.ts
++++ b/dc360/apps/api/src/armazenamento/cli.ts
+@@ -76,10 +76,10 @@ function emGb(bytes: number): string {
+  *
+  * É a única leitura deste arquivo que acontece fora de contexto de tenant, e
+  * ela é do operador da plataforma, não do produto. A alternativa seria uma
+- * função `SECURITY DEFINER` que enumerasse municípios, e o orçamento delas está
+- * em quinze de quinze com o portão CA-06 reprovando a décima sexta: não se
+- * gasta a última numa lista que um comando de linha lê com a própria
+- * credencial.
++ * função `SECURITY DEFINER` que enumerasse municípios, e o teto delas é de 27,
++ * hoje cheio (portão CA-06, em `db/test/isolamento.test.ts`), que reprova a
++ * vigésima oitava: não há vaga para gastar numa lista que um comando de linha
++ * lê com a própria credencial.
+  */
+ async function municipios(url: string): Promise<Array<{
+   id: string; municipio: string; uf: string; teto: string | null;
+diff --git a/dc360/apps/api/src/armazenamento/orfaos.ts b/dc360/apps/api/src/armazenamento/orfaos.ts
+index 10efed3..8a1daf2 100644
+--- a/dc360/apps/api/src/armazenamento/orfaos.ts
++++ b/dc360/apps/api/src/armazenamento/orfaos.ts
+@@ -126,8 +126,9 @@ export type DependenciasDaVarredura = {
+    * dentro do contexto dele, debaixo do RLS. Isso é o que permite a varredura
+    * rodar sozinha sem nenhum privilégio novo: enumerar município exigiria ler
+    * `organizacoes` fora de contexto, o que só uma função `SECURITY DEFINER`
+-   * faria, e o orçamento delas está em quinze de quinze com o portão CA-06
+-   * reprovando a décima sexta. Não se gasta a última numa lista.
++   * faria, e o teto delas é de 27, hoje cheio (portão CA-06, em
++   * `db/test/isolamento.test.ts`), que reprova a vigésima oitava. Não há vaga
++   * para gastar numa lista.
+    *
+    * COM a lista (é como o comando do operador chama, que tem a credencial de
+    * dono): ela é autoritativa, e cobre um caso que a outra forma não alcança,
+@@ -181,8 +182,8 @@ async function chavesDeFotoDePerfil(c: Consulta, chaves: readonly string[]): Pro
+  * município existe e a que reconhece a foto de perfil (`usuarios.foto_chave`,
+  * migração 040) como linha justificadora. Não há caminho em que a linha de uma prefeitura responda
+  * pelo objeto de outra, e por isso não existe função privilegiada nova: o
+- * orçamento de `SECURITY DEFINER` deste produto está em quinze de quinze, e o
+- * portão CA-06 reprova a décima sexta.
++ * teto de `SECURITY DEFINER` deste produto é de 27, hoje cheio, e o portão
++ * CA-06 (em `db/test/isolamento.test.ts`) reprova a vigésima oitava.
+  */
+ export async function varrerOrfaos(
+   dep: DependenciasDaVarredura,
+diff --git a/dc360/apps/api/src/auth/vigencia.ts b/dc360/apps/api/src/auth/vigencia.ts
+index 61fa41e..e29d4c0 100644
+--- a/dc360/apps/api/src/auth/vigencia.ts
++++ b/dc360/apps/api/src/auth/vigencia.ts
+@@ -33,7 +33,8 @@ import { FalhaAutenticacao } from "./servico.js";
+  * compartilham `familia_id`, e a rotacionada só vale se a família ainda tem
+  * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram com a
+  * 047: todos atingem a sessão viva, e isso derruba a cadeia inteira. Desde a
+- * migração 049 eles e a renovação tomam a mesma trava por pessoa
++ * migração 049 eles e a renovação tomam a mesma trava por pessoa, e desde a
++ * correção 3 da E07 o login também a toma
+  * (`travar_sessoes_do_usuario`, ver `auth/sessoes.ts`), e a renovação é uma
+  * transação só: nenhum encerramento cai no meio de uma renovação sem ver a
+  * sessão nova, e a família nunca fica sem sessão de pé no meio da rotação.
+diff --git a/dc360/apps/api/src/rotas/avisos.ts b/dc360/apps/api/src/rotas/avisos.ts
+index 1d1b031..4498e3b 100644
+--- a/dc360/apps/api/src/rotas/avisos.ts
++++ b/dc360/apps/api/src/rotas/avisos.ts
+@@ -312,8 +312,9 @@ export async function rotasAvisos(
+         passagem do tempo, exatamente como o prazo vencido logo acima, e por
+         isso mora no mesmo lugar e pelo mesmo motivo. O push deste produto sai
+         de um relógio sem ninguém logado, e relógio sem contexto de município
+-        precisa de função `SECURITY DEFINER`: o orçamento está em quinze de
+-        quinze e o portão CA-06 reprova a décima sexta.
++        precisa de função `SECURITY DEFINER`: o teto é de 27, hoje cheio (portão
++        CA-06, em `db/test/isolamento.test.ts`), e o portão reprova a vigésima
++        oitava.
+ 
+         O QUE ISSO CUSTA, e está dito em voz alta no guia do coordenador em vez
+         de disfarçado: o aviso só nasce quando alguém daquele município consulta
+diff --git a/dc360/apps/api/src/rotas/saida-a-campo.ts b/dc360/apps/api/src/rotas/saida-a-campo.ts
+index 514e252..3475908 100644
+--- a/dc360/apps/api/src/rotas/saida-a-campo.ts
++++ b/dc360/apps/api/src/rotas/saida-a-campo.ts
+@@ -71,8 +71,9 @@ import { autorizar, RegraDeNegocio } from "../servidor.js";
+  *
+  *   * SEM PUSH PARA A COORDENAÇÃO. O push deste produto sai de um relógio que
+  *     roda sem ninguém logado, e relógio sem contexto de município precisa de
+- *     função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o
+- *     portão CA-06 reprova a décima sexta. O canal é o sino, que a coordenação
++ *     função `SECURITY DEFINER`. O teto é de 27, hoje cheio (portão CA-06, em
++ *     `db/test/isolamento.test.ts`), e o portão reprova a vigésima oitava. O
++ *     canal é o sino, que a coordenação
+  *     já olha, e ele só toca para quem está com o painel aberto. Isso está
+  *     dito em voz alta em vez de disfarçado.
+  *   * SEM ESCALONAMENTO AUTOMÁTICO. Não existe "se ninguém encerrar em quinze
+diff --git a/dc360/apps/api/test/objeto-orfao.test.ts b/dc360/apps/api/test/objeto-orfao.test.ts
+index 94b86bb..5efcfae 100644
+--- a/dc360/apps/api/test/objeto-orfao.test.ts
++++ b/dc360/apps/api/test/objeto-orfao.test.ts
+@@ -339,8 +339,8 @@ describe("Sem a lista de municípios, que é como a API roda", () => {
+       Este caminho existe para a varredura poder rodar sozinha sem NENHUM
+       privilégio novo. Enumerar município exigiria ler `organizacoes` fora de
+       contexto de tenant, o que só uma função `SECURITY DEFINER` faria, e o
+-      orçamento delas está em quinze de quinze com o portão CA-06 reprovando a
+-      décima sexta.
++      teto delas é de 27, hoje cheio, e o portão CA-06 reprova a vigésima
++      oitava.
+ 
+       A confirmação acontece debaixo do RLS: dentro do contexto do município,
+       `organizacoes` devolve a linha dele e mais nada.
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 06888d8..4bb537e 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -1,6 +1,6 @@
+ # Aplicativo de campo
+ 
+-**Estado: escrito por inteiro, compila, sem artefato de aparelho arquivado.**
++**Estado: escrito por inteiro, compila, sem artefato de aparelho físico arquivado (há capturas de emulador Android, abaixo).**
+ 
+ Este diretório traz o aplicativo do agente de proteção e defesa civil, em
+ React Native com Expo. Ele está completo em código e configuração: telas,
+@@ -9,13 +9,24 @@ navegação, coleta offline, câmera, GPS, assinatura no dedo, fila de envio,
+ 
+ O que ele não tem é a única coisa que não se resolve daqui: **prova arquivada
+ de que ele roda num aparelho**. Há relato de uso (o `README.md` da raiz fala de
+-compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas, e
+-outras sessões falaram de emulador), mas nenhuma foto, vídeo, registro ou
+-captura de aparelho está no repositório, e relato não é prova. Até a
+-V2-F14-E12 arquivar esse artefato, nada aqui deve ser lido como "testado em
+-aparelho". Emulador de Android e simulador de iOS dependem da máquina de quem
+-roda (o simulador só existe em Mac); nenhum registro de execução num deles está
+-no repositório.
++compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas), mas
++nenhuma foto, vídeo, registro ou captura de aparelho FÍSICO (iPhone ou
++Android) está no repositório, e relato não é prova. Até a V2-F14-E12 arquivar
++esse artefato, nada aqui deve ser lido como "testado em aparelho".
++
++Emulador é outra coisa, e há um pouco dele arquivado: os validadores das
++etapas E06 e E16 rodaram o aplicativo no emulador Android (AVD
++`Medium_Phone_API_36.1`, APK de depuração construído do commit validado) e
++deixaram capturas e o relato. As capturas estão em
++`docs/evidencias-v2/G00/V2-F00-E06/validacao/4b96ea7/anexos/` (seis, da fila e
++da faixa de envio pausadas pela sessão encerrada e pela senha provisória) e em
++`docs/evidencias-v2/G00/V2-F00-E16/validacao/4b96ea7/anexos/` (seis, da câmera,
++da tarja de permissão negada, dos ajustes do aparelho e da foto guardada), e o
++relato está nos `qa.md` dessas duas pastas. Duas ressalvas: parte delas foi
++tirada com remendos de QA que nunca entraram no código (cada `qa.md` diz quais),
++e emulador não prova câmera, GPS nem `expo-sqlite` sob morte de processo num
++aparelho de verdade. Não há nenhum registro de execução no simulador de iOS
++(ele só existe em Mac, e depende da máquina de quem roda).
+ 
+ O que É verificável daqui, e está verificado:
+ 
+@@ -115,7 +126,7 @@ src/ui/              tokens e componentes
+ 
+ **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
+ feita sem sinal vive em `packages/campo`, com 223 testes de unidade do motor de campo, e a
+-integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
++integração dela com a API tem mais 17 em `apps/api` (`test/campo-integracao.test.ts`). Este diretório liga os
+ fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
+ isso que ele é fino de propósito.
+ 
+@@ -124,8 +135,9 @@ isso que ele é fino de propósito.
+ O Expo traz quase seiscentos pacotes. Deixá-lo fora significa que
+ `npm install` na raiz do produto continua rápido, e que o `npm audit` de lá
+ não passa a depender do ciclo de lançamento do React Native. Este diretório
+-tem o próprio `package-lock.json` e a própria auditoria, que também fecha em
+-zero.
++tem o próprio `package-lock.json` e a própria auditoria, que NÃO fecha em zero
++no `npm audit` puro (fecha em `npm run auditar`, com as seis exceções nomeadas
++do CP-03; ver a tabela acima).
+ 
+ ## Por que `react-native-reanimated` e `react-native-worklets` estão fixados
+ 
+diff --git a/dc360/apps/campo/LOJAS.md b/dc360/apps/campo/LOJAS.md
+index 64ce091..cd3f2b1 100644
+--- a/dc360/apps/campo/LOJAS.md
++++ b/dc360/apps/campo/LOJAS.md
+@@ -212,8 +212,8 @@ Ferramenta de trabalho do agente de proteção e defesa civil municipal.
+ O aplicativo é usado em campo, onde o sinal falha: encosta, área de risco,
+ zona rural. Por isso tudo funciona sem conexão. O agente baixa as ocorrências
+ designadas para a equipe dele antes de sair, coleta a vistoria no local sem
+-depender de rede, e o envio acontece sozinho quando o sinal volta, sem risco
+-de perder ou duplicar registro.
++depender de rede, e o envio sai sozinho quando o sinal volta e o aplicativo
++está aberto, sem risco de perder ou duplicar registro.
+ 
+ O que o agente faz no aplicativo:
+ 
+@@ -294,9 +294,10 @@ código escrito de código comprovado.
+ - **Não há prova arquivada de que o aplicativo rodou num aparelho.** Ele
+   compila, passa no `expo-doctor` (20 de 21 na manhã de 2026-10-14 por patches novos e 21 de 21 depois da correção 4 da E19, no mesmo dia; o resultado depende do dia) e o TypeScript não reclama. Há
+   relato de uso (o `README.md` da raiz fala de compilação nativa num iPhone em
+-  08/09/2026, com três vistorias coletadas, e o `LEIA-ME.md` fala de emulador),
+-  mas nenhuma foto, vídeo, registro ou captura de aparelho está no repositório,
+-  e relato não é prova. Até a V2-F14-E12 arquivar esse artefato, este documento
++  08/09/2026, com três vistorias coletadas), mas nenhuma foto, vídeo, registro
++  ou captura de aparelho físico está no repositório, e relato não é prova. Há
++  capturas e relato de emulador Android das validações de E06 e E16 (ver o
++  `LEIA-ME.md`), que não contam como aparelho. Até a V2-F14-E12 arquivar esse artefato, este documento
+   não afirma que alguma tela foi aberta num aparelho, nem que não foi.
+ - **Câmera, GPS e assinatura não têm prova de aparelho arquivada.** A lógica
+   que os cerca está escrita e testada fora do celular; o comportamento deles no
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index aa23c94..3376ad8 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -19,9 +19,10 @@ Duas coisas ficaram decididas e precisam ser conhecidas antes de mexer aqui:
+ 
+ - **`coletadaPor` é OPCIONAL, e vai continuar sendo por enquanto.** Existe
+   aparelho em campo com coleta gravada antes deste campo, com `autor: null`, e
+-  não existe tela para desbloquear item que o servidor recusou: campo
+-  obrigatório daria 422 do Zod para sempre nessas coletas, e uma vistoria de
+-  morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
++  a fila não reenvia sozinha item que o servidor recusou pelo dado (a tela só
++  oferece corrigir o rascunho, quando a coleta é da própria pessoa, ou
++  descartar): campo obrigatório daria 422 do Zod para sempre nessas coletas, e
++  uma vistoria de morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
+   mesmo dia em que o cartão "Sem autor registrado" puder sair daqui (item 5), e
+   não antes.
+ - **O campo é montado na hora do envio**, a partir de `item.autor`
+@@ -466,8 +467,9 @@ produção:
+   (recarrega o módulo e zera banco e `fetch` em cada caso); reprovava com
+   `--randomize` em quatro das oito sementes.
+ 
+-Continua sem prova de aparelho: nada disto foi visto em emulador nem em aparelho. As
+-capturas da correção (`docs/evidencias-v2/G00/V2-F00-E06/correcao-2/capturas/`) são de
++Continua sem prova de aparelho: esta correção não foi vista em emulador nem em aparelho
++(a validação anterior exercitou o emulador Android sobre o código sem ela; ver o
++`LEIA-ME.md`). As capturas da correção (`docs/evidencias-v2/G00/V2-F00-E06/correcao-2/capturas/`) são de
+ nível E1+ (a árvore real em Chromium, sem a barra de abas nem a fonte do aparelho).
+ 
+ ## 15. Sair da conta avisa o que apaga, e o GPS bom conclui (V2-F00-E15). Falta ver no aparelho
+diff --git a/dc360/apps/web/src/paginas/MeuTrabalho.tsx b/dc360/apps/web/src/paginas/MeuTrabalho.tsx
+index f0b3edc..ca1cd8c 100644
+--- a/dc360/apps/web/src/paginas/MeuTrabalho.tsx
++++ b/dc360/apps/web/src/paginas/MeuTrabalho.tsx
+@@ -95,7 +95,8 @@ export function MeuTrabalho() {
+         <strong>Este painel precisa de conexão.</strong> Ele serve para se
+         preparar antes de sair e para conferir o que já foi feito depois de
+         voltar. A coleta em área sem sinal é feita no aplicativo de campo, que
+-        guarda tudo no aparelho e envia sozinho quando o sinal volta.
++        guarda tudo no aparelho e envia sozinho quando o aplicativo está aberto e o
++        sinal volta.
+       </Aviso>
+ 
+       {!equipe && (
+diff --git a/dc360/compose.yaml b/dc360/compose.yaml
+index bab6d7a..a850257 100644
+--- a/dc360/compose.yaml
++++ b/dc360/compose.yaml
+@@ -1,12 +1,13 @@
+ # =====================================================================
+ # Ambiente local: sobe banco, aplica migrações, cria os papéis e serve a API.
+ #
+-# NÃO PÔDE SER EXECUTADO onde foi escrito: a máquina não tem Docker. As
+-# correções abaixo vêm da auditoria (NODE_ENV, HOST, papéis) e da partida
+-# provada À MÃO contra um PostgreSQL 18 real, sem Docker, que é o que garante
+-# que a API sobe. A conferência no contêiner é o job `implantavel` da
+-# integração contínua, que roda onde há Docker. Construir e subir uma vez
+-# antes do primeiro deploy continua sendo obrigatório.
++# NUNCA FOI EXECUTADO E NADA NO REPOSITÓRIO O PROVA. As correções abaixo vêm
++# da auditoria (NODE_ENV, HOST, papéis) e da partida provada À MÃO contra um
++# PostgreSQL 18 real, sem Docker, que é o que garante que a API sobe. A
++# integração contínua NÃO usa este arquivo nem constrói a imagem: o job
++# `implantavel` sobe a API direto no Node, contra um Postgres 16 de serviço.
++# Construir e subir uma vez antes do primeiro deploy continua sendo
++# obrigatório; o CI que constrói a imagem é a V2-F01-E08.
+ #
+ # ESTE COMPOSE É PARA DESENVOLVER E PARA CONFERIR QUE A IMAGEM SOBE, não para
+ # produção. Produção usa Postgres gerenciado (com backup e PITR) e um proxy
+diff --git a/dc360/db/PENDENCIAS.md b/dc360/db/PENDENCIAS.md
+index e021070..d237b80 100644
+--- a/dc360/db/PENDENCIAS.md
++++ b/dc360/db/PENDENCIAS.md
+@@ -18,7 +18,8 @@ validação não conferiu este arquivo. Refeito contra o código de hoje, afirma
+ por afirmação (o relógio do resumo em `apps/api/src/index.ts`, a migração 026, o
+ console, os códigos de recuperação da 039, os papéis de `COLOCAR-DE-PE.md` e
+ `IMPLANTACAO.md`, o teto de 27 funções `SECURITY DEFINER` em
+-`db/test/isolamento.test.ts:626`): nada mudou. A migração 048 (V2-F00-E05,
++o caso "existem, e são poucas o bastante para caberem numa revisão" de
++`db/test/isolamento.test.ts`): nada mudou. A migração 048 (V2-F00-E05,
+ correção 1) recriou `dono_do_token` com uma coluna a mais de saída, sem criar
+ função privilegiada nova, então o teto continua 27 e o texto "hoje no máximo 27"
+ vale.
+diff --git a/dc360/docs/ARMAZENAMENTO.md b/dc360/docs/ARMAZENAMENTO.md
+index 2ab9858..9e0c413 100644
+--- a/dc360/docs/ARMAZENAMENTO.md
++++ b/dc360/docs/ARMAZENAMENTO.md
+@@ -62,11 +62,14 @@ quem renegocia contrato, e essa pessoa está na mesa, não no barranco. A margem
+ o dobro das vistorias de um mês normal.
+ 
+ **Por que a recusa é 507 e não 413.** `packages/campo/src/transporte.ts`
+-classifica 5xx e 429 como falha **temporária** e 400, 401, 403, 404, 409 e 422
+-como **permanente**. Item permanente vira `bloqueado` na fila do aparelho, e não
+-existe tela para desbloquear coleta recusada: um 4xx aqui prenderia a vistoria no
+-telefone do agente até alguém apagá-la, e apagar é a única saída que o produto
+-nunca quer oferecer para trabalho de campo.
++classifica 5xx e 429 como falha **temporária**; as recusas de 4xx que são do dado
++ou do papel (400, 403 `sem_permissao`, 404, 409 e 422) como **permanente**; trata
++401 e os 403 de conta desativada e de senha provisória como pausa da fila, sem
++perder o item; e o 403 de suspensão do município como temporário. Item permanente vira `bloqueado` na fila do aparelho e
++só anda quando alguém age nele: reenviar (que some quando a recusa é do dado),
++corrigir o rascunho ou descartar. Um 4xx aqui prenderia a vistoria no telefone do
++agente até alguém agir, e descartar, que apaga, é a saída que o produto nunca
++quer induzir para trabalho de campo.
+ 
+ Com 507 a fila adia e insiste, sem teto de tentativas para falha temporária. A
+ coleta sobrevive no aparelho e **drena sozinha** no dia em que o teto for
+@@ -288,7 +291,8 @@ operador, que traz a lista completa.
+ - **O consumo não aparece no console do fornecedor.** Quem é avisado hoje é o
+   administrador do município (`GET /armazenamento/uso`) e o operador da
+   plataforma (`--uso`). Levar o número para a métrica que o console lê é uma
+-  coluna numérica a mais na migração 023, que outra frente está tocando agora.
++  coluna numérica a mais em `metricas_municipio` (migração 023), que ainda não
++  foi feita.
+ - **Não existe tela.** O número sai por rota e por comando, e nenhuma página do
+   painel o mostra ainda.
+ - **O aviso não usa o sino.** `avisos.ocorrencia_id` é obrigatório, e este aviso
+diff --git a/dc360/docs/CARTAO-DO-AGENTE.md b/dc360/docs/CARTAO-DO-AGENTE.md
+index c2ef4ce..5585a2c 100644
+--- a/dc360/docs/CARTAO-DO-AGENTE.md
++++ b/dc360/docs/CARTAO-DO-AGENTE.md
+@@ -57,16 +57,19 @@ depende de abrigo público. Em branco significa **não contei**, e não zero.
+ ## SEM SINAL
+ 
+ **Trabalhe normalmente.** A vistoria fica guardada no aparelho e sobe sozinha
+-quando o sinal voltar.
++quando o sinal voltar, **com o aplicativo aberto**: fechado, ele não envia nada.
+ 
+ A faixa no alto da tela diz em que pé está:
+ 
+ | A faixa diz | Significa |
+ | --- | --- |
+-| Tudo sincronizado | Nada esperando. Pode desligar |
+-| Sem sinal, N na fila | Guardado no aparelho. **Não se perde** |
++| Tudo sincronizado | Nada pendente no aparelho. Pode desligar |
++| Sem sinal, salvando neste aparelho | Guardado no aparelho. **Não se perde** |
++| Com sinal, N esperando envio | Vai subir. Deixe o aplicativo aberto |
+ | Enviando | Subindo agora |
+-| N item precisa de você | Abra a fila de envio e veja o motivo |
++| Precisa de correção | Abra a fila de envio, leia o motivo e corrija |
++| Coleta de outro agente no aparelho | Ela só sobe quando quem a fez entrar neste aparelho |
++| Sessão encerrada, Conta desativada ou Defina a sua senha | O envio parou e as coletas continuam guardadas. Faça o que a frase da faixa manda |
+ 
+ **Nunca reinstale o aplicativo com item na fila.** Reinstalar apaga o que ainda
+ não subiu.
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index b0d50fe..84fd169 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -35,10 +35,11 @@ D-U-N-S e a revisão não forem gargalo.
+ ## Parte 1: o que já está pronto (não precisa mexer)
+ 
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+-  e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+-  compartilhados.
+-- **4914 testes somando o aplicativo** (contagem estática de `npm run
+-  conferir:numeros` em 2026-10-14; a execução imprime pulos por ambiente à
++  e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
++  stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
++  espacial), esquemas Zod compartilhados.
++- **4916 testes somando o aplicativo** (contagem estática de `npm run
++  conferir:numeros` em 2026-10-15; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+   15 de 17, por dois passos que dependem da máquina (README, "O roteiro da linha
+@@ -56,9 +57,11 @@ D-U-N-S e a revisão não forem gargalo.
+ - O aplicativo está inteiro em código e passa nos testes. Há relato de uso em
+   emulador Android (menu, minuta, login, GPS, câmera, o ciclo completo) e de
+   compilação nativa e três vistorias coletadas num iPhone em 08/09/2026, mas
+-  **nenhum artefato de aparelho está arquivado** (a prova é a V2-F14-E12), e
+-  relato não é prova. O que você vai fazer no Mac é refazer essa prova com o
+-  que o repositório consiga guardar.
++  **nenhum artefato de aparelho físico está arquivado** (a prova é a
++  V2-F14-E12), e relato não é prova. Do emulador Android há capturas e relato
++  das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não contam como
++  aparelho. O que você vai fazer no Mac é refazer essa prova com o que o
++  repositório consiga guardar.
+ 
+ ---
+ 
+@@ -101,9 +104,13 @@ eas init          # cria o projeto no Expo e grava o projectId
+ 
+ ### CRÍTICO 4: o endereço do servidor no build
+ 
+-Um binário aponta para um servidor fixo. `apps/campo/eas.json` tem
+-`https://api.exemplo.gov.br` nos perfis. **Troque pelo domínio real** (Parte 3)
+-antes de gerar o build que você vai usar.
++Um binário aponta para um servidor fixo. `apps/campo/eas.json` tem três perfis:
++`producao` aponta para `https://defesa-civil.fly.dev` (o servidor de hoje),
++`homologacao` aponta para `https://api-homologacao.exemplo.gov.br`, que não
++existe (não há ambiente de homologação de pé), e a base, usada pelo perfil de
++desenvolvimento, aponta para `http://localhost:3333`. **Se o domínio próprio
++sair** (Parte 3), troque o `DC360_API_URL` do perfil que você vai usar antes de
++gerar o build; com o servidor de hoje, `producao` já serve.
+ 
+ ### CRÍTICO 5: HTTPS é pré-requisito, não opção
+ 
+@@ -190,8 +197,9 @@ com os dois erros que ele encontrou pelo caminho.
+ 
+   **Migrações 049 e 050 (V2-F00-E07): migre ANTES de implantar o código novo.**
+   O código novo da API chama `travar_sessoes_do_usuario`, que a 049 cria, em
+-  toda renovação e em todo encerramento em massa das sessões de uma pessoa;
+-  contra um banco sem a 049 a renovação falha. O contrário é seguro: o código
++  todo login, em toda renovação e em todo encerramento em massa das sessões de
++  uma pessoa (o login passou a tomá-la na correção 3 da E07); contra um banco
++  sem a 049 o login e a renovação falham. O contrário é seguro: o código
+   antigo contra o banco já migrado continua funcionando (as funções recriadas
+   mantêm a assinatura). A 050 só recria
+   `abrir_sessao` (o login passa a ler a suspensão do município com `FOR SHARE`),
+@@ -202,8 +210,13 @@ com os dois erros que ele encontrou pelo caminho.
+ PaaS que dá HTTPS automático e roda contêiner ou Node:
+ 
+ - **Fly.io**, **Railway** ou **Render**. O repositório tem `Dockerfile` e
+-  `compose.yaml` (revisados, mas ainda não construídos, e o job de CI
+-  `implantavel` os confere no primeiro push).
++  `compose.yaml`. O `Dockerfile` é a imagem de produção: o `fly.toml`
++  (`[build] dockerfile`) manda o `fly deploy` construí-lo, o próprio `Dockerfile`
++  registra o 503 dos botões de PDF que a imagem sem navegador deu em produção, e
++  o `eas.json` aponta o perfil `producao` para `defesa-civil.fly.dev`. O que não
++  existe é prova no repositório: o CI não constrói a imagem (o job `implantavel`
++  sobe a API direto no Node contra um Postgres 16 real, sem contêiner) e não há
++  log de build arquivado. O `compose.yaml` nunca foi executado.
+   As três são equivalentes para rodar o contêiner, mas **não** para o endereço
+   de origem: o `fly.toml` do repositório declara `PROXY_DE_BORDA = "fly"`, e
+   levar essa linha para outra PaaS transforma o cabeçalho `Fly-Client-IP` num
+@@ -329,7 +342,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4914 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 4916 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+@@ -356,11 +369,11 @@ Para o `eas submit`, preencha `apps/campo/eas.json` em `submit.producao.ios`
+ 3. **Provedores**: Neon (banco), Fly/Railway (API), R2 (fotos), registro.br
+    (domínio). Todos têm plano inicial barato ou grátis.
+ 4. **Recuperação de senha**: desligada no piloto (recomendado) ou com provedor.
+-5. **Duas decisões de produto pendentes**, anotadas no código:
+-   - fechar a tomada de conta entre pares de mesmo posto (notificar email antigo
+-     ou exigir reautenticação);
+-   - PDF na imagem do servidor (incluir o gerador ou assumir impressão pelo
+-     navegador). Ver o comentário no topo do `Dockerfile`.
++5. **Uma decisão de produto pendente:** fechar a tomada de conta entre pares de
++   mesmo posto (hoje um administrador pode gerir outro administrador; a
++   proposta é notificar o e-mail antigo ou exigir reautenticação). O outro item
++   que estava aqui, o PDF na imagem do servidor, foi decidido em 09/09/2026: o
++   gerador entra na imagem (ver o comentário no topo do `Dockerfile`).
+ 
+ ---
+ 
+@@ -384,9 +397,10 @@ ter o app no seu iPhone via TestFlight neste fim de semana.
+ ## Parte 6: o restore do banco, testado de verdade (CA-08)
+ 
+ > **Registro histórico, de 2026-09-09.** O roteiro vigente é
+-> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado então com as 47
+-> migrações que existiam (hoje são 50; o CI repete o roteiro em Postgres 17,
+-> ver o próprio documento), com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
++> `RESTORE-DO-BANCO.md` (V2-F00-E25; versão 2, de 2026-10-15), provado com as 47
++> migrações que existiam no Windows em 2026-10-07 e com as 50 de hoje no macOS
++> em 2026-10-15 (o CI repete o roteiro em Postgres 17, ver o próprio
++> documento), com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
+ > cópia. Esta parte descreve o teste com 15 migrações e 15 tabelas e, se
+ > seguida hoje, para no restore: faltam o papel `dc360_console` (migração 023)
+ > e a extensão `pg_trgm` no dump (migração 041). Ela continua valendo pelo que
+diff --git a/dc360/docs/DICIONARIO-DE-DADOS.md b/dc360/docs/DICIONARIO-DE-DADOS.md
+index 6e82824..b35146e 100644
+--- a/dc360/docs/DICIONARIO-DE-DADOS.md
++++ b/dc360/docs/DICIONARIO-DE-DADOS.md
+@@ -317,6 +317,10 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
+ | `saidas_a_campo` | A ida a campo que o agente declarou ANTES de subir, com o protocolo, o tempo previsto, se foi **sozinho**, e o prazo de retorno carimbado pelo relógio do **servidor**. Uma aberta por agente, imposta por índice único parcial. Não se apaga: encerra com desfecho de lista fechada e quem encerrou, e "acionei apoio" exige dizer o quê. A observação da coordenação é sobre o ATO DA PREFEITURA a respeito da segurança do próprio servidor, e por isso fica fora da minimização por prazo: ver `SEGURANCA-DO-AGENTE.md` |
+ | `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha. `familia_id` (migração 047, V2-F00-E07) liga as sessões de uma cadeia de renovação: cada login abre uma família nova (o `id` da primeira sessão) e cada renovação herda a família da sessão que rotacionou. Coluna técnica, sem dado pessoal, não nula, com padrão `gen_random_uuid()` para quem insere sem informar. A sessão revogada por rotação só vale para a escrita enquanto a família tem sessão com `revogada_em` nulo (índice parcial `sessoes_familia_viva_idx`). `abrir_sessao` aceita a família como sétimo parâmetro opcional e só a aceita se for do mesmo usuário e do mesmo município. Duas leituras (V2-F00-E09) expõem sessões: `GET /auth/sessoes` à própria pessoa (quando entrou, até quando vale, o aparelho resumido em uma frase e a marca da sessão atual) e `GET /usuarios/:id/sessoes` a quem administra (só a quantidade e as datas). `ip` e `user_agent` continuam guardados para investigação e NÃO saem em nenhuma das duas (IDN-29 do REL:06) |
+ | `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único |
++| `vistoria_orgaos_indicados` | Os órgãos que o agente marcou na vistoria como a acionar (migração 020): uma linha por órgão, na ordem em que ele escolheu. `orgao_id` nulo não é dado faltando: é o órgão digitado à mão, porque um aparelho novo pode ter o catálogo vazio, e o nome viaja sempre. É o que deixa o laudo dizer **qual** órgão acionar, e não só "sim" |
++| `vistoria_evidencias_perdidas` | A prova que foi capturada no local e não pôde ser recuperada do aparelho (migração 030): uma linha por arquivo perdido, com a chave que o aparelho cunhou, o `papel` (`foto` ou `assinatura`), quando foi capturada e o que sobrou de legenda e de coordenada. Não se apaga nem se corrige (migração 032). É o que faz o laudo e o termo dizerem "Assinatura coletada em campo e não recuperada do aparelho" em vez de "Assinatura não coletada", e a tabela **sai no pacote de saída** (`tabelas/vistoria_evidencias_perdidas.csv`) |
++| `objetos_orfaos` | A lista que a varredura de objetos órfãos faz do armazenamento (migração 035): arquivo sob o prefixo do município que nenhuma linha justifica, com a rodada que o achou, a espécie (`envio_nunca_confirmado` ou `objeto_sem_linha`) e, só quando uma pessoa decide, a decisão (`descartado` ou `mantido`), quem decidiu e o motivo. **A varredura não apaga nada**; o descarte é ato de operador nomeado (ver `ARMAZENAMENTO.md`). Sai no pacote de saída |
++| `metricas_municipio` | Uma linha por município por dia, escrita pelo próprio município (`resumir_municipio()`, migrações 023 e 026) e lida pelo console do fornecedor: só contagens, mediana e marcas de tempo, nenhuma coluna de texto. A visão `console_situacao_dos_municipios`, que parte de `organizacoes`, é o que o console lê, e por isso município que não escreveu aparece como `sem_escrita_recente`. Ver "O console do fornecedor" no `README.md`. A tabela sai no pacote de saída; a visão não |
+ | `exportacoes` | Registro de quem exportou o quê e quando. Exportação de dado de cidadão é ato que fica registrado |
+ | `interesse_municipio` | Município que se cadastrou pela página pública. É a única tabela com dado que não pertence a um município do sistema |
+ | `segundo_fator` | Verificação em duas etapas por pessoa: o segredo do código de seis dígitos, **cifrado** com chave que vive fora do banco, mais o último passo de tempo aceito (é ele que impede o mesmo código de valer duas vezes) e o teto de tentativas, separado do teto da senha. Desligar apaga o segredo e carimba a data, em vez de apagar a linha: "desde quando esta conta parou de exigir a segunda etapa" precisa ter resposta |
+diff --git a/dc360/docs/IMPLANTACAO.md b/dc360/docs/IMPLANTACAO.md
+index 664918e..43784a3 100644
+--- a/dc360/docs/IMPLANTACAO.md
++++ b/dc360/docs/IMPLANTACAO.md
+@@ -588,8 +588,9 @@ node scripts/migrar-producao.mjs
+ ```
+ 
+ **Passo 2. Tirar a cópia.** Desde 15/09/2026 o passo 3 **recusa** sem uma cópia
+-feita nos últimos trinta minutos, porque o único restore testado deste projeto
+-(`docs/COLOCAR-DE-PE.md`, Parte 6) foi sobre uma cópia tirada antes, e migração
++feita nos últimos trinta minutos, porque o restore testado deste projeto
++(`docs/RESTORE-DO-BANCO.md`; o primeiro, de 09/09/2026, está na Parte 6 de
++`docs/COLOCAR-DE-PE.md`) parte de uma cópia tirada antes, e migração
+ irreversível sem cópia é aposta.
+ 
+ ```bash
+@@ -603,9 +604,15 @@ O que o roteiro faz, e o que ele cobra:
+   servidor é 17.x). Sem ele, a saída diz o que instalar (`brew install libpq` e
+   o `PATH`); com um mais velho, recusa. A versão do servidor é lida antes de
+   pedir o dump, e o cliente é conferido contra ela;
+-- grava em `~/dc360-copias/<data>.dump`, com permissão 0600, no formato do
+-  restore testado (`pg_dump --format=custom --schema=public`, que volta com
+-  `pg_restore --exit-on-error`);
++- grava em `~/dc360-copias/<data>.dump`, com permissão 0600, em
++  `pg_dump --format=custom --schema=public`, o formato do restore de 09/09/2026.
++  **Atenção:** o roteiro vigente (`RESTORE-DO-BANCO.md`, passo 3) exige também
++  `--extension=pg_trgm` desde a migração 041, porque sem a opção o
++  `pg_restore --exit-on-error` para no índice de busca (`gin_trgm_ops`), e o
++  `copiar-producao.mjs` ainda não a passa. Nenhuma etapa do roteiro contém esse conserto (a V2-F01-E15, de dump antes de
++  migração, não o cita), então ele não tem dono hoje; até alguém abrir a
++  pendência, restaurar uma cópia dele exige antes criar a extensão no destino,
++  o que o roteiro de restore não ensaiou;
+ - **recusa** gravar dentro do repositório, em pasta sincronizada com nuvem de
+   arquivos (iCloud, Dropbox, Google Drive, OneDrive) e na Área de Trabalho. O
+   dump traz dado real de cidadão: endereço, coordenada, nome e contato do
+@@ -668,9 +675,9 @@ antes da API nova.
+ 
+ - **A cópia não é testada por restore a cada migração.** O roteiro grava e
+   confere que o `pg_dump` saiu com zero; ele não sobe um cluster descartável
+-  para restaurar. O procedimento de restore continua sendo o da Parte 6 do
+-  `COLOCAR-DE-PE.md`, e a periodicidade dele continua por definir
+-  (`docs/INDISPONIBILIDADE.md`, 3.4).
++  para restaurar. O procedimento de restore é o de `RESTORE-DO-BANCO.md`
++  (a Parte 6 do `COLOCAR-DE-PE.md` é o registro histórico), e a periodicidade
++  dele continua por definir (`docs/INDISPONIBILIDADE.md`, 3.4).
+ - **O endurecimento não roda sozinho depois da migração.** Ele é um passo do
+   roteiro, e roteiro se pula; o que não deixa passar despercebido é a consulta
+   do passo 4, que a pessoa precisa rodar. Automatizar exige a credencial de
+diff --git a/dc360/docs/INDISPONIBILIDADE.md b/dc360/docs/INDISPONIBILIDADE.md
+index a8b7ed3..ecaae36 100644
+--- a/dc360/docs/INDISPONIBILIDADE.md
++++ b/dc360/docs/INDISPONIBILIDADE.md
+@@ -107,8 +107,13 @@ está aberto desde a versão 1, e é decisão do dono.
+ Em 2026-10-07 (V2-F00-E25) o restore foi refeito com o esquema atual, 47
+ migrações, entre dois clusters PostgreSQL descartáveis no Windows, com a
+ semente sintética: isolamento conferido no banco restaurado e a API respondendo
+-contra a cópia. O roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de
+-`COLOCAR-DE-PE.md` ficou como registro histórico. O restore a partir da
++contra a cópia. Em 2026-10-15 (correção 1 da E25) o roteiro foi seguido de novo,
++a frio, num clone limpo no macOS e nos dois shells (`zsh` e `bash`), com as 50
++migrações de hoje; e o CI repete uma versão dele em Postgres 17, num job que hoje só
++roda com `[ci completo]` no commit (o disparo manual e a agenda semanal estão
++no arquivo, mas só valem quando ele chegar ao ramo padrão). O
++roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de `COLOCAR-DE-PE.md` ficou
++como registro histórico. O restore a partir da
+ produção (Supabase) com o esquema atual continua NÃO provado: o de 09/09/2026,
+ com 15 migrações, segue sendo o único feito com dado do provedor.
+ 
+diff --git a/dc360/docs/LEIA-ME.md b/dc360/docs/LEIA-ME.md
+index c54b2ea..8316420 100644
+--- a/dc360/docs/LEIA-ME.md
++++ b/dc360/docs/LEIA-ME.md
+@@ -36,6 +36,11 @@ inventadas, e enquanto houver um `[[ ]]` o documento não vai para o ar.
+ | [COLOCAR-DE-PE.md](COLOCAR-DE-PE.md) | Subir servidor, banco, domínio e o aplicativo |
+ | [VERCEL-PAINEL.md](VERCEL-PAINEL.md) | Publicar o painel |
+ | [DICIONARIO-DE-DADOS.md](DICIONARIO-DE-DADOS.md) | O que cada tabela e cada coluna significam. Vai junto com a exportação de saída |
++| [RESTORE-DO-BANCO.md](RESTORE-DO-BANCO.md) | O roteiro de restore do banco, provado a frio e repetido pelo CI (a Parte 6 de `COLOCAR-DE-PE.md` é o registro histórico) |
++| [LIGAR-O-EMAIL.md](LIGAR-O-EMAIL.md) | Ligar o e-mail de recuperação de senha e de ofício: conta, domínio e variáveis |
++| [ARMAZENAMENTO.md](ARMAZENAMENTO.md) | O teto de armazenamento por município e a varredura de objeto órfão, com os comandos do operador |
++| [POLITICA-DE-TESTE-VERMELHO.md](POLITICA-DE-TESTE-VERMELHO.md) | Quem escreve código: o que fazer com teste vermelho e teste pulado (T42) |
++| [apresentacao/](apresentacao/README.md) | A apresentação de 15/09/2026 (HTML e PDF): retrato do que estava feito naquele dia, e não a fonte do estado de hoje |
+ 
+ ## As decisões que governam o produto
+ 
+diff --git a/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md b/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
+index 80f7d50..17df08a 100644
+--- a/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
++++ b/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
+@@ -44,7 +44,8 @@ coisas existem:
+    último commit do teste; e
+ 2. um teste irmão que passa e afirma a decisão.
+ 
+-O exemplo que fixa a regra: `apps/campo/src/app/(agente)/index.tsx:1222` diz que,
++O exemplo que fixa a regra: o comentário do botão "Entrar de novo" em
++`apps/campo/src/app/(agente)/index.tsx` diz que,
+ desde 15/09/2026, o botão da faixa de sessão encerrada é "Entrar de novo" e não
+ chama `sair()`, porque `sair()` apaga a vistoria começada. O teste irmão
+ `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` passa e afirma isso; os dois
+@@ -55,12 +56,12 @@ teste irmão. O teste novo continua afirmando a intenção (a pessoa não perde
+ vistoria) e não pode afirmar menos que o antigo.
+ 
+ **R2. O teste vale e o código é consertado.** Quando o teste descreve como
+-defeito algo que a leitura do código confirma, com arquivo e linha. Exemplos:
+-`vistoria/[id].tsx:1447` arredonda a precisão do GPS para zero e o esquema recusa
+-zero; `perfil.tsx:449-453` lê a fila uma vez só, e o diálogo de saída não conta
+-as vistorias começadas que a saída apaga. Nada se reescreve e nada se registra
+-aqui: o conserto é a própria prova, e o teste vermelho vira o teste que o
+-guarda.
++defeito algo que a leitura do código confirma, com arquivo e linha. Exemplos da
++E03, em 2026-10-05 (os dois já foram consertados pela E15): `vistoria/[id].tsx`
++arredondava a precisão do GPS para zero e o esquema recusa zero; `perfil.tsx`
++lia a fila uma vez só, e o diálogo de saída não contava as vistorias começadas
++que a saída apaga. Nada se reescreve e nada se registra aqui: o conserto é a
++própria prova, e o teste vermelho vira o teste que o guarda.
+ 
+ **R3. Ambiente ou portabilidade.** Quando a regra do teste vale mas ele depende
+ da máquina (fim de linha, variável de ambiente, `npm` sem `shell` no Windows,
+@@ -173,5 +174,8 @@ Enxerga a chamada que começa a linha e a opção `skip:` na própria linha do
+ apelido, passa. Quem encontrar um jeito de pular que o portão não vê corrige o
+ portão, com um teste novo, e não usa o buraco.
+ 
+-O portão roda hoje só na máquina de quem rodar `npm run test:scripts`. A ligação
+-ao CI é a etapa V2-F01-E03; até lá o CI não o enxerga.
++O portão roda dentro de `npm run test:scripts`, que o job "Testes, tipos e
++scripts" do CI (`.github/workflows/verificar.yml`) executa em todo push nos
++ramos `main`, `master` e `v2/**` e em todo pull request, e na máquina de quem rodar o mesmo comando. A V2-F01-E03 do
++roteiro (CI que roda o que hoje só roda local) ainda existe como etapa, mas este
++portão já está ligado.
+diff --git a/dc360/docs/PRIVACIDADE.md b/dc360/docs/PRIVACIDADE.md
+index 20f9752..5a054b9 100644
+--- a/dc360/docs/PRIVACIDADE.md
++++ b/dc360/docs/PRIVACIDADE.md
+@@ -430,5 +430,8 @@ Controlador: o órgão municipal de proteção e defesa civil que opera o sistem
+    REFERIDA por um laudo depende do descarte no armazenamento, que ainda não
+    existe; a fotografia sem dono nenhum já tem caminho, e ele está descrito em
+    "O arquivo sem dono".
+-4. Rever quando entrarem: notificação por push, envio de ofício por email,
+-   console do fornecedor e mapa do Google. Os quatro mudam esta política.
++4. Rever, porque os quatro já existem em código e mudam esta política:
++   notificação por push, envio de ofício por email, console do fornecedor e mapa
++   do Google. O que ainda falta escrever aqui é o console do fornecedor e a série
++   `metricas_municipio` que ele lê (contagens por município e por dia, sem prazo
++   de retenção definido: ver `db/PENDENCIAS.md`, item 2).
+diff --git a/dc360/docs/RESTORE-DO-BANCO.md b/dc360/docs/RESTORE-DO-BANCO.md
+index 5e7e0b5..2a572f9 100644
+--- a/dc360/docs/RESTORE-DO-BANCO.md
++++ b/dc360/docs/RESTORE-DO-BANCO.md
+@@ -58,8 +58,9 @@ macOS"). Último run lido: 38618369218, do SHA `7585801`, com Postgres 17.11, o
+ cliente `pg_dump` 17, as **50 migrações** aplicadas do zero e as 27
+ conferências do script todas "OK"; o gatekeeper da E25 o leu e registrou em
+ `docs/evidencias-v2/G00/V2-F00-E25/VEREDITO.md`. O job só roda em push cujo
+-commit traga `[ci completo]`, em `workflow_dispatch` e na agenda: um run mais
+-novo precisa ser conferido de novo, e este documento não afirma que ele passa.
++commit traga `[ci completo]` (`workflow_dispatch` e a agenda semanal estão no
++arquivo, mas só valem quando ele chegar ao ramo padrão, e o de `origin/master`
++ainda não os tem): um run mais novo precisa ser conferido de novo, e este documento não afirma que ele passa.
+ O job `implantavel`, que roda a API contra banco real, usa o Postgres 16
+ (`postgres:16`); o 17 é só do job `restore`.
+ 
+diff --git a/dc360/fly.toml b/dc360/fly.toml
+index 085ed7f..b755337 100644
+--- a/dc360/fly.toml
++++ b/dc360/fly.toml
+@@ -122,6 +122,7 @@ kill_timeout = 30
+ [[vm]]
+   size = "shared-cpu-1x"
+   # 1 GB, e não 256 MB, por causa do Chromium que a imagem instala para o
+-  # PDF. Se a decisão pendente no topo do Dockerfile for tirar o PDF da
+-  # imagem, isto cai para 512 MB e a imagem encolhe algumas centenas de MB.
++  # PDF. A decisão foi tomada em 09/09/2026 (ver o topo do Dockerfile): o PDF
++  # fica na imagem. Se um dia o PDF virar job separado e sair da imagem, isto
++  # cai para 512 MB e a imagem encolhe algumas centenas de MB.
+   memory = "1gb"
+diff --git a/docs/adr/0004-autenticacao-propria.md b/docs/adr/0004-autenticacao-propria.md
+index 7741fb2..b3506b5 100644
+--- a/docs/adr/0004-autenticacao-propria.md
++++ b/docs/adr/0004-autenticacao-propria.md
+@@ -90,3 +90,15 @@ Ruins, e nenhuma delas é pequena:
+   `dc360/apps/api/test/superficie.test.ts` (que exige token de toda rota, com
+   lista curta de exceções justificadas), e o fluxo de navegador contra a API em
+   `dc360/apps/web/test/fluxo-api.e2e.mjs`.
++
++## Nota de revisão de 2026-10-15 (V2-F00-E22)
++
++O texto acima não foi reescrito. Um ponto dele envelheceu: a tabela da decisão
++diz scrypt com N = 2^16, e o código usa **N = 2^17** (131072), r = 8, p = 1,
++cerca de 128 MB por verificação: `dc360/apps/api/src/auth/senha.ts`, constante
++`N` (linha 34) e o comentário acima dela. A mudança entrou no commit `6690fca`
++(2026-08-30, "scrypt 2^17"), cinco dias depois do registro desta ADR, porque o
++piso recomendado pelo OWASP subiu de 2^16 para 2^17. O formato do hash guarda o
++N usado, então senha derivada antes com 2^16 continua valendo; só as novas usam
++2^17. O resto da decisão (autenticação própria, scrypt do `node:crypto`, sem
++dependência nova) segue em vigor.

@@ -1,0 +1,12 @@
+lockfile com packages[node_modules/fastify].version = 4.10.0 (runtime vulnerável); auditar.mjs e auditar-excecoes.mjs de fd17ff4 (ANTES)
+=== raiz
+Runtime (vai para a imagem): 1 vulnerabilidade(s)
+REPROVADO: 1 high em dependência de runtime.
+codigo=1
+=== de dentro de packages/shared
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Runtime limpo, e o aplicativo sem advisory nova.
+codigo=0
+=== da raiz com npm_config_workspace=packages/shared
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+codigo=2

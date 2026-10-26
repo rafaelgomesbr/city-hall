@@ -1,0 +1,6 @@
+$ npm run test:scripts   (resumo)
+ℹ tests 286
+ℹ suites 9
+ℹ pass 286
+ℹ fail 0
+ℹ skipped 0

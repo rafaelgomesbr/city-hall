@@ -1,0 +1,49 @@
+Coluna 1: a regra da rodada anterior (copiada em portao-comparacao.mjs). Coluna 2: a regra por classe de hoje. PASSOU significa que a promessa plantada não foi reprovada.
+
+PASSOU  | reprova | Feche o aplicativo: o envio termina.
+PASSOU  | reprova | Pode sair do aplicativo: a coleta será enviada.
+reprova | reprova | Pode minimizar o aplicativo, a coleta segue
+PASSOU  | reprova | Pode bloquear a tela, a coleta continua subindo.
+reprova | reprova | Guarde o celular no bolso: a vistoria sobe.
+PASSOU  | reprova | Pode desligar o aparelho que o envio termina depois.
+PASSOU  | reprova | Você pode trocar de aplicativo, o envio continua.
+reprova | reprova | Se fechar o aplicativo, a coleta chega à coordenação.
+PASSOU  | reprova | Feche o app e a vistoria é enviada.
+PASSOU  | reprova | Fechando o aplicativo, a sincronização se completa.
+PASSOU  | reprova | Bloqueie a tela do celular: a coleta será entregue à coordenação.
+PASSOU  | reprova | Pode ir embora, a coleta sobe.
+PASSOU  | reprova | Pode abrir outro aplicativo, a coleta continua enviando.
+reprova | reprova | Depois de fechar o aplicativo, o envio é concluído.
+reprova | reprova | Pode deixar o celular de lado: o envio segue.
+PASSOU  | reprova | Deixe o app quieto, a coleta termina de subir.
+reprova | reprova | Pode usar outro aplicativo que a coleta segue.
+PASSOU  | reprova | Bloqueando o aparelho, a coleta continua.
+PASSOU  | reprova | Minimizou o app? A coleta chega do mesmo jeito.
+PASSOU  | reprova | Mesmo com o aplicativo aberto, pode bloquear a tela: o envio continua.
+PASSOU  | reprova | Já tentou 3x. Vai tentar de novo em instantes.
+reprova | reprova | Pode fechar o aplicativo. O envio termina.
+
+regra anterior deixou passar 15 de 22; regra por classe deixou passar 0.
+✔ nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado (240.148959ms)
+✔ o portão morde: as frases que a arbitragem achou na fila são reprovadas (0.563042ms)
+✔ o portão não pune quem explica: comentário pode citar a frase proibida (0.17875ms)
+✔ as frases verdadeiras passam (0.255958ms)
+✔ o portão morde: as quatro frases plantadas pela validação da rodada 2 são reprovadas (0.301959ms)
+✔ o portão morde frases que ninguém listou, porque a regra é por classe e não por lista (0.1985ms)
+✔ o portão morde: largar o aplicativo junto de uma promessa de envio, em qualquer flexão (2.34275ms)
+✔ o portão morde a promessa dita em duas frases seguidas e o convite a sair (0.411375ms)
+✔ a promessa de retomada sem a condição também reprova (a forma antiga da fila) (0.267708ms)
+✔ a mesma frase com a condição 'aberto' passa (0.268125ms)
+✔ 'aberto' negado não é condição: 'sem o aplicativo aberto' é a promessa que se quer impedir (0.102375ms)
+✔ os avisos verdadeiros sobre largar o aplicativo passam (0.192ms)
+✔ frases do aplicativo de hoje que falam de continuar, de sair e de 'sozinho' sem prometer envio passam (0.363416ms)
+✔ a fila REAL reprova quando se planta cada frase (em memória, o arquivo não é tocado) (495.802ms)
+✔ a fila REAL reprova a forma antiga de 'vai tentar de novo em instantes', sem a condição (18.405958ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 797.174791

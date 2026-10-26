@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { FocusEvent } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL, podeExecutar, type Acao } from "@dc360/shared";
 import { useSessao, useTema } from "../estado/sessao";
 import { encerrarSessao } from "../dados/repositorio";
@@ -12,6 +12,7 @@ import {
 } from "./Icones";
 import { Sino } from "./Sino";
 import { BuscaGlobal } from "./BuscaGlobal";
+import { useBordasFixas, useFocoForaDasBordas } from "./usar-bordas-fixas";
 
 /**
  * Estrutura fixa da aplicação: lateral de navegação, topo com busca e
@@ -103,13 +104,16 @@ const NAVEGACAO: ItemNav[] = [
 /**
  * O Tab precisa trazer o item INTEIRO para a tela.
  *
- * No celular a lateral vira barra no pé da tela e rola na horizontal (dez
- * destinos não cabem em 390px). O navegador só rola sozinho quando o item está
+ * No celular a lateral vira barra no pé da tela e rola na horizontal (onze
+ * destinos não cabem em 390px: cabem quatro ladrilhos inteiros, ver
+ * `--barra-visiveis` na folha). O navegador só rola sozinho quando o item está
  * TOTALMENTE fora: parado pela metade, ele entende que já está visível e deixa
  * o rótulo cortado na borda, com o foco em cima de um texto que não dá para
- * ler. Medido a 390px: "Mapa da cidade" vai de 255px a 416px numa barra de
- * 390px, e o Tab não movia a barra um pixel. O mesmo valia para "Equipes",
- * "Usuários" e "Tema escuro".
+ * ler. Foi medido com a barra antiga, de rótulo em uma linha: "Mapa da cidade"
+ * ia de 255px a 416px numa barra de 390px, e o Tab não movia a barra um pixel.
+ * O mesmo valia para "Equipes", "Usuários" e "Tema escuro". Com os ladrilhos
+ * o primeiro Tab já não corta nada, mas o foco num ladrilho que está na parte
+ * que rola continua precisando trazê-lo para a tela.
  *
  * `inline: "nearest"` rola o mínimo necessário na horizontal, respeitando o
  * `scroll-padding-inline` da barra; `block: "nearest"` impede que isto mexa na
@@ -124,6 +128,39 @@ export function Estrutura() {
   const { sessao, sair } = useSessao();
   const [tema, alternarTema] = useTema();
   const navegar = useNavigate();
+  const { pathname } = useLocation();
+  const barraRef = useRef<HTMLElement>(null);
+  const topoRef = useRef<HTMLElement>(null);
+  // O topo e a barra do pé são fixos: a rolagem da página deixa folga para os dois (ver o hook).
+  useBordasFixas(topoRef, barraRef, Boolean(sessao));
+  useFocoForaDasBordas(Boolean(sessao));
+
+  /*
+    A barra do celular mostra poucos ladrilhos por vez e o resto rola. Quem
+    abre "Usuários" por um link (o sino, a busca, o endereço digitado) cairia
+    numa barra parada no começo, sem nenhum ladrilho marcado à vista, e a
+    pessoa perderia a noção de onde está. Trazer o ladrilho da tela atual para
+    dentro é o mínimo para a marca de "você está aqui" continuar visível.
+    Rola a barra pelo `scrollLeft`, e NÃO por `scrollIntoView`: o Chromium
+    toma o `scrollIntoView` como o ponto de partida do Tab, e o primeiro Tab da
+    página passava a cair no item seguinte ao da tela atual em vez de cair em
+    "Pular para o conteúdo" (o e2e do modo local pegou). Já à vista (o caso de
+    "Mapa da cidade", sempre entre os primeiros), ou na largura de mesa, em que
+    a lateral não rola, não faz nada.
+  */
+  useEffect(() => {
+    const barra = barraRef.current;
+    const atual = barra?.querySelector<HTMLElement>('.lateral__item[aria-current="page"]');
+    if (!barra || !atual || barra.scrollWidth <= barra.clientWidth) return;
+    const respiro = parseFloat(getComputedStyle(barra).paddingLeft) || 0;
+    const caixaDaBarra = barra.getBoundingClientRect();
+    const caixaDoItem = atual.getBoundingClientRect();
+    if (caixaDoItem.left < caixaDaBarra.left + respiro) {
+      barra.scrollLeft += caixaDoItem.left - caixaDaBarra.left - respiro;
+    } else if (caixaDoItem.right > caixaDaBarra.right - respiro) {
+      barra.scrollLeft += caixaDoItem.right - caixaDaBarra.right + respiro;
+    }
+  }, [pathname]);
 
   // Revoga no servidor antes de esquecer localmente: sem isso, o token de
   // renovação continuaria valendo por dias. É o mesmo caminho para o botão da
@@ -154,7 +191,7 @@ export function Estrutura() {
       */}
       <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
-      <nav className="lateral" aria-label="Navegação principal">
+      <nav className="lateral" aria-label="Navegação principal" ref={barraRef}>
         <div className="lateral__marca">
           <img src="/icone.svg" alt="" width={40} height={40} />
           <span>
@@ -170,7 +207,7 @@ export function Estrutura() {
               <NavLink key={item.para} to={item.para} className="lateral__item"
                        onFocus={trazerParaATela}>
                 {item.icone}
-                {item.rotulo}
+                <span className="lateral__texto">{item.rotulo}</span>
               </NavLink>
             ))}
           </div>
@@ -181,18 +218,18 @@ export function Estrutura() {
                   onFocus={trazerParaATela}
                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
             {tema === "claro" ? <IconeLua /> : <IconeSol />}
-            {tema === "claro" ? "Tema escuro" : "Tema claro"}
+            <span className="lateral__texto">{tema === "claro" ? "Tema escuro" : "Tema claro"}</span>
           </button>
           <button type="button" className="lateral__item" onClick={encerrarESair}
                   onFocus={trazerParaATela}
                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
             <IconeSair />
-            Sair
+            <span className="lateral__texto">Sair</span>
           </button>
         </div>
       </nav>
 
-      <header className="topo">
+      <header className="topo" ref={topoRef}>
         {/*
           A MARCA NO TOPO. Em tela estreita a lateral vai para o rodapé e a
           marca dela some (`.lateral__marca { display: none }`), e o painel
@@ -232,7 +269,15 @@ export function Estrutura() {
             conta, que é onde se troca a senha: quem recebe uma senha inicial
             ditada por telefone procura a troca aqui, e não num menu escondido.
           */}
-          <NavLink to="/minha-conta" className="identidade identidade--acionavel">
+          {/*
+            Até 600 px o nome e o papel saem da tela e fica só o avatar, que é
+            `aria-hidden`: o link ficava sem nome nenhum para quem ouve a tela
+            (axe `link-name`, achado 3 da acessibilidade na rodada 7 da
+            V2-F00-E09). O nome dito começa pelo texto que se vê na largura de
+            mesa (o nome e o papel) e termina no destino.
+          */}
+          <NavLink to="/minha-conta" className="identidade identidade--acionavel"
+                   aria-label={`${sessao.usuarioNome}, ${ROTULO_PAPEL[sessao.papel]}, Minha conta`}>
             <span className="identidade__avatar" aria-hidden="true">{iniciais(sessao.usuarioNome)}</span>
             <span>
               <span className="identidade__nome">{sessao.usuarioNome}</span>

@@ -1,0 +1,49 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/api
+
+stdout | test/zz-revisao-escape.test.ts > revisão: formas de escapar > relatório
+
+pego   e01/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e01/x respondeu 403 fora do catálogo: código fora do
+pego   e01/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e02/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e02/x respondeu 403 fora do catálogo: código fora do
+pego   e02/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e04/nada  falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET (sem rota) respondeu 403 fora do catálogo: código fora do
+pego   e04/nada  corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e05/nada  falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET (sem rota) respondeu 403 fora do catálogo: código fora do
+pego   e05/nada  corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e06/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e06/x respondeu 403 fora do catálogo: corpo sem `err
+pego   e06/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e07/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e07/x respondeu 403 fora do catálogo: código fora do
+pego   e07/x     corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e08       falhar   status=500 desviosRegistrados=0 corpo={"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"93e9ef5
+pego   e08       corrigir status=500 desviosRegistrados=0 corpo={"erro":"erro_interno","mensagem":"Erro inesperado. Informe o código abaixo ao suporte.","requisicao":"a7cf169
+pego   e09       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e09 respondeu 403 fora do catálogo: código fora do c
+pego   e09       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e10       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e10 respondeu 403 fora do catálogo: código fora do c
+pego   e10       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e11       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e11 respondeu 403 fora do catálogo: código fora do c
+pego   e11       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e12       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e12 respondeu 403 fora do catálogo: código fora do c
+pego   e12       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e13       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e13 respondeu 403 fora do catálogo: corpo sem `erro`
+pego   e13       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e14       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e14 respondeu 403 fora do catálogo: código fora do c
+pego   e14       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e15       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e15 respondeu 403 fora do catálogo: chave `erro` rep
+pego   e15       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e16       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e16 respondeu 403 fora do catálogo: código fora do c
+pego   e16       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+pego   e17       falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET /esc/e17 respondeu 403 fora do catálogo: código fora do c
+pego   e17       corrigir status=403 desviosRegistrados=0 corpo={"erro":"sem_permissao","mensagem":"Seu perfil não tem permissão para esta ação."}
+   LOG(e17, 340 bytes): {"level":50,"time":1792454760515,"pid":92847,"hostname":"Mac.local","reqId":"2f926974-557d-49c7-8ae1-8b028f593b59","desvioDoCatalogo":{"metodo":"GET","rota":"/esc/e17","status":403,"erroVisto":"[fora da forma de um código, não registrado]","motivo":"código fora do catálogo"},"msg":"resposta de acesso fora do catálogo de códigos de erro"}
+
+pego   e18/x     falhar   status=500 desviosRegistrados=1 corpo={"erro":"desvio_do_catalogo_de_erro","mensagem":"GET (sem rota) respondeu 401 fora do catálogo: código fora do
+pego   e18/x     corrigir status=401 desviosRegistrados=0 corpo={"erro":"nao_autenticado","mensagem":"Token inválido ou expirado."}
+
+ ✓ test/zz-revisao-escape.test.ts (1 test) 2569ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  21:05:56
+   Duration  3.82s (transform 546ms, setup 209ms, collect 740ms, tests 2.57s, environment 0ms, prepare 82ms)
+

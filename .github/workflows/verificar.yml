@@ -2,31 +2,89 @@
 #
 # O que ele impõe, e por quê:
 #
-# - `npm audit` fechando em zero é regra do CLAUDE.md, não recomendação.
-#   Dependência com vulnerabilidade conhecida em runtime é bug, não pendência.
+# - Dependência com vulnerabilidade conhecida em runtime é bug, não pendência
+#   (CLAUDE.md). Quem decide é `scripts/auditar.mjs` (o `npm run auditar` da
+#   máquina), a política do CP-03 já codificada, e não um `npm audit` cru. Aqui
+#   ele é chamado pelo `node`, e não pelo `npm run`, para que nenhuma
+#   configuração do npm decida se ele roda. Roda no job `dependencias`, sozinho,
+#   para a leitura job a job ficar limpa (antes, o job reprova `.npmrc`
+#   versionado), e de novo no job `windows`. O CP-03 está decidido (2026-10-07):
+#   o runtime da raiz fecha em zero e o aplicativo de campo é auditado contra a
+#   lista nomeada de `scripts/auditar-excecoes.mjs` (motivo, dono e prazo).
+#   Job vermelho ali quer dizer dependência de execução vulnerável, exceção
+#   malformada ou prazo vencido, e não se mascara com `continue-on-error`.
 # - O portão CA-06, de isolamento entre municípios, roda separado e primeiro.
 #   É a regra número um do produto, e se ela quebrar nada mais importa.
 # - Os números que o README afirma são conferidos contra a realidade.
+#
+# ESTE CI É PROVA DE EXECUÇÃO EM LINUX (docs/roadmap-v2/28-execucao-e-validacao.md,
+# seções 6 e 8): o gatekeeper lê o run do SHA do commit candidato e avalia job a
+# job, com artefato. Dois jobs provam também Windows (`windows-latest`): o
+# `windows` (o `auditar` da E19, `test:scripts` e `conferir:numeros` da E17) e o
+# `plataformas` (V2-F00-E21: os três casos de ambiente da etapa, sob a condição
+# hostil real, em matriz Windows e Linux). O `npm run verificar` inteiro em
+# Windows não roda aqui. Por isso:
+#
+# - Roda em push para main, master e para todo ramo `v2/**`, e em pull_request.
+# - Em ramo `v2/**` nenhum run é cancelado nem substituído: cada SHA candidato
+#   tem de ter o seu run completo (ver `concurrency`).
+# - TODO job grava as saídas em arquivo e publica um artefato chamado
+#   `<job>-<sha>` (`plataformas-<sistema>-<sha>` na matriz), mesmo quando falha,
+#   com retenção de 30 dias. Em pull_request o `github.sha` é o de um merge
+#   sintético: o commit candidato (a ponta do ramo) vem escrito em
+#   `00-contexto.txt` de cada artefato.
+# - `scripts/ci-artefatos.sh redigir` limpa URL com senha, JWT, Bearer e
+#   `PASSWORD '...'` antes de publicar, para segredo não entrar em artefato (o
+#   baseline já redige a própria saída e traz INDEX.md com SHA-256, por isso é
+#   pulado).
+#
+# Dois jobs, os mais longos, não rodam em todo push: `baseline` e `restore`.
+# Rodam só em push cuja mensagem de commit traga `[ci completo]`, no disparo
+# manual e na agenda (estes dois só valem quando este arquivo chegar ao ramo
+# padrão; ver o comentário de `on:`), e nunca em pull_request. Quem decide é a
+# linha `if:` de cada um.
 
 name: Verificar
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, "v2/**"]
   pull_request:
+  # `baseline` e `restore` sao os jobs longos (juntos, perto de uma hora).
+  # Pela politica (docs/roadmap-v2/28-execucao-e-validacao.md, secao 14) o
+  # kit completo roda no fechamento de gate e semanalmente, nao em todo
+  # commit candidato: o gatekeeper dispara a mao (`gh workflow run`) no gate
+  # e nas etapas com tag DB, MIGRATION ou RLS; a rodada semanal pega o resto.
+  # `workflow_dispatch` e `schedule` so valem depois que este arquivo chega ao
+  # ramo padrao; ate la (e tambem depois), um push cuja mensagem de commit
+  # traga `[ci completo]` roda os dois jobs longos.
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"
 
-# Cancela execução antiga do mesmo ramo: revisar resultado de commit que já
-# foi substituído é desperdício de fila e fonte de confusão.
+permissions:
+  contents: read
+
+# Em main, master e pull_request, cancela a execução antiga do mesmo ramo:
+# revisar resultado de commit que já foi substituído é desperdício de fila.
+#
+# Em `v2/**` é o contrário, e por dois motivos. `cancel-in-progress` é falso. E o
+# grupo passa a incluir o SHA: sem isso o GitHub ainda descartaria o run PENDENTE
+# mais antigo quando dois pushes chegam seguidos (a regra de concorrência mantém
+# só um pendente por grupo), e um SHA candidato ficaria sem run.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ startsWith(github.ref, 'refs/heads/v2/') && github.sha || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/heads/v2/') }}
 
 jobs:
   produto:
-    name: Testes, tipos e auditoria
+    name: Testes, tipos e scripts
     runs-on: ubuntu-latest
     defaults:
       run:
+        # `bash` explícito liga o `pipefail`: sem ele, `comando | tee arquivo`
+        # devolveria o código do `tee` e esconderia a falha do comando.
+        shell: bash
         working-directory: dc360
 
     steps:
@@ -36,34 +94,218 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: dc360/package-lock.json
+          cache-dependency-path: |
+            dc360/package-lock.json
+            dc360/apps/campo/package-lock.json
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
 
       # `npm ci` e não `npm install`: instalação reprodutível, a partir do
       # lockfile, sem atualizar nada por conta própria.
       - name: Instalar dependências
-        run: npm ci
+        id: instalar
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
 
+      # `apps/campo` fica fora do `workspaces`, com lockfile próprio. Vários
+      # testes de `scripts/` leem `apps/campo/node_modules` (o plugin do mapa, os
+      # entitlements) e SAEM SEM AFIRMAR NADA quando ele não existe. Sem esta
+      # instalação o `test:scripts` passaria verde sem ter olhado o aplicativo.
+      - name: Instalar dependências do aplicativo (os testes de scripts leem apps/campo/node_modules)
+        id: instalar_app
+        working-directory: dc360/apps/campo
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci-campo.txt"
+
+      # O PDF do documento técnico é gerado pelo Chromium (a API e o console
+      # testam isso). Numa imagem limpa ele não existe, e o teste do PDF devolve
+      # 503 em vez de falhar por motivo claro.
+      - name: Instalar o Chromium (os testes de PDF precisam dele)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-playwright-install.txt"
+
+      # Dai em diante cada passo roda mesmo que o anterior tenha falhado (desde
+      # que a instalação tenha dado certo): o run de um SHA candidato deve
+      # trazer TODAS as saídas, e não só a do primeiro vermelho. O job continua
+      # vermelho se qualquer um falhar.
       - name: TypeScript estrito
-        run: npm run typecheck
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/03-typecheck.txt"
 
       # Primeiro e sozinho: isolamento entre municípios é a regra número um.
       - name: Portão de isolamento (CA-06)
-        run: npm run test:isolamento
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run test:isolamento 2>&1 | tee "$RUNNER_TEMP/artefatos/04-isolamento.txt"
 
       - name: Suíte completa
-        run: npm test
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm test 2>&1 | tee "$RUNNER_TEMP/artefatos/05-suite-completa.txt"
 
-      - name: Dependência com vulnerabilidade conhecida
-        run: npm audit --audit-level=low
+      # Os testes de `scripts/` (baseline, portões de design e de acessibilidade
+      # do aplicativo, paridades, migração, rotação de segredo). Até agora só
+      # rodavam na máquina de quem desenvolve, e a portabilidade para Linux
+      # ficou sem prova (E17, E21).
+      - name: Testes dos scripts
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm run test:scripts 2>&1 | tee "$RUNNER_TEMP/artefatos/06-test-scripts.txt"
 
       - name: Os números do README batem com a realidade
-        run: npm run conferir:numeros
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run conferir:numeros 2>&1 | tee "$RUNNER_TEMP/artefatos/07-conferir-numeros.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: produto-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  dependencias:
+    # A política do CP-03 (alternativa B), codificada em `scripts/auditar.mjs`:
+    # vulnerabilidade em dependência de runtime reprova; em ferramenta de
+    # desenvolvimento aparece e não reprova; o aplicativo de campo é auditado
+    # contra uma lista nomeada (`ACEITAS_NO_APLICATIVO`, em
+    # `scripts/auditar-excecoes.mjs`). Substitui os dois
+    # `npm audit` crus que ficavam nos jobs `produto` e `aplicativo`.
+    #
+    # Job próprio de propósito: a leitura job a job fica limpa (vermelho aqui
+    # quer dizer só "há dependência vulnerável") e nenhum outro passo espera
+    # por ele. Não instala nada: `npm audit` lê o `package-lock.json`.
+    #
+    # Vermelho aqui é achado real (runtime vulnerável, exceção sem motivo, dono
+    # ou prazo, ou prazo vencido). Não pôr `continue-on-error`.
+    name: Dependências com vulnerabilidade conhecida (auditar)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      # Nenhum `.npmrc` versionado: uma linha `script-shell=/usr/bin/true` faria
+      # todo `npm run` sair 0 sem executar nada. E o portão é chamado pelo
+      # `node`, não pelo `npm run`, para que nenhuma configuração do npm decida
+      # se ele roda.
+      - name: Nenhum .npmrc versionado no repositório
+        working-directory: .
+        run: |
+          versionados="$(git ls-files -- '.npmrc' '**/.npmrc')"
+          if [ -n "$versionados" ]; then echo "::error::.npmrc versionado: $versionados"; exit 1; fi
+          echo "nenhum .npmrc versionado"
+
+      - name: Política de dependências (node scripts/auditar.mjs)
+        run: node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar.txt"
+
+      # Evidência, e não portão: os relatórios brutos que o `auditar` lê, para o
+      # validador conferir a política contra os dados. O `|| true` é daqui, e
+      # só daqui: o passo acima é quem decide.
+      - name: Relatórios brutos do npm audit (evidência, não decide nada)
+        if: ${{ always() }}
+        run: |
+          npm audit --json > "$RUNNER_TEMP/artefatos/02-audit-raiz.json" || true
+          npm audit --omit=dev --json > "$RUNNER_TEMP/artefatos/03-audit-raiz-runtime.json" || true
+          (cd apps/campo && npm audit --json > "$RUNNER_TEMP/artefatos/04-audit-campo.json") || true
+          (cd apps/campo && npm audit --omit=dev --json > "$RUNNER_TEMP/artefatos/05-audit-campo-runtime.json") || true
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependencias-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  roadmap:
+    # As ferramentas do sistema de validação (D-30, `scripts/roadmap/`) e o
+    # alarme de drift do estado: `gerar-estado --conferir` reprova quando o
+    # `ESTADO-ATUAL.md` não bate com o STATUS, quando o STATUS cita commit que
+    # não existe ou quando uma etapa afirma mais do que o VEREDITO prova.
+    # Histórico completo (`fetch-depth: 0`) porque a conferência resolve os
+    # commits citados. Sem `npm ci`: as ferramentas não têm dependência; o
+    # teste de PDF se pula sozinho quando não há Chromium.
+    name: Ferramentas do roadmap e estado gerado
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      - name: Testes das ferramentas (node --test)
+        run: node --test "scripts/roadmap/*.test.mjs" 2>&1 | tee "$RUNNER_TEMP/artefatos/01-testes-roadmap.txt"
+
+      - name: Estado gerado confere com o repositório
+        if: ${{ !cancelled() }}
+        run: node scripts/roadmap/gerar-estado.mjs --conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/02-estado-conferir.txt"
+
+      # V2-F00-E21, correção 1. O `INDEX.md` de cada pasta de evidência grava o
+      # SHA-256 dos arquivos. Se o hash foi tirado de um disco com fim de linha
+      # que o git muda ao commitar, ele não bate em checkout nenhum e ninguém vê.
+      # Este passo roda no checkout limpo do CI (LF, sem `autocrlf`) e relê os
+      # bytes. Sem `npm ci`: o script só usa o node.
+      - name: Os INDEX.md da evidência batem com os arquivos (SHA-256)
+        if: ${{ !cancelled() }}
+        run: node dc360/scripts/conferir-indices-de-evidencia.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/03-indices-de-evidencia.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: roadmap-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
 
   navegador:
     name: Fluxo ponta a ponta no navegador
     runs-on: ubuntu-latest
     defaults:
       run:
+        shell: bash
         working-directory: dc360
 
     steps:
@@ -75,17 +317,29 @@ jobs:
           cache: npm
           cache-dependency-path: dc360/package-lock.json
 
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
       - name: Instalar dependências
-        run: npm ci
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
 
       # Chromium é o motor do Chrome e do Edge; Firefox é o segundo motor que o
       # critério de aceite exige. `--with-deps` traz as bibliotecas de sistema
       # que faltam numa imagem limpa.
       - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium firefox webkit 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+
+      # O painel importa `@dc360/shared`, e a API do caminho de produção
+      # importa também `@dc360/db`, os dois pelo `dist/`, que numa imagem limpa
+      # não existe até alguém construir o pacote.
+      - name: Construir os pacotes compartilhados
+        run: |
+          { npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db; } 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-build-dos-compartilhados.txt"
 
       - name: Construir o painel
-        run: npm run build --workspace @dc360/web
+        run: npm run build --workspace @dc360/web 2>&1 | tee "$RUNNER_TEMP/artefatos/03-build-do-painel.txt"
 
       # `nohup` porque o processo precisa sobreviver ao fim deste passo, e
       # espera por resposta de verdade em vez de `sleep`: dormir um número
@@ -95,6 +349,7 @@ jobs:
         working-directory: dc360/apps/web
 
       - name: Esperar o painel responder
+        id: esperar
         run: |
           for _ in $(seq 1 60); do
             if curl -sf -o /dev/null http://localhost:4173; then
@@ -108,34 +363,76 @@ jobs:
           exit 1
 
       - name: Modo local, no Chromium
-        run: npm run test:e2e
+        run: npm run test:e2e 2>&1 | tee "$RUNNER_TEMP/artefatos/04-e2e-local-chromium.txt"
 
+      # Os dois passos seguintes rodam mesmo se o Chromium falhar, para o run
+      # do SHA trazer a saída de todos os motores.
       - name: Modo local, no Firefox
-        run: MOTOR=firefox npm run test:e2e
+        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        run: MOTOR=firefox npm run test:e2e 2>&1 | tee "$RUNNER_TEMP/artefatos/05-e2e-local-firefox.txt"
 
       # O CAMINHO DE PRODUÇÃO. Este passo é o mais importante do arquivo.
       #
       # Ele ficou fora daqui desde sempre, e o preço apareceu duas vezes: uma
       # correção de segurança tirou o link de redefinição do log, que era de
-      # onde a suíte o lia, e 49 das 103 verificações deixaram de ser
-      # alcançadas sem ninguém ver. Antes disso, a interceptação de rede da
+      # onde a suíte o lia, e quase metade das verificações deixou de ser
+      # alcançada sem ninguém ver. Antes disso, a interceptação de rede da
       # seção 19 apontava para uma porta fixa e era linha morta ao lado de
       # outra linha morta.
       #
-      # As 47 verificações acima rodam o modo local, que é o modo de
-      # demonstração. Só as de baixo passam por autenticação real, CORS,
-      # renovação de sessão, upload de evidência e documento saindo do
-      # servidor. Verde sem elas é verde que não cobre o que vai a produção.
+      # As verificações do modo local acima rodam o modo de demonstração. Só as
+      # daqui passam por autenticação real, CORS, renovação de sessão, upload de
+      # evidência e documento saindo do servidor. Verde sem elas é verde que não
+      # cobre o que vai a produção. (Quantas são cada uma, quem diz é a saída
+      # arquivada, `Passou: N   Falhou: 0`; contagem escrita aqui envelhece.)
       #
       # O script sobe API e painel do zero em portas próprias: a suíte confere
       # protocolo por número e a detecção de duplicidade recusa o segundo
       # registro no mesmo endereço, então instância suja reprova.
       - name: Caminho de produção, contra a API
-        run: npm run test:e2e:api
+        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        run: npm run test:e2e:api 2>&1 | tee "$RUNNER_TEMP/artefatos/06-e2e-contra-a-api.txt"
+
+      # O mesmo caminho de produção nos outros dois motores (V2-F00-E09,
+      # correção 5). A correção 4 provou o foco depois da senha errada só no
+      # Chromium, e no Firefox o foco ficava em <body>: o que o teclado e o
+      # leitor de tela veem é diferente em cada motor. `e2e-api.mjs` sobe um par
+      # de API e painel novo a cada chamada, então rodar em sequência é seguro.
+      - name: Caminho de produção, contra a API, no Firefox
+        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        run: node scripts/e2e-api.mjs firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/06b-e2e-contra-a-api-firefox.txt"
+
+      # No WebKit só a geometria e o foco da tela estreita (`--so-layout`): a
+      # suíte principal supõe que clicar num botão o foca, e no WebKit, como no
+      # Safari, não foca (ver o cabeçalho de `scripts/e2e-api.mjs`).
+      - name: Caminho de produção, contra a API, no WebKit (geometria e foco)
+        if: ${{ !cancelled() && steps.esperar.outcome == 'success' }}
+        run: node scripts/e2e-api.mjs webkit --so-layout 2>&1 | tee "$RUNNER_TEMP/artefatos/06c-e2e-contra-a-api-webkit.txt"
+
+      - name: Registro do servidor de pré-visualização
+        if: ${{ always() }}
+        run: cp /tmp/preview.log "$RUNNER_TEMP/artefatos/07-preview.log" || true
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: navegador-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
 
   demonstracao:
     name: Pacote da demonstração
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
@@ -146,38 +443,64 @@ jobs:
           cache: npm
           cache-dependency-path: dc360/package-lock.json
 
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
       - name: Instalar dependências
-        run: npm ci
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
         working-directory: dc360
 
       - name: Instalar navegadores
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
         working-directory: dc360
 
       # O empacotador é PowerShell, que existe no runner do Ubuntu como `pwsh`.
       - name: Montar o pacote
         shell: pwsh
-        run: ./scripts/empacotar-demo.ps1
+        run: ./scripts/empacotar-demo.ps1 *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/artefatos/03-empacotar.txt"
 
+      # O SHA-256 do zip vai no artefato: o validador confere que o pacote
+      # extraído abaixo é o que foi montado.
       - name: Extrair como o destinatário faz
+        id: extrair
         run: |
           mkdir -p /tmp/pacote
           unzip -q dist/DefesaCivil360-demonstracao.zip -d /tmp/pacote
+          sha256sum dist/DefesaCivil360-demonstracao.zip | tee "$RUNNER_TEMP/artefatos/04-sha256-do-pacote.txt"
 
       - name: Conferir o pacote extraído
-        run: node scripts/conferir-pacote.mjs /tmp/pacote
+        run: node scripts/conferir-pacote.mjs /tmp/pacote 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conferir-pacote.txt"
 
       - name: Roteiro de dez minutos, Chromium
-        run: node scripts/conferir-roteiro.mjs /tmp/pacote chromium
+        run: node scripts/conferir-roteiro.mjs /tmp/pacote chromium 2>&1 | tee "$RUNNER_TEMP/artefatos/06-roteiro-chromium.txt"
 
+      # Roda mesmo se o Chromium falhar, para o run trazer os dois motores.
       - name: Roteiro de dez minutos, Firefox
-        run: node scripts/conferir-roteiro.mjs /tmp/pacote firefox
+        if: ${{ !cancelled() && steps.extrair.outcome == 'success' }}
+        run: node scripts/conferir-roteiro.mjs /tmp/pacote firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/07-roteiro-firefox.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: demonstracao-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
 
   aplicativo:
     name: Aplicativo de campo
     runs-on: ubuntu-latest
     defaults:
       run:
+        shell: bash
         working-directory: dc360/apps/campo
 
     steps:
@@ -187,26 +510,48 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: dc360/apps/campo/package-lock.json
+          cache-dependency-path: |
+            dc360/package-lock.json
+            dc360/apps/campo/package-lock.json
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
 
       # Os pacotes compartilhados entram por link e precisam estar compilados:
       # o aplicativo consome o `dist`, não o TypeScript de origem.
       - name: Compilar os pacotes compartilhados
-        run: npm ci && npm run build --workspace @dc360/shared && npm run build --workspace @dc360/campo
+        run: |
+          { npm ci && npm run build --workspace @dc360/shared && npm run build --workspace @dc360/campo; } 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci-e-build-dos-compartilhados.txt"
         working-directory: dc360
 
       - name: Instalar dependências do aplicativo
-        run: npm ci
+        id: instalar_app
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci-campo.txt"
 
       - name: TypeScript estrito
-        run: npm run typecheck
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/03-typecheck.txt"
 
       # O aplicativo passou a ter teste. Antes deste passo, o job media só
       # higiene de dependência: TypeScript limpo, Expo saudável e audit em
       # zero. Nenhuma das três enxerga comportamento, e a corrida de renovação
       # que derrubava a sessão do agente no meio do campo passava nas três.
       - name: Testes do aplicativo
-        run: npm test
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm test 2>&1 | tee "$RUNNER_TEMP/artefatos/04-jest.txt"
+
+      # O comando da raiz que mede o aplicativo: tipos, jest e a conferência de
+      # que o jest executou exatamente os casos que a leitura do código conta.
+      # Repete o typecheck e o jest dos dois passos acima de propósito: aqui o
+      # que vale é o cruzamento das contagens e a regra de que a falta de
+      # dependência reprova em vez de pular. (Se o tempo do job pesar, este
+      # passo pode substituir aqueles dois.)
+      - name: Comando da raiz que mede o aplicativo (test:campo)
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        working-directory: dc360
+        run: npm run test:campo 2>&1 | tee "$RUNNER_TEMP/artefatos/05-test-campo.txt"
 
       # A ÁRVORE DE DEPENDÊNCIA PRECISA SER COERENTE.
       #
@@ -219,7 +564,8 @@ jobs:
       # `npm ls` sai com código diferente de zero quando a árvore é
       # incoerente, então basta chamá-lo.
       - name: Árvore de dependência coerente
-        run: npm ls
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm ls 2>&1 | tee "$RUNNER_TEMP/artefatos/06-npm-ls.txt"
 
       # Verificações da própria Expo: configuração de plugin, arquivo de
       # projeto conflitante, compatibilidade com o SDK.
@@ -234,24 +580,336 @@ jobs:
       # passo acima. Atualizar patch da Expo continua sendo trabalho de
       # manutenção, e ele tem lugar: a conferência trimestral do LOJAS.md.
       - name: Saúde do projeto Expo
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
         env:
           EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK: "1"
-        run: npx expo-doctor
+        run: npx expo-doctor 2>&1 | tee "$RUNNER_TEMP/artefatos/07-expo-doctor.txt"
 
-      - name: Dependência com vulnerabilidade conhecida
-        run: npm audit --audit-level=low
+      # O `npm audit` cru que ficava aqui saiu: `node scripts/auditar.mjs` (job
+      # `dependencias`) já audita `apps/campo` contra a lista nomeada
+      # `ACEITAS_NO_APLICATIVO`.
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: aplicativo-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  windows:
+    # Os comandos que as etapas pedem verdes também no Windows, onde o `npm` é
+    # `npm.cmd` e os caminhos têm letra de unidade: o portão do `auditar` (E19)
+    # e `test:scripts` mais `conferir:numeros` (E17). Job próprio para que uma
+    # falha aqui não se confunda com a prova do ambiente hostil (`plataformas`).
+    name: Windows (auditar, test:scripts e conferir:numeros)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      - name: Política de dependências (node scripts/auditar.mjs) em Windows
+        run: |
+          node --version | tee "$RUNNER_TEMP/artefatos/00-versoes.txt"
+          npm --version | tee -a "$RUNNER_TEMP/artefatos/00-versoes.txt"
+          node scripts/auditar.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/01-auditar-windows.txt"
+
+      - name: Instalar dependências
+        id: instalar
+        if: ${{ !cancelled() }}
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci.txt"
+
+      - name: Instalar dependências do aplicativo
+        id: instalar_app
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        working-directory: dc360/apps/campo
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/03-npm-ci-campo.txt"
+
+      - name: Compilar os pacotes compartilhados
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run build:shared 2>&1 | tee "$RUNNER_TEMP/artefatos/03b-build-shared.txt"
+
+      - name: Testes dos scripts em Windows (npm run test:scripts)
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: npm run test:scripts 2>&1 | tee "$RUNNER_TEMP/artefatos/04-test-scripts-windows.txt"
+
+      - name: Os números do README batem em Windows (npm run conferir:numeros)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run conferir:numeros 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conferir-numeros-windows.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  plataformas:
+    # V2-F00-E21: os três casos da etapa sob a condição hostil REAL, em Windows
+    # e em Linux. A Definition of Done pede "três casos verdes em Windows e
+    # Linux", e até aqui só o Linux tinha run, e só a parte sintética (o
+    # checkout do Linux é LF, a variável não estava quebrada no ambiente e não
+    # havia cache velho no disco). O repositório é público, então o runner
+    # `windows-latest` não custa nada.
+    #
+    # Os três casos, cada um precedido de um CONTROLE que reprova o job se a
+    # condição hostil não se reproduzir (verde sobre condição amena não prova
+    # nada):
+    #
+    # 1. CRLF. O checkout é feito com `core.autocrlf=true`, a configuração do
+    #    Windows do autor (e o padrão do Git for Windows). Com o `.gitattributes`
+    #    em vigor o `eol=lf` vence e o checkout sai LF: é isso que o passo de
+    #    `git ls-files --eol` prova. A árvore CRLF de antes do `.gitattributes`
+    #    é então montada à mão em `apps/web/src` e `apps/web/test`, e a suíte
+    #    do painel inteira roda sobre ela.
+    # 2. `OPENSSL_CONF` apontando para arquivo que não existe (o valor que o
+    #    instalador do driver ODBC do PostgreSQL grava no Windows). Antes, o
+    #    controle mostra o `openssl` cru reprovando com ela. Roda no bash (no
+    #    Windows é o Git Bash, que traz o `openssl`) e, só no Windows, também no
+    #    Windows PowerShell 5.1 (`shell: powershell`). O passo registra qual
+    #    `openssl` o PowerShell achou; não promete que seja o do Git.
+    # 3. Cache velho do Expo: `apps/campo/.expo/types/router.d.ts` sem
+    #    `/avisos`, `/mapa` e `/perfil` (`scripts/fixtures/router.d.ts.velho`).
+    #    O controle é o `tsc` direto dando TS2345; depois `npm run test:campo`
+    #    tem de apagar o cache e passar, e o typecheck sem cache dá zero.
+    #
+    # Mais o conferidor de índices de evidência (SHA-256) sobre um checkout
+    # feito com `autocrlf=true`, que é onde um índice tirado do disco errado
+    # deixaria de bater.
+    #
+    # Roda em TODO push, e não só com `[ci completo]`: a prova que a validação
+    # lê é o run do SHA candidato, e um commit candidato sem este job deixaria a
+    # E21 sem Windows de novo. Estimativa: 15 a 25 minutos no Windows (os dois
+    # `npm ci`, a suíte do painel e o jest do aplicativo), perto de 10 no Linux,
+    # em paralelo com os outros jobs.
+    name: Ambiente hostil (CRLF, OPENSSL_CONF, cache do Expo) em ${{ matrix.sistema }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sistema: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.sistema }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        # No Windows `bash` é o Git Bash do runner. `bash` explícito liga o
+        # `pipefail`, e `comando | tee arquivo` devolve o código do comando.
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      # Antes do checkout: é a configuração com que o git escreve a árvore.
+      - name: Fim de linha como no Windows do autor (core.autocrlf=true)
+        working-directory: .
+        run: |
+          git config --global core.autocrlf true
+          git config --show-origin --get-all core.autocrlf
+          git config --global --get core.autocrlf | grep -qx true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            dc360/package-lock.json
+            dc360/apps/campo/package-lock.json
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      # Nenhum arquivo CRLF ou misto no índice, e CRLF no disco só onde o
+      # `.gitattributes` pede (`.ps1`, `.bat`, `.cmd`), apesar do autocrlf.
+      - name: git ls-files --eol sem i/crlf (checkout com autocrlf=true)
+        working-directory: .
+        run: |
+          git config --show-origin --get-all core.autocrlf 2>&1 | tee "$RUNNER_TEMP/artefatos/01-autocrlf.txt"
+          git ls-files --eol > "$RUNNER_TEMP/artefatos/01-git-ls-files-eol-completo.txt"
+          node dc360/scripts/ambiente-hostil.mjs eol "$RUNNER_TEMP/artefatos/01-git-ls-files-eol-completo.txt" 2>&1 | tee "$RUNNER_TEMP/artefatos/01-git-ls-files-eol-resumo.txt"
+
+      - name: Os INDEX.md da evidência batem com os arquivos (SHA-256)
+        if: ${{ !cancelled() }}
+        working-directory: .
+        run: node dc360/scripts/conferir-indices-de-evidencia.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/02-indices-de-evidencia.txt"
+
+      - name: Instalar dependências
+        id: instalar
+        if: ${{ !cancelled() }}
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/03-npm-ci.txt"
+
+      - name: Compilar os pacotes compartilhados
+        id: compilar
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npm run build:shared 2>&1 | tee "$RUNNER_TEMP/artefatos/04-build-shared.txt"
+
+      - name: "Caso 1, controle: árvore do painel em CRLF, sem a agulha antiga"
+        id: crlf
+        if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+        run: |
+          {
+            node scripts/ambiente-hostil.mjs crlf apps/web/src apps/web/test
+            node scripts/ambiente-hostil.mjs conferir-crlf apps/web/src/paginas/Ocorrencia.tsx
+            node scripts/ambiente-hostil.mjs conferir-crlf apps/web/test/ocorrencia-encerramento.test.ts
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/05-crlf-controle.txt"
+
+      - name: "Caso 1: suíte do painel inteira sobre a árvore CRLF"
+        if: ${{ !cancelled() && steps.crlf.outcome == 'success' }}
+        run: npm run test --workspace @dc360/web 2>&1 | tee "$RUNNER_TEMP/artefatos/06-painel-em-crlf.txt"
+
+      # `MSYS_NO_PATHCONV`: sem ele o Git Bash reescreve `/CN=controle` como
+      # caminho do Windows e o `openssl` reprovaria pelo motivo errado.
+      - name: "Caso 2, controle: o openssl cru reprova com OPENSSL_CONF quebrado"
+        id: openssl_controle
+        if: ${{ !cancelled() }}
+        env:
+          OPENSSL_CONF: ${{ runner.os == 'Windows' && 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf' || '/nao/existe/psqlODBC/etc/openssl.cnf' }}
+          MSYS_NO_PATHCONV: "1"
+        run: |
+          {
+            echo "OPENSSL_CONF=$OPENSSL_CONF"
+            echo "openssl: $(command -v openssl)"
+            openssl version || true
+            if [ -e "$OPENSSL_CONF" ]; then echo "CONDIÇÃO HOSTIL NÃO REPRODUZIDA: o arquivo existe"; exit 1; fi
+            pasta="$(mktemp -d)"
+            if openssl req -x509 -newkey rsa:2048 -nodes -keyout "$pasta/chave.pem" -out "$pasta/cert.pem" -subj "/CN=controle" -days 1; then
+              echo "CONDIÇÃO HOSTIL NÃO REPRODUZIDA: o openssl gerou o certificado com a variável quebrada"
+              exit 1
+            fi
+            echo "controle: o openssl cru reprova com a variável quebrada, como na máquina do autor"
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/07-openssl-controle.txt"
+
+      - name: "Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (bash)"
+        if: ${{ !cancelled() && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
+        working-directory: dc360/apps/api
+        env:
+          OPENSSL_CONF: ${{ runner.os == 'Windows' && 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf' || '/nao/existe/psqlODBC/etc/openssl.cnf' }}
+        run: |
+          echo "OPENSSL_CONF=$OPENSSL_CONF" | tee "$RUNNER_TEMP/artefatos/08-banco-tls-bash.txt"
+          npx vitest run test/banco-tls.test.ts test/openssl-do-teste.test.ts 2>&1 | tee -a "$RUNNER_TEMP/artefatos/08-banco-tls-bash.txt"
+          # Prova de que o teste viu a variável quebrada, e não um ambiente limpo.
+          grep -q "OPENSSL_CONF aponta para" "$RUNNER_TEMP/artefatos/08-banco-tls-bash.txt" || { echo "FALHA: o teste não viu a variável quebrada"; exit 1; }
+
+      # Windows PowerShell 5.1, só no Windows. O GitHub abre o passo com
+      # `$ErrorActionPreference = 'Stop'`, e no 5.1 cada linha de stderr de
+      # comando nativo redirecionada com `2>&1` vira erro: o passo cairia no
+      # primeiro aviso do vitest, por isso `Continue`. `npx.cmd` e não `npx`
+      # para não depender da política de execução do `npx.ps1`. O script fica
+      # em ASCII porque o 5.1 lê arquivo sem BOM na página de código local.
+      - name: "Caso 2: banco-tls com OPENSSL_CONF quebrado no ambiente (PowerShell 5.1, só Windows)"
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.compilar.outcome == 'success' && steps.openssl_controle.outcome == 'success' }}
+        shell: powershell
+        working-directory: dc360/apps/api
+        env:
+          OPENSSL_CONF: 'C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf'
+        run: |
+          $ErrorActionPreference = 'Continue'
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $arquivo = Join-Path $env:RUNNER_TEMP 'artefatos\09-banco-tls-powershell.txt'
+          $openssl = (Get-Command openssl -ErrorAction SilentlyContinue).Source
+          $cabecalho = @(
+            "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition))",
+            "OPENSSL_CONF=$env:OPENSSL_CONF (existe: $(Test-Path -LiteralPath $env:OPENSSL_CONF))",
+            "openssl no PATH do PowerShell: $openssl"
+          )
+          $saida = & npx.cmd vitest run test/banco-tls.test.ts test/openssl-do-teste.test.ts 2>&1 | ForEach-Object { "$_" }
+          $codigo = $LASTEXITCODE
+          $cabecalho + $saida + @("codigo=$codigo") | Out-File -FilePath $arquivo -Encoding utf8
+          Get-Content -LiteralPath $arquivo
+          if ($codigo -ne 0) { exit $codigo }
+          if (-not ($saida -match 'OPENSSL_CONF aponta para')) { Write-Output 'FALHA: o teste nao viu a variavel quebrada'; exit 1 }
+          exit 0
+
+      - name: Instalar dependências do aplicativo
+        id: instalar_app
+        if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+        working-directory: dc360/apps/campo
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/10-npm-ci-campo.txt"
+
+      - name: "Caso 3, controle: com o cache velho o tsc direto dá TS2345"
+        id: cache_controle
+        if: ${{ !cancelled() && steps.instalar_app.outcome == 'success' }}
+        run: |
+          A="$RUNNER_TEMP/artefatos/11-cache-velho-controle.txt"
+          node scripts/ambiente-hostil.mjs cache-velho 2>&1 | tee "$A"
+          if (cd apps/campo && npx tsc -p tsconfig.json --noEmit) >> "$A" 2>&1; then
+            cat "$A"
+            echo "CONDIÇÃO HOSTIL NÃO REPRODUZIDA: o tsc passou com o cache velho" | tee -a "$A"
+            exit 1
+          fi
+          cat "$A"
+          echo "erros TS2345: $(grep -c 'error TS2345' "$A")" | tee -a "$A"
+          grep -q "error TS2345" "$A" || { echo "FALHA: o tsc reprovou por outro motivo"; exit 1; }
+
+      - name: "Caso 3: npm run test:campo com o cache velho presente"
+        id: cache_teste
+        if: ${{ !cancelled() && steps.cache_controle.outcome == 'success' }}
+        run: |
+          A="$RUNNER_TEMP/artefatos/12-test-campo-com-cache-velho.txt"
+          npm run test:campo 2>&1 | tee "$A"
+          grep -q "Cache .expo/types desatualizado" "$A" || { echo "FALHA: o test:campo não viu o cache velho"; exit 1; }
+          grep -q "e o jest concordam" "$A" || { echo "FALHA: o test:campo não cruzou a contagem"; exit 1; }
+          if [ -e apps/campo/.expo/types ]; then echo "FALHA: o cache velho continua no disco"; exit 1; fi
+
+      - name: "Caso 3: typecheck do aplicativo sem o cache"
+        if: ${{ !cancelled() && steps.cache_teste.outcome == 'success' }}
+        working-directory: dc360/apps/campo
+        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/artefatos/13-typecheck-campo-sem-cache.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: plataformas-${{ matrix.sistema }}-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
 
   implantavel:
     # O job que faltava, e o que os auditores disseram valer mais que qualquer
     # outro se fosse um só: prova que a API SOBE contra Postgres real, com o
-    # modelo de tres papeis, e responde /saude com 200. Nenhum dos 393 testes
-    # pega isto, porque todos rodam em PGlite como superusuario, onde permissao
-    # nunca e negada. Foi assim que "a API nao sobe contra Postgres nenhum"
-    # sobreviveu a suite inteira ate a auditoria achar a mao.
+    # modelo de tres papeis, e responde /saude com 200. Nenhum dos testes da
+    # suite pega isto, porque todos rodam em PGlite como superusuario, onde
+    # permissao nunca e negada. Foi assim que "a API nao sobe contra Postgres
+    # nenhum" sobreviveu a suite inteira ate a auditoria achar a mao.
     name: A API sobe contra Postgres real
     runs-on: ubuntu-latest
     defaults:
       run:
+        shell: bash
         working-directory: dc360
 
     services:
@@ -272,8 +930,13 @@ jobs:
           cache: npm
           cache-dependency-path: dc360/package-lock.json
 
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
       - name: Instalar dependencias
-        run: npm ci
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
 
       - name: Construir shared, db e api
         run: |
@@ -284,29 +947,43 @@ jobs:
       # Os TRES papeis do README, provados: setup (CREATEROLE + BYPASSRLS)
       # cria e migra; a aplicacao conecta com um login restrito, membro de
       # dc360_app, que nao e superusuario nem dono.
+      #
+      # O `GRANT CREATE ON DATABASE` e o que faltava. A migracao 041 cria a
+      # extensao `pg_trgm`; ela e extensao CONFIAVEL (qualquer papel pode
+      # cria-la), mas "confiavel" exige o privilegio CREATE no banco, e um banco
+      # criado pelo `postgres` nao o da ao `dc360_setup`. Sem esta linha a 041
+      # para com `permission denied to create extension "pg_trgm"`, e o job
+      # ficava vermelho desde que a 041 existe (achado da V2-F00-E25, provado
+      # no Postgres 18). Preferido a `CREATE DATABASE ... OWNER dc360_setup`
+      # porque e a receita que o README e o roteiro de restore ja descrevem, e
+      # porque num Postgres gerenciado o banco ja existe e o dono nao se troca:
+      # ali o que se pode fazer e conceder.
       - name: Provisionar papeis e banco
         env:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
         run: |
-          psql -c "CREATE DATABASE dc360;"
-          psql -d dc360 -c "CREATE ROLE dc360_setup LOGIN PASSWORD 'setup' CREATEROLE BYPASSRLS NOSUPERUSER;"
-          psql -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
-          psql -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
-          psql -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
+          {
+            psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE dc360;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_setup LOGIN PASSWORD 'setup' CREATEROLE BYPASSRLS NOSUPERUSER;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT CREATE ON DATABASE dc360 TO dc360_setup;"
+            psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/02-provisionar.txt"
 
       - name: Migrar com o papel de setup
-        run: DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 npm run migrar
+        run: DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 npm run migrar 2>&1 | tee "$RUNNER_TEMP/artefatos/03-migrar.txt"
       - name: Migrar de novo e provar idempotencia
-        run: DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 npm run migrar -- --conferir
+        run: DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 npm run migrar -- --conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/04-migrar-conferir.txt"
 
       - name: Conceder a associacao ao login de aplicacao
         env:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
-        run: psql -d dc360 -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+        run: psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT dc360_app TO dc360_api WITH SET TRUE;" 2>&1 | tee "$RUNNER_TEMP/artefatos/05-conceder.txt"
 
       # Sobe a API com o papel de APLICACAO (restrito) e prova /saude=200.
       # Se o CREATE TABLE voltar ao caminho de leitura, ou o papel perder a
@@ -319,12 +996,311 @@ jobs:
           DATABASE_URL: postgres://dc360_api:api@localhost:5432/dc360
           JWT_SEGREDO: segredo-de-ci-com-pelo-menos-trinta-e-dois-bytes
         run: |
-          node apps/api/dist/index.js &
+          node apps/api/dist/index.js > "$RUNNER_TEMP/artefatos/06-api.log" 2>&1 &
           API_PID=$!
+          trap 'kill $API_PID 2>/dev/null || true' EXIT
+          subiu=0
           for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:3333/saude > /tmp/saude.json; then break; fi
+            if curl -sf http://127.0.0.1:3333/saude > "$RUNNER_TEMP/artefatos/07-saude.json"; then subiu=1; break; fi
             sleep 1
           done
-          cat /tmp/saude.json
-          node -e "const s=require('/tmp/saude.json'); process.exit(s.status==='ok'&&s.banco==='ok'?0:1)"
-          kill $API_PID
+          if [ "$subiu" != "1" ]; then
+            echo "a API nao respondeu /saude 200 em 30 segundos"
+            tail -n 40 "$RUNNER_TEMP/artefatos/06-api.log"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/artefatos/07-saude.json"
+          node -e "const s=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')); process.exit(s.status==='ok'&&s.banco==='ok'?0:1)" "$RUNNER_TEMP/artefatos/07-saude.json"
+
+      # A corrida entre renovar e "encerrar sessões" (V2-F00-E07, correção 2,
+      # migração 049) só se reproduz com conexões de verdade disputando: o
+      # PGlite tem uma conexão só e serializa tudo, então na suíte comum o bloco
+      # é pulado por ambiente. Aqui ele roda contra o Postgres do serviço, com o
+      # superusuário só para o teste criar e apagar o próprio banco descartável
+      # (`prova_c2_<sorteio>`). Pulado aqui é vermelho: sem esta linha a prova
+      # que fecha o item 2 da seção 7 de `28` nunca rodaria no CI.
+      - name: Corrida de renovação contra encerramento, em Postgres real
+        env:
+          DC360_POSTGRES_DE_PROVA: postgres://postgres:postgres@localhost:5432/postgres
+        run: |
+          npm run build --workspace @dc360/campo
+          npx vitest run --root apps/api test/renovacao-contra-encerramento.test.ts 2>&1 | tee "$RUNNER_TEMP/artefatos/08-corrida-renovacao.txt"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then exit "$status"; fi
+          if grep -Eq "Tests .*skipped" "$RUNNER_TEMP/artefatos/08-corrida-renovacao.txt"; then
+            echo "o bloco de Postgres real foi pulado: a prova da corrida nao rodou"
+            exit 1
+          fi
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: implantavel-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  baseline:
+    # O roteiro da linha de base (`scripts/baseline.mjs`, V2-F00-E01) em Linux:
+    # instala as duas árvores do zero, roda cada comando da fase e compara o
+    # resultado com o esperado. O artefato é a pasta inteira que o roteiro grava
+    # (RESUMO.md, INDEX.md com SHA-256, resultados.json e a saída de cada passo,
+    # já redigida pelo próprio roteiro).
+    #
+    # COMO LER O RESULTADO. O esperado do roteiro é o da árvore verde de hoje
+    # (V2-F00-E01, correção 1). Ele sai com:
+    #   0  todo passo "confere";
+    #   1  há divergência, mas SÓ de passo que declara `divergenciaExplicada`
+    #      (achado nomeado, com o registro onde está descrito; hoje
+    #      nenhum: o `expo-doctor` 20 de 21, V-DEP-4, foi fechado em 2026-10-13) e cuja saída bate com a descrição
+    #      inteira;
+    #   3  há divergência SEM explicação (defeito, deriva externa nova ou
+    #      contabilidade atrasada);
+    #   2  o próprio roteiro quebrou (opção inválida, pasta ilegível).
+    # Este job:
+    #   - PASSA com o código 0;
+    #   - PASSA, com aviso, com o código 1: divergência explicada continua
+    #     visível no RESUMO e na página do run, mas não derruba o CI, porque a
+    #     decisão de subir os patches do Expo é do Rafael e não é defeito do
+    #     produto. Antes da correção 1 este tratamento era errado: o roteiro
+    #     esperava números velhos e saía 1 numa árvore verde, então o aviso era
+    #     ruído constante e escondia divergência de verdade;
+    #   - FALHA com o código 3 (divergência sem explicação), com o 2 ou outro,
+    #     se faltar arquivo de resultado, se o número de resultados não bater
+    #     com o de passos, ou se o código 1 vier com algum passo "divergente"
+    #     no resultados.json (o código e o arquivo têm de contar a mesma coisa).
+    #
+    # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
+    # de rede e da base de avisos do dia. O `expo-doctor` espera 21 de 21 e hoje
+    # deu 21 de 21 num Mac em 2026-10-14, depois da E19 correção 4 (a deriva V-DEP-4 foi fechada em 2026-10-13 e voltou na manhã de 2026-10-14 com cinco patches novos; o primeiro run deste job com os pacotes novos é o que confirma em Linux); os dois `npm audit` esperam vermelho por
+    # desenho (a política do CP-03 está em `npm run auditar`, que espera 0). Um
+    # `npm audit` que fechar em 0, ou um advisory que derrube o `auditar`, faz o
+    # job FALHAR: é o que se quer, alguém precisa explicar.
+    #
+    # Só com `[ci completo]`, à mão ou na agenda (ver o comentário do topo): é
+    # o job mais longo.
+    name: Linha de base (baseline.mjs) em Linux
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            dc360/package-lock.json
+            dc360/apps/campo/package-lock.json
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      # O baseline faz o próprio `npm ci` nas duas árvores (é o primeiro passo do
+      # roteiro, e entra no RESUMO). Este, antes dele, existe só para o
+      # `npx playwright install` achar o pacote: o roteiro apaga e reinstala
+      # `node_modules`, e os navegadores ficam em `~/.cache/ms-playwright`, fora
+      # dele.
+      - name: Instalar dependências (só para o Playwright achar o instalador)
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci-previo.txt"
+
+      - name: Instalar navegadores
+        run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
+
+      - name: Roteiro da linha de base
+        id: baseline
+        run: |
+          pasta="$RUNNER_TEMP/artefatos/baseline"
+          set +e +o pipefail
+          node scripts/baseline.mjs "--saida=$pasta" 2>&1 | tee "$RUNNER_TEMP/artefatos/03-baseline-stdout.txt"
+          codigo=${PIPESTATUS[0]}
+          set -e -o pipefail
+          echo "o baseline saiu com código $codigo"
+
+          if [ "$codigo" -eq 3 ]; then
+            echo "::error title=baseline com divergência sem explicação::há passo divergente do esperado e sem divergenciaExplicada. Leia o RESUMO.md e o resultados.json do artefato: ou se conserta, ou se nomeia e se registra."
+            exit 1
+          fi
+          if [ "$codigo" -ne 0 ] && [ "$codigo" -ne 1 ]; then
+            echo "::error title=baseline quebrou::o roteiro saiu com código $codigo (0 confere, 1 só divergência explicada, 3 divergência sem explicação, outro é falha do roteiro)"
+            exit 1
+          fi
+          for f in RESUMO.md INDEX.md resultados.json; do
+            if [ ! -s "$pasta/$f" ]; then
+              echo "::error title=baseline quebrou::faltou $pasta/$f"
+              exit 1
+            fi
+          done
+          esperados="$(node scripts/baseline.mjs --so-listar | wc -l | tr -d ' ')"
+          obtidos="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).length)" "$pasta/resultados.json")"
+          if [ "$esperados" != "$obtidos" ]; then
+            echo "::error title=baseline quebrou::o roteiro tem $esperados passos e o resultado traz $obtidos"
+            exit 1
+          fi
+          sem_explicacao="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).filter((r) => r.status === 'divergente').length)" "$pasta/resultados.json")"
+          if [ "$sem_explicacao" != "0" ]; then
+            echo "::error title=baseline quebrou::o roteiro saiu com código $codigo, mas o resultados.json traz $sem_explicacao passo(s) divergente(s) sem explicação"
+            exit 1
+          fi
+          if [ "$codigo" -eq 1 ]; then
+            echo "::warning title=baseline com divergência explicada::só há divergência nomeada (veja o RESUMO.md do artefato: o passo e o registro que a explica)."
+          fi
+
+      - name: Resumo do baseline na página do run
+        if: ${{ always() }}
+        run: |
+          if [ -s "$RUNNER_TEMP/artefatos/baseline/RESUMO.md" ]; then
+            cat "$RUNNER_TEMP/artefatos/baseline/RESUMO.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # SEM redigir `baseline/`: o roteiro já redige a própria saída, e o
+      # INDEX.md dele guarda o SHA-256 de cada arquivo, que reescrever depois
+      # invalidaria. Os demais arquivos do artefato são redigidos normalmente.
+      - name: Redigir segredo dos artefatos (menos a pasta do baseline)
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos" baseline
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+  restore:
+    # O roteiro de `dc360/docs/RESTORE-DO-BANCO.md` (V2-F00-E25, critério CA-08),
+    # em Linux e no Postgres 17, que é a versão da produção. Dois servidores
+    # PostgreSQL 17 novos, cada um num contêiner (a origem e o destino do dump),
+    # com senhas geradas neste job: migra do zero, semeia, despeja, restaura com
+    # `--exit-on-error` e confere linhas, estrutura, RLS ativada e forçada,
+    # isolamento e a API contra a cópia. A lógica está em
+    # `scripts/ensaiar-restore.sh`, que roda igual fora do CI (basta ter dois
+    # servidores novos).
+    #
+    # Dois contêineres, e não dois bancos no mesmo servidor, porque papel de
+    # banco é do servidor inteiro: com um servidor só, os papéis da origem já
+    # existiriam no destino e o roteiro (criar os papéis ANTES do restore) não
+    # seria reproduzido.
+    #
+    # O cliente (`pg_dump`, `psql`) é o 17, instalado do repositório oficial do
+    # PostgreSQL: o do runner é o 16, e `pg_dump` mais velho que o servidor
+    # recusa trabalhar.
+    #
+    # Só com `[ci completo]`, à mão ou na agenda (ver o comentário do topo).
+    name: Restore do banco, Postgres 17 (CA-08)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ci completo]')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/package-lock.json
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      - name: Instalar dependências
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/01-npm-ci.txt"
+
+      - name: Construir shared, db e api
+        run: |
+          {
+            npm run build --workspace @dc360/shared
+            npm run build --workspace @dc360/db
+            npm run build --workspace @dc360/api
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/02-build.txt"
+
+      - name: Instalar o cliente PostgreSQL 17
+        run: |
+          {
+            export DEBIAN_FRONTEND=noninteractive
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-common
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+            sudo apt-get install -y -qq postgresql-client-17
+            /usr/lib/postgresql/17/bin/pg_dump --version
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/03-cliente-postgresql-17.txt"
+
+      # A senha do superusuário dos dois servidores nasce aqui, é mascarada no
+      # log e vai ao restante do job pelo ambiente. Não é gravada em arquivo
+      # de saída. As senhas dos papéis dc360_* nascem dentro do roteiro.
+      - name: Gerar a senha descartável do superusuário
+        run: |
+          senha="$(node -e "process.stdout.write(require('crypto').randomBytes(18).toString('base64url'))")"
+          echo "::add-mask::$senha"
+          echo "SENHA_DO_JOB=$senha" >> "$GITHUB_ENV"
+
+      # Os dois servidores, iniciados como o roteiro (passo 1) manda: UTF8 e
+      # locale C, autenticação por senha. `-e POSTGRES_PASSWORD` sem valor herda
+      # do ambiente, e a senha não vai na linha de comando.
+      - name: Subir os dois servidores PostgreSQL 17
+        run: |
+          {
+            for par in origem:55451 destino:55452; do
+              nome="${par%%:*}"
+              porta="${par##*:}"
+              POSTGRES_PASSWORD="$SENHA_DO_JOB" docker run -d --name "dc360-pg-$nome" \
+                -e POSTGRES_PASSWORD \
+                -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" \
+                -p "127.0.0.1:$porta:5432" postgres:17
+            done
+            docker ps --filter name=dc360-pg- --format '{{.Names}} {{.Image}} {{.Ports}}'
+          } 2>&1 | tee "$RUNNER_TEMP/artefatos/04-servidores.txt"
+
+      - name: Ensaiar o restore
+        env:
+          PORTA_ORIGEM: "55451"
+          PORTA_DESTINO: "55452"
+          SAIDA: ${{ runner.temp }}/artefatos/restore
+          PGBIN: /usr/lib/postgresql/17/bin
+        run: SENHA_SUPERUSUARIO="$SENHA_DO_JOB" bash scripts/ensaiar-restore.sh 2>&1 | tee "$RUNNER_TEMP/artefatos/05-ensaio-do-restore.txt"
+
+      - name: Registro dos servidores e limpeza
+        if: ${{ always() }}
+        run: |
+          for nome in origem destino; do
+            docker logs "dc360-pg-$nome" > "$RUNNER_TEMP/artefatos/06-servidor-$nome.log" 2>&1 || true
+            docker rm -f "dc360-pg-$nome" > /dev/null 2>&1 || true
+          done
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error

@@ -1,0 +1,27 @@
+$ npm run auditar   (em dc360, DEPOIS da correção 9, com rede, npm 11.12.1)
+
+> dc360@0.1.0 auditar
+> node scripts/auditar.mjs
+
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+  aceita (desenvolvimento): @vitest/mocker (dono Rafael, até 2027-01-05)
+  aceita (desenvolvimento): tinypool (dono Rafael, até 2027-01-05)
+  aceita (desenvolvimento): vitest (dono Rafael, até 2027-01-05)
+
+Aviso: 3 vulnerabilidade(s) apenas em ferramenta de desenvolvimento, todas aceitas com dono e prazo (CP-03). Não reprova.
+
+Aplicativo de campo (vai para o telefone): 57 vulnerabilidade(s)
+  aceita: brace-expansion GHSA-6j4f-fj2g-mc7p (high, dono Rafael, até 2027-01-05)
+  aceita: brace-expansion GHSA-q2hr-2g5m-vwhr (moderate, dono Rafael, até 2027-01-05)
+  aceita: brace-expansion GHSA-qhr7-859c-m2p7 (high, dono Rafael, até 2027-01-05)
+  aceita: braces GHSA-vfj7-8cjw-p6xm (high, dono Rafael, até 2027-01-05)
+  aceita: decode-uri-component GHSA-vcc3-ghjq-m6fr (moderate, dono Rafael, até 2027-01-05)
+  aceita: node-forge GHSA-86w9-cpqp-85rv (high, dono Rafael, até 2027-01-05)
+  aceita: shell-quote GHSA-pqg4-j6r4-53mv (critical, dono Rafael, até 2027-01-05)
+  aceita: sprintf-js GHSA-hp3w-g68c-fv3c (moderate, dono Rafael, até 2027-01-05)
+
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 8 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+
+Runtime limpo, e o aplicativo sem advisory nova.
+codigo=0

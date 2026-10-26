@@ -1,11 +1,111 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/` saíram desta lista. São arquivos do gatekeeper, mudam a cada rodada de validação e por isso o SHA-256 gravado aqui deixava de bater (a mesma regra de `scripts/roadmap/conferir-evidencia.mjs`, que não os confere). As demais linhas não foram alteradas: continuam batendo byte a byte.
+
+> Nota de 2026-10-15 (V2-F00-E22, correção 3): entram `correcao-3/` (RESUMO com a tabela da varredura, `saidas/`, `sondas/` e o diff). `correcao-3/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
+> Nota de 2026-10-19 (V2-F00-E22, correção 4): entra `correcao-4/` (RESUMO com a tabela da varredura, `saidas/`, `sondas/` e o diff). `correcao-4/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
+> Nota de 2026-10-20 (V2-F00-E22, correção 5): entra `correcao-5/` (RESUMO com a tabela de antes, depois e prova das frases corrigidas, `saidas/` e o diff). `correcao-5/INDEX.md` lista só a pasta dela; este lista tudo, como antes.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | e6076dabb818e9fe9c7eb90d2ca74cf8902e4aaa5a70ad5b7931ab2fc83e178e |
+| RESUMO.md | 0083163cb82463808605fe368c8505ae018adc57fdae4f7f6aee5de339f411d1 |
+| correcao-1/RESUMO.md | 34023a04e48879c130fe19fdf8bd0478cbaf192b54d36fb256bb6e81924630cf |
+| correcao-1/diff-da-correcao.patch | ad503200ccef2f8863676bee65229857e5af11e8d4e0420ea7faf58a440692dc |
+| correcao-1/saidas/01-conferir-numeros-DEPOIS.txt | 93c3abc0576efae998b1a3405bd7bb1cca4b5063d46d3bbd2b291239c69b4b9e |
+| correcao-1/saidas/02-portao-de-conteudo-DEPOIS.txt | 23735c827c84e1ebfdcdbc5872a63310bcfc6bfc2af2d9321032c7d1e3ada0c3 |
+| correcao-1/saidas/03-npm-run-auditar.txt | 8445563cfa46355aa6fbafa4bbfed2f31c849a88ce6b290ca59950ecaf1214c9 |
+| correcao-1/saidas/04-npm-audit-omit-dev-raiz.txt | 6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3 |
+| correcao-1/saidas/05-expo-doctor-campo.txt | d19777d35ee010f27cac3edea3656c54bc0a375bb74e730a5b51123a3fff9890 |
+| correcao-2/RESUMO.md | f044a715d3c59ef86dc0aaa46c5c03a6ad6413734656210a854d34ba867ff809 |
+| correcao-2/diff-da-correcao.patch | 7cf1fa50848e0e6cb21253c191254b7b7dc5a3f1699bd4fba1604fa6d1849837 |
+| correcao-2/saidas/20-baseline-test-extrator-ANTES-VERMELHO.txt | ae1f5a9f180eb2e70fcae0fa2407b0f7f16c5093762c7b9ce1565f12e3599dd8 |
+| correcao-2/saidas/21-baseline-test-extrator-DEPOIS-VERDE.txt | d3eb0b41a5d67e042fce64f1291c6cc05b0d749ba872bfa085c5800d49b04091 |
+| correcao-2/saidas/22-test-scripts-node24-ANTES-extrator-nao-le-spec.txt | 47e27a76efdaadca7508798ccea9925c1cca407f4c98fe8a62383af65b55d15d |
+| correcao-2/saidas/30-ambiente-e-migracoes-na-pasta.txt | 2ad79e3913115071989344eb5095ff745400d4b76f2b8e5743e719f96e9bf3c8 |
+| correcao-2/saidas/31-conferir-numeros-DEPOIS-VERDE.txt | a7a5f69d61b784bfd0901679529fbb1e6ce08d72c76b3d342397b2092fbdf1ca |
+| correcao-2/saidas/32-conferir-numeros-marcador-de-migracoes-ANTES-VERMELHO.txt | 5157bfe486aff581550cb74d2b34a0f2d3876745092c0b8d57913b83da3a03b2 |
+| correcao-2/saidas/33-portao-de-conteudo.txt | 31b55b83d8f434d1260a23f319466e1dc5011758208de588c9e1c21673af70d2 |
+| correcao-2/saidas/34-openssl-do-teste-no-macos.txt | 826c9aed91539fa1476382a2ac6e12052dad35a99dcd664f97030d7c25019b0f |
+| correcao-2/saidas/baseline/01-typecheck.txt | b4b02b8ecc6c7246b2e6f8354556399226a12b2159653fa906ed43c54d18069f |
+| correcao-2/saidas/baseline/02-teste-shared.txt | 6c43746618d86c4055337c86891be7c02306c51f719a7b5e0096640c22a54631 |
+| correcao-2/saidas/baseline/03-teste-db.txt | 87bee749181b2bdcab7af3b95a62984382c7367a42f61ab6de788438c2a4eb79 |
+| correcao-2/saidas/baseline/04-teste-campo-pacote.txt | 137505072f8f2fc45fe18fcdc946a254e64f669e48358b0d0bae8f8a709eeff1 |
+| correcao-2/saidas/baseline/05-teste-api.txt | 663cb338fb9bd4c4482969dbf34294f15d5524306d1221e23747328f9ee0dfdb |
+| correcao-2/saidas/baseline/06-teste-console.txt | acf30ff778715b0b143ffb9a8a9e1bb184b8868ece1490cf415e497dd3fa5a63 |
+| correcao-2/saidas/baseline/07-teste-web.txt | 9ba1d7054e165a7d897504e33773801849f950023757d14d2706dd6f8d021721 |
+| correcao-2/saidas/baseline/08-teste-campo-app.txt | 557a077e26fc872333f96c8e75255cffe58b6feef4dd440884392715bfe75c92 |
+| correcao-2/saidas/baseline/09-test-campo.txt | 3ed290a39a62dbac000858718a24eea34aef96a90f9e1ca00aa4ea531ec9f4c7 |
+| correcao-2/saidas/baseline/10-test-scripts.txt | 895f29d28b783572df32453da2e7b7aa32cdb50996406ca5d9499a6f396b85c7 |
+| correcao-2/saidas/baseline/11-conferir-numeros.txt | 66b8d907b25fdc2fcdd5ef0b642f55781d332d7cde8a2db9fffd48028f4f3566 |
+| correcao-2/saidas/baseline/12-auditar.txt | e43d7bf56bd90c7c1a34022bdd9dbba37cc64a2aa8a11703acd3ff11011783db |
+| correcao-2/saidas/baseline/13-audit-raiz.txt | 2f4069b66f9394fe8bab0ea2337dbdeb286e93f122d9a3ea75b5ed4fa1f90cca |
+| correcao-2/saidas/baseline/14-audit-campo.txt | 89fd4f109ceb2db125d11c6ff94eca77f198128b93384651a6e3de6bc62a3e2d |
+| correcao-2/saidas/baseline/15-expo-doctor.txt | b70621e624e256db484b5b89423a21c5d129bff3d804dbc16d759fbc4c107f2f |
+| correcao-2/saidas/baseline/16-e2e.txt | 09e34a15811d699bf609a8d867d73a476b9b55a6ebf47ca277c7c460c4eea133 |
+| correcao-2/saidas/baseline/17-e2e-api.txt | fb95091daebbf8d0c8759966b6de362ecde6e2d8d868de9b4b16f451f9dbb7be |
+| correcao-2/saidas/baseline/RESUMO.md | 9ebe64e905c38dfc2921002944ef0190f0c70a4e740964732644c8451a13289e |
+| correcao-2/saidas/baseline/resultados.json | 361ef452922758a0a187338c6e4d003642c335bb8e2bea4423bbd29b079fa675 |
+| correcao-3/RESUMO.md | b1f31c94144fbf0b1eda875020275af4074d18a3409a32951d1c99f9522c326f |
+| correcao-3/diff-da-correcao.patch | 376b833f5c1ea989f087fab27280b9bb38e34633ba9fd65b4cd35bf001cfc48f |
+| correcao-3/saidas/01-ANTES-VERMELHO-quinze-de-quinze-no-HEAD.txt | af11671df5affc866ed7a3cad96bb695262633378d419e598a8d8066f6229693 |
+| correcao-3/saidas/02-DEPOIS-VERDE-quinze-de-quinze-no-disco.txt | 343fcfddabaa6bb37db741f5c850b35c85c1e6c5ae95b5d602f78700c9038cc6 |
+| correcao-3/saidas/03-teto-de-27-funcoes-privilegiadas-contagem-real.txt | 30c3af5e13b945fd87b685716f6d3cc0dbbaf7c43007bda7ee3e7b2f1cf53663 |
+| correcao-3/saidas/04-conferir-numeros-DEPOIS-VERDE.txt | a6284d872b831ad2dc45d0d1cbbd2290e806f298b8480284668c2f174bf1dfc2 |
+| correcao-3/saidas/05-portao-de-conteudo.txt | fea2c702e3b319f6442ad60d560e197a3b29ec1b37fd97f6beb8ffed07400f56 |
+| correcao-3/saidas/06-referencias-a-arquivo-inexistentes.txt | 90ad312fe75784983d4286fd1546b5f86e9aa4eb1173bc5d67b65672462e46e2 |
+| correcao-3/saidas/07-variaveis-e-rotas-citadas.txt | 80d424f86de7d0ab619e24b8227994342b81c1c0cccc7e8952db8dc43026cc35 |
+| correcao-3/saidas/08-tabelas-fora-do-dicionario-DEPOIS.txt | b4ba011facb7d0930e7dd38fd89e6799030065864d207712e9d251c7f8d4866f |
+| correcao-3/saidas/09-ancoras-da-declaracao-nas-lojas.txt | c94cf4d048531842a1185717f9f253324601268dff8d492bb5635ff9d64f646d |
+| correcao-3/saidas/10-pares-de-contraste-e-jobs-do-ci.txt | 02f33925017622f4536a89fd8dabf8523b1991377600f8347511fabc497cb9d7 |
+| correcao-3/saidas/11-sem-travessao-nos-arquivos-tocados.txt | 84434f7c2d5ee8d5e3a734b5503ccf1a7cec010d3532da7da6b457a2f80c88db |
+| correcao-3/saidas/12-typecheck-da-api-depois-dos-comentarios.txt | df6ee54ea8e990f97ea24164be5c02fe932ec5773e94f7a08ca49453f6b43007 |
+| correcao-3/saidas/13-docker-nos-comentarios-e-adr-0004.txt | 4490aa78777aec4d95755d99569b8bccb5d4628f5cefe57750926e4ce5e71c5e |
+| correcao-3/saidas/14-teste-do-painel-e-tsc-depois-do-MeuTrabalho.txt | bf918e29b94135dd830c5807c778d5b8f282d2c20972bc1e106e0456d6302e8f |
+| correcao-3/sondas/contar-funcoes-privilegiadas.mjs | b854584c6a5aab67716de29b0d6b60167b381b365520aa9e53da365c30abaa52 |
+| correcao-3/sondas/referencias-a-arquivo.mjs | 3dca3e65020866f0d46a1418d713ac05316f78fb6e7bb46c3c78c6578fdd3619 |
+| correcao-3/sondas/tabelas-fora-do-dicionario.mjs | 3f37825d0098336088948ae908dc93ce1707eeb6e050cc9094d1fcb928de630a |
+| correcao-3/sondas/travessao-nos-arquivos-tocados.mjs | 2a2a0b4fca1fbbbe2d6a66664aabea8f29c7482adec23fae1c3ff102e23bf06a |
+| correcao-3/sondas/variaveis-e-rotas-citadas.mjs | 08337d9f7aa8b9c4a4e8389c262d3dbe169a6a51ac3c01b0b1026bf3e1d7326f |
+| correcao-4/RESUMO.md | 9600609e146b05b6647309dab597016f2b7af4cb286213e64d0b3140890dea28 |
+| correcao-4/diff-da-correcao.patch | 2db81b49682dc4202be10aeddeca4d48a2b6b6101eb15421c365e5398e0f431f |
+| correcao-4/saidas/01-ANTES-VERMELHO-tabela-de-permissoes-do-readme.txt | 038a1422f6721c4677e8ae010f1f7098b2897e0063bab7851091a0e9538326db |
+| correcao-4/saidas/02-DEPOIS-VERDE-tabela-de-permissoes-do-readme.txt | 9192ea618e67479bfeeb196dfa64fa8d28685b5941b2c53356d5210a9dfb2945 |
+| correcao-4/saidas/03-MUTACAO-1-acao-nova-no-codigo-sem-README.txt | 4e0a4edd40172102bc8c7a1044eab14ba7b72c7535e6064f531a3c63e1085a05 |
+| correcao-4/saidas/04-MUTACAO-2-acao-tirada-do-codigo-sobra-no-README.txt | 8807a1adf623c7a01eec3f38d4c705818d5c8711a81f9e0abf22b5a6fc0f537a |
+| correcao-4/saidas/05-MUTACAO-3-operador-perde-consultar_oficio-README-e-PAPEIS-acusam.txt | 59925324baa1e27bcb3736b9f45ec14887465c360f01d04f1eb50a25bb77f710 |
+| correcao-4/saidas/06-MUTACAO-4-colunas-trocadas-no-cabecalho-de-PAPEIS.txt | 1e0be4779a3340ff6f5ab6d5e7ca0490cb8ccd9570ff08658c5bb1b45214cb77 |
+| correcao-4/saidas/10-test-api-completo-com-16-falhas-por-parada-da-maquina.txt | 24dbbe9b38c0a455d3aeb7fede2bd9afce80df15245ec06d23fee86b497f4e4b |
+| correcao-4/saidas/11-test-api-dos-7-arquivos-que-falharam-sozinhos-VERDE.txt | f5707b850e22c60c17df11713db35c8ccc3631d1b5cb6e8f5d87bb43f29bb89e |
+| correcao-4/saidas/12-test-api-completo-VERDE.txt | 9ae21599b8427041af80256f6e7d1d3bd88e27693073635bfbe3c629e27bda51 |
+| correcao-4/saidas/20-referencias-a-arquivo-inexistentes.txt | 0e1433b8c2a0b9a9e0222a9ec911e516c9eed2229c9c1cacfc3dc181a2ebaab3 |
+| correcao-4/saidas/21-variaveis-e-rotas-citadas.txt | dd58aae2d6ab65472fffa6934dcf30e8d12a8538d1e590a44d4c39bbb6efae41 |
+| correcao-4/saidas/22-sem-travessao-nos-arquivos-tocados.txt | a6c46a3656a1457f8009937085f067b5316803271392a7537ef3014c8adf447f |
+| correcao-4/saidas/30-conferir-numeros-DEPOIS-VERDE.txt | 8071f5142445bd813b1f3801367dc86f617482cece007c7d0713ea9583870349 |
+| correcao-4/saidas/31-baseline-test.txt | b1b31c01188970dabb61cbfe280c304df2a05408a5b5a8edd6c0769b6b368316 |
+| correcao-4/saidas/32-portao-de-conteudo.txt | cd8dbee7e6e9b1bf97168c8a28cc37c1d71807db703d00cd2f8de21552c36239 |
+| correcao-4/saidas/33-shared-completo.txt | 74f17705e2e63fc9d3898d9d7b43938d67c894e41dfe0195d72cdd8b52cdc554 |
+| correcao-4/saidas/34-typecheck-inclui-tsc-da-api.txt | d9910c896aca808b10b1e930d357e6fb4042e0d60e9df476308d4b7236ddc009 |
+| correcao-4/saidas/35-npm-run-auditar.txt | fbc4a97381984b41687ef059f378ade238547f5b33b2284119a12392a69c3ac2 |
+| correcao-4/saidas/36-api-testes-dos-arquivos-com-comentario-alterado.txt | 2d7be8fc462ff71cd5ffe006b23ffb6b3fd9da41a142a9f6116daaa50e631f5e |
+| correcao-4/saidas/37-ancoras-da-declaracao.txt | 456547c63e072df463664e4097bdd75d0d227e8d467faae1e2290a397dcb4866 |
+| correcao-4/saidas/38-prova-dinamica-matriz-de-alcance.json.txt | 7327c8e99bf2f7294faa6ec83c6ab1dad39098d5c5a1177006e29e04d6d93990 |
+| correcao-4/sondas/contar-funcoes-privilegiadas.mjs | b854584c6a5aab67716de29b0d6b60167b381b365520aa9e53da365c30abaa52 |
+| correcao-4/sondas/referencias-a-arquivo.mjs | 3dca3e65020866f0d46a1418d713ac05316f78fb6e7bb46c3c78c6578fdd3619 |
+| correcao-4/sondas/tabelas-fora-do-dicionario.mjs | 3f37825d0098336088948ae908dc93ce1707eeb6e050cc9094d1fcb928de630a |
+| correcao-4/sondas/travessao-nos-arquivos-tocados.mjs | 4dce5ba109aa2f5329fbdd6c9ee6f2e48e262f9e04c0df9a53bad536762d10ad |
+| correcao-4/sondas/variaveis-e-rotas-citadas.mjs | 08337d9f7aa8b9c4a4e8389c262d3dbe169a6a51ac3c01b0b1026bf3e1d7326f |
+| correcao-5/RESUMO.md | b45d49973e446a2e427a8e3e253ee41796682916704ca1ece88a714996c70890 |
+| correcao-5/diff-da-correcao.patch | b6f7ed32a8abb855329769e908e26e7efff6a3770d5953a1d34eec308e455610 |
+| correcao-5/saidas/01-conferir-numeros.txt | c1bb43105da0d1169c243161c43f6022dc6370dc1716998ee7984f87c53fce60 |
+| correcao-5/saidas/02-portao-de-conteudo.txt | f5af8b585008561a3de02f1f1475cef23bbb41aa4206f9dd1ae9f66ce81a13bb |
+| correcao-5/saidas/03-teste-da-guarda-da-api.txt | ccdf8fcbcfb915304ab46f58a8b4d5c6dfeec90af2e5eb81de947d298cc2c26f |
+| correcao-5/saidas/04-ferramentas-do-roadmap.txt | 543c1316c84cfba648b709a7edf627af300130eecca9fd666cbee072bda1ea8e |
+| correcao-5/saidas/05-provas.txt | e3a17d215d724784453e0ffd1dcb78db551cc418a0a2026efe830a3d02ec9b65 |
 | saidas/antes/audit-campo-runtime.txt | a528c1c75dfb55d40c08b126115a1ce37fb4bda3048a0585bdf1c854f47cbaa3 |
 | saidas/antes/audit-raiz-runtime.txt | 48cfb220bd1c60fb3182a0cc3c7730f7e5b22545de62daa30a0ca3bfbd27c477 |
-| saidas/antes/auditar.txt | 7317721a7dde62487f23c85cdf9f571fdac0676308253ceac4316c4dd5cedda5 |
+| saidas/antes/auditar.txt | 4c4f1e327a4c3c365d0ec8066f50faae1cda6c04d34c235f2d290542076e8c64 |
 | saidas/antes/conferir-numeros.txt | 5fd62f67cd50e02f0d875d99119e04e4dd1952e643b00a18357df3b4304b5f37 |
 | saidas/antes/expo-doctor.txt | 01c60131e9b66107215f8aef7356ee0bc9332696622c3d9f435641d8c0557953 |
 | saidas/baseline/01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
@@ -17,7 +117,7 @@
 | saidas/baseline/07-teste-web.txt | b2bbfbf066fce59b7af5c9c5dc869b344c4fba1e92f3e9fd577c5328f6dd78ee |
 | saidas/baseline/08-test-scripts.txt | 0502a6a65bd6ebbc1a665d785f23e3de9743f537332a8186cb3c0e796ea523e8 |
 | saidas/baseline/09-conferir-numeros.txt | 446b62814ee01660794c1a32b34a30e42e45aa14b506fa1c5d75c2a12efa49ae |
-| saidas/baseline/10-auditar.txt | 577771b64fed39817ddc4f40f4b582c88f398bb14769aef6632545324dbcffa9 |
+| saidas/baseline/10-auditar.txt | 91f0d20770f4a7932e14908c2b4b8e05bee9eb025ee3ba910bf0a15853482cf6 |
 | saidas/baseline/11-audit-raiz.txt | 36a1663183c7ea13df0d68aa802d949bd36dbfc6589d4eb024512eb96b8964bd |
 | saidas/baseline/12-audit-campo.txt | 7372480181536c23b64fa311ce20df89b586ba6fabe0371072feff6ce61c19a8 |
 | saidas/baseline/13-expo-doctor.txt | dfda63f20f79f3887e255f0df8b21c667a8132e5aa2a48a21c87472f678c5adf |
@@ -28,3 +128,5 @@
 | saidas/npm-test.txt | 56696e6803a6af8d232201528bc9ca4c29b14480fba635cd6cb12f1f6de2009a |
 | saidas/sonda-103-contra-a-api.txt | 43d9ca95bf9f8b66c397002bb3ed476eee1263db3c76c67a82385f9d66c2c94c |
 | saidas/sonda-103-regex-antigo.txt | 9fa84d770fcb83cd335c6235eaf024afaf2cff9868b319325a92b63ac0941393 |
+| divida-DV-08/RESUMO.md | 442cd028529e092ec5d8a15f88f8ab56095e8a012ba509dec85daa8b99368ec6 |
+| divida-DV-08/saidas/01-api-do-github-run-39366804765.txt | 8957e0a9bb26aa373b176dc1c644d5f14092455e528e561e0baad3c2a0088af1 |

@@ -1,0 +1,79 @@
+$ rodar-copias.sh <worktree> <árvore de trabalho da correção 9>   (DEPOIS: todas as variantes das correções 8 e 9)
+=== variante plantada (sem .npmrc; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante plock (package-lock=false; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante raiz-com-dep (sem .npmrc; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante proibida (before=2020-01-01; shrinkwrap: )
+    ERRO: a configuração do npm para o projeto da raiz (/private/tmp/e19c6/c9/copias/proibida/dc360) tem chave fora da lista permitida, então este portão NÃO aprova.
+      - before   (de project (/private/tmp/e19c6/c9/copias/proibida/dc360/.npmrc))
+    Uma chave de configuração pode mudar o que o `npm audit` olha (a rodada 7 achou `package-lock=false`, que faz o npm auditar outra árvore e aprovar um lockfile vulnerável). Tire a chave, ou, se ela for comprovadamente ino
+    codigo=2
+=== variante permitidas (loglevel=silent
+color=false
+progress=false
+fund=false
+update-notifier=false
+cache=/tmp/e19c6/c8/cache-hostil
+prefix=/tmp/e19c6/c8/prefixo-sem-npmrc
+registry=http://127.0.0.1:9/
+offline=true
+prefer-offline=true
+prefer-online=false
+dry-run=true
+package-lock=false
+package-lock-only=true
+audit-level=critical
+json=false; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante credencial (//registry.npmjs.org/:_authToken=token-falso-de-teste; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante global (prefix=/tmp/e19c6/c8/prefixo-hostil; shrinkwrap: )
+    ERRO: a configuração do npm para o projeto da raiz (/private/tmp/e19c6/c9/copias/global/dc360) tem chave fora da lista permitida, então este portão NÃO aprova.
+      - include   (de global (/tmp/e19c6/c8/prefixo-hostil/etc/npmrc))
+      - omit   (de global (/tmp/e19c6/c8/prefixo-hostil/etc/npmrc))
+    Uma chave de configuração pode mudar o que o `npm audit` olha (a rodada 7 achou `package-lock=false`, que faz o npm auditar outra árvore e aprovar um lockfile vulnerável). Tire a chave, ou, se ela for comprovadamente ino
+    codigo=2
+=== variante usuario (sem .npmrc; shrinkwrap: )
+    ambiente: HOME=/tmp/e19c6/c8/casa npm_config_cache=/Users/rafaelgomes/.npm
+    ERRO: a configuração do npm para o projeto da raiz (/private/tmp/e19c6/c9/copias/usuario/dc360) tem chave fora da lista permitida, então este portão NÃO aprova.
+      - include   (de user (/tmp/e19c6/c8/casa/.npmrc))
+      - omit   (de user (/tmp/e19c6/c8/casa/.npmrc))
+    Uma chave de configuração pode mudar o que o `npm audit` olha (a rodada 7 achou `package-lock=false`, que faz o npm auditar outra árvore e aprovar um lockfile vulnerável). Tire a chave, ou, se ela for comprovadamente ino
+    codigo=2
+=== variante env-proibida (sem .npmrc; shrinkwrap: )
+    ambiente: npm_config_omit=dev
+    ERRO: a configuração do npm para o projeto da raiz (/private/tmp/e19c6/c9/copias/env-proibida/dc360) tem chave fora da lista permitida, então este portão NÃO aprova.
+      - include   (de env (environment))
+      - omit   (de env (environment))
+      - omit   (de env (npm_config_omit))
+    Uma chave de configuração pode mudar o que o `npm audit` olha (a rodada 7 achou `package-lock=false`, que faz o npm auditar outra árvore e aprovar um lockfile vulnerável). Tire a chave, ou, se ela for comprovadamente ino
+    codigo=2
+=== variante env-permitida (sem .npmrc; shrinkwrap: )
+    ambiente: npm_config_package_lock=false NPM_CONFIG_OFFLINE=true npm_config_userconfig=/tmp/nao-existe/.npmrc
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1
+=== variante shrinkwrap (sem .npmrc; shrinkwrap: npm-shrinkwrap.json )
+    ERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.
+      - /private/tmp/e19c6/c9/copias/shrinkwrap/dc360/npm-shrinkwrap.json existe, e o npm o lê NO LUGAR do package-lock.json
+    codigo=2
+=== variante shrinkwrap-app (sem .npmrc; shrinkwrap: apps/campo/npm-shrinkwrap.json )
+    ERRO: o que o npm audita não é o package-lock.json, então este portão NÃO aprova.
+      - /private/tmp/e19c6/c9/copias/shrinkwrap-app/dc360/apps/campo/npm-shrinkwrap.json existe, e o npm o lê NO LUGAR do package-lock.json
+    codigo=2
+=== variante uuid (sem .npmrc; shrinkwrap: )
+    Runtime (vai para a imagem): 1 vulnerabilidade(s)
+    REPROVADO: 1 high em dependência de runtime.
+    codigo=1

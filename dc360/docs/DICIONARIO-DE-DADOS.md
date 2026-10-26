@@ -1,9 +1,9 @@
 # Dicionário de dados
 
 - **Versão:** 4, de 15/09/2026 (a 3 e a 2 eram do mesmo dia; a 1, de 09/09/2026)
-- **Para quê:** entregar junto com a exportação de saída de município
-  (`SAIDA-DE-MUNICIPIO.md`), e servir de referência para quem for auditar ou
-  migrar. `status = 'em_campo'` não se explica sozinho.
+- **Para quê:** ser entregue ao município junto com a exportação de saída
+  (`SAIDA-DE-MUNICIPIO.md`; hoje o pacote gerado pela API NÃO o inclui, a
+  entrega é à parte), e servir de referência para quem for auditar ou migrar. `status = 'em_campo'` não se explica sozinho.
 
 Este documento descreve o **significado**. A estrutura autoritativa são as
 migrações em `db/migrations/`, e elas mandam em caso de divergência.
@@ -19,8 +19,16 @@ município vem sempre do token verificado, colocado na transação com `SET LOCA
 e nunca de parâmetro de requisição.
 
 **Nada se apaga.** Ocorrência se encerra com motivo; usuário e equipe se
-desativam. As chaves estrangeiras usam `ON DELETE RESTRICT` justamente para que
-uma remoção acidental esbarre no banco.
+desativam. A maioria das chaves estrangeiras usa `ON DELETE RESTRICT`, para que
+uma remoção acidental esbarre no banco, mas não todas: desde a migração 001 há
+`CASCADE` no que só existe dentro do pai (por exemplo as evidências de uma
+vistoria) e `SET NULL` em vínculo opcional (por exemplo a equipe de um usuário).
+Por isso a barreira que vale não é a chave estrangeira. São duas: a ausência de
+`GRANT DELETE` nas tabelas centrais (as concessões são só `SELECT`, `INSERT` e
+`UPDATE`, desde as migrações 001, 002, 005, 016, 017 e 022) e a ausência de policy
+de `DELETE` sob RLS forçada (as migrações 032 a 034 recortaram as policies que
+valiam para tudo, para a segunda barreira existir). As exceções, como `avisos`,
+estão nomeadas nas migrações.
 
 **A trilha não se reescreve.** `trilha_eventos` e `trilha_administrativa` não
 têm política de alteração nem de remoção: o banco simplesmente não permite.
@@ -316,7 +324,11 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 | `devolucoes_de_tarefa` | A tarefa que venceu e o agente devolveu à coordenação sem ter vistoriado, com motivo de lista fechada, observação, a equipe que estava designada e o prazo que já estava perdido. **Append-only**, como a trilha: é declaração de campo, e correção se faz com despacho novo. Não encerra a ocorrência (ela volta para `triagem`) e não zera `prazo_em`, senão o atraso sumiria do painel |
 | `saidas_a_campo` | A ida a campo que o agente declarou ANTES de subir, com o protocolo, o tempo previsto, se foi **sozinho**, e o prazo de retorno carimbado pelo relógio do **servidor**. Uma aberta por agente, imposta por índice único parcial. Não se apaga: encerra com desfecho de lista fechada e quem encerrou, e "acionei apoio" exige dizer o quê. A observação da coordenação é sobre o ATO DA PREFEITURA a respeito da segurança do próprio servidor, e por isso fica fora da minimização por prazo: ver `SEGURANCA-DO-AGENTE.md` |
 | `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha. `familia_id` (migração 047, V2-F00-E07) liga as sessões de uma cadeia de renovação: cada login abre uma família nova (o `id` da primeira sessão) e cada renovação herda a família da sessão que rotacionou. Coluna técnica, sem dado pessoal, não nula, com padrão `gen_random_uuid()` para quem insere sem informar. A sessão revogada por rotação só vale para a escrita enquanto a família tem sessão com `revogada_em` nulo (índice parcial `sessoes_familia_viva_idx`). `abrir_sessao` aceita a família como sétimo parâmetro opcional e só a aceita se for do mesmo usuário e do mesmo município. Duas leituras (V2-F00-E09) expõem sessões: `GET /auth/sessoes` à própria pessoa (quando entrou, até quando vale, o aparelho resumido em uma frase e a marca da sessão atual) e `GET /usuarios/:id/sessoes` a quem administra (só a quantidade e as datas). `ip` e `user_agent` continuam guardados para investigação e NÃO saem em nenhuma das duas (IDN-29 do REL:06) |
-| `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único |
+| `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único. `usada_em` marca também o link invalidado: por um pedido novo, e (migração 051) por toda mudança de senha e toda desativação da conta |
+| `vistoria_orgaos_indicados` | Os órgãos que o agente marcou na vistoria como a acionar (migração 020): uma linha por órgão, na ordem em que ele escolheu. `orgao_id` nulo não é dado faltando: é o órgão digitado à mão, porque um aparelho novo pode ter o catálogo vazio, e o nome viaja sempre. É o que deixa o laudo dizer **qual** órgão acionar, e não só "sim" |
+| `vistoria_evidencias_perdidas` | A prova que foi capturada no local e não pôde ser recuperada do aparelho (migração 030): uma linha por arquivo perdido, com a chave que o aparelho cunhou, o `papel` (`foto` ou `assinatura`), quando foi capturada e o que sobrou de legenda e de coordenada. Não se apaga nem se corrige (migração 032). É o que faz o laudo e o termo dizerem "Assinatura coletada em campo e não recuperada do aparelho" em vez de "Assinatura não coletada", e a tabela **sai no pacote de saída** (`tabelas/vistoria_evidencias_perdidas.csv`) |
+| `objetos_orfaos` | A lista que a varredura de objetos órfãos faz do armazenamento (migração 035): arquivo sob o prefixo do município que nenhuma linha justifica, com a rodada que o achou, a espécie (`envio_nunca_confirmado` ou `objeto_sem_linha`) e, só quando uma pessoa decide, a decisão (`descartado` ou `mantido`), quem decidiu e o motivo. **A varredura não apaga nada**; o descarte é ato de operador nomeado (ver `ARMAZENAMENTO.md`). Sai no pacote de saída |
+| `metricas_municipio` | Uma linha por município por dia, escrita pelo próprio município (`resumir_municipio()`, migrações 023 e 026) e lida pelo console do fornecedor: só contagens, mediana e marcas de tempo, nenhuma coluna de texto. A visão `console_situacao_dos_municipios`, que parte de `organizacoes`, é o que o console lê, e por isso município que não escreveu aparece como `sem_escrita_recente`. Ver "O console do fornecedor" no `README.md`. A tabela sai no pacote de saída; a visão não |
 | `exportacoes` | Registro de quem exportou o quê e quando. Exportação de dado de cidadão é ato que fica registrado |
 | `interesse_municipio` | Município que se cadastrou pela página pública. É a única tabela com dado que não pertence a um município do sistema |
 | `segundo_fator` | Verificação em duas etapas por pessoa: o segredo do código de seis dígitos, **cifrado** com chave que vive fora do banco, mais o último passo de tempo aceito (é ele que impede o mesmo código de valer duas vezes) e o teto de tentativas, separado do teto da senha. Desligar apaga o segredo e carimba a data, em vez de apagar a linha: "desde quando esta conta parou de exigir a segunda etapa" precisa ter resposta |

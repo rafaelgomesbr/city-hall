@@ -1,0 +1,185 @@
+console modo=falhar a-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir a-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante a-stream: exit=0]
+console modo=falhar b-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir b-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante b-response: exit=0]
+console modo=falhar c-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir c-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante c-webstream: exit=0]
+console modo=falhar d-buffer: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir d-buffer: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+28) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante d-buffer: exit=0]
+console modo=falhar i-cl0-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir i-cl0-stream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante i-cl0-stream: exit=0]
+console modo=falhar i-cl0-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir i-cl0-response: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante i-cl0-response: exit=0]
+console modo=falhar i-cl0-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir i-cl0-webstream: ESCAPOU DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"inventado_c7\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante i-cl0-webstream: exit=0]
+console modo=falhar e-403-cl-menor: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"" | resto="erro\":\"so_o_dono\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-sr"
+console modo=corrigir e-403-cl-menor: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"" | resto="erro\":\"so_o_dono\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-sr"
+  [processo da variante e-403-cl-menor: exit=0]
+console modo=falhar e-403-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src '"(+410) | resto="=15552000; includeSubDomains\r\nX-Content-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: noopen\r\n"
+console modo=corrigir e-403-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src '"(+410) | resto="=15552000; includeSubDomains\r\nX-Content-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: noopen\r\n"
+  [processo da variante e-403-cl-maior: exit=0]
+console modo=falhar e-200-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-src"(+410) | resto="ontent-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: noopen\r\nX-Frame-Options: SAMEORIGIN\r\nX-Pe"
+console modo=corrigir e-200-cl-maior: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-src"(+410) | resto="ontent-Type-Options: nosniff\r\nX-DNS-Prefetch-Control: off\r\nX-Download-Options: noopen\r\nX-Frame-Options: SAMEORIGIN\r\nX-Pe"
+  [processo da variante e-200-cl-maior: exit=0]
+console modo=falhar f-early: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"falha_interna\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir f-early: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"falha_interna\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante f-early: exit=0]
+console modo=falhar g-100: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 100 Continue] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-100: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 100 Continue] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-100: exit=0]
+console modo=falhar g-101: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-src '"(+727)
+console modo=corrigir g-101: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-src '"(+727)
+  [processo da variante g-101: exit=0]
+console modo=falhar g-102: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-102: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102: exit=0]
+console modo=falhar g-103: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 103 Early Hints] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-103: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 103 Early Hints] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-103: exit=0]
+console modo=falhar g-199: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 199 unknown] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-199: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 199 unknown] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-199: exit=0]
+console modo=falhar g-102-objeto: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-102-objeto: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-objeto: exit=0]
+console modo=falhar g-102-raw-writehead: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-102-raw-writehead: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-raw-writehead: exit=0]
+console modo=falhar g-102-raw-implicito: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-102-raw-implicito: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-raw-implicito: exit=0]
+console modo=falhar h-te-identity: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+845)
+console modo=corrigir h-te-identity: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 200 OK] "{}HTTP/1.1 403 Forbidden\r\ncontent-type: application/json\r\ncontent-length: 38\r\n\r\n{\"erro\":\"i"(+845)
+  [processo da variante h-te-identity: exit=0]
+console modo=falhar j-204: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 204 No Content] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir j-204: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 204 No Content] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante j-204: exit=0]
+console modo=falhar k-304: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 304 Not Modified] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir k-304: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 304 Not Modified] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante k-304: exit=0]
+node:_http_outgoing:522
+    throw new ERR_HTTP_TRAILER_INVALID();
+    ^
+
+Error [ERR_HTTP_TRAILER_INVALID]: Trailers are invalid with this transfer encoding
+    at ServerResponse._storeHeader (node:_http_outgoing:522:11)
+    at ServerResponse.writeHead (node:_http_server:450:8)
+    at ServerResponse.end (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/apps/console/src/guarda-de-codigos-de-erro.ts:489:5)
+    at send (/Users/rafaelgomes/Documents/city-hall/.claude/worktrees/wf_249935fe-9f4-1/dc360/node_modules/fastify/lib/reply.js:912:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+  code: 'ERR_HTTP_TRAILER_INVALID'
+}
+
+Node.js v24.15.0
+  [processo da variante tr-reply-fora: exit=1]
+console modo=falhar tr-reply-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir tr-reply-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-reply-catalogo: exit=0]
+console modo=falhar tr-addtrailers-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"falha_interna\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir tr-addtrailers-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 500 Forbidden] "{\"erro\":\"falha_interna\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-addtrailers-fora: exit=0]
+console modo=falhar tr-addtrailers-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir tr-addtrailers-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-addtrailers-catalogo: exit=0]
+console modo=falhar tr-addtrailers-cl: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/tr-addtrailers-cl respondeu 403 f"(+94) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir tr-addtrailers-cl: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"SÃ³ o dono do console faz isto.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante tr-addtrailers-cl: exit=0]
+console modo=falhar flush-403-fora: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 200 OK] ""
+console modo=corrigir flush-403-fora: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+  [processo da variante flush-403-fora: exit=0]
+console modo=falhar flush-403-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+console modo=corrigir flush-403-catalogo: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 200 OK] ""
+  [processo da variante flush-403-catalogo: exit=0]
+console modo=falhar flush-401-publico: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/flush-401-publico respondeu 401 f"(+94) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir flush-401-publico: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 401 Unauthorized] "{\"erro\":\"sem_sessao\",\"mensagem\":\"Entre de novo.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante flush-401-publico: exit=0]
+console modo=falhar z-ok: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir z-ok: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante z-ok: exit=0]
+console modo=falhar z-ruim: nao-escapou sincronizado desvios=1 (código fora do catálogo)
+    [HTTP/1.1 500 Internal Server Error] "{\"erro\":\"desvio_do_catalogo_de_erro\",\"mensagem\":\"GET /c7/z-ruim respondeu 403 fora do catÃ"(+53) | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir z-ruim: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"SÃ³ o dono do console faz isto.\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante z-ruim: exit=0]
+console modo=falhar g-101-writeraw: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-src '"(+727)
+console modo=corrigir g-101-writeraw: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 101 Switching Protocols] "HTTP/1.1 200 OK\r\nContent-Security-Policy: default-src 'none';script-src 'self';style-src '"(+727)
+  [processo da variante g-101-writeraw: exit=0]
+console modo=falhar g-102-so-provisoria: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-102-so-provisoria: nao-escapou DESSINCRONIZOU desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-so-provisoria: exit=0]
+console modo=falhar g-102-e-final: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+console modo=corrigir g-102-e-final: nao-escapou sincronizado desvios=0
+    [HTTP/1.1 102 Processing] "" | [HTTP/1.1 403 Forbidden] "{\"erro\":\"so_o_dono\",\"mensagem\":\"x\"}" | [HTTP/1.1 200 OK] "{\"segundo\":true}"
+  [processo da variante g-102-e-final: exit=0]

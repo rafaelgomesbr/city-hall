@@ -1,0 +1,464 @@
+$ (cd dc360) npm run test:api
+
+> dc360@0.1.0 test:api
+> npm run test --workspace @dc360/api
+
+
+> @dc360/api@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/apps/api[39m
+
+ [32m✓[39m test/push-rodada-diz-o-que-fez.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 21331[2mms[22m[39m
+   [33m[2m✓[22m[39m a rodada deixa o resumo no log[2m > [22mfalha de envio (desfecho, não exceção) vira warn com os motivos agregados, e sem a ficha [33m 2434[2mms[22m[39m
+   [33m[2m✓[22m[39m a rodada deixa o resumo no log[2m > [22mrodada com entrega e sem falha vira info com os contadores [33m 4325[2mms[22m[39m
+   [33m[2m✓[22m[39m a rodada deixa o resumo no log[2m > [22mrodada sem nada a fazer não escreve linha nenhuma: log que repete a cada cinco minutos ensina a ignorar log [33m 2338[2mms[22m[39m
+   [33m[2m✓[22m[39m a rodada deixa o resumo no log[2m > [22ma ficha recusada conta como falha no resumo, com o motivo, e o aparelho revogado conta à parte [33m 1956[2mms[22m[39m
+   [33m[2m✓[22m[39m o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada[2m > [22ma primeira rodada sai na partida, sem esperar o intervalo [33m 2034[2mms[22m[39m
+   [33m[2m✓[22m[39m o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada[2m > [22mdespertar() faz a rodada sair agora, sem esperar o relógio [33m 2045[2mms[22m[39m
+   [33m[2m✓[22m[39m o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada[2m > [22mdespertar() durante uma rodada em voo coalesce numa rodada só depois dela, nunca em paralelo [33m 2242[2mms[22m[39m
+   [33m[2m✓[22m[39m o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada[2m > [22multimaRodada() é nula antes da primeira rodada e traz os contadores depois [33m 1953[2mms[22m[39m
+   [33m[2m✓[22m[39m o relógio: rodada na partida, despertar do despacho, e o quadro da última rodada[2m > [22ma rodada que perdeu a trava para a outra máquina não entra no quadro [33m 2001[2mms[22m[39m
+ [32m✓[39m test/senha-provisoria.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 18994[2mms[22m[39m
+   [33m[2m✓[22m[39m A senha temporária de quem administra[2m > [22mgrava o prazo de 72 horas, e a senha escolhida pela pessoa o zera [33m 3220[2mms[22m[39m
+   [33m[2m✓[22m[39m A senha temporária de quem administra[2m > [22menquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403 [33m 2296[2mms[22m[39m
+   [33m[2m✓[22m[39m A senha temporária de quem administra[2m > [22mvencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha [33m 3167[2mms[22m[39m
+   [33m[2m✓[22m[39m A senha temporária de quem administra[2m > [22muma sessão viva cuja senha provisória venceu no meio não escreve nem renova [33m 2285[2mms[22m[39m
+   [33m[2m✓[22m[39m A senha inicial do console[2m > [22mo link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa [33m 1462[2mms[22m[39m
+ [32m✓[39m test/vigencia-na-escrita.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 20135[2mms[22m[39m
+   [33m[2m✓[22m[39m Token vivo de quem já não pode[2m > [22mconta desativada não escreve mais, no pedido seguinte [33m 905[2mms[22m[39m
+   [33m[2m✓[22m[39m Token vivo de quem já não pode[2m > [22mpapel rebaixado escreve como o papel NOVO, não como o do token [33m 823[2mms[22m[39m
+   [33m[2m✓[22m[39m Token vivo de quem já não pode[2m > [22msessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive [33m 1710[2mms[22m[39m
+   [33m[2m✓[22m[39m Token vivo de quem já não pode[2m > [22mo token de acesso continua LENDO até vencer: é a troca declarada [33m 802[2mms[22m[39m
+   [33m[2m✓[22m[39m Token vivo de quem já não pode[2m > [22mdepois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão [33m 853[2mms[22m[39m
+   [33m[2m✓[22m[39m Bordas da vigência na escrita (V2-F00-E04)[2m > [22mmunicípio suspenso com conta desativada responde a suspensão primeiro [33m 779[2mms[22m[39m
+   [33m[2m✓[22m[39m Bordas da vigência na escrita (V2-F00-E04)[2m > [22ma organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404) [33m 1567[2mms[22m[39m
+   [33m[2m✓[22m[39m Bordas da vigência na escrita (V2-F00-E04)[2m > [22ma senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca [33m 782[2mms[22m[39m
+   [33m[2m✓[22m[39m Token de renovação vencido não é reuso[2m > [22mexpirado responde 401 e as outras sessões da pessoa continuam vivas [33m 1522[2mms[22m[39m
+   [33m[2m✓[22m[39m Token de renovação vencido não é reuso[2m > [22msessão encerrada pela própria pessoa, ou por quem administra, também não é reuso [33m 1630[2mms[22m[39m
+   [33m[2m✓[22m[39m Token de renovação vencido não é reuso[2m > [22mo token ROTACIONADO que reaparece é reuso: a família inteira cai [33m 1510[2mms[22m[39m
+   [33m[2m✓[22m[39m Token de renovação vencido não é reuso[2m > [22mH1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão [33m 707[2mms[22m[39m
+ [32m✓[39m test/busca.test.ts [2m([22m[2m56 tests[22m[2m)[22m[33m 21665[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /busca, 'com pg_trgm (producao)'[2m > [22mteto por pessoa[2m > [22ma 61ª busca no minuto responde 429, e o colega continua servido [33m 1735[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /busca, 'sem pg_trgm (API sem DATABASE_URL)'[2m > [22mteto por pessoa[2m > [22ma 61ª busca no minuto responde 429, e o colega continua servido [33m 2611[2mms[22m[39m
+ [32m✓[39m test/sessoes-da-conta.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 24725[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /auth/sessoes: as sessões da própria conta[2m > [22mlista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase [33m 1597[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /auth/sessoes: as sessões da própria conta[2m > [22mnão entrega IP, user-agent completo nem identificador de sessão [33m 814[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /auth/sessoes: as sessões da própria conta[2m > [22ma renovação não multiplica as linhas nem muda o 'entrou em' [33m 896[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /auth/sessoes: as sessões da própria conta[2m > [22msó a própria conta: a de outra pessoa e a de outro município não aparecem [33m 2282[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /auth/sessoes: as sessões da própria conta[2m > [22mencerrar as outras deixa só esta na lista, e a lista reflete o banco [33m 1694[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /auth/sessoes: as sessões da própria conta[2m > [22msessão vencida ou encerrada não aparece [33m 786[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem[2m > [22ma administradora vê a quantidade e as datas, e nada do aparelho [33m 2361[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem[2m > [22ma coordenadora vê as de quem está abaixo do posto dela [33m 828[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem[2m > [22mposto igual ou acima: 403 posto_insuficiente [33m 729[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem[2m > [22mo operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas [33m 1692[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem[2m > [22mconta de outro município: 404, igual a id que não existe [33m 2148[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem[2m > [22midentificador que não é uuid: 422; sem token: 401 [33m 879[2mms[22m[39m
+   [33m[2m✓[22m[39m as duas recusas que a tela não oferece e a API mantém[2m > [22mredefinir a própria senha e encerrar as próprias sessões por esta via: 422 [33m 865[2mms[22m[39m
+ [32m✓[39m test/get-com-efeito.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 27350[2mms[22m[39m
+   [33m[2m✓[22m[39m Controle: quem está vigente continua emitindo, e as pegadas enxergam a escrita[2m > [22mtermo de interdição interdita e grava; o CSV grava a exportação [33m 2456[2mms[22m[39m
+   [33m[2m✓[22m[39m Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado[2m > [22mconta desativada: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD [33m 2548[2mms[22m[39m
+   [33m[2m✓[22m[39m Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado[2m > [22mpapel rebaixado: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD [33m 2446[2mms[22m[39m
+   [33m[2m✓[22m[39m Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado[2m > [22msessão encerrada por quem administra: termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD [33m 3165[2mms[22m[39m
+   [33m[2m✓[22m[39m Sondas contra os GET que escrevem: mesma resposta de uma escrita, e nada gravado[2m > [22mcadeia encerrada depois da renovação (token anterior à rotação): termo de interdição, laudo, termo de desinterdição, PDFs e CSV, em GET e HEAD [33m 3912[2mms[22m[39m
+   [33m[2m✓[22m[39m A lista de GET com efeito é a decisão, e o comportamento a obedece[2m > [22mcom a conta desativada, um GET responde conta_desativada SE E SÓ SE está na lista [33m 1341[2mms[22m[39m
+   [33m[2m✓[22m[39m PATCH, PUT, DELETE e POST com conta desativada: nenhum escreve[2m > [22mtoda rota de escrita autenticada recusa com 403 conta_desativada, sem tocar no banco [33m 1257[2mms[22m[39m
+   [33m[2m✓[22m[39m /auth/encerrar-sessoes com o token anterior à renovação[2m > [22ma mensagem diz a verdade: a sessão que continua aberta é a cadeia de quem pediu [33m 1667[2mms[22m[39m
+ [32m✓[39m test/recuperacao.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 31115[2mms[22m[39m
+   [33m[2m✓[22m[39m Pedido de recuperação[2m > [22mpedir de novo invalida o link anterior [33m 796[2mms[22m[39m
+   [33m[2m✓[22m[39m Pedido de recuperação[2m > [22mconta desativada não recebe link [33m 1777[2mms[22m[39m
+   [33m[2m✓[22m[39m Redefinição pelo link[2m > [22mtroca a senha, e a nova funciona enquanto a antiga não [33m 2228[2mms[22m[39m
+   [33m[2m✓[22m[39m Redefinição pelo link[2m > [22mo mesmo link não serve duas vezes [33m 2392[2mms[22m[39m
+   [33m[2m✓[22m[39m Redefinição pelo link[2m > [22mredefinir derruba as sessões abertas [33m 1566[2mms[22m[39m
+   [33m[2m✓[22m[39m Redefinição pelo link[2m > [22mtoken inventado é recusado, e a mensagem não confirma nada [33m 732[2mms[22m[39m
+   [33m[2m✓[22m[39m Redefinição pelo link[2m > [22mrecusa senha curta antes de tocar no banco [33m 751[2mms[22m[39m
+   [33m[2m✓[22m[39m Redefinição pelo link[2m > [22mdesbloqueia a conta que estava travada por tentativas [33m 7698[2mms[22m[39m
+   [33m[2m✓[22m[39m Troca de senha por quem já está dentro[2m > [22mexige a senha atual [33m 2438[2mms[22m[39m
+   [33m[2m✓[22m[39m Troca de senha por quem já está dentro[2m > [22mtroca e encerra as outras sessões, preservando a atual [33m 5013[2mms[22m[39m
+ [32m✓[39m test/senha-e-sessoes.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 33603[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22mtroca a senha: a antiga morre e a temporaria entra [33m 2407[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22mderruba TODAS as sessoes do alvo [33m 2373[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22mconta de outro municipio responde 404, nunca 403, e nada la muda [33m 2266[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22mnao redefine a propria senha por esta rota [33m 769[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22mcoordenador nao redefine a senha do administrador [33m 1456[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22mdeixa o ato na trilha, e a trilha nao carrega a senha [33m 723[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra redefine a senha de outra pessoa[2m > [22ma senha temporaria e sorteada de novo a cada vez [33m 1932[2mms[22m[39m
+   [33m[2m✓[22m[39m Encerrar todas as minhas sessoes[2m > [22mencerra as outras e preserva a de onde a pessoa clicou [33m 3049[2mms[22m[39m
+   [33m[2m✓[22m[39m Encerrar todas as minhas sessoes[2m > [22mnao mexe na senha, e qualquer papel alcanca [33m 2327[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra encerra as sessoes de outra pessoa[2m > [22mderruba tudo do alvo, e a senha dele continua valendo [33m 2595[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra encerra as sessoes de outra pessoa[2m > [22mconta de outro municipio responde 404, e a sessao de la sobrevive [33m 836[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra encerra as sessoes de outra pessoa[2m > [22mnao encerra as proprias sessoes por esta rota [33m 794[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra encerra as sessoes de outra pessoa[2m > [22mcoordenador nao encerra as sessoes do administrador [33m 842[2mms[22m[39m
+   [33m[2m✓[22m[39m Quem administra encerra as sessoes de outra pessoa[2m > [22mdeixa o ato na trilha [33m 1700[2mms[22m[39m
+ [32m✓[39m test/limite-por-usuario.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 11947[2mms[22m[39m
+   [33m[2m✓[22m[39m limite de requisição por usuário[2m > [22magente que estoura o próprio teto não derruba o colega atrás do mesmo NAT [33m 2198[2mms[22m[39m
+   [33m[2m✓[22m[39m limite de requisição por usuário[2m > [22mtoken inventado a cada requisição não abre balde novo, cai no teto do endereço [33m 2023[2mms[22m[39m
+   [33m[2m✓[22m[39m limite de requisição por usuário[2m > [22mo teto por endereço continua valendo para quem não tem token [33m 2263[2mms[22m[39m
+ [32m✓[39m test/saida-de-municipio.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 13433[2mms[22m[39m
+   [33m[2m✓[22m[39m O pacote leva tudo que é do município[2m > [22mtraz toda tabela em CSV e em JSON, e o índice na raiz [33m 436[2mms[22m[39m
+   [33m[2m✓[22m[39m Segredo não vai junto[2m > [22mnem hash de senha, nem token de sessão, nem ficha de notificação [33m 495[2mms[22m[39m
+   [33m[2m✓[22m[39m Fotografias, assinaturas e documentos[2m > [22ma fotografia sai em pasta por protocolo, com os bytes originais [33m 411[2mms[22m[39m
+   [33m[2m✓[22m[39m Fotografias, assinaturas e documentos[2m > [22ma foto de perfil do servidor sai na pasta dele, com os bytes originais [33m 309[2mms[22m[39m
+   [33m[2m✓[22m[39m Fotografias, assinaturas e documentos[2m > [22mo laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido [33m 317[2mms[22m[39m
+   [33m[2m✓[22m[39m Fotografias, assinaturas e documentos[2m > [22mo laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote [33m 340[2mms[22m[39m
+   [33m[2m✓[22m[39m Fotografias, assinaturas e documentos[2m > [22mo ofício numerado sai junto, na pasta da ocorrência dele [33m 315[2mms[22m[39m
+   [33m[2m✓[22m[39m Fotografias, assinaturas e documentos[2m > [22marquivo que o banco promete e o armazenamento não tem vira pendência escrita [33m 364[2mms[22m[39m
+   [33m[2m✓[22m[39m O índice liga protocolo a pasta, a documento e a linha do CSV[2m > [22mo número de linha que o índice dá bate com o CSV de verdade [33m 381[2mms[22m[39m
+   [33m[2m✓[22m[39m É ato administrativo grave[2m > [22mdeixa trilha, registra a exportação e NÃO apaga nada [33m 318[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mequipes diferentes: o trecho do aviso é o MESMO nos dois laudos [33m 356[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mequipes iguais: nenhum dos dois laudos inventa aviso [33m 540[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22magente sem equipe registrada: a frase própria, e não a de outra equipe [33m 421[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mvistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso [33m 689[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mcoleta sem despacho: a nota própria, e não a de divergência [33m 372[2mms[22m[39m
+ [32m✓[39m test/acesso-suspenso.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 15963[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22mrecusa com 403 acesso_suspenso, com a mensagem que manda procurar o contrato [33m 799[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22mnunca responde 401: a credencial esta certa, o que falta e o contrato [33m 684[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22msenha errada em municipio suspenso recebe a resposta generica, sem revelar a suspensao [33m 718[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22mnao mexe no ultimo acesso nem zera o contador: a pessoa nao entrou [33m 934[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22mo municipio vizinho continua entrando normalmente [33m 793[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22mreativar devolve a entrada: a suspensao e reversivel [33m 1716[2mms[22m[39m
+   [33m[2m✓[22m[39m Entrar num municipio suspenso[2m > [22mmunicipio ja eliminado do banco, com a linha ainda de pe, tambem nao entra [33m 731[2mms[22m[39m
+   [33m[2m✓[22m[39m Sessao viva de municipio suspenso[2m > [22mrenovar recusa com 403 mesmo com a sessao ainda de pe no banco [33m 794[2mms[22m[39m
+   [33m[2m✓[22m[39m Sessao viva de municipio suspenso[2m > [22mtoken de acesso vivo: escrita recusa na hora, com 403 [33m 816[2mms[22m[39m
+   [33m[2m✓[22m[39m Sessao viva de municipio suspenso[2m > [22mtoken de acesso vivo: leitura continua ate o token vencer [33m 976[2mms[22m[39m
+   [33m[2m✓[22m[39m A fila do aparelho num municipio suspenso[2m > [22ma sincronizacao de vistoria recusa com 503 acesso_suspenso, que a fila trata como temporario [33m 816[2mms[22m[39m
+   [33m[2m✓[22m[39m A fila do aparelho num municipio suspenso[2m > [22mas quatro rotas que a fila chama recusam com 503, e as demais escritas com 403 [33m 802[2mms[22m[39m
+   [33m[2m✓[22m[39m A fila do aparelho num municipio suspenso[2m > [22mnada e gravado: a coleta espera no aparelho, e nao no banco do municipio suspenso [33m 924[2mms[22m[39m
+ [32m✓[39m test/resolver-link.test.ts [2m([22m[2m37 tests[22m[2m)[22m[33m 17634[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto por pessoa[2m > [22mo trigésimo primeiro pedido no mesmo minuto leva 429 [33m 1443[2mms[22m[39m
+ [32m✓[39m test/saida-a-campo.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 12411[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento entre municípios[2m > [22ma lista de um município não mostra saída de outro [33m 984[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento entre municípios[2m > [22mencerrar saída de outro município responde 404, e nunca 403 [33m 1229[2mms[22m[39m
+ [32m✓[39m test/segundo-fator.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 39801[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22madministrador sem segundo fator não recebe sessão nenhuma, só o desafio [33m 784[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo desafio NÃO vale como token de acesso em rota nenhuma [33m 688[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mquem não é administrador continua entrando em uma etapa [33m 2351[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mcom a verificação ligada, a senha sozinha não abre sessão, e o código abre [33m 1708[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo mesmo código não vale duas vezes dentro da mesma janela [33m 2318[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22ma tolerância é de um passo para cada lado, e não mais [33m 2347[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo teto de tentativas do código é separado do teto da senha [33m 6521[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo código de recuperação entra uma vez, e só uma [33m 3186[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22ma ativação começada e não confirmada NÃO muda o login [33m 1686[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mcódigo errado não liga a verificação [33m 735[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mo administrador obrigado liga pelo desafio e sai daqui com sessão [33m 788[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mo segredo vai CIFRADO para o banco, e não em texto [33m 823[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mligar de novo, por cima de uma verificação ativa, é recusado [33m 887[2mms[22m[39m
+   [33m[2m✓[22m[39m Desligar a verificação[2m > [22mexige a senha atual [33m 2462[2mms[22m[39m
+   [33m[2m✓[22m[39m Desligar a verificação[2m > [22mdesligar apaga o segredo, derruba os códigos e deixa rastro [33m 4080[2mms[22m[39m
+ [32m✓[39m test/minimizacao.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 43685[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mvencido o prazo, o nome e o contato saem e o ato administrativo fica [33m 2384[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mé marcador e não nulo, senão descarte e ausência ficam iguais [33m 4290[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mregistra a remoção na trilha da própria ocorrência, com os campos [33m 2451[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22ma trilha diz QUE saiu, e nunca o que saía [33m 2091[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mmunicípio sem prazo configurado não perde nada [33m 1981[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mocorrência ainda aberta não é minimizada, mesmo velha [33m 2020[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mdentro do prazo, nada sai [33m 1951[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22ma descrição de vulnerabilidade sai JUNTO com o nome, sem prazo próprio [33m 1824[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mcom prazo próprio menor, a vulnerabilidade sai ANTES do nome [33m 1889[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mo banco recusa prazo de vulnerabilidade maior que o do nome [33m 1962[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mo banco recusa marcador incoerente: data de remoção com nome de verdade [33m 2488[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22ma segunda passada não remove de novo nem duplica o evento [33m 2266[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mduas máquinas do Fly: a segunda desiste da rodada [33m 2078[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mo teto por rodada limita, e a rodada seguinte continua [33m 2047[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização por prazo[2m > [22mnão atravessa municípios: cada um segue o próprio prazo [33m 2121[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização alcança a observação da devolução[2m > [22mvencido o prazo, o texto livre do agente sai junto com o nome do solicitante [33m 2105[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização alcança a observação da devolução[2m > [22mo motivo de lista fechada FICA, porque ele não é dado pessoal [33m 2351[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização alcança a observação da devolução[2m > [22mmunicípio sem prazo configurado não perde a observação [33m 2710[2mms[22m[39m
+   [33m[2m✓[22m[39m Minimização alcança a observação da devolução[2m > [22ma trilha diz que a observação saiu, senão descarte e perda ficam iguais [33m 2672[2mms[22m[39m
+ [32m✓[39m test/objeto-orfao.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 44098[2mms[22m[39m
+   [33m[2m✓[22m[39m O que a varredura reconhece, e o que ela deixa em paz[2m > [22mfoto confirmada e em uso não é candidata [33m 2345[2mms[22m[39m
+   [33m[2m✓[22m[39m O que a varredura reconhece, e o que ela deixa em paz[2m > [22menvio não confirmado DENTRO da janela de graça não é candidato [33m 4298[2mms[22m[39m
+   [33m[2m✓[22m[39m O que a varredura reconhece, e o que ela deixa em paz[2m > [22menvio não confirmado FORA da janela vira candidato, e a espécie diz qual é [33m 2376[2mms[22m[39m
+   [33m[2m✓[22m[39m O que a varredura reconhece, e o que ela deixa em paz[2m > [22mobjeto sem linha nenhuma vira candidato de outra espécie [33m 2095[2mms[22m[39m
+   [33m[2m✓[22m[39m O que a varredura reconhece, e o que ela deixa em paz[2m > [22mchave que não nomeia município nenhum é relatada e NUNCA descartada [33m 1984[2mms[22m[39m
+   [33m[2m✓[22m[39m O que a varredura reconhece, e o que ela deixa em paz[2m > [22ma varredura não mistura municípios [33m 2025[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura não apaga nada[2m > [22mdepois de varrer, o objeto continua no armazenamento [33m 1996[2mms[22m[39m
+   [33m[2m✓[22m[39m O descarte é ato deliberado, e confere de novo antes de apagar[2m > [22mapaga o que a varredura listou, e registra quem decidiu [33m 1911[2mms[22m[39m
+   [33m[2m✓[22m[39m O descarte é ato deliberado, e confere de novo antes de apagar[2m > [22mse a linha apareceu entre a varredura e o descarte, o objeto NÃO é apagado [33m 1946[2mms[22m[39m
+   [33m[2m✓[22m[39m O descarte é ato deliberado, e confere de novo antes de apagar[2m > [22mdescarte de uma varredura não alcança candidato de outra [33m 2123[2mms[22m[39m
+   [33m[2m✓[22m[39m A reserva que nunca virou byte[2m > [22mautorização velha sem objeto é marcada abandonada e para de consumir o teto [33m 2279[2mms[22m[39m
+   [33m[2m✓[22m[39m A reserva que nunca virou byte[2m > [22mreserva recente não é tocada [33m 2448[2mms[22m[39m
+   [33m[2m✓[22m[39m Sem a lista de municípios, que é como a API roda[2m > [22mo dono sai do prefixo da chave e é confirmado no banco [33m 2163[2mms[22m[39m
+   [33m[2m✓[22m[39m Sem a lista de municípios, que é como a API roda[2m > [22msem a lista, a reserva de um município sem objeto nenhum não é alcançada [33m 2092[2mms[22m[39m
+   [33m[2m✓[22m[39m O descarte fecha a conta do teto[2m > [22ma linha da autorização é encerrada com motivo, e não apagada [33m 1960[2mms[22m[39m
+   [33m[2m✓[22m[39m A foto de perfil (migracao 040) tem dono, e a varredura sabe disso[2m > [22ma foto de perfil viva NUNCA e candidata, por mais velha que seja [33m 2236[2mms[22m[39m
+   [33m[2m✓[22m[39m A foto de perfil (migracao 040) tem dono, e a varredura sabe disso[2m > [22ma foto de perfil de OUTRO municipio nao justifica a chave: o dono e quem esta no prefixo [33m 2083[2mms[22m[39m
+   [33m[2m✓[22m[39m A foto de perfil (migracao 040) tem dono, e a varredura sabe disso[2m > [22ma foto ANTERIOR, cujo apagamento falhou na troca, continua sendo orfa de verdade [33m 2795[2mms[22m[39m
+   [33m[2m✓[22m[39m A foto de perfil (migracao 040) tem dono, e a varredura sabe disso[2m > [22mno descarte, a foto que virou perfil entre a varredura e a decisao e MANTIDA [33m 2937[2mms[22m[39m
+ [32m✓[39m test/resumo-do-municipio.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 14600[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que escreve a metrica do municipio[2m > [22mescreve o resumo de cada municipio, e a tabela deixa de estar vazia [33m 2485[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que escreve a metrica do municipio[2m > [22mcada numero e o do proprio municipio, e nao a soma de todos [33m 1978[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que escreve a metrica do municipio[2m > [22mmunicipio que falha nao impede o resumo dos outros [33m 2347[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que escreve a metrica do municipio[2m > [22mnao escreve duas vezes na mesma rodada de outra maquina [33m 2363[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que escreve a metrica do municipio[2m > [22ma segunda rodada dentro do frescor nao reescreve nada [33m 2745[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que escreve a metrica do municipio[2m > [22ma partida da API liga o relogio, e nao apenas o declara [33m 2669[2mms[22m[39m
+ [32m✓[39m test/familia-da-sessao.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 45143[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22mrenovação normal: o token antigo escreve até vencer e o novo também [33m 883[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22mvárias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada [33m 939[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22mquem administra encerra as sessões: o token de ANTES da renovação deixa de escrever [33m 775[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22ma própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo [33m 1634[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22msair encerra a cadeia: o token anterior à renovação deixa de escrever [33m 790[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22mreuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai [33m 908[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22mtroca de senha em outra sessão encerra a cadeia das demais [33m 3802[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22ma família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login [33m 1584[2mms[22m[39m
+   [33m[2m✓[22m[39m A cadeia da sessão rotacionada só vale enquanto a cadeia vive[2m > [22mcada login abre família nova e cada renovação herda a família: o banco guarda isso [33m 1462[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22mpapel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa [33m 1995[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22mdepois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao [33m 1842[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22mpromoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo [33m 944[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22ma troca de papel NÃO revoga as sessões da pessoa (decisão registrada) [33m 1421[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22msessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar [33m 1607[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22misolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404) [33m 1717[2mms[22m[39m
+   [33m[2m✓[22m[39m Papel alterado: 401 nao_autenticado e a renovação resolve[2m > [22mcoordenador do município B com o papel mudado não ganha nada no município A [33m 790[2mms[22m[39m
+   [33m[2m✓[22m[39m Senha provisória vencida no meio: nem escreve nem se troca[2m > [22mno prazo, a senha provisória troca [33m 4022[2mms[22m[39m
+   [33m[2m✓[22m[39m Senha provisória vencida no meio: nem escreve nem se troca[2m > [22mvencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada [33m 3262[2mms[22m[39m
+   [33m[2m✓[22m[39m Senha provisória vencida no meio: nem escreve nem se troca[2m > [22mvencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes [33m 3928[2mms[22m[39m
+   [33m[2m✓[22m[39m Senha provisória vencida no meio: nem escreve nem se troca[2m > [22msenha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida [33m 3595[2mms[22m[39m
+ [32m✓[39m test/push-aparelhos.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 14014[2mms[22m[39m
+   [33m[2m✓[22m[39m Sair do aplicativo cala o aparelho[2m > [22ma saída revoga o aparelho daquela sessão [33m 1128[2mms[22m[39m
+   [33m[2m✓[22m[39m Sair do aplicativo cala o aparelho[2m > [22msair de um aparelho não cala o outro da mesma pessoa [33m 957[2mms[22m[39m
+   [33m[2m✓[22m[39m Sair do aplicativo cala o aparelho[2m > [22msair sem mandar ficha continua funcionando, para o painel e para versão antiga [33m 920[2mms[22m[39m
+   [33m[2m✓[22m[39m Sair do aplicativo cala o aparelho[2m > [22ma saída não alcança aparelho de outra pessoa, mesmo mandando a ficha dela [33m 1831[2mms[22m[39m
+   [33m[2m✓[22m[39m Com PUSH_ATIVO=nao, as rotas recusam em vez de guardar[2m > [22mregistrar responde 503 explicando, e a rota existe (não é 404) [33m 833[2mms[22m[39m
+   [33m[2m✓[22m[39m Com PUSH_ATIVO=nao, as rotas recusam em vez de guardar[2m > [22mrevogar responde 503 do mesmo jeito [33m 826[2mms[22m[39m
+ [32m✓[39m test/endereco-de-origem.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 46698[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de login nao se contorna por cabecalho[2m > [22msem borda declarada, trocar Fly-Client-IP nao ganha balde novo [33m 7653[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de login nao se contorna por cabecalho[2m > [22mcom a borda declarada, o cabecalho do edge volta a valer [33m 33305[2mms[22m[39m
+ [32m✓[39m test/eliminacao-de-municipio.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 50205[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22msem eliminacao agendada, a rodada nao toca em nada e nao faz barulho [33m 5226[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22meliminacao agendada para o futuro NAO acontece: os sete dias sao de arrependimento [33m 2239[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22meliminacao vencida: banco limpo, armazenamento purgado, linha da organizacao fechada, e o vizinho intacto [33m 2180[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mo log diz o identificador e quantos objetos foram apagados, por organizacao [33m 2032[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mlistagem que falha no meio NAO conclui: a linha fica, e a proxima rodada termina o servico [33m 2149[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mum eliminador novo (processo reiniciado) REDESCOBRE a purga pendente e termina o trabalho [33m 1973[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mum apagar que falha NAO conclui, os outros objetos saem, e a proxima rodada termina [33m 1960[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22ma retomada reconfere no banco: organizacao concluida pela outra maquina sai da memoria sem purgar nada [33m 2083[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mo relogio do resumo nao escreve metrica de municipio eliminado: senao a conclusao bate na chave estrangeira [33m 2575[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mpurga alem de uma pagina de listagem: mil e um objetos, todos apagados [33m 7243[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mrecusa purgar um prefixo que nao e o da propria organizacao [33m 1944[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22mcom a trava tomada por outra maquina, a rodada desiste sem tocar em nada [33m 2331[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22ma trava tem numero proprio, distinto das outras rotinas [33m 2428[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22muma falha inteira no banco solta a trava para a proxima rodada [33m 2581[2mms[22m[39m
+   [33m[2m✓[22m[39m O relogio que elimina municipio[2m > [22ma partida da API liga o relogio SEM chave de ambiente, e nao apenas o declara [33m 2493[2mms[22m[39m
+   [33m[2m✓[22m[39m A rota de saude diz se o relogio tem trabalho[2m > [22msem nada agendado, diz zero [33m 3465[2mms[22m[39m
+   [33m[2m✓[22m[39m A rota de saude diz se o relogio tem trabalho[2m > [22mconta as agendadas e as vencidas, sem nome nenhum [33m 2465[2mms[22m[39m
+   [33m[2m✓[22m[39m A rota de saude diz se o relogio tem trabalho[2m > [22ma eliminacao vencida some da conta quando o relogio conclui [33m 2829[2mms[22m[39m
+ [32m✓[39m test/enumeracao-pelo-bloqueio.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 12557[2mms[22m[39m
+   [33m[2m✓[22m[39m Email cadastrado e email inexistente respondem igual[2m > [22mdo primeiro erro ao bloqueio, o par (status, erro) é o mesmo dos dois lados [33m 7212[2mms[22m[39m
+   [33m[2m✓[22m[39m Email cadastrado e email inexistente respondem igual[2m > [22mo bloqueio continua valendo: a senha certa é recusada em silêncio, e volta depois [33m 1663[2mms[22m[39m
+ [32m✓[39m test/recuperacao-sem-oraculo.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 13863[2mms[22m[39m
+   [33m[2m✓[22m[39m Nada que venha do pedido escolhe o município[2m > [22mo token de uma conta troca a senha dela e de mais ninguém [33m 3913[2mms[22m[39m
+   [33m[2m✓[22m[39m O link: uso único, vencimento e guarda só como hash[2m > [22mo link vence: passado o prazo, a mesma resposta de link que não vale mais [33m 2535[2mms[22m[39m
+   [33m[2m✓[22m[39m O link: uso único, vencimento e guarda só como hash[2m > [22ma mensagem de link que não vale mais está em português, com acento [33m 728[2mms[22m[39m
+   [33m[2m✓[22m[39m Limite por endereço no pedido de recuperação[2m > [22mo quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda [33m 2650[2mms[22m[39m
+ [32m✓[39m test/documentos.test.ts [2m([22m[2m33 tests[22m[2m)[22m[33m 15394[2mms[22m[39m
+   [33m[2m✓[22m[39m Documento em PDF[2m > [22mgera um PDF valido a partir do mesmo HTML [33m 3585[2mms[22m[39m
+   [33m[2m✓[22m[39m O termo exige a decisão que o autoriza[2m > [22mabrir o mesmo documento de novo não polui a trilha [33m 336[2mms[22m[39m
+ [32m✓[39m test/leitura-do-agente-oficios-e-avisos.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 10940[2mms[22m[39m
+ [32m✓[39m test/push-varredor.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 53790[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mavisa o aparelho do agente da equipe designada [33m 2340[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mo que sai na tela bloqueada é genérico, e o detalhe vai no dado [33m 4180[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mnão avisa quem saiu da equipe, nem quem foi desativado [33m 2471[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mnão avisa aparelho revogado [33m 2082[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mnão avisa prazo que já venceu [33m 1985[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mnão avisa prazo que ainda está longe da janela [33m 1900[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mnão avisa ocorrência encerrada [33m 2194[2mms[22m[39m
+   [33m[2m✓[22m[39m A varredura acha o prazo e avisa a equipe responsável[2m > [22mo aparelho de outro município não recebe o prazo deste [33m 1880[2mms[22m[39m
+   [33m[2m✓[22m[39m Idempotência: reiniciar não remanda[2m > [22ma segunda varredura não manda de novo o que já foi entregue [33m 2067[2mms[22m[39m
+   [33m[2m✓[22m[39m Idempotência: reiniciar não remanda[2m > [22mo que falhou volta a ser tentado depois da espera, e conta a tentativa [33m 2107[2mms[22m[39m
+   [33m[2m✓[22m[39m Idempotência: reiniciar não remanda[2m > [22mnotificação presa em enviando é retomada, e não fica órfã para sempre [33m 2654[2mms[22m[39m
+   [33m[2m✓[22m[39m Idempotência: reiniciar não remanda[2m > [22mdesiste depois do teto de tentativas, em vez de martelar para sempre [33m 2069[2mms[22m[39m
+   [33m[2m✓[22m[39m A trava impede duas máquinas de varrerem o mesmo prazo[2m > [22msem a trava, a varredura não manda nada e diz que estava travada [33m 2081[2mms[22m[39m
+   [33m[2m✓[22m[39m A trava impede duas máquinas de varrerem o mesmo prazo[2m > [22ma trava é solta mesmo quando a varredura estoura [33m 2108[2mms[22m[39m
+   [33m[2m✓[22m[39m A trava impede duas máquinas de varrerem o mesmo prazo[2m > [22ma trava de aviso do Postgres é chamável pelo papel de aplicação [33m 1962[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha de envio não derruba o resto[2m > [22mum aparelho com problema não impede o aviso dos outros [33m 2225[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha de envio não derruba o resto[2m > [22mficha recusada pelo provedor revoga o aparelho, e ele para de ser tentado [33m 2245[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha de envio não derruba o resto[2m > [22mo detalhe guardado não carrega a ficha do aparelho [33m 2723[2mms[22m[39m
+   [33m[2m✓[22m[39m Retenção e conexão[2m > [22maviso mais velho que a retenção é expurgado na própria varredura [33m 2720[2mms[22m[39m
+   [33m[2m✓[22m[39m Retenção e conexão[2m > [22ma varredura pede pool próprio e pequeno, separado do das requisições [33m 2523[2mms[22m[39m
+   [33m[2m✓[22m[39m o piso da retenção, que existe porque a policy do banco tem um[2m > [22mrecusa retenção menor que o piso, em vez de apagar menos em silêncio [33m 2310[2mms[22m[39m
+   [33m[2m✓[22m[39m o piso da retenção, que existe porque a policy do banco tem um[2m > [22ma recusa nomeia a migração, para quem lê saber onde se conserta [33m 2525[2mms[22m[39m
+   [33m[2m✓[22m[39m o piso da retenção, que existe porque a policy do banco tem um[2m > [22mexatamente o piso é aceito [33m 2434[2mms[22m[39m
+ [32m✓[39m test/provisionar.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 10191[2mms[22m[39m
+   [33m[2m✓[22m[39m Provisionar município[2m > [22mcria o município e o primeiro administrador [33m 839[2mms[22m[39m
+   [33m[2m✓[22m[39m Provisionar município[2m > [22mo administrador recém-criado consegue entrar, e a primeira entrada exige definir a senha [33m 3043[2mms[22m[39m
+   [33m[2m✓[22m[39m Provisionar município[2m > [22mo município nasce funcionando: dá para abrir ocorrência e sai protocolo [33m 993[2mms[22m[39m
+   [33m[2m✓[22m[39m Provisionar município[2m > [22mo novo município não enxerga o município que já existia [33m 836[2mms[22m[39m
+   [33m[2m✓[22m[39m Provisionar deixa linha espelho na trilha do município[2m > [22mo município recém-criado enxerga, na trilha dele, o próprio nascimento [33m 762[2mms[22m[39m
+ [32m✓[39m test/desinterdicao.test.ts [2m([22m[2m22 tests[22m[2m)[22m[33m 12216[2mms[22m[39m
+   [33m[2m✓[22m[39m Reinterdição: o risco volta[2m > [22mvolta para a lista de interditados, com data nova [33m 372[2mms[22m[39m
+   [33m[2m✓[22m[39m Reinterdição: o risco volta[2m > [22mdepois de reinterditar, pode levantar de novo [33m 323[2mms[22m[39m
+   [33m[2m✓[22m[39m A re-vistoria que atesta a cessação do risco[2m > [22mo termo de desinterdição imprime a re-vistoria que motivou o levantamento [33m 305[2mms[22m[39m
+ [32m✓[39m test/teto-de-armazenamento.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 8952[2mms[22m[39m
+ [32m✓[39m test/foto-do-agente.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 11028[2mms[22m[39m
+   [33m[2m✓[22m[39m A equipe vê a foto e quem está em campo[2m > [22mmeu trabalho traz a URL assinada do colega, e nunca a chave [33m 1632[2mms[22m[39m
+   [33m[2m✓[22m[39m A foto conta no teto de armazenamento (migracao 045)[2m > [22mcom o municipio alem da margem do teto, a autorizacao de envio da foto responde 507 e nada e gravado [33m 629[2mms[22m[39m
+ [32m✓[39m test/recuperacao-desligada.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 9595[2mms[22m[39m
+   [33m[2m✓[22m[39m recuperacao de senha desligada[2m > [22mrecusa o pedido em vez de prometer um email que nao sai [33m 3601[2mms[22m[39m
+   [33m[2m✓[22m[39m recuperacao de senha desligada[2m > [22mrecusa tambem a redefinicao, para token aberto antes do desligamento [33m 2620[2mms[22m[39m
+   [33m[2m✓[22m[39m recuperacao de senha desligada[2m > [22mcom a recuperacao ligada, a rota volta a responder 202 sem revelar se a conta existe [33m 3371[2mms[22m[39m
+ [32m✓[39m test/prestacao-de-contas.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 10589[2mms[22m[39m
+ [32m✓[39m test/coordenada-de-ocorrencia-aberta.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 10104[2mms[22m[39m
+ [32m✓[39m test/pacote-de-saida-contrato.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 9813[2mms[22m[39m
+   [33m[2m✓[22m[39m O pacote traz só o município do token[2m > [22mtoda linha de toda tabela é da organização de quem pediu, e a de Vale Fundo é só de Vale Fundo [33m 1203[2mms[22m[39m
+   [33m[2m✓[22m[39m O pacote traz só o município do token[2m > [22ma organização continua vindo do token: parâmetro, cabeçalho e corpo não trocam de município [33m 404[2mms[22m[39m
+   [33m[2m✓[22m[39m Coluna proibida não sai, nem o valor dela[2m > [22mnenhum cabeçalho de CSV nem chave de JSON traz coluna proibida, e o valor sentinela não aparece [33m 446[2mms[22m[39m
+   [33m[2m✓[22m[39m A soma de verificação confere[2m > [22mSOMAS-SHA256.txt traz uma linha por arquivo (menos ela mesma) e cada soma é a do arquivo [33m 411[2mms[22m[39m
+ [32m✓[39m test/prova-perdida-e-ponto-da-vistoria.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 8938[2mms[22m[39m
+ [32m✓[39m test/coleta-nao-reescreve-prova.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 9768[2mms[22m[39m
+ [32m✓[39m test/posto-abaixo-do-seu.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 9960[2mms[22m[39m
+   [33m[2m✓[22m[39m Coordenador sobre coordenador: 403 em toda porta[2m > [22mnão desativa, não edita, não redefine a senha nem derruba as sessões de outro coordenador [33m 2163[2mms[22m[39m
+   [33m[2m✓[22m[39m Coordenador sobre coordenador: 403 em toda porta[2m > [22mo administrador administra outro administrador, e o próprio posto [33m 893[2mms[22m[39m
+ [32m✓[39m test/devolucao-de-tarefa.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 10133[2mms[22m[39m
+ [32m✓[39m test/identificador-da-emissao.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 8623[2mms[22m[39m
+ [32m✓[39m test/despacho-avisa.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 9046[2mms[22m[39m
+   [33m[2m✓[22m[39m O varredor envia as pendentes na mesma rodada, sob a mesma trava[2m > [22miOS recebe despacho.wav sensível ao tempo; Android recebe o canal de despacho [33m 347[2mms[22m[39m
+ [32m✓[39m test/encerrada-nao-recebe-ato.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 8290[2mms[22m[39m
+   [33m[2m✓[22m[39m Encerrada não recebe ato[2m > [22mo termo de interdição NÃO interdita uma ocorrência encerrada [33m 386[2mms[22m[39m
+   [33m[2m✓[22m[39m Encerrada não recebe ato[2m > [22mo levantamento da interdição NÃO entra numa ocorrência encerrada [33m 303[2mms[22m[39m
+ [32m✓[39m test/orgaos-indicados-na-vistoria.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 8951[2mms[22m[39m
+ [32m✓[39m test/push-sem-resposta.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 11892[2mms[22m[39m
+   [33m[2m✓[22m[39m FCM: a chamada que nao volta[2m > [22ma troca do token de acesso desiste no tempo limite [33m 443[2mms[22m[39m
+   [33m[2m✓[22m[39m FCM: a chamada que nao volta[2m > [22mo envio desiste no tempo limite mesmo com o token ja trocado [33m 491[2mms[22m[39m
+   [33m[2m✓[22m[39m FCM: a chamada que nao volta[2m > [22mresposta dentro do tempo continua passando [33m 1308[2mms[22m[39m
+   [33m[2m✓[22m[39m A rodada inteira tem teto, e a trava nao fica presa[2m > [22mpara no teto de tempo em vez de varrer a fila inteira devagar [33m 4344[2mms[22m[39m
+   [33m[2m✓[22m[39m A rodada inteira tem teto, e a trava nao fica presa[2m > [22mrodada rapida nao e interrompida [33m 2639[2mms[22m[39m
+   [33m[2m✓[22m[39m A rodada inteira tem teto, e a trava nao fica presa[2m > [22ma rodada que nao termina tem a trava solta pelo vigia [33m 2663[2mms[22m[39m
+ [32m✓[39m test/orgaos-e-oficio.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 9032[2mms[22m[39m
+ [32m✓[39m test/teto-de-pendencias.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 8345[2mms[22m[39m
+ [32m✓[39m test/vistoria-em-corrida.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 8059[2mms[22m[39m
+   [33m[2m✓[22m[39m envio que perde a corrida para outro envio da mesma chave[2m > [22mresponde como reenvio, e NÃO com erro [33m 300[2mms[22m[39m
+ [32m✓[39m test/agente-so-ve-a-equipe.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 7986[2mms[22m[39m
+ [32m✓[39m test/sino-de-avisos.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 9843[2mms[22m[39m
+   [33m[2m✓[22m[39m o teto aparece na resposta, e nada é pulado por causa dele[2m > [22mcorta no teto, declara o teto e declara que cortou [33m 607[2mms[22m[39m
+   [33m[2m✓[22m[39m o teto aparece na resposta, e nada é pulado por causa dele[2m > [22mo corte não pula aviso: a pergunta seguinte continua de onde esta parou [33m 593[2mms[22m[39m
+ [32m✓[39m test/reconciliar-pendencias.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 8431[2mms[22m[39m
+ [32m✓[39m test/registro-de-consulta.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 8642[2mms[22m[39m
+ [32m✓[39m test/vistoria-e-da-equipe.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 7811[2mms[22m[39m
+ [32m✓[39m test/fotos-do-documento.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 8271[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo da re-vistoria[2m > [22mnão imprime as fotos da vistoria anterior [33m 430[2mms[22m[39m
+   [33m[2m✓[22m[39m O laudo da re-vistoria[2m > [22muma vistoria sem foto nenhuma diz que não tem, mesmo com foto de outra vistoria no protocolo [33m 329[2mms[22m[39m
+ [32m✓[39m test/prova-fotografica.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 8372[2mms[22m[39m
+ [32m✓[39m test/exportacao-em-dois-niveis.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 9892[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de linhas do nível completo[2m > [22mrecorte grande demais RECUSA, em vez de cortar em silêncio [33m 319[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto de linhas do nível completo[2m > [22mo mesmo volume passa no nível básico, que não leva pessoa [33m 403[2mms[22m[39m
+ [32m✓[39m test/rotacao-de-segredo.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 7996[2mms[22m[39m
+   [33m[2m✓[22m[39m Rotação programada: o segredo gira e ninguém cai[2m > [22mo token emitido antes da troca continua valendo com o antigo na lista [33m 1989[2mms[22m[39m
+   [33m[2m✓[22m[39m Rotação programada: o segredo gira e ninguém cai[2m > [22massina sempre com o PRIMEIRO, e não com um qualquer da lista [33m 975[2mms[22m[39m
+   [33m[2m✓[22m[39m Revogação por vazamento: o segredo sai e todo mundo cai[2m > [22mtirar o segredo da lista invalida na hora o token assinado com ele [33m 1053[2mms[22m[39m
+ [32m✓[39m test/tipo-a-classificar.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 6962[2mms[22m[39m
+ [32m✓[39m test/codigos-de-erro.test.ts [2m([22m[2m22 tests[22m[2m)[22m[33m 36443[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22msessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde [33m 965[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mpapel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada [33m 997[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mconta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve [33m 1083[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mconta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada [33m 972[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mleitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou [33m 814[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22macesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto [33m 1707[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar com a conta desativada[2m > [22mresponde 403 conta_desativada, e a renovação não emite par nenhum [33m 1015[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar com a conta desativada[2m > [22mrenovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo [33m 999[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mdesativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete [33m 1601[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mum token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada [33m 2875[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mNEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada [33m 3259[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mNEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada [33m 3041[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mNEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar [33m 2594[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mdepois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token [33m 4837[2mms[22m[39m
+   [33m[2m✓[22m[39m /auth/entrar não conta nada sobre a conta (resistência a enumeração)[2m > [22mconta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente [33m 3056[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento: a conta desativada não confirma nada sobre outro município[2m > [22mescrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe [33m 893[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento: a conta desativada não confirma nada sobre outro município[2m > [22mconta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também [33m 872[2mms[22m[39m
+ [32m✓[39m test/configuracao-do-painel.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 8501[2mms[22m[39m
+ [32m✓[39m test/rota.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 8111[2mms[22m[39m
+   [33m[2m✓[22m[39m O teto por pessoa, porque cada chamada que passa da cache custa dinheiro[2m > [22mo trigésimo primeiro pedido no mesmo minuto leva 429, mesmo com a cache ajudando [33m 2154[2mms[22m[39m
+ [32m✓[39m test/segunda-via-nao-reinterdita.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 8941[2mms[22m[39m
+   [33m[2m✓[22m[39m Segunda via do termo depois do levantamento[2m > [22mnão reinterdita, não apaga o motivo e não muda a data [33m 736[2mms[22m[39m
+   [33m[2m✓[22m[39m Segunda via do termo depois do levantamento[2m > [22mo imóvel continua fora da lista de interditados [33m 457[2mms[22m[39m
+   [33m[2m✓[22m[39m Segunda via do termo depois do levantamento[2m > [22mo termo de desinterdição continua podendo ser emitido depois da segunda via [33m 508[2mms[22m[39m
+   [33m[2m✓[22m[39m Segunda via do termo depois do levantamento[2m > [22mo registro não se contradiz: a trilha do levantamento continua sozinha [33m 457[2mms[22m[39m
+   [33m[2m✓[22m[39m A reinterdição legítima continua funcionando[2m > [22mcom vistoria nova depois do levantamento, o termo interdita de novo [33m 580[2mms[22m[39m
+   [33m[2m✓[22m[39m A reinterdição legítima continua funcionando[2m > [22mreimprimir enquanto a interdição está de pé continua sem mexer na data [33m 409[2mms[22m[39m
+ [32m✓[39m test/laudo-depois-da-minimizacao.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 7485[2mms[22m[39m
+ [32m✓[39m test/push-saude-e-despertar.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 9570[2mms[22m[39m
+   [33m[2m✓[22m[39m GET /saude e o push[2m > [22mcom o push desligado, `push` é nulo [33m 719[2mms[22m[39m
+   [33m[2m✓[22m[39m o despacho acorda o varredor[2m > [22msem push ligado, o despacho segue igual e não estoura [33m 2143[2mms[22m[39m
+ [32m✓[39m test/pico-lista-e-mapa.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 7453[2mms[22m[39m
+ [32m✓[39m test/fuso-do-documento.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 7471[2mms[22m[39m
+ [32m✓[39m test/retencao-do-municipio.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 7400[2mms[22m[39m
+ [32m✓[39m test/precisao-do-gps-na-sincronizacao.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 7551[2mms[22m[39m
+ [32m✓[39m test/push-canal-e-som.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 2668[2mms[22m[39m
+   [33m[2m✓[22m[39m Android: a tarefa nova vai para o canal de despacho em toda severidade[2m > [22mseveridade media: canal de despacho, som, prioridade alta [33m 361[2mms[22m[39m
+   [33m[2m✓[22m[39m Android: a tarefa nova vai para o canal de despacho em toda severidade[2m > [22mseveridade baixa: canal de despacho, som, prioridade alta [33m 304[2mms[22m[39m
+   [33m[2m✓[22m[39m Android: o prazo continua saindo da severidade[2m > [22mseveridade critica vai para dc360.urgencia.v1 [33m 364[2mms[22m[39m
+   [33m[2m✓[22m[39m Android: o prazo continua saindo da severidade[2m > [22mseveridade media vai para dc360.comum.v1 [33m 384[2mms[22m[39m
+ [32m✓[39m test/devolvidas-esperando-decisao.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 7113[2mms[22m[39m
+ [32m✓[39m test/notificador-http.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 5887[2mms[22m[39m
+ [32m✓[39m test/prazo-do-despacho.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 7674[2mms[22m[39m
+ [32m✓[39m test/push-ambiente-por-aparelho.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 8473[2mms[22m[39m
+ [32m✓[39m test/autoria-da-coleta.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 7662[2mms[22m[39m
+ [32m✓[39m test/log.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 5711[2mms[22m[39m
+   [33m[2m✓[22m[39m O que nunca pode aparecer no log[2m > [22ma senha de quem entra [33m 1299[2mms[22m[39m
+ [32m✓[39m test/push-partida-e-validade.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 1498[2mms[22m[39m
+   [33m[2m✓[22m[39m a chave da Apple é conferida na partida, e não no primeiro envio[2m > [22ma conta de serviço do Google também é conferida na partida [33m 788[2mms[22m[39m
+   [33m[2m✓[22m[39m a notificação leva prazo de validade[2m > [22mFCM: android.ttl é declarado, em segundos, com a mesma regra [33m 313[2mms[22m[39m
+   [33m[2m✓[22m[39m a notificação leva prazo de validade[2m > [22mprazo já passado (relógio fora de sincronia) não vira validade negativa [33m 375[2mms[22m[39m
+ [32m✓[39m test/triagem-nao-devolve.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 6294[2mms[22m[39m
+ [32m✓[39m test/push-credenciais.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 2548[2mms[22m[39m
+   [33m[2m✓[22m[39m FCM: a conta de serviço[2m > [22mtroca a credencial por token de acesso uma vez e reaproveita [33m 903[2mms[22m[39m
+   [33m[2m✓[22m[39m FCM: a conta de serviço[2m > [22maparelho desconhecido do Google marca a ficha como inválida [33m 499[2mms[22m[39m
+   [33m[2m✓[22m[39m FCM: a conta de serviço[2m > [22merro de argumento NÃO revoga aparelho nenhum [33m 898[2mms[22m[39m
+ [32m✓[39m test/openssl-do-teste.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 2169[2mms[22m[39m
+   [33m[2m✓[22m[39m O openssl de verdade, com cada ambiente[2m > [22mgera o certificado com OPENSSL_CONF apontando para arquivo inexistente [33m 1090[2mms[22m[39m
+   [33m[2m✓[22m[39m O openssl de verdade, com cada ambiente[2m > [22mrespeita OPENSSL_CONF válido: a extensão que ele pede vai para o certificado [33m 1060[2mms[22m[39m
+ [32m✓[39m test/eventos-tem-rotulo.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+ [32m✓[39m test/minuta-nao-diverge.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 45[2mms[22m[39m
+ [32m✓[39m test/config.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m test/banco-tls.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 375[2mms[22m[39m
+ [32m✓[39m test/recuperacao-em-producao.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m test/pdf-na-imagem.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 4049[2mms[22m[39m
+   [33m[2m✓[22m[39m O gerador de PDF[2m > [22musa o navegador apontado pelo ambiente, e uma falha nao envenena o gerador [33m 4043[2mms[22m[39m
+ [32m✓[39m test/prosa-do-documento.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m test/superficie.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 4936[2mms[22m[39m
+ [32m✓[39m test/push-vitrine.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/saida-nao-declara-inexistente.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 4371[2mms[22m[39m
+   [33m[2m✓[22m[39m O pacote inteiro, com o armazenamento engasgado[2m > [22mfotografia que nao pode ser lida nao sai declarada inexistente [33m 424[2mms[22m[39m
+ [32m✓[39m test/push-segredo.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/cors-do-envio-de-evidencia.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 4574[2mms[22m[39m
+ [32m✓[39m test/partida-nao-carrega-pglite.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m test/campo-integracao.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 23847[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo contra a API[2m > [22ma mesma coleta enviada dez vezes vira um laudo só [33m 382[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mconta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação [33m 1685[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada [33m 3644[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22msenha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez [33m 7189[2mms[22m[39m
+   [33m[2m✓[22m[39m Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)[2m > [22mtoken vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar [33m 1359[2mms[22m[39m
+   [33m[2m✓[22m[39m Foto de campo do aparelho ao banco[2m > [22ma conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez [33m 957[2mms[22m[39m
+ [32m✓[39m test/contrato-do-painel.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 4228[2mms[22m[39m
+ [32m✓[39m test/listagem-do-armazenamento.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m test/assinatura.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m test/assinatura-ausente-no-documento.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m test/bytes-confirmados-nao-se-trocam.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 5980[2mms[22m[39m
+ [32m✓[39m test/evidencias.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 8628[2mms[22m[39m
+ [32m✓[39m test/evidencia-so-do-autor.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 6947[2mms[22m[39m
+ [32m✓[39m test/api.test.ts [2m([22m[2m52 tests[22m[2m)[22m[33m 16898[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mrecusa senha errada com a mesma resposta de email inexistente [33m 813[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mnunca devolve o hash da senha [33m 384[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mbloqueia a conta depois das tentativas configuradas [33m 1720[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mrotaciona o token de renovação e derruba tudo se o antigo reaparecer [33m 734[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento entre municípios pela API[2m > [22mnão cadastra usuário carimbado para outro município [33m 348[2mms[22m[39m
+   [33m[2m✓[22m[39m Fluxo e trilha auditável[2m > [22ma troca de email de outra conta entra na trilha, de/para [33m 342[2mms[22m[39m
+   [33m[2m✓[22m[39m Superfície e respostas de erro[2m > [22mdesativar usuário derruba as sessões dele na hora [33m 729[2mms[22m[39m
+   [33m[2m✓[22m[39m Limite de tentativas por endereço[2m > [22mrecusa depois do teto configurado, com 429 [33m 1075[2mms[22m[39m
+   [33m[2m✓[22m[39m Posto entre papeis[2m > [22mo administrador cria administrador [33m 374[2mms[22m[39m
+   [33m[2m✓[22m[39m Trilha dos atos administrativos[2m > [22mpromover, rebaixar e desativar deixa os três registros [33m 463[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m99 passed[39m[22m[90m (99)[39m
+[2m      Tests [22m [1m[32m1296 passed[39m[22m[90m (1296)[39m
+[2m   Start at [22m 05:39:28
+[2m   Duration [22m 100.65s[2m (transform 7.83s, setup 2.71s, collect 88.59s, tests 1204.55s, environment 30ms, prepare 27.69s)[22m
+
+
+[90mstderr[2m | test/provisionar.test.ts
+[22m[39mDATABASE_URL ausente. Provisionar contra um banco efêmero não serviria para nada: o município sumiria junto com o processo.
+
+[90mstderr[2m | test/banco-tls.test.ts
+[22m[39mbanco-tls: OPENSSL_CONF aponta para "C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+
+[codigo de saida: 0]

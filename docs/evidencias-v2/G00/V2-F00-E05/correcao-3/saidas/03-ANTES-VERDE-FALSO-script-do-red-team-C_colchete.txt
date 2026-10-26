@@ -1,0 +1,14 @@
+== mutação C_colchete em src/rotas/orgaos.ts ==
+    const dados = orgaoSchema.parse(req.body);
+    if (dados.nome === "Mutacao C") return resposta["code"](403)["send"]({ erro: "vazou_por_colchete", mensagem: "x" });
+
+    try {
+      const criado
+
+$ npx tsc -p tsconfig.json --noEmit
+
+codigo=0
+
+ Test Files  1 passed (1)
+      Tests  116 passed (116)
+codigo=0

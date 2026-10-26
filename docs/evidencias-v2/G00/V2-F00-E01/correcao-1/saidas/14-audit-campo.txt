@@ -1,0 +1,307 @@
+$ npm audit   (em apps/campo)
+codigo=1 duracao=3s situacao=confere
+
+# npm audit report
+
+brace-expansion  <=1.1.20 || 4.0.0 - 5.0.11
+Severity: high
+brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service - https://github.com/advisories/GHSA-q2hr-2g5m-vwhr
+brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service - https://github.com/advisories/GHSA-q2hr-2g5m-vwhr
+brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion - https://github.com/advisories/GHSA-qhr7-859c-m2p7
+brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion - https://github.com/advisories/GHSA-qhr7-859c-m2p7
+brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion - https://github.com/advisories/GHSA-6j4f-fj2g-mc7p
+brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion - https://github.com/advisories/GHSA-6j4f-fj2g-mc7p
+fix available via `npm audit fix`
+node_modules/@jest/reporters/node_modules/brace-expansion
+node_modules/brace-expansion
+node_modules/jest-config/node_modules/brace-expansion
+node_modules/jest-runtime/node_modules/brace-expansion
+node_modules/test-exclude/node_modules/brace-expansion
+
+braces  *
+Severity: high
+braces vulnerable to stack-exhaustion denial of service through deeply nested patterns - https://github.com/advisories/GHSA-vfj7-8cjw-p6xm
+fix available via `npm audit fix --force`
+Will install jest@30.5.2, which is a breaking change
+node_modules/braces
+  micromatch  >=0.2.0
+  Depends on vulnerable versions of braces
+  node_modules/micromatch
+    @jest/core  <=30.2.0
+    Depends on vulnerable versions of @jest/console
+    Depends on vulnerable versions of @jest/reporters
+    Depends on vulnerable versions of @jest/test-result
+    Depends on vulnerable versions of @jest/transform
+    Depends on vulnerable versions of jest-config
+    Depends on vulnerable versions of jest-haste-map
+    Depends on vulnerable versions of jest-message-util
+    Depends on vulnerable versions of jest-resolve
+    Depends on vulnerable versions of jest-resolve-dependencies
+    Depends on vulnerable versions of jest-runner
+    Depends on vulnerable versions of jest-runtime
+    Depends on vulnerable versions of jest-snapshot
+    Depends on vulnerable versions of jest-watcher
+    Depends on vulnerable versions of micromatch
+    node_modules/@jest/core
+      jest  24.2.0-alpha.0 - 30.2.0
+      Depends on vulnerable versions of @jest/core
+      Depends on vulnerable versions of jest-cli
+      node_modules/jest
+        jest-watch-typeahead  0.6.0 - 2.2.2
+        Depends on vulnerable versions of jest
+        Depends on vulnerable versions of jest-watcher
+        node_modules/jest-watch-typeahead
+          jest-expo  18.0.0-rc.0 - 18.0.0-rc.1 || >=33.0.0-rc.0
+          Depends on vulnerable versions of @jest/globals
+          Depends on vulnerable versions of @react-native/jest-preset
+          Depends on vulnerable versions of babel-jest
+          Depends on vulnerable versions of jest-environment-jsdom
+          Depends on vulnerable versions of jest-snapshot
+          Depends on vulnerable versions of jest-watch-typeahead
+          node_modules/jest-expo
+      jest-cli  23.5.0 - 30.2.0
+      Depends on vulnerable versions of @jest/core
+      Depends on vulnerable versions of @jest/test-result
+      Depends on vulnerable versions of create-jest
+      Depends on vulnerable versions of jest-config
+      node_modules/jest-cli
+    @jest/transform  *
+    Depends on vulnerable versions of babel-plugin-istanbul
+    Depends on vulnerable versions of jest-haste-map
+    Depends on vulnerable versions of micromatch
+    node_modules/@jest/transform
+      @jest/reporters  <=30.2.0
+      Depends on vulnerable versions of @jest/console
+      Depends on vulnerable versions of @jest/test-result
+      Depends on vulnerable versions of @jest/transform
+      Depends on vulnerable versions of jest-message-util
+      node_modules/@jest/reporters
+      babel-jest  >=24.2.0-alpha.0
+      Depends on vulnerable versions of @jest/transform
+      Depends on vulnerable versions of babel-plugin-istanbul
+      node_modules/babel-jest
+        @react-native/jest-preset  *
+        Depends on vulnerable versions of babel-jest
+        Depends on vulnerable versions of jest-environment-node
+        node_modules/@react-native/jest-preset
+          react-native  >=0.73.0-nightly-20230506-1af868c52
+          Depends on vulnerable versions of @react-native/community-cli-plugin
+          Depends on vulnerable versions of @react-native/jest-preset
+          Depends on vulnerable versions of @react-native/virtualized-lists
+          node_modules/react-native
+            @react-native/virtualized-lists  >=0.85.0-nightly-20260108-1236b6be4
+            Depends on vulnerable versions of react-native
+            node_modules/@react-native/virtualized-lists
+            @testing-library/react-native  >=14.0.0-alpha.0
+            Depends on vulnerable versions of react-native
+            node_modules/@testing-library/react-native
+            react-native-maps  1.0.0-alpha.1 - 1.0.0-beta.10 || 1.21.0-alpha.1 - 1.29.11
+            Depends on vulnerable versions of react-native
+            node_modules/react-native-maps
+            react-native-reanimated  3.20.0-nightly-20250722-b6c8b9a3c - 4.0.0-nightly-20250309-9ce9085cb || 4.1.7 - 4.2.0-nightly-20251017-235c127fd || >=4.2.3
+            Depends on vulnerable versions of react-native
+            Depends on vulnerable versions of react-native-worklets
+            node_modules/react-native-reanimated
+            react-native-worklets  >=0.8.0-bundle-mode-preview-1
+            Depends on vulnerable versions of @react-native/metro-config
+            Depends on vulnerable versions of react-native
+            node_modules/react-native-worklets
+        jest-config  18.1.0 - 19.0.4 || 23.5.0 - 30.2.0
+        Depends on vulnerable versions of @jest/test-sequencer
+        Depends on vulnerable versions of babel-jest
+        Depends on vulnerable versions of jest-circus
+        Depends on vulnerable versions of jest-environment-node
+        Depends on vulnerable versions of jest-resolve
+        Depends on vulnerable versions of jest-runner
+        Depends on vulnerable versions of micromatch
+        node_modules/jest-config
+          create-jest  29.7.0 - 30.2.0
+          Depends on vulnerable versions of jest-config
+          node_modules/create-jest
+      jest-runner  21.0.0-alpha.1 - 30.2.0
+      Depends on vulnerable versions of @jest/console
+      Depends on vulnerable versions of @jest/environment
+      Depends on vulnerable versions of @jest/test-result
+      Depends on vulnerable versions of @jest/transform
+      Depends on vulnerable versions of jest-environment-node
+      Depends on vulnerable versions of jest-haste-map
+      Depends on vulnerable versions of jest-message-util
+      Depends on vulnerable versions of jest-resolve
+      Depends on vulnerable versions of jest-runtime
+      Depends on vulnerable versions of jest-watcher
+      node_modules/jest-runner
+      jest-runtime  18.1.0 - 30.2.0
+      Depends on vulnerable versions of @jest/environment
+      Depends on vulnerable versions of @jest/fake-timers
+      Depends on vulnerable versions of @jest/globals
+      Depends on vulnerable versions of @jest/test-result
+      Depends on vulnerable versions of @jest/transform
+      Depends on vulnerable versions of jest-haste-map
+      Depends on vulnerable versions of jest-message-util
+      Depends on vulnerable versions of jest-resolve
+      Depends on vulnerable versions of jest-snapshot
+      node_modules/jest-runtime
+        jest-circus  20.1.0-alpha.1 - 30.2.0
+        Depends on vulnerable versions of @jest/environment
+        Depends on vulnerable versions of @jest/expect
+        Depends on vulnerable versions of @jest/test-result
+        Depends on vulnerable versions of jest-message-util
+        Depends on vulnerable versions of jest-runtime
+        Depends on vulnerable versions of jest-snapshot
+        node_modules/jest-circus
+      jest-snapshot  23.3.0 - 30.2.0
+      Depends on vulnerable versions of @jest/transform
+      Depends on vulnerable versions of expect
+      Depends on vulnerable versions of jest-message-util
+      node_modules/jest-snapshot
+        @jest/expect  <=30.2.0
+        Depends on vulnerable versions of expect
+        Depends on vulnerable versions of jest-snapshot
+        node_modules/@jest/expect
+          @jest/globals  <=30.2.0
+          Depends on vulnerable versions of @jest/environment
+          Depends on vulnerable versions of @jest/expect
+          node_modules/@jest/globals
+        jest-resolve-dependencies  23.3.0 - 30.2.0
+        Depends on vulnerable versions of jest-snapshot
+        node_modules/jest-resolve-dependencies
+    jest-haste-map  18.1.0 - 30.2.0
+    Depends on vulnerable versions of micromatch
+    node_modules/jest-haste-map
+      @jest/test-sequencer  <=30.2.0
+      Depends on vulnerable versions of @jest/test-result
+      Depends on vulnerable versions of jest-haste-map
+      node_modules/@jest/test-sequencer
+      jest-resolve  18.1.0 - 19.0.2 || 24.2.0-alpha.0 - 24.5.0 || 27.1.0 - 30.2.0
+      Depends on vulnerable versions of jest-haste-map
+      node_modules/jest-resolve
+    jest-message-util  18.5.0-alpha.7da3df39 - 30.2.0
+    Depends on vulnerable versions of micromatch
+    node_modules/jest-message-util
+      @jest/console  25.4.0 - 30.2.0
+      Depends on vulnerable versions of jest-message-util
+      node_modules/@jest/console
+        @jest/test-result  25.4.0 - 30.2.0
+        Depends on vulnerable versions of @jest/console
+        node_modules/@jest/test-result
+          jest-watcher  25.4.0 - 30.2.0
+          Depends on vulnerable versions of @jest/test-result
+          node_modules/jest-watcher
+      @jest/fake-timers  <=30.2.0
+      Depends on vulnerable versions of jest-message-util
+      node_modules/@jest/fake-timers
+        @jest/environment  <=30.2.0
+        Depends on vulnerable versions of @jest/fake-timers
+        node_modules/@jest/environment
+          jest-environment-jsdom  24.2.0-alpha.0 - 30.2.0
+          Depends on vulnerable versions of @jest/environment
+          Depends on vulnerable versions of @jest/fake-timers
+          node_modules/jest-environment-jsdom
+        jest-environment-node  24.2.0-alpha.0 - 30.2.0
+        Depends on vulnerable versions of @jest/environment
+        Depends on vulnerable versions of @jest/fake-timers
+        node_modules/jest-environment-node
+      expect  21.0.0-beta.1 - 30.2.0
+      Depends on vulnerable versions of jest-message-util
+      node_modules/expect
+        @types/jest  28.1.7 - 29.5.14
+        Depends on vulnerable versions of expect
+        node_modules/@types/jest
+    metro-file-map  *
+    Depends on vulnerable versions of micromatch
+    node_modules/metro-file-map
+      @expo/metro  *
+      Depends on vulnerable versions of metro
+      Depends on vulnerable versions of metro-config
+      Depends on vulnerable versions of metro-file-map
+      Depends on vulnerable versions of metro-transform-worker
+      node_modules/@expo/metro
+        @expo/cli  <=0.0.0-canary-20231123-1b19f96-4 || >=0.0.1-canary-20231125-d600e44
+        Depends on vulnerable versions of @expo/code-signing-certificates
+        Depends on vulnerable versions of @expo/metro
+        Depends on vulnerable versions of @expo/metro-config
+        Depends on vulnerable versions of node-forge
+        node_modules/expo/node_modules/@expo/cli
+          expo  >=45.0.0-beta.1
+          Depends on vulnerable versions of @expo/cli
+          Depends on vulnerable versions of @expo/metro
+          Depends on vulnerable versions of @expo/metro-config
+          node_modules/expo
+        @expo/metro-config  >=0.21.0-canary-20250630-547cd82
+        Depends on vulnerable versions of @expo/metro
+        node_modules/@expo/metro-config
+      metro  >=0.71.0
+      Depends on vulnerable versions of metro-config
+      Depends on vulnerable versions of metro-file-map
+      Depends on vulnerable versions of metro-transform-worker
+      node_modules/metro
+        @react-native/community-cli-plugin  *
+        Depends on vulnerable versions of @react-native/metro-config
+        Depends on vulnerable versions of metro
+        Depends on vulnerable versions of metro-config
+        node_modules/@react-native/community-cli-plugin
+        metro-config  >=0.71.0
+        Depends on vulnerable versions of metro
+        node_modules/metro-config
+          @react-native/metro-config  *
+          Depends on vulnerable versions of metro-config
+          node_modules/@react-native/metro-config
+        metro-transform-worker  >=0.71.0
+        Depends on vulnerable versions of metro
+        node_modules/metro-transform-worker
+
+decode-uri-component  <=0.4.2
+Severity: moderate
+decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input - https://github.com/advisories/GHSA-vcc3-ghjq-m6fr
+fix available via `npm audit fix --force`
+Will install expo-router@58.0.18, which is a breaking change
+node_modules/decode-uri-component
+  query-string  5.0.0 - 9.4.1
+  Depends on vulnerable versions of decode-uri-component
+  node_modules/query-string
+    expo-router  1.2.2 - 3.1.2 || 5.2.0-canary-20250611-f0afe80 - 58.0.12
+    Depends on vulnerable versions of query-string
+    node_modules/expo-router
+
+node-forge  *
+Severity: high
+node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements - https://github.com/advisories/GHSA-86w9-cpqp-85rv
+fix available via `npm audit fix --force`
+Will install expo@44.0.6, which is a breaking change
+node_modules/node-forge
+  @expo/code-signing-certificates  *
+  Depends on vulnerable versions of node-forge
+  node_modules/@expo/code-signing-certificates
+
+shell-quote  1.8.4 - 1.10.0
+Severity: critical
+shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token - https://github.com/advisories/GHSA-pqg4-j6r4-53mv
+fix available via `npm audit fix`
+node_modules/shell-quote
+
+sprintf-js  *
+Severity: moderate
+sprintf-js vulnerable to denial of service through unbounded precision specifiers - https://github.com/advisories/GHSA-hp3w-g68c-fv3c
+fix available via `npm audit fix --force`
+Will install jest@30.5.2, which is a breaking change
+node_modules/sprintf-js
+  argparse  1.0.0 - 1.0.10
+  Depends on vulnerable versions of sprintf-js
+  node_modules/argparse
+    js-yaml  3.2.7 - 3.15.2
+    Depends on vulnerable versions of argparse
+    node_modules/js-yaml
+      @istanbuljs/load-nyc-config  *
+      Depends on vulnerable versions of js-yaml
+      node_modules/@istanbuljs/load-nyc-config
+        babel-plugin-istanbul  >=6.0.0-beta.0
+        Depends on vulnerable versions of @istanbuljs/load-nyc-config
+        node_modules/babel-plugin-istanbul
+
+61 vulnerabilities (8 moderate, 52 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

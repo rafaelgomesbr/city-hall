@@ -1,0 +1,17 @@
+# node dc360/scripts/conferir-indices-de-evidencia.mjs, no worktree compartilhado (antes de gravar 35 e 36 no índice). A única falha é a pasta NÃO RASTREADA G00/V2-F00-E05/correcao-7b, de outra sessão em andamento no mesmo worktree.
+Índices de evidência: 87 INDEX.md, 4507 arquivo(s) conferido(s) byte a byte.
+FALHA G00/V2-F00-E05/INDEX.md
+  - correcao-7b/saidas/10-DEPOIS-node22-guarda-api.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/11-DEPOIS-node22-guarda-console.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/12-DEPOIS-node24-guarda-api.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/13-DEPOIS-node24-guarda-console.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/20-MORDIDA-guarda-da-correcao-7-node22-api.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/21-MORDIDA-guarda-da-correcao-7-node22-console.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/22-MORDIDA-guarda-da-correcao-7-node24-api.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/23-MORDIDA-guarda-da-correcao-7-node24-console.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/60-test-api-node24.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/61-test-console-node24.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/62-test-api-node22.txt existe na pasta e não está no índice
+  - correcao-7b/saidas/63-test-console-node22.txt existe na pasta e não está no índice
+RESULTADO: 1 índice(s) não batem, 0 arquivo(s) com fim de linha errado no git
+saida: 1

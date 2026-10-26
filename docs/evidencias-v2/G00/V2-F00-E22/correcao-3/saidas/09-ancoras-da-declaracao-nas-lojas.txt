@@ -1,0 +1,22 @@
+$ node --test scripts/ancoras-da-declaracao.test.mjs   (em ./dc360)
+codigo=0
+
+✔ o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha (54.818084ms)
+✔ a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado (0.2605ms)
+✔ caso-irmao: simbolo que nao existe no arquivo e mordido (48.613417ms)
+✔ caso-irmao: arquivo que nao existe e mordido, com e sem ancora (48.0205ms)
+✔ caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias (189.905958ms)
+✔ caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE (48.943667ms)
+✔ caso-irmao: ausencia em pasta varre a pasta inteira (109.209916ms)
+✔ presenca em pasta nao vale como ancora: ela nao diz onde olhar (47.631625ms)
+✔ o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal (0.18375ms)
+✔ o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem (0.141125ms)
+✔ as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem (0.165875ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 589.710083

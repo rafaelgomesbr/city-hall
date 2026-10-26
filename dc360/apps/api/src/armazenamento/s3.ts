@@ -371,7 +371,7 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
  * Lê a resposta do `ListObjectsV2`, que vem em XML.
  *
  * Sem biblioteca de XML, pela mesma razão que a assinatura é escrita à mão: o
- * `npm audit` deste produto fecha em zero, e o que precisa ser lido aqui são
+ * `npm audit --omit=dev` da raiz do produto fecha em zero (o aplicativo de campo só passa com exceções aceitas, ver `scripts/auditar.mjs`), e o que precisa ser lido aqui são
  * quatro campos de uma estrutura plana e publicada.
  *
  * O que ela NÃO faz é fingir robustez que não tem: campo que não casar sai

@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+import { esperarORelogioAndar } from "./esperar-o-relogio.js";
 
 /**
  * O código no rodapé do documento identifica UMA emissão, e existe onde
@@ -147,7 +148,7 @@ describe("O identificador é da emissão", () => {
   it("a segunda via carrega o mesmo identificador, porque é o mesmo ato", async () => {
     const alvo = await comVistoria("Rua do Identificador, 2");
     const primeira = identificadorImpresso((await laudo(alvo.id)).body);
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     const segunda = identificadorImpresso((await laudo(alvo.id)).body);
     expect(segunda).toBe(primeira);
   });
@@ -166,7 +167,7 @@ describe("O identificador é da emissão", () => {
   it("vistoria nova produz identificador novo", async () => {
     const alvo = await comVistoria("Rua do Identificador, 4");
     const antes = identificadorImpresso((await laudo(alvo.id)).body);
-    await new Promise((r) => setTimeout(r, 20));
+    await esperarORelogioAndar();
     await vistoriar(alvo.id);
     const depois = identificadorImpresso((await laudo(alvo.id)).body);
     expect(depois).not.toBe(antes);

@@ -1,0 +1,24 @@
+# mutacao em src/app/(agente)/perfil.tsx
+# - destrutiva: true,
+          aoTocar: () => void (async () => {
+            await sair();
+# + destrutiva: false,
+          aoTocar: () => void (async () => {
+            await sair();
+# teste: src/ui/zz-antigo-e15.test.tsx
+PASS src/ui/zz-antigo-e15.test.tsx
+  a pergunta antes de sair, com vistoria começada
+    ✓ diz quantas vistorias começadas serão apagadas, e que as fotos vão junto (146 ms)
+    ✓ uma só, sem foto: singular, e sem prometer foto que não existe (38 ms)
+    ✓ o botão de confirmar é o de perigo, porque o ato apaga (43 ms)
+    ✓ sem vistoria começada e sem fila, a pergunta não fala em apagar (39 ms)
+  a fila lida ao vivo, e não uma vez
+    ✓ quando a fila esvazia, o chip e o aviso de esperar somem sem trocar de aba (35 ms)
+    ✓ o diálogo de saída conta a fila de AGORA, e não a da montagem (33 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        1.509 s, estimated 3 s
+Ran all test suites matching /src\/ui\/zz-antigo-e15.test.tsx/i.
+codigo 0

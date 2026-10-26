@@ -1,0 +1,28 @@
+# DEPOIS: o teste novo e o reescrito, verdes (13 de 13).
+
+(node:121976) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx
+  a tela da vistoria com a sessão encerrada, sessão e banco de verdade
+    √ 'Entrar de novo' leva à entrada e o rascunho, a foto e a assinatura continuam no disco (131 ms)
+    √ a Ana entra de novo e reencontra a vistoria como deixou (26 ms)
+    √ contraste: a saída explícita (a do Perfil, que pergunta antes) continua apagando (12 ms)
+    √ a tela não oferece mais 'Sair e entrar de novo' em lugar nenhum (17 ms)
+
+PASS src/__tests__/vistoria-ainda-nao-baixada.test.tsx
+  √ explica que a tarefa ainda não chegou, em vez de parecer defeito (111 ms)
+  √ oferece baixar a lista ali mesmo, sem mandar o agente voltar (7 ms)
+  √ baixa a lista e abre a vistoria em seguida (259 ms)
+  √ mantém o botão de tentar de novo quando a rede falha (15 ms)
+  √ nomeia a sessão vencida em vez de culpar o sinal (18 ms)
+  √ o 401 nomeia a sessão encerrada e oferece entrar de novo, sem apagar nada (10 ms)
+  √ o acesso suspenso pelo fornecedor não manda entrar de novo (12 ms)
+  √ a falha sem nome continua pedindo para tentar daqui a pouco (10 ms)
+  √ 'Voltar para as tarefas' sem histórico vai para a lista, em vez de não fazer nada (5 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        3.346 s
+Ran all test suites matching /src\\__tests__\\vistoria-sessao-vencida|src\\__tests__\\vistoria-ainda/i.
+exit 0

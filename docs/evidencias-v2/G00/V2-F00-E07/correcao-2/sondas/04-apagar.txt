@@ -1,0 +1,4 @@
+$ (sonda-049.mjs copiada para o scratchpad, DC360_RAIZ=<dc360 de hoje>, Postgres 17.5 descartavel; o comando de cada passo esta na linha seguinte)
+
+== node sonda-049.mjs apagar <url-superusuario>
+banco prova_c2_migrar apagado

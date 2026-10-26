@@ -1,0 +1,16 @@
+$ trecho do log do servidor Postgres 17.5 descartavel durante a primeira rodada do teste 7 contra o codigo do checkpoint
+
+60:2026-10-14 11:18:29.838 -03 [13352] ERROR:  deadlock detected
+61-2026-10-14 11:18:29.838 -03 [13352] DETAIL:  Process 13352 waits for ShareLock on transaction 1385; blocked by process 13353.
+62-	Process 13353 waits for ExclusiveLock on advisory lock [17832,2489233678,3185272501,2]; blocked by process 13352.
+63-	Process 13352: SELECT trocar_senha($1,$2,$3)
+64-	Process 13353: SELECT travar_sessoes_do_usuario($1)
+65-2026-10-14 11:18:29.838 -03 [13352] HINT:  See server log for query details.
+66-2026-10-14 11:18:29.838 -03 [13352] CONTEXT:  while locking tuple (0,19) in relation "usuarios"
+67-	SQL statement "UPDATE usuarios
+68-	     SET senha_hash = p_senha_hash, falhas_login = 0, bloqueado_ate = NULL
+69-	   WHERE id = p_usuario_id"
+70-	PL/pgSQL function trocar_senha(uuid,text,uuid) line 5 at SQL statement
+71-2026-10-14 11:18:29.838 -03 [13352] STATEMENT:  SELECT trocar_senha($1,$2,$3)
+72-
+--

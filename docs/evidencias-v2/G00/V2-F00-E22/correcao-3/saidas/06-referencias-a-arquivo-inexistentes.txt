@@ -1,0 +1,47 @@
+$ node docs/evidencias-v2/G00/V2-F00-E22/correcao-3/sondas/referencias-a-arquivo.mjs dc360/README.md dc360/apps/api/PENDENCIAS.md dc360/apps/web/PENDENCIAS.md dc360/apps/campo/PENDENCIAS.md dc360/db/PENDENCIAS.md dc360/apps/campo/LEIA-ME.md dc360/apps/campo/LOJAS.md dc360/docs/ARMAZENAMENTO.md dc360/docs/CARTAO-DO-AGENTE.md dc360/docs/COLOCAR-DE-PE.md dc360/docs/DECLARACAO-NAS-LOJAS.md dc360/docs/DICIONARIO-DE-DADOS.md dc360/docs/GUIA-DO-COORDENADOR.md dc360/docs/IMPLANTACAO.md dc360/docs/INDISPONIBILIDADE.md dc360/docs/LEIA-ME.md dc360/docs/LIGAR-O-EMAIL.md dc360/docs/PAPEIS_E_RESPONSABILIDADES.md dc360/docs/POLITICA-DE-TESTE-VERMELHO.md dc360/docs/PRIVACIDADE.md dc360/docs/RESTORE-DO-BANCO.md dc360/docs/SAIDA-DE-MUNICIPIO.md dc360/docs/SEGURANCA-DO-AGENTE.md dc360/docs/SUBPROCESSADORES.md dc360/docs/VERCEL-PAINEL.md dc360/docs/apresentacao/README.md  docs/adr/0008-console-do-fornecedor-sem-credencial-que-ve-dois-municipios.md   (em .)
+codigo=0
+
+dc360/README.md:1115: .ps1
+dc360/README.md:1138: router.d.ts
+dc360/README.md:1148: apps/campo/ios/
+dc360/README.md:1211: apps/campo/ios/
+dc360/apps/api/PENDENCIAS.md:339: tabelas/vistoria_evidencias_perdidas.csv
+dc360/apps/api/PENDENCIAS.md:342: PENDENCIAS-DA-EXTRACAO.txt
+dc360/apps/api/PENDENCIAS.md:343: PENDENCIAS-DA-EXTRACAO.txt
+dc360/apps/web/PENDENCIAS.md:305: /pacote.zip
+dc360/apps/campo/PENDENCIAS.md:158: ios/
+dc360/apps/campo/PENDENCIAS.md:173: ios/
+dc360/apps/campo/PENDENCIAS.md:534: vistoria/[id].tsx
+dc360/apps/campo/PENDENCIAS.md:631: apps/campo/ios/
+dc360/apps/campo/LEIA-ME.md:41: .expo/types/router.d.ts
+dc360/apps/campo/LEIA-ME.md:43: .expo/
+dc360/apps/campo/LEIA-ME.md:166: node_modules/expo/bundledNativeModules.json
+dc360/apps/campo/LOJAS.md:116: ./segredos/play-console.json
+dc360/apps/campo/LOJAS.md:318: ios/
+dc360/docs/DECLARACAO-NAS-LOJAS.md:409: android/
+dc360/docs/DECLARACAO-NAS-LOJAS.md:654: android/
+dc360/docs/DECLARACAO-NAS-LOJAS.md:654: ios/
+dc360/docs/DICIONARIO-DE-DADOS.md:321: tabelas/vistoria_evidencias_perdidas.csv
+dc360/docs/LIGAR-O-EMAIL.md:55: /tmp/notificacoes.txt
+dc360/docs/POLITICA-DE-TESTE-VERMELHO.md:60: vistoria/[id].tsx
+dc360/docs/POLITICA-DE-TESTE-VERMELHO.md:114: ios/
+dc360/docs/PRIVACIDADE.md:123: usuarios/
+dc360/docs/RESTORE-DO-BANCO.md:374: apps/api/dist/index.js
+dc360/docs/RESTORE-DO-BANCO.md:422: postgresql-17.6-1-osx-binaries.zip
+dc360/docs/RESTORE-DO-BANCO.md:440: postgresql-17.6-1-osx-binaries.zip
+dc360/docs/SAIDA-DE-MUNICIPIO.md:93: PENDENCIAS-DA-EXTRACAO.txt
+dc360/docs/SAIDA-DE-MUNICIPIO.md:95: PENDENCIAS-DA-EXTRACAO.txt
+dc360/docs/SAIDA-DE-MUNICIPIO.md:95: tabelas/vistoria_evidencias_perdidas.csv
+dc360/docs/SAIDA-DE-MUNICIPIO.md:96: INDICE.html
+dc360/docs/SAIDA-DE-MUNICIPIO.md:96: INDICE.csv
+dc360/docs/SAIDA-DE-MUNICIPIO.md:96: tabelas/ocorrencias.csv
+dc360/docs/SAIDA-DE-MUNICIPIO.md:97: esquema/
+dc360/docs/SAIDA-DE-MUNICIPIO.md:98: SOMAS-SHA256.txt
+dc360/docs/SAIDA-DE-MUNICIPIO.md:99: dc360-pacote-de-saida-AAAA-MM-DD.zip
+dc360/docs/SAIDA-DE-MUNICIPIO.md:99: /pacote.zip
+dc360/docs/SAIDA-DE-MUNICIPIO.md:172: tabelas/vistoria_evidencias_perdidas.csv
+dc360/docs/SAIDA-DE-MUNICIPIO.md:173: PENDENCIAS-DA-EXTRACAO.txt
+dc360/docs/SAIDA-DE-MUNICIPIO.md:174: PENDENCIAS-DA-EXTRACAO.txt
+dc360/docs/SUBPROCESSADORES.md:173: maps.app.goo.gl/...
+dc360/docs/apresentacao/README.md:35: .html
+dc360/docs/apresentacao/README.md:36: .md

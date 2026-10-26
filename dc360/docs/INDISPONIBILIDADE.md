@@ -107,8 +107,13 @@ está aberto desde a versão 1, e é decisão do dono.
 Em 2026-10-07 (V2-F00-E25) o restore foi refeito com o esquema atual, 47
 migrações, entre dois clusters PostgreSQL descartáveis no Windows, com a
 semente sintética: isolamento conferido no banco restaurado e a API respondendo
-contra a cópia. O roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de
-`COLOCAR-DE-PE.md` ficou como registro histórico. O restore a partir da
+contra a cópia. Em 2026-10-15 (correção 1 da E25) o roteiro foi seguido de novo,
+a frio, num clone limpo no macOS e nos dois shells (`zsh` e `bash`), com as 50
+migrações daquele dia (hoje são 51; o roteiro vigente é a versão 3 de 2026-10-19, ver `RESTORE-DO-BANCO.md`); e o CI repete uma versão dele em Postgres 17, num job que hoje só
+roda com `[ci completo]` no commit (o disparo manual e a agenda semanal estão
+no arquivo, mas só valem quando ele chegar ao ramo padrão). O
+roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de `COLOCAR-DE-PE.md` ficou
+como registro histórico. O restore a partir da
 produção (Supabase) com o esquema atual continua NÃO provado: o de 09/09/2026,
 com 15 migrações, segue sendo o único feito com dado do provedor.
 
@@ -148,10 +153,12 @@ desculpa, não relatório.
    mesmo sem tocar dado de município: a regra da seção 4 daquele documento
    vale para qualquer dependência, e o endereço que a sonda chama é o da API.
 2. O que a sonda chama, e o que cada resposta significa. Hoje existe
-   `GET /saude` na API (responde 503 com banco fora ou esquema atrasado) e
+   `GET /saude` na API (responde 503 quando a consulta ao banco falha; o esquema atrasado não vira 503 aqui, ele impede a partida do processo, ver `apps/api/src/index.ts`, e a rota informa a última migração aplicada, as contagens do relógio de eliminação e o resultado da última rodada do push) e
    `GET /saude` no console (responde só que o processo está de pé, ver
-   `IMPLANTACAO.md`, 6.4). Não existe sonda de armazenamento nem de push: para
-   o push, o que existe é a varredura registrando falha no log da API.
+   `IMPLANTACAO.md`, 6.4). Não existe sonda de armazenamento. Para o push, o `GET /saude` já
+   devolve `push` (`null` se desligado; senão a última rodada: `rodadaEm`,
+   `reivindicadas`, `entregues`, `falhas`, `revogados`, só números), e o motivo
+   de cada falha continua só no log da API, agregado.
 3. Quem escreve o histórico de incidente, e em quanto tempo depois do fechamento
    (seção 3.5). Sem dono, o histórico fica vazio e a página vira enfeite.
 
@@ -185,15 +192,18 @@ desculpa, não relatório.
 O município mantém formulário impresso para chamado e para vistoria. É o que já
 existia antes do sistema, e continua sendo o plano B.
 
-Ao voltar, o registro do papel entra no sistema com a **data real do
-atendimento**, e não a data de digitação. Isso importa: o laudo já distingue
-"vistoria em campo" de "recebida pelo sistema", exatamente para não afirmar que
-a vistoria aconteceu na hora em que o sinal voltou. A mesma distinção vale para
-o que foi feito no papel.
+Ao voltar, o registro do papel é digitado no sistema. A ocorrência nasce com a
+data e a hora da **digitação** (`criado_em` é `now()`, e o prazo da severidade
+conta daí): o sistema não tem campo para a data real do atendimento. O laudo de
+vistoria feito no aparelho já distingue "vistoria em campo" de "recebida pelo
+sistema", exatamente para não afirmar que a vistoria aconteceu na hora em que o
+sinal voltou; para o chamado registrado a partir do papel, não há essa
+distinção.
 
-**Pendência conhecida:** hoje o registro retroativo depende de digitar a data à
-mão, e nada impede errar. Um campo declarado de "atendimento feito fora do
-sistema", com a data e o motivo, tornaria isso auditável. Não está feito.
+**Pendência conhecida:** hoje a data real do atendimento só pode ser escrita à
+mão no relato, e nada impede errar nem esquecer. Um campo declarado de
+"atendimento feito fora do sistema", com a data e o motivo, tornaria isso
+auditável e acertaria o prazo. Não está feito.
 
 ---
 

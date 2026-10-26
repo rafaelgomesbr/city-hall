@@ -1,0 +1,120 @@
+$ node scripts/conferir-indices-de-evidencia.mjs   (checkout novo de 11d9446 + o script novo; INDEX.md antigos; sem lista de tolerancia)
+Índices de evidência: 56 INDEX.md, 1713 arquivo(s) conferido(s) byte a byte.
+FALHA CP-02/INDEX.md
+  - linha 5: decisao.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E01/saidas/INDEX.md
+  - linha 11: 07-teste-web.txt tem SHA-256 diferente do índice
+  - linha 13: 09-test-campo.txt tem SHA-256 diferente do índice
+  - linha 16: 12-auditar.txt tem SHA-256 diferente do índice
+  - linha 20: 16-e2e.txt tem SHA-256 diferente do índice
+  - linha 21: 17-e2e-api.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E02/INDEX.md
+  - linha 5: POLITICA-DE-TESTE-VERMELHO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 6: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 23: saidas/regressao-npm-test/06-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E02/saidas/regressao-npm-test/INDEX.md
+  - linha 10: 06-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E03/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 7: classificacao-dos-vermelhos.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 57: correcao-3/RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E05/INDEX.md
+  - linha 48: saidas/09-test-campo-depois.txt tem SHA-256 diferente do índice
+  - linha 51: saidas/12-e2e-api-depois.txt tem SHA-256 diferente do índice
+  - linha 61: saidas/baseline-depois/04-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E05/saidas/baseline-depois/INDEX.md
+  - linha 8: 04-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E08/INDEX.md
+  - linha 24: saidas/10-web.txt tem SHA-256 diferente do índice
+  - linha 33: saidas/baseline-depois/05-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E08/saidas/baseline-depois/INDEX.md
+  - linha 9: 05-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E09/saidas/baseline-depois/INDEX.md
+  - linha 8: 04-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E10/saidas/baseline-depois/INDEX.md
+  - linha 8: 04-teste-web.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E11/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 33: saidas/03-sonda-antes-do-conserto-e2e.txt tem SHA-256 diferente do índice
+  - linha 36: saidas/06-e2e-api-completo-cai-na-secao-13.txt tem SHA-256 diferente do índice
+  - linha 42: saidas/baseline-depois/05-teste-web-com-o-temporizador-solto.txt tem SHA-256 diferente do índice
+  - linha 44: saidas/baseline-depois/07-teste-web-depois-do-conserto.txt tem SHA-256 diferente do índice
+  - linha 48: sondas/e2e-aparado-runner.mjs tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 49: sondas/e2e-aparado-secao-28.mjs tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E14/INDEX.md
+  - linha 10: saidas/05-typecheck-campo.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 17: saidas/baseline-depois/04-test-campo.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E14/saidas/baseline-depois/INDEX.md
+  - linha 8: 04-test-campo.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E15/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 17: saidas/01-jest-dois-arquivos-antes.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 18: saidas/02-jest-arquivos-da-etapa-depois.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 19: saidas/03-sonda-sem-o-conserto.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 20: saidas/04-typecheck-campo-antes-e-depois.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 21: saidas/05-api-resposta-ao-gps-corrigido.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 22: saidas/06-texto-do-dialogo-de-saida.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 23: saidas/07-arquivos-alterados.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 29: saidas/baseline-depois/06-test-campo.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E15/saidas/baseline-depois/INDEX.md
+  - linha 10: 06-test-campo.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E16/saidas/baseline-depois/INDEX.md
+  - linha 7: 03-test-campo.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E17/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E18/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 10: saidas/01-e2e-api-chromium-antes.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 11: saidas/02-e2e-api-chromium-depois-do-cors.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 12: saidas/03-e2e-api-chromium-final.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 13: saidas/04-e2e-api-firefox-final.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 14: saidas/05-e2e-local-chromium.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 15: saidas/06-e2e-local-firefox.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 16: saidas/07-preflight-antes-do-conserto.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 17: saidas/08-preflight-depois-do-conserto.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 18: saidas/09-duplicidade-sem-rede-sonda-sem-conserto.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 19: saidas/10-duplicidade-sem-rede-depois.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 20: saidas/11-e2e-api-firefox-rodada-1-miniatura-lazy.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 21: saidas/12-e2e-api-firefox-rodada-2-console-dos-abortos.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 22: saidas/13-diff-do-produto-e-do-roteiro.diff tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E20/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 14: diff-dos-testes.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 15: npm-test-regressao.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 16: sonda-isencao-larga.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 17: sonda-sem-isencao.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E21/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 9: baseline-antes/04-test-campo.txt tem SHA-256 diferente do índice
+  - linha 29: saidas/05-banco-tls-powershell.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 30: saidas/06-typecheck-campo-com-e-sem-cache-velho.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E21/baseline-antes/INDEX.md
+  - linha 8: 04-test-campo.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E22/saidas/baseline/INDEX.md
+  - linha 14: 10-auditar.txt tem SHA-256 diferente do índice
+FALHA G00/V2-F00-E23/INDEX.md
+  - linha 5: RESUMO.md tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+FALHA G00/V2-F00-E25/INDEX.md
+  - linha 6: saidas/00-isolamento-antes.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 7: saidas/01-versoes.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 8: saidas/02a-provisionar-origem-como-o-ci.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 9: saidas/02b-provisionar-origem-com-o-remedio.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 10: saidas/03-migrar-origem.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 11: saidas/03a-ACHADO-migrar-como-o-ci-para-na-041.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 12: saidas/04-migrar-conferir-origem.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 13: saidas/05-semear-origem.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 14: saidas/06-associar-api-origem.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 15: saidas/07a-dump-so-schema-public.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 16: saidas/07b-dump-com-a-extensao.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 17: saidas/08-negativo-sem-dc360_console.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 18: saidas/09-negativo-sem-pg_trgm.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 19: saidas/10-negativo-sem-derrubar-o-public.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 20: saidas/11-restore.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 21: saidas/12-estrutura-origem.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 22: saidas/12-estrutura-restaurado.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 23: saidas/12-linhas-origem.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 24: saidas/12-linhas-restaurado.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - linha 25: saidas/13-diff-estrutura.txt tem SHA-256 diferente do índice (bateria com todo o arquivo em CRLF: o índice foi calculado no Windows e o arquivo commitado é LF)
+  - e mais 18
+RESULTADO: 25 índice(s) não batem, 0 arquivo(s) com CRLF no índice do git
+codigo=1

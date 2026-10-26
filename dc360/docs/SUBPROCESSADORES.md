@@ -22,7 +22,7 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
 | **Supabase Storage** | Armazenamento das fotografias e assinaturas | Fotografia de imóvel, traço de assinatura | São Paulo, Brasil |
 | **Fly.io** | Servidor da API | Todos, em trânsito e em memória durante o processamento | São Paulo, Brasil (`gru`) |
 | **Vercel** | Entrega do painel do coordenador | **Nenhum.** Serve arquivo estático; o dado vai do navegador direto à API | Rede de distribuição global |
-| **Apple (APNs)** | Notificação no iPhone | Identificador do aparelho, o texto genérico, e os identificadores de município e de ocorrência mais a severidade | Estados Unidos |
+| **Apple (APNs)** | Notificação no iPhone | Identificador do aparelho, o texto genérico, e os identificadores de município e de ocorrência mais a severidade e o prazo | Estados Unidos |
 | **Google (Firebase Cloud Messaging)** | Notificação no Android | O mesmo do acima | Estados Unidos |
 | **Google (Maps)** | Mapa no painel do coordenador | Coordenada das ocorrências desenhadas, enviada ao carregar o mapa | Estados Unidos |
 | **Google (Maps SDK)** | Mapa dentro do aplicativo de campo | Coordenada do imóvel da tarefa, a região que o agente está olhando, e a posição do próprio agente enquanto o mapa está aberto | Estados Unidos |
@@ -55,8 +55,10 @@ qualquer fonte vinda de rede. A linha da Vercel voltou a ser verdadeira.
 O conteúdo da notificação **sai do país** e passa por servidor de terceiro. Por
 isso a mensagem que aparece na tela bloqueada é **genérica**: ela diz que há
 tarefa nova ou prazo vencendo, e não diz endereço, nome, protocolo nem
-severidade. O detalhe viaja no corpo cifrado da mensagem e só é lido pelo
-aplicativo depois que o agente destrava o aparelho.
+severidade. O detalhe (identificadores, severidade e prazo; nunca endereço nem protocolo)
+viaja no campo de dados da mensagem, que NÃO é cifrado por nós: atravessa Apple e
+Google em TLS, legível para eles, e o aplicativo só o usa depois que o agente
+destrava o aparelho.
 
 Isso não é preciosismo. Uma notificação que diz "Interdição em Servidão Boa
 Esperança, 148" fica legível na tela bloqueada, na mão de quem estiver por

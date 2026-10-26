@@ -1,0 +1,698 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 79d7091..a08337b 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,7 +11,7 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 170 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 665 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1349 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1356 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1927 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+@@ -133,7 +133,7 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
+ | Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação. A renovação é UMA transação sob uma trava consultiva por pessoa (`travar_sessoes_do_usuario`, migração 049), que todo encerramento em massa também toma, inclusive a suspensão do município pelo console: sem isso, o encerramento no mesmo instante da renovação deixava uma sessão de pé. O login, que não tem família, lê a suspensão do município com `FOR SHARE` (migração 050), pelo mesmo motivo, e depois toma a mesma trava da pessoa e relê a senha e a conta antes de a sessão existir: se a senha foi trocada ou redefinida, ou a conta desativada, enquanto o scrypt rodava, a sessão volta atrás e a resposta é a recusa genérica (V2-F00-E07, correção 3; a ordem é linha do município, depois trava, para não fechar ciclo com a suspensão) |
+ | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
+ | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
+-| Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
++| Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). O link pendente morre com toda mudança de senha e com a desativação, por gatilho no banco, e a conta desativada não troca a senha pelo link (migração 051, V2-F00-E10, correção 3). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
+ | Troca de senha | Exige a senha atual, e derruba as outras sessões, preservando a cadeia de onde a pessoa trocou (também com o token de antes de uma renovação). A gravação só vale se nada mudou desde a conferência: na transação que grava, a troca segura a linha da pessoa, toma a trava dela e relê a conta, a sessão, o prazo da provisória e o hash; mudou, recusa (403 `conta_desativada`, 401 `sessao_encerrada` ou a mesma recusa da senha atual errada) (V2-F00-E07, correção 4) | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques. E quem tinha a senha antiga e uma sessão, com a troca em voo, desfazia a redefinição por quem administra, o link do email, a desativação ou a troca pela própria pessoa que confirmasse no meio, e ficava com uma senha dele, definitiva |
+ | Sessões e redefinição pelo painel (V2-F00-E09) | Em Usuários, quem administra redefine a senha (`POST /usuarios/:id/redefinir-senha`, senha temporária mostrada UMA vez, 72 horas) e encerra as sessões (`POST /usuarios/:id/encerrar-sessoes`) de quem está abaixo do posto dele, nunca da própria conta. Em Minha conta, a pessoa vê as sessões vivas (`GET /auth/sessoes`: quando entrou, até quando vale, o aparelho em uma frase e a marca "Esta sessão") e encerra as outras. `GET /usuarios/:id/sessoes` (ação `gerenciar_usuarios`, posto e 404 como nas outras duas) devolve só a quantidade e as datas | Com a recuperação por e-mail desligada, "esqueci a senha" e "perdi o celular" não tinham saída pelo painel. Nenhuma das leituras entrega IP nem o texto do user-agent (IDN-29 do REL:06); o modo de demonstração explica em vez de oferecer, porque lá não há senha nem token |
+ | Segunda etapa | Código de seis dígitos do aplicativo de autenticação (TOTP), com segredo guardado cifrado, chave fora do banco | O administrador é o teto do município (ADR 0006): a conta dele estava protegida por senha e mais nada. SMS foi recusado (troca de chip, custo por mensagem, e depende da operadora justamente no dia do temporal) |
+@@ -1351,9 +1351,9 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3011 testes em seis pacotes
++npm test                    # 3018 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1349 testes da API
++npm run test:api            # 1356 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+ npm run test:campo          # tipos e os 1927 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index 94a4317..b863db1 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -336,6 +336,22 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
+    O `NOTIFICADOR_ARQUIVO` só é recusado quando `NODE_ENV=production`: em
+    `staging` ou em qualquer outro valor ele funciona, e a F01 (ambientes) decide se
+    o HML precisa da mesma trava.
++5. **O link pendente morre com a credencial** (correção 3 da E10, migração 051;
++   bloqueava o CP-19 pela rodada 4 da validação). Toda mudança de senha (a
++   redefinição por quem administra, a troca pela própria pessoa, o próprio link e
++   qualquer caminho futuro) e toda desativação marcam `usada_em` nos links
++   pendentes da pessoa, por gatilho em `usuarios`, na mesma transação; a
++   reativação não ressuscita nenhum. `consumir_recuperacao` confere a conta ativa
++   (conta desativada: o link é gasto e nada mais muda) e segura a linha da pessoa
++   antes da linha do link, a mesma ordem do gatilho (a ordem inversa fecha ciclo
++   com a redefinição; 40P01 medido pela mutação). Travado em
++   `test/recuperacao-morre-com-a-credencial.test.ts` e no caso 32 de
++   `test/renovacao-contra-encerramento.test.ts`. Efeito aceito, escrito para não
++   virar surpresa: quem tem uma sessão e a senha atual e troca a senha também mata
++   o link que a pessoa acabou de pedir; a pessoa vê "este link não vale mais" e o
++   remédio que vence sempre é a redefinição por quem administra, que derruba as
++   sessões. A redefinição pelo link que perdia para a troca em voo (o FAIL do QA na
++   rodada 4) foi fechada pela correção 4 da E07.
+ 
+ ## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
+ 
+diff --git a/dc360/apps/api/test/recuperacao-morre-com-a-credencial.test.ts b/dc360/apps/api/test/recuperacao-morre-com-a-credencial.test.ts
+new file mode 100644
+index 0000000..f28bae7
+--- /dev/null
++++ b/dc360/apps/api/test/recuperacao-morre-com-a-credencial.test.ts
+@@ -0,0 +1,232 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import type { Mensagem, Notificador } from "../src/auth/notificador.js";
++import { derivarSenha } from "../src/auth/senha.js";
++import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
++
++/**
++ * O LINK DE RECUPERAÇÃO MORRE COM A CREDENCIAL (V2-F00-E10, correção 3,
++ * migração 051).
++ *
++ * O DEFEITO (rodada 4 da validação, sobre bb0f654): só um pedido novo e o
++ * próprio uso marcavam o link como gasto. A redefinição por quem administra,
++ * a troca de senha pela própria pessoa e a desativação deixavam vivo o link
++ * já enviado, e quem o tinha desfazia o remédio: trocava a senha por cima da
++ * temporária, da senha nova da pessoa, ou da conta desativada (que passava a
++ * valer na reativação). E `consumir_recuperacao` não conferia a conta ativa.
++ *
++ * Os links aqui saem pela rota de verdade (`POST /auth/recuperar`, com um
++ * notificador que guarda a mensagem), salvo onde o caso precisa de um link
++ * que o pedido não daria (dois ao mesmo tempo, ou numa conta já desativada):
++ * esse é gravado direto no banco, como o pedido gravaria.
++ */
++
++const SENHA = "defesa-civil-2026";
++const SENHA_DO_LINK = "senha-definida-pelo-link-do-email-2026";
++const SENHA_DA_PESSOA = "senha-nova-da-propria-pessoa-2026";
++const RITA_EMAIL = "rita.lopes@serraalta.exemplo.gov.br";
++
++const PESSOAS = {
++  helena: { id: "11111111-1111-4111-8111-0000000000d1", email: "helena.coutinho@serraalta.exemplo.gov.br" },
++  jonas: { id: "11111111-1111-4111-8111-0000000000d2", email: "jonas.ferreira@serraalta.exemplo.gov.br" },
++  diego: { id: "11111111-1111-4111-8111-0000000000d3", email: "diego.alves@serraalta.exemplo.gov.br" },
++} as const;
++type Apelido = keyof typeof PESSOAS;
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++let enviadas: Mensagem[] = [];
++let hashDaSemente = "";
++
++const notificador: Notificador = {
++  async enviar(m) {
++    enviadas.push(m);
++    return { idNoProvedor: null };
++  },
++};
++
++const com = (t: string) => ({ authorization: `Bearer ${t}` });
++
++function entrar(email: string, senha: string) {
++  return app.inject({ method: "POST", url: "/auth/entrar", payload: { email, senha } });
++}
++
++async function acessoDe(email: string, senha = SENHA): Promise<string> {
++  const r = await entrar(email, senha);
++  if (r.statusCode !== 200) throw new Error(`login falhou: ${r.body}`);
++  return r.json().acesso as string;
++}
++
++function usarLink(token: string, senha = SENHA_DO_LINK) {
++  return app.inject({ method: "POST", url: "/auth/redefinir", payload: { token, senha } });
++}
++
++/** Pede o link pela rota de verdade e devolve o token da mensagem enviada. */
++async function pedirLink(quem: Apelido): Promise<string> {
++  const antes = enviadas.length;
++  const r = await app.inject({ method: "POST", url: "/auth/recuperar", payload: { email: PESSOAS[quem].email } });
++  expect(r.statusCode, r.body).toBe(202);
++  const ate = Date.now() + 10_000;
++  while (enviadas.length === antes && Date.now() < ate) await new Promise((ok) => setTimeout(ok, 20));
++  const corpo = enviadas.at(-1)!.corpo;
++  const link = corpo.match(/https?:\/\/\S+/)![0];
++  return decodeURIComponent(new URL(link).searchParams.get("token")!);
++}
++
++/** Um link gravado direto, como `abrir_recuperacao` gravaria (sem invalidar os outros). */
++async function linkDireto(quem: Apelido): Promise<string> {
++  const token = gerarTokenRenovacao();
++  await mem.bruto.query(
++    `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
++     SELECT organizacao_id, id, $2, now() + interval '30 minutes' FROM usuarios WHERE id = $1`,
++    [PESSOAS[quem].id, hashDoToken(token)],
++  );
++  return token;
++}
++
++async function hashDe(quem: Apelido): Promise<string> {
++  const r = await mem.bruto.query<{ senha_hash: string }>("SELECT senha_hash FROM usuarios WHERE id = $1", [PESSOAS[quem].id]);
++  return r.rows[0]!.senha_hash;
++}
++
++/** O link recusado como "não vale mais", e nada mudou por causa dele. */
++async function exigirLinkMorto(token: string, quem: Apelido, hashEsperado: string): Promise<void> {
++  const r = await usarLink(token);
++  expect(r.statusCode, `o link pendente ainda redefiniu a senha: ${r.body}`).toBe(401);
++  expect(r.json().erro).toBe("sessao_encerrada");
++  expect(await hashDe(quem), "o link recusado mudou a senha").toBe(hashEsperado);
++}
++
++describe("O link de recuperação pendente morre com a credencial", () => {
++  beforeAll(async () => {
++    mem = await bancoEmMemoria({ semear: true });
++    app = await construirServidor({
++      banco: mem.banco,
++      config: carregarConfig({
++        NODE_ENV: "test",
++        JWT_SEGREDO: "segredo-do-link-que-morre-com-a-credencial-32b",
++        LOGIN_POR_IP: "10000",
++        URL_PAINEL: "https://painel.exemplo.gov.br",
++        RECUPERACAO_MINUTOS: "30",
++        RECUPERACAO_POR_EMAIL_HORA: "60",
++      } as NodeJS.ProcessEnv),
++      notificador,
++      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++    });
++    await app.ready();
++    hashDaSemente = await derivarSenha(SENHA);
++  }, 180_000);
++
++  afterAll(async () => {
++    await app?.close();
++    await mem?.banco.encerrar();
++  });
++
++  beforeEach(async () => {
++    enviadas = [];
++    await mem.bruto.query(
++      `UPDATE usuarios SET ativo = true, senha_provisoria_ate = NULL, senha_hash = $2, falhas_login = 0, bloqueado_ate = NULL
++        WHERE id = ANY($1::uuid[])`,
++      [Object.values(PESSOAS).map((p) => p.id), hashDaSemente],
++    );
++    await mem.bruto.query("UPDATE recuperacoes_senha SET usada_em = now() WHERE usada_em IS NULL");
++  });
++
++  it("controle: sem nada no meio, o link redefine; a senha nova entra e a antiga não", async () => {
++    const token = await pedirLink("helena");
++    const r = await usarLink(token);
++    expect(r.statusCode, r.body).toBe(200);
++    expect((await entrar(PESSOAS.helena.email, SENHA_DO_LINK)).statusCode).toBe(200);
++    expect((await entrar(PESSOAS.helena.email, SENHA)).statusCode).toBe(401);
++  }, 120_000);
++
++  it("quem administra redefine a senha: o link pendente não vale mais, e a temporária entra", async () => {
++    const token = await pedirLink("helena");
++    const red = await app.inject({
++      method: "POST", url: `/usuarios/${PESSOAS.helena.id}/redefinir-senha`, headers: com(await acessoDe(RITA_EMAIL)),
++    });
++    expect(red.statusCode, red.body).toBe(200);
++    const depoisDaRedefinicao = await hashDe("helena");
++    await exigirLinkMorto(token, "helena", depoisDaRedefinicao);
++    expect((await entrar(PESSOAS.helena.email, String(red.json().senhaTemporaria))).statusCode).toBe(200);
++    expect((await entrar(PESSOAS.helena.email, SENHA_DO_LINK)).statusCode).toBe(401);
++  }, 120_000);
++
++  it("a própria pessoa troca a senha: o link pendente não vale mais, e a senha nova dela entra", async () => {
++    const token = await pedirLink("diego");
++    const troca = await app.inject({
++      method: "POST", url: "/auth/trocar-senha", headers: com(await acessoDe(PESSOAS.diego.email)),
++      payload: { senhaAtual: SENHA, senha: SENHA_DA_PESSOA },
++    });
++    expect(troca.statusCode, troca.body).toBe(200);
++    await exigirLinkMorto(token, "diego", await hashDe("diego"));
++    expect((await entrar(PESSOAS.diego.email, SENHA_DA_PESSOA)).statusCode).toBe(200);
++  }, 120_000);
++
++  it("quem administra desativa a conta: o link não vale mais, nem depois da reativação", async () => {
++    const token = await pedirLink("jonas");
++    const rita = await acessoDe(RITA_EMAIL);
++    const desativa = await app.inject({
++      method: "PATCH", url: `/usuarios/${PESSOAS.jonas.id}/situacao`, headers: com(rita), payload: { ativo: false },
++    });
++    expect(desativa.statusCode, desativa.body).toBe(200);
++    await exigirLinkMorto(token, "jonas", hashDaSemente);
++    const reativa = await app.inject({
++      method: "PATCH", url: `/usuarios/${PESSOAS.jonas.id}/situacao`, headers: com(rita), payload: { ativo: true },
++    });
++    expect(reativa.statusCode, reativa.body).toBe(200);
++    await exigirLinkMorto(token, "jonas", hashDaSemente);
++    expect((await entrar(PESSOAS.jonas.email, SENHA)).statusCode, "a senha de antes não entra depois da reativação").toBe(200);
++    expect((await entrar(PESSOAS.jonas.email, SENHA_DO_LINK)).statusCode).toBe(401);
++  }, 120_000);
++
++  it("link vivo numa conta desativada: recusado, gasto, e a senha não muda (consumir_recuperacao confere a conta)", async () => {
++    await mem.bruto.query("UPDATE usuarios SET ativo = false WHERE id = $1", [PESSOAS.jonas.id]);
++    // Um link que escapou da invalidação (gravado depois da desativação).
++    const token = await linkDireto("jonas");
++    await mem.bruto.query("UPDATE usuarios SET falhas_login = 3 WHERE id = $1", [PESSOAS.jonas.id]);
++    await exigirLinkMorto(token, "jonas", hashDaSemente);
++    const linha = await mem.bruto.query<{ falhas_login: number; usada_em: string | null }>(
++      `SELECT u.falhas_login, r.usada_em FROM usuarios u JOIN recuperacoes_senha r ON r.usuario_id = u.id
++        WHERE u.id = $1 AND r.token_hash = $2`,
++      [PESSOAS.jonas.id, hashDoToken(token)],
++    );
++    expect(linha.rows[0]!.falhas_login, "o link recusado zerou o contador de falhas").toBe(3);
++    expect(linha.rows[0]!.usada_em, "o link recusado ficou vivo para a reativação").not.toBeNull();
++    await mem.bruto.query("UPDATE usuarios SET ativo = true WHERE id = $1", [PESSOAS.jonas.id]);
++    await exigirLinkMorto(token, "jonas", hashDaSemente);
++  }, 120_000);
++
++  it("dois links pendentes: usar um mata o outro", async () => {
++    const primeiro = await linkDireto("helena");
++    const segundo = await linkDireto("helena");
++    const r = await usarLink(primeiro);
++    expect(r.statusCode, r.body).toBe(200);
++    await exigirLinkMorto(segundo, "helena", await hashDe("helena"));
++  }, 120_000);
++
++  it("o que não é senha nem desativação não mata o link: falha de login, edição do cadastro e reativação", async () => {
++    const token = await pedirLink("diego");
++    expect((await entrar(PESSOAS.diego.email, "senha-errada-de-proposito")).statusCode).toBe(401);
++    const rita = await acessoDe(RITA_EMAIL);
++    const edita = await app.inject({
++      method: "PATCH", url: `/usuarios/${PESSOAS.diego.id}`, headers: com(rita),
++      payload: {
++        nome: "Diego Nakamura Alves", matricula: "SA-3390", email: PESSOAS.diego.email,
++        papel: "agente_campo", equipeId: "11111111-1111-4111-8111-0000000000e1",
++      },
++    });
++    expect(edita.statusCode, edita.body).toBe(200);
++    const reativa = await app.inject({
++      method: "PATCH", url: `/usuarios/${PESSOAS.diego.id}/situacao`, headers: com(rita), payload: { ativo: true },
++    });
++    expect(reativa.statusCode, reativa.body).toBe(200);
++    const r = await usarLink(token);
++    expect(r.statusCode, `o link morreu por uma mudança que não é de senha: ${r.body}`).toBe(200);
++    expect((await entrar(PESSOAS.diego.email, SENHA_DO_LINK)).statusCode).toBe(200);
++  }, 120_000);
++});
+diff --git a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+index 64942c1..8b43034 100644
+--- a/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
++++ b/dc360/apps/api/test/renovacao-contra-encerramento.test.ts
+@@ -76,6 +76,12 @@ import { gerarTokenRenovacao, hashDoToken } from "../src/auth/tokens.js";
+  *    que a reação pare nelas; o 7 do segundo bloco passou a exigir que a
+  *    redefinição vença. O 18 cobra que a troca com o token de antes de uma
+  *    renovação preserve a própria cadeia, e o 19 a ordem dos comandos.
++ * 7. O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO NO MESMO INSTANTE (V2-F00-E10,
++ *    correção 3, migração 051): o link pendente morre com toda mudança de
++ *    senha, por gatilho que segura a linha da pessoa antes das dos links, e
++ *    `consumir_recuperacao` segue a mesma ordem. O caso 32 do segundo bloco
++ *    segura o link dentro da função e exige que a redefinição espere, sem
++ *    impasse.
+  *
+  * AS DISPUTAS SEGURADAS EXIGEM QUE A DISPUTA ACONTEÇA (revisão da correção
+  * 2): no segundo bloco, a renovação só é solta depois de o teste VER, em
+@@ -1691,7 +1697,9 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
+     dela: a ordem serial "troca, depois reação". Sem a linha segura pela troca
+     a reação não espera ninguém, termina antes, e o caso reprova por isso.
+     Na troca pela própria pessoa em outro aparelho, quem chega segundo é a
+-    vítima, e ela é recusada às claras (401), em vez de ver 200 e perder.
++    vítima, e ela é recusada às claras (401), em vez de ver 200 e perder. No
++    link do email também, desde a migração 051 (correção 3 da E10): a troca
++    que confirmou primeiro mata o link pendente, e ele responde 401.
+   */
+   for (const [i, reacao] of a.reacoesAoInvasor.filter((r) => r.nome !== "quem administra encerra as sessões da pessoa").entries()) {
+     it(`${28 + i}. a troca do invasor já segura a linha e a trava quando ${reacao.nome}: a reação espera e vem depois`, async () => {
+@@ -1726,11 +1734,14 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
+         const [rt, rr] = await Promise.all([troca, reagiu]);
+         grampo.atual = null;
+         expect(rt.statusCode, `a troca do invasor, que confirmou primeiro: ${rt.body}`).toBe(200);
+-        if (reacao.nome === "a própria pessoa troca a senha em outro aparelho") {
+-          // A vítima chegou segundo: a sessão dela caiu com a troca do invasor.
+-          expect(rr.statusCode, `a troca da vítima, que chegou depois: ${rr.body}`).toBe(401);
++        if (reacao.nome === "a própria pessoa troca a senha em outro aparelho"
++          || reacao.nome === "a pessoa redefine a senha pelo link do email") {
++          // A vítima chegou segundo: a sessão dela caiu com a troca do
++          // invasor, ou o link pendente morreu com ela (migração 051, correção
++          // 3 da E10). A recusa é às claras, e a senha dela não passa a valer.
++          expect(rr.statusCode, `a reação da vítima, que chegou depois: ${rr.body}`).toBe(401);
+           expect(rr.json().erro, rr.body).toBe("sessao_encerrada");
+-          expect((await a.tentarEntrar(SENHA_DA_VITIMA)).statusCode, "a senha da vítima, recusada, entrou").toBe(401);
++          expect((await a.tentarEntrar(reacao.senha(rr) ?? "")).statusCode, "a senha da vítima, recusada, entrou").toBe(401);
+           return;
+         }
+         expect(rr.statusCode, `reação (${reacao.nome}): ${rr.body}`).toBe(200);
+@@ -1751,4 +1762,87 @@ describe.skipIf(!URL_DE_PROVA)("Renovação e encerramento em Postgres real: a t
+       }
+     }, 120_000);
+   }
++
++  /*
++    O LINK DE RECUPERAÇÃO E A REDEFINIÇÃO POR QUEM ADMINISTRA NO MESMO
++    INSTANTE (V2-F00-E10, correção 3, migração 051). Desde a 051 toda mudança
++    de senha marca os links pendentes da pessoa por gatilho, depois de
++    atualizar a linha dela em `usuarios`: a ordem é linha da pessoa, linhas
++    dos links. `consumir_recuperacao` passou a seguir a mesma ordem. Na ordem
++    antiga (linha do link, depois a da pessoa), o link segurando a própria
++    linha e a redefinição segurando a da pessoa se esperariam em ordem
++    inversa, e o Postgres mataria uma das duas (40P01, um 500).
++
++    O caso segura o link DENTRO de `consumir_recuperacao`, no UPDATE que o
++    marca como usado, por um gatilho de prova instalado só neste banco (ele
++    espera uma trava consultiva que o teste segura; só no primeiro nível, para
++    não segurar o gatilho da 051). Com a ordem certa, nesse ponto o link já
++    segura a linha da pessoa; a redefinição tem de parar nela (trava de linha,
++    não consultiva, o teste VÊ em `pg_locks`). Solto, o link confirma e a
++    redefinição vem depois: a temporária vale e a senha do link não.
++  */
++  it("32. o link do email e a redefinição por quem administra no mesmo instante: sem impasse, e a redefinição vem depois", async () => {
++    const CHAVE = 51_051;
++    await a.limparSessoesDaHelena();
++    await cen.bruto(`
++      CREATE OR REPLACE FUNCTION prova_segurar_o_link() RETURNS trigger LANGUAGE plpgsql AS $$
++      BEGIN
++        IF pg_trigger_depth() = 1 THEN
++          PERFORM pg_advisory_lock(${CHAVE});
++          PERFORM pg_advisory_unlock(${CHAVE});
++        END IF;
++        RETURN NEW;
++      END;
++      $$`);
++    await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
++    await cen.bruto("CREATE TRIGGER prova_segurar_o_link BEFORE UPDATE ON recuperacoes_senha FOR EACH ROW EXECUTE FUNCTION prova_segurar_o_link()");
++    const token = gerarTokenRenovacao();
++    await cen.bruto(
++      `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
++       SELECT organizacao_id, id, $2, now() + interval '30 minutes' FROM usuarios WHERE id = $1`,
++      [HELENA, hashDoToken(token)],
++    );
++    const naoConsultivas = async () => Number((await cen.bruto(
++      `SELECT count(*)::int AS n FROM pg_locks l JOIN pg_stat_activity s ON s.pid = l.pid
++        WHERE NOT l.granted AND s.datname = current_database() AND l.locktype <> 'advisory'`,
++    )).rows[0]!.n);
++    await cen.bruto("SELECT pg_advisory_lock($1)", [CHAVE]);
++    let soltou = false;
++    const soltar = async () => {
++      if (soltou) return;
++      soltou = true;
++      await cen.bruto("SELECT pg_advisory_unlock($1)", [CHAVE]);
++    };
++    const pendentes: Promise<unknown>[] = [];
++    try {
++      const link = cen.app.inject({ method: "POST", url: "/auth/redefinir", payload: { token, senha: SENHA_DO_LINK } });
++      pendentes.push(link);
++      // O link chega ao UPDATE que o marca e para na trava consultiva do teste.
++      expect(await travouOuTerminou(link, "advisory"), "a disputa não aconteceu: o link não chegou ao ponto segurado").toBe("travou");
++      const redefinicao = cen.app.inject({
++        method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: { authorization: `Bearer ${cen.tokenRita}` },
++      });
++      pendentes.push(redefinicao);
++      let parou = false;
++      const ate = Date.now() + 15_000;
++      while (Date.now() < ate && !parou) {
++        parou = await naoConsultivas() > 0;
++        if (!parou) await esperar(20);
++      }
++      expect(parou, "a disputa não aconteceu: a redefinição não parou numa trava de linha enquanto o link estava segurado").toBe(true);
++      await soltar();
++      const [rl, rr] = await Promise.all([link, redefinicao]);
++      expect(rl.statusCode, `o link: ${rl.body}`).toBe(200);
++      expect(rr.statusCode, `a redefinição (40P01 é impasse): ${rr.body}`).toBe(200);
++      const temporaria = await a.tentarEntrar(String(rr.json().senhaTemporaria));
++      expect(temporaria.statusCode, `a temporária, que veio depois, não entra: ${temporaria.body}`).toBe(200);
++      expect((await a.tentarEntrar(SENHA_DO_LINK)).statusCode, "a senha do link passou por cima da redefinição").toBe(401);
++    } finally {
++      await soltar();
++      await Promise.allSettled(pendentes);
++      await cen.bruto("DROP TRIGGER IF EXISTS prova_segurar_o_link ON recuperacoes_senha");
++      await cen.bruto("DROP FUNCTION IF EXISTS prova_segurar_o_link()");
++      await a.restaurarHelena();
++    }
++  }, 120_000);
+ });
+diff --git a/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql b/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql
+new file mode 100644
+index 0000000..ae1f85a
+--- /dev/null
++++ b/dc360/db/migrations/051_link_de_recuperacao_morre_com_a_credencial.sql
+@@ -0,0 +1,164 @@
++-- =====================================================================
++-- 051: o link de recuperacao pendente morre com toda mudanca de senha e com
++--      a desativacao da conta, e `consumir_recuperacao` confere a conta
++--      ativa.
++--
++-- O DEFEITO (V2-F00-E10, rodada 4 da validacao, sobre bb0f654). So
++-- `abrir_recuperacao` (pedido novo) e `consumir_recuperacao` marcavam
++-- `usada_em`. A redefinicao por quem administra, a troca de senha pela
++-- propria pessoa e a desativacao nao tocavam `recuperacoes_senha`:
++--
++--   1. quem administra redefine a senha porque suspeita de invasao, e quem
++--      tinha um link vivo (ate `RECUPERACAO_MINUTOS`) desfazia a redefinicao
++--      com ele;
++--   2. quem troca a propria senha porque desconfia de vazamento continuava
++--      exposto ao link ja enviado;
++--   3. `consumir_recuperacao` nao conferia `usuarios.ativo`: a senha da conta
++--      desativada era trocada por quem tinha o link e passava a valer na
++--      reativacao.
++--
++-- A CORRECAO, em duas pecas:
++--
++--   1. Um gatilho em `usuarios` (`recuperacoes_morrem_com_a_credencial`):
++--      toda mudanca de `senha_hash`, e toda desativacao (ativo de verdadeiro
++--      para falso), marca `usada_em` nos links pendentes da pessoa, na MESMA
++--      transacao da mudanca. E a mesma marca que `abrir_recuperacao` ja usa
++--      para invalidar o link anterior quando um novo e pedido (005): o link
++--      invalidado e o link usado se recusam igual, com a mesma mensagem, e a
++--      trilha de "quem pediu e quando" continua na tabela (034). A regra mora
++--      no banco: vale para a rota de quem administra, para `trocar_senha`,
++--      para `consumir_recuperacao` (os outros links pendentes da pessoa) e
++--      para qualquer caminho que um dia mude a senha ou desative a conta.
++--      A funcao do gatilho e comum (SECURITY INVOKER): roda com o papel de
++--      quem atualizou `usuarios`, que nas rotas e `dc360_app` com o
++--      municipio no contexto (a policy de UPDATE de `recuperacoes_senha`, 034,
++--      deixa marcar os links do proprio municipio), e dentro das funcoes
++--      SECURITY DEFINER e o dono. O teto de 27 funcoes SECURITY DEFINER de
++--      `db/test/isolamento.test.ts` nao muda.
++--   2. `consumir_recuperacao` recriada com a mesma assinatura (o GRANT fica):
++--      a linha da pessoa em `usuarios` primeiro (FOR NO KEY UPDATE), depois a
++--      linha do link (FOR UPDATE, relida), e so entao as gravacoes. Conta
++--      desativada: o link e gasto e nada mais muda (a resposta e a do link que
++--      nao vale mais, sem dizer por que).
++--
++-- A ORDEM DAS TRAVAS, para nao haver impasse (deadlock). Com o gatilho, quem
++-- muda a senha ou desativa a conta segura a linha de `usuarios` e DEPOIS as
++-- linhas dos links. A 005 e a 049 faziam `consumir_recuperacao` segurar a
++-- linha do link primeiro e a de `usuarios` depois: o link consumido no mesmo
++-- instante de uma redefinicao por quem administra fecharia ciclo (o link
++-- espera a linha da pessoa, a redefinicao espera a linha do link) e o
++-- Postgres mataria uma das duas com 40P01. Agora a ordem e uma so em todo
++-- caminho: linha de `usuarios`, linhas de `recuperacoes_senha`, trava da
++-- pessoa (049). `abrir_recuperacao` nao segura a linha de `usuarios` (a chave
++-- estrangeira so pede FOR KEY SHARE, que nao conflita com FOR NO KEY UPDATE),
++-- entao nunca espera quem segura a linha da pessoa. O caso 32 do bloco de
++-- Postgres real de `apps/api/test/renovacao-contra-encerramento.test.ts`
++-- segura o link dentro desta funcao e mede.
++--
++-- O QUE NAO MUDA: nenhuma tabela, coluna, policy ou funcao SECURITY DEFINER
++-- nova. A reativacao nao ressuscita link nenhum. Trocar papel, nome, foto ou
++-- os contadores de falha de login nao toca os links.
++--
++-- ORDEM DE IMPLANTACAO: indiferente. A API nao muda por causa desta
++-- migracao; o banco passa a recusar os links que deveriam ter morrido.
++--
++-- Idempotente: `CREATE OR REPLACE`, `DROP TRIGGER IF EXISTS`, `REVOKE` e
++-- `GRANT`. Migracao aplicada nunca e editada: reverter e uma migracao nova.
++-- =====================================================================
++
++-- ---------------------------------------------------------------------
++-- 1. O gatilho.
++-- ---------------------------------------------------------------------
++CREATE OR REPLACE FUNCTION invalidar_recuperacoes_pendentes()
++RETURNS trigger
++LANGUAGE plpgsql
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  UPDATE recuperacoes_senha
++     SET usada_em = now()
++   WHERE recuperacoes_senha.usuario_id = NEW.id
++     AND usada_em IS NULL;
++  RETURN NULL;
++END;
++$$;
++
++COMMENT ON FUNCTION invalidar_recuperacoes_pendentes() IS
++  'Gatilho de usuarios (migracao 051): toda mudanca de senha e toda desativacao marcam usada_em nos links de recuperacao pendentes da pessoa.';
++
++REVOKE ALL ON FUNCTION invalidar_recuperacoes_pendentes() FROM PUBLIC;
++
++DROP TRIGGER IF EXISTS recuperacoes_morrem_com_a_credencial ON usuarios;
++CREATE TRIGGER recuperacoes_morrem_com_a_credencial
++  AFTER UPDATE OF senha_hash, ativo ON usuarios
++  FOR EACH ROW
++  WHEN (OLD.senha_hash IS DISTINCT FROM NEW.senha_hash OR (OLD.ativo AND NOT NEW.ativo))
++  EXECUTE FUNCTION invalidar_recuperacoes_pendentes();
++
++-- ---------------------------------------------------------------------
++-- 2. consumir_recuperacao: a linha da pessoa primeiro, e a conta ativa.
++-- ---------------------------------------------------------------------
++CREATE OR REPLACE FUNCTION consumir_recuperacao(p_token_hash text, p_senha_hash text)
++RETURNS TABLE (usuario_id uuid, organizacao_id uuid)
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_usuario uuid;
++  v_ativo   boolean;
++  v_rec     recuperacoes_senha%ROWTYPE;
++BEGIN
++  -- De quem e o link, sem travar nada ainda.
++  SELECT r.usuario_id INTO v_usuario FROM recuperacoes_senha r
++   WHERE r.token_hash = p_token_hash
++     AND r.usada_em IS NULL
++     AND r.expira_em > now();
++
++  IF NOT FOUND THEN
++    RETURN;
++  END IF;
++
++  -- A linha da pessoa ANTES da linha do link (a ordem do cabecalho). Se uma
++  -- redefinicao, troca ou desativacao esta no meio, espera ela confirmar e le
++  -- a versao nova.
++  SELECT u.ativo INTO v_ativo FROM usuarios u WHERE u.id = v_usuario FOR NO KEY UPDATE;
++
++  -- O link de novo, agora travado: a mudanca que confirmou enquanto
++  -- esperavamos ja o marcou pelo gatilho, e ele nao serve mais.
++  SELECT * INTO v_rec FROM recuperacoes_senha r
++   WHERE r.token_hash = p_token_hash
++     AND r.usada_em IS NULL
++     AND r.expira_em > now()
++   FOR UPDATE;
++
++  IF NOT FOUND THEN
++    RETURN;
++  END IF;
++
++  UPDATE recuperacoes_senha SET usada_em = now() WHERE id = v_rec.id;
++
++  -- Conta desativada: o link e gasto e nada mais muda. Quem chama recebe a
++  -- mesma resposta do link que nao vale mais.
++  IF NOT coalesce(v_ativo, false) THEN
++    RETURN;
++  END IF;
++
++  UPDATE usuarios
++     SET senha_hash = p_senha_hash,
++         falhas_login = 0,
++         bloqueado_ate = NULL
++   WHERE id = v_rec.usuario_id;
++
++  PERFORM travar_sessoes_do_usuario(v_rec.usuario_id);
++
++  UPDATE sessoes
++     SET revogada_em = now(), motivo_revogacao = 'senha redefinida'
++   WHERE sessoes.usuario_id = v_rec.usuario_id AND revogada_em IS NULL;
++
++  RETURN QUERY SELECT v_rec.usuario_id, v_rec.organizacao_id;
++END;
++$$;
++
++REVOKE ALL ON FUNCTION consumir_recuperacao(text, text) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION consumir_recuperacao(text, text) TO dc360_app;
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 141de64..10aa3f9 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **4938 testes somando o aplicativo** (contagem estática de `npm run
++- **4945 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-15; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -206,6 +206,12 @@ com os dois erros que ele encontrou pelo caminho.
+   `abrir_sessao` (o login passa a ler a suspensão do município com `FOR SHARE`),
+   a API não muda por causa dela e a ordem é indiferente.
+ 
++  **Migração 051 (V2-F00-E10, correção 3): ordem indiferente.** Cria o gatilho
++  que marca como gastos os links de recuperação pendentes em toda mudança de
++  senha e em toda desativação, e recria `consumir_recuperacao` (mesma
++  assinatura) para conferir a conta ativa e segurar a linha da pessoa antes
++  da linha do link. A API não muda por causa dela.
++
+ ### 3. Servidor da API
+ 
+ PaaS que dá HTTPS automático e roda contêiner ou Node:
+@@ -343,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4938 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 4945 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/docs/DICIONARIO-DE-DADOS.md b/dc360/docs/DICIONARIO-DE-DADOS.md
+index b35146e..9165a72 100644
+--- a/dc360/docs/DICIONARIO-DE-DADOS.md
++++ b/dc360/docs/DICIONARIO-DE-DADOS.md
+@@ -316,7 +316,7 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
+ | `devolucoes_de_tarefa` | A tarefa que venceu e o agente devolveu à coordenação sem ter vistoriado, com motivo de lista fechada, observação, a equipe que estava designada e o prazo que já estava perdido. **Append-only**, como a trilha: é declaração de campo, e correção se faz com despacho novo. Não encerra a ocorrência (ela volta para `triagem`) e não zera `prazo_em`, senão o atraso sumiria do painel |
+ | `saidas_a_campo` | A ida a campo que o agente declarou ANTES de subir, com o protocolo, o tempo previsto, se foi **sozinho**, e o prazo de retorno carimbado pelo relógio do **servidor**. Uma aberta por agente, imposta por índice único parcial. Não se apaga: encerra com desfecho de lista fechada e quem encerrou, e "acionei apoio" exige dizer o quê. A observação da coordenação é sobre o ATO DA PREFEITURA a respeito da segurança do próprio servidor, e por isso fica fora da minimização por prazo: ver `SEGURANCA-DO-AGENTE.md` |
+ | `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha. `familia_id` (migração 047, V2-F00-E07) liga as sessões de uma cadeia de renovação: cada login abre uma família nova (o `id` da primeira sessão) e cada renovação herda a família da sessão que rotacionou. Coluna técnica, sem dado pessoal, não nula, com padrão `gen_random_uuid()` para quem insere sem informar. A sessão revogada por rotação só vale para a escrita enquanto a família tem sessão com `revogada_em` nulo (índice parcial `sessoes_familia_viva_idx`). `abrir_sessao` aceita a família como sétimo parâmetro opcional e só a aceita se for do mesmo usuário e do mesmo município. Duas leituras (V2-F00-E09) expõem sessões: `GET /auth/sessoes` à própria pessoa (quando entrou, até quando vale, o aparelho resumido em uma frase e a marca da sessão atual) e `GET /usuarios/:id/sessoes` a quem administra (só a quantidade e as datas). `ip` e `user_agent` continuam guardados para investigação e NÃO saem em nenhuma das duas (IDN-29 do REL:06) |
+-| `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único |
++| `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único. `usada_em` marca também o link invalidado: por um pedido novo, e (migração 051) por toda mudança de senha e toda desativação da conta |
+ | `vistoria_orgaos_indicados` | Os órgãos que o agente marcou na vistoria como a acionar (migração 020): uma linha por órgão, na ordem em que ele escolheu. `orgao_id` nulo não é dado faltando: é o órgão digitado à mão, porque um aparelho novo pode ter o catálogo vazio, e o nome viaja sempre. É o que deixa o laudo dizer **qual** órgão acionar, e não só "sim" |
+ | `vistoria_evidencias_perdidas` | A prova que foi capturada no local e não pôde ser recuperada do aparelho (migração 030): uma linha por arquivo perdido, com a chave que o aparelho cunhou, o `papel` (`foto` ou `assinatura`), quando foi capturada e o que sobrou de legenda e de coordenada. Não se apaga nem se corrige (migração 032). É o que faz o laudo e o termo dizerem "Assinatura coletada em campo e não recuperada do aparelho" em vez de "Assinatura não coletada", e a tabela **sai no pacote de saída** (`tabelas/vistoria_evidencias_perdidas.csv`) |
+ | `objetos_orfaos` | A lista que a varredura de objetos órfãos faz do armazenamento (migração 035): arquivo sob o prefixo do município que nenhuma linha justifica, com a rodada que o achou, a espécie (`envio_nunca_confirmado` ou `objeto_sem_linha`) e, só quando uma pessoa decide, a decisão (`descartado` ou `mantido`), quem decidiu e o motivo. **A varredura não apaga nada**; o descarte é ato de operador nomeado (ver `ARMAZENAMENTO.md`). Sai no pacote de saída |
+diff --git a/dc360/docs/RESTORE-DO-BANCO.md b/dc360/docs/RESTORE-DO-BANCO.md
+index 2a572f9..97655c3 100644
+--- a/dc360/docs/RESTORE-DO-BANCO.md
++++ b/dc360/docs/RESTORE-DO-BANCO.md
+@@ -16,13 +16,14 @@ como conferir isso, em vez de supor.
+ 
+ ## O que foi provado, e o que não foi
+ 
+-**Quantas migrações.** A pasta `db/migrations/` tem hoje 50 (001 a 050) <!-- numeros: migracoes=50 -->. Os
++**Quantas migrações.** A pasta `db/migrations/` tem hoje 51 (001 a 051) <!-- numeros: migracoes=51 -->. Os
+ números de migração abaixo são fatos datados: cada prova vale para a árvore em
+ que rodou, e quem quiser o número de hoje conta os arquivos
+ (`ls db/migrations | wc -l`). O roteiro não depende da quantidade: o `migrar`
+-aplica as que existem. A 048, a 049 e a 050 não acrescentam tabela, policy
+-nem função `SECURITY DEFINER` (recriam funções que já existiam, e a 049 cria
+-uma função comum; o teto de 27 em `db/test/isolamento.test.ts` segue o mesmo).
++aplica as que existem. A 048, a 049, a 050 e a 051 não acrescentam tabela, policy
++nem função `SECURITY DEFINER` (recriam funções que já existiam, a 049 cria
++uma função comum e a 051 um gatilho com função comum; o teto de 27 em
++`db/test/isolamento.test.ts` segue o mesmo).
+ 
+ **Prova do Windows, de 2026-10-07**, no Windows 11 com Git Bash, por quem
+ escreveu o sistema:
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index d257910..0748bb6 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -433,6 +433,18 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     (de 1336 para 1349) e 13 no `vitest run` (1380, com 31 pulados).
+   */
+   "V2-F00-E09-correcao-3": { total: 13, falhas: 0, puladas: 0 },
++  /*
++    V2-F00-E10, correção 3 (2026-10-19), contada contra o commit da correção 3
++    da E09: `recuperacao-morre-com-a-credencial.test.ts` é novo, com 7 casos de
++    PGlite (o controle, o link pendente contra a redefinição, a troca e a
++    desativação, o link vivo numa conta desativada, dois links pendentes, e o
++    que não é senha nem desativação não matando o link);
++    `renovacao-contra-encerramento.test.ts` ganha 1 de Postgres real
++    (`describe.skipIf`, pulado no roteiro: o link e a redefinição no mesmo
++    instante). Soma 7 na lista (de 1349 para 1356) e 8 no `vitest run` (1388,
++    com 32 pulados).
++  */
++  "V2-F00-E10-correcao-3": { total: 8, falhas: 0, puladas: 1 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

@@ -1,8 +1,10 @@
 # INDEX
 
+> Nota de 2026-10-15 (V2-F00-E21, correção 1): este índice foi recalculado sobre os bytes que o git guarda e devolve num checkout novo. O anterior tinha sido calculado sobre os arquivos do disco do autor, no Windows, com fim de linha misto (CRLF em parte das linhas) ou CRLF puro, e por isso não batia em nenhum clone. Desta lista saíram `VEREDITO.md`, `RISCO-ACEITO.md` e tudo em `validacao/`: são do gatekeeper e mudam a cada rodada. A prova (força bruta do hash antigo) está em `docs/evidencias-v2/G00/V2-F00-E21/correcao-1/`.
+
 | Arquivo | SHA-256 |
 | --- | --- |
-| RESUMO.md | 793fe65a9ecc60daf0993cef6efb25ac512ad75cb2e4bf1bfbe646eec12475c0 |
+| RESUMO.md | 55cb795f860f20ef7a5b1e20bc0040e88073b48f74a3fd870ec04a73ecbbb78f |
 | saidas/antes/teste-api.txt | 6ad40bcf33adad549c5bfede965cc016f2f7bf5d3a33494b1ddb85a10ce5faa9 |
 | saidas/antes/teste-web.txt | 9d77bb512bc05c24ef5502111845552ba43f52e2761f380a8c90e51781d6be17 |
 | saidas/baseline-resumo.txt | c47e0833962ca5e481cb69a50c19fa3432e752f8c4146b60db2dd6f7e9278daf |

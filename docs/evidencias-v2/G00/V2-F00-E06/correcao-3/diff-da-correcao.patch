@@ -1,0 +1,1270 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 2d3cfe5..e15eb05 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -13,7 +13,7 @@ build) valem lá, não aqui.
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 688 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1590 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 231 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1942 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1983 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 274 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -1516,7 +1516,7 @@ npm test                    # 3321 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+ npm run test:api            # 1590 testes da API
+ npm run test --workspace @dc360/campo   # 231 testes do motor de campo
+-npm run test:campo          # tipos e os 1942 testes do aplicativo de campo
++npm run test:campo          # tipos e os 1983 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
+ ```
+diff --git a/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx b/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+index 46b05fc..21ff9f9 100644
+--- a/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
++++ b/dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+@@ -97,6 +97,12 @@ jest.mock("../dados/fila", () => ({
+         deste arquivo.
+       */
+       if (mockDrenarConfirma) mockItensDaFila = [];
++      /* O contrato de `drenar` é devolver o resultado do dreno; a tela lê
++         `paradaPor` dele (V2-F00-E06, correção 3). */
++      return {
++        fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
++        interrompido: false,
++      };
+     },
+   }),
+ }));
+diff --git a/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx b/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx
+new file mode 100644
+index 0000000..21960b0
+--- /dev/null
++++ b/dc360/apps/campo/src/__tests__/enviar-agora-com-a-fila-pausada.test.tsx
+@@ -0,0 +1,202 @@
++/**
++ * "Enviar agora" com a fila PAUSADA diz o que destrava, e não manda esperar
++ * sinal (V2-F00-E06, correção 3).
++ *
++ * O achado da rodada 5 (QA, `validacao/4ce0433/qa.md`): na tarefa vencida com a
++ * coleta guardada, tocar em "Enviar agora" com a fila parada pela sessão, pela
++ * conta desativada ou pela senha provisória mostrava "Ainda não deu para enviar"
++ * e "sai quando o aplicativo estiver aberto e houver sinal". Sinal não resolve
++ * nenhum dos três: a sessão encerrada precisa de "entrar de novo", a conta
++ * desativada da coordenação, a senha provisória da troca no painel. A tarja
++ * contradizia a faixa do topo e o cartão da tarefa, que a correção 2 já tinha
++ * consertado para não mandar esperar sinal.
++ *
++ * As frases esperadas aqui NÃO são copiadas para o teste: vêm de
++ * `frasesDaPausa`, a fonte única que a faixa, o aviso da fila e o cartão usam.
++ * Se alguém reescrever uma delas, as quatro superfícies mudam juntas, e este
++ * teste continua exigindo que a tarja seja uma delas.
++ *
++ * Mora em `__tests__` porque tudo dentro de `src/app` vira ROTA no Expo.
++ */
++
++import { act, fireEvent, render, screen } from "@testing-library/react-native";
++import type { ItemFila, MotivoDeSessao } from "@dc360/campo";
++import type { Pendencia } from "../dados/api";
++import { frasesDaPausa } from "../dados/pausa-da-fila";
++
++jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
++  __esModule: true, default: () => "dark",
++}));
++
++jest.mock("expo-router", () => {
++  const { useEffect } = require("react") as typeof import("react");
++  return {
++    router: { push: jest.fn() },
++    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
++  };
++});
++
++jest.mock("../dados/api", () => ({
++  SemSinal: class SemSinal extends Error {},
++  enderecoDaApi: () => "https://api.exemplo",
++}));
++
++let mockTarefas: Pendencia[] = [];
++jest.mock("../dados/pendencias", () => ({
++  pendenciasGuardadas: jest.fn(async () => mockTarefas),
++  baixadasEm: jest.fn(async () => "2026-09-13T13:00:00.000Z"),
++  atualizarPendencias: jest.fn(async () => mockTarefas),
++  tetoAtingido: jest.fn(async () => null),
++  esquecerPendencia: jest.fn(async () => {}),
++}));
++
++/* Listas vazias ESTÁVEIS: um array novo a cada leitura vira laço de render. */
++const SEM_RASCUNHOS: never[] = [];
++jest.mock("../dados/rascunho", () => ({ listarRascunhos: jest.fn(async () => SEM_RASCUNHOS) }));
++
++let mockColetas: Array<{ ocorrenciaId: string; situacao: string }> = [];
++jest.mock("../dados/coletas", () => ({
++  listarColetas: jest.fn(async () => mockColetas),
++  marcarEnviada: jest.fn(async () => {}),
++}));
++
++/*
++  A fila é um dublê com os DOIS canais por onde a tela fica sabendo da pausa: o
++  resumo entregue a quem assina (o que a faixa e o cartão leem) e o resultado
++  do dreno (`paradaPor`, o retorno real do motor, provado pela sonda E2 do QA
++  contra a rota do painel). O item continua `pendente` nos dois, como no motor.
++*/
++let mockItensDaFila: ItemFila[] = [];
++let mockPausadaNoResumo: MotivoDeSessao | null = null;
++let mockParadaPor: MotivoDeSessao | undefined;
++const mockDrenar = jest.fn(async () => ({
++  fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
++  interrompido: true,
++  ...(mockParadaPor ? { paradaPor: mockParadaPor } : {}),
++}));
++const mockFila = {
++  itens: async () => mockItensDaFila,
++  assinar: (ouvinte: (r: unknown) => void) => {
++    ouvinte({ pendentes: 1, pausadaPor: mockPausadaNoResumo });
++    return () => undefined;
++  },
++  drenar: mockDrenar,
++};
++jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
++
++jest.mock("../dados/conectividade", () => ({
++  useSinal: () => ({ temSinal: true, tipo: "wifi" }),
++}));
++
++jest.mock("../dados/sessao", () => ({
++  useSessao: () => ({
++    obterToken: async () => "token-de-mentira",
++    lerIdentidade: () => null,
++    identidade: { nome: "Ana Ribeiro", municipio: "Serra Alta", uf: "SC" },
++  }),
++}));
++
++import Tarefas from "../app/(agente)/index";
++
++const ID = "11111111-1111-4111-8111-111111111111";
++const PROTOCOLO = "000471/2026";
++const VENCIDA = new Date(Date.now() - 3 * 3_600_000).toISOString();
++
++const MOTIVOS: MotivoDeSessao[] = [
++  "sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria",
++];
++
++function tarefa(): Pendencia {
++  return {
++    id: ID,
++    protocolo: PROTOCOLO,
++    tipo: "deslizamento",
++    severidade: "alta",
++    endereco: "Servidão do Morro, 45",
++    ponto_referencia: null,
++    latitude: -27.595378,
++    longitude: -48.548050,
++    descricao: "Barranco escorregou sobre os fundos da casa.",
++    solicitante_nome: "Maria de exemplo",
++    solicitante_contato: null,
++    vulnerabilidade_presente: false,
++    vulnerabilidade_descricao: null,
++    prazo_em: VENCIDA,
++    criado_em: "2026-09-13T09:00:00.000Z",
++  } as Pendencia;
++}
++
++function coletaPendente(): ItemFila {
++  return {
++    id: "item-1",
++    tipo: "vistoria",
++    estado: "pendente",
++    autor: { usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-1" },
++    ocorrenciaId: ID,
++    protocolo: PROTOCOLO,
++    tentativas: 0,
++    criadoEm: "2026-09-13T12:00:00.000Z",
++    liberadoEm: "2026-09-13T12:00:00.000Z",
++    ultimaFalha: null,
++    confirmadoEm: null,
++    fotos: [],
++    envelope: {} as never,
++  } as ItemFila;
++}
++
++async function tocarEmEnviarAgora(): Promise<void> {
++  await render(<Tarefas />);
++  await act(async () => {});
++  await act(async () => { fireEvent.press(screen.getByTestId(`enviar-${ID}`)); });
++}
++
++beforeEach(() => {
++  mockTarefas = [tarefa()];
++  mockItensDaFila = [coletaPendente()];
++  mockColetas = [{ ocorrenciaId: ID, situacao: "na_fila" }];
++  mockPausadaNoResumo = null;
++  mockParadaPor = undefined;
++  mockDrenar.mockClear();
++});
++
++/* Controle: sem pausa a frase de sempre continua valendo, porque é verdade. */
++describe("Enviar agora com a fila andando", () => {
++  it("sem sinal, diz que a coleta continua guardada e sai com sinal", async () => {
++    await tocarEmEnviarAgora();
++
++    expect(screen.getByText("Ainda não deu para enviar")).toBeTruthy();
++    expect(screen.getByText(/houver sinal/)).toBeTruthy();
++  });
++});
++
++describe("Enviar agora com a fila pausada", () => {
++  it.each(MOTIVOS)("%s: o dreno devolve a pausa e a tarja diz o que destrava, com as frases da faixa e do cartão", async (motivo) => {
++    const frases = frasesDaPausa(motivo);
++    mockParadaPor = motivo;
++
++    await tocarEmEnviarAgora();
++
++    expect(mockDrenar).toHaveBeenCalledTimes(1);
++    expect(screen.getByText(frases.faixaTitulo)).toBeTruthy();
++    expect(screen.getByText(frases.doCartao)).toBeTruthy();
++    expect(screen.queryByText("Ainda não deu para enviar")).toBeNull();
++    expect(screen.queryByText(/houver sinal/)).toBeNull();
++  });
++
++  /*
++    O dreno que já estava rodando (o laço de fundo) devolve `interrompido` SEM
++    `paradaPor`. A pausa que a tela já conhece pelo resumo da fila tem de valer
++    do mesmo jeito: senão a corrida entre o toque e o laço reabre o defeito.
++  */
++  it.each(MOTIVOS)("%s: o dreno não diz o motivo, mas a fila já estava pausada, e vale a pausa que a tela conhece", async (motivo) => {
++    const frases = frasesDaPausa(motivo);
++    mockPausadaNoResumo = motivo;
++
++    await tocarEmEnviarAgora();
++
++    expect(screen.getByText(frases.faixaTitulo)).toBeTruthy();
++    expect(screen.getByText(frases.doCartao)).toBeTruthy();
++    expect(screen.queryByText("Ainda não deu para enviar")).toBeNull();
++    expect(screen.queryByText(/houver sinal/)).toBeNull();
++  });
++});
+diff --git a/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx b/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx
+new file mode 100644
+index 0000000..ef71c96
+--- /dev/null
++++ b/dc360/apps/campo/src/__tests__/vistoria-guardada-com-a-fila-pausada.test.tsx
+@@ -0,0 +1,284 @@
++/**
++ * As telas da vistoria que dizem "isto sobe quando houver sinal" não dizem isso
++ * com a fila PAUSADA (V2-F00-E06, correção 3).
++ *
++ * São duas: a de depois de concluir ("Ela sobe com o aplicativo aberto") e a
++ * de uma ocorrência que o aparelho já coletou ("A vistoria está na fila de
++ * envio e sobe quando ... houver sinal"). Com a sessão encerrada, a conta
++ * desativada ou a senha provisória, o servidor já respondeu "não" e sinal não
++ * muda isso. As duas telas passaram a ler a pausa que a fila já entrega a quem
++ * assina e a dizer a frase da pausa (`frasesDaPausa`, a mesma da faixa do topo
++ * e do aviso da fila), sem texto próprio que pudesse divergir.
++ *
++ * Mora em `__tests__` porque tudo dentro de `src/app` vira ROTA no Expo.
++ */
++
++import { act, fireEvent, render, screen } from "@testing-library/react-native";
++import type { MotivoDeSessao } from "@dc360/campo";
++import type { Pendencia } from "../dados/api";
++import { frasesDaPausa } from "../dados/pausa-da-fila";
++import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
++
++/* ============================================================
++   O aparelho, de mentira
++   ============================================================ */
++
++jest.mock("expo-router", () => {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { useEffect } = require("react") as typeof import("react");
++  const navegacao = { setOptions: jest.fn() };
++  return {
++    router: {
++      back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true),
++    },
++    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
++    useNavigation: () => navegacao,
++    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
++  };
++});
++
++const mockTirarFoto = jest.fn(async () => ({ uri: "file:///cache/foto.jpg" }));
++let mockPermissaoDeCamera = { granted: true };
++const mockPedirCamera = jest.fn(async () => mockPermissaoDeCamera);
++jest.mock("expo-camera", () => {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { forwardRef, useImperativeHandle } = require("react") as typeof import("react");
++  return {
++    CameraView: forwardRef((_props: Record<string, unknown>, ref) => {
++      useImperativeHandle(ref, () => ({ takePictureAsync: () => mockTirarFoto() }));
++      return null;
++    }),
++    useCameraPermissions: () => [mockPermissaoDeCamera, mockPedirCamera],
++  };
++});
++
++let mockPermissaoDeLocal = { granted: true };
++let mockPosicao = { coords: { latitude: -27.595900, longitude: -48.548900, accuracy: 8 } };
++jest.mock("expo-location", () => ({
++  Accuracy: { High: 4 },
++  requestForegroundPermissionsAsync: async () => mockPermissaoDeLocal,
++  getCurrentPositionAsync: async () => mockPosicao,
++}));
++
++let mockContadorDeChaves = 0;
++jest.mock("expo-crypto", () => ({
++  randomUUID: () => {
++    mockContadorDeChaves += 1;
++    return `cccccccc-cccc-4ccc-8ccc-${String(mockContadorDeChaves).padStart(12, "0")}`;
++  },
++}));
++
++jest.mock("expo-file-system", () => ({
++  File: class { size = 1024; constructor(_uri: string) {} },
++}));
++
++/** O que a cópia da foto para o disco faz. Cada caso ajusta. */
++let mockGuardarFoto: () => { uriLocal: string; tamanhoBytes: number } = () => ({
++  uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024,
++});
++jest.mock("../dados/evidencia-no-disco", () => ({
++  guardarFotoNoAparelho: () => mockGuardarFoto(),
++  apagarFotoDoAparelho: () => true,
++  medirArquivoNoAparelho: () => 1024,
++}));
++
++jest.mock("../ui/Assinatura", () => ({ Assinatura: () => null }));
++jest.mock("../ui/retornoTatil", () => ({ retornoTatil: jest.fn() }));
++jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
++jest.mock("../dados/mapa", () => ({
++  ...jest.requireActual("../dados/mapa"),
++  abrirNoMapa: jest.fn(async () => true),
++}));
++jest.mock("../dados/historico-da-casa", () => ({
++  ...jest.requireActual("../dados/historico-da-casa"),
++  buscarHistoricoDaCasa: async () => ({
++    estado: "chegou",
++    historico: {
++      vistoriaAnterior: null, providencias: [], vinculadas: [], devolucao: null, fotosDeAntes: [],
++    },
++  }),
++}));
++
++const OCORRENCIA: Pendencia = {
++  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
++  protocolo: "2026/000123",
++  tipo: "deslizamento",
++  severidade: "alta",
++  endereco: "Servidão do Morro, 45",
++  ponto_referencia: null,
++  latitude: -27.595378,
++  longitude: -48.548050,
++  descricao: "Barranco escorregou sobre os fundos da casa.",
++  solicitante_nome: "Maria de exemplo",
++  solicitante_contato: null,
++  vulnerabilidade_presente: false,
++  vulnerabilidade_descricao: null,
++  prazo_em: null,
++  criado_em: "2026-09-09T09:00:00.000Z",
++};
++
++jest.mock("../dados/pendencias", () => ({
++  pendenciaGuardada: async () => OCORRENCIA,
++  orgaosGuardados: async () => [],
++  atualizarPendencias: jest.fn(async () => {}),
++}));
++
++let mockColeta: unknown = null;
++jest.mock("../dados/coletas", () => ({
++  coletaDe: async () => mockColeta,
++  marcarColetada: jest.fn(async () => {}),
++  arquivarColeta: jest.fn(async () => {}),
++}));
++
++const mockEnfileirar = jest.fn(async (..._args: unknown[]) => ({}));
++/* O resumo que a fila entrega a quem assina: é por ele que a tela sabe da pausa. */
++let mockPausadaPor: string | null = null;
++const mockFila = {
++  enfileirar: (...args: unknown[]) => mockEnfileirar(...args),
++  assinar: (ouvinte: (r: unknown) => void) => {
++    ouvinte({ pendentes: 1, pausadaPor: mockPausadaPor });
++    return () => undefined;
++  },
++};
++jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
++
++jest.mock("../dados/sessao", () => ({
++  useSessao: () => ({
++    obterToken: async () => "token-de-mentira",
++    lerIdentidade: async () => null,
++    identidade: {
++      nome: "Agente de teste", matricula: "0001",
++      organizacaoNome: "Defesa Civil de Teste", municipio: "Teste", uf: "SC",
++    },
++  }),
++}));
++
++type RascunhoDeTeste = Record<string, unknown>;
++let mockRascunhoGuardado: RascunhoDeTeste | null = null;
++jest.mock("../dados/rascunho", () => ({
++  lerRascunho: jest.fn(async () => mockRascunhoGuardado),
++  salvarRascunho: jest.fn(async () => {}),
++  descartarRascunho: jest.fn(async () => {}),
++  rascunhoNovo: (ocorrenciaId: string, protocolo: string, idempotencyKey: string) => ({
++    ocorrenciaId, protocolo, idempotencyKey,
++    checklist: {}, orgaosParaAcionar: [], fotos: [],
++    gpsPrecisaoMetros: null, coordenada: null,
++    assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
++    coletadaEm: "2026-09-09T12:00:00.000Z",
++    atualizadoEm: "2026-09-09T12:00:00.000Z",
++  }),
++}));
++
++/* ============================================================
++   Utilidades
++   ============================================================ */
++
++function rascunhoPronto(): RascunhoDeTeste {
++  /* eslint-disable @typescript-eslint/no-require-imports */
++  const { CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO } =
++    require("@dc360/shared") as typeof import("@dc360/shared");
++  return {
++    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
++    protocolo: "2026/000123",
++    idempotencyKey: "11111111-1111-4111-8111-000000000123",
++    checklist: Object.fromEntries(
++      CHECKLIST_OBRIGATORIO.map((i) => [i.chave, i.chave !== CHAVE_ACIONAR_ORGAO]),
++    ),
++    orgaosParaAcionar: [],
++    fotos: [{
++      idempotencyKey: "ffffffff-1111-4111-8111-000000000001",
++      uriLocal: "file:///vistorias/foto.jpg",
++      nomeArquivo: "vistoria-1.jpg",
++      tipoConteudo: "image/jpeg",
++      tamanhoBytes: 1024,
++      capturadaEm: "2026-09-09T12:00:00.000Z",
++      ordem: 0,
++    }],
++    gpsPrecisaoMetros: null, coordenada: null,
++    assinanteNome: "Maria de exemplo",
++    assinaturaUri: "file:///vistorias/assinatura.png",
++    observacoes: "", pessoas: {},
++    coletadaEm: "2026-09-09T12:00:00.000Z",
++    atualizadoEm: "2026-09-09T12:00:00.000Z",
++  };
++}
++
++const MOTIVOS: MotivoDeSessao[] = [
++  "sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria",
++];
++
++const COLETA_NA_FILA = {
++  ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
++  idempotencyKey: "chave-da-coleta",
++  protocolo: "2026/000123",
++  coletadaEm: "2026-09-09T13:00:00.000Z",
++  situacao: "na_fila",
++};
++
++async function concluirAVistoria(): Promise<void> {
++  mockRascunhoGuardado = rascunhoPronto();
++  await render(<TelaDeVistoria />);
++  await screen.findByText("Checklist técnico");
++  await act(async () => { fireEvent.press(screen.getByText("Revisar e concluir")); });
++  await act(async () => { fireEvent.press(screen.getByText("Concluir vistoria")); });
++  await act(async () => {});
++  await screen.findByTestId("vistoria-guardada");
++}
++
++async function abrirAColetada(): Promise<void> {
++  mockColeta = COLETA_NA_FILA;
++  await render(<TelaDeVistoria />);
++  await act(async () => {});
++  await screen.findByText(/já foi coletada neste aparelho/);
++}
++
++beforeEach(() => {
++  jest.clearAllMocks();
++  mockContadorDeChaves = 0;
++  mockRascunhoGuardado = null;
++  mockColeta = null;
++  mockPausadaPor = null;
++  mockPermissaoDeCamera = { granted: true };
++  mockPermissaoDeLocal = { granted: true };
++});
++
++describe("depois de concluir a vistoria", () => {
++  it("com a fila andando, a promessa de sempre continua valendo", async () => {
++    await concluirAVistoria();
++
++    expect(screen.getByText("Ela sobe com o aplicativo aberto")).toBeTruthy();
++    expect(screen.getByText(/sobe quando o aplicativo estiver aberto e houver rede/)).toBeTruthy();
++  });
++
++  it.each(MOTIVOS)("com a fila pausada por %s, diz a frase da pausa e não manda esperar sinal nem rede", async (motivo) => {
++    mockPausadaPor = motivo;
++
++    await concluirAVistoria();
++
++    const frases = frasesDaPausa(motivo);
++    expect(screen.getByText(frases.titulo)).toBeTruthy();
++    expect(screen.getByText(frases.detalhe)).toBeTruthy();
++    expect(screen.queryByText("Ela sobe com o aplicativo aberto")).toBeNull();
++    expect(screen.queryByText(/houver rede|houver sinal|com sinal/)).toBeNull();
++  });
++});
++
++describe("a ocorrência que o aparelho já coletou, ainda na fila", () => {
++  it("com a fila andando, diz que sobe quando houver sinal", async () => {
++    await abrirAColetada();
++
++    expect(screen.getByText(/sobe quando o aplicativo estiver aberto e houver sinal/)).toBeTruthy();
++    expect(screen.getByText(/Isso pode demorar\s+horas sem sinal/)).toBeTruthy();
++  });
++
++  it.each(MOTIVOS)("com a fila pausada por %s, diz a frase da pausa e não promete sinal", async (motivo) => {
++    mockPausadaPor = motivo;
++
++    await abrirAColetada();
++
++    expect(screen.getByText(new RegExp(
++      frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
++    ))).toBeTruthy();
++    expect(screen.queryByText(/houver sinal|horas sem sinal/)).toBeNull();
++  });
++});
+diff --git a/dc360/apps/campo/src/app/(agente)/fila.tsx b/dc360/apps/campo/src/app/(agente)/fila.tsx
+index ada7947..7825893 100644
+--- a/dc360/apps/campo/src/app/(agente)/fila.tsx
++++ b/dc360/apps/campo/src/app/(agente)/fila.tsx
+@@ -181,10 +181,29 @@ type EstadoDoItem = {
+  * transformar aquele `switch` num labirinto de ternários, que foi exatamente
+  * como o estado "arquivado" nasceu sem desenho próprio.
+  */
+-function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
++function descreverDevolucao(
++  item: ItemDeDevolucao,
++  pausadaPor: MotivoDeSessao | null = null,
++): EstadoDoItem {
+   const motivo = ROTULO_MOTIVO_DE_DEVOLUCAO[item.devolucao.motivo];
+   switch (item.estado) {
+     case "pendente":
++      /*
++        A DEVOLUÇÃO TAMBÉM PARA NA PAUSA DA SESSÃO, e "vai sair quando houver
++        sinal" é a promessa que a pausa quebra: o servidor já respondeu que a
++        sessão acabou, que a conta foi desativada ou que a senha é provisória, e
++        repetir não muda isso. A frase é a do cartão da coleta
++        (`frasesDaPausa`), a mesma da faixa do topo (V2-F00-E06, correção 3).
++      */
++      if (pausadaPor) {
++        return {
++          rotulo: "Devolução guardada",
++          simbolo: "⏸",
++          tom: "alerta",
++          Icone: IconeAguardando,
++          porque: `Motivo: ${motivo}. ${frasesDaPausa(pausadaPor).doCartao}`,
++        };
++      }
+       return {
+         rotulo: "Devolução aguardando",
+         simbolo: "…",
+@@ -401,7 +420,9 @@ function descreverEstado(
+     rótulo que descreve outro ato é uma frase falsa numa tela que existe para
+     dissolver a dúvida "cadê o que eu fiz?".
+   */
+-  if (item.tipo === "devolucao") return descreverDevolucao(item);
++  if (item.tipo === "devolucao") {
++    return descreverDevolucao(item, autoria === "propria" ? pausadaPor : null);
++  }
+   /*
+     A COLETA GUARDADA PELA PAUSA DA SESSAO: "Aguardando" prometeria que ela sai
+     assim que houver sinal, e nao sai: o servidor ja respondeu que a sessao
+@@ -1593,9 +1614,13 @@ export default function TelaDaFila() {
+                           quem completa o envio é o sinal. Prometer aqui seria
+                           criar a mesma dúvida que esta tela dissolve.
+                         */
+-                        texto: "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
+-                          + "se não, ela volta para a espera e continua tentando "
+-                          + "enquanto o aplicativo estiver aberto.",
++                        texto: pausadaPor
++                          /* Com a fila pausada, sinal não faz diferença: diz o
++                             que destrava, com a frase do cartão. */
++                          ? `O envio foi pedido de novo. ${frasesDaPausa(pausadaPor).doCartao}`
++                          : "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
++                            + "se não, ela volta para a espera e continua tentando "
++                            + "enquanto o aplicativo estiver aberto.",
+                       };
+                     })}
+                   />
+@@ -1651,8 +1676,12 @@ export default function TelaDaFila() {
+     <ScrollView ref={rolagem} contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
+       {!sinal.temSinal && (
+         <Aviso tom="alerta" titulo="Sem sinal agora">
+-          Nada se perde: o que está aqui sai quando a conexão voltar, com o
+-          aplicativo aberto, sem você precisar tocar em nada.
++          {pausadaPor
++            /* Pausada pela sessão, a conexão voltar não faz nada sair: a
++               promessa fica só na frase da pausa, no alto da lista. */
++            ? "Nada se perde: o que está aqui continua guardado neste aparelho."
++            : "Nada se perde: o que está aqui sai quando a conexão voltar, com o "
++              + "aplicativo aberto, sem você precisar tocar em nada."}
+         </Aviso>
+       )}
+ 
+@@ -1855,7 +1884,10 @@ export default function TelaDaFila() {
+                 <Txt variante="corpoP" discreto>{porQueApagado}</Txt>
+               </View>
+             </View>
+-          ) : (
++          ) : pausadaPor ? null : (
++            /* Pausada pela sessão, a legenda calaria o que o aviso do alto da
++               lista já diz: "com sinal, o envio acontece sozinho" é justamente
++               o que a pausa desfaz (V2-F00-E06, correção 3). */
+             <Txt variante="legenda" discreto alinhamento="center">
+               Com o aplicativo aberto e com sinal, o envio acontece sem você tocar
+               em nada. Este botão é para quando você quer ver acontecer.
+diff --git a/dc360/apps/campo/src/app/(agente)/index.tsx b/dc360/apps/campo/src/app/(agente)/index.tsx
+index 6ef17a3..41c58f7 100644
+--- a/dc360/apps/campo/src/app/(agente)/index.tsx
++++ b/dc360/apps/campo/src/app/(agente)/index.tsx
+@@ -13,6 +13,7 @@ import {
+ } from "../../dados/pendencias";
+ import { listarColetas, marcarEnviada } from "../../dados/coletas";
+ import { obterFila } from "../../dados/fila";
++import { frasesDaPausa } from "../../dados/pausa-da-fila";
+ import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
+ import { useSinal } from "../../dados/conectividade";
+ import { useSessao } from "../../dados/sessao";
+@@ -586,6 +587,10 @@ export default function Tarefas() {
+   lerDoDiscoAgora.current = lerDoDisco;
+ 
+   const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
++  /* A mesma pausa, lida por quem acorda DEPOIS de um `await` (o "Enviar agora"
++     espera o dreno, e o dreno avisa a fila no meio): a variável de estado de
++     uma função já começada fica com o valor de quando ela começou. */
++  const pausaAtual = useRef<MotivoDeSessao | null>(null);
+   useEffect(() => {
+     let vivo = true;
+     let desassinar: (() => void) | undefined;
+@@ -600,6 +605,7 @@ export default function Tarefas() {
+             (e uma vez na assinatura). O cartão da sugerida a usa para não
+             mandar esperar sinal quando o que falta é entrar de novo.
+           */
++          pausaAtual.current = resumo?.pausadaPor ?? null;
+           setPausadaPor(resumo?.pausadaPor ?? null);
+           void lerDoDiscoAgora.current();
+         });
+@@ -838,7 +844,7 @@ export default function Tarefas() {
+     setEnviando(alvo.id);
+     setEnvio(null);
+     try {
+-      await aberta.drenar();
++      const dreno = await aberta.drenar();
+       const depois = await aberta.itens();
+       const meu = depois.find((i) => i.tipo === "vistoria" && i.ocorrenciaId === alvo.id);
+       await lerDoDisco();
+@@ -884,12 +890,33 @@ export default function Tarefas() {
+           texto: "A coleta continua guardada. Abra a aba Envio para ver o que ele respondeu.",
+         });
+       } else {
+-        setEnvio({
+-          ocorrenciaId: alvo.id,
+-          tom: "alerta",
+-          titulo: "Ainda não deu para enviar",
+-          texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
+-        });
++        /*
++          COM A FILA PAUSADA PELA SESSÃO, SINAL NÃO RESOLVE, e a tarja que
++          mandava esperá-lo contradizia a faixa do topo e o cartão da tarefa
++          (V2-F00-E06, correção 3). O item continua `pendente` de propósito,
++          então o estado dele não distingue "sem sinal" de "pausada": quem
++          distingue é o motivo, que vem do dreno (`paradaPor`) ou, quando outro
++          dreno já estava rodando e este voltou sem dizer, da pausa que a fila
++          já tinha avisado. As frases são as de `frasesDaPausa`, as mesmas da
++          faixa e do cartão: uma frase nova aqui divergiria das duas.
++        */
++        const motivo = dreno.paradaPor ?? pausaAtual.current;
++        if (motivo) {
++          const frases = frasesDaPausa(motivo);
++          setEnvio({
++            ocorrenciaId: alvo.id,
++            tom: "alerta",
++            titulo: frases.faixaTitulo,
++            texto: frases.doCartao,
++          });
++        } else {
++          setEnvio({
++            ocorrenciaId: alvo.id,
++            tom: "alerta",
++            titulo: "Ainda não deu para enviar",
++            texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
++          });
++        }
+       }
+     } finally {
+       setEnviando(null);
+diff --git a/dc360/apps/campo/src/app/(agente)/perfil.tsx b/dc360/apps/campo/src/app/(agente)/perfil.tsx
+index 2dc737e..ab0035f 100644
+--- a/dc360/apps/campo/src/app/(agente)/perfil.tsx
++++ b/dc360/apps/campo/src/app/(agente)/perfil.tsx
+@@ -545,7 +545,7 @@ export default function Perfil() {
+     : null;
+ 
+   /* O que a saída apaga e o que ela guarda, dito antes do toque que confirma. */
+-  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida);
++  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida, resumoDaFila?.pausadaPor ?? null);
+ 
+   /* As contas dos números, memoizadas: mudam com os dados e com o relógio. */
+   const concluidas = dados?.concluidas ?? [];
+diff --git a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+index 5f66092..c5ba708 100644
+--- a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
++++ b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+@@ -13,7 +13,7 @@ import {
+   montarMinuta, rotuloDoCampo,
+   type EnvelopeSincronizacao, type MotivoDeDevolucao, type PessoasAtingidas,
+ } from "@dc360/shared";
+-import type { CampoRecusado, ColetaLocal, FotoLocal } from "@dc360/campo";
++import type { CampoRecusado, ColetaLocal, FotoLocal, MotivoDeSessao } from "@dc360/campo";
+ import { enderecoDaApi, type OrgaoDoCatalogo, type Pendencia } from "../../../dados/api";
+ import {
+   comoContarAFalha, ehFimDeLinha, motivoDaFalha, type MotivoDaFalha,
+@@ -26,6 +26,7 @@ import {
+   apagarFotoDoAparelho, guardarFotoNoAparelho, medirArquivoNoAparelho,
+ } from "../../../dados/evidencia-no-disco";
+ import { obterFila } from "../../../dados/fila";
++import { frasesDaPausa } from "../../../dados/pausa-da-fila";
+ import { precisaoDoGpsEmMetros } from "../../../dados/precisao-do-gps";
+ import {
+   buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
+@@ -902,6 +903,41 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+     fez", que era invisível enquanto isto era `Alert.alert`.
+   */
+   const [avisandoQueGuardou, setAvisandoQueGuardou] = useState(false);
++  /*
++    A fila parada pela sessão, para as duas telas que dizem "isto sobe quando
++    houver sinal" (a da coleta já feita e a de depois de guardar). Com a pausa
++    o sinal não resolve nada, e a frase tem de ser a da pausa, a mesma da faixa
++    do topo e do cartão da fila (V2-F00-E06, correção 3).
++
++    A fila só é consultada quando uma dessas duas telas está aberta: o resto da
++    vistoria não tem nada a dizer sobre envio. Fila que não abre deixa a frase
++    de sempre, que é o que esta tela dizia antes de saber da pausa.
++  */
++  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
++  const dizOQueFazComAColeta = Boolean(jaColetada) || avisandoQueGuardou;
++  useEffect(() => {
++    if (!dizOQueFazComAColeta) return;
++    let vivo = true;
++    let desassinar: (() => void) | undefined;
++    void (async () => {
++      try {
++        const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
++        if (!vivo) return;
++        desassinar = fila.assinar((resumo) => {
++          if (vivo) setPausadaPor(resumo?.pausadaPor ?? null);
++        });
++      } catch {
++        /* Sem fila, sem pausa conhecida: vale a frase de sempre. */
++      }
++    })();
++    return () => {
++      vivo = false;
++      desassinar?.();
++    };
++    // As funções da sessão passam direto para a fila única, como em
++    // `useResumoDaFila`; só mostrar ou esconder as telas refaz a assinatura.
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [dizOQueFazComAColeta]);
+   /*
+     O que o servidor, ou a conferência de antes de enfileirar, recusou na
+     última tentativa de concluir. Vem do rascunho ao abrir (a coleta que voltou
+@@ -2160,13 +2196,19 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+           Esta ocorrência já foi coletada neste aparelho.
+           {jaColetada.situacao === "enviada"
+             ? " A vistoria já foi enviada ao servidor."
+-            : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
++            : pausadaPor
++              ? ` ${frasesDaPausa(pausadaPor).detalhe}`
++              : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
+         </Aviso>
+ 
+         <Txt variante="corpoP" discreto>
+-          A tarefa continua aparecendo na sua lista porque ela só sai de lá
+-          quando o aparelho conseguir falar com o servidor. Isso pode demorar
+-          horas sem sinal, e não significa que a vistoria se perdeu.
++          {jaColetada.situacao !== "enviada" && pausadaPor
++            ? "A tarefa continua aparecendo na sua lista porque ela só sai de lá "
++              + "depois que o servidor receber a vistoria, e isso não significa "
++              + "que a vistoria se perdeu."
++            : "A tarefa continua aparecendo na sua lista porque ela só sai de lá "
++              + "quando o aparelho conseguir falar com o servidor. Isso pode demorar "
++              + "horas sem sinal, e não significa que a vistoria se perdeu."}
+         </Txt>
+ 
+         <Botao
+@@ -2340,12 +2382,18 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+           F14-E06 e depende do CP-24.
+         */}
+         <View style={{ alignSelf: "stretch" }}>
+-          <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
+-            Nada depende de sinal agora. A coleta está guardada neste aparelho e
+-            sobe quando o aplicativo estiver aberto e houver rede: se agora não
+-            há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
+-            de envio mostra o andamento.
+-          </Aviso>
++          {pausadaPor ? (
++            <Aviso tom="alerta" peso="leve" titulo={frasesDaPausa(pausadaPor).titulo}>
++              {frasesDaPausa(pausadaPor).detalhe}
++            </Aviso>
++          ) : (
++            <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
++              Nada depende de sinal agora. A coleta está guardada neste aparelho e
++              sobe quando o aplicativo estiver aberto e houver rede: se agora não
++              há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
++              de envio mostra o andamento.
++            </Aviso>
++          )}
+         </View>
+ 
+         <View style={{ alignSelf: "stretch" }}>
+diff --git a/dc360/apps/campo/src/dados/aviso-da-saida.test.ts b/dc360/apps/campo/src/dados/aviso-da-saida.test.ts
+index 83a22bb..aa1c397 100644
+--- a/dc360/apps/campo/src/dados/aviso-da-saida.test.ts
++++ b/dc360/apps/campo/src/dados/aviso-da-saida.test.ts
+@@ -8,6 +8,7 @@
+  */
+ 
+ import { avisoDaSaida, contarRascunhos, SAIDA_SEM_NADA_A_PERDER } from "./aviso-da-saida";
++import { frasesDaPausa } from "./pausa-da-fila";
+ 
+ const SEM_ANEXO = { fotos: [], assinaturaUri: null };
+ const COM_FOTO = { fotos: [{}], assinaturaUri: null } as never;
+@@ -83,3 +84,43 @@ describe("sem nada a perder", () => {
+     expect(avisoDaSaida(null, contarRascunhos([SEM_ANEXO]))).toMatch(/1 vistoria começada/);
+   });
+ });
++
++/*
++  Com a fila pausada pela sessão a pergunta não promete "entrar de novo, com
++  sinal" (V2-F00-E06, correção 3): sinal não destrava nenhum dos três casos. A
++  parte do laudo continua (ninguém mais envia por este aparelho), e o resto é a
++  frase da pausa, a mesma da faixa do topo.
++*/
++describe("com a fila pausada pela sessão", () => {
++  const MOTIVOS = ["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const;
++
++  it.each(MOTIVOS)("%s: uma coleta, a frase da pausa no lugar da promessa de sinal", (motivo) => {
++    const texto = avisoDaSaida(1, contarRascunhos([]), motivo);
++    expect(texto).toContain(frasesDaPausa(motivo).detalhe);
++    expect(texto).toMatch(/^Você tem 1 coleta ainda não enviada, e ninguém mais consegue enviá-la/);
++    expect(texto).toMatch(/o laudo sai com o nome de quem fez a vistoria, que é você/);
++    expect(texto).not.toMatch(/com sinal|Ela volta a subir/);
++  });
++
++  it.each(MOTIVOS)("%s: três coletas, no plural", (motivo) => {
++    const texto = avisoDaSaida(3, contarRascunhos([]), motivo);
++    expect(texto).toContain(frasesDaPausa(motivo).detalhe);
++    expect(texto).toMatch(/^Você tem 3 coletas ainda não enviadas, e ninguém mais consegue enviá-las/);
++    expect(texto).not.toMatch(/com sinal|Elas voltam a subir/);
++  });
++
++  it("o que se apaga continua vindo primeiro, antes da frase da pausa", () => {
++    const texto = avisoDaSaida(2, contarRascunhos([COM_FOTO]), "sessao_encerrada");
++    expect(texto.indexOf("Sair apaga")).toBeGreaterThanOrEqual(0);
++    expect(texto.indexOf(frasesDaPausa("sessao_encerrada").detalhe)).toBeGreaterThan(texto.indexOf("Sair apaga"));
++  });
++
++  it("sem fila, a pausa não muda nada: a frase curta de sempre", () => {
++    expect(avisoDaSaida(0, contarRascunhos([]), "conta_desativada")).toBe(SAIDA_SEM_NADA_A_PERDER);
++  });
++
++  it("sem pausa, o texto é exatamente o de antes", () => {
++    expect(avisoDaSaida(3, contarRascunhos([]), null)).toBe(avisoDaSaida(3, contarRascunhos([])));
++    expect(avisoDaSaida(3, contarRascunhos([]), null)).toMatch(/voltam a subir quando você entrar de novo, com sinal/);
++  });
++});
+diff --git a/dc360/apps/campo/src/dados/aviso-da-saida.ts b/dc360/apps/campo/src/dados/aviso-da-saida.ts
+index c4eb2f1..29d747b 100644
+--- a/dc360/apps/campo/src/dados/aviso-da-saida.ts
++++ b/dc360/apps/campo/src/dados/aviso-da-saida.ts
+@@ -1,3 +1,5 @@
++import type { MotivoDeSessao } from "@dc360/campo";
++import { frasesDaPausa } from "./pausa-da-fila";
+ import type { Rascunho } from "./rascunho";
+ 
+ /**
+@@ -85,9 +87,25 @@ function fraseDosRascunhos(rascunhos: RascunhosNaSaida): string | null {
+   aparelho, e só voltam a subir com a SUA conta, porque o laudo e a trilha
+   registram como autor quem apresenta o token.
+ */
+-function fraseDaFila(naFila: number): string | null {
++function fraseDaFila(naFila: number, pausadaPor: MotivoDeSessao | null): string | null {
+   if (naFila <= 0) return null;
+   const uma = naFila === 1;
++  /*
++    COM A FILA PAUSADA PELA SESSÃO, "volta a subir quando você entrar de novo,
++    com sinal" é a promessa errada: sinal não destrava nenhum dos três casos, e
++    na conta desativada nem entrar de novo destrava. A parte do laudo (ninguém
++    mais envia por este aparelho) continua verdadeira; o resto é a frase da
++    pausa, a mesma da faixa do topo e do aviso da fila (V2-F00-E06, correção 3).
++  */
++  if (pausadaPor) {
++    return uma
++      ? "Você tem 1 coleta ainda não enviada, e ninguém mais consegue enviá-la: o "
++        + "laudo sai com o nome de quem fez a vistoria, que é você. "
++        + frasesDaPausa(pausadaPor).detalhe
++      : `Você tem ${naFila} coletas ainda não enviadas, e ninguém mais consegue `
++        + "enviá-las: o laudo sai com o nome de quem fez a vistoria, que é você. "
++        + frasesDaPausa(pausadaPor).detalhe;
++  }
+   return uma
+     ? "Você tem 1 coleta ainda não enviada. Ao sair, ela continua guardada no " +
+       "aparelho e ninguém mais consegue enviá-la: o laudo sai com o nome de quem " +
+@@ -104,8 +122,12 @@ function fraseDaFila(naFila: number): string | null {
+  * volta; o que fica guardado vem depois. Sem rascunho e sem fila, volta à
+  * frase curta, que não fala em apagar.
+  */
+-export function avisoDaSaida(naFila: number | null, rascunhos: RascunhosNaSaida): string {
+-  const partes = [fraseDosRascunhos(rascunhos), fraseDaFila(naFila ?? 0)]
++export function avisoDaSaida(
++  naFila: number | null,
++  rascunhos: RascunhosNaSaida,
++  pausadaPor: MotivoDeSessao | null = null,
++): string {
++  const partes = [fraseDosRascunhos(rascunhos), fraseDaFila(naFila ?? 0, pausadaPor)]
+     .filter((p): p is string => p !== null);
+   return partes.length === 0 ? SAIDA_SEM_NADA_A_PERDER : partes.join("\n\n");
+ }
+diff --git a/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx b/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
+index 35ca36f..6d2e1e6 100644
+--- a/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
++++ b/dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
+@@ -64,14 +64,20 @@ jest.mock("../dados/avisos", () => ({
+ 
+ /** Quantas coletas o aparelho diz ter esperando. Cada teste ajusta. */
+ let mockPendentes = 0;
++/* A pausa que a fila entrega no resumo (V2-F00-E06, correção 3). */
++let mockPausadaPor: string | null = null;
+ jest.mock("../dados/fila", () => ({
+   obterFila: async () => ({
+     resumo: async () => ({
+       pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
++      pausadaPor: mockPausadaPor,
+     }),
+     /* O Perfil assina a fila (V2-F00-E15), e a fila de verdade avisa quem assina na hora. */
+     assinar: (ouvinte: (r: unknown) => void) => {
+-      ouvinte({ pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0 });
++      ouvinte({
++        pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
++        pausadaPor: mockPausadaPor,
++      });
+       return () => undefined;
+     },
+   }),
+@@ -121,10 +127,12 @@ jest.mock("../dados/preferencia-de-tema", () => ({
+ }));
+ 
+ import Perfil from "../app/(agente)/perfil";
++import { frasesDaPausa } from "../dados/pausa-da-fila";
+ import { ProvedorDeTema } from "./componentes";
+ 
+ beforeEach(() => {
+   mockPendentes = 0;
++  mockPausadaPor = null;
+   mockSair.mockClear();
+   (router.replace as jest.Mock).mockClear();
+ });
+@@ -167,6 +175,28 @@ describe("a pergunta antes de sair", () => {
+     expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
+   });
+ 
++  /*
++    Com a fila pausada pela sessão, "volta a subir quando você entrar de novo,
++    com sinal" é a promessa errada (V2-F00-E06, correção 3): sinal não destrava
++    nenhum dos três casos, e na conta desativada nem entrar de novo destrava. A
++    pergunta diz a frase da pausa, a mesma da faixa do topo.
++  */
++  it.each([
++    "sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria",
++  ] as const)("com a fila pausada por %s, a pergunta diz a frase da pausa e não promete sinal", async (motivo) => {
++    mockPendentes = 3;
++    mockPausadaPor = motivo;
++    await abrirATela();
++
++    await tocar("Sair da conta");
++
++    expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
++    expect(screen.getByText(new RegExp(
++      frasesDaPausa(motivo).detalhe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
++    ))).toBeTruthy();
++    expect(screen.queryByText(/entrar de novo, com sinal|entrar de novo,\s+com sinal/)).toBeNull();
++  });
++
+   it("sem coleta pendente, a pergunta continua existindo, com outro texto", async () => {
+     // Sair sem fila também custa: entrar de novo exige sinal, e sinal é
+     // justamente o que falta onde este aplicativo é usado.
+diff --git a/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx b/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx
+new file mode 100644
+index 0000000..c18b247
+--- /dev/null
++++ b/dc360/apps/campo/src/ui/fila-pausada-nao-promete-sinal.test.tsx
+@@ -0,0 +1,215 @@
++/**
++ * A fila PAUSADA não promete sinal em lugar nenhum da tela da fila
++ * (V2-F00-E06, correção 3).
++ *
++ * A correção 1 trocou o cartão da coleta e a correção 2 o cartão da tarefa,
++ * mas sobravam quatro pontos da própria tela da fila que, com a sessão
++ * encerrada, a conta desativada ou a senha provisória, ainda diziam que o envio
++ * sai "quando a conexão voltar" ou "com sinal":
++ *
++ * 1. o cartão da DEVOLUÇÃO pendente ("vai sair quando ... houver sinal");
++ * 2. a tarja "Sem sinal agora" ("sai quando a conexão voltar");
++ * 3. a legenda do botão "Tentar enviar agora" ("com sinal, o envio acontece
++ *    sem você tocar em nada");
++ * 4. o retorno de "Tentar de novo" ("se houver sinal, ela sai agora").
++ *
++ * As frases esperadas vêm de `frasesDaPausa`, a fonte única da faixa, do aviso
++ * da fila e dos cartões: o teste não copia texto, exige a mesma frase.
++ */
++
++import { act, fireEvent, render, screen } from "@testing-library/react-native";
++import { router } from "expo-router";
++import type {
++  AutorDaColeta, ItemDeDevolucao, ItemDeVistoria, ItemFila, MotivoDeSessao,
++} from "@dc360/campo";
++
++const AGENTE: AutorDaColeta = {
++  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
++};
++
++jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
++  __esModule: true, default: () => "dark",
++}));
++
++jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
++
++jest.mock("expo-router", () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
++jest.mock("../dados/correcao-da-coleta", () => ({
++  devolverParaCorrecao: jest.fn(async () => ({ retirada: false, motivo: "nao_encontrada" })),
++}));
++jest.mock("./useReducaoDeMovimento", () => ({ useReducaoDeMovimento: () => false }));
++jest.mock("./retornoTatil", () => ({ retornoTatil: jest.fn() }));
++
++const mockEncerrarSessaoVencida = jest.fn(async () => {});
++/* O MESMO objeto a cada renderização: um novo refaz o efeito de abertura em laço. */
++const mockSessao = {
++  obterToken: async () => "token-de-mentira",
++  lerIdentidade: () => AGENTE,
++  identidade: AGENTE,
++  encerrarSessaoVencida: () => mockEncerrarSessaoVencida(),
++};
++jest.mock("../dados/sessao", () => ({ useSessao: () => mockSessao }));
++let mockTemSinal = true;
++jest.mock("../dados/conectividade", () => ({ useSinal: () => ({ temSinal: mockTemSinal, tipo: "Wi-Fi" }) }));
++
++let mockItens: ItemFila[] = [];
++let avisarQueMudou: ((resumo: unknown) => void) | null = null;
++const mockFila = {
++  itens: async () => mockItens,
++  assinar: (aviso: (resumo: unknown) => void) => {
++    avisarQueMudou = aviso;
++    return () => { avisarQueMudou = null; };
++  },
++  drenar: async () => undefined,
++  descartar: jest.fn(async () => {}),
++  reenviar: jest.fn(async () => {}),
++  assumir: jest.fn(async () => {}),
++  abrirMaoDasEvidenciasPerdidas: jest.fn(async () => ({ liberado: true, perdidas: 0 })),
++};
++jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
++
++import TelaDaFila from "../app/(agente)/fila";
++import { frasesDaPausa } from "../dados/pausa-da-fila";
++
++function coleta(id: string, protocolo: string): ItemDeVistoria {
++  return {
++    tipo: "vistoria",
++    id,
++    ocorrenciaId: `oc-${id}`,
++    protocolo,
++    autor: AGENTE,
++    envelope: {} as never,
++    estado: "pendente",
++    tentativas: 0,
++    criadoEm: "2026-10-06T09:00:00.000Z",
++    liberadoEm: "2026-10-06T09:00:00.000Z",
++    ultimaFalha: null,
++    confirmadoEm: null,
++    fotos: [],
++  };
++}
++
++beforeEach(() => {
++  mockTemSinal = true;
++  mockItens = [coleta("a", "2026/000471"), coleta("b", "2026/000472")];
++  avisarQueMudou = null;
++  mockEncerrarSessaoVencida.mockClear();
++  (router.replace as jest.Mock).mockClear();
++  mockFila.descartar.mockClear();
++  mockFila.reenviar.mockClear();
++});
++
++async function abrirComPausa(pausadaPor: MotivoDeSessao | null): Promise<void> {
++  await render(<TelaDaFila />);
++  await act(async () => {});
++  // O motor avisa o resumo a cada mudança; a pausa chega por esse canal.
++  await act(async () => { avisarQueMudou?.({ pausadaPor }); });
++}
++
++
++const MOTIVOS: MotivoDeSessao[] = [
++  "sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria",
++];
++
++function devolucao(id: string, protocolo: string): ItemDeDevolucao {
++  return {
++    tipo: "devolucao",
++    id,
++    ocorrenciaId: `oc-${id}`,
++    protocolo,
++    autor: AGENTE,
++    devolucao: {
++      idempotencyKey: `chave-${id}`,
++      ocorrenciaId: `oc-${id}`,
++      decididaEm: "2026-10-06T09:00:00.000Z",
++      motivo: "morador_ausente",
++    },
++    estado: "pendente",
++    tentativas: 0,
++    criadoEm: "2026-10-06T09:00:00.000Z",
++    liberadoEm: "2026-10-06T09:00:00.000Z",
++    ultimaFalha: null,
++    confirmadoEm: null,
++    fotos: [],
++  } as ItemDeDevolucao;
++}
++
++function escapar(texto: string): string {
++  return texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
++}
++
++const LEGENDA_DO_BOTAO = /Com o aplicativo aberto e com sinal, o envio acontece sem você tocar/;
++
++describe("fila pausada", () => {
++  it.each(MOTIVOS)("%s: a devolução guardada diz o que destrava, e não manda esperar sinal", async (motivo) => {
++    const frases = frasesDaPausa(motivo);
++    mockItens = [devolucao("d", "2026/000480")];
++
++    await abrirComPausa(motivo);
++
++    expect(screen.getByText(new RegExp(`^Motivo: .*${escapar(frases.doCartao)}$`))).toBeTruthy();
++    expect(screen.getByText("Devolução guardada")).toBeTruthy();
++    expect(screen.queryByText("Devolução aguardando")).toBeNull();
++    expect(screen.queryByText(/houver sinal/)).toBeNull();
++  });
++
++  it.each(MOTIVOS)("%s: sem sinal, a tarja não promete que a coleta sai quando a conexão voltar", async (motivo) => {
++    mockTemSinal = false;
++
++    await abrirComPausa(motivo);
++
++    expect(screen.getByText("Sem sinal agora")).toBeTruthy();
++    expect(screen.getByText("Nada se perde: o que está aqui continua guardado neste aparelho.")).toBeTruthy();
++    expect(screen.queryByText(/sai quando a conexão voltar/)).toBeNull();
++  });
++
++  it.each(MOTIVOS)("%s: a legenda do botão não diz que o envio acontece sozinho com sinal", async (motivo) => {
++    await abrirComPausa(motivo);
++
++    expect(screen.getByText("Tentar enviar agora")).toBeTruthy();
++    expect(screen.queryByText(LEGENDA_DO_BOTAO)).toBeNull();
++  });
++
++  it.each(MOTIVOS)("%s: 'Tentar de novo' devolve o que destrava, e não 'se houver sinal, ela sai agora'", async (motivo) => {
++    const frases = frasesDaPausa(motivo);
++    mockItens = [{ ...coleta("t", "2026/000490"), estado: "bloqueado" } as ItemFila];
++
++    await abrirComPausa(motivo);
++    await act(async () => { fireEvent.press(screen.getByText("Tentar de novo")); });
++
++    expect(mockFila.reenviar).toHaveBeenCalledWith("t");
++    expect(screen.getByText(new RegExp(`^O envio foi pedido de novo\\. ${escapar(frases.doCartao)}$`))).toBeTruthy();
++    expect(screen.queryByText(/Se houver sinal/)).toBeNull();
++  });
++});
++
++/* O controle: as quatro frases de antes continuam valendo quando a fila anda. */
++describe("fila andando", () => {
++  it("devolução aguardando, tarja de sem sinal, legenda e retorno do reenvio são os de sempre", async () => {
++    mockItens = [
++      devolucao("d", "2026/000480"),
++      { ...coleta("t", "2026/000490"), estado: "bloqueado" } as ItemFila,
++    ];
++    mockTemSinal = false;
++    await abrirComPausa(null);
++
++    expect(screen.getByText("Devolução aguardando")).toBeTruthy();
++    expect(screen.getByText(/vai sair quando o aplicativo estiver aberto e houver sinal/)).toBeTruthy();
++    expect(screen.getByText(/sai quando a conexão voltar/)).toBeTruthy();
++  });
++
++  it("com sinal, a legenda do botão e o retorno do reenvio prometem o envio, porque ele acontece", async () => {
++    /* Uma pendente também: com só a bloqueada o botão fica apagado e a legenda
++       dá lugar ao porquê, que é outro caso. */
++    mockItens = [
++      coleta("p", "2026/000471"),
++      { ...coleta("t", "2026/000490"), estado: "bloqueado" } as ItemFila,
++    ];
++    await abrirComPausa(null);
++    expect(screen.getByText(LEGENDA_DO_BOTAO)).toBeTruthy();
++
++    await act(async () => { fireEvent.press(screen.getByText("Tentar de novo")); });
++
++    expect(screen.getByText(/Se houver sinal, ela sai agora/)).toBeTruthy();
++  });
++});
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index e843420..d7a9091 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5263 testes somando o aplicativo** (contagem estática de `npm run
++- **5304 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-19; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5263 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5304 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index a4f860d..b4eecc9 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -675,6 +675,14 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
+   "V2-F00-E15-correcao-2": { total: 5, falhas: 0 },
+   // V2-F00-E15, correção 3: `entrar-de-outra-pessoa-limpa-o-aparelho.test.tsx` é novo, com 10 casos (6 do login real, provedor, banco e rascunho de verdade: troca de pessoa, a ordem de limpar antes de abrir a sessão e o dono do disco; 4 da credencial e da identidade que saem do cofre).
+   "V2-F00-E15-correcao-3": { total: 10, falhas: 0 },
++  /*
++    V2-F00-E06, correção 3 (41 casos, contados contra o `b17949a`): "Enviar
++    agora" e os outros pontos que prometiam sinal com a fila pausada.
++    `enviar-agora-com-a-fila-pausada.test.tsx` (7), `fila-pausada-nao-promete-sinal.test.tsx` (14),
++    `vistoria-guardada-com-a-fila-pausada.test.tsx` (8), 9 em `aviso-da-saida.test.ts`
++    e 3 em `dialogo-na-conta.test.tsx`; os `it.each` entram com uma linha por motivo.
++  */
++  "V2-F00-E06-correcao-3": { total: 41, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoApp() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

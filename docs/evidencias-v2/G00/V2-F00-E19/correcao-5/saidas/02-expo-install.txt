@@ -1,0 +1,44 @@
+$ npx expo install expo@~57.0.30 expo-router@~57.0.28   (em apps/campo)
+codigo=0
+
+env: load .env
+env: export DC360_API_URL DC360_MAPS_CHAVE DC360_MAPS_CHAVE_ANDROID DC360_MAPS_CHAVE_IOS
+› Installing 2 other packages using npm
+› Using ~57.0.30 instead of ~57.0.30 for expo and ~57.0.28 instead of ~57.0.28 for expo-router because these versions was explicitly provided. Packages excluded from dependency validation should be listed in expo.install.exclude in package.json. Learn more: https://docs.expo.dev/more/expo-cli/#configuring-dependency-validation
+> npm install
+
+added 1 package, changed 6 packages, and audited 919 packages in 11s
+
+83 packages are looking for funding
+  run `npm fund` for details
+
+61 vulnerabilities (8 moderate, 52 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+› Running npx expo install under the updated expo version
+> expo install expo-router@~57.0.28
+env: export DC360_API_URL DC360_MAPS_CHAVE DC360_MAPS_CHAVE_ANDROID DC360_MAPS_CHAVE_IOS
+› Installing 1 other package using npm
+› Using ~57.0.28 instead of ~57.0.28 for expo-router because this version was explicitly provided. Packages excluded from dependency validation should be listed in expo.install.exclude in package.json. Learn more: https://docs.expo.dev/more/expo-cli/#configuring-dependency-validation
+> npm install
+
+changed 2 packages, and audited 919 packages in 3s
+
+83 packages are looking for funding
+  run `npm fund` for details
+
+59 vulnerabilities (8 moderate, 50 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.

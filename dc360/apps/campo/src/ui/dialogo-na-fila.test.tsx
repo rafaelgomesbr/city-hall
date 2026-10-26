@@ -418,7 +418,8 @@ describe("sinal ruim por muito tempo", () => {
     await abrirATela();
 
     expect(screen.getByText("Aguardando")).toBeTruthy();
-    expect(screen.getByText(/vai continuar tentando sozinha/)).toBeTruthy();
+    expect(screen.getByText(/vai continuar tentando enquanto o aplicativo estiver aberto/)).toBeTruthy();
+    expect(screen.queryByText(/sozinha/)).toBeNull();
     expect(screen.getByText(/sinal melhor/)).toBeTruthy();
     // Não se oferece apagar o que ainda vai subir sozinho.
     expect(screen.queryByText("Descartar")).toBeNull();

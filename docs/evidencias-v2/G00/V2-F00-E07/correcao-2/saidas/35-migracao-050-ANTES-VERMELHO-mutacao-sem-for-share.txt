@@ -1,0 +1,57 @@
+$ (em uma copia de dc360/db no scratchpad, com a 050 sem o FOR SHARE) vitest run test/login-e-suspensao-na-mesma-linha.test.ts --reporter=verbose
+# MUTACAO (so na copia): a 050 com a leitura da 049, sem FOR SHARE; o diff vem primeiro
+
+----- m050.txt -----
+--- /Users/[usuario]/Documents/city-hall/dc360/db/migrations/050_login_e_suspensao_na_mesma_linha.sql	2026-10-14 13:37:56
++++ migrations/050_login_e_suspensao_na_mesma_linha.sql	2026-10-14 13:39:47
+@@ -84,13 +84,7 @@
+   -- por ela (ver o cabecalho). Renovacao: leitura comum, porque ela ja
+   -- segura a trava por pessoa da 049 e a linha depois da trava fecharia
+   -- ciclo com a suspensao.
+-  IF p_familia_id IS NULL THEN
+-    SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes
+-     WHERE id = p_organizacao_id
+-       FOR SHARE;
+-  ELSE
+-    SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id;
+-  END IF;
++  SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id;
+   IF v_suspenso IS NOT NULL THEN
+     RAISE EXCEPTION USING
+       ERRCODE = 'DC367',
+
+----- e07-db-050-mutacao.txt -----
+
+ RUN  v3.2.7 /private/tmp/claude-501/-Users-rafaelgomes-Documents-city-hall/3d36cfc8-e822-4393-b93c-ef3d51f55862/scratchpad/c2r3/mut/dc360/db
+
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts > A migração 050 sobre um banco que já tem sessões > não toca em sessão nenhuma, e rodar o texto de novo não falha nem muda nada 2ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts > A migração 050 sobre um banco que já tem sessões > o número de funções SECURITY DEFINER não mudou, e abrir_sessao continua só do papel de aplicação 1ms
+ × test/login-e-suspensao-na-mesma-linha.test.ts > O login trava a linha do município; a renovação não > o login (família nula) lê a suspensão com FOR SHARE, e a renovação lê sem trava de linha 4ms
+   → o login não trava a linha do município, ou a renovação passou a travar: expected 'CREATE OR REPLACE FUNCTION public.abr…' to match /IF p_familia_id IS NULL THEN SELECT a…/
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts > O login trava a linha do município; a renovação não > o login abre família nova normalmente, e a renovação herda a família só rotacionada 4ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts > O login trava a linha do município; a renovação não > município suspenso: o login e a renovação continuam recusados com DC367, sem gravar nada 3ms
+ ✓ test/login-e-suspensao-na-mesma-linha.test.ts > O login trava a linha do município; a renovação não > a recusa da 049 continua: família encerrada não é herdada (DC369) 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/login-e-suspensao-na-mesma-linha.test.ts > O login trava a linha do município; a renovação não > o login (família nula) lê a suspensão com FOR SHARE, e a renovação lê sem trava de linha
+AssertionError: o login não trava a linha do município, ou a renovação passou a travar: expected 'CREATE OR REPLACE FUNCTION public.abr…' to match /IF p_familia_id IS NULL THEN SELECT a…/
+
+- Expected: 
+/IF p_familia_id IS NULL THEN SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id FOR SHARE; ELSE SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id; END IF;/
+
++ Received: 
+"CREATE OR REPLACE FUNCTION public.abrir_sessao(p_organizacao_id uuid, p_usuario_id uuid, p_token_hash text, p_duracao interval, p_user_agent text, p_ip text, p_familia_id uuid DEFAULT NULL::uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $function$ DECLARE v_id uuid := gen_random_uuid(); v_suspenso timestamptz; BEGIN -- Login (sem familia): a leitura espera a suspensao em curso e e esperada -- por ela (ver o cabecalho). Renovacao: leitura comum, porque ela ja -- segura a trava por pessoa da 049 e a linha depois da trava fecharia -- ciclo com a suspensao. SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id; IF v_suspenso IS NOT NULL THEN RAISE EXCEPTION USING ERRCODE = 'DC367', MESSAGE = 'O acesso deste municipio esta suspenso pelo fornecedor.', DETAIL = format('Suspenso desde %s. Nenhuma sessao nova abre ate a reativacao.', v_suspenso); END IF; -- Herdar familia so da familia que existe, do mesmo usuario e do mesmo -- municipio, E que nao foi encerrada (049, sem mudanca). IF p_familia_id IS NOT NULL AND ( NOT EXISTS ( SELECT 1 FROM sessoes WHERE familia_id = p_familia_id AND usuario_id = p_usuario_id AND organizacao_id = p_organizacao_id ) OR EXISTS ( SELECT 1 FROM sessoes WHERE familia_id = p_familia_id AND usuario_id = p_usuario_id AND organizacao_id = p_organizacao_id AND revogada_em IS NOT NULL AND motivo_revogacao IS DISTINCT FROM 'rotacionada na renovacao' ) ) THEN RAISE EXCEPTION USING ERRCODE = 'DC369', MESSAGE = 'A familia de sessao informada nao existe para este usuario.'; END IF; INSERT INTO sessoes (id, organizacao_id, usuario_id, token_hash, expira_em, user_agent, ip, familia_id) VALUES (v_id, p_organizacao_id, p_usuario_id, p_token_hash, now() + p_duracao, left(coalesce(p_user_agent, ''), 400), nullif(p_ip, '')::inet, coalesce(p_familia_id, v_id)); RETURN v_id; END; $function$ "
+
+ ❯ test/login-e-suspensao-na-mesma-linha.test.ts:138:93
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  13:39:47
+   Duration  999ms (transform 19ms, setup 0ms, collect 30ms, tests 771ms, environment 0ms, prepare 43ms)
+
+

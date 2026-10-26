@@ -1,0 +1,47 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/.claude/worktrees/agent-a8c20ac13e128c18b/dc360/packages/shared
+
+ ❯ test/regras-de-conteudo.test.ts (10 tests | 1 failed) 542ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação 71ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum 147ms
+   × Regras de conteúdo > nenhuma norma citada fora da lista autorizada 240ms
+     → norma fora da lista de docs/CONTEXTO.md. Um número de lei errado num termo de interdição é motivo para anular o ato:
+docs/evidencias-v2/G00/V2-F00-E22/validacao/60cbc2f/qa.md:59  [norma inventada, omitida da evidência]: expected [ Array(1) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real 60ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 6ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 6ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 6ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 6ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhuma norma citada fora da lista autorizada
+AssertionError: norma fora da lista de docs/CONTEXTO.md. Um número de lei errado num termo de interdição é motivo para anular o ato:
+docs/evidencias-v2/G00/V2-F00-E22/validacao/60cbc2f/qa.md:59  [norma inventada, omitida da evidência]: expected [ Array(1) ] to deeply equal []
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "docs/evidencias-v2/G00/V2-F00-E22/validacao/60cbc2f/qa.md:59  [norma inventada, omitida da evidência]",[39m
+[31m+ ][39m
+
+ ❯ test/regras-de-conteudo.test.ts:281:7
+    279|         : "norma fora da lista de docs/CONTEXTO.md. Um número de lei e…
+    280|           `termo de interdição é motivo para anular o ato:\n${achados.…
+    281|     ).toEqual([]);
+       |       ^
+    282|   }, LIMITE_DA_VARREDURA_MS);
+    283| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  17:25:43
+   Duration  725ms (transform 27ms, setup 0ms, collect 29ms, tests 542ms, environment 0ms, prepare 32ms)
+

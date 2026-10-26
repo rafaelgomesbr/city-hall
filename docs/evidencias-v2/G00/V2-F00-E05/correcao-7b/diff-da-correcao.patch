@@ -1,0 +1,376 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index b0a371a..d2b8446 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,10 +11,10 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 223 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 345 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 716 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1715 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1717 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 238 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho físico arquivado**: nenhuma foto, vídeo ou registro de iPhone ou de Android de verdade está no repositório, e a prova fica para a V2-F14-E12. Há capturas e relato de emulador Android das validações de E06, E15 e E16 (ver `apps/campo/LEIA-ME.md`), que não substituem o aparelho. TypeScript limpo com o cache `.expo/types` em dia e 1997 testes do aplicativo passando. O `expo-doctor` deu 21 de 21 em 2026-10-13 (depois de subir seis pacotes do Expo um patch atrás), **20 de 21 na manhã de 2026-10-14** (o Expo publicou cinco patches novos: `expo`, `expo-constants`, `expo-linking`, `expo-notifications` e `expo-router`) e **21 de 21 de novo no mesmo dia**, depois da correção 4 da E19, que subiu esses cinco. A deriva voltou em 2026-10-18 (20 de 21, com `expo` e `expo-router` um patch atrás) e fechou em 21 de 21 no mesmo dia, com a correção 5 da E19. Premissa: o Rafael decidiu atualizar os seis pacotes de 2026-10-13 (D1), não estes cinco; o coordenador aplicou o mesmo tratamento por analogia e a confirmação dele está pendente. O resultado depende do dia e do registro do Expo (pendência 17 de `apps/campo/PENDENCIAS.md`). O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 304 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
++| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 307 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+ 
+@@ -275,7 +275,7 @@ do Node lança no meio (o `content-length` estrito que não bate com o corpo de
+ 401 ou 403 do catálogo), o socket ficava arrolhado e o cliente ficava sem
+ resposta até o tempo esgotar; a guarda o desarrolha e manda a resposta do
+ desvio. O que os testes da guarda provam (por socket cru com dois pedidos em
+-pipeline, nos dois modos, rodados em Node 24): na API, cada forma dos
++pipeline, nos dois modos, rodados em Node 22 e em Node 24): na API, cada forma dos
+ relatórios da rodada 7 (fluxo do Node, `Response` e `ReadableStream` da web com
+ `content-length` menor que o corpo ou `0`, 403 do catálogo com `content-length`
+ errado, `transfer-encoding: identity`, `reply.trailer`, `addTrailers`,
+@@ -286,6 +286,14 @@ identity` e `writeHead(403)` mais `flushHeaders`, que não têm caso no teste
+ dele (`apps/console/test/guarda-de-codigos-de-erro.test.ts`). O proxy da borda
+ diante dessas formas não foi medido.
+ 
++As Early Hints (correção 7b): o Node 22, que é o de produção, não confere o valor
++de `writeEarlyHints`, e CR ou LF nele põe uma cabeça HTTP inteira no fio (o Node
++24 recusa). A guarda aplica a regra do Node 24 nas duas versões: nome que não é
++token, ou valor com caractere de controle, lança `ERR_INVALID_CHAR` antes de
++qualquer byte sair, e a rota responde o 500 do tratador de erro. O 103 legítimo
++antes de um 403 do catálogo passa intacto (caso na API e no console), e a porta
++dos bytes continua de segunda rede.
++
+ O que a guarda NÃO vê: escrita direta no SOCKET, que não passa pela resposta do
+ Node. Isso inclui `req.socket.end("HTTP/1.1 403 ...")`, o mesmo socket por
+ `.connection` ou `.client` (no pedido ou na resposta), e um ouvinte nos eventos do
+@@ -1608,9 +1616,9 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 3541 testes em seis pacotes
++npm test                    # 3546 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 345 testes do banco
+-npm run test:api            # 1715 testes da API
++npm run test:api            # 1717 testes da API
+ npm run test --workspace @dc360/campo   # 238 testes do motor de campo
+ npm run test:campo          # tipos e os 1997 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+diff --git a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+index 95f0a4f..c1e290c 100644
+--- a/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/api/src/guarda-de-codigos-de-erro.ts
+@@ -89,6 +89,12 @@ import {
+  * Quando o `end` do Node lança no meio (o `content-length` estrito), o socket
+  * fica arrolhado; a guarda o desarrolha antes de mandar a resposta do desvio.
+  *
++ * AS EARLY HINTS (correção 7b): o Node 22, o de produção, não confere o valor
++ * de `writeEarlyHints`, e CR ou LF nele põe uma cabeça inteira no fio; o Node
++ * 24 recusa. A guarda aplica a regra do Node 24 nas duas versões (lança
++ * `ERR_INVALID_CHAR` antes de escrever, e a rota sai 500), e a porta dos bytes
++ * fica de segunda rede.
++ *
+  * O QUE ELA NÃO VÊ, dito sem folga:
+  *
+  *   - escrita direta no SOCKET, que não passa pela resposta do Node:
+@@ -170,6 +176,9 @@ const TETO_DO_CORPO = 64 * 1024;
+ /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
+ const CHAVE_JSON = /"((?:[^"\\]|\\.)*)"\s*:/g;
+ const FORMA_DE_CODIGO = /^[a-z_]{1,64}$/;
++/** Nome de cabeçalho válido (token do HTTP) e valor sem caractere de controle: a regra do Node 24. */
++const NOME_DE_CABECALHO = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
++const VALOR_DE_CABECALHO_INVALIDO = /[^\t\x20-\x7e\x80-\xff]/;
+ 
+ const tem = (o: object, k: string): boolean => aplicar(temPropria, o, [k]) as boolean;
+ const casa = (re: RegExp, s: string): RegExpExecArray | null => aplicar(executarRegex, re, [s]) as RegExpExecArray | null;
+@@ -942,7 +951,44 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     }
+   }
+ 
++  /*
++    AS EARLY HINTS (correção 7b, CI em Node 22). O Node 24 recusa CR ou LF no
++    valor de `writeEarlyHints` (lança `ERR_INVALID_CHAR`); o Node 22, que é o
++    de produção (`Dockerfile`), escreve o valor como veio, e
++    `writeEarlyHints({ "x": "a\r\n\r\nHTTP/1.1 403 ..." })` põe uma cabeça
++    403 inteira no fio. A porta dos bytes já pegava essa cabeça (troca a
++    resposta e fecha a conexão), mas o resultado mudava com a versão do Node.
++    Aqui a guarda aplica a regra do Node 24 nas duas versões: nome que não é
++    token, ou valor com caractere de controle, lança `ERR_INVALID_CHAR` antes de
++    qualquer byte sair, e a rota responde o 500 do tratador de erro. A porta
++    continua como segunda rede.
++  */
++  const earlyHintsOriginal = (raw as unknown as { writeEarlyHints?: (...a: unknown[]) => unknown }).writeEarlyHints;
++  function writeEarlyHints(this: ServerResponse, ...args: unknown[]) {
++    const dicas = args[0];
++    if (typeof dicas === "object" && dicas !== null) {
++      const nomes = chavesDe(dicas);
++      for (let i = 0; i < nomes.length; i += 1) {
++        const nome = nomes[i]!;
++        const v = (dicas as Record<string, unknown>)[nome];
++        const valores: unknown[] = ehArray(v) ? v : [v];
++        let ruim = casa(NOME_DE_CABECALHO, nome) === null;
++        for (let j = 0; !ruim && j < valores.length; j += 1) {
++          ruim = casa(VALOR_DE_CABECALHO_INVALIDO, `${valores[j] as string}`) !== null;
++        }
++        if (ruim) {
++          throw definirPropriedade(new TypeError(`Cabeçalho de Early Hints inválido: "${nome}"`), "code",
++            { value: "ERR_INVALID_CHAR", enumerable: false });
++        }
++      }
++    }
++    return aplicar(earlyHintsOriginal!, raw, args);
++  }
++
+   raw.strictContentLength = true;
++  if (typeof earlyHintsOriginal === "function") {
++    definirPropriedade(raw, "writeEarlyHints", { value: writeEarlyHints, writable: false, configurable: false, enumerable: false });
++  }
+   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+diff --git a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+index e3c2784..16ccd5f 100644
+--- a/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/guarda-de-codigos-de-erro.test.ts
+@@ -452,10 +452,24 @@ function plantarCorrecao7(app: FastifyInstance): void {
+   app.get(r("j-204"), async (_q, rep) => rep.code(204).send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
+   app.get(r("k-304"), async (_q, rep) => rep.code(304).send(Readable.from([Buffer.from(CABECA_C7 + CORPO_C7)])));
+   app.get(r("f-early"), async (_q, rep) => {
+-    await rep.writeEarlyHints({ link: "</a.css>; rel=preload", "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 });
++    rep.writeEarlyHints({ link: "</a.css>; rel=preload", "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 });
+     return { ok: true };
+   });
+   app.get(r("flush-401-publico"), async (_q, rep) => { rep.code(401); crua7(rep).flushHeaders(); return rep.send({ erro: "inventado_c7", mensagem: "x" }); });
++  // Correção 7b (CI em Node 22): o 103 legítimo antes do 403 do catálogo, e a recusa de CR/LF nas Early Hints.
++  // Sem `await`: o `writeEarlyHints` do Fastify devolve a própria resposta, que é "thenable" e só
++  // resolve quando a resposta termina; esperar por ela ali trava o pedido.
++  app.get(r("f-early-legitimo"), async (_q, rep) => {
++    rep.writeEarlyHints({ link: "</a.css>; rel=preload" });
++    return rep.code(403).type("application/json").send(ok);
++  });
++  app.get(r("f-early-recusa"), async (_q, rep) => {
++    const x = crua7(rep);
++    try { x.writeEarlyHints({ "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 }); } catch (e) {
++      return { codigo: (e as { code?: string }).code ?? "sem-codigo", fila: x.outputData.length };
++    }
++    return { codigo: "escreveu", fila: x.outputData.length };
++  });
+ }
+ 
+ type RespostaLida = { linha: string; status: number; corpo: string };
+@@ -1116,6 +1130,23 @@ describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em p
+     }
+   });
+ 
++  it("correção 7b: o 103 legítimo (writeEarlyHints) antes do 403 do catálogo passa intacto, e o pedido seguinte recebe o dele", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { respostas } = lerRespostas(await pipeline(await porta(modo), "/c7/f-early-legitimo"));
++      expect(respostas.map((x) => x.status), modo).toEqual([103, 403, 404]);
++      expect(JSON.parse(respostas[1]!.corpo)).toEqual({ erro: "sem_permissao", mensagem: "x" });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node (o Node 22 escreveria), antes de qualquer byte", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const r = await pedirEm(modo, "/c7/f-early-recusa");
++      expect(r.json(), `${modo} em Node ${process.versions.node}`).toEqual({ codigo: "ERR_INVALID_CHAR", fila: 0 });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
+   it("controles: 102 de verdade antes do 403 do catálogo, Buffer com content-length errado (o Fastify corrige), 204, 304, Early Hints com CRLF e flushHeaders com 401", async () => {
+     for (const modo of ["falhar", "corrigir"] as const) {
+       const p = await porta(modo);
+diff --git a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+index a0580ec..fe8c1f3 100644
+--- a/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
++++ b/dc360/apps/console/src/guarda-de-codigos-de-erro.ts
+@@ -23,7 +23,8 @@ import type { ServerResponse } from "node:http";
+  * fora da instância, e código que troque as primitivas dela antes da carga ou
+  * o próprio Node. A moldura do corpo (`content-length`, `chunked`) ela confere,
+  * como a da API (correção 6), e o status 1xx como resposta final é desvio e
+- * sai 500, como na API (correção 7).
++ * sai 500, como na API (correção 7). As Early Hints com CR ou LF no valor ela
++ * recusa nas duas versões do Node, como a da API (correção 7b).
+  */
+ 
+ export type ModoDaGuarda = "falhar" | "corrigir";
+@@ -82,6 +83,9 @@ const TETO_DO_CORPO = 64 * 1024;
+ /** Toda chave de objeto num texto JSON válido: uma cadeia seguida de `:`. */
+ const CHAVE_JSON = /"((?:[^"\\]|\\.)*)"\s*:/g;
+ const FORMA_DE_CODIGO = /^[a-z_]{1,64}$/;
++/** Nome de cabeçalho válido (token do HTTP) e valor sem caractere de controle: a regra do Node 24. */
++const NOME_DE_CABECALHO = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
++const VALOR_DE_CABECALHO_INVALIDO = /[^\t\x20-\x7e\x80-\xff]/;
+ 
+ const tem = (o: object, k: string): boolean => aplicar(temPropria, o, [k]) as boolean;
+ const casa = (re: RegExp, s: string): RegExpExecArray | null => aplicar(executarRegex, re, [s]) as RegExpExecArray | null;
+@@ -854,7 +858,44 @@ function envolverResposta(raw: ServerResponse, req: FastifyRequest, log: Fastify
+     }
+   }
+ 
++  /*
++    AS EARLY HINTS (correção 7b, CI em Node 22). O Node 24 recusa CR ou LF no
++    valor de `writeEarlyHints` (lança `ERR_INVALID_CHAR`); o Node 22, que é o
++    de produção (`Dockerfile`), escreve o valor como veio, e
++    `writeEarlyHints({ "x": "a\r\n\r\nHTTP/1.1 403 ..." })` põe uma cabeça
++    403 inteira no fio. A porta dos bytes já pegava essa cabeça (troca a
++    resposta e fecha a conexão), mas o resultado mudava com a versão do Node.
++    Aqui a guarda aplica a regra do Node 24 nas duas versões: nome que não é
++    token, ou valor com caractere de controle, lança `ERR_INVALID_CHAR` antes de
++    qualquer byte sair, e a rota responde o 500 do tratador de erro. A porta
++    continua como segunda rede.
++  */
++  const earlyHintsOriginal = (raw as unknown as { writeEarlyHints?: (...a: unknown[]) => unknown }).writeEarlyHints;
++  function writeEarlyHints(this: ServerResponse, ...args: unknown[]) {
++    const dicas = args[0];
++    if (typeof dicas === "object" && dicas !== null) {
++      const nomes = chavesDe(dicas);
++      for (let i = 0; i < nomes.length; i += 1) {
++        const nome = nomes[i]!;
++        const v = (dicas as Record<string, unknown>)[nome];
++        const valores: unknown[] = ehArray(v) ? v : [v];
++        let ruim = casa(NOME_DE_CABECALHO, nome) === null;
++        for (let j = 0; !ruim && j < valores.length; j += 1) {
++          ruim = casa(VALOR_DE_CABECALHO_INVALIDO, `${valores[j] as string}`) !== null;
++        }
++        if (ruim) {
++          throw definirPropriedade(new TypeError(`Cabeçalho de Early Hints inválido: "${nome}"`), "code",
++            { value: "ERR_INVALID_CHAR", enumerable: false });
++        }
++      }
++    }
++    return aplicar(earlyHintsOriginal!, raw, args);
++  }
++
+   raw.strictContentLength = true;
++  if (typeof earlyHintsOriginal === "function") {
++    definirPropriedade(raw, "writeEarlyHints", { value: writeEarlyHints, writable: false, configurable: false, enumerable: false });
++  }
+   definirPropriedade(raw, "writeHead", { value: writeHead, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "write", { value: write, writable: false, configurable: false, enumerable: false });
+   definirPropriedade(raw, "end", { value: end, writable: false, configurable: false, enumerable: false });
+diff --git a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+index 2cce16d..5e5b46b 100644
+--- a/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
++++ b/dc360/apps/console/test/guarda-de-codigos-de-erro.test.ts
+@@ -55,6 +55,24 @@ function plantarCorrecao7(app: FastifyInstance): void {
+     x.writeProcessing(); x._header = "x"; x._headerSent = true; x.end();
+   });
+   app.get(r("g-102-e-final"), async (_q, rep) => { crua7(rep).writeProcessing(); return rep.code(403).type("application/json").send(ok); });
++  // Correção 7b (CI em Node 22): Early Hints com CR/LF, o 103 legítimo, e a recusa direta.
++  app.get(r("f-early"), async (_q, rep) => {
++    rep.writeEarlyHints({ link: "</a.css>; rel=preload", "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 });
++    return { ok: true };
++  });
++  // Sem `await`: o `writeEarlyHints` do Fastify devolve a própria resposta, que é "thenable" e só
++  // resolve quando a resposta termina; esperar por ela ali trava o pedido.
++  app.get(r("f-early-legitimo"), async (_q, rep) => {
++    rep.writeEarlyHints({ link: "</a.css>; rel=preload" });
++    return rep.code(403).type("application/json").send(ok);
++  });
++  app.get(r("f-early-recusa"), async (_q, rep) => {
++    const x = crua7(rep);
++    try { x.writeEarlyHints({ "x-s": "a\r\n\r\n" + CABECA_C7 + CORPO_C7 }); } catch (e) {
++      return { codigo: (e as { code?: string }).code ?? "sem-codigo", fila: x.outputData.length };
++    }
++    return { codigo: "escreveu", fila: x.outputData.length };
++  });
+ }
+ 
+ type RespostaLida = { status: number; corpo: string };
+@@ -369,6 +387,32 @@ describe("correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em p
+     }
+   });
+ 
++  it("correção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { respostas } = lerRespostas(await pipeline(modo, "/c7/f-early"));
++      expect(respostas.map((x) => x.status), `${modo} em Node ${process.versions.node}`).toEqual([500, 404]);
++      expect(forjadas(respostas)).toEqual([]);
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("correção 7b: o 103 legítimo antes do 403 do contrato passa intacto", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const { respostas } = lerRespostas(await pipeline(modo, "/c7/f-early-legitimo"));
++      expect(respostas.map((x) => x.status), modo).toEqual([103, 403, 404]);
++      expect(JSON.parse(respostas[1]!.corpo)).toEqual({ erro: "so_o_dono", mensagem: "x" });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
++  it("correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte", async () => {
++    for (const modo of ["falhar", "corrigir"] as const) {
++      const r = await consoles.get(modo)!.app.inject({ method: "GET", url: "/c7/f-early-recusa" });
++      expect(r.json(), `${modo} em Node ${process.versions.node}`).toEqual({ codigo: "ERR_INVALID_CHAR", fila: 0 });
++    }
++    expect(lerDesviosDaGuarda()).toEqual([]);
++  });
++
+   it("controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele", async () => {
+     for (const modo of ["falhar", "corrigir"] as const) {
+       const { respostas } = lerRespostas(await pipeline(modo, "/c7/g-102-e-final"));
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index ba0c13d..6e9a420 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
+   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
+   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
+   espacial), esquemas Zod compartilhados.
+-- **5538 testes somando o aplicativo** (contagem estática de `npm run
++- **5543 testes somando o aplicativo** (contagem estática de `npm run
+   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
+   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
+   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
+@@ -349,7 +349,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 5538 testes com o aplicativo, auditar, números
++npm run verificar          # typecheck, 5543 testes com o aplicativo, auditar, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/packages/shared/src/codigos-de-erro.ts b/dc360/packages/shared/src/codigos-de-erro.ts
+index 69041eb..1e87a69 100644
+--- a/dc360/packages/shared/src/codigos-de-erro.ts
++++ b/dc360/packages/shared/src/codigos-de-erro.ts
+@@ -167,8 +167,10 @@
+  * resposta que termina só com cabeça provisória fecha a conexão; e o 401 ou 403
+  * do catálogo com `content-length` que não bate sai como a resposta do desvio
+  * (o socket arrolhado pelo `end` do Node é desarrolhado). Os testes da guarda
+- * provam cada forma da rodada 7 por socket cru em pipeline, nos dois modos; o
+- * proxy da borda não foi medido. A varredura proíbe os dois
++ * provam cada forma da rodada 7 por socket cru em pipeline, nos dois modos, em
++ * Node 22 e 24; o proxy da borda não foi medido. CR ou LF nas Early Hints, que
++ * o Node 22 escreveria no fio, a guarda recusa antes de escrever (correção
++ * 7b). A varredura proíbe os dois
+  * caminhos que restam (`.socket`, `.connection`, `.client`, ouvinte de
+  * `connection`, `request` e afins no servidor, `.call`, `.apply`,
+  * `.bind`, `Reflect`, nome interno da resposta do Node como `_writeRaw`,
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index c10fad4..35bd645 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -530,6 +530,13 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     no número do próprio passo.
+   */
+   "V2-F00-E05-correcao-7": { total: 19, falhas: 0, puladas: 0 },
++  /*
++    V2-F00-E05, correção 7b (2026-10-20, CI em Node 22): a guarda recusa CR ou
++    LF nas Early Hints em qualquer versão do Node, e o 103 legítimo antes do
++    403 do catálogo passa: guarda da API de 138 para 140 (+2). A guarda do
++    console (+3) está no número do próprio passo.
++  */
++  "V2-F00-E05-correcao-7b": { total: 2, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -770,7 +777,7 @@ export const PASSOS = [
+   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
+   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
+   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
+-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 304, falhas: 0 } },
++  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 307, falhas: 0 } },
+   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
+   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
+   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

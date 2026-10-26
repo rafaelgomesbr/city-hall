@@ -1,0 +1,26 @@
+# Testes do motor @dc360/campo DEPOIS: 223.
+
+
+> @dc360/campo@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/campo
+
+ ✓ test/prazo.test.ts (12 tests) 21ms
+ ✓ test/conclusao.test.ts (11 tests) 7ms
+ ✓ test/coleta.test.ts (14 tests) 8ms
+ ✓ test/prova-perdida.test.ts (10 tests) 22ms
+ ✓ test/devolucao.test.ts (24 tests) 19ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 27ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 42ms
+ ✓ test/pausa-de-sessao.test.ts (29 tests) 47ms
+ ✓ test/pausa-por-senha-provisoria.test.ts (35 tests) 56ms
+ ✓ test/fila.test.ts (58 tests) 102ms
+
+ Test Files  10 passed (10)
+      Tests  223 passed (223)
+   Start at  05:54:56
+   Duration  1.20s (transform 695ms, setup 0ms, collect 5.06s, tests 351ms, environment 2ms, prepare 2.11s)
+
+exit 0

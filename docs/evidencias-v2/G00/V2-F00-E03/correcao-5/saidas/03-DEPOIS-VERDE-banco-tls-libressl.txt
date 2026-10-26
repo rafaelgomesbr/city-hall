@@ -1,0 +1,11 @@
+familia=libressl openssl=LibreSSL 3.3.6
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ✓ test/banco-tls.test.ts (13 tests) 195ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  01:13:25
+   Duration  563ms (transform 108ms, setup 40ms, collect 59ms, tests 195ms, environment 0ms, prepare 41ms)
+

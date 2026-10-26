@@ -1,0 +1,817 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index 13152d4..4fe115b 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,9 +11,9 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1277 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 187 testes de unidade do motor de campo e 15 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1861 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1283 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 188 testes de unidade do motor de campo e 15 de integração contra a API |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1867 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -1292,11 +1292,11 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2861 testes em seis pacotes
++npm test                    # 2868 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+-npm run test:api            # 1277 testes da API
+-npm run test --workspace @dc360/campo   # 187 testes do motor de campo
+-npm run test:campo          # tipos e os 1861 testes do aplicativo de campo
++npm run test:api            # 1283 testes da API
++npm run test --workspace @dc360/campo   # 188 testes do motor de campo
++npm run test:campo          # tipos e os 1867 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
+ ```
+@@ -1604,7 +1604,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+   aparelho fica sem sinal (V2-F14-E12).
+ 
+-  Essa última já tem 187 testes do motor de campo cobrindo a lógica fora do
++  Essa última já tem 188 testes do motor de campo cobrindo a lógica fora do
+   celular, inclusive retomada arquivo a arquivo.
+   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
+   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+diff --git a/dc360/apps/api/src/auth/servico.ts b/dc360/apps/api/src/auth/servico.ts
+index 4630064..818da3e 100644
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts
+@@ -620,7 +620,11 @@ export function servicoDeAutenticacao(
+     });
+ 
+     if (!sessao) {
+-      await derrubarSePossivelReuso(hash);
++      // `sessao_por_token` não devolve sessão revogada, e desativar a conta
++      // pelo painel REVOGA as sessões dela. Sem esta pergunta, a pessoa
++      // desativada que volta depois do token de acesso vencer caía aqui e lia
++      // "sessão encerrada" (V2-F00-E05, correção 1).
++      if (await tratarTokenRecusado(hash) === "conta_desativada") throw new ContaDesativada();
+       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
+@@ -713,31 +717,59 @@ export function servicoDeAutenticacao(
+   }
+ 
+   /**
+-   * Um token de renovação que já foi ROTACIONADO continua existindo no banco,
+-   * revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
+-   * reúso (o legítimo e o atacante passaram a alternar), e aí a família
+-   * inteira cai.
++   * O que fazer com um token de renovação que `sessao_por_token` não aceitou
++   * (revogado, vencido ou desconhecido). Uma pergunta ao banco, duas decisões.
+    *
+-   * SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
+-   * revogada ou expirada", e esta função derrubava tudo por um token que só
+-   * VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
+-   * pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
+-   * painel da coordenação caía por um token que ninguém roubou. A migração
+-   * 046 faz a função devolver o motivo e o vencimento, e o que não é
+-   * rotação responde 401 e nada mais.
++   * 1. CONTA DESATIVADA (V2-F00-E05, correção 1). Se o servidor RECONHECE o
++   *    token (a sessão existe, mesmo revogada) e a conta do dono está
++   *    desativada AGORA, quem o apresenta recebe `conta_desativada`: ele já
++   *    tem uma credencial que o servidor emitiu para esta conta, e entrar de
++   *    novo não resolve. O estado vem de `dono_do_token` (migração 048), e
++   *    não do motivo da revogação: conta desativada e depois reativada tem
++   *    sessões revogadas por `usuario desativado` e está ativa, e dizer
++   *    "desativada" a ela mandaria a pessoa parar sem motivo.
++   *
++   *    NÃO abre oráculo para quem não tem credencial: token DESCONHECIDO não
++   *    devolve linha e sai como `sessao_encerrada`, igual ao de conta ativa
++   *    cuja sessão foi encerrada. `/auth/entrar` e `/auth/recuperar` não
++   *    mudam. A desativação continua revogando tudo (idempotente).
++   *
++   * 2. REÚSO. Um token que já foi ROTACIONADO continua existindo no banco,
++   *    revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
++   *    reúso (o legítimo e o atacante passaram a alternar), e aí a família
++   *    inteira cai.
++   *
++   *    SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
++   *    revogada ou expirada", e esta função derrubava tudo por um token que só
++   *    VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
++   *    pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
++   *    painel da coordenação caía por um token que ninguém roubou. A migração
++   *    046 faz a função devolver o motivo e o vencimento, e o que não é
++   *    rotação responde 401 e nada mais.
+    */
+-  async function derrubarSePossivelReuso(hash: string): Promise<void> {
++  async function tratarTokenRecusado(hash: string): Promise<"conta_desativada" | "sessao_encerrada"> {
+     // `sessoes` está sob RLS e não é legível sem contexto de tenant, que é
+     // exatamente o que ainda não temos aqui. A pergunta passa pela função
+-    // nomeada da migração 002 (redefinida na 046).
++    // nomeada da migração 002 (redefinida na 046 e na 048).
+     const dono = await banco.semTenant(async (c) => {
+       const r = await c.query<{
+         usuario_id: string; revogada_em: string | null;
+         motivo_revogacao: string | null; expira_em: string;
++        // Ausente num banco que ainda não aplicou a 048: só `false` conta.
++        usuario_ativo?: boolean;
+       }>("SELECT * FROM dono_do_token($1)", [hash]);
+       return r.rows[0] ?? null;
+     }).catch(() => null);
+ 
++    if (dono && dono.usuario_ativo === false) {
++      await banco.semTenant((c) =>
++        c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [
++          dono.usuario_id, "usuario desativado",
++        ]),
++      );
++      return "conta_desativada";
++    }
++
+     if (dono && dono.revogada_em !== null && dono.motivo_revogacao === "rotacionada na renovacao") {
+       await banco.semTenant((c) =>
+         c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [
+@@ -745,6 +777,7 @@ export function servicoDeAutenticacao(
+         ]),
+       );
+     }
++    return "sessao_encerrada";
+   }
+ 
+   /**
+@@ -983,7 +1016,7 @@ export function servicoDeAutenticacao(
+    *
+    * A PRESERVACAO VALE DE VERDADE desde a migracao 046: se um dos aparelhos
+    * derrubados tentar renovar sozinho com o token que acabou de cair,
+-   * `derrubarSePossivelReuso` le o MOTIVO da revogacao ("encerradas pelo
++   * `tratarTokenRecusado` le o MOTIVO da revogacao ("encerradas pelo
+    * proprio usuario"), ve que nao e rotacao, e responde 401 sem derrubar mais
+    * nada. Antes disso `dono_do_token` (migracao 002) devolvia so o dono, e a
+    * duvida entre "foi o proprio usuario" e "e um token roubado" caia para o
+diff --git a/dc360/apps/api/test/api.test.ts b/dc360/apps/api/test/api.test.ts
+index 3bfbbb7..a7c5e15 100644
+--- a/dc360/apps/api/test/api.test.ts
++++ b/dc360/apps/api/test/api.test.ts
+@@ -643,7 +643,12 @@ describe("Superfície e respostas de erro", () => {
+     const renovar = await app.inject({
+       method: "POST", url: "/auth/renovar", payload: { renovacao: sessao.renovacao },
+     });
+-    expect(renovar.statusCode).toBe(401);
++    // 403 `conta_desativada` e nao 401 (correcao 1 da E05): quem apresenta uma
++    // renovacao que o servidor reconhece pode saber que a conta foi desativada.
++    // Continua sem par novo de tokens, e a sessao continua revogada (abaixo).
++    expect(renovar.statusCode).toBe(403);
++    expect(renovar.json().erro).toBe("conta_desativada");
++    expect(renovar.json().renovacao).toBeUndefined();
+ 
+     const noBanco = await mem.bruto.query<{ revogada_em: string | null }>(
+       "SELECT revogada_em FROM sessoes WHERE token_hash = $1",
+diff --git a/dc360/apps/api/test/codigos-de-erro.test.ts b/dc360/apps/api/test/codigos-de-erro.test.ts
+index 738ebc1..219e247 100644
+--- a/dc360/apps/api/test/codigos-de-erro.test.ts
++++ b/dc360/apps/api/test/codigos-de-erro.test.ts
+@@ -307,6 +307,121 @@ describe("Renovar com a conta desativada", () => {
+   });
+ });
+ 
++/**
++ * Correção 1 da V2-F00-E05. O teste acima desativa por UPDATE direto e deixa
++ * a sessão de pé, estado que o produto NUNCA produz: desativar pelo painel
++ * (`PATCH /usuarios/:id/situacao`) revoga as sessões na mesma transação. Aí
++ * `sessao_por_token` já não devolve a sessão e a renovação caía em
++ * `sessao_encerrada`, de modo que a pessoa desativada que voltava depois dos
++ * 15 minutos do token de acesso lia "sessão encerrada" e, ao entrar, "Email ou
++ * senha inválidos", e nunca ficava sabendo que a conta foi desativada.
++ *
++ * Aqui a desativação é a REAL, pelo endpoint, e a renovação é a que o cliente
++ * faz depois que o token de acesso vence.
++ */
++describe("Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)", () => {
++  /** Quem administra desativa ou reativa uma conta do município A, pela rota do produto. */
++  async function mudarSituacao(quem: string, alvoEmail: string, ativo: boolean) {
++    const r = await app.inject({
++      method: "PATCH", url: `/usuarios/${await usuarioDe(alvoEmail)}/situacao`,
++      headers: com(quem), payload: { ativo },
++    });
++    expect(r.statusCode, r.body).toBe(200);
++  }
++
++  async function sessoesVivas(email: string): Promise<number> {
++    const r = await mem.bruto.query(
++      "SELECT 1 FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL", [await usuarioDe(email)],
++    );
++    return r.rows.length;
++  }
++
++  it("desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete", async () => {
++    const helena = await entrar(EMAIL_COORD_A);
++    const diego = await entrar(EMAIL_AGENTE_A);
++    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
++    // O estado que o produto produz: as sessões já caíram antes de qualquer renovação.
++    expect(await sessoesVivas(EMAIL_AGENTE_A)).toBe(0);
++
++    const r = await renovar(diego.renovacao);
++    expectDoCatalogo(r, "conta_desativada");
++    expect(r.json().mensagem).toBe(CODIGOS_DE_ERRO_DE_ACESSO.conta_desativada.mensagem);
++    expect(r.json().acesso, "conta desativada não ganha token novo").toBeUndefined();
++    expect(r.json().renovacao).toBeUndefined();
++    expect(await sessoesVivas(EMAIL_AGENTE_A), "a revogação por desativação continua valendo").toBe(0);
++
++    // O aparelho pode insistir: a resposta não muda (o cliente para na primeira).
++    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
++  });
++
++  it("um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada", async () => {
++    const helena = await entrar(EMAIL_COORD_A);
++    const diego = await entrar(EMAIL_AGENTE_A);
++    const rotacionado = await renovar(diego.renovacao);
++    expect(rotacionado.statusCode, rotacionado.body).toBe(200);
++    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
++    // O aparelho que perdeu a resposta da renovação ainda tem o token antigo.
++    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
++    expectDoCatalogo(await renovar(rotacionado.json().renovacao), "conta_desativada");
++  });
++
++  it("NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada", async () => {
++    const helena = await entrar(EMAIL_COORD_A);
++    const diego = await entrar(EMAIL_AGENTE_A);
++    // Diego é desativado; um terceiro token inventado e o de uma conta ativa
++    // encerrada por quem administra têm de sair IGUAIS entre si.
++    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
++    const aurelio = await entrar(EMAIL_COORD_B);
++    await mem.bruto.query(
++      `UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'encerrada por quem administra'
++        WHERE usuario_id = $1`, [await usuarioDe(EMAIL_COORD_B)],
++    );
++
++    const desconhecido = await renovar("token-que-ninguem-emitiu-0123456789abcdef0123456789abcdef");
++    const deContaInexistente = await renovar("outro-token-inventado-fedcba9876543210fedcba9876543210");
++    const deContaAtiva = await renovar(aurelio.renovacao);
++    for (const r of [desconhecido, deContaInexistente, deContaAtiva]) expectDoCatalogo(r, "sessao_encerrada");
++    expect(desconhecido.body).toBe(deContaInexistente.body);
++    expect(desconhecido.body, "quem não tem credencial não distingue conta ativa de inexistente").toBe(deContaAtiva.body);
++    // E o aparelho de Diego, que TEM o token, continua sabendo.
++    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
++  });
++
++  it("NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada", async () => {
++    const helena = await entrar(EMAIL_COORD_A);
++    const diego = await entrar(EMAIL_AGENTE_A);
++    const encerrar = await app.inject({
++      method: "POST", url: `/usuarios/${await usuarioDe(EMAIL_AGENTE_A)}/encerrar-sessoes`,
++      headers: com(helena.acesso),
++    });
++    expect(encerrar.statusCode, encerrar.body).toBe(200);
++    expectDoCatalogo(await renovar(diego.renovacao), "sessao_encerrada");
++    // A conta está ativa: entrar de novo é o caminho, e funciona.
++    expect((await tentarEntrar(EMAIL_AGENTE_A, SENHA)).statusCode).toBe(200);
++  });
++
++  it("NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar", async () => {
++    const helena = await entrar(EMAIL_COORD_A);
++    const diego = await entrar(EMAIL_AGENTE_A);
++    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
++    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, true);
++    // Dizer "conta desativada" a uma conta ativa mandaria a pessoa parar sem motivo.
++    expectDoCatalogo(await renovar(diego.renovacao), "sessao_encerrada");
++    expect((await tentarEntrar(EMAIL_AGENTE_A, SENHA)).statusCode).toBe(200);
++  });
++
++  it("depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token", async () => {
++    const helena = await entrar(EMAIL_COORD_A);
++    const diego = await entrar(EMAIL_AGENTE_A);
++    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
++    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
++    const desativada = await tentarEntrar(EMAIL_AGENTE_A, SENHA);
++    const inexistente = await tentarEntrar("ninguem@serraalta.exemplo.gov.br", SENHA);
++    expect(desativada.statusCode).toBe(401);
++    expect(desativada.body).toBe(inexistente.body);
++  });
++});
++
+ describe("/auth/entrar não conta nada sobre a conta (resistência a enumeração)", () => {
+   it("conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente", async () => {
+     await desativar(EMAIL_AGENTE_A);
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 9145f04..0648dbf 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -22,7 +22,7 @@ O que É verificável daqui, e está verificado:
+ | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+ | Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57 (versões de correção). Mudou a versão de pacote nativo: o próximo binário do aparelho precisa ser recompilado |
+ | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
+-| A fila que ele consome | `npm test --workspace @dc360/campo` | 187 testes do motor de campo |
++| A fila que ele consome | `npm test --workspace @dc360/campo` | 188 testes do motor de campo |
+ 
+ **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
+ o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
+@@ -95,7 +95,7 @@ na chuva.
+    de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
+ 
+ Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
+-187 testes do motor de campo cobrindo a lógica fora do celular, inclusive
++188 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+ retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
+ quando o sistema mata o processo.
+ 
+@@ -112,7 +112,7 @@ src/ui/              tokens e componentes
+ ```
+ 
+ **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
+-feita sem sinal vive em `packages/campo`, com 187 testes de unidade do motor de campo, e a
++feita sem sinal vive em `packages/campo`, com 188 testes de unidade do motor de campo, e a
+ integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
+ fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
+ isso que ele é fino de propósito.
+diff --git a/dc360/apps/campo/src/dados/token.test.ts b/dc360/apps/campo/src/dados/token.test.ts
+index 0427045..d467452 100644
+--- a/dc360/apps/campo/src/dados/token.test.ts
++++ b/dc360/apps/campo/src/dados/token.test.ts
+@@ -1,4 +1,5 @@
+-import type { Credenciais } from "./api";
++import { FalhaDeSessao } from "@dc360/campo";
++import { ErroDaApi, type Credenciais } from "./api";
+ import { criarObtentorDeToken, lerExpiracaoDoAcesso } from "./token";
+ 
+ /**
+@@ -319,4 +320,78 @@ describe("renovarJa", () => {
+     c.trocarPorFora(null);
+     await expect(obterToken({ renovarJa: true })).resolves.toBeNull();
+   });
++  /*
++    Correção 1 da V2-F00-E05. Desativar a conta pelo painel revoga as sessões, e
++    a API passou a responder 403 `conta_desativada` à renovação de quem
++    apresenta um token que ela reconhece. O aparelho engolia a recusa e
++    devolvia o token vencido, o servidor respondia 401 `nao_autenticado`, e o
++    transporte lia isso como "sessão encerrada": o agente via "entre de novo"
++    e, ao entrar, "Email ou senha inválidos".
++  */
++  describe("renovação recusada porque a conta foi desativada", () => {
++    const contaDesativada = () =>
++      new ErroDaApi(403, "conta_desativada", "Sua conta foi desativada.");
++
++    it("renovarJa lança FalhaDeSessao conta_desativada, com a frase do servidor", async () => {
++      const { obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
++
++      const erro = await obterToken({ renovarJa: true }).catch((e: unknown) => e);
++
++      expect(erro).toBeInstanceOf(FalhaDeSessao);
++      expect((erro as FalhaDeSessao).motivo).toBe("conta_desativada");
++      expect((erro as FalhaDeSessao).message).toBe("Sua conta foi desativada.");
++    });
++
++    it("lembra a recusa dentro do piso, sem pedir outra renovação ao servidor", async () => {
++      let renovacoes = 0;
++      const relogio = { t: agora };
++      const { obterToken } = obtentorCom(async () => {
++        renovacoes += 1;
++        throw contaDesativada();
++      }, relogio);
++
++      await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
++      relogio.t += 5_000; // dentro do piso: a fila tenta de novo e tem de ler a MESMA resposta
++      await expect(obterToken({ renovarJa: true })).rejects.toMatchObject({ motivo: "conta_desativada" });
++      expect(renovacoes).toBe(1);
++    });
++
++    it("o pedido comum (sem renovarJa) segue devolvendo o token atual: só o transporte da fila lê a recusa", async () => {
++      const { c, obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
++      const velho = c.valor!.acesso;
++
++      await expect(obterToken()).resolves.toBe(velho);
++      // O 401 do token vencido é que pergunta, com renovarJa, e aí a recusa é lida.
++      await expect(obterToken({ renovarJa: true })).rejects.toMatchObject({ motivo: "conta_desativada" });
++    });
++
++    it("recusa de OUTRO tipo (sessão encerrada, sem sinal) continua devolvendo o token atual", async () => {
++      const { c, obterToken } = obtentorCom(async () => {
++        throw new ErroDaApi(401, "sessao_encerrada", "Sessão expirada. Entre novamente.");
++      }, { t: agora });
++      await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
++    });
++
++    it("conta reativada: passado o piso, a nova tentativa vale, e a recusa antiga não gruda", async () => {
++      const relogio = { t: agora };
++      let resposta: "desativada" | "encerrada" = "desativada";
++      const { c, obterToken } = obtentorCom(async () => {
++        if (resposta === "desativada") throw contaDesativada();
++        throw new ErroDaApi(401, "sessao_encerrada", "Sessão expirada. Entre novamente.");
++      }, relogio);
++      await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
++
++      resposta = "encerrada"; // a coordenação reativou: a sessão antiga está revogada, a conta não
++      relogio.t += 61_000;
++      await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
++    });
++
++    it("entrar de novo (outras credenciais) apaga a recusa", async () => {
++      const { c, obterToken } = obtentorCom(async () => { throw contaDesativada(); }, { t: agora });
++      await expect(obterToken({ renovarJa: true })).rejects.toBeInstanceOf(FalhaDeSessao);
++
++      c.trocarPorFora({ acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r-da-nova-entrada" });
++      await expect(obterToken({ renovarJa: true })).resolves.toBe(c.valor!.acesso);
++    });
++  });
+ });
+diff --git a/dc360/apps/campo/src/dados/token.ts b/dc360/apps/campo/src/dados/token.ts
+index 919a911..a63ee68 100644
+--- a/dc360/apps/campo/src/dados/token.ts
++++ b/dc360/apps/campo/src/dados/token.ts
+@@ -1,4 +1,4 @@
+-import type { ObterToken } from "@dc360/campo";
++import { FalhaDeSessao, type ObterToken } from "@dc360/campo";
+ import type { Credenciais } from "./api";
+ 
+ /**
+@@ -11,7 +11,7 @@ import type { Credenciais } from "./api";
+  *
+  * O token de renovação é ROTATIVO: cada uso queima o anterior. O servidor
+  * trata a reapresentação de um token já queimado como sintoma de roubo e
+- * derruba TODAS as sessões do agente (`derrubarSePossivelReuso`, na API).
++ * derruba TODAS as sessões do agente (`tratarTokenRecusado`, na API).
+  * Duas consequências decorrem disso, e as duas moram aqui:
+  *
+  * 1. Duas renovações ao mesmo tempo se sabotam. A segunda a chegar leva um
+@@ -133,6 +133,15 @@ export function criarObtentorDeToken(
+ 
+   let renovacaoEmVoo: Promise<string | null> | null = null;
+   let ultimaTentativaMs = Number.NEGATIVE_INFINITY;
++  /*
++    A última recusa de renovação que foi 403 `conta_desativada`: o token de
++    renovação que a provocou e a frase do servidor. É a memória que faz o
++    pedido forçado do transporte (depois de um 401 `nao_autenticado`) saber o
++    PORQUÊ, e não só que não renovou. Sem ela, a pessoa desativada que voltava
++    do morro depois dos 15 minutos do token de acesso lia "entre de novo" e,
++    ao entrar, "Email ou senha inválidos" (V2-F00-E05, correção 1).
++  */
++  let contaDesativada: { renovacao: string; mensagem: string } | null = null;
+ 
+   function estaPertoDeVencer(acesso: string): boolean {
+     const expiraEmMs = lerExpiracaoDoAcesso(acesso);
+@@ -142,7 +151,7 @@ export function criarObtentorDeToken(
+     return expiraEmMs - agora() <= folgaMs;
+   }
+ 
+-  return async function obterToken(pedido?: { renovarJa?: boolean }): Promise<string | null> {
++  async function obterOuRenovar(pedido?: { renovarJa?: boolean }): Promise<string | null> {
+     const atuais = ferramentas.lerCredenciais();
+     if (!atuais) return null;
+ 
+@@ -165,6 +174,9 @@ export function criarObtentorDeToken(
+ 
+     renovacaoEmVoo = (async () => {
+       try {
++        // Uma tentativa nova reavalia a recusa: conta reativada depois de
++        // desativada responde outra coisa (a sessão antiga está revogada).
++        contaDesativada = null;
+         const novas = await ferramentas.renovar(atuais.renovacao);
+ 
+         const valendoAgora = ferramentas.lerCredenciais();
+@@ -180,7 +192,10 @@ export function criarObtentorDeToken(
+ 
+         await ferramentas.guardarCredenciais(novas);
+         return novas.acesso;
+-      } catch {
++      } catch (erro) {
++        if (ehContaDesativada(erro)) {
++          contaDesativada = { renovacao: atuais.renovacao, mensagem: (erro as Error).message };
++        }
+         /*
+           Falhou: pode ser sinal, pode ser sessão morta. Devolver o token
+           atual é o certo nos dois casos. Se for sinal, o token ainda vale e o
+@@ -196,5 +211,36 @@ export function criarObtentorDeToken(
+     })();
+ 
+     return renovacaoEmVoo;
++  }
++
++  return async function obterToken(pedido?: { renovarJa?: boolean }): Promise<string | null> {
++    const token = await obterOuRenovar(pedido);
++    /*
++      Só o pedido FORÇADO lê a recusa por conta desativada, e lança. É o do
++      transporte da fila, que já recebeu um 401 `nao_autenticado` do token
++      vencido e pergunta se há token novo: a resposta honesta é "a conta foi
++      desativada", que a fila guarda como pausa `conta_desativada`, e não
++      "devolvi o mesmo token" (que viraria `sessao_encerrada`). O pedido comum
++      continua devolvendo o token atual, sem lançar, para quem não sabe o que
++      fazer com uma exceção (telas, push). A recusa vale para as credenciais
++      que a provocaram: entrar de novo troca o token de renovação e a apaga.
++    */
++    if (pedido?.renovarJa === true && contaDesativada) {
++      if (ferramentas.lerCredenciais()?.renovacao === contaDesativada.renovacao) {
++        throw new FalhaDeSessao(contaDesativada.mensagem, "conta_desativada");
++      }
++    }
++    return token;
+   };
+ }
++
++/**
++ * A renovação foi recusada com 403 `conta_desativada`. Lida pelo CÓDIGO que
++ * `ErroDaApi` carrega (o mesmo de `falha-de-atualizacao.ts`), sem importar a
++ * classe: este arquivo só conhece o contrato da função `renovar`.
++ */
++function ehContaDesativada(erro: unknown): boolean {
++  if (typeof erro !== "object" || erro === null) return false;
++  const { status, codigo } = erro as { status?: unknown; codigo?: unknown };
++  return status === 403 && codigo === "conta_desativada";
++}
+diff --git a/dc360/apps/web/test/fluxo-api.e2e.mjs b/dc360/apps/web/test/fluxo-api.e2e.mjs
+index 6e22e3d..d8d9355 100644
+--- a/dc360/apps/web/test/fluxo-api.e2e.mjs
++++ b/dc360/apps/web/test/fluxo-api.e2e.mjs
+@@ -990,6 +990,78 @@ const idDoMarcos = await page.evaluate(async ({ api }) => {
+   await contextoDele.close();
+ }
+ 
++// 23c. Conta desativada pelo painel e a pessoa so volta DEPOIS de o token de
++// acesso vencer (correcao 1 da E05). E o caminho comum: o aparelho ou a aba
++// parada passa dos 15 minutos, o pedido leva 401 `nao_autenticado`, o painel
++// renova, e a renovacao tem de dizer `conta_desativada`. Desativar pelo painel
++// REVOGA as sessoes, e foi ai que a renovacao respondia "sessao encerrada".
++{
++  // O Marcos foi desativado em 23b: a coordenacao o reativa (rota do produto) para ele entrar de novo.
++  const reativou = await page.evaluate(async ({ api, id }) => {
++    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
++    const r = await fetch(`${api}/usuarios/${id}/situacao`, {
++      method: "PATCH",
++      headers: { authorization: `Bearer ${tokens.acesso}`, "content-type": "application/json" },
++      body: JSON.stringify({ ativo: true }),
++    });
++    return r.status;
++  }, { api: API_E05, id: idDoMarcos });
++  ok("a coordenacao reativa o Marcos", reativou === 200, `(${reativou})`);
++
++  const { contextoDele, paginaDele } = await abrirComoMarcos();
++  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++  await page.waitForSelector("#usuario-nome", { timeout: 20_000 });
++  const linha = page.locator("tbody tr", { hasText: "marcos.teles@serraalta.exemplo.gov.br" });
++  await linha.getByRole("button", { name: "Desativar" }).click();
++  await page.getByRole("button", { name: /^Desativar Marcos/ }).click();
++  await linha.getByRole("button", { name: "Reativar" }).waitFor({ timeout: 20_000 });
++  ok("a coordenacao desativa o Marcos pelo painel (as sessoes dele caem junto)", true);
++
++  // Passam os 15 minutos: o token de acesso dele vence, e o de renovacao e o que o painel usa.
++  await paginaDele.evaluate(() => {
++    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
++    sessionStorage.setItem("dc360:tokens", JSON.stringify({ ...tokens, acesso: "token.vencido.invalido" }));
++  });
++  await tentarTrocarSenha(paginaDele);
++  const aviso = (await paginaDele.locator(".aviso").first().textContent()) ?? "";
++  ok("token vencido + conta desativada leva a tela de entrada", paginaDele.url().includes("/entrar"));
++  ok("e diz que a conta foi desativada, e nao que a sessao foi encerrada ou expirou",
++     /sua conta foi desativada/i.test(aviso) && !/sess[ãa]o foi encerrada/i.test(aviso) && !/expirou/i.test(aviso),
++     `(${aviso.slice(0, 80)})`);
++  ok("e manda procurar a coordenacao, e nao entrar de novo",
++     /procure a coordena[çc][ãa]o do seu munic[íi]pio/i.test(aviso) && /n[ãa]o\s+resolve/i.test(aviso));
++  ok("com aviso de perigo", (await paginaDele.locator(".aviso--perigo").count()) === 1);
++  ok("os tokens nao ficam guardados",
++     (await paginaDele.evaluate(() => sessionStorage.getItem("dc360:tokens"))) === null);
++
++  if (process.env.CAPTURAS_E05C) {
++    const { mkdirSync } = await import("node:fs");
++    mkdirSync(process.env.CAPTURAS_E05C, { recursive: true });
++    for (const [largura, altura] of [[1280, 900], [390, 844]]) {
++      for (const tema of ["claro", "escuro"]) {
++        await paginaDele.setViewportSize({ width: largura, height: altura });
++        await paginaDele.evaluate((t) => {
++          document.documentElement.dataset.theme = t === "escuro" ? "dark" : "light";
++        }, tema);
++        await paginaDele.waitForTimeout(150);
++        await paginaDele.screenshot({
++          path: `${process.env.CAPTURAS_E05C}/entrada-renovacao-recusada-${largura}-${tema}.png`, fullPage: true,
++        });
++      }
++    }
++  }
++
++  // Entrar de novo continua com a recusa generica, para quem nao tem credencial.
++  await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
++  await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
++  await paginaDele.getByRole("button", { name: "Entrar", exact: true }).click();
++  await paginaDele.waitForSelector(".campo__erro", { timeout: 20_000 });
++  const recusa = (await paginaDele.locator(".campo__erro").first().textContent()) ?? "";
++  ok("a entrada continua com a recusa generica", /inv[áa]lidos/i.test(recusa) && !/desativ/i.test(recusa),
++     `(${recusa.slice(0, 80)})`);
++  await contextoDele.close();
++}
++
+ console.log("\n== 24. Papel alterado com a tela aberta: a escrita seguinte renova em silencio (V2-F00-E07) ==");
+ /*
+   A coordenadora esta logada no painel quando a administradora (Rita) rebaixa
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index a741180..853f95c 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4722 testes somando o aplicativo.** Durante a estabilização da V2 (fase
++- **4735 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+   raiz do repositório.
+@@ -161,6 +161,13 @@ com os dois erros que ele encontrou pelo caminho.
+     npm run migrar -- --conferir   # confere primeiro, não aplica nada
+   ```
+ 
++  **Migração 048 (V2-F00-E05, correção 1): sem ordem obrigatória.** Ela só
++  acrescenta uma coluna de saída (`usuario_ativo`) a `dono_do_token`. O código
++  novo lê essa coluna só quando ela existe: contra um banco sem a 048 a
++  renovação de conta desativada continua respondendo `sessao_encerrada`, como
++  antes, e nada quebra. Migre quando puder; a frase "conta desativada" ao
++  voltar depois de 15 minutos só aparece com a 048 aplicada.
++
+   **Ordem na atualização que traz a migração 047 (família da sessão, V2-F00-E07):
+   migre ANTES de implantar o código novo.** O código novo chama `abrir_sessao`
+   com a família e lê `sessoes.familia_id`; contra um banco sem a 047, todo login
+@@ -302,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4722 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4735 testes com o aplicativo, npm audit, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/docs/RESTORE-DO-BANCO.md b/dc360/docs/RESTORE-DO-BANCO.md
+index df35341..57d5861 100644
+--- a/dc360/docs/RESTORE-DO-BANCO.md
++++ b/dc360/docs/RESTORE-DO-BANCO.md
+@@ -18,6 +18,8 @@ Provado em 2026-10-07, no Windows 11 com Git Bash, por quem escreveu o sistema:
+   numa pasta temporária, provisionado como o job `implantavel` do CI, com as
+   **47 migrações** (001 a 047; o roteiro da V2 dizia 46, mas a E07 acrescentou
+   a 047) aplicadas do zero e a semente sintética.
++  (A 048, de 2026-10-13, só recria `dono_do_token` com uma coluna a mais; o job
++  `restore` do CI a aplica junto das outras, e esta prova local não foi repetida.)
+ - Destino: um **segundo cluster**, também criado com `initdb`, noutra porta.
+ - `pg_restore --exit-on-error` sem erro; linhas por tabela idênticas (36
+   tabelas, 106 linhas); as 47 impressões de `schema_migracoes` idênticas; RLS
+diff --git a/dc360/packages/campo/test/pausa-de-sessao.test.ts b/dc360/packages/campo/test/pausa-de-sessao.test.ts
+index 528c8d2..92839f0 100644
+--- a/dc360/packages/campo/test/pausa-de-sessao.test.ts
++++ b/dc360/packages/campo/test/pausa-de-sessao.test.ts
+@@ -219,6 +219,25 @@ describe("Transporte HTTP: os três códigos", () => {
+     expect(pedidos.some((p) => p?.renovarJa)).toBe(false);
+   });
+ 
++  it("renovação recusada por conta desativada (o obtentor lança): o envio para como conta_desativada, sem repetir o pedido", async () => {
++    // Correção 1 da E05: o 401 nao_autenticado do token vencido não pode virar
++    // "entre de novo" quando a renovação já disse que a conta foi desativada.
++    const buscar = vi.fn(async () => resposta(401, NAO_AUTENTICADO));
++    const obterToken: ObterToken = async (pedido) => {
++      if (pedido?.renovarJa) throw new FalhaDeSessao("Sua conta foi desativada.", "conta_desativada");
++      return "token-velho";
++    };
++    const transporte = transporteHttp({
++      baseUrl: "http://api.exemplo", obterToken, buscar: buscar as unknown as typeof fetch,
++    });
++
++    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: unknown) => e);
++
++    expect(erro).toBeInstanceOf(FalhaDeSessao);
++    expect((erro as FalhaDeSessao).motivo).toBe("conta_desativada");
++    expect(buscar).toHaveBeenCalledTimes(1);
++  });
++
+   it("a falha de sessão NÃO é permanente nem temporária: a fila decide por isso", async () => {
+     const { transporte } = transporteCom([resposta(403, CONTA_DESATIVADA)]);
+     const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: unknown) => e);
+diff --git a/dc360/scripts/baseline.mjs b/dc360/scripts/baseline.mjs
+index 5a7a993..d908f8d 100644
+--- a/dc360/scripts/baseline.mjs
++++ b/dc360/scripts/baseline.mjs
+@@ -250,6 +250,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
+     conta. Nenhuma falha nova nem pulo.
+   */
+   "V2-F00-E23": { total: 12, falhas: 0, puladas: 0 },
++  /*
++    V2-F00-E05, correcao 1: seis casos em `apps/api/test/codigos-de-erro.test.ts`
++    ("Renovar depois de desativar PELO ENDPOINT real": a renovacao da conta
++    desativada pelo painel responde 403 `conta_desativada`, o token ja
++    rotacionado, os tres negativos e a entrada generica). O caso de
++    `api.test.ts` que esperava 401 foi reescrito no lugar, sem mudar a conta.
++  */
++  "V2-F00-E05-correcao-1": { total: 6, falhas: 0, puladas: 0 },
+ };
+ 
+ /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
+@@ -370,6 +378,8 @@ export function esperadoDoTesteDb() {
+ export const BASE_DO_TESTE_CAMPO_PACOTE = { total: 159, falhas: 0 };
+ export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
+   "V2-F00-E06": { total: 28, falhas: 0 },
++  // V2-F00-E05, correcao 1: o obtentor lanca a falha de sessao da conta desativada.
++  "V2-F00-E05-correcao-1": { total: 1, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoPacote() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
+@@ -381,6 +391,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
+   "V2-F00-E14": { total: 1, falhas: -6 },
+   "V2-F00-E15": { total: 20, falhas: -7 },
+   "V2-F00-E16": { total: 4, falhas: -7 },
++  // V2-F00-E05, correcao 1: seis casos em `token.test.ts` (renovacao recusada por conta desativada).
++  "V2-F00-E05-correcao-1": { total: 6, falhas: 0 },
+ };
+ export function esperadoDoTesteCampoApp() {
+   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
+diff --git a/docs/DECISOES-DE-TESTE-DA-FASE-00.md b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+index 4e25656..4fc0b24 100644
+--- a/docs/DECISOES-DE-TESTE-DA-FASE-00.md
++++ b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+@@ -64,6 +64,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
+ | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
+ | painel, e2e contra a API no Firefox: miniatura com `loading="lazy"` e os abortos de propósito no console | 1 verificação e o portão de console | E18 | feito e provado na V2-F00-E18 |
++| API e app: renovação de conta desativada, provada só por UPDATE direto | 1 asserção reescrita (`api.test.ts`), mais 1 acréscimo (6 casos na API, 6 no app, 1 no pacote do campo, 1 seção no e2e do painel) | E05, correção 1 | feito e provado na correção 1 da V2-F00-E05 |
+ 
+ ## Registros
+ 
+@@ -348,3 +349,13 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ - **Depois:** rola até a miniatura e espera o `load` (ou o `error`, que reprova) por até 15 s; `naturalWidth` zero continua reprovando. A lista ganhou três padrões estreitos, presos ao caminho abortado (`/ocorrencias/duplicidades/consulta?` e `/auth/recuperar.`) e ao código de aborto da fonte. Bloqueio de CORS em qualquer outro caminho e fonte ausente de verdade (outro status) continuam reprovando. Nenhuma asserção foi enfraquecida.
+ - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E18/saidas/11-e2e-api-firefox-rodada-1-miniatura-lazy.txt` (a miniatura e os dois abortos), `12-e2e-api-firefox-rodada-2-console-dos-abortos.txt` (271 de 271, só o console) e `04-e2e-api-firefox-final.txt` (verde).
+ - **Etapa e data:** V2-F00-E18, 2026-10-07.
++
++### API e app: a renovação de conta desativada deixa de ser provada só por UPDATE direto (uma asserção reescrita e um acréscimo)
++
++- **Teste reescrito:** `apps/api/test/api.test.ts`, "desativar usuário derruba as sessões dele na hora". **Antes:** depois de desativar pelo endpoint, a renovação do desativado esperava `401`. **Decisão que o torna velho:** a correção 1 da E05 (`tratarTokenRecusado` em `auth/servico.ts`, migração 048): quem apresenta uma renovação que o servidor reconhece e cuja conta está desativada recebe `403 conta_desativada`. O teste irmão que afirma isso pelo mesmo caminho do produto é `codigos-de-erro.test.ts`, "desativada pelo painel, a renovação do aparelho responde 403 conta_desativada". **Depois:** espera `403`, o código `conta_desativada` e nenhum par de tokens; a outra metade do teste (a sessão fica revogada no banco) não mudou. Nenhuma asserção foi enfraquecida.
++- **Teste acrescentado:** `apps/api/test/codigos-de-erro.test.ts`, "Renovar com a conta desativada" ("responde 403 conta_desativada, e a renovação não emite par nenhum"), e `apps/web/test/fluxo-api.e2e.mjs`, seção 23b.
++- **Antes:** o caso desativava a conta por `UPDATE usuarios SET ativo = false`, sem revogar as sessões, e a seção 23b provava a frase pelo token de acesso ainda vivo (a janela de 15 minutos). Isso é um estado que o produto nunca produz: desativar pelo painel (`PATCH /usuarios/:id/situacao`) revoga as sessões na mesma transação. O teste ficava verde enquanto, pelo caminho real, a renovação respondia 401 `sessao_encerrada`.
++- **Decisão:** o QA e o UX da rodada 1 da E05 reprovaram a etapa por isso. É defeito real de código (a renovação não distinguia a conta desativada de quem tem a sessão revogada), e defeito real se conserta no código; o código foi consertado. O caso por UPDATE continua, porque ainda descreve um estado possível (conta desativada por SQL com a sessão de pé, o ramo `!sessao.ativo`), e ganhou ao lado os casos pelo caminho do produto.
++- **Depois:** seis casos novos na API desativam e reativam pelo ENDPOINT real: renovação 403 `conta_desativada` sem par novo e repetível; token já rotacionado; negativos (token desconhecido e conta ativa encerrada com corpos idênticos; encerrada por quem administra sem desativar continua `sessao_encerrada`; desativada e reativada volta a `sessao_encerrada`; entrar continua com a recusa genérica). No app, a renovação recusada por conta desativada passa a ser lida pelo obtentor de token (seis casos em `token.test.ts` e um em `pausa-de-sessao.test.ts`). No painel, a seção 23c do e2e vence o token de acesso e prova a frase pela renovação.
++- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E05/correcao-1/saidas/` (antes: 4 dos 22 casos de `codigos-de-erro.test.ts` e 5 dos 6 casos novos do app reprovam; depois: todos passam, e `api.test.ts` só passa com o `403` novo).
++- **Etapa e data:** V2-F00-E05, correção 1, 2026-10-13.
+diff --git a/dc360/db/migrations/048_dono_do_token_diz_se_a_conta_esta_ativa.sql b/dc360/db/migrations/048_dono_do_token_diz_se_a_conta_esta_ativa.sql
+new file mode 100644
+index 0000000..fcf2564
+--- /dev/null
++++ b/dc360/db/migrations/048_dono_do_token_diz_se_a_conta_esta_ativa.sql
+@@ -0,0 +1,69 @@
++-- =====================================================================
++-- 048: `dono_do_token` diz tambem se a conta do dono esta ativa.
++--
++-- O DEFEITO (V2-F00-E05, correcao 1). Desativar uma conta pelo painel
++-- (`PATCH /usuarios/:id/situacao`) revoga as sessoes dela na mesma transacao.
++-- A renovacao pergunta a `sessao_por_token`, que por desenho NAO devolve
++-- sessao revogada, e por isso a pessoa desativada que voltava depois dos
++-- quinze minutos do token de acesso recebia `401 sessao_encerrada`: o ramo
++-- "conta desativada" da renovacao so era alcancavel por um estado que o
++-- produto nunca produz (conta desativada com sessao de pe). A pessoa lia
++-- "sua sessao foi encerrada" e, ao entrar, "Email ou senha invalidos", e
++-- nunca ficava sabendo do motivo.
++--
++-- A CORRECAO. Quem apresenta um token de renovacao que o servidor RECONHECE
++-- (a sessao existe, revogada ou nao) e cuja conta esta desativada pode saber
++-- que a conta foi desativada: ele ja tem uma credencial emitida pelo servidor
++-- para esta conta, e entrar de novo nao resolve. `dono_do_token` ja devolve o
++-- dono de qualquer token conhecido; esta migracao acrescenta UMA coluna, o
++-- estado da conta (`usuarios.ativo`), lido na mesma consulta. A tabela
++-- `usuarios` esta sob RLS e a funcao roda sem municipio no contexto (a
++-- renovacao ainda nao sabe de quem e o token), entao a pergunta nao teria
++-- outro caminho sem uma funcao privilegiada nova, e o teto de 27 de
++-- `db/test/isolamento.test.ts` nao muda: a funcao e a mesma, com uma coluna a
++-- mais na saida.
++--
++-- O QUE NAO MUDA, E E O QUE IMPORTA PARA QUEM NAO TEM CREDENCIAL
++--
++--   - Token DESCONHECIDO continua sem linha: o servidor responde igual para
++--     "nunca existiu" e "e de conta inexistente". Quem nao tem token nao
++--     distingue conta desativada de conta ativa ou inexistente.
++--   - `/auth/entrar` e `/auth/recuperar` nao mudam.
++--   - A saida continua estreita: o dono, tres carimbos e um booleano. Nada de
++--     nome, papel, municipio, email ou hash. O booleano so e util a quem ja
++--     tinha o token (que e segredo de 256 bits, guardado so como hash).
++--   - O estado da conta e lido AGORA, e nao deduzido do motivo da revogacao:
++--     conta desativada e depois reativada tem sessoes revogadas por
++--     `usuario desativado` e esta ativa, e dizer "desativada" a ela mandaria
++--     a pessoa parar sem motivo. Sem coluna nova em tabela, sem policy nova.
++--
++-- DROP e CREATE porque `RETURNS TABLE` nao se altera com CREATE OR REPLACE.
++-- O DROP leva as permissoes junto, entao o REVOKE e o GRANT sao repetidos.
++-- Migracao aplicada nunca e editada: reverter e uma migracao nova.
++-- =====================================================================
++
++DROP FUNCTION IF EXISTS dono_do_token(text);
++
++CREATE FUNCTION dono_do_token(p_token_hash text)
++RETURNS TABLE (
++  usuario_id       uuid,
++  revogada_em      timestamptz,
++  motivo_revogacao text,
++  expira_em        timestamptz,
++  usuario_ativo    boolean
++)
++LANGUAGE sql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT s.usuario_id, s.revogada_em, s.motivo_revogacao, s.expira_em, u.ativo
++    FROM sessoes s
++    JOIN usuarios u ON u.id = s.usuario_id
++   WHERE s.token_hash = p_token_hash;
++$$;
++
++COMMENT ON FUNCTION dono_do_token(text) IS
++  'De quem era um token de renovacao que ja nao vale, por que (revogacao com motivo, ou vencimento) e se a conta do dono esta ativa. Serve a duas perguntas de quem apresenta o token: ele reapareceu depois de ROTACIONADO (reuso, e a familia cai)? a conta foi desativada (403 conta_desativada, e nao 401)? Token desconhecido nao devolve linha.';
++
++REVOKE ALL ON FUNCTION dono_do_token(text) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION dono_do_token(text) TO dc360_app;

@@ -1,0 +1,65 @@
+
+ RUN  v3.2.7 /Users/[usuario]/Documents/city-hall/dc360/apps/api
+
+ ❯ test/zz-antigo.test.ts (22 tests | 1 failed | 18 skipped) 1063ms
+   ↓ Cada código do catálogo sai do servidor real > token vencido, adulterado ou ausente responde 401 nao_autenticado: o cliente renova e repete
+   ↓ Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde
+   ↓ Cada código do catálogo sai do servidor real > papel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada
+   ↓ Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve
+   ↓ Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada
+   ↓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou
+   ↓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto
+   ↓ Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum
+   ↓ Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar
+   ↓ Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05) > depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token
+   ↓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe
+   ↓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também
+   ✓ Nada sai fora do catálogo > os arquivos da API só declaram códigos de autenticação do catálogo ou da entrada 11ms
+   ✓ Nada sai fora do catálogo > o leitor pega código novo e o nome antigo: o teste de catálogo reprova de verdade 1ms
+   ✓ Nada sai fora do catálogo > ninguém escreve `erro: "sessao"` à mão em lugar nenhum da API 5ms
+   × Nada sai fora do catálogo > o catálogo tem os seis códigos e cada um tem ação e mensagem 5ms
+     → expected [ 'acesso_suspenso', …(9) ] to deeply equal [ 'acesso_suspenso', …(5) ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/zz-antigo.test.ts > Nada sai fora do catálogo > o catálogo tem os seis códigos e cada um tem ação e mensagem
+AssertionError: expected [ 'acesso_suspenso', …(9) ] to deeply equal [ 'acesso_suspenso', …(5) ]
+
+- Expected
++ Received
+
+  [
+    "acesso_suspenso",
++   "assinatura",
+    "conta_desativada",
++   "email_so_por_administrador",
+    "nao_autenticado",
++   "posto_insuficiente",
++   "posto_insuficiente_para_dado_pessoal",
+    "sem_permissao",
+    "sessao_encerrada",
+    "troca_de_senha_obrigatoria",
+  ]
+
+ ❯ test/zz-antigo.test.ts:521:60
+    519| 
+    520|   it("o catálogo tem os seis códigos e cada um tem ação e mensagem", (…
+    521|     expect([...LISTA_DE_CODIGOS_DE_ERRO_DE_ACESSO].sort()).toEqual([
+       |                                                            ^
+    522|       "acesso_suspenso", "conta_desativada", "nao_autenticado", "sem_p…
+    523|       "sessao_encerrada", "troca_de_senha_obrigatoria",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed | 18 skipped (22)
+   Start at  01:09:18
+   Duration  1.66s (transform 206ms, setup 16ms, collect 402ms, tests 1.06s, environment 0ms, prepare 35ms)
+

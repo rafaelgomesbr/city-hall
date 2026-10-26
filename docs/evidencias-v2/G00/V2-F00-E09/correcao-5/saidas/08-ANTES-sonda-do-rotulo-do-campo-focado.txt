@@ -1,0 +1,9 @@
+# Sonda do rótulo do campo focado depois da senha errada em Minha conta (viewport 800 px de altura), com o código ANTES da margem do campo
+# (so o html { scroll-padding-top } do celular, sem scroll-margin-top nos controles). Saída da sonda, copiada do terminal.
+# topo = parte de baixo do topo fixo; rotulo = parte de cima do rótulo; o rótulo precisa estar ABAIXO do topo.
+chromium 320 0 {"topo":129,"campo":108,"rotulo":108,"input":140,"y":780,"sp":"140px"}
+chromium 390 0 {"topo":129,"campo":116,"rotulo":116,"input":148,"y":726,"sp":"140px"}
+firefox 320 0 {"topo":129,"campo":100,"rotulo":100,"input":132,"y":788,"sp":"140px"}
+firefox 390 0 {"topo":129,"campo":116,"rotulo":116,"input":148,"y":726,"sp":"140px"}
+webkit 320 0 {"topo":129,"campo":100,"rotulo":100,"input":132,"y":788,"sp":"140px"}
+webkit 390 0 {"topo":129,"campo":116,"rotulo":116,"input":148,"y":726,"sp":"140px"}

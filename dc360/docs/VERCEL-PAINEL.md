@@ -28,7 +28,9 @@ pacotes compartilhados na ordem certa, e publica `apps/web/dist`.
 
 ## 2. A variável que liga o painel na API
 
-Settings > Environment Variables, para Production:
+Desde a emenda de 08/09/2026 (no fim deste arquivo) a variável já vem declarada em
+`dc360/vercel.json`, no bloco `build.env`; não é preciso cadastrá-la no painel da
+Vercel. Esta seção explica o que ela faz e por que não pode faltar. Seu valor:
 
 ```
 VITE_API_URL = https://defesa-civil.fly.dev
@@ -44,7 +46,7 @@ diferentes. `apps/web/src/dados/repositorio.ts` decide o modo por
   WebAssembly dentro do navegador e dados de exemplo. Funciona, é bonito, e
   não é o produto. Serve para demonstrar sem servidor.
 
-Se o objetivo é mostrar o sistema de verdade, a variável precisa estar lá.
+Se o objetivo é mostrar o sistema de verdade, a variável precisa estar no build (`vercel.json`).
 
 ## 3. Publicar
 

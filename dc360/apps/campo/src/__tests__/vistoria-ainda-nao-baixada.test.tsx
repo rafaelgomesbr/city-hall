@@ -46,7 +46,7 @@ jest.mock("expo-location", () => ({
 }));
 
 jest.mock("expo-crypto", () => ({
-  randomUUID: () => "11111111-1111-1111-1111-111111111111",
+  randomUUID: () => "11111111-1111-4111-8111-111111111111",
 }));
 
 jest.mock("expo-file-system", () => ({
@@ -92,11 +92,19 @@ jest.mock("../dados/fila", () => ({
   obterFila: jest.fn(async () => ({ enfileirar: jest.fn(async () => {}) })),
 }));
 
+/*
+  Os DOIS verbos da sessão, espionados. A tela só pode chamar o que NÃO apaga
+  (`encerrarSessaoVencida`): `sair` apaga a vistoria começada. Ver a decisão de
+  V2-F00-E15, correção 1, em `docs/DECISOES-DE-TESTE-DA-FASE-00.md`, e a prova
+  com os módulos reais em `vistoria-sessao-vencida-preserva-o-rascunho.test.tsx`.
+*/
 const mockSair = jest.fn(async () => undefined);
+const mockEncerrarSessaoVencida = jest.fn(async () => undefined);
 jest.mock("../dados/sessao", () => ({
   useSessao: () => ({
     obterToken: async () => mockToken,
     sair: () => mockSair(),
+    encerrarSessaoVencida: () => mockEncerrarSessaoVencida(),
     identidade: {
       nome: "Agente de teste", matricula: "0001",
       organizacaoNome: "Defesa Civil de Teste", municipio: "Teste", uf: "SC",
@@ -224,7 +232,7 @@ it("nomeia a sessão vencida em vez de culpar o sinal", async () => {
   oferece o ato que resolve; esta tela precisa dizer a mesma coisa, pela mesma
   régua, porque é o mesmo agente lendo as duas.
 */
-it("o 401 nomeia a sessão encerrada e oferece sair e entrar de novo", async () => {
+it("o 401 nomeia a sessão encerrada e oferece entrar de novo, sem apagar nada", async () => {
   await abrirATela();
   mockAoBaixar = () => { throw { status: 401, codigo: "nao_autenticado" }; };
 
@@ -237,11 +245,13 @@ it("o 401 nomeia a sessão encerrada e oferece sair e entrar de novo", async () 
   expect(screen.queryByText(/Tente de novo em alguns minutos/)).toBeNull();
 
   await act(async () => {
-    fireEvent.press(screen.getByText("Sair e entrar de novo"));
+    fireEvent.press(screen.getByText("Entrar de novo"));
   });
   await act(async () => {});
 
-  expect(mockSair).toHaveBeenCalledTimes(1);
+  /* O verbo que preserva o disco, e nunca o que apaga (V2-F00-E15). */
+  expect(mockEncerrarSessaoVencida).toHaveBeenCalledTimes(1);
+  expect(mockSair).not.toHaveBeenCalled();
   const { router } = jest.requireMock("expo-router") as { router: { replace: jest.Mock } };
   expect(router.replace).toHaveBeenCalledWith("/entrar");
 });
@@ -258,6 +268,7 @@ it("o acesso suspenso pelo fornecedor não manda entrar de novo", async () => {
   expect(screen.getByText("Acesso suspenso pelo fornecedor")).toBeTruthy();
   /* Entrar de novo dá a mesma recusa, e sair apagaria a identidade que
      carimba a coleta: o botão não existe aqui de propósito. */
+  expect(screen.queryByText("Entrar de novo")).toBeNull();
   expect(screen.queryByText("Sair e entrar de novo")).toBeNull();
 });
 
@@ -271,6 +282,7 @@ it("a falha sem nome continua pedindo para tentar daqui a pouco", async () => {
   await act(async () => {});
 
   expect(screen.getByText(/Não deu para atualizar agora/)).toBeTruthy();
+  expect(screen.queryByText("Entrar de novo")).toBeNull();
   expect(screen.queryByText("Sair e entrar de novo")).toBeNull();
   expect(screen.getByTestId("baixar-para-abrir")).toBeTruthy();
 });

@@ -23,6 +23,7 @@ import { Modal } from "../componentes/Modal";
 import { Toast } from "../componentes/Toast";
 import { useTitulo } from "../seo/titulo";
 import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
+import { EmailQuebravel } from "../componentes/EmailQuebravel";
 
 /**
  * Usuários do município.
@@ -370,7 +371,7 @@ export function Usuarios() {
                             </span>
                             <span>
                               <div className="tabela__principal">{u.nome}</div>
-                              <div className="tabela__secundario">{u.email}</div>
+                              <div className="tabela__secundario tabela__secundario--email"><EmailQuebravel email={u.email} /></div>
                             </span>
                           </div>
                         </td>
@@ -451,8 +452,9 @@ export function Usuarios() {
         titulo="Desativar usuário"
         consequencia={
           <>
-            A pessoa perde o acesso agora: as sessões dela caem e o aplicativo
-            de campo para de sincronizar. O nome continua nos laudos que ela
+            A pessoa perde o acesso agora: renovar a sessão e gravar são recusados na
+            hora (uma tela já aberta pode continuar consultando por alguns minutos) e o
+            aplicativo de campo para de sincronizar. O nome continua nos laudos que ela
             assinou e na trilha de auditoria, e reativar devolve o acesso.
           </>
         }
@@ -469,7 +471,7 @@ export function Usuarios() {
             linha clicada não era a que se estava lendo.
           */
           <p className="campo__dica">
-            <span className="mono">{aDesativar.matricula}</span>, {aDesativar.email},{" "}
+            <span className="mono">{aDesativar.matricula}</span>, <EmailQuebravel email={aDesativar.email} />,{" "}
             {ROTULO_PAPEL[aDesativar.papel]}
             {aDesativar.equipe_nome ? `, ${aDesativar.equipe_nome}` : ""}.
           </p>
@@ -548,8 +550,9 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
         titulo="Redefinir senha"
         consequencia={
           <>
-            A senha atual de {alvo.nome} deixa de valer agora e as sessões abertas
-            caem. O sistema sorteia uma senha temporária, mostrada uma única vez,
+            A senha atual de {alvo.nome} deixa de valer agora, e as sessões abertas deixam
+            de renovar e de gravar (uma tela já aberta pode continuar consultando por alguns
+            minutos). O sistema sorteia uma senha temporária, mostrada uma única vez,
             que vale por 72 horas e precisa ser trocada na primeira entrada.
           </>
         }
@@ -560,7 +563,7 @@ function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
         aoCancelar={() => setAberto(false)}
       >
         <p className="campo__dica">
-          <span className="mono">{alvo.matricula}</span>, {alvo.email},{" "}
+          <span className="mono">{alvo.matricula}</span>, <EmailQuebravel email={alvo.email} />,{" "}
           {ROTULO_PAPEL[alvo.papel]}.
         </p>
         {erro && <Aviso tom="perigo">{erro}</Aviso>}
@@ -646,9 +649,10 @@ function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
         titulo="Encerrar sessões"
         consequencia={
           <>
-            {alvo.nome} sai de todos os navegadores e aparelhos agora e precisa entrar de
-            novo com a própria senha, que não muda. Quem está em campo fica sem sincronizar
-            até entrar outra vez.
+            {alvo.nome} deixa de poder renovar a sessão e de gravar qualquer coisa agora, e
+            precisa entrar de novo com a própria senha, que não muda. Uma tela que já estava
+            aberta pode continuar consultando por alguns minutos. Quem está em campo
+            fica sem sincronizar até entrar outra vez.
           </>
         }
         rotuloDaAcao={`Encerrar sessões de ${alvo.nome}`}

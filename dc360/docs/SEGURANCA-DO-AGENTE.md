@@ -152,7 +152,7 @@ O botão de encerrar pede **o que houve**, de uma lista curta:
 | --- | --- |
 | Falei com a pessoa, está bem | Contato por rádio, telefone ou outra equipe |
 | Voltou à base e não confirmou no aplicativo | Acontece: bateria, telefone no bolso, fim de turno |
-| Acionei apoio | **Exige dizer o que foi acionado, e a que horas** |
+| Acionei apoio | **Exige dizer o que foi acionado** (observação de 3 a 300 caracteres). A tela sugere escrever também a que horas, mas o sistema só exige o tamanho do texto; a hora do encerramento é o carimbo do servidor |
 | A saída foi declarada por engano | Erro de digitação, tarefa trocada |
 
 **"O agente confirmou o retorno" não está nessa lista**, e a ausência é a regra:
@@ -171,11 +171,17 @@ onde o aviso leva.
 ## 6. O que fica registrado, e por quanto tempo
 
 Quatro atos entram na trilha de auditoria da ocorrência: a saída declarada, cada
-prorrogação, o retorno confirmado, e o encerramento pela coordenação. Com autor,
-hora do aparelho e hora do servidor.
+prorrogação, o retorno confirmado, e o encerramento pela coordenação. Com autor e hora do
+servidor; nos três atos que o aparelho do agente faria (declarar, prorrogar,
+confirmar) a hora do aparelho também fica, e no encerramento pela coordenação só
+há a hora do servidor.
 
-A trilha **não se reescreve**, nem pela prefeitura nem por nós. Correção entra
-como registro novo.
+A trilha **não se reescreve**, nem pela prefeitura nem por nós: nem a aplicação nem
+quem administra tem como alterar ou apagar um evento, e correção entra como
+registro novo. Duas exceções existem, ambas funções do banco: a minimização por
+prazo troca o nome de quem assinou a vistoria (dentro do evento "vistoria") por
+"removido por prazo", e a eliminação do município apaga tudo dele, trilha
+inclusa, depois dos sete dias de arrependimento.
 
 **O texto que a coordenação escreve ao encerrar não é apagado pela minimização
 por prazo**, ao contrário do nome de quem liga para a central. A razão é que o

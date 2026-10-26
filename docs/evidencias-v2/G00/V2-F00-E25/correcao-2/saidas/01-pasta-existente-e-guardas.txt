@@ -1,0 +1,33 @@
+linha do passo 0 (mktemp): PASTA_RESTORE="$(mktemp -d "${TMPDIR:-/tmp}/dc360-restore.XXXXXX")"
+linha do passo 0 (marca): test -d "$PASTA_RESTORE" && touch "$PASTA_RESTORE/.criada-pelo-roteiro" && echo "pasta da rodada: $PASTA_RESTORE"
+linha do passo 7 (rm): test -f "$PASTA_RESTORE/.criada-pelo-roteiro" && rm -rf "$PASTA_RESTORE"
+=== ANTES (versao 3 anterior do documento): mkdir -m 700 falha, o roteiro segue, o passo 7 apaga a pasta do leitor
+mkdir: <dir>/leitor antigo: File exists
+mkdir devolveu codigo: 1 (o bloco continua, sem set -e)
+passo 7 antigo: pasta do leitor APAGADA, com o arquivo dentro
+=== zsh
+antes: PASTA_RESTORE do leitor = <dir>/leitor zsh
+pasta da rodada: <dir>/pasta com espaco/dc360-restore.DoeM0E
+depois do passo 0: PASTA_RESTORE = <dir>/pasta com espaco/dc360-restore.DoeM0E
+ok: nao e a pasta do leitor
+ok: a pasta nova tem a marca
+drwx------
+ok: passo 7 apagou a pasta nova
+ok: passo 7 NAO apagou a pasta do leitor (sem marca): dado do leitor
+ok: com PASTA_RESTORE vazia o passo 7 nao faz nada
+FIM
+pasta do leitor depois: importante.txt 
+sobras na TMPDIR: 0
+=== bash
+antes: PASTA_RESTORE do leitor = <dir>/leitor bash
+pasta da rodada: <dir>/pasta com espaco/dc360-restore.w3ww0t
+depois do passo 0: PASTA_RESTORE = <dir>/pasta com espaco/dc360-restore.w3ww0t
+ok: nao e a pasta do leitor
+ok: a pasta nova tem a marca
+drwx------
+ok: passo 7 apagou a pasta nova
+ok: passo 7 NAO apagou a pasta do leitor (sem marca): dado do leitor
+ok: com PASTA_RESTORE vazia o passo 7 nao faz nada
+FIM
+pasta do leitor depois: importante.txt 
+sobras na TMPDIR: 0

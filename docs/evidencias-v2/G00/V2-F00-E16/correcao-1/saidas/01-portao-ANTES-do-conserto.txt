@@ -1,0 +1,102 @@
+# ANTES: o portao novo contra o texto de a5da710. 1 de 4 reprova: lista 15 achados em 5 arquivos (os outros 3 casos provam que o portao morde, nao pune comentario e aceita a frase verdadeira).
+
+TAP version 13
+# Subtest: nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado
+not ok 1 - nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado
+  ---
+  duration_ms: 100.4823
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\dc360\\scripts\\portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs:105:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    A fila só envia com o aplicativo aberto. Diga a condição: 'quando o aplicativo estiver aberto e houver sinal'.
+    app/(agente)/fila.tsx:194 [só o sinal como condição] saiu do aparelho, e vai sair assim que houver sinal. A tarefa já saiu d
+    app/(agente)/fila.tsx:445 [só o sinal como condição] ão saiu do aparelho. Vai sair assim que houver sinal." : item.tentativas
+    app/(agente)/fila.tsx:1153 [envio sozinho] ardado continua no aparelho e sai sozinho quando a conexão vo
+    app/(agente)/fila.tsx:1649 [envio sozinho] ada se perde: o que está aqui sai sozinho quando a conexão vo
+    app/(agente)/fila.tsx:1689 [segundo plano] r depois acontece sozinho, em segundo plano." } /> </Cartao> )}
+    app/(agente)/fila.tsx:1689 [envio sozinho] e o envio do que vier depois acontece sozinho, em segundo plano."
+    app/(agente)/fila.tsx:1855 [segundo plano] O envio acontece sozinho, em segundo plano. Este botão é para
+    app/(agente)/fila.tsx:1855 [envio sozinho] alinhamento="center"> O envio acontece sozinho, em segundo plano.
+    app/(agente)/index.tsx:881 [envio sozinho] ntinua guardada no aparelho e sai sozinha assim que houver si
+    app/(agente)/index.tsx:881 [só o sinal como condição] ada no aparelho e sai sozinha assim que houver sinal.", }); } } finally
+    app/(agente)/vistoria/[id].tsx:2163 [só o sinal como condição] está na fila de envio e sobe assim que houver sinal."} </Aviso> <Txt va
+    dados/falha-de-atualizacao.ts:222 [envio sozinho] ntinua guardado no aparelho e sobe sozinho se o acesso voltar.
+    dados/pausa-da-fila.ts:50 [envio sozinho] : assim que você entrar, elas sobem sozinhas.", doCartao: "Guard
+    dados/pausa-da-fila.ts:51 [envio sozinho] ao: "Guardada neste aparelho. Sobe sozinha depois que você ent
+    dados/pausa-da-fila.ts:72 [envio sozinho] : assim que você entrar, elas sobem sozinhas.", doCartao: "Guard
+    + actual - expected
+    
+    + [
+    +   'app/(agente)/fila.tsx:194 [só o sinal como condição] saiu do aparelho, e vai sair assim que houver sinal. A tarefa já saiu d',
+    +   'app/(agente)/fila.tsx:445 [só o sinal como condição] ão saiu do aparelho. Vai sair assim que houver sinal." : item.tentativas',
+    +   'app/(agente)/fila.tsx:1153 [envio sozinho] ardado continua no aparelho e sai sozinho quando a conexão vo',
+    +   'app/(agente)/fila.tsx:1649 [envio sozinho] ada se perde: o que está aqui sai sozinho quando a conexão vo',
+    +   'app/(agente)/fila.tsx:1689 [segundo plano] r depois acontece sozinho, em segundo plano." } /> </Cartao> )}',
+    +   'app/(agente)/fila.tsx:1689 [envio sozinho] e o envio do que vier depois acontece sozinho, em segundo plano."',
+    +   'app/(agente)/fila.tsx:1855 [segundo plano] O envio acontece sozinho, em segundo plano. Este botão é para',
+    +   'app/(agente)/fila.tsx:1855 [envio sozinho] alinhamento="center"> O envio acontece sozinho, em segundo plano.',
+    +   'app/(agente)/index.tsx:881 [envio sozinho] ntinua guardada no aparelho e sai sozinha assim que houver si',
+    +   'app/(agente)/index.tsx:881 [só o sinal como condição] ada no aparelho e sai sozinha assim que houver sinal.", }); } } finally',
+    +   'app/(agente)/vistoria/[id].tsx:2163 [só o sinal como condição] está na fila de envio e sobe assim que houver sinal."} </Aviso> <Txt va',
+    +   'dados/falha-de-atualizacao.ts:222 [envio sozinho] ntinua guardado no aparelho e sobe sozinho se o acesso voltar.',
+    +   'dados/pausa-da-fila.ts:50 [envio sozinho] : assim que você entrar, elas sobem sozinhas.", doCartao: "Guard',
+    +   'dados/pausa-da-fila.ts:51 [envio sozinho] ao: "Guardada neste aparelho. Sobe sozinha depois que você ent',
+    +   'dados/pausa-da-fila.ts:72 [envio sozinho] : assim que você entrar, elas sobem sozinhas.", doCartao: "Guard'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'app/(agente)/fila.tsx:194 [só o sinal como condição] saiu do aparelho, e vai sair assim que houver sinal. A tarefa já saiu d'
+    1: 'app/(agente)/fila.tsx:445 [só o sinal como condição] ão saiu do aparelho. Vai sair assim que houver sinal." : item.tentativas'
+    2: 'app/(agente)/fila.tsx:1153 [envio sozinho] ardado continua no aparelho e sai sozinho quando a conexão vo'
+    3: 'app/(agente)/fila.tsx:1649 [envio sozinho] ada se perde: o que está aqui sai sozinho quando a conexão vo'
+    4: 'app/(agente)/fila.tsx:1689 [segundo plano] r depois acontece sozinho, em segundo plano." } /> </Cartao> )}'
+    5: 'app/(agente)/fila.tsx:1689 [envio sozinho] e o envio do que vier depois acontece sozinho, em segundo plano."'
+    6: 'app/(agente)/fila.tsx:1855 [segundo plano] O envio acontece sozinho, em segundo plano. Este botão é para'
+    7: 'app/(agente)/fila.tsx:1855 [envio sozinho] alinhamento="center"> O envio acontece sozinho, em segundo plano.'
+    8: 'app/(agente)/index.tsx:881 [envio sozinho] ntinua guardada no aparelho e sai sozinha assim que houver si'
+    9: 'app/(agente)/index.tsx:881 [só o sinal como condição] ada no aparelho e sai sozinha assim que houver sinal.", }); } } finally'
+    10: 'app/(agente)/vistoria/[id].tsx:2163 [só o sinal como condição] está na fila de envio e sobe assim que houver sinal."} </Aviso> <Txt va'
+    11: 'dados/falha-de-atualizacao.ts:222 [envio sozinho] ntinua guardado no aparelho e sobe sozinho se o acesso voltar.'
+    12: 'dados/pausa-da-fila.ts:50 [envio sozinho] : assim que você entrar, elas sobem sozinhas.", doCartao: "Guard'
+    13: 'dados/pausa-da-fila.ts:51 [envio sozinho] ao: "Guardada neste aparelho. Sobe sozinha depois que você ent'
+    14: 'dados/pausa-da-fila.ts:72 [envio sozinho] : assim que você entrar, elas sobem sozinhas.", doCartao: "Guard'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs:114:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: o portão morde: as frases que a arbitragem achou na fila são reprovadas
+ok 2 - o portão morde: as frases que a arbitragem achou na fila são reprovadas
+  ---
+  duration_ms: 0.2549
+  type: 'test'
+  ...
+# Subtest: o portão não pune quem explica: comentário pode citar a frase proibida
+ok 3 - o portão não pune quem explica: comentário pode citar a frase proibida
+  ---
+  duration_ms: 0.3349
+  type: 'test'
+  ...
+# Subtest: as frases verdadeiras passam
+ok 4 - as frases verdadeiras passam
+  ---
+  duration_ms: 0.2799
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 172.42
