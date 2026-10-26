@@ -180,10 +180,11 @@ export type Dependencias = {
   modoDaGuarda?: ModoDaGuarda;
   /**
    * Se o tratador de erros LANÇA quando um erro de domínio traz um código fora
-   * do catálogo (`packages/shared/src/erros.ts`, V2-F02-E03). Sem isto: ligado
-   * em `NODE_ENV=test`, desligado fora dele (o cliente recebe o código como
-   * veio; o tipo de `RegraDeNegocio` já recusou a maioria em compilação). Só o
-   * teste da guarda de acesso passa `false`, porque planta de propósito
+   * do catálogo (`packages/shared/src/erros.ts`, V2-F02-E03). A conferência
+   * SÓ EXISTE com `NODE_ENV=test`, qualquer que seja esta opção: fora de teste o
+   * cliente recebe o código como veio (o tipo de `RegraDeNegocio` já recusou a
+   * maioria em compilação) e nada do caminho interno vaza. Em teste, `false`
+   * desliga: só o teste da guarda de acesso o faz, porque planta de propósito
    * códigos fora do catálogo para provar que a guarda os pega.
    */
   conferirCatalogoDeErros?: boolean;
@@ -670,7 +671,7 @@ export async function construirServidor(
    * banco costuma conter nome de tabela, de coluna e de restrição, que é
    * exatamente o mapa que um atacante quer.
    */
-  const lancarSeForaDoCatalogo = conferirCatalogoDeErros ?? config.NODE_ENV === "test";
+  const lancarSeForaDoCatalogo = config.NODE_ENV === "test" && (conferirCatalogoDeErros ?? true);
   /*
     Em teste, um código que não é do catálogo derruba o pedido com a causa
     escrita, em qualquer status. O tipo de `RegraDeNegocio` recusa o literal em

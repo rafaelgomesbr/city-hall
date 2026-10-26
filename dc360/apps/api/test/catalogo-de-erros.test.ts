@@ -19,6 +19,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { RegraDeNegocio, construirServidor } from "../src/servidor.js";
 import { fontesDe, varrerFonte, varrerPasta } from "./varredura-de-erros.js";
+import { reprovacoesDeEnvio, type ExcecaoDeEnvio } from "./varredura-de-envios.js";
 
 /**
  * O CATÁLOGO DE CÓDIGOS DE ERRO, PRESO AO QUE A API EMITE (V2-F02-E03).
@@ -183,6 +184,151 @@ describe("o catálogo cobre o que a API emite, nos dois sentidos (varredura da �
   });
 });
 
+describe("todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }", () => {
+  /*
+    As ÚNICAS saídas da regra, nomeadas por arquivo e chave. Cada uma diz por que
+    não é um envio de erro de domínio escrito à mão.
+  */
+  const EXCECOES: readonly ExcecaoDeEnvio[] = [
+    {
+      arquivo: /rotas[\\/]oficios\.ts$/,
+      chave: "corpo-texto:paginaDeRecusa()",
+      porque:
+        "página HTML curta para o link do ofício aberto num navegador (410 e 404), não resposta JSON da API",
+    },
+    {
+      arquivo: /src[\\/]servidor\.ts$/,
+      chave: "erro.codigo",
+      porque:
+        "tratador central: repassa o código de um erro de domínio já tipado, conferido em teste por `conferirCodigoDoCatalogo`",
+    },
+    {
+      arquivo: /src[\\/]servidor\.ts$/,
+      chave: "suspenso.codigo",
+      porque:
+        "tratador central: o `AcessoSuspenso` do banco (`DC367`), cujo código é constante da classe",
+    },
+    {
+      arquivo: /src[\\/]servidor\.ts$/,
+      chave: "status:erro.status",
+      porque:
+        "tratador central: o status vem do erro de domínio (inteiro de 400 a 599, conferido no construtor)",
+    },
+    {
+      arquivo: /src[\\/]servidor\.ts$/,
+      chave: "status:suspenso.status",
+      porque: "tratador central: 403 ou 503 do `AcessoSuspenso`",
+    },
+    {
+      arquivo: /src[\\/]servidor\.ts$/,
+      chave: "status:status",
+      porque:
+        "tratador central: `bloqueado` é 429 e o resto da autenticação 401; `corpo_invalido` leva o 4xx que o Fastify decidiu",
+    },
+    {
+      arquivo: /src[\\/]servidor\.ts$/,
+      chave: "corpo:banco,status",
+      porque: "sonda de prontidão (503): o corpo é o contrato da sonda do Fly, não erro de domínio",
+    },
+  ];
+  const noCatalogo = (c: string) => ehCodigoDeErro(c);
+  const reprova = (codigo: string) =>
+    reprovacoesDeEnvio(codigo, "src/exemplo.ts", noCatalogo, []).map((v) => v.problema);
+
+  it("a árvore real de apps/api/src passa, e a lista de exceções não tem linha morta", () => {
+    const falhas: string[] = [];
+    const usadas = new Set<string>();
+    for (const arquivo of fontesDe(SRC_DA_API)) {
+      const texto = readFileSync(arquivo, "utf8");
+      for (const v of reprovacoesDeEnvio(texto, arquivo, noCatalogo, [])) {
+        const excecao = EXCECOES.find((x) => x.arquivo.test(arquivo) && x.chave === v.chave);
+        if (excecao) usadas.add(excecao.chave);
+        else
+          falhas.push(
+            `${arquivo.replace(/^.*src[\\/]/, "src/")}:${v.linha} ${v.problema} [${v.chave}]`,
+          );
+      }
+    }
+    expect(falhas).toEqual([]);
+    expect([...usadas].sort()).toEqual([...new Set(EXCECOES.map((x) => x.chave))].sort());
+  });
+
+  it("erro por variável reprova (const codigo = ...; code(409).send({ erro: codigo, ... }))", () => {
+    const fonte =
+      'const codigo = "inventado"; resposta.code(409).send({ erro: codigo, mensagem: "x" });';
+    expect(reprova(fonte)).toEqual(["`erro` não literal (`codigo`)"]);
+  });
+
+  it("corpo em texto reprova (code(500).send('erro interno'))", () => {
+    expect(reprova('resposta.code(500).send("erro interno");')).toEqual([
+      "corpo que não é objeto literal",
+    ]);
+  });
+
+  it("chave `message` no lugar de `mensagem` reprova", () => {
+    expect(reprova('resposta.code(422).send({ erro: "dados_invalidos", message: "x" });')).toEqual([
+      "chave `message` fora de { erro, mensagem, campos?, requisicao?, categoria? }",
+      "corpo sem `mensagem`",
+    ]);
+  });
+
+  it("código literal fora do catálogo reprova, em qualquer cadeia de cabeçalhos", () => {
+    expect(
+      reprova(
+        'resposta.code(409).header("x", "y").type("a/b").send({ erro: "inventado_na_e03", mensagem: "x" });',
+      ),
+    ).toEqual(["código `inventado_na_e03` fora do catálogo"]);
+    expect(
+      reprova('resposta.status(404).send({ erro: "inventado_na_e03", mensagem: "x" });'),
+    ).toHaveLength(1);
+  });
+
+  it("corpo por constante do arquivo é lido (passa quando certo, reprova quando torto)", () => {
+    expect(
+      reprova('const R = { erro: "nao_encontrada", mensagem: "x" }; resposta.code(404).send(R);'),
+    ).toEqual([]);
+    expect(
+      reprova('const R = { erro: "nao_encontrada", message: "x" }; resposta.code(404).send(R);'),
+    ).toHaveLength(2);
+    expect(reprova("resposta.code(404).send(corpoQueNaoSeSabe);")).toEqual([
+      "corpo que não é objeto literal",
+    ]);
+  });
+
+  it("status calculado reprova; 2xx e a escolha literal 200 ou 201 passam", () => {
+    expect(
+      reprova('resposta.code(status).send({ erro: "nao_encontrada", mensagem: "x" });'),
+    ).toEqual(["status não literal"]);
+    expect(reprova("resposta.code(ok ? 200 : 201).send({ id });")).toEqual([]);
+    expect(reprova("resposta.code(200).send({ ok: true });")).toEqual([]);
+    expect(reprova("resposta.code(ok ? 200 : 409).send({ id });")).not.toEqual([]);
+  });
+
+  it("os controles passam: corpo certo, com campos e requisição", () => {
+    expect(reprova('resposta.code(404).send({ erro: "nao_encontrada", mensagem: "x" });')).toEqual(
+      [],
+    );
+    expect(
+      reprova('resposta.code(422).send({ erro: "dados_invalidos", mensagem: "x", campos: [] });'),
+    ).toEqual([]);
+    expect(
+      reprova(
+        'resposta.code(500).send({ erro: "erro_interno", mensagem: "x", requisicao: req.id });',
+      ),
+    ).toEqual([]);
+  });
+
+  it("a exceção nomeada libera só aquela forma, naquele arquivo", () => {
+    const fonte = "resposta.code(409).send({ erro: erro.codigo, mensagem: 'x' });";
+    const liberada = (arquivo: string) =>
+      reprovacoesDeEnvio(fonte, arquivo, noCatalogo, [
+        { arquivo: /servidor\.ts$/, chave: "erro.codigo", porque: "teste" },
+      ]);
+    expect(liberada("src/servidor.ts")).toEqual([]);
+    expect(liberada("src/rotas/outra.ts")).not.toEqual([]);
+  });
+});
+
 describe("RegraDeNegocio só aceita código do catálogo, em compilação", () => {
   it("o compilador recusa texto fora do catálogo, texto solto e aceita o código do catálogo", () => {
     // Arquivo só em memória: o anfitrião do compilador o entrega sem tocar o disco.
@@ -236,6 +382,8 @@ describe("o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=
   let mem: BancoEmMemoria;
   let app: FastifyInstance;
   let appSemConferencia: FastifyInstance;
+  /** Fora de teste (NODE_ENV=production simulado) e COM a opção ligada à força. */
+  let appForaDeTesteComOpcao: FastifyInstance;
   let orgA: string;
   let orgaoDeB: string;
   const tokens: Record<string, string> = {};
@@ -311,6 +459,14 @@ describe("o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=
     });
     plantar(appSemConferencia);
     await appSemConferencia.ready();
+    appForaDeTesteComOpcao = await construirServidor({
+      banco: mem.banco,
+      config: { ...config, NODE_ENV: "production" },
+      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
+      conferirCatalogoDeErros: true,
+    });
+    plantar(appForaDeTesteComOpcao);
+    await appForaDeTesteComOpcao.ready();
 
     for (const [chave, email] of [
       ["coordA", "helena@serraalta.exemplo.gov.br"],
@@ -329,6 +485,7 @@ describe("o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=
   afterAll(async () => {
     await app?.close();
     await appSemConferencia?.close();
+    await appForaDeTesteComOpcao?.close();
     await mem?.banco.encerrar();
   });
 
@@ -343,6 +500,16 @@ describe("o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=
         expect(r.json().message).toContain("inventado_por_variavel");
       },
     );
+
+    it("fora de teste a conferência NÃO existe, mesmo com a opção ligada à força: responde normal e não vaza caminho", async () => {
+      const r = await appForaDeTesteComOpcao.inject({
+        method: "GET",
+        url: "/teste-do-catalogo/variavel-409",
+      });
+      expect(r.statusCode, r.body).toBe(409);
+      expect(r.json()).toEqual({ erro: "inventado_por_variavel", mensagem: "mensagem" });
+      expect(r.body).not.toMatch(/erros\.ts|packages|statusCode|fora do catálogo/);
+    });
 
     it("com a conferência desligada (o teste da guarda), o código sai como veio", async () => {
       const r = await appSemConferencia.inject({

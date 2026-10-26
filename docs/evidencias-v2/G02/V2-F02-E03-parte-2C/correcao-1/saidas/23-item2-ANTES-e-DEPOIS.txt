@@ -1,0 +1,20 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa685a25f05f5cd7c/dc360/apps/api[39m
+
+[90mstdout[2m | test/_tmp/antes-item2.test.ts[2m > [22m[2mANTES: o critério antigo (código literal emitido está no catálogo) não reprova nenhuma das três
+[22m[39mamostra: const codigo = "inventado"; resposta.code(409).send({ erro: codigo, mensagem: "x" }); | emissões: [{"codigo":null,"status":409}] | fora do catálogo: [33m0[39m
+amostra: resposta.code(500).send("erro interno"); | emissões: [] | fora do catálogo: [33m0[39m
+amostra: resposta.code(422).send({ erro: "dados_invalidos", message: "x" }); | emissões: [{"codigo":"dados_invalidos","status":422}] | fora do catálogo: [33m0[39m
+
+[90mstdout[2m | test/_tmp/antes-item2.test.ts[2m > [22m[2mDEPOIS: o critério novo reprova as três
+[22m[39mamostra: const codigo = "inventado"; resposta.code(409).send({ erro: codigo, mensagem: "x" }); | reprovações: ["`erro` não literal (`codigo`)"]
+amostra: resposta.code(500).send("erro interno"); | reprovações: ["corpo que não é objeto literal"]
+amostra: resposta.code(422).send({ erro: "dados_invalidos", message: "x" }); | reprovações: ["chave `message` fora de { erro, mensagem, campos?, requisicao?, categoria? }","corpo sem `mensagem`"]
+
+ [32m✓[39m test/_tmp/antes-item2.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m   Start at [22m 23:52:39
+[2m   Duration [22m 1.66s[2m (transform 215ms, setup 642ms, collect 518ms, tests 19ms, environment 0ms, prepare 156ms)[22m
+

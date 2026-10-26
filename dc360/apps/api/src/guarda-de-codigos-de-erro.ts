@@ -464,7 +464,7 @@ type Cabecalhos = Record<string, unknown> | unknown[] | undefined;
 const CABECALHOS_DO_CORPO: readonly string[] = [
   "content-length", "content-type", "transfer-encoding", "content-encoding", "trailer",
   "content-range", "content-md5", "content-digest", "repr-digest", "digest",
-  "content-language", "content-location", "etag", "last-modified",
+  "content-language", "content-location", "content-disposition", "accept-ranges", "etag", "last-modified",
 ];
 function ehCabecalhoDoCorpo(nome: string): boolean {
   const b = aplicar(paraMinusculas, nome, []) as string;

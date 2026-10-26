@@ -151,10 +151,12 @@ function plantarDv01(app: FastifyInstance): void {
   // O desvio não restaura os cabeçalhos do corpo trocado (valor inofensivo: nada é comprimido de verdade).
   app.get(r("desvio-gzip-cru"), async (_q, rep) => {
     crua(rep).setHeader("content-encoding", "gzip");
+    crua(rep).setHeader("content-disposition", 'attachment; filename="laudo.pdf"');
     return rep.code(403).send({ erro: "fora_do_catalogo_gzip", mensagem: "x" });
   });
   app.get(r("desvio-gzip-fastify"), async (_q, rep) => {
     return rep.code(403).header("content-encoding", "gzip").header("content-range", "bytes 0-1/2")
+      .header("content-disposition", 'attachment; filename="laudo.pdf"').header("accept-ranges", "bytes")
       .header("x-segue", "sim").send({ erro: "fora_do_catalogo_gzip", mensagem: "x" });
   });
   app.get(r("early-contado"), async (_q, rep) => {
@@ -650,6 +652,8 @@ describe("o desvio não restaura os cabeçalhos do corpo trocado (regressão da 
           const resp = await fetch(`${await enderecoDe(modo)}/dv01/${n}`, { headers: { connection: "close" } });
           expect(resp.headers.get("content-encoding"), modo).toBeNull();
           expect(resp.headers.get("content-range"), modo).toBeNull();
+          expect(resp.headers.get("content-disposition"), modo).toBeNull();
+          expect(resp.headers.get("accept-ranges"), modo).toBeNull();
           expect(resp.headers.get("content-type"), modo).toContain("application/json");
           const corpo = await resp.json() as { erro: string };
           expect(corpo.erro, modo).toBe(modo === "falhar" ? "desvio_do_catalogo_de_erro" : "so_o_dono");

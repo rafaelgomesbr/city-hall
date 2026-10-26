@@ -1,0 +1,73 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-aa685a25f05f5cd7c/dc360/apps/api[39m
+
+{"level":30,"time":1792983179851,"pid":31616,"hostname":"Rafa_Laptop","reqId":"4c294ac8-d250-495f-a55f-f807a7a08d27","req":{"method":"GET","url":"/teste-do-catalogo/variavel-409","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1792983179853,"pid":31616,"hostname":"Rafa_Laptop","reqId":"4c294ac8-d250-495f-a55f-f807a7a08d27","req":{"method":"GET","url":"/teste-do-catalogo/variavel-409","host":"localhost:80","remoteAddress":"127.0.0.1"},"res":{"statusCode":500},"err":{"type":"TypeError","message":"Código de erro fora do catálogo: \"inventado_por_variavel\". Inclua em `CODIGOS_DE_ERRO` (packages/shared/src/erros.ts) ou use um código existente.","stack":"TypeError: Código de erro fora do catálogo: \"inventado_por_variavel\". Inclua em `CODIGOS_DE_ERRO` (packages/shared/src/erros.ts) ou use um código existente.\n    at conferirCodigoDoCatalogo (C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-aa685a25f05f5cd7c\\dc360\\apps\\api\\src\\servidor.ts:682:13)\n    at Object.<anonymous> (C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-aa685a25f05f5cd7c\\dc360\\apps\\api\\src\\servidor.ts:746:7)\n    at handleError (C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-aa685a25f05f5cd7c\\dc360\\node_modules\\fastify\\lib\\error-handler.js:64:20)\n    at onErrorHook (C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-aa685a25f05f5cd7c\\dc360\\node_modules\\fastify\\lib\\reply.js:970:5)\n    at _Reply.Reply.send (C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-aa685a25f05f5cd7c\\dc360\\node_modules\\fastify\\lib\\reply.js:168:5)\n    at C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-aa685a25f05f5cd7c\\dc360\\node_modules\\fastify\\lib\\wrap-thenable.js:70:13\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"},"msg":"Código de erro fora do catálogo: \"inventado_por_variavel\". Inclua em `CODIGOS_DE_ERRO` (packages/shared/src/erros.ts) ou use um código existente."}
+{"level":30,"time":1792983179863,"pid":31616,"hostname":"Rafa_Laptop","reqId":"4c294ac8-d250-495f-a55f-f807a7a08d27","res":{"statusCode":500},"responseTime":11.296700000000783,"msg":"request completed"}
+ [31m❯[39m test/catalogo-de-erros.test.ts [2m([22m[2m37 tests[22m[2m | [22m[31m1 failed[39m[2m | [22m[33m36 skipped[39m[2m)[22m[33m 4428[2mms[22m[39m
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22ma leitura enxerga as emissões (não ficou cega)
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código emitido está no catálogo (fora dele reprova; reservado emitido também)
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código do catálogo é emitido por alguém, senão é reservado (sem código morto)
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22ma lista reservada guarda códigos que NINGUÉM emite ainda, e nenhum está no catálogo emitido
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código emitido com status conhecido sai com o status do catálogo (ou um dos seus desvios declarados)
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22mtodo código CALCULADO em `new RegraDeNegocio(...)` é um repasse declarado (helper novo reprova)
+   [2m[90m↓[39m[22m o catálogo cobre o que a API emite, nos dois sentidos (varredura da árvore sintática)[2m > [22ma varredura enxerga um código fora do catálogo e o do catálogo (a prova de que não é cega)
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22ma árvore real de apps/api/src passa, e a lista de exceções não tem linha morta
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22merro por variável reprova (const codigo = ...; code(409).send({ erro: codigo, ... }))
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22mcorpo em texto reprova (code(500).send('erro interno'))
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22mchave `message` no lugar de `mensagem` reprova
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22mcódigo literal fora do catálogo reprova, em qualquer cadeia de cabeçalhos
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22mcorpo por constante do arquivo é lido (passa quando certo, reprova quando torto)
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22mstatus calculado reprova; 2xx e a escolha literal 200 ou 201 passam
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22mos controles passam: corpo certo, com campos e requisição
+   [2m[90m↓[39m[22m todo envio de erro por .code(N).send(...) tem erro literal do catálogo e corpo { erro, mensagem, ... }[2m > [22ma exceção nomeada libera só aquela forma, naquele arquivo
+   [2m[90m↓[39m[22m RegraDeNegocio só aceita código do catálogo, em compilação[2m > [22mo compilador recusa texto fora do catálogo, texto solto e aceita o código do catálogo
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 404: o tratador lança em teste, e o código inventado não chega ao cliente
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 409: o tratador lança em teste, e o código inventado não chega ao cliente
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 422: o tratador lança em teste, e o código inventado não chega ao cliente
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 429: o tratador lança em teste, e o código inventado não chega ao cliente
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mstatus 503: o tratador lança em teste, e o código inventado não chega ao cliente
+[31m   [31m×[31m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mfora de teste a conferência NÃO existe, mesmo com a opção ligada à força: responde normal e não vaza caminho[39m[32m 24[2mms[22m[39m
+[31m     → {"statusCode":500,"error":"Internal Server Error","message":"Código de erro fora do catálogo: \"inventado_por_variavel\". Inclua em `CODIGOS_DE_ERRO` (packages/shared/src/erros.ts) ou use um código existente."}: expected 500 to be 409 // Object.is equality[39m
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mcom a conferência desligada (o teste da guarda), o código sai como veio
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mo código do catálogo passa, com o status que a rota escolheu
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22m422 do esquema segue { erro: dados_invalidos, campos }
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22mregra de negócio com campos devolve os campos, sem requisição
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22m500 devolve a requisição (igual ao X-Request-Id) e nada da causa
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mo corpo de toda resposta de erro é { erro, mensagem, campos?, requisicao? }[2m > [22m401, 404 de rota e 404 de recurso seguem a forma
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mendereço malformado: 400 url_invalida, em português, sem eco do caminho e com X-Request-Id
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mparâmetro de rota acima de 100 caracteres: 414 parametro_longo_demais, sem eco do caminho
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mos erros do próprio Fastify saem na forma do catálogo (DV-36)[2m > [22mos dois códigos novos estão no catálogo, com status e categoria
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mPATCH /orgaos/<id de B> por coordenador de A: 404 e o mesmo corpo de um id que não existe
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mPATCH /v1/orgaos/<id de B> por coordenador de A: 404 e o mesmo corpo de um id que não existe
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mo órgão de B continua intacto depois da tentativa de A
+   [2m[90m↓[39m[22m o tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22misolamento: recurso de outro município é 404, nunca 403[2m > [22mo coordenador de B edita o próprio órgão (controle: a rota funciona)
+   [2m[90m↓[39m[22m a tabela do catálogo[2m > [22mé gerada, ordenada por código, com uma linha por código emitido e por reservado
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/catalogo-de-erros.test.ts[2m > [22mo tratador de erros e a forma do corpo (servidor de verdade, NODE_ENV=test)[2m > [22mcódigo fora do catálogo que chega por variável (a guarda de acesso só cobre 401 e 403)[2m > [22mfora de teste a conferência NÃO existe, mesmo com a opção ligada à força: responde normal e não vaza caminho
+[31m[1mAssertionError[22m: {"statusCode":500,"error":"Internal Server Error","message":"Código de erro fora do catálogo: \"inventado_por_variavel\". Inclua em `CODIGOS_DE_ERRO` (packages/shared/src/erros.ts) ou use um código existente."}: expected 500 to be 409 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 500[39m
+
+[36m [2m❯[22m test/catalogo-de-erros.test.ts:[2m509:36[22m[39m
+    [90m507| [39m        url[33m:[39m [32m"/teste-do-catalogo/variavel-409"[39m[33m,[39m
+    [90m508| [39m      })[33m;[39m
+    [90m509| [39m      [34mexpect[39m(r[33m.[39mstatusCode[33m,[39m r[33m.[39mbody)[33m.[39m[34mtoBe[39m([34m409[39m)[33m;[39m
+    [90m   | [39m                                   [31m^[39m
+    [90m510| [39m      expect(r.json()).toEqual({ erro: "inventado_por_variavel", mensa…
+    [90m511| [39m      expect(r.body).not.toMatch(/erros\.ts|packages|statusCode|fora d…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[33m36 skipped[39m[90m (37)[39m
+[2m   Start at [22m 23:52:49
+[2m   Duration [22m 10.83s[2m (transform 803ms, setup 642ms, collect 5.25s, tests 4.43s, environment 0ms, prepare 185ms)[22m
+

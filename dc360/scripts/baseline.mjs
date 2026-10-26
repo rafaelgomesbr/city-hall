@@ -860,6 +860,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E03-parte-1C": { total: 18, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 2C (API): `apps/api/test/catalogo-de-erros.test.ts` e novo, com 27 casos (a varredura nos dois sentidos, o compilador recusando código fora do catálogo, o tratador que lança fora do catálogo em qualquer status, a forma do corpo, `frameworkErrors` e o isolamento do PATCH de órgão), e `guarda-de-codigos-de-erro.test.ts` ganhou 2 (o desvio não restaura os cabeçalhos do corpo trocado). O console ganhou os mesmos 2 no mesmo arquivo de teste (número do próprio passo teste-console).
   "V2-F02-E03-parte-2C": { total: 29, falhas: 0, puladas: 0 },
+  // V2-F02-E03, parte 2C, correção 1: `catalogo-de-erros.test.ts` ganhou 10 casos (a conferência que lança só existe em `NODE_ENV=test` mesmo com a opção ligada; a varredura de `.code(N).send(...)`: árvore real, erro por variável, corpo em texto, `message` no lugar de `mensagem`, código fora do catálogo, corpo por constante, status calculado, controles e a exceção nomeada). Content-Disposition e Accept-Ranges entraram nos casos que já existiam das guardas.
+  "V2-F02-E03-parte-2C-correcao-1": { total: 10, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
