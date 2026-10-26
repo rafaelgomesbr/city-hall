@@ -1,0 +1,56 @@
+Captura do 426 da V2-F02-E06 (parte 3A, API): saida de `app.inject` contra o servidor
+montado, sem rede. Gerada pelo roteiro `captura-426.mts` descrito no RESUMO.
+
+# E06: VERSAO_MINIMA_CAMPO=1.3.0 VERSAO_MINIMA_CIDADAO=2.0.0
+
+### campo/1.2.0 abaixo do minimo, SEM token (426 antes do 401)
+> GET /v1/ocorrencias
+> x-app-version: campo/1.2.0
+< HTTP 426
+< cache-control: no-store
+< {"erro":"versao_do_aplicativo_antiga","mensagem":"Esta versão do aplicativo não é mais aceita. Atualize para a versão 1.3.0 ou mais nova.","versaoMinima":"1.3.0"}
+
+### campo/1.2.0 em POST /v1/sincronizacao/vistoria com corpo invalido (426 antes da validacao)
+> POST /v1/sincronizacao/vistoria
+> x-app-version: campo/1.2.0
+< HTTP 426
+< cache-control: no-store
+< {"erro":"versao_do_aplicativo_antiga","mensagem":"Esta versão do aplicativo não é mais aceita. Atualize para a versão 1.3.0 ou mais nova.","versaoMinima":"1.3.0"}
+
+### cidadao/1.9.9 abaixo do minimo do cidadao
+> GET /v1/ocorrencias
+> x-app-version: cidadao/1.9.9
+< HTTP 426
+< cache-control: no-store
+< {"erro":"versao_do_aplicativo_antiga","mensagem":"Esta versão do aplicativo não é mais aceita. Atualize para a versão 2.0.0 ou mais nova.","versaoMinima":"2.0.0"}
+
+### campo/1.4.0 acima do minimo, sem token (segue para a autenticacao: 401)
+> GET /v1/ocorrencias
+> x-app-version: campo/1.4.0
+< HTTP 401
+< cache-control: no-store
+< {"erro":"nao_autenticado","mensagem":"Informe o token de acesso."}
+
+### cabecalho malformado e ignorado (401, nunca 500)
+> GET /v1/ocorrencias
+> x-app-version: campo/abc
+< HTTP 401
+< cache-control: no-store
+< {"erro":"nao_autenticado","mensagem":"Informe o token de acesso."}
+
+### rota publica da versao minima, sem token, mesmo com versao velha
+> GET /v1/aplicativos/campo/versao-minima
+> x-app-version: campo/0.0.1
+< HTTP 200
+< cache-control: no-store
+< {"aplicativo":"campo","versaoMinima":"1.3.0"}
+
+### o espelho sem prefixo nao tem a recusa por versao (401 por falta de token)
+> GET /ocorrencias
+> x-app-version: campo/1.2.0
+< HTTP 401
+< link: </v1/ocorrencias>; rel="successor-version"
+< deprecation: true
+< sunset: Fri, 31 Dec 2027 23:59:59 GMT
+< cache-control: no-store
+< {"erro":"nao_autenticado","mensagem":"Informe o token de acesso."}

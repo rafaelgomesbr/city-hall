@@ -38,6 +38,13 @@ export const SEM_TOKEN = new Map<string, string>([
     + "interruptor do servidor inteiro, igual para todos, sem dado de município",
   ],
   ["POST /auth/redefinir", "autentica pelo link de uso único"],
+  [
+    "GET /v1/aplicativos/:aplicativo/versao-minima",
+    "o aplicativo recusado por versão antiga não consegue autenticar para perguntar "
+    + "o que precisa instalar (V2-F02-E06). Devolve só `{ aplicativo, versaoMinima }`, "
+    + "uma configuração do servidor igual para todos, sem dado de município. Existe "
+    + "só em `/v1` (`ROTAS_SO_NO_V1`)",
+  ],
   ["PUT /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
   ["GET /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
   [
@@ -62,10 +69,15 @@ export const SEM_TOKEN = new Map<string, string>([
  * A isenção é declarada UMA vez, na forma sem prefixo (`SEM_TOKEN`), e vale
  * para o mesmo caminho sob `/v1` (V2-F02-E01): tira-se o `/v1` da chave antes
  * de consultar. `GET /v1/saude` não existe, então não há isenção a herdar lá.
+ * A rota que só existe em `/v1` entra com a chave escrita com o prefixo.
  */
 export function ehSemToken(chave: string): boolean {
   const [metodo, caminho] = chave.split(" ");
-  return SEM_TOKEN.has(`${metodo ?? ""} ${semPrefixoDeVersao(caminho ?? "")}`);
+  // A chave sem prefixo vale para os dois lados; a escrita COM `/v1` é para a rota
+  // que só existe em `/v1` (`ROTAS_SO_NO_V1`), que nunca teve par sem prefixo.
+  return (
+    SEM_TOKEN.has(`${metodo ?? ""} ${semPrefixoDeVersao(caminho ?? "")}`) || SEM_TOKEN.has(chave)
+  );
 }
 
 export type Rota = { metodo: string; caminho: string };

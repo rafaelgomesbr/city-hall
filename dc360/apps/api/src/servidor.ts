@@ -50,6 +50,8 @@ import { rotasConfiguracao } from "./rotas/configuracao.js";
 import { rotasRota, type OpcoesDaRota } from "./rotas/rota.js";
 import { rotasMapa, type OpcoesDoMapa } from "./rotas/mapa.js";
 import { rotasBusca } from "./rotas/busca.js";
+import { rotasAplicativos } from "./rotas/aplicativos.js";
+import { hookDeVersaoNoV1, hookDoEspelho } from "./versao-do-aplicativo.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
@@ -522,7 +524,7 @@ export async function construirServidor(
       `test/cors-do-envio-de-evidencia.test.ts` trava que nada além disto
       passa.
     */
-    allowedHeaders: ["content-type", "authorization", "accept", "if-none-match"],
+    allowedHeaders: ["content-type", "authorization", "accept", "if-none-match", "x-app-version"],
     // Sem isto o navegador esconde `X-Request-Id` do JavaScript do painel, e o
     // código de suporte só chegaria pelo corpo do 500, que o proxy pode trocar.
     exposedHeaders: ["x-request-id"],
@@ -922,10 +924,38 @@ export async function construirServidor(
     banco, config, armazenamento, notificador, pdf, push, autenticacao, segundoFator, rota, mapa,
   };
   await app.register(
-    async (v1) => { await registrarRotasDeNegocio(v1, dependenciasDasRotas, { espelho: false }); },
+    async (v1) => {
+      /*
+        A versão do aplicativo (V2-F02-E06): só aqui, no escopo `/v1`. O hook
+        roda no `onRequest`, ANTES de autenticar e de validar o corpo, e recusa
+        com 426 o aplicativo abaixo do mínimo configurado (mínimo vazio, que é o
+        padrão, não recusa nada). O cabeçalho é declaração do cliente: nada
+        aqui decide acesso. As rotas de infraestrutura sem prefixo e o espelho
+        ficam de fora por estarem em outros escopos.
+      */
+      const versaoNoV1 = hookDeVersaoNoV1(v1, config);
+      /*
+        O gancho é inline e só DELEGA: quem escreve o 426 é `versao-do-aplicativo.ts`,
+        com `erro` literal do catálogo (a varredura de `.code(N).send` o lê lá). A
+        varredura de ganchos reprova gancho com `send` dentro do callback porque ele
+        esconderia um 401 ou 403 fora do catálogo; este só responde 426.
+      */
+      v1.addHook("onRequest", async (req, resposta) => versaoNoV1(req, resposta));
+      await registrarRotasDeNegocio(v1, dependenciasDasRotas, { espelho: false });
+    },
     { prefix: PREFIXO_V1 },
   );
   await app.register(async (espelho) => {
+    /*
+      Uso e encerramento do espelho (V2-F02-E08): conta cada pedido em log
+      `info` (rota e versão, sem usuário nem município) e, com
+      `ESPELHO_LEGADO_ENCERRADO=sim` depois do fim do dia de
+      `ESPELHO_LEGADO_ATE`, responde 426 antes de autenticar. O `onSend` logo
+      abaixo acrescenta os cabeçalhos de depreciação (e o `Link` para `/v1`) a
+      toda resposta do escopo, a recusa inclusive.
+    */
+    const usoDoEspelho = hookDoEspelho(espelho, config);
+    espelho.addHook("onRequest", async (req, resposta) => usoDoEspelho(req, resposta));
     espelho.addHook("onSend", async (req, resposta) => {
       for (const [nome, valor] of Object.entries(
         cabecalhosDeDepreciacao(config.ESPELHO_LEGADO_ATE, req.url),
@@ -1098,7 +1128,9 @@ async function registrarRotasDeNegocio(
 
   if (!espelho) {
     // Rotas que só existem em `/v1` (as dos aplicativos novos) entram AQUI, e
-    // em `ROTAS_SO_NO_V1`. Nenhuma até a V2-F02-E01.
+    // em `ROTAS_SO_NO_V1`.
+    // A versão mínima de cada aplicativo (V2-F02-E06), pública e sem dado de município.
+    await app.register(rotasAplicativos, { prefix: "/aplicativos", config });
   }
 }
 

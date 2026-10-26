@@ -1,0 +1,13 @@
+Comando: npm run test:isolamento (CA-06). 137 casos de isolamento.test.ts passam; os 8 vermelhos do pacote sao os comandos tsx por spawnSync (DV-46), aceitos pelo briefing.
+ ✓ test/isolamento.test.ts (137 tests) 47278ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id  307ms
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+ Test Files  2 failed | 19 passed (21)
+      Tests  8 failed | 440 passed | 6 skipped (454)

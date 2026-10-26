@@ -870,6 +870,10 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E03-parte-2C": { total: 29, falhas: 0, puladas: 0 },
   // V2-F02-E03, parte 2C, correção 1: `catalogo-de-erros.test.ts` ganhou 10 casos (a conferência que lança só existe em `NODE_ENV=test` mesmo com a opção ligada; a varredura de `.code(N).send(...)`: árvore real, erro por variável, corpo em texto, `message` no lugar de `mensagem`, código fora do catálogo, corpo por constante, status calculado, controles e a exceção nomeada). Content-Disposition e Accept-Ranges entraram nos casos que já existiam das guardas.
   "V2-F02-E03-parte-2C-correcao-1": { total: 10, falhas: 0, puladas: 0 },
+  // V2-F02-E06, parte 3A (API): `apps/api/test/versao-do-aplicativo.test.ts` e novo, com 41 casos (versao igual ou acima do minimo, pre-lancamento, o painel que nunca e recusado, o minimo de cada aplicativo, minimo vazio, a rota publica com e sem minimo, o CORS; 426 em varias rotas, antes do 401 e da validacao; 12 formas de cabecalho malformado mais o repetido, sem 500; o cabecalho ausente contado em log sem usuario, municipio, token nem IP; o mesmo corpo para qualquer municipio e id; token de B contra recurso de A segue 404; a rota so existe em /v1; a configuracao).
+  "V2-F02-E06-parte-3A": { total: 41, falhas: 0, puladas: 0 },
+  // V2-F02-E08: `apps/api/test/versao-v1.test.ts` ganhou 19 casos (o espelho encerrado responde 426 com Link, antes do 401 e igual para todo municipio, data futura e chave desligada atendem com os cabecalhos, o fim do dia vale inteiro, a infraestrutura fica fora; a chave e a data na configuracao e na partida em producao; o contador de uso sem usuario, municipio, token, IP, corpo nem consulta).
+  "V2-F02-E08": { total: 19, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -924,6 +928,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F02-E09": { total: 115, falhas: 0 },
   // V2-F02-E07: `packages/shared/test/chave-de-criacao.test.ts` e novo, com 4 casos (a chave e opcional, aceita uuid, recusa o que nao e uuid com o caminho do campo, e o codigo saiu da reserva para o catalogo emitido), e `catalogo-de-erros.test.ts` ganha 1 (a saida da reserva), alem de duas assercoes trocadas no lugar.
   "V2-F02-E07": { total: 5, falhas: 0 },
+  // V2-F02-E06, parte 3A: `packages/shared/test/versao.test.ts` e novo, com 16 casos (`lerVersao`, `compararVersoes` com pre-lancamento ignorado, `lerCabecalhoDeVersao` com formas malformadas, `estaAbaixoDoMinimo` e os aplicativos com minimo), e `catalogo-de-erros.test.ts` ganha 1 (`versao_do_aplicativo_antiga` saiu da reserva para o catalogo emitido).
+  "V2-F02-E06-parte-3A": { total: 17, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

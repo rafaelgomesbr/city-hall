@@ -129,6 +129,36 @@ const esquema = z.object({
     .default("2027-12-31"),
 
   /**
+   * Liga o ENCERRAMENTO do espelho legado (V2-F02-E08). Padrão `nao`: só a
+   * V2-F28-E11 liga `sim`, depois de medir o uso e de o Rafael decidir a data.
+   *
+   * Com `sim` E depois do fim do dia de `ESPELHO_LEGADO_ATE`, o caminho sem
+   * prefixo responde 426 `versao_do_aplicativo_antiga` com `Link` para `/v1`,
+   * antes da autenticação e igual para todo município (um 404 seco faria o
+   * aplicativo antigo parecer quebrado em vez de desatualizado). Com data
+   * futura ou com `nao`, o espelho segue atendendo, com os cabeçalhos de aviso.
+   *
+   * Ligar `sim` EXIGE `ESPELHO_LEGADO_ATE` declarada no ambiente: a data
+   * padrão é provisória e não vale como decisão de encerrar. Ver `carregarConfig`.
+   * Desligar é o rollback, sem novo deploy de código.
+   */
+  ESPELHO_LEGADO_ENCERRADO: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
+   * A versão mínima aceita do aplicativo de campo e do aplicativo do cidadão
+   * (V2-F02-E06), no formato `maior.menor.correção` (`1.3.0`). Vazia, que é o
+   * padrão, é SEM mínimo: nenhuma recusa por versão.
+   *
+   * Abaixo do mínimo, a API responde 426 `versao_do_aplicativo_antiga` em `/v1`
+   * ANTES de autenticar. O cabeçalho `X-App-Version` é declarado pelo cliente:
+   * isto serve à compatibilidade e nunca decide acesso. Um valor que não é
+   * versão derruba a partida: um mínimo digitado errado que desligasse a recusa
+   * em silêncio seria pior que não ter mínimo. Esvaziar a variável é o rollback.
+   */
+  VERSAO_MINIMA_CAMPO: vazioEhAusente(z.string().regex(/^\d{1,9}\.\d{1,9}\.\d{1,9}$/, "use maior.menor.correção, como 1.3.0").optional()),
+  VERSAO_MINIMA_CIDADAO: vazioEhAusente(z.string().regex(/^\d{1,9}\.\d{1,9}\.\d{1,9}$/, "use maior.menor.correção, como 1.3.0").optional()),
+
+  /**
    * Para onde sai o link de redefinição de senha.
    *
    * Vazias, o servidor cai no notificador que só anuncia no log. Isso é
@@ -746,6 +776,21 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
       + "defina SEGUNDO_FATOR_CHAVE (32 bytes em base64), ou desligue com "
       + "SEGUNDO_FATOR_ATIVO=nao. Sem ela o servidor sobe, a tela de ativação "
       + "aparece, e a ativação quebra no meio.",
+    );
+  }
+
+  /*
+    Encerrar o espelho com a data PROVISÓRIA seria encerrar sem decisão: a
+    política de versões diz que o padrão de `ESPELHO_LEGADO_ATE` não vale como
+    aprovação. Com a chave ligada, a data precisa estar escrita no ambiente. (Data
+    inválida ou vazia já derruba a partida no esquema, em qualquer ambiente.)
+  */
+  if (c.ESPELHO_LEGADO_ENCERRADO === "sim" && !(ambiente.ESPELHO_LEGADO_ATE ?? "").trim()) {
+    throw new Error(
+      "ESPELHO_LEGADO_ENCERRADO=sim sem ESPELHO_LEGADO_ATE no ambiente: o padrão ("
+      + c.ESPELHO_LEGADO_ATE + ") é provisório e não vale como decisão de encerrar o "
+      + "espelho. Escreva a data decidida em ESPELHO_LEGADO_ATE, ou desligue com "
+      + "ESPELHO_LEGADO_ENCERRADO=nao.",
     );
   }
 

@@ -484,6 +484,13 @@ export const CODIGOS_DE_ERRO = {
     categoria: "corrigir",
     titulo: "Recorte da exportação grande demais",
   },
+
+  /* ---- Versão do aplicativo (V2-F02-E06 e E08) ---- */
+  versao_do_aplicativo_antiga: {
+    status: 426,
+    categoria: "permanente",
+    titulo: "Versão do aplicativo abaixo da mínima aceita",
+  },
 } as const satisfies Record<string, EntradaDoCatalogoDeErros>;
 
 export type CodigoDeErro = keyof typeof CODIGOS_DE_ERRO;
@@ -495,12 +502,6 @@ export type CodigoDeErro = keyof typeof CODIGOS_DE_ERRO;
  * no mesmo commit.
  */
 export const CODIGOS_RESERVADOS = {
-  /** V2-F02-E08: o aplicativo está abaixo da versão mínima aceita (426). */
-  versao_do_aplicativo_antiga: {
-    status: 426,
-    categoria: "permanente",
-    titulo: "Versão do aplicativo abaixo da mínima aceita",
-  },
   /** F11, cidadão: o cabeçalho de versão é obrigatório no modo público (426). */
   versao_do_aplicativo_ausente: {
     status: 426,

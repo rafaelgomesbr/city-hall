@@ -6,6 +6,75 @@
     "description": "Contrato do /v1, gerado de apps/api/src/contrato. Documento derivado: não se edita à mão (npm run openapi --workspace @dc360/api). Rota registrada sem entrada aparece em `x-rotas-pendentes`; operação sem resposta descrita leva `x-resposta-pendente`."
   },
   "paths": {
+    "/v1/aplicativos/{aplicativo}/versao-minima": {
+      "get": {
+        "tags": [
+          "aplicativos"
+        ],
+        "summary": "Versão mínima aceita de um aplicativo de loja (sem token; igual para todo município).",
+        "parameters": [
+          {
+            "name": "aplicativo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "campo",
+                "cidadao"
+              ],
+              "description": "campo ou cidadao"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O aplicativo pedido e a versão mínima configurada (maior.menor.correção), ou null quando não há mínimo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "aplicativo": {
+                      "type": "string",
+                      "enum": [
+                        "campo",
+                        "cidadao"
+                      ]
+                    },
+                    "versaoMinima": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "aplicativo",
+                    "versaoMinima"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "nao_encontrado: Rota ou recurso não encontrado",
+            "x-codigos-de-erro": [
+              "nao_encontrado"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErroDaApi"
+                }
+              }
+            }
+          }
+        },
+        "x-nova": true
+      }
+    },
     "/v1/armazenamento/uso": {
       "get": {
         "tags": [
