@@ -309,8 +309,11 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     etapa do roadmap, e nenhum valor de segredo nem travessão. Quatro casos são
     a prova de que o conferidor morde: texto estragado reprova. O `rollback.md`
     é da E08 e não é varrido.
+    A correção 1 da F01, parte B (achado 12) acrescenta 1 caso (16 no total): o
+    comando de apagar a cópia do `migracao.md` aponta para a pasta de PROD em
+    que o roteiro grava (`pastaDeCopias("prod")`), nos dois sistemas.
   */
-  "V2-F01-E16": 15,
+  "V2-F01-E16": 16,
   /*
     V2-F01-E08: `scripts/smoke-das-imagens.test.mjs` é novo, com 15 casos. Prova a
     régua do smoke das imagens Docker com um `docker` de mentira (a imagem boa
