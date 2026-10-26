@@ -185,3 +185,11 @@ test("a decisao usa a pasta e a janela de verdade quando ninguem as passa", () =
     rmSync(pasta, { recursive: true, force: true });
   }
 });
+
+test("acha o pg_dump do instalador padrão do Windows, que não entra no PATH", () => {
+  const caminho = "C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe";
+  const achado = localizarPgDump({
+    executar: (c) => { if (c === caminho) return "pg_dump (PostgreSQL) 18.3"; throw new Error("ENOENT"); },
+  });
+  assert.deepEqual(achado, { caminho, versao: "18.3" });
+});
