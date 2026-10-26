@@ -187,6 +187,10 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     `i/crlf` e de saída vazia, e com 2 diante de subcomando desconhecido).
   */
   "V2-F00-E21-correcao-3": 8,
+  /* V2-F00-POS (2026-10-26, regra do Rafael de tirar toda chave do código): 3 casos em
+     `sem-credencial-no-git.test.mjs` (índice do git sem credencial, o app.config lê o
+     Firebase da variável do EAS, e o teste morde em cada família de arquivo). */
+  "V2-F00-POS-credenciais": 3,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -196,6 +200,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
   "V2-F00-E21-correcao-1": "conferir-indices-de-evidencia.test.mjs",
   "V2-F00-E21-correcao-3": "ambiente-hostil.test.mjs",
+  "V2-F00-POS-credenciais": "sem-credencial-no-git.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
