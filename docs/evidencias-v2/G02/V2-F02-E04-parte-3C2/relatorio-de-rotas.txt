@@ -1,0 +1,77 @@
+Relatório do contrato /v1 (V2-F02-E04)
+
+Rotas com entrada: 65
+Rotas ainda sem entrada (pendentes): 30
+Total sob /v1: 95
+Entradas existentes sem resposta descrita: 25
+
+Por grupo (entradas / com resposta / sem resposta / pendentes):
+  administracao: 10 / 0 / 10 / 2
+  autenticacao: 5 / 3 / 2 / 10
+  campo: 15 / 15 / 0 / 0
+  conta: 4 / 2 / 2 / 6
+  documentos: 5 / 0 / 5 / 1
+  mapa-e-busca: 3 / 3 / 0 / 0
+  ocorrencias: 16 / 16 / 0 / 0
+  oficios-e-orgaos: 3 / 0 / 3 / 7
+  prestacao-de-contas: 3 / 0 / 3 / 4
+  publico: 1 / 1 / 0 / 0
+
+Entradas existentes sem resposta:
+  [administracao] GET /v1/equipes
+  [administracao] POST /v1/equipes
+  [administracao] PATCH /v1/equipes/:id
+  [administracao] GET /v1/usuarios
+  [administracao] POST /v1/usuarios
+  [administracao] PATCH /v1/usuarios/:id
+  [administracao] POST /v1/usuarios/:id/redefinir-senha
+  [administracao] POST /v1/usuarios/:id/encerrar-sessoes
+  [administracao] GET /v1/usuarios/:id/sessoes
+  [administracao] GET /v1/organizacao/retencao
+  [autenticacao] GET /v1/auth/sessoes
+  [autenticacao] GET /v1/segundo-fator
+  [conta] GET /v1/configuracao
+  [conta] GET /v1/armazenamento/uso
+  [documentos] GET /v1/documentos/:id/laudo
+  [documentos] GET /v1/documentos/:id/laudo.pdf
+  [documentos] GET /v1/documentos/:id/termo-de-interdicao
+  [documentos] GET /v1/documentos/:id/termo-de-interdicao.pdf
+  [documentos] GET /v1/documentos/:id/termo-de-desinterdicao
+  [oficios-e-orgaos] GET /v1/oficios/:id
+  [oficios-e-orgaos] GET /v1/oficios/:id/documento
+  [oficios-e-orgaos] POST /v1/orgaos/:id/reativacao
+  [prestacao-de-contas] GET /v1/trilha/tipos
+  [prestacao-de-contas] GET /v1/relatorios/exportacoes
+  [prestacao-de-contas] POST /v1/saida/pacote.zip
+
+Rotas pendentes (sem entrada):
+  [administracao] PATCH /v1/usuarios/:id/situacao
+  [administracao] PATCH /v1/organizacao/retencao
+  [autenticacao] POST /v1/auth/entrar
+  [autenticacao] POST /v1/auth/recuperar
+  [autenticacao] POST /v1/auth/redefinir
+  [autenticacao] POST /v1/auth/renovar
+  [autenticacao] POST /v1/auth/sair
+  [autenticacao] POST /v1/auth/segundo-fator
+  [autenticacao] POST /v1/auth/trocar-senha
+  [autenticacao] POST /v1/segundo-fator/confirmar
+  [autenticacao] POST /v1/segundo-fator/desativar
+  [autenticacao] POST /v1/segundo-fator/iniciar
+  [conta] POST /v1/usuarios/eu/foto/autorizar-envio
+  [conta] PUT /v1/usuarios/eu/foto
+  [conta] POST /v1/aparelhos
+  [conta] POST /v1/aparelhos/revogar
+  [conta] GET /v1/avisos
+  [conta] POST /v1/avisos/lidos
+  [documentos] GET /v1/documentos/validar/:codigo
+  [oficios-e-orgaos] GET /v1/oficios
+  [oficios-e-orgaos] POST /v1/oficios
+  [oficios-e-orgaos] POST /v1/oficios/:id/envio
+  [oficios-e-orgaos] GET /v1/orgaos
+  [oficios-e-orgaos] POST /v1/orgaos
+  [oficios-e-orgaos] PATCH /v1/orgaos/:id
+  [oficios-e-orgaos] POST /v1/orgaos/:id/desativacao
+  [prestacao-de-contas] GET /v1/trilha
+  [prestacao-de-contas] GET /v1/relatorios/ocorrencias.csv
+  [prestacao-de-contas] GET /v1/relatorios/resumo
+  [prestacao-de-contas] GET /v1/relatorios/consultas

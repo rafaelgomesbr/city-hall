@@ -1,0 +1,221 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a3f92ab4ee44863fd/dc360/apps/api[39m
+
+ [31m❯[39m test/contrato-3c2-respostas.test.ts [2m([22m[2m15 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 4672[2mms[22m[39m
+   [32m✓[39m ocorrências: o fluxo da coordenação[2m > [22mabre, repete a abertura com a mesma chave e lê o que abriu[32m 44[2mms[22m[39m
+[31m   [31m×[31m ocorrências: o fluxo da coordenação[2m > [22mtriagem, despacho, mapa, lista, duplicidades e painel de uma ocorrência em campo[39m[32m 79[2mms[22m[39m
+[31m     → GET /v1/ocorrencias: o esquema cortou campo que a API devolve: expected { itens: [ { …(29) }, …(8) ], …(3) } to deeply equal { itens: [ { …(30) }, …(8) ], …(3) }[39m
+   [32m✓[39m ocorrências: o fluxo da coordenação[2m > [22mprovidência, resposta, correção de coordenada, interdição e encerramento[32m 197[2mms[22m[39m
+   [32m✓[39m campo: o trabalho do agente[2m > [22msem equipe, a tela do agente vem vazia e sem os totais[32m 5[2mms[22m[39m
+   [32m✓[39m campo: o trabalho do agente[2m > [22mbaixa as tarefas e lê a tela do agente com equipe[32m 32[2mms[22m[39m
+   [32m✓[39m campo: o trabalho do agente[2m > [22mautoriza o envio da foto, guarda os bytes, confirma, lista e lê a URL[32m 65[2mms[22m[39m
+   [32m✓[39m campo: o trabalho do agente[2m > [22mdeclara, prorroga, lista, encerra pela coordenação e confirma o retorno[32m 145[2mms[22m[39m
+   [32m✓[39m campo: o trabalho do agente[2m > [22msincroniza a vistoria (e o reenvio) e reconcilia o que saiu da lista do aparelho[32m 74[2mms[22m[39m
+   [32m✓[39m campo: o trabalho do agente[2m > [22mdevolve a tarefa vencida, e a coordenação a vê na lista de devolvidas e no dossiê[32m 105[2mms[22m[39m
+[31m   [31m×[31m campo: o trabalho do agente[2m > [22mo dossiê traz trilha, vistoria, providências, ligações e a devolução[39m[32m 37[2mms[22m[39m
+[31m     → GET /v1/ocorrencias/:id: o esquema cortou campo que a API devolve: expected { ocorrencia: { …(33) }, …(6) } to deeply equal { ocorrencia: { …(34) }, …(6) }[39m
+   [32m✓[39m mapa e busca[2m > [22mresolve o link curto do mapa[32m 12[2mms[22m[39m
+   [32m✓[39m mapa e busca[2m > [22mtraça o caminho por ruas[32m 10[2mms[22m[39m
+   [32m✓[39m mapa e busca[2m > [22mbusca ocorrências (e, para quem administra, usuários, equipes e órgãos)[32m 68[2mms[22m[39m
+[31m   [31m×[31m cobertura[2m > [22mtoda rota dos três grupos foi chamada contra o esquema de resposta[39m[32m 2[2mms[22m[39m
+[31m     → expected [ 'GET /v1/busca', …(28) ] to deeply equal [ 'GET /v1/busca', …(33) ][39m
+   [32m✓[39m cobertura[2m > [22mos três grupos não deixam rota pendente[32m 0[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/contrato-3c2-respostas.test.ts[2m > [22mocorrências: o fluxo da coordenação[2m > [22mtriagem, despacho, mapa, lista, duplicidades e painel de uma ocorrência em campo
+[31m[1mAssertionError[22m: GET /v1/ocorrencias: o esquema cortou campo que a API devolve: expected { itens: [ { …(29) }, …(8) ], …(3) } to deeply equal { itens: [ { …(30) }, …(8) ], …(3) }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -1,10 +1,9 @@[39m
+[2m  {[22m
+[2m    "itens": [[22m
+[2m      {[22m
+[2m        "canal_entrada": "telefone",[22m
+[32m-       "chave_de_criacao": "5e233204-7df2-4b11-85ee-9d0a67fb7525",[39m
+[2m        "criado_em": "2026-10-26T05:31:24.602Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -32,11 +31,10 @@[39m
+[2m        "vulnerabilidade_presente": false,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "telefone",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-26T02:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -64,11 +62,10 @@[39m
+[2m        "vulnerabilidade_presente": true,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "whatsapp",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-25T23:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -96,11 +93,10 @@[39m
+[2m        "vulnerabilidade_presente": false,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "telefone",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-25T20:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -128,11 +124,10 @@[39m
+[2m        "vulnerabilidade_presente": true,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "presencial",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-09-26T05:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -160,11 +155,10 @@[39m
+[2m        "vulnerabilidade_presente": false,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "telefone",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-24T01:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -192,11 +186,10 @@[39m
+[2m        "vulnerabilidade_presente": false,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "telefone",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-26T04:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -224,11 +217,10 @@[39m
+[2m        "vulnerabilidade_presente": false,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "telefone",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-22T05:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+[33m@@ -256,11 +248,10 @@[39m
+[2m        "vulnerabilidade_presente": false,[22m
+[2m        "vulnerabilidade_removida_em": null,[22m
+[2m      },[22m
+[2m      {[22m
+[2m        "canal_entrada": "whatsapp",[22m
+[32m-       "chave_de_criacao": null,[39m
+[2m        "criado_em": "2026-10-20T09:31:22.460Z",[22m
+[2m        "descricao_removida_em": null,[22m
+[2m        "desinterdicao_motivo": null,[22m
+[2m        "desinterditada_em": null,[22m
+[2m        "desinterditada_por": null,[22m
+
+[36m [2m❯[22m conferir test/contrato-3c2-respostas.test.ts:[2m95:75[22m[39m
+    [90m 93| [39m    [35mtrue[39m[33m,[39m
+    [90m 94| [39m  )[33m;[39m
+    [90m 95| [39m  expect(lido.data, `${chave}: o esquema cortou campo que a API devolv…
+    [90m   | [39m                                                                          [31m^[39m
+    [90m 96| [39m  exercitadas[33m.[39m[34madd[39m(chave)[33m;[39m
+    [90m 97| [39m  [35mreturn[39m corpo[33m;[39m
+[90m [2m❯[22m test/contrato-3c2-respostas.test.ts:[2m243:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/contrato-3c2-respostas.test.ts[2m > [22mcampo: o trabalho do agente[2m > [22mo dossiê traz trilha, vistoria, providências, ligações e a devolução
+[31m[1mAssertionError[22m: GET /v1/ocorrencias/:id: o esquema cortou campo que a API devolve: expected { ocorrencia: { …(33) }, …(6) } to deeply equal { ocorrencia: { …(34) }, …(6) }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -1,11 +1,10 @@[39m
+[2m  {[22m
+[2m    "devolucao": null,[22m
+[2m    "ocorrencia": {[22m
+[2m      "busca": "000479 2026 rua do talude 10 marilda souza prado",[22m
+[2m      "canal_entrada": "telefone",[22m
+[32m-     "chave_de_criacao": "5e233204-7df2-4b11-85ee-9d0a67fb7525",[39m
+[2m      "criado_em": "2026-10-26T05:31:24.602Z",[22m
+[2m      "descricao": "Talude atrás da casa cedeu depois da chuva da madrugada.",[22m
+[2m      "descricao_removida_em": null,[22m
+[2m      "desinterdicao_motivo": null,[22m
+[2m      "desinterditada_em": null,[22m
+
+[36m [2m❯[22m conferir test/contrato-3c2-respostas.test.ts:[2m95:75[22m[39m
+    [90m 93| [39m    [35mtrue[39m[33m,[39m
+    [90m 94| [39m  )[33m;[39m
+    [90m 95| [39m  expect(lido.data, `${chave}: o esquema cortou campo que a API devolv…
+    [90m   | [39m                                                                          [31m^[39m
+    [90m 96| [39m  exercitadas[33m.[39m[34madd[39m(chave)[33m;[39m
+    [90m 97| [39m  [35mreturn[39m corpo[33m;[39m
+[90m [2m❯[22m test/contrato-3c2-respostas.test.ts:[2m642:23[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/contrato-3c2-respostas.test.ts[2m > [22mcobertura[2m > [22mtoda rota dos três grupos foi chamada contra o esquema de resposta
+[31m[1mAssertionError[22m: expected [ 'GET /v1/busca', …(28) ] to deeply equal [ 'GET /v1/busca', …(33) ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -1,17 +1,12 @@[39m
+[2m  [[22m
+[2m    "GET /v1/busca",[22m
+[2m    "GET /v1/campo/meu-trabalho",[22m
+[2m    "GET /v1/evidencias/:id/url",[22m
+[2m    "GET /v1/evidencias/ocorrencia/:id",[22m
+[32m-   "GET /v1/ocorrencias",[39m
+[32m-   "GET /v1/ocorrencias/:id",[39m
+[2m    "GET /v1/ocorrencias/devolvidas",[22m
+[32m-   "GET /v1/ocorrencias/duplicidades/consulta",[39m
+[32m-   "GET /v1/ocorrencias/indicadores/painel",[39m
+[2m    "GET /v1/ocorrencias/interditados",[22m
+[32m-   "GET /v1/ocorrencias/mapa",[39m
+[2m    "GET /v1/ocorrencias/providencias/pendentes",[22m
+[2m    "GET /v1/saida-a-campo",[22m
+[2m    "GET /v1/saida-a-campo/minha",[22m
+[2m    "GET /v1/sincronizacao/pendencias",[22m
+[2m    "POST /v1/evidencias/autorizar-envio",[22m
+
+[36m [2m❯[22m test/contrato-3c2-respostas.test.ts:[2m749:37[22m[39m
+    [90m747| [39m      [33m.[39m[34msort[39m()[33m;[39m
+    [90m748| [39m    [34mexpect[39m(esperadas[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m34[39m)[33m;[39m
+    [90m749| [39m    [34mexpect[39m([[33m...[39mexercitadas][33m.[39m[34msort[39m())[33m.[39m[34mtoEqual[39m(esperadas)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m750| [39m  })[33m;[39m
+    [90m751| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m12 passed[39m[22m[90m (15)[39m
+[2m   Start at [22m 02:31:17
+[2m   Duration [22m 8.18s[2m (transform 643ms, setup 676ms, collect 2.34s, tests 4.67s, environment 0ms, prepare 207ms)[22m
+

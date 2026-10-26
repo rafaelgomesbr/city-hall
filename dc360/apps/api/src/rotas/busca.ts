@@ -84,7 +84,7 @@ export const TETO_POR_GRUPO = 8;
 /** Buscas por minuto por pessoa. */
 export const BUSCAS_POR_MINUTO = 60;
 
-const consultaSchema = z.object({
+export const consultaSchema = z.object({
   q: z.string().trim().min(2, "Digite pelo menos 2 caracteres.").max(100, "No máximo 100 caracteres."),
 });
 

@@ -345,7 +345,7 @@ export function urlFinalSemRastreamento(url: URL): string {
    A rota
    ============================================================ */
 
-const pedidoSchema = z.object({
+export const pedidoSchema = z.object({
   url: z.string().trim().min(1, "Cole o link.").max(TETO_DA_URL, "Esse link é longo demais."),
 });
 

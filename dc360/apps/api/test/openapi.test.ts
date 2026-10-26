@@ -52,7 +52,7 @@ import { rotasRegistradas } from "./superficie-registrada.js";
  * no mesmo commit. Subir, ou trocar uma pendente por outra, mexe aqui e no
  * diff.
  */
-const TETO_DE_PENDENTES = 40;
+const TETO_DE_PENDENTES = 30;
 
 const V1_JSON = fileURLToPath(new URL("../openapi/v1.json", import.meta.url));
 
@@ -158,9 +158,6 @@ const PENDENTES_CONGELADAS: readonly string[] = [
   "POST /v1/segundo-fator/confirmar",
   "POST /v1/segundo-fator/desativar",
   "POST /v1/segundo-fator/iniciar",
-  "POST /v1/sincronizacao/pendencias/reconciliar",
-  "POST /v1/evidencias/autorizar-envio",
-  "POST /v1/evidencias/confirmar-envio",
   "POST /v1/usuarios/eu/foto/autorizar-envio",
   "PUT /v1/usuarios/eu/foto",
   "POST /v1/aparelhos",
@@ -168,13 +165,6 @@ const PENDENTES_CONGELADAS: readonly string[] = [
   "GET /v1/avisos",
   "POST /v1/avisos/lidos",
   "GET /v1/documentos/validar/:codigo",
-  "POST /v1/mapa/resolver-link",
-  "POST /v1/rota",
-  "GET /v1/busca",
-  "GET /v1/ocorrencias",
-  "GET /v1/ocorrencias/mapa",
-  "GET /v1/ocorrencias/duplicidades/consulta",
-  "POST /v1/ocorrencias/:id/providencia",
   "GET /v1/oficios",
   "POST /v1/oficios",
   "POST /v1/oficios/:id/envio",
