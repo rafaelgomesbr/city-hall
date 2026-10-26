@@ -191,6 +191,11 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
      `sem-credencial-no-git.test.mjs` (índice do git sem credencial, o app.config lê o
      Firebase da variável do EAS, e o teste morde em cada família de arquivo). */
   "V2-F00-POS-credenciais": 3,
+  /* V2-F00-POS (2026-10-26, migração do G00 feita do Windows): 3 casos em
+     `migrar-producao.test.mjs` (senha do Gerenciador de Credenciais, guia de como guardar,
+     npm pelo shell) e 1 em `copiar-producao.test.mjs` (pg_dump do instalador padrão).
+     Os dois arquivos já existiam: fora da tabela de arquivos. */
+  "V2-F00-POS-producao-windows": 4,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
