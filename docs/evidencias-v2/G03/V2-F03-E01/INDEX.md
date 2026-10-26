@@ -15,3 +15,6 @@
 | correcao-2/gerar-estado.txt | b6d27a83ff5d82d97bbe9b7c49f483b869a75c70e97b84396bf3ca68bc4e4dc1 |
 | correcao-2/proposta-de-redacao-do-claude-md.md | 35114e0417687c3f5519785cec41758dfd2c1ff887adb092eb74b604e508d579 |
 | correcao-2/regras-de-conteudo.txt | 636c8c11ad09b1eecdbe58de3436f1df0da4cb33f2c8d3ea7057c93d7f68b4ab |
+| correcao-3/RESUMO.md | 7746cdcb7b7d2f70525da849f92f492575de4492c6497d6c67833f890b1e0d03 |
+| correcao-3/gerar-estado.txt | b6d27a83ff5d82d97bbe9b7c49f483b869a75c70e97b84396bf3ca68bc4e4dc1 |
+| correcao-3/regras-de-conteudo.txt | 5e8e2665dbf9ca5a5111ae60178d7562cde20b1efcbada9c4b2f128e649166fd |
