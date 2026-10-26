@@ -30,6 +30,7 @@ que resta, numa linha cada:
 | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
 | Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
 | Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
+| Um e-mail tem uma conta, e a conta é de um município só (A-01); conta desativada prende o e-mail; o 409 de `POST /usuarios` confirma e-mail de outro município | "Uma pessoa, vários municípios" | ADR 0009 (proposta), executada por F03-E09, E10, E15, E16 e E17 |
 
 ## O pacote de saída lê TODAS as tabelas em memória, e a rota promete o contrário
 
@@ -606,3 +607,51 @@ F17-E08), e o que ainda não está coberto:
    encaminhamento nascem com o padrão acima nas etapas deles. Não existe
    cabeçalho `Idempotency-Key` genérico (fora do escopo; só se surgir
    necessidade).
+
+## Uma pessoa, vários municípios: a ADR 0009 substitui o backlog de A-01 (V2-F03-E01)
+
+**Histórico, mantido como estava.** O ajuste A-01 do roadmap
+(`docs/roadmap-v2/01-decisoes-e-principios.md`, seção 3) aceitou para a V2 que
+um mesmo e-mail institucional não teria duas contas municipais ativas ao mesmo
+tempo, mandou não redesenhar o login e pediu o registro "em ADR e backlog".
+Este arquivo nunca teve seção própria para isso: a limitação morava só no
+roadmap (A-01, D-02 e os itens 1 e 2 de `docs/roadmap-v2/21-fora-da-v2.md`) e no
+comentário de `usuarios_email_global_idx` (migração 002). O que ela significava
+no código, conferido em `ddee3fd`:
+
+1. **Um e-mail, uma conta, um município.** `credenciais_para_login(email)` acha
+   a única conta do e-mail e, com ela, o município do token. Quem atende vários
+   municípios (concessionária, órgão estadual, bombeiros) precisaria de um
+   e-mail por município.
+2. **Conta desativada prende o e-mail para sempre.** O índice global é total
+   (não olha `ativo`), então o e-mail de quem saiu não serve para conta nova em
+   nenhum município.
+3. **O 409 de `POST /usuarios` confirma que o e-mail existe em algum
+   município** (REL:06 13.2), inclusive em outro.
+
+**O que mudou.** A D-08 (01/10/2026) revogou A-01 e D-02, e a ADR 0009
+(`docs/adr/0009-pessoa-global-com-conta-por-municipio.md`, PROPOSTA, aceite do
+Rafael pendente em H97 e parecer do encarregado no CP-49) é a decisão que
+substitui este backlog: pessoa global com conta e vínculo por município, token
+de um município por vez, escolha do município ao entrar, `pessoas` como
+exceção nomeada ao isolamento. Os três itens acima deixam de ser limitação
+aceita e passam a ter dono:
+
+| Item | Quem fecha |
+| --- | --- |
+| 1. Um e-mail, um município | F03-E15 (pessoa e conta), E16 (login em dois passos e troca de município), E17 (órgão externo em vários municípios) |
+| 2. Conta desativada prende o e-mail | F03-E09 (e-mail único só entre pessoas ativas) |
+| 3. 409 que confirma e-mail de outro município | F03-E09 (conflito com corpo igual) e E10 (convite com resposta igual para pessoa nova e existente) |
+
+**O que continua aberto, e não é de nenhuma etapa da F03:**
+
+- **A pessoa trocar o próprio e-mail.** Nenhuma rota faz isso hoje, e a F03-E09
+  deixa de fora de propósito. Pela decisão 6 da ADR 0009, nenhum município troca
+  o e-mail de uma pessoa: quando existir, a troca será da própria pessoa, com
+  verificação do e-mail novo.
+- **Redefinir senha e segundo fator de pessoa com conta em mais de um
+  município.** Até o CP-50, a `POST /usuarios/:id/redefinir-senha` (F00-E09) e o
+  reset de segundo fator da F03-E11 valem só para pessoa de um município, e
+  respondem 409 `pessoa_em_varios_municipios` para as demais (premissa das
+  pendências humanas H94 e H96). Isto refina o item 3 de "O que estava fora
+  daqui" e a linha "A senha temporária é conhecida por quem a sorteia".
