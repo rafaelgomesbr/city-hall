@@ -1,0 +1,242 @@
+
+> dc360@0.1.0 conferir:numeros
+> node scripts/conferir-numeros.mjs
+
+Lendo a lista de testes de cada pacote (sem executar)...
+
+Contagens reais:
+  4237  total de testes automatizados
+   413  testes do pacote compartilhado
+   238  testes do motor de campo
+  1964  testes da API
+   377  testes do console do fornecedor
+   797  testes de fonte do painel
+   448  testes do banco
+   137  testes de isolamento (CA-06)
+    17  testes do aplicador de migrações
+    17  testes de integração do campo contra a API
+    58  testes da fila de sincronização
+     9  testes do depósito SQLite
+    70  verificações no navegador, modo local
+   258  verificações no navegador, contra a API
+   328  verificações no navegador, somadas
+  1997  testes do aplicativo de campo
+  6234  total de testes automatizados, somando o aplicativo
+
+Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
+  0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.
+  7 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    1 em apps/api/test/renovacao-contra-encerramento.test.ts
+    3 em db/test/busca.test.ts
+    1 em db/test/postgis-disponivel.espacial.test.ts
+    1 em db/test/postgis-provedor.espacial.test.ts
+    1 em db/test/trava-de-migracao.test.ts
+
+Afirmações conferidas: 25
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.
+TAP version 13
+# Subtest: redige um JWT colado num texto
+ok 1 - redige um JWT colado num texto
+  ---
+  duration_ms: 1.3297
+  type: 'test'
+  ...
+# Subtest: redige o valor de Authorization Bearer e Basic
+ok 2 - redige o valor de Authorization Bearer e Basic
+  ---
+  duration_ms: 0.1728
+  type: 'test'
+  ...
+# Subtest: redige usuário e senha de uma URL de banco
+ok 3 - redige usuário e senha de uma URL de banco
+  ---
+  duration_ms: 0.1473
+  type: 'test'
+  ...
+# Subtest: troca o nome do usuário nas pastas pessoais
+ok 4 - troca o nome do usuário nas pastas pessoais
+  ---
+  duration_ms: 0.0994
+  type: 'test'
+  ...
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+ok 5 - troca o travessão, que a regra de conteúdo proíbe em docs
+  ---
+  duration_ms: 0.2772
+  type: 'test'
+  ...
+# Subtest: não mexe em texto comum
+ok 6 - não mexe em texto comum
+  ---
+  duration_ms: 0.0898
+  type: 'test'
+  ...
+# Subtest: lê as contagens do vitest
+ok 7 - lê as contagens do vitest
+  ---
+  duration_ms: 0.9868
+  type: 'test'
+  ...
+# Subtest: lê as contagens do node --test e do jest
+ok 8 - lê as contagens do node --test e do jest
+  ---
+  duration_ms: 0.4937
+  type: 'test'
+  ...
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+ok 9 - sem contagem na saída o resultado é vazio, não zero
+  ---
+  duration_ms: 0.277
+  type: 'test'
+  ...
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+ok 10 - avaliar confere quando o resultado é o esperado, vermelho inclusive
+  ---
+  duration_ms: 0.4536
+  type: 'test'
+  ...
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+ok 11 - avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+  ---
+  duration_ms: 0.212
+  type: 'test'
+  ...
+# Subtest: avaliar não aceita a ausência de contagem como confere
+ok 12 - avaliar não aceita a ausência de contagem como confere
+  ---
+  duration_ms: 0.0798
+  type: 'test'
+  ...
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+ok 13 - a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+  ---
+  duration_ms: 6.3015
+  type: 'test'
+  ...
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+ok 14 - o E2E do painel local declara o servidor que o teste exige
+  ---
+  duration_ms: 0.3623
+  type: 'test'
+  ...
+# Subtest: o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02)
+ok 15 - o roteiro roda o E2E do painel local também no Firefox, com o mesmo esperado do Chromium (V-ROT-02)
+  ---
+  duration_ms: 0.492
+  type: 'test'
+  ...
+# Subtest: o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende
+ok 16 - o motor do passo vai por ambiente, e não por prefixo de shell que o Windows não entende
+  ---
+  duration_ms: 0.2932
+  type: 'test'
+  ...
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+ok 17 - as opções recusam o que não conhecem e os filtros recusam passo inexistente
+  ---
+  duration_ms: 0.6108
+  type: 'test'
+  ...
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+ok 18 - --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+  ---
+  duration_ms: 60.1544
+  type: 'test'
+  ...
+# Subtest: o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada
+ok 19 - o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada
+  ---
+  duration_ms: 0.188
+  type: 'test'
+  ...
+# Subtest: os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)
+ok 20 - os npm audit crus só 'falham' de verdade se houve relatório: registro fora do ar diverge (validação de 2026-10-13)
+  ---
+  duration_ms: 0.2324
+  type: 'test'
+  ...
+# Subtest: a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente
+ok 21 - a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente
+  ---
+  duration_ms: 0.1776
+  type: 'test'
+  ...
+# Subtest: passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+ok 22 - passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos
+  ---
+  duration_ms: 0.0911
+  type: 'test'
+  ...
+# Subtest: o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+ok 23 - o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)
+  ---
+  duration_ms: 0.0837
+  type: 'test'
+  ...
+# Subtest: o resumo conta as divergências explicadas e diz por quê
+ok 24 - o resumo conta as divergências explicadas e diz por quê
+  ---
+  duration_ms: 0.2733
+  type: 'test'
+  ...
+# Subtest: o conferidor de contagens reprova o número velho plantado e passa com o certo
+ok 25 - o conferidor de contagens reprova o número velho plantado e passa com o certo
+  ---
+  duration_ms: 0.2208
+  type: 'test'
+  ...
+# Subtest: o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+ok 26 - o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera
+  ---
+  duration_ms: 0.1494
+  type: 'test'
+  ...
+# Subtest: suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+ok 27 - suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também
+  ---
+  duration_ms: 0.1521
+  type: 'test'
+  ...
+# Subtest: todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+ok 28 - todo passo do roteiro com total esperado aparece na medição do conferir:numeros
+  ---
+  duration_ms: 0.4411
+  type: 'test'
+  ...
+# Subtest: o registro da deriva V-DEP-4 existe e diz que foi fechada
+ok 29 - o registro da deriva V-DEP-4 existe e diz que foi fechada
+  ---
+  duration_ms: 0.7685
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 165.7377
+Runtime (vai para a imagem): 0 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 3 vulnerabilidade(s)
+  aceita (desenvolvimento): @vitest/mocker (dono Rafael, até 2027-01-05)
+  aceita (desenvolvimento): tinypool (dono Rafael, até 2027-01-05)
+  aceita (desenvolvimento): vitest (dono Rafael, até 2027-01-05)
+
+Aviso: 3 vulnerabilidade(s) apenas em ferramenta de desenvolvimento, todas aceitas com dono e prazo (CP-03). Não reprova.
+
+Aplicativo de campo (vai para o telefone): 10 vulnerabilidade(s)
+  aceita: brace-expansion GHSA-6j4f-fj2g-mc7p (high, dono Rafael, até 2027-01-05)
+  aceita: brace-expansion GHSA-q2hr-2g5m-vwhr (moderate, dono Rafael, até 2027-01-05)
+  aceita: brace-expansion GHSA-qhr7-859c-m2p7 (high, dono Rafael, até 2027-01-05)
+  aceita: decode-uri-component GHSA-vcc3-ghjq-m6fr (moderate, dono Rafael, até 2027-01-05)
+  aceita: node-forge GHSA-86w9-cpqp-85rv (high, dono Rafael, até 2027-01-05)
+  aceita: shell-quote GHSA-pqg4-j6r4-53mv (critical, dono Rafael, até 2027-01-05)
+  aceita: zod GHSA-mrhx-c7xc-m3w5 (high, dono Rafael, até 2027-01-05)
+
+Consulta de controle: lodash 4.17.20 voltou com GHSA-35jh-r3h4-6jhm de https://registry.npmjs.org/, com a configuração da raiz e com a do aplicativo; e as 7 advisories aceitas do aplicativo e os 3 pacotes aceitos de desenvolvimento voltaram nas próprias consultas.
+
+Runtime limpo, e o aplicativo sem advisory nova.

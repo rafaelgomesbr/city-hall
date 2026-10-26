@@ -428,11 +428,116 @@ describe("evidência: a chave de foto presa à ocorrência", () => {
     expect(await linhasDaChave(chave)).toHaveLength(2);
   }, 60_000);
 
-  it("a ocorrência de outro município continua 404, mesmo com chave já usada lá", async () => {
+  it("chave JÁ USADA em B e depois a mesma em A: A grava a sua, sem 409 e sem ver nada de B", async () => {
+    const deB = await ocorrenciaEmCampo(tokenB, EQUIPE_UNICA);
+    const deA = await ocorrenciaEmCampo(tokenA, EQUIPE_ALFA);
+    const chave = chaveNova();
+
+    const emB = await autorizarFoto(tokenAgenteB, deB, chave);
+    expect(emB.statusCode, emB.body).toBe(201);
+    expect(await linhasDaChave(chave)).toHaveLength(1);
+
+    const emA = await autorizarFoto(tokenAgenteA, deA, chave);
+    expect(emA.statusCode, emA.body).toBe(201);
+    expect(emA.json().erro).toBeUndefined();
+    // Nada de B vaza para A: nem a evidência, nem a chave de armazenamento.
+    expect(emA.json().evidenciaId).not.toBe(emB.json().evidenciaId);
+    expect(emA.json().chave).not.toBe(emB.json().chave);
+    expect(emA.json().chave).toContain(`tenant/${ORG_A}/`);
+    expect(JSON.stringify(emA.json())).not.toContain(ORG_B);
+    expect(JSON.stringify(emA.json())).not.toContain(deB);
+
+    const linhas = await mem.bruto.query<{ organizacao_id: string; ocorrencia_id: string }>(
+      "SELECT organizacao_id, ocorrencia_id FROM evidencias WHERE idempotency_key = $1 ORDER BY organizacao_id",
+      [chave],
+    );
+    expect(linhas.rows).toEqual([
+      { organizacao_id: ORG_A, ocorrencia_id: deA },
+      { organizacao_id: ORG_B, ocorrencia_id: deB },
+    ]);
+  }, 60_000);
+
+  it("com a chave já usada em B, o agente de A que aponta para a ocorrência de B segue em 404", async () => {
     const deB = await ocorrenciaEmCampo(tokenB, EQUIPE_UNICA);
     const chave = chaveNova();
+    const emB = await autorizarFoto(tokenAgenteB, deB, chave);
+    expect(emB.statusCode, emB.body).toBe(201);
+
     const r = await autorizarFoto(tokenAgenteA, deB, chave);
-    expect(r.statusCode).toBe(404);
-    expect(await linhasDaChave(chave)).toHaveLength(0);
+    expect(r.statusCode, r.body).toBe(404);
+    expect(await linhasDaChave(chave)).toHaveLength(1);
   }, 60_000);
+
+  describe("a corrida da foto: dois pedidos passam pela consulta e o segundo INSERT cai no índice", () => {
+    /**
+     * Como na corrida do chamado: a PRIMEIRA leitura por `idempotency_key` da
+     * próxima transação volta vazia, que é o instante em que dois pedidos
+     * concorrentes passam os dois pela conferência. O INSERT e o índice são
+     * os do Postgres.
+     */
+    let restaurarFoto: (() => void) | null = null;
+    afterEach(() => {
+      restaurarFoto?.();
+      restaurarFoto = null;
+    });
+
+    function cegarALeituraDaChaveDeFoto(): { cegou: () => boolean } {
+      const real = mem.banco.comTenant.bind(mem.banco);
+      let cegou = false;
+      mem.banco.comTenant = ((org: string, execucao: (c: Consulta) => Promise<unknown>) =>
+        real(org, (c) =>
+          execucao(
+            new Proxy(c, {
+              get(alvo, prop, receptor) {
+                if (prop !== "query") return Reflect.get(alvo, prop, receptor);
+                return async (sql: string, ...resto: unknown[]) => {
+                  if (!cegou && /FROM evidencias WHERE idempotency_key = \$1/.test(sql)) {
+                    cegou = true;
+                    return { rows: [] };
+                  }
+                  return (alvo.query as (...a: unknown[]) => Promise<unknown>)(sql, ...resto);
+                };
+              },
+            }),
+          ),
+        )) as typeof mem.banco.comTenant;
+      restaurarFoto = () => {
+        mem.banco.comTenant = real;
+      };
+      return { cegou: () => cegou };
+    }
+
+    it("outra ocorrência: 409 chave_ja_usada_em_outro_registro, e não 500", async () => {
+      const primeira = await ocorrenciaEmCampo(tokenA, EQUIPE_ALFA);
+      const segunda = await ocorrenciaEmCampo(tokenA, EQUIPE_ALFA);
+      const chave = chaveNova();
+      const ok = await autorizarFoto(tokenAgenteA, primeira, chave);
+      expect(ok.statusCode, ok.body).toBe(201);
+
+      const cego = cegarALeituraDaChaveDeFoto();
+      const perdedora = await autorizarFoto(tokenAgenteA, segunda, chave);
+      expect(cego.cegou(), "a consulta prévia precisa ter passado em branco").toBe(true);
+
+      expect(perdedora.statusCode, perdedora.body).toBe(409);
+      expect(perdedora.json().erro).toBe("chave_ja_usada_em_outro_registro");
+      const linhas = await linhasDaChave(chave);
+      expect(linhas).toHaveLength(1);
+      expect(linhas[0]!.ocorrencia_id).toBe(primeira);
+    }, 60_000);
+
+    it("mesma ocorrência: devolve o registro existente, como hoje (201 com a mesma evidência)", async () => {
+      const ocorrencia = await ocorrenciaEmCampo(tokenA, EQUIPE_ALFA);
+      const chave = chaveNova();
+      const ok = await autorizarFoto(tokenAgenteA, ocorrencia, chave);
+      expect(ok.statusCode, ok.body).toBe(201);
+
+      const cego = cegarALeituraDaChaveDeFoto();
+      const perdedora = await autorizarFoto(tokenAgenteA, ocorrencia, chave);
+      expect(cego.cegou()).toBe(true);
+
+      expect(perdedora.statusCode, perdedora.body).toBe(201);
+      expect(perdedora.json().evidenciaId).toBe(ok.json().evidenciaId);
+      expect(await linhasDaChave(chave)).toHaveLength(1);
+    }, 60_000);
+  });
 });
