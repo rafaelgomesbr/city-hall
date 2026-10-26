@@ -928,6 +928,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F03-0C": { total: 1, falhas: 0 },
   // V2-F04-0C (andaime do shared): `catalogo-de-erros.test.ts` ganha 1 caso (a F04 reserva `orgao_sem_gestor`, `encaminhamento_encerrado`, `devolucao_so_antes_do_aceite` e `cadeia_esgotada` no fim da lista, sem repetir `transicao_invalida` nem `ja_respondida`).
   "V2-F04-0C": { total: 1, falhas: 0 },
+  // V2-F04-E03, parte 0D (máquina de estados do encaminhamento no shared): `packages/shared/test/encaminhamento.test.ts` é novo, com 46 casos (a tabela de transições escrita à mão da decisão 9 da ADR 0010, ator certo e errado em cada uma, os negativos da D-23, os terminais, o leitor, o operador, a marca `em_nome_do_orgao` e o catálogo de eventos coerente com as transições).
+  "V2-F04-E03-parte-0D": { total: 46, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
