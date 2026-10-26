@@ -471,21 +471,27 @@ describe("Teclado e leitor de tela", () => {
     ).toEqual([]);
   });
 
-  it("o Tab traz o item da barra do rodapé inteiro para a tela", () => {
+  it("a barra do rodapé não rola: o que não cabe mora no menu Mais, acessível por teclado", () => {
     /*
-      No celular a lateral vira barra no pé da tela e rola na horizontal. O
-      navegador NÃO rola sozinho um item que está pela metade: medido a 390px,
-      o Tab parava em "Mapa da cidade" com o rótulo cortado na borda direita.
-      Quem rola é o `onFocus` da estrutura, e o respiro vem do
-      `scroll-padding-inline` da folha. São duas metades da mesma correção, e
-      este portão guarda as duas.
+      A H08 (V2-F00-E13) e a decisão do Rafael de 2026-10-26: a barra de onze
+      destinos que rolava na horizontal escondia o que a pessoa não sabia que
+      existia. Agora a barra tem só os destinos principais e um botão "Mais".
+      As provas de comportamento (foco, Esc, clique fora, 44 px) estão em
+      `test/menu-mais.test.ts` e em `layout-estreito.e2e.mjs`; este portão
+      guarda a causa na folha e no componente, que é o que se lê sem navegador:
+      a barra não pode voltar a rolar, e o botão precisa dizer o estado dele.
     */
+    const barra = readFileSync(join(RAIZ, "componentes", "BarraDoCelular.tsx"), "utf8");
+    expect(barra, "o botão Mais diz se o menu está aberto e qual elemento ele controla")
+      .toMatch(/aria-expanded=\{aberto\}\s+aria-controls=\{aberto \? menuId : undefined\}/);
     const estrutura = readFileSync(join(RAIZ, "componentes", "Estrutura.tsx"), "utf8");
-    expect(estrutura).toMatch(/scrollIntoView\(\{\s*inline:\s*"nearest",\s*block:\s*"nearest"\s*\}\)/);
-    // Os três tipos de item da barra: destino, troca de tema e sair.
-    expect(estrutura.match(/onFocus=\{trazerParaATela\}/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    expect(estrutura, "a barra não rola mais, então não há o que trazer para a tela")
+      .not.toMatch(/trazerParaATela/);
     const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
-    expect(css).toMatch(/\.lateral\s*\{\s*scroll-padding-inline:\s*var\(--ds-sp-\d\)/);
+    const celular = css.slice(css.indexOf("@media (max-width: 900px)"), css.indexOf("@media (max-height: 340px)"));
+    const regraDaBarra = celular.match(/\.lateral\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(regraDaBarra).not.toMatch(/overflow/);
+    expect(celular).not.toMatch(/scroll-padding-inline/);
   });
 
   it("o aviso passageiro não cai em cima da barra de navegação", () => {
@@ -526,7 +532,6 @@ describe("Teclado e leitor de tela", () => {
     expect(regraDoItem).toMatch(/white-space:\s*normal/);
     expect(regraDoItem).not.toMatch(/nowrap/);
     expect(regraDoItem).toMatch(/flex:\s*0 0 calc\(\(100% - \(var\(--barra-visiveis\) - 1\)/);
-    expect(css).toMatch(/\.lateral__grupo,\s*\.lateral__rodape\s*\{\s*display:\s*contents/);
     // Em tela de celular o número de ladrilhos inteiros diminui, nunca cresce.
     const visiveis = [...css.matchAll(/--barra-visiveis:\s*(\d+)/g)].map((m) => Number(m[1]));
     expect(visiveis).toEqual([6, 4, 3]);
