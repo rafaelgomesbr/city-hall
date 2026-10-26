@@ -30,22 +30,15 @@ segredos/
 *.p12
 *.mobileprovision
 
-# `google-services.json` PRECISA ser rastreado, e a linha que o ignorava foi
-# removida em 09/09/2026 depois de ela quase quebrar o build na nuvem.
-#
-# Dois motivos, e o primeiro basta:
-#
-# 1. O EAS constrói a partir do git. Arquivo ignorado nao chega no worker, e o
-#    build do Android falha na hora de resolver o Firebase, com uma mensagem
-#    que nao aponta para a causa.
-# 2. Ele nao e segredo. Numero do projeto, id do app e chave de API do Android
-#    saem de qualquer APK publicado com um descompactador. O que protege essa
-#    chave e a restricao por pacote e por API no Google Cloud, nunca o sigilo
-#    do arquivo.
-#
-# O que continua fora do git, e ai sim e segredo de verdade: a chave .p8 da
-# Apple (linha acima), o keystore de assinatura do Android, e a conta de
-# servico do Firebase que o EAS usa para falar com o FCM.
+# Arquivos do Firebase: fora do git desde 26/10/2026, por regra do Rafael
+# ("qualquer chave no codigo tem que sair"). Entre 09/09 e 26/10/2026 o
+# `google-services.json` ficou rastreado porque o EAS constroi a partir do git
+# e arquivo ignorado nao chega no worker. O jeito certo e o EAS receber o
+# arquivo por variavel de ambiente do tipo arquivo (`GOOGLE_SERVICES_JSON`,
+# lida em `app.config.ts`), e nao pelo repositorio. A chave que ficou no
+# historico e girada no Google Cloud (H33 de pendencias-humanas.md).
+# O teste `scripts/sem-credencial-no-git.test.mjs` reprova se ele voltar.
+google-services.json
 GoogleService-Info.plist
 
 # Ambiente local.
