@@ -1,0 +1,9 @@
+deploy-hml.yml: YAML valido; run-name: Implantar HML ${{ github.event.workflow_run.head_sha }}
+  construir(needs: -; timeout 45; permissions {"contents":"read","packages":"write","id-token":"write","attestations":"write"})
+  implantar(needs: construir; timeout 60; permissions {"contents":"read","packages":"read"})
+  painel(needs: construir,implantar; timeout 25; permissions {"contents":"write","deployments":"read"})
+  aprovar(needs: construir,implantar,painel; timeout 10; permissions {"contents":"read","packages":"write"})
+promover-producao.yml: YAML valido; run-name: (nenhum)
+  validar(needs: -; timeout 15; permissions {"actions":"read","contents":"read","packages":"read"})
+  promover(needs: validar; timeout 30; permissions {"contents":"write","packages":"read"})
+codigo de saida: 0

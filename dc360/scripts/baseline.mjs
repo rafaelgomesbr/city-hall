@@ -272,8 +272,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     no passo, conferidor e artefato), o job `windows` roda `lint`, `lint:teto` e
     `formato:conferir`, e o `plataformas` deixa o git escrever o CRLF e fixa a
     contagem do painel.
+    A correção 1 da F01, parte B (revisão independente, achados 3, 4 e 5 da E12)
+    acrescenta 6 casos ao MESMO arquivo (57 no total): toda cópia de imagem com
+    `--prefer-index=false` e o digest lido de volta, o run de HML achado pelo
+    título com o SHA implantado, e o painel que espera a Vercel antes do selo,
+    cada regra com o seu negativo.
   */
-  "V2-F01-E02": 53, // 51 até as dívidas DV-26 e DV-39; a correção 1 da F01 acrescentou 2 (comando só impresso por `echo` ou entre aspas não conta como executado, e as formas reais de `run:` continuam aceitas)
+  "V2-F01-E02": 59, // 51 até as dívidas DV-26 e DV-39; a correção 1 da F01 acrescentou 2 na parte A (comando só impresso por `echo` ou entre aspas não conta como executado, e as formas reais de `run:` continuam aceitas) e 6 na parte B
   /*
     DV-39: `scripts/conferir-empacotamento-do-campo.test.mjs` é novo, com 3 casos
     (o pacote do Metro com o zod 4 e o código do shared passa; sem um deles,
@@ -289,8 +294,13 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     de API além da exceção declarada, os cabeçalhos de segurança, e os casos
     sintéticos que provam que a regra morde). V2-F01-E12 acrescenta 2 casos ao
     `vercel-json.test.mjs` (11 no total): a `master` deixa de ser publicada.
+    A correção 1 da F01, parte B (achado 11) acrescenta 4 casos ao
+    `conferir-dominio.test.mjs` (24 no total): o preflight que não autoriza
+    PATCH, authorization ou content-type reprova, a orquestração com a API que
+    omite os dois cabeçalhos, o preflight pedindo o que o painel manda, e a
+    varredura do painel contra a lista do conferidor.
   */
-  "V2-F01-E10": 20,
+  "V2-F01-E10": 24,
   "V2-F01-E10-vercel-json": 11,
   /*
     V2-F01-E12: `scripts/conferir-saude-remota.test.mjs` é novo, com 7 casos. É a
@@ -309,8 +319,11 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     etapa do roadmap, e nenhum valor de segredo nem travessão. Quatro casos são
     a prova de que o conferidor morde: texto estragado reprova. O `rollback.md`
     é da E08 e não é varrido.
+    A correção 1 da F01, parte B (achado 12) acrescenta 1 caso (16 no total): o
+    comando de apagar a cópia do `migracao.md` aponta para a pasta de PROD em
+    que o roteiro grava (`pastaDeCopias("prod")`), nos dois sistemas.
   */
-  "V2-F01-E16": 15,
+  "V2-F01-E16": 16,
   /*
     V2-F01-E08: `scripts/smoke-das-imagens.test.mjs` é novo, com 15 casos. Prova a
     régua do smoke das imagens Docker com um `docker` de mentira (a imagem boa
@@ -415,6 +428,21 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     USAGE no schema, que o CI 2 mostrou falhar com 42501).
   */
   "V2-F01-E22": 36, // 24 na E22; a correção 1 acrescentou 12 (disponível não é criável: o papel de setup sem CREATE reprova em PROD; o privilégio herdado por papel intermediário; a âncora TLS do migrador na conexão)
+  /*
+    Correção 1 da F01, parte B (revisão independente). `scripts/esperar-painel.test.mjs`
+    é novo, com 10 casos (o painel de HML espera a Vercel antes do selo, achado
+    5: os argumentos, o domínio da matriz de ambientes, o deployment de
+    produção do projeto, o estado, a resposta do endereço, o caminho feliz, a
+    falha de build que reprova logo, o limite esgotado, o endereço que não
+    responde e o comando). E `copiar-producao.test.mjs`, que já existia (por
+    isso fora da tabela de arquivos), ganha 12 (achados 1, 10 e 12: a DACL lida
+    da saída do icacls, a recusa de entrada alheia na pasta e no arquivo, o
+    arquivo vazio e conferido antes do pg_dump, o modo conferido no macOS e no
+    Linux, o pg_dump compatível entre todos os candidatos e o comando exato de
+    apagar a cópia).
+  */
+  "V2-F01-correcao-1-B": 10,
+  "V2-F01-correcao-1-B-acrescimos": 12,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -447,6 +475,7 @@ export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F01-E19-sbom": "sbom.test.mjs",
   "V2-F01-E13": "perfis-do-eas.test.mjs",
   "V2-F01-E22": "conferir-extensoes.test.mjs",
+  "V2-F01-correcao-1-B": "esperar-painel.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);

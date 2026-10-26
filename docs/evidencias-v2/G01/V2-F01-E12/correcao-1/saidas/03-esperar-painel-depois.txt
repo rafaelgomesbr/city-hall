@@ -1,0 +1,71 @@
+TAP version 13
+# Subtest: lerArgumentos exige ambiente, projeto e commit de 40 hexadecimais, e aceita um limite em minutos
+ok 1 - lerArgumentos exige ambiente, projeto e commit de 40 hexadecimais, e aceita um limite em minutos
+  ---
+  duration_ms: 1.9518
+  type: 'test'
+  ...
+# Subtest: o endereço do painel vem da matriz de ambientes; HML sem domínio declarado reprova dizendo de quem depende
+ok 2 - o endereço do painel vem da matriz de ambientes; HML sem domínio declarado reprova dizendo de quem depende
+  ---
+  duration_ms: 0.6103
+  type: 'test'
+  ...
+# Subtest: o deployment escolhido é o mais novo de PRODUÇÃO do projeto de HML; preview e outro projeto não contam
+ok 3 - o deployment escolhido é o mais novo de PRODUÇÃO do projeto de HML; preview e outro projeto não contam
+  ---
+  duration_ms: 8.9069
+  type: 'test'
+  ...
+# Subtest: o estado do deployment: success é Ready; failure, error e inactive reprovam; o resto espera
+ok 4 - o estado do deployment: success é Ready; failure, error e inactive reprovam; o resto espera
+  ---
+  duration_ms: 0.295
+  type: 'test'
+  ...
+# Subtest: o painel responde: 200 com HTML passa; erro, redirecionamento ou corpo que não é HTML reprova
+ok 5 - o painel responde: 200 com HTML passa; erro, redirecionamento ou corpo que não é HTML reprova
+  ---
+  duration_ms: 0.2875
+  type: 'test'
+  ...
+# Subtest: caminho feliz: espera a Vercel registrar, passar de pending a Ready, e o endereço de HML responder
+ok 6 - caminho feliz: espera a Vercel registrar, passar de pending a Ready, e o endereço de HML responder
+  ---
+  duration_ms: 1.649
+  type: 'test'
+  ...
+# Subtest: falha de build na Vercel reprova LOGO, sem esperar o limite, e diz onde está o log
+ok 7 - falha de build na Vercel reprova LOGO, sem esperar o limite, e diz onde está o log
+  ---
+  duration_ms: 0.4577
+  type: 'test'
+  ...
+# Subtest: Vercel que nunca fica Ready, ou que nunca registra o deployment, reprova no limite, com o último estado
+ok 8 - Vercel que nunca fica Ready, ou que nunca registra o deployment, reprova no limite, com o último estado
+  ---
+  duration_ms: 0.9622
+  type: 'test'
+  ...
+# Subtest: Ready mas o endereço de HML não responde: reprova no limite nomeando o endereço, e queda de rede não derruba a espera
+ok 9 - Ready mas o endereço de HML não responde: reprova no limite nomeando o endereço, e queda de rede não derruba a espera
+  ---
+  duration_ms: 0.7852
+  type: 'test'
+  ...
+# Subtest: como comando: sem argumentos sai 2; HML sem domínio na matriz sai 1 sem tocar a rede
+ok 10 - como comando: sem argumentos sai 2; HML sem domínio na matriz sai 1 sem tocar a rede
+  ---
+  duration_ms: 99.5853
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 186.6753
+codigo de saida: 0

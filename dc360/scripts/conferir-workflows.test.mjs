@@ -648,9 +648,12 @@ export function problemasDaPromocao(texto) {
   // A tag do GHCR sozinha não prova HML: run do Actions, digest igual e atestação.
   const v = codigo(validar.texto);
   if (!/^ {6}actions:\s*read\s*$/m.test(validar.texto)) p.push("validar sem actions: read (não consulta os runs do deploy-hml.yml)");
+  // Correção 1 da F01, parte B (achado 4): o run é procurado pelo SHA que o
+  // deploy REGISTROU no título (`run-name`), e não pelo `head_sha` do run, que
+  // num `workflow_run` é a ponta do ramo padrão, não o commit implantado.
   for (const [exigido, rotulo] of [
-    [/actions\/workflows\/deploy-hml\.yml\/runs\?head_sha=\$\{COMMIT\}&event=workflow_run/, "a consulta aos runs do deploy-hml.yml por head_sha e evento workflow_run"],
-    [/\.head_sha == \$sha and \.event == "workflow_run" and \.conclusion == "success"/, "head_sha, evento workflow_run e conclusão success do run"],
+    [/gh api --paginate "repos\/\$\{GITHUB_REPOSITORY\}\/actions\/workflows\/deploy-hml\.yml\/runs\?event=workflow_run&status=success&per_page=100"/, "a consulta aos runs do deploy-hml.yml por evento workflow_run, paginada"],
+    [/--arg arquivo '\.github\/workflows\/deploy-hml\.yml' '[^']*\.display_title == \$titulo and \.event == "workflow_run" and \.conclusion == "success" and \.path == \$arquivo/, "título com o SHA implantado, evento workflow_run, conclusão success e o arquivo do run"],
     [/Marcar a versão como aprovada em HML.*\.conclusion == "success"/, "o job de aprovação do run concluído com sucesso"],
     [/imagetools inspect "\$imagem:sha-\$COMMIT"/, "o digest de sha-<sha>"],
     [/if \[ "\$digest" != "\$construido" \]/, "o digest do selo igual ao digest construído"],
@@ -1012,8 +1015,9 @@ test("negativo E12 (revisão 1): promover sem run bem-sucedido do deploy-hml.yml
   const semRun = prod.replace(/ {6}- name: Exigir um deploy de HML bem-sucedido para o SHA[\s\S]*?\n(?= {6}# Prova 3b)/, "");
   assert.notEqual(semRun, prod);
   achou(problemasDaPromocao(semRun), /consulta aos runs do deploy-hml\.yml/);
-  achou(problemasDaPromocao(estragar(prod, '.head_sha == $sha and .event == "workflow_run" and .conclusion == "success"', '.head_sha == $sha')), /head_sha, evento workflow_run e conclusão success/);
-  achou(problemasDaPromocao(estragar(prod, "&event=workflow_run", "")), /consulta aos runs do deploy-hml\.yml/);
+  // Correção 1 da F01, parte B: o filtro é pelo título com o SHA implantado (achado 4).
+  achou(problemasDaPromocao(estragar(prod, '.display_title == $titulo and .event == "workflow_run" and .conclusion == "success"', ".display_title == $titulo")), /título com o SHA implantado, evento workflow_run, conclusão success/);
+  achou(problemasDaPromocao(estragar(prod, "?event=workflow_run&status=success", "?status=success")), /consulta aos runs do deploy-hml\.yml/);
   achou(problemasDaPromocao(estragar(prod, '.name == "Marcar a versão como aprovada em HML" and .conclusion == "success"', '.name == "Marcar a versão como aprovada em HML"')), /job de aprovação/);
   achou(problemasDaPromocao(estragar(prod, "    permissions:\n      actions: read\n", "    permissions:\n")), /actions: read/);
   assert.equal(escritasDeJobs(prod).includes("validar:actions"), false);
@@ -1045,4 +1049,127 @@ test("negativo E12 (revisão 1): o deploy de HML sem atestar o digest de cada im
   assert.ok(escritasDeJobs(aprovarComIdToken).includes("aprovar:id-token"));
   assert.notDeepEqual(escritasDeJobs(aprovarComIdToken), ESCRITAS_PERMITIDAS[HML]);
   assert.notDeepEqual(escritasDeJobs(estragar(hml, "      attestations: write\n", "")), ESCRITAS_PERMITIDAS[HML]);
+});
+
+// ---------------------------------------------------------------------------
+// Correção 1 da F01, parte B (revisão independente, achados 3, 4 e 5 da E12)
+// ---------------------------------------------------------------------------
+
+/**
+ * Achado 3: `docker buildx imagetools create` com UMA fonte prefere, por
+ * padrão, embrulhar um manifesto simples num índice novo, com OUTRO digest.
+ * O selo `hml-ok-<sha>` deixava de ter o digest de `sha-<sha>` e a promoção
+ * recusava a versão que acabou de passar por HML; a cópia para o Fly deixava
+ * de existir no digest que o `flyctl deploy --image ...@digest` pede. Toda
+ * cópia tem de ser cópia carbono (`--prefer-index=false`) e conferir, lendo do
+ * registro, que o digest do destino é o da fonte.
+ */
+export function problemasDeDigestPreservado(texto, { comSelo = false } = {}) {
+  const p = [];
+  const runs = comandosDosRuns(texto).join("\n");
+  const criacoes = [...runs.matchAll(/imagetools create[^\n]*/g)].map((m) => m[0]);
+  if (criacoes.length === 0) p.push("nenhum imagetools create (o formato mudou?)");
+  for (const c of criacoes) {
+    if (!/ --prefer-index=false /.test(c)) p.push(`imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): ${c}`);
+  }
+  for (const alvo of ["API", "CONSOLE"]) {
+    const destino = `"registry.fly.io/\${APP_${alvo}}:sha-\${COMMIT}"`;
+    if (!runs.includes(`copiado="$(docker buildx imagetools inspect ${destino} --format '{{.Manifest.Digest}}')"`)) {
+      p.push(`a cópia da imagem ${alvo} no Fly não é lida de volta do registro`);
+    }
+    if (!runs.includes(`[ "$copiado" = "$DIGEST_${alvo}" ] || {`)) p.push(`a cópia da imagem ${alvo} no Fly não é comparada com o digest construído`);
+  }
+  if (comSelo) {
+    const aprovar = comandosDosRuns(job(texto, "aprovar")?.texto ?? "").join("\n");
+    if (!aprovar.includes(`selado="$(docker buildx imagetools inspect "$imagem:hml-ok-$COMMIT" --format '{{.Manifest.Digest}}')"`)) {
+      p.push("o selo hml-ok não é lido de volta do registro");
+    }
+    if (!aprovar.includes('[ "$selado" = "$digest" ] || {')) p.push("o digest do selo hml-ok não é comparado com o digest construído");
+  }
+  return p;
+}
+
+/** O título que o deploy de HML dá ao run, com o SHA que ele implanta. */
+const TITULO_DO_RUN_DE_HML = "Implantar HML ${{ github.event.workflow_run.head_sha }}";
+
+/**
+ * Achado 4: num `workflow_run`, o `head_sha` do run é a ponta do ramo padrão,
+ * e não o commit que o deploy implantou (o do Verificar que disparou). Se o CI
+ * de A termina depois de B entrar na master, o run que implanta A tem
+ * `head_sha` de B, e a promoção de A (ou o rollback para A) não o achava. O
+ * deploy registra o SHA implantado no título do run (`run-name`), e a promoção
+ * procura por ele.
+ */
+export function problemasDaFonteDoSha(hmlTexto, prodTexto) {
+  const p = [];
+  const runName = /^run-name:\s*(.+?)\s*$/m.exec(codigo(hmlTexto))?.[1];
+  if (runName !== TITULO_DO_RUN_DE_HML) p.push(`o deploy de HML tem de registrar o SHA implantado em run-name: ${TITULO_DO_RUN_DE_HML} (achei ${runName ?? "nada"})`);
+  const v = codigo(job(prodTexto, "validar")?.texto ?? "");
+  if (!v.includes('titulo="Implantar HML ${COMMIT}"')) p.push("a promoção não monta o título do run com o SHA pedido");
+  if (/runs\?[^"\n]*head_sha=/.test(v) || /select\(\.head_sha\b/.test(v)) p.push("a promoção filtra o run pelo head_sha, que num workflow_run é a ponta do ramo padrão");
+  return p;
+}
+
+/**
+ * Achado 5: o job `painel` terminava quando o ramo `homologacao` se movia, sem
+ * saber se a Vercel publicou. O selo nasce depois do painel, então o painel só
+ * termina verde depois de ver o deployment do commit `Ready` e o endereço de
+ * HML respondendo (`scripts/esperar-painel.mjs`, com espera limitada).
+ */
+export function problemasDoPainelDeHml(texto) {
+  const p = [];
+  const painel = job(texto, "painel");
+  if (!painel) return ["falta o job painel"];
+  const runs = comandosDosRuns(painel.texto).join("\n");
+  const iRamo = runs.indexOf("refs/heads/homologacao");
+  const iEspera = runs.indexOf("node scripts/esperar-painel.mjs --ambiente=hml");
+  if (iEspera < 0) p.push("o job painel não espera a Vercel publicar (esperar-painel.mjs --ambiente=hml)");
+  else if (iEspera < iRamo) p.push("o job painel espera a Vercel antes de mover o ramo homologacao");
+  if (!/--projeto="\$PAINEL_HML_PROJETO_VERCEL"/.test(runs) || !/--commit="\$COMMIT"/.test(runs)) p.push("a espera do painel tem de receber o projeto de HML e o commit implantado");
+  if (!/^ {4}permissions:\s*\n(?: {6}\S.*\n)*? {6}deployments:\s*read\s*$/m.test(painel.texto)) p.push("o job painel sem deployments: read (não lê o estado do deployment da Vercel)");
+  if (!/^ {2}PAINEL_HML_PROJETO_VERCEL: \S+-hml\s*$/m.test(codigo(texto))) p.push("falta PAINEL_HML_PROJETO_VERCEL (o projeto da Vercel do painel de HML)");
+  if (!/^ {4}needs:\s*\[construir, implantar, painel\]\s*$/m.test(job(texto, "aprovar")?.texto ?? "")) p.push("o selo tem de esperar o job painel");
+  return p;
+}
+
+test("correção 1 (achado 3): toda cópia de imagem preserva o digest e o confere no registro, no Fly e no selo hml-ok", () => {
+  assert.deepEqual(problemasDeDigestPreservado(hml, { comSelo: true }), []);
+  assert.deepEqual(problemasDeDigestPreservado(prod), []);
+});
+
+test("negativo (achado 3): imagetools create sem --prefer-index=false, ou sem ler o digest de volta, reprova", () => {
+  achou(problemasDeDigestPreservado(prod.replace(" --prefer-index=false ", " ")), /sem --prefer-index=false/);
+  achou(problemasDeDigestPreservado(hml.replaceAll(" --prefer-index=false ", " "), { comSelo: true }), /sem --prefer-index=false/);
+  achou(problemasDeDigestPreservado(estragar(prod, '[ "$copiado" = "$DIGEST_CONSOLE" ] || {', "true || {")), /CONSOLE no Fly não é comparada/);
+  achou(problemasDeDigestPreservado(estragar(hml, '[ "$selado" = "$digest" ] || {', "true || {"), { comSelo: true }), /selo hml-ok não é comparado/);
+});
+
+test("correção 1 (achado 4): o deploy registra o SHA implantado no título do run, e a promoção procura por ele", () => {
+  assert.deepEqual(problemasDaFonteDoSha(hml, prod), []);
+});
+
+test("negativo (achado 4): procurar o run pelo head_sha, ou o deploy sem run-name com o SHA, reprova", () => {
+  achou(problemasDaFonteDoSha(estragar(hml, `run-name: ${TITULO_DO_RUN_DE_HML}\n`, ""), prod), /run-name/);
+  achou(problemasDaFonteDoSha(estragar(hml, "github.event.workflow_run.head_sha }}\n\non:", "github.sha }}\n\non:"), prod), /run-name/);
+  achou(problemasDaFonteDoSha(hml, estragar(prod, "runs?event=workflow_run&status=success", "runs?head_sha=${COMMIT}&event=workflow_run&status=success")), /filtra o run pelo head_sha/);
+  achou(problemasDaFonteDoSha(hml, estragar(prod, 'titulo="Implantar HML ${COMMIT}"', 'titulo="Implantar HML"')), /título do run/);
+});
+
+test("correção 1 (achado 5): o painel só termina depois do deployment da Vercel Ready e do endereço de HML respondendo, e o selo espera o painel", () => {
+  assert.deepEqual(problemasDoPainelDeHml(hml), []);
+  // A espera usa o script do repositório: a ação de checkout do job painel é a do commit implantado.
+  assert.match(job(hml, "painel").texto, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+});
+
+test("negativo (achado 5): painel sem a espera, com a espera antes do ramo, sem deployments: read ou selo sem esperar o painel reprova", () => {
+  const passo = / {6}- name: Esperar a Vercel publicar o painel de HML[\s\S]*?\n(?=\n {2}# O selo)/.exec(hml)?.[0];
+  assert.ok(passo, "o passo da espera mudou de nome ou de lugar");
+  const semEspera = hml.replace(passo, "");
+  achou(problemasDoPainelDeHml(semEspera), /não espera a Vercel/);
+  const esperaAntes = semEspera.replace("      - name: Mover o ramo homologacao", `${passo}\n      - name: Mover o ramo homologacao`);
+  assert.notEqual(esperaAntes, semEspera);
+  achou(problemasDoPainelDeHml(esperaAntes), /antes de mover o ramo/);
+  achou(problemasDoPainelDeHml(estragar(hml, "      deployments: read\n", "")), /deployments: read/);
+  achou(problemasDoPainelDeHml(estragar(hml, "needs: [construir, implantar, painel]", "needs: [construir, implantar]")), /o selo tem de esperar o job painel/);
+  achou(problemasDoPainelDeHml(estragar(hml, '--commit="$COMMIT" --limite-min=15', "--limite-min=15")), /projeto de HML e o commit/);
 });

@@ -163,11 +163,23 @@ Siga `deploy.md`, passos 3 a 6. A entrada na `master` (que publica o painel) é 
 
 ### 7. Apagar a cópia quando a migração estiver conferida no ar
 
+O passo 3 termina imprimindo o comando EXATO que apaga a cópia que acabou de
+gravar, com o caminho inteiro. Use esse. Se ele se perdeu, o caminho é o da
+pasta de PROD (`<data>` é o nome do arquivo, como `2026-10-26T13-05-00`):
+
 ```bash
-rm ~/dc360-copias/<data>.dump
+rm -- ~/dc360-copias/prod/<data>.dump
 ```
 
-Cópia velha é dado pessoal sem finalidade.
+No Windows, no PowerShell:
+
+```powershell
+Remove-Item -LiteralPath $HOME\dc360-copias\prod\<data>.dump
+```
+
+Confira que sumiu (`node scripts/copiar-producao.mjs --ambiente prod --conferir`
+responde "Última cópia: nenhuma", ou a anterior). Cópia velha é dado pessoal
+sem finalidade.
 
 ## Verificação
 

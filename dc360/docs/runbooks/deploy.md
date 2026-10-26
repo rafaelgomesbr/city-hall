@@ -36,6 +36,12 @@ workflows não rodam de verdade:
   ramo de produção trocado de `master` para `producao`. O `vercel.json` já manda
   a Vercel ignorar a `master`; sem a troca, o painel de PROD simplesmente não é
   publicado (falha para o lado seguro).
+- **O projeto do painel de HML na Vercel:** com o nome `dc360-painel-hml` (o
+  `PAINEL_HML_PROJETO_VERCEL` do `deploy-hml.yml`; outro nome exige trocar lá) e
+  o ramo de produção `homologacao`, e o domínio dele declarado em
+  `scripts/ambientes.json` (`ambientes.hml.dominio`). Sem os dois, o job
+  `painel` do `deploy-hml.yml` reprova e o selo de HML não nasce (falha para o
+  lado seguro).
 - **`/saude` com `versao` e `commit`:** depende de V2-F01-E08. Hoje o `/saude`
   da API devolve `status`, `banco`, `ultimaMigracao`, `eliminacoes` e `push`,
   e nada diz qual commit está no ar. Até a E08, anote o número do release do
@@ -90,10 +96,15 @@ Todas precisam ser verdadeiras. Se uma não for, pare.
    `deploy-hml.yml` dispara sozinho (gatilho `workflow_run`, só para push na
    `master`). Ele constrói as duas imagens uma vez, ensaia a migration em HML
    (com cópia antes), implanta API e console por digest, confere `/saude` com a
-   `versao` e o `commit` do merge, move o ramo `homologacao` (painel de HML) e,
-   só no fim, põe o selo `hml-ok` nas imagens. Acompanhe em GitHub > Actions >
-   "Implantar HML". Verde, HML está na versão do merge. Vermelho, nada vai a
-   PROD: leia o log do passo que falhou. CI vermelho nunca dispara o deploy.
+   `versao` e o `commit` do merge, move o ramo `homologacao` (painel de HML),
+   espera a Vercel publicar o painel daquele commit (`Ready`) e o endereço de
+   HML responder, com limite de 15 minutos, e só no fim põe o selo `hml-ok` nas
+   imagens, com o MESMO digest que foi construído (conferido no registro).
+   Acompanhe em GitHub > Actions > "Implantar HML <sha>": o título do run é o
+   commit implantado, e é por ele que a promoção acha o run. Verde, HML está na
+   versão do merge. Vermelho, nada vai a PROD: leia o log do passo que falhou
+   (uma falha de build da Vercel aparece no passo "Esperar a Vercel publicar o
+   painel de HML", com o link do log). CI vermelho nunca dispara o deploy.
 2. **Ensaie em HML** o que a entrega muda (`docs/IMPLANTACAO.md`, seção 9.4).
 3. **Crie a tag no commit aprovado** (ato do dono):
    ```bash
