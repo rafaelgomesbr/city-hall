@@ -1,4 +1,5 @@
 import { enderecoDaApi } from "./api";
+import { cabecalhoDaVersao } from "./versao-do-aplicativo";
 import { bancoLocal } from "./banco-local";
 import { distanciaEmTexto, type Ponto } from "./mapa";
 
@@ -269,6 +270,7 @@ async function pedirCaminho(token: string, origem: Ponto, destino: Ponto): Promi
         accept: "application/json",
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
+        ...cabecalhoDaVersao(),
       },
       body: JSON.stringify({ origem, destino }),
     });

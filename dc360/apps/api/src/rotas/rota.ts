@@ -134,7 +134,7 @@ const pontoSchema = z.object({
   { message: "A coordenada 0,0 não é um lugar." },
 );
 
-const pedidoSchema = z.object({
+export const pedidoSchema = z.object({
   origem: pontoSchema,
   destino: pontoSchema,
 });

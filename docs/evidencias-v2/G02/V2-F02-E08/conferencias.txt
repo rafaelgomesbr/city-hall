@@ -1,0 +1,85 @@
+== npm run typecheck
+
+> dc360@0.1.0 typecheck
+> npm run build:shared && npm run typecheck --workspaces --if-present
+
+
+> dc360@0.1.0 build:shared
+> npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo
+
+
+> @dc360/shared@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/db@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/campo@0.1.0 build
+> tsc -p tsconfig.build.json
+
+
+> @dc360/campo@0.1.0 typecheck
+> tsc -p tsconfig.json
+
+
+> @dc360/shared@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/api@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/console@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/web@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @dc360/db@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+== npm run lint
+
+> dc360@0.1.0 lint
+> node scripts/lint.mjs
+
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo
+
+== npm run lint:teto
+
+> dc360@0.1.0 lint:teto
+> node scripts/lint-teto.mjs conferir
+
+OK: lint-teto.json confere com as baselines (431 supressões).
+
+== npm run formato:conferir
+
+> dc360@0.1.0 formato:conferir
+> node scripts/formato-conferir.mjs
+
+OK: 839 arquivo(s) de código conferidos; 664 na baseline (só desce).
+
+== npm run conferir:numeros (final)
+    1 em db/test/postgis-disponivel.espacial.test.ts
+    1 em db/test/postgis-provedor.espacial.test.ts
+    1 em db/test/trava-de-migracao.test.ts
+
+Afirmações conferidas: 25
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+Todos os números da documentação batem com a realidade.
+
+== node --test scripts/baseline.test.mjs
+# tests 29
+# pass 29
+# fail 0

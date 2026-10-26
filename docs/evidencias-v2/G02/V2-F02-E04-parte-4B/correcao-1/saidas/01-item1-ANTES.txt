@@ -1,0 +1,93 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aaae4751dc2f8cba8/dc360/apps/api
+
+ ❯ test/openapi-versao-do-aplicativo.test.ts (5 tests | 4 failed) 1497ms
+   ✓ o documento declara o 426 e o cabeçalho de versão > âncora: o documento tem operações e a rota pública da versão mínima 2ms
+   × o documento declara o 426 e o cabeçalho de versão > toda operação do /v1, menos a da versão mínima, declara x-app-version opcional 7ms
+     → post /v1/aparelhos: expected [] to deeply equal [ 'x-app-version' ]
+   × o documento declara o 426 e o cabeçalho de versão > toda operação do /v1, menos a da versão mínima, declara o 426 com o corpo { erro, mensagem, versaoMinima } 1ms
+     → Cannot read properties of undefined (reading 'required')
+   × o 426 é do gancho, não da entrada > entrada que declara o 426 por conta própria faz o gerador falhar 3ms
+     → expected [Function] to throw an error
+   × o documento confere com o comportamento do servidor > cada operação declarada com 426 devolve 426 no corpo descrito; a da versão mínima não 18ms
+     → post /v1/aparelhos (426): expected true to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/openapi-versao-do-aplicativo.test.ts > o documento declara o 426 e o cabeçalho de versão > toda operação do /v1, menos a da versão mínima, declara x-app-version opcional
+AssertionError: post /v1/aparelhos: expected [] to deeply equal [ 'x-app-version' ]
+
+- Expected
++ Received
+
+- [
+-   "x-app-version",
+- ]
++ []
+
+ ❯ test/openapi-versao-do-aplicativo.test.ts:88:9
+     86|         cabecalho.map((p) => p.name),
+     87|         `${metodo} ${caminho}`,
+     88|       ).toEqual([CABECALHO_DE_VERSAO_DO_APLICATIVO]);
+       |         ^
+     89|       expect(cabecalho[0]!.required).toBe(false);
+     90|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/openapi-versao-do-aplicativo.test.ts > o documento declara o 426 e o cabeçalho de versão > toda operação do /v1, menos a da versão mínima, declara o 426 com o corpo { erro, mensagem, versaoMinima }
+TypeError: Cannot read properties of undefined (reading 'required')
+ ❯ test/openapi-versao-do-aplicativo.test.ts:98:20
+     96|       properties: Record<string, unknown>;
+     97|     };
+     98|     expect(esquema.required.slice().sort()).toEqual(["erro", "mensagem…
+       |                    ^
+     99|     for (const { metodo, caminho, operacao } of operacoes()) {
+    100|       const r426 = operacao.responses["426"];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/openapi-versao-do-aplicativo.test.ts > o 426 é do gancho, não da entrada > entrada que declara o 426 por conta própria faz o gerador falhar
+AssertionError: expected [Function] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ test/openapi-versao-do-aplicativo.test.ts:129:7
+    127|         [],
+    128|       ),
+    129|     ).toThrow(/426/);
+       |       ^
+    130|   });
+    131| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/openapi-versao-do-aplicativo.test.ts > o documento confere com o comportamento do servidor > cada operação declarada com 426 devolve 426 no corpo descrito; a da versão mínima não
+AssertionError: post /v1/aparelhos (426): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ test/openapi-versao-do-aplicativo.test.ts:148:74
+    146|       });
+    147|       const declara426 = "426" in operacao.responses;
+    148|       expect(r.statusCode === 426, `${metodo} ${url} (${r.statusCode})…
+       |                                                                          ^
+    149|       if (declara426) {
+    150|         expect(Object.keys(r.json()).sort()).toEqual(esquema.required.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  07:40:56
+   Duration  5.87s (transform 689ms, setup 723ms, collect 3.20s, tests 1.50s, environment 0ms, prepare 174ms)
+

@@ -23,11 +23,11 @@
 - CP-43 ABERTO: Licenças de dependência permitidas e proibidas (F01: cabeçalho da fase, F01-E19)
 - CP-44 ABERTO: PostGIS no provedor gerenciado de HML e de produção (F01: cabeçalho da fase, F01-E22)
 
-## Etapas com pendência humana (24)
+## Etapas com pendência humana (27)
 - Observação com "falta" em etapa EM ANDAMENTO ou IMPLEMENTADA, ou status VALIDADA COM PENDÊNCIA HUMANA:
   F00-E01, F00-E05, F00-E06, F00-E08, F00-E09, F00-E10, F00-E11, F00-E13, F00-E14, F00-E15, F00-E16,
   F00-E18, F00-E19, F00-E21, F00-E22, F00-E24, F00-E25, F01-E13, F02-E01, F02-E02, F02-E03, F02-E04,
-  F02-E07, F02-E09
+  F02-E05, F02-E06, F02-E07, F02-E08, F02-E09
 
 ## Riscos aceitos vigentes (0)
 - nenhum RISCO-ACEITO.md em docs/evidencias-v2/

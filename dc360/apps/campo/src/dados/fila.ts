@@ -13,6 +13,7 @@ import { bancoLocal } from "./banco-local";
 import { arquivosDoAparelho } from "./evidencia-no-disco";
 import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
 import { geracaoDaSessao } from "./geracao-da-sessao";
+import { versaoDoAplicativo } from "./versao-do-aplicativo";
 
 /**
  * Onde a parte testada encontra o aparelho.
@@ -110,7 +111,12 @@ async function criarFila(
 
   return criarFilaDeSincronizacao({
     deposito: depositoSobreChaveValor(lojaSqlite(db)),
-    transporte: transporteHttp({ baseUrl, obterToken }),
+    /*
+      A versão vai por parâmetro (V2-F02-E06): o pacote não conhece o Expo. Com
+      ela todo pedido da fila leva `x-app-version: campo/<versão>`, e o 426 de
+      versão abaixo da mínima pausa a fila com o item guardado.
+    */
+    transporte: transporteHttp({ baseUrl, obterToken, versaoDoAplicativo: versaoDoAplicativo() }),
     /*
       QUEM esta logado, lido a cada vez, pelo mesmo motivo e com o mesmo
       cuidado do `obterToken`.

@@ -1,0 +1,208 @@
+# Mordida: packages/campo/test/versao-do-aplicativo.test.ts contra transporte.ts e tipos.ts da base (41af9f79)
+# Resultado: 10 de 19 falham na base; 19 de 19 passam no candidato (11-test-pacote-campo.txt).
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a5e78c0e986d0b149/dc360/packages/campo
+
+ ❯ test/versao-do-aplicativo.test.ts (19 tests | 10 failed) 112ms
+   × o cabeçalho de versão > monta campo/<versão> e some quando a versão não é conhecida 9ms
+     → (0 , cabecalhosDaVersao) is not a function
+   × o cabeçalho de versão > vai em todo pedido à API: vistoria, autorização e confirmação de foto, devolução 11ms
+     → expected undefined to be 'campo/1.2.0' // Object.is equality
+   × o cabeçalho de versão > vai também no pedido repetido depois da renovação do 401 2ms
+     → expected undefined to be 'campo/1.2.0' // Object.is equality
+   ✓ o cabeçalho de versão > não vai na URL assinada do armazenamento, que recebe exatamente os cabeçalhos assinados 2ms
+   ✓ o cabeçalho de versão > sem versão informada o pedido sai como antes, sem o cabeçalho 1ms
+   × 426: a fila pausa e o item permanece > 426 em POST /sincronizacao/vistoria mantém o item pendente e pausa a fila 54ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × 426: a fila pausa e o item permanece > depois de atualizar, as mesmas coletas sobem com as mesmas chaves e nada se perde 2ms
+     → expected undefined to be 'versao_do_aplicativo_antiga' // Object.is equality
+   × 426: a fila pausa e o item permanece > 426 na devolução também pausa e mantém a devolução pendente 2ms
+     → expected undefined to be 'versao_do_aplicativo_antiga' // Object.is equality
+   × 426: a fila pausa e o item permanece > 426 com o código do catálogo em qualquer rota da fila vira FalhaDeSessao, nunca FalhaPermanente 5ms
+     → expected FalhaPermanente: Atualize o aplicativo pa… { …(2) } to be an instance of FalhaDeSessao
+   × 426: a fila pausa e o item permanece > 426 sem corpo em qualquer rota da fila vira FalhaDeSessao, nunca FalhaPermanente 1ms
+     → expected FalhaPermanente: O servidor recusou o env… { …(2) } to be an instance of FalhaDeSessao
+   × 426: a fila pausa e o item permanece > 426 com código desconhecido em qualquer rota da fila vira FalhaDeSessao, nunca FalhaPermanente 1ms
+     → expected FalhaPermanente: Outra frase. { …(2) } to be an instance of FalhaDeSessao
+   × 426: a fila pausa e o item permanece > a frase do servidor vai junto da falha quando veio 9ms
+     → expected FalhaPermanente: Atualize o aplicativo pa… { …(2) } to match object { …(2) }
+(3 matching properties omitted from actual)
+   ✓ 426: a fila pausa e o item permanece > o PUT na URL assinada não conhece 426: segue a regra do armazenamento 1ms
+   ✓ não regressão com o cabeçalho presente (tabela da parte 2B) > 401 nao_autenticado renova uma vez e, recusado de novo, pausa como sessão encerrada 2ms
+   ✓ não regressão com o cabeçalho presente (tabela da parte 2B) > 409 continua bloqueando só o item, com o código 2ms
+   ✓ não regressão com o cabeçalho presente (tabela da parte 2B) > 500 continua temporário: item pendente e adiado 2ms
+   ✓ não regressão com o cabeçalho presente (tabela da parte 2B) > 502 continua temporário: item pendente e adiado 1ms
+   ✓ não regressão com o cabeçalho presente (tabela da parte 2B) > 503 continua temporário: item pendente e adiado 1ms
+   ✓ não regressão com o cabeçalho presente (tabela da parte 2B) > 429 continua temporário: item pendente e adiado 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > o cabeçalho de versão > monta campo/<versão> e some quando a versão não é conhecida
+TypeError: (0 , cabecalhosDaVersao) is not a function
+ ❯ test/versao-do-aplicativo.test.ts:134:12
+    132| describe("o cabeçalho de versão", () => {
+    133|   it("monta campo/<versão> e some quando a versão não é conhecida", ()…
+    134|     expect(cabecalhosDaVersao("1.4.0")).toEqual({ "x-app-version": "ca…
+       |            ^
+    135|     expect(cabecalhosDaVersao(" 1.4.0 ")).toEqual({ "x-app-version": "…
+    136|     expect(cabecalhosDaVersao("")).toEqual({});
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > o cabeçalho de versão > vai em todo pedido à API: vistoria, autorização e confirmação de foto, devolução
+AssertionError: expected undefined to be 'campo/1.2.0' // Object.is equality
+
+- Expected: 
+"campo/1.2.0"
+
++ Received: 
+undefined
+
+ ❯ test/versao-do-aplicativo.test.ts:162:43
+    160|     for (let i = 0; i < 4; i++) {
+    161|       const cabecalhos = cabecalhosDoPedido(buscar, i);
+    162|       expect(cabecalhos["x-app-version"]).toBe(CABECALHO);
+       |                                           ^
+    163|       // O cabeçalho é só aditivo: o que já ia continua indo.
+    164|       expect(cabecalhos["authorization"]).toMatch(/^Bearer /);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > o cabeçalho de versão > vai também no pedido repetido depois da renovação do 401
+AssertionError: expected undefined to be 'campo/1.2.0' // Object.is equality
+
+- Expected: 
+"campo/1.2.0"
+
++ Received: 
+undefined
+
+ ❯ test/versao-do-aplicativo.test.ts:178:60
+    176| 
+    177|     expect(buscar).toHaveBeenCalledTimes(2);
+    178|     expect(cabecalhosDoPedido(buscar, 0)["x-app-version"]).toBe(CABECA…
+       |                                                            ^
+    179|     expect(cabecalhosDoPedido(buscar, 1)["x-app-version"]).toBe(CABECA…
+    180|     expect(cabecalhosDoPedido(buscar, 1)["authorization"]).toBe("Beare…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > 426 em POST /sincronizacao/vistoria mantém o item pendente e pausa a fila
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ test/versao-do-aplicativo.test.ts:215:20
+    213|     const r = await fila.drenar();
+    214| 
+    215|     expect(buscar).toHaveBeenCalledTimes(1);
+       |                    ^
+    216|     expect(buscar.mock.calls[0]?.[0]).toBe("https://api.exemplo/v1/sin…
+    217|     expect(r.paradaPor).toBe("versao_do_aplicativo_antiga");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > depois de atualizar, as mesmas coletas sobem com as mesmas chaves e nada se perde
+AssertionError: expected undefined to be 'versao_do_aplicativo_antiga' // Object.is equality
+
+- Expected: 
+"versao_do_aplicativo_antiga"
+
++ Received: 
+undefined
+
+ ❯ test/versao-do-aplicativo.test.ts:251:45
+    249|     }
+    250| 
+    251|     expect((await fila.drenar()).paradaPor).toBe("versao_do_aplicativo…
+       |                                             ^
+    252|     avancar();
+    253|     const r = await fila.drenar();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > 426 na devolução também pausa e mantém a devolução pendente
+AssertionError: expected undefined to be 'versao_do_aplicativo_antiga' // Object.is equality
+
+- Expected: 
+"versao_do_aplicativo_antiga"
+
++ Received: 
+undefined
+
+ ❯ test/versao-do-aplicativo.test.ts:269:25
+    267|     const r = await fila.drenar();
+    268| 
+    269|     expect(r.paradaPor).toBe("versao_do_aplicativo_antiga");
+       |                         ^
+    270|     const [item] = await deposito.listar();
+    271|     expect(item?.tipo).toBe("devolucao");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > 426 com o código do catálogo em qualquer rota da fila vira FalhaDeSessao, nunca FalhaPermanente
+AssertionError: expected FalhaPermanente: Atualize o aplicativo pa… { …(2) } to be an instance of FalhaDeSessao
+ ❯ test/versao-do-aplicativo.test.ts:295:20
+    293|       const { transporte, obterToken } = montar([resposta(426, corpo)]…
+    294|       const erro = await chamar(transporte).catch((e: unknown) => e);
+    295|       expect(erro).toBeInstanceOf(FalhaDeSessao);
+       |                    ^
+    296|       expect(erro).not.toBeInstanceOf(FalhaPermanente);
+    297|       expect((erro as FalhaDeSessao).motivo).toBe("versao_do_aplicativ…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > 426 sem corpo em qualquer rota da fila vira FalhaDeSessao, nunca FalhaPermanente
+AssertionError: expected FalhaPermanente: O servidor recusou o env… { …(2) } to be an instance of FalhaDeSessao
+ ❯ test/versao-do-aplicativo.test.ts:295:20
+    293|       const { transporte, obterToken } = montar([resposta(426, corpo)]…
+    294|       const erro = await chamar(transporte).catch((e: unknown) => e);
+    295|       expect(erro).toBeInstanceOf(FalhaDeSessao);
+       |                    ^
+    296|       expect(erro).not.toBeInstanceOf(FalhaPermanente);
+    297|       expect((erro as FalhaDeSessao).motivo).toBe("versao_do_aplicativ…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > 426 com código desconhecido em qualquer rota da fila vira FalhaDeSessao, nunca FalhaPermanente
+AssertionError: expected FalhaPermanente: Outra frase. { …(2) } to be an instance of FalhaDeSessao
+ ❯ test/versao-do-aplicativo.test.ts:295:20
+    293|       const { transporte, obterToken } = montar([resposta(426, corpo)]…
+    294|       const erro = await chamar(transporte).catch((e: unknown) => e);
+    295|       expect(erro).toBeInstanceOf(FalhaDeSessao);
+       |                    ^
+    296|       expect(erro).not.toBeInstanceOf(FalhaPermanente);
+    297|       expect((erro as FalhaDeSessao).motivo).toBe("versao_do_aplicativ…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  test/versao-do-aplicativo.test.ts > 426: a fila pausa e o item permanece > a frase do servidor vai junto da falha quando veio
+AssertionError: expected FalhaPermanente: Atualize o aplicativo pa… { …(2) } to match object { …(2) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
++ FalhaPermanente {
+    "message": "Atualize o aplicativo para continuar.",
+-   "motivo": "versao_do_aplicativo_antiga",
++   "codigo": "versao_do_aplicativo_antiga",
++   "campos": [],
++   "name": "FalhaPermanente",
+  }
+
+ ❯ test/versao-do-aplicativo.test.ts:305:5
+    303|   it("a frase do servidor vai junto da falha quando veio", async () =>…
+    304|     const { transporte } = montar([resposta(426, RECUSA_426)]);
+    305|     await expect(transporte.enviar(envelope())).rejects.toMatchObject({
+       |     ^
+    306|       motivo: "versao_do_aplicativo_antiga",
+    307|       message: RECUSA_426.mensagem,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed | 9 passed (19)
+   Start at  01:20:12
+   Duration  3.30s (transform 828ms, setup 0ms, collect 2.25s, tests 112ms, environment 0ms, prepare 502ms)
+

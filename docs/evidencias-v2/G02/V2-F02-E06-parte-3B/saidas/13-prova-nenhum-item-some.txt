@@ -1,0 +1,49 @@
+# Prova de que nenhum item some: a mesma fila e o mesmo servidor (426 até o aplicativo ser atualizado, 201 depois).
+# Roteiro temporário packages/campo/test/zz-prova-426.test.ts (apagado depois), rodado contra a base (41af9f79) e contra o candidato.
+
+===== BASE (antes da 3B)
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a5e78c0e986d0b149/dc360/packages/campo
+ANTES DO DRENO: [
+ "11111111: estado=pendente tentativas=0 ultimaFalha=-",
+ "22222222: estado=pendente tentativas=0 ultimaFalha=-"
+]
+DRENO 1 (servidor responde 426): {"fotosEnviadas":0,"enviados":0,"duplicados":0,"adiados":0,"bloqueados":2,"interrompido":false} pausadaPor: null
+DEPOIS DO 426: [
+ "11111111: estado=bloqueado tentativas=1 ultimaFalha=versao_do_aplicativo_antiga",
+ "22222222: estado=bloqueado tentativas=1 ultimaFalha=versao_do_aplicativo_antiga"
+]
+DRENO 2 (aplicativo atualizado, servidor aceita): {"fotosEnviadas":0,"enviados":0,"duplicados":0,"adiados":0,"bloqueados":0,"interrompido":false} pausadaPor: null
+DEPOIS DA ATUALIZACAO: [
+ "11111111: estado=bloqueado tentativas=1 ultimaFalha=versao_do_aplicativo_antiga",
+ "22222222: estado=bloqueado tentativas=1 ultimaFalha=versao_do_aplicativo_antiga"
+]
+PEDIDOS:
+POST https://api.exemplo/v1/sincronizacao/vistoria chave=11111111 x-app-version=(ausente) -> 426
+POST https://api.exemplo/v1/sincronizacao/vistoria chave=22222222 x-app-version=(ausente) -> 426
+ ✓ test/zz-prova-426.test.ts > prova 19ms
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+
+===== CANDIDATO (3B)
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a5e78c0e986d0b149/dc360/packages/campo
+ANTES DO DRENO: [
+ "11111111: estado=pendente tentativas=0 ultimaFalha=-",
+ "22222222: estado=pendente tentativas=0 ultimaFalha=-"
+]
+DRENO 1 (servidor responde 426): {"fotosEnviadas":0,"enviados":0,"duplicados":0,"adiados":0,"bloqueados":0,"interrompido":true,"paradaPor":"versao_do_aplicativo_antiga"} pausadaPor: versao_do_aplicativo_antiga
+DEPOIS DO 426: [
+ "11111111: estado=pendente tentativas=0 ultimaFalha=-",
+ "22222222: estado=pendente tentativas=0 ultimaFalha=-"
+]
+DRENO 2 (aplicativo atualizado, servidor aceita): {"fotosEnviadas":0,"enviados":2,"duplicados":0,"adiados":0,"bloqueados":0,"interrompido":false} pausadaPor: null
+DEPOIS DA ATUALIZACAO: [
+ "11111111: estado=confirmado tentativas=1 ultimaFalha=-",
+ "22222222: estado=confirmado tentativas=1 ultimaFalha=-"
+]
+PEDIDOS:
+POST https://api.exemplo/v1/sincronizacao/vistoria chave=11111111 x-app-version=campo/1.2.0 -> 426
+POST https://api.exemplo/v1/sincronizacao/vistoria chave=11111111 x-app-version=campo/1.2.0 -> 201
+POST https://api.exemplo/v1/sincronizacao/vistoria chave=22222222 x-app-version=campo/1.2.0 -> 201
+ ✓ test/zz-prova-426.test.ts > prova 25ms
+ Test Files  1 passed (1)
+      Tests  1 passed (1)

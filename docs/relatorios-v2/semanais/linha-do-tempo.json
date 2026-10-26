@@ -127,6 +127,27 @@
       "titulo": "Lote 1 da F02 juntado, com o Codex em conjunto",
       "texto": "E01 (rotas em /v1 com espelho legado) e E09 (fuso do município no protocolo e no CSV) implementadas; E02 e E03 em andamento. Seis dívidas pagas. O Codex revisou o lote (nada bloqueia) e passou a implementar partes do lote 2.",
       "tipo": "marco"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Lotes 2 e 3 da F02 juntados e verdes",
+      "texto": "Painel e campo chamam a API em /v1; catálogo de 95 códigos de erro e idempotência do chamado e da foto (migração 052). Depois, versão mínima do aplicativo com resposta 426 sem perder a fila e contrato OpenAPI completo (96 operações, 0 pendentes). 8 das 9 etapas implementadas; falta a E05.",
+      "tipo": "ok"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "Revisão do Codex na F01: mais de 20 defeitos corrigidos",
+      "texto": "Entre eles o dump de produção que podia nascer legível por outros usuários no Windows e a cadeia de deploy que podia aprovar a homologação sem o painel publicado. Tudo corrigido com teste; o CI segue vermelho só no ponto que depende da sua decisão (H106).",
+      "tipo": "warn"
+    },
+    {
+      "data": "26/10",
+      "iso": "2026-10-26",
+      "titulo": "F03 aberta, com plano em 8 lotes",
+      "texto": "ADR 0009 (pessoa global com conta por município) corrigida duas vezes depois de revisões de segurança. O portão de isolamento entre municípios foi refeito como catálogo nominal: as 15 tentativas de burla da revisão adversarial agora reprovam.",
+      "tipo": "marco"
     }
   ]
 }

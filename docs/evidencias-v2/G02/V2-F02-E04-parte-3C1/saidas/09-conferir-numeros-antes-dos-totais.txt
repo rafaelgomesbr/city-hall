@@ -1,0 +1,62 @@
+
+> dc360@0.1.0 conferir:numeros
+> node scripts/conferir-numeros.mjs
+
+Lendo a lista de testes de cada pacote (sem executar)...
+
+Contagens reais:
+  4381  total de testes automatizados
+   417  testes do pacote compartilhado
+   261  testes do motor de campo
+  2056  testes da API
+   379  testes do console do fornecedor
+   820  testes de fonte do painel
+   448  testes do banco
+   137  testes de isolamento (CA-06)
+    17  testes do aplicador de migrações
+    17  testes de integração do campo contra a API
+    58  testes da fila de sincronização
+     9  testes do depósito SQLite
+    70  verificações no navegador, modo local
+   258  verificações no navegador, contra a API
+   328  verificações no navegador, somadas
+  2010  testes do aplicativo de campo
+  6391  total de testes automatizados, somando o aplicativo
+
+Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
+  0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.
+  7 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    1 em apps/api/test/renovacao-contra-encerramento.test.ts
+    3 em db/test/busca.test.ts
+    1 em db/test/postgis-disponivel.espacial.test.ts
+    1 em db/test/postgis-provedor.espacial.test.ts
+    1 em db/test/trava-de-migracao.test.ts
+
+Afirmações conferidas: 20
+
+O roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.
+
+Afirmações que não batem (5):
+
+  docs/COLOCAR-DE-PE.md:41
+    afirma: - **6376 testes somando o aplicativo** (contagem estática de `npm run
+    a frase fala de uma grandeza cujo valor real é 2010 ou 6391, e não 6376
+
+  docs/COLOCAR-DE-PE.md:354
+    afirma: npm run verificar          # typecheck, lint, formatação, 6376 testes com o aplicativo, auditar, números
+    a frase fala de uma grandeza cujo valor real é 2010 ou 6391, e não 6376
+
+  README.md:14
+    afirma: | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotent
+    a frase fala de uma grandeza cujo valor real é 2056 ou 258, e não 2041
+
+  README.md:1789
+    afirma: npm test                    # 4366 testes em seis pacotes
+    a frase fala de uma grandeza cujo valor real é 4381, e não 4366
+
+  README.md:1791
+    afirma: npm run test:api            # 2041 testes da API
+    a frase fala de uma grandeza cujo valor real é 2056 ou 258, e não 2041
+
+Corrija o texto, ou registre o número em VERDADE se ele mede algo novo.
+FIM

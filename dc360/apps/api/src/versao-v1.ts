@@ -52,7 +52,14 @@ export const ROTAS_FORA_DO_PREFIXO: ReadonlyMap<string, string> = new Map([
  * Entrada que sobra depois de a rota sumir também reprova (lista morta vira
  * licença pendurada).
  */
-export const ROTAS_SO_NO_V1: ReadonlyMap<string, string> = new Map();
+export const ROTAS_SO_NO_V1: ReadonlyMap<string, string> = new Map([
+  [
+    "GET /v1/aplicativos/:aplicativo/versao-minima",
+    "rota criada para os aplicativos de loja (V2-F02-E06): informa a versão mínima " +
+      "aceita sem token e sem dado de município. Aplicativo instalado nunca a " +
+      "chamou sem prefixo, e abri-la no espelho só ampliaria o que a E08 quer encerrar",
+  ],
+]);
 
 /** Tira o prefixo da versão, se houver: `/v1/ocorrencias` vira `/ocorrencias`. */
 export function semPrefixoDeVersao(caminho: string): string {

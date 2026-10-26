@@ -175,3 +175,156 @@ describe("corpo opcional", () => {
     expect(requestBody(z.object({ a: z.string() })).required).toBe(true);
   });
 });
+
+describe("regras anotadas por caminho (V2-F02-E04, parte 4B)", () => {
+  const ponto = z
+    .object({ lat: z.number(), lng: z.number() })
+    .refine((p) => !(p.lat === 0 && p.lng === 0), {
+      message: "A coordenada 0,0 não é um lugar.",
+    });
+
+  it("o mesmo esquema em dois campos gera duas anotações, uma por caminho", () => {
+    const achadas = refinamentosDe(z.object({ origem: ponto, destino: ponto }));
+    expect(achadas.map((a) => a.caminho).sort()).toEqual(["destino", "origem"]);
+    expect(achadas.every((a) => a.regra === "A coordenada 0,0 não é um lugar.")).toBe(true);
+  });
+
+  it("o mesmo esquema em dois itens de uma lista e numa união não duplica o mesmo caminho", () => {
+    const achadas = refinamentosDe(
+      z.object({ a: z.union([ponto, ponto]), b: z.array(ponto), c: ponto.optional() }),
+    );
+    expect(achadas.map((a) => a.caminho).sort()).toEqual(["a", "b", "c"]);
+  });
+
+  it("esquema recursivo termina e anota a regra do nível raiz uma vez", () => {
+    const arvore: z.ZodType = z
+      .object({
+        nome: z.string(),
+        get filhos() {
+          return z.array(arvore);
+        },
+      })
+      .refine((n) => n.nome !== "", { message: "Nome vazio." });
+    const achadas = refinamentosDe(arvore);
+    expect(achadas).toHaveLength(1);
+    expect(achadas[0]).toMatchObject({ caminho: "", regra: "Nome vazio." });
+  });
+
+  it("recursão por referência de outro campo também termina", () => {
+    const no: z.ZodType = z.object({
+      valor: ponto,
+      get proximo() {
+        return no.optional();
+      },
+    });
+    const achadas = refinamentosDe(no);
+    expect(achadas.map((a) => a.caminho)).toEqual(["valor"]);
+  });
+
+  it("POST /v1/rota anota a coordenada 0,0 na origem E no destino, no documento e no guarda", () => {
+    const op = operacao("/v1/rota", "post");
+    const regras = op["x-regras-adicionais"]!;
+    expect(regras.map((x) => x.campo).sort()).toEqual(["destino", "origem"]);
+    expect(regras.every((x) => x.em === "corpo")).toBe(true);
+    expect(operacoesSemAnotacaoDeRegras(ROTAS_DO_CONTRATO, documento)).toEqual([]);
+    const esquemaDoCorpo = op.requestBody!.content["application/json"].schema;
+    expect(esquemaDoCorpo["x-regras-adicionais"]).toHaveLength(2);
+  });
+});
+
+describe("mais de um status de sucesso (`tambemResponde`, parte 4B)", () => {
+  type OpComRespostas = { responses: Record<string, Record<string, unknown>> };
+  const respostasDe = (r: RotaComGrupo) =>
+    (gerarOpenApi([r], []).paths["/v1/coisas"] as Record<string, OpComRespostas>).post!.responses;
+  const base: RotaComGrupo = {
+    metodo: "POST",
+    caminho: "/v1/coisas",
+    resumo: "Cria de forma idempotente.",
+    grupo: "teste",
+    resposta: {
+      status: 201,
+      descricao: "Criada.",
+      esquema: z.object({ id: z.string() }),
+    },
+  };
+
+  it("sai uma resposta por status, com o esquema da principal quando não declara outro", () => {
+    const respostas = respostasDe({
+      ...base,
+      tambemResponde: [{ status: 200, descricao: "Reenvio: a mesma coisa." }],
+    });
+    /* O 426 é o do gancho de versão do /v1, global e derivado (V2-F02-E04, correção 1). */
+    expect(Object.keys(respostas).sort()).toEqual(["200", "201", "426"]);
+    expect(respostas["200"]!.description).toBe("Reenvio: a mesma coisa.");
+    expect(respostas["200"]!.content).toEqual(respostas["201"]!.content);
+  });
+
+  it("usa o esquema próprio quando a resposta adicional declara um", () => {
+    const respostas = respostasDe({
+      ...base,
+      tambemResponde: [
+        { status: 202, descricao: "Aceita.", resposta: z.object({ fila: z.number() }) },
+      ],
+    });
+    const schema = (
+      respostas["202"]!.content as Record<string, { schema: { properties: object } }>
+    )["application/json"]!.schema;
+    expect(Object.keys(schema.properties)).toEqual(["fila"]);
+  });
+
+  it("falha quando repete o status principal, repete outro adicional ou colide com um erro", () => {
+    expect(() =>
+      respostasDe({ ...base, tambemResponde: [{ status: 201, descricao: "Igual." }] }),
+    ).toThrow(/201/);
+    expect(() =>
+      respostasDe({
+        ...base,
+        tambemResponde: [
+          { status: 200, descricao: "A." },
+          { status: 200, descricao: "B." },
+        ],
+      }),
+    ).toThrow(/200/);
+    expect(() =>
+      respostasDe({
+        ...base,
+        erros: ["dados_invalidos"],
+        tambemResponde: [{ status: 422, descricao: "Colide com o erro." }],
+      }),
+    ).toThrow(/422/);
+  });
+
+  it("falha quando a entrada não tem resposta principal", () => {
+    const { resposta: _semResposta, ...sem } = base;
+    expect(() =>
+      respostasDe({ ...sem, tambemResponde: [{ status: 200, descricao: "Órfã." }] }),
+    ).toThrow(/resposta/);
+  });
+
+  it("as quatro rotas idempotentes listam o 200 do reenvio ao lado do 201", () => {
+    for (const [caminho, nome] of [
+      ["/v1/ocorrencias", "POST /v1/ocorrencias"],
+      ["/v1/sincronizacao/vistoria", "POST /v1/sincronizacao/vistoria"],
+      ["/v1/sincronizacao/devolucao", "POST /v1/sincronizacao/devolucao"],
+      ["/v1/saida-a-campo", "POST /v1/saida-a-campo"],
+    ] as const) {
+      const respostas = (documento.paths[caminho] as Record<string, OpComRespostas>).post!
+        .responses;
+      expect(Object.keys(respostas), nome).toEqual(expect.arrayContaining(["200", "201"]));
+      expect(respostas["200"]!.description as string, nome).toMatch(/reenvio/i);
+      expect(respostas["200"]!.content, nome).toEqual(respostas["201"]!.content);
+    }
+  });
+
+  it("nenhuma outra rota ganha `tambemResponde` sem querer (só as quatro idempotentes)", () => {
+    const com = ROTAS_DO_CONTRATO.filter((r) => (r.tambemResponde ?? []).length > 0)
+      .map((r) => `${r.metodo} ${r.caminho}`)
+      .sort();
+    expect(com).toEqual([
+      "POST /v1/ocorrencias",
+      "POST /v1/saida-a-campo",
+      "POST /v1/sincronizacao/devolucao",
+      "POST /v1/sincronizacao/vistoria",
+    ]);
+  });
+});

@@ -157,8 +157,16 @@ describe("a lista reservada", () => {
     expect(categoriaDoCodigo("chave_ja_usada_em_outro_registro")).toBe("permanente");
   });
 
+  it("a versão do aplicativo abaixo do mínimo saiu da reserva: a V2-F02-E06 a emite (426, permanente)", () => {
+    expect(ehCodigoReservado("versao_do_aplicativo_antiga")).toBe(false);
+    expect(CODIGOS_DE_ERRO.versao_do_aplicativo_antiga).toMatchObject({
+      status: 426,
+      categoria: "permanente",
+    });
+  });
+
   it("traz os códigos que as etapas seguintes emitirão, e nenhum está na lista emitida", () => {
-    expect(CODIGOS_RESERVADOS.versao_do_aplicativo_antiga).toMatchObject({
+    expect(CODIGOS_RESERVADOS.versao_do_aplicativo_ausente).toMatchObject({
       status: 426,
       categoria: "permanente",
     });
@@ -186,7 +194,7 @@ describe("a lista reservada", () => {
   });
 
   it("reservado tem categoria (o cliente já sabe o que fazer antes de o servidor emitir)", () => {
-    expect(categoriaDoCodigo("versao_do_aplicativo_antiga")).toBe("permanente");
+    expect(categoriaDoCodigo("versao_do_aplicativo_ausente")).toBe("permanente");
   });
 });
 

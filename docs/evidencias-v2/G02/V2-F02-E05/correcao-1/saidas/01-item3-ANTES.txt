@@ -1,0 +1,196 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aaae4751dc2f8cba8/dc360/apps/api
+
+stdout | test/contrato-cliente-rota.test.ts > Rotas /v1 sem cliente (relatório) > lista as rotas que nenhum cliente chama e grava o relatório
+contrato cliente x rota: 96 rotas /v1, 9 sem cliente; painel 75, campo 21, console 15 chamadas distintas
+
+ ❯ test/contrato-cliente-rota.test.ts (90 tests | 7 failed) 2692ms
+   ✓ As rotas que os clientes confrontam foram lidas > a árvore /v1 da API foi lida e traz o prefixo da saída 3ms
+   ✓ As rotas que os clientes confrontam foram lidas > o registro do contrato foi lido e cobre a maior parte das rotas 1ms
+   ✓ As rotas que os clientes confrontam foram lidas > as rotas do console foram lidas de servidor.ts 1ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > toda chamada foi lida pelo extrator 22ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > apps/web/src/dados/http.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o painel chama existe, com o método e a forma certos > o cliente tem chamadas de verdade (não é um conjunto vazio que passa) 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > toda chamada foi lida pelo extrator 5ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/api.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > toda chamada foi lida pelo extrator 3ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/historico-da-casa.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > toda chamada foi lida pelo extrator 3ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/mapa.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > toda chamada foi lida pelo extrator 1ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/rota.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > toda chamada foi lida pelo extrator 1ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > apps/campo/src/dados/foto-do-agente.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > toda chamada foi lida pelo extrator 5ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o caminho existe na API 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o método bate com o da rota 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > packages/campo/src/transporte.ts > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o campo chama existe, com o método e a forma certos > o cliente tem chamadas de verdade (não é um conjunto vazio que passa) 0ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > toda chamada foi lida pelo extrator 5ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o caminho existe na API 0ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o método bate com o da rota 0ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o corpo e a consulta casam com o esquema do registro 0ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > o que sai sem token mira rota isenta de token 0ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > apps/console/src/pagina.ts (JS_DO_CONSOLE) > âncora: a extração alcança todas as chamadas contadas por outro caminho 0ms
+   ✓ Tudo o que o console chama existe, com o método e a forma certos > o cliente tem chamadas de verdade (não é um conjunto vazio que passa) 0ms
+   ✓ Particularidades dos clientes > o painel tem as três chamadas que são o próprio mecanismo, e só elas 0ms
+   ✓ Particularidades dos clientes > os tipos de documento do painel se expandem em rotas que existem 11ms
+   ✓ Particularidades dos clientes > a fila offline do campo declara a URL assinada e nada mais fora da base 1ms
+   ✓ Particularidades dos clientes > o campo lê a versão mínima sem token e a rota está isenta 8ms
+   ✓ Todo fetch de cliente passa por chamar ou pela base > nenhum arquivo de cliente usa rede sem estar na lista lida pelo contrato 99ms
+   × Todo fetch de cliente passa por chamar ou pela base > arquivo coberto cujo perfil não declara fetch não chama fetch, nem qualificado (correção 1) 10ms
+     → (0 , usosDeRedeDoGlobal) is not a function or its return value is not iterable
+   ✓ Todo fetch de cliente passa por chamar ou pela base > toda lista de exceção tem razão escrita e arquivo que existe 1ms
+   ✓ Todo fetch de cliente passa por chamar ou pela base > o contrato lê tudo o que o console tem de chamada de rede 1ms
+   ✓ Todo fetch de cliente passa por chamar ou pela base > toda assinada declarada é usada 1ms
+   ✓ Exceções de forma > toda exceção é usada e tem motivo com etapa dona 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > o caminho certo do pacote passa (controle) 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > POST /pacote.zip, o defeito da E11, reprova contra o servidor montado 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > cliente GET contra rota POST reprova 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > chamada do campo sem rota reprova 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > chamada da fila offline sem rota, ou com método errado, reprova 1ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > caminho com parâmetro faltando reprova 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > a rota do console só existe no console, e a do console não existe na API 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > corpo com chave que o esquema não conhece reprova 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > corpo sem a chave obrigatória reprova 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > corpo que vem de variável fica declarado como não lido, e não como aprovado 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > consulta com chave obrigatória faltando reprova, e a dinâmica fica declarada 1ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > pedido sem token em rota protegida reprova 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > fetch solto, fora da base e das assinadas declaradas, é chamada não lida 2ms
+   × Casos sintéticos: o teste teria pego o defeito > globalThis.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1) 5ms
+     → expected +0 to be 1 // Object.is equality
+   × Casos sintéticos: o teste teria pego o defeito > window.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1) 1ms
+     → expected +0 to be 1 // Object.is equality
+   × Casos sintéticos: o teste teria pego o defeito > self.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1) 1ms
+     → expected +0 to be 1 // Object.is equality
+   × Casos sintéticos: o teste teria pego o defeito > o texto real do painel com uma chamada qualificada a rota inexistente acrescentada reprova 9ms
+     → expected 74 to be 75 // Object.is equality
+   × Casos sintéticos: o teste teria pego o defeito > fetch por colchetes (globalThis['fetch'](...)) conta e reprova como não lido 1ms
+     → expected +0 to be 1 // Object.is equality
+   ✓ Casos sintéticos: o teste teria pego o defeito > método de outro objeto chamado fetch NÃO é o fetch global 0ms
+   × Casos sintéticos: o teste teria pego o defeito > a varredura de arquivo coberto acha fetch qualificado quando o perfil não declara fetch 0ms
+     → (0 , usosDeRedeDoGlobal) is not a function
+   ✓ Casos sintéticos: o teste teria pego o defeito > uma URL assinada só passa quando a expressão está declarada 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > fetch em arquivo que nenhum perfil declara é achado pela varredura 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > comentário que cita a chamada não vira chamada 1ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > chamada que o extrator não lê aparece como não lida e fura a âncora 0ms
+   ✓ Casos sintéticos: o teste teria pego o defeito > extrator que perde uma chamada reprova a âncora 9ms
+   ✓ Rotas /v1 sem cliente (relatório) > lista as rotas que nenhum cliente chama e grava o relatório 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/contrato-cliente-rota.test.ts > Todo fetch de cliente passa por chamar ou pela base > arquivo coberto cujo perfil não declara fetch não chama fetch, nem qualificado (correção 1)
+TypeError: (0 , usosDeRedeDoGlobal) is not a function or its return value is not iterable
+ ❯ test/contrato-cliente-rota.test.ts:745:27
+    743|       for (const a of c.arquivos) {
+    744|         if (a.perfil.funcoes.some((f) => f.nome === "fetch")) continue;
+    745|         for (const uso of usosDeRedeDoGlobal(textoDoCliente(a))) {
+       |                           ^
+    746|           aChamar.push(`${a.arquivo} linha ${uso.linha}: ${uso.texto.t…
+    747|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > globalThis.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1)
+ FAIL  test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > window.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1)
+ FAIL  test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > self.fetch(...) em arquivo coberto conta, é extraído e é conferido (correção 1)
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/contrato-cliente-rota.test.ts:967:30
+    965|         PERFIL_DO_PAINEL,
+    966|       );
+    967|       expect(certa.contadas).toBe(1);
+       |                              ^
+    968|       expect(certa.extraidas).toBe(1);
+    969|       expect(certa.faltando).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > o texto real do painel com uma chamada qualificada a rota inexistente acrescentada reprova
+AssertionError: expected 74 to be 75 // Object.is equality
+
+- Expected
++ Received
+
+- 75
++ 74
+
+ ❯ test/contrato-cliente-rota.test.ts:999:26
+    997|       expansoesDoPainel(),
+    998|     );
+    999|     expect(com.contadas).toBe(base.contadas + 1);
+       |                          ^
+    1000|     expect(com.extraidas).toBe(base.extraidas + 1);
+    1001|     expect(com.faltando).toHaveLength(base.faltando.length + 1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > fetch por colchetes (globalThis['fetch'](...)) conta e reprova como não lido
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/contrato-cliente-rota.test.ts:1010:24
+    1008|       PERFIL_DO_PAINEL,
+    1009|     );
+    1010|     expect(r.contadas).toBe(1);
+       |                        ^
+    1011|     expect(r.extraidas).toBe(0);
+    1012|     expect(r.naoLidas).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  test/contrato-cliente-rota.test.ts > Casos sintéticos: o teste teria pego o defeito > a varredura de arquivo coberto acha fetch qualificado quando o perfil não declara fetch
+TypeError: (0 , usosDeRedeDoGlobal) is not a function
+ ❯ test/contrato-cliente-rota.test.ts:1026:12
+    1024| 
+    1025|   it("a varredura de arquivo coberto acha fetch qualificado quando o p…
+    1026|     expect(usosDeRedeDoGlobal("await globalThis.fetch(url);")).toHaveL…
+       |            ^
+    1027|     expect(usosDeRedeDoGlobal("await window.fetch(url);")).toHaveLengt…
+    1028|     expect(usosDeRedeDoGlobal("await self.fetch(url);")).toHaveLength(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 83 passed (90)
+   Start at  07:57:40
+   Duration  8.01s (transform 1.22s, setup 815ms, collect 3.52s, tests 2.69s, environment 0ms, prepare 493ms)
+

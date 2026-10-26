@@ -1,0 +1,22 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-aaae4751dc2f8cba8/dc360/packages/campo
+
+ ✓ test/prazo.test.ts (12 tests) 29ms
+ ✓ test/conclusao.test.ts (11 tests) 8ms
+ ✓ test/coleta.test.ts (14 tests) 10ms
+ ✓ test/pausa-velha.test.ts (7 tests) 17ms
+ ✓ test/prova-perdida.test.ts (10 tests) 22ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 33ms
+ ✓ test/devolucao.test.ts (24 tests) 24ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 49ms
+ ✓ test/versao-do-aplicativo.test.ts (22 tests) 64ms
+ ✓ test/categorias-do-transporte.test.ts (23 tests) 56ms
+ ✓ test/pausa-de-sessao.test.ts (29 tests) 67ms
+ ✓ test/pausa-por-senha-provisoria.test.ts (43 tests) 79ms
+ ✓ test/fila.test.ts (58 tests) 95ms
+
+ Test Files  13 passed (13)
+      Tests  283 passed (283)
+   Start at  07:53:10
+   Duration  1.73s (transform 1.28s, setup 0ms, collect 10.72s, tests 555ms, environment 4ms, prepare 3.68s)
+

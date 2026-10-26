@@ -52,7 +52,7 @@ import { rotasRegistradas } from "./superficie-registrada.js";
  * no mesmo commit. Subir, ou trocar uma pendente por outra, mexe aqui e no
  * diff.
  */
-const TETO_DE_PENDENTES = 40;
+const TETO_DE_PENDENTES = 0;
 
 const V1_JSON = fileURLToPath(new URL("../openapi/v1.json", import.meta.url));
 
@@ -145,48 +145,7 @@ function fundirFormas(instancia: FastifyInstance): { chaves: string[]; problemas
  * entra em `pendentes`: nasce com entrada e `resposta`. O lote 3 tira chaves
  * daqui e de `pendentes` no mesmo commit, e o diff mostra cada uma.
  */
-const PENDENTES_CONGELADAS: readonly string[] = [
-  "PATCH /v1/usuarios/:id/situacao",
-  "PATCH /v1/organizacao/retencao",
-  "POST /v1/auth/entrar",
-  "POST /v1/auth/recuperar",
-  "POST /v1/auth/redefinir",
-  "POST /v1/auth/renovar",
-  "POST /v1/auth/sair",
-  "POST /v1/auth/segundo-fator",
-  "POST /v1/auth/trocar-senha",
-  "POST /v1/segundo-fator/confirmar",
-  "POST /v1/segundo-fator/desativar",
-  "POST /v1/segundo-fator/iniciar",
-  "POST /v1/sincronizacao/pendencias/reconciliar",
-  "POST /v1/evidencias/autorizar-envio",
-  "POST /v1/evidencias/confirmar-envio",
-  "POST /v1/usuarios/eu/foto/autorizar-envio",
-  "PUT /v1/usuarios/eu/foto",
-  "POST /v1/aparelhos",
-  "POST /v1/aparelhos/revogar",
-  "GET /v1/avisos",
-  "POST /v1/avisos/lidos",
-  "GET /v1/documentos/validar/:codigo",
-  "POST /v1/mapa/resolver-link",
-  "POST /v1/rota",
-  "GET /v1/busca",
-  "GET /v1/ocorrencias",
-  "GET /v1/ocorrencias/mapa",
-  "GET /v1/ocorrencias/duplicidades/consulta",
-  "POST /v1/ocorrencias/:id/providencia",
-  "GET /v1/oficios",
-  "POST /v1/oficios",
-  "POST /v1/oficios/:id/envio",
-  "GET /v1/orgaos",
-  "POST /v1/orgaos",
-  "PATCH /v1/orgaos/:id",
-  "POST /v1/orgaos/:id/desativacao",
-  "GET /v1/trilha",
-  "GET /v1/relatorios/ocorrencias.csv",
-  "GET /v1/relatorios/resumo",
-  "GET /v1/relatorios/consultas",
-];
+const PENDENTES_CONGELADAS: readonly string[] = [];
 
 /**
  * Confere `pendentes` contra a lista congelada e o teto, por IGUALDADE: voltar
@@ -477,7 +436,14 @@ describe("o documento v1.json", () => {
   });
 
   it("operação sem resposta descrita se declara pendente, não inventa status", () => {
-    const sem = documento.paths["/v1/equipes"]?.get as {
+    /* Rota sintética: as rotas reais vão ganhando resposta, e este caso não pode depender de quais ainda não têm. */
+    const semResposta: RotaComGrupo = {
+      metodo: "GET",
+      caminho: "/v1/coisas",
+      resumo: "Sem resposta descrita.",
+      grupo: "teste",
+    };
+    const sem = gerarOpenApi([semResposta], []).paths["/v1/coisas"]?.get as {
       responses: Record<string, unknown>;
       "x-resposta-pendente"?: boolean;
     };

@@ -1,0 +1,68 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/.claude/worktrees/agent-a75fb4b1a64fd31da/dc360/apps/api[39m
+
+ [32m✓[39m test/versao-v1.test.ts [2m([22m[2m31 tests[22m[2m)[22m[33m 16665[2mms[22m[39m
+   [33m[2m✓[22m[39m Senha provisória vale nos dois prefixos[2m > [22mtoken provisório em /v1/ocorrencias recebe 403 troca_de_senha_obrigatoria, como no legado [33m 2361[2mms[22m[39m
+   [33m[2m✓[22m[39m Senha provisória vale nos dois prefixos[2m > [22mencerrar as próprias sessões também passa com a senha provisória, nos dois prefixos [33m 4597[2mms[22m[39m
+   [33m[2m✓[22m[39m A fila do campo (503) vale nos dois prefixos[2m > [22mmunicípio suspenso: as rotas da fila respondem 503 e as demais escritas 403, em /v1 e no legado [33m 639[2mms[22m[39m
+   [33m[2m✓[22m[39m O limitador vale nos dois prefixos[2m > [22mo limite do login NÃO dobra pela escolha do prefixo: três tentativas no total, não três por prefixo [33m 1726[2mms[22m[39m
+   [33m[2m✓[22m[39m O limitador vale nos dois prefixos[2m > [22mrotas diferentes continuam com baldes diferentes (login e segundo fator não se somam) [33m 1198[2mms[22m[39m
+ [32m✓[39m test/api.test.ts [2m([22m[2m52 tests[22m[2m)[22m[33m 20500[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mrecusa senha errada com a mesma resposta de email inexistente [33m 1149[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mnunca devolve o hash da senha [33m 568[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mbloqueia a conta depois das tentativas configuradas [33m 2864[2mms[22m[39m
+   [33m[2m✓[22m[39m Autenticação[2m > [22mrotaciona o token de renovação e derruba tudo se o antigo reaparecer [33m 1165[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento entre municípios pela API[2m > [22mnão cadastra usuário carimbado para outro município [33m 592[2mms[22m[39m
+   [33m[2m✓[22m[39m Fluxo e trilha auditável[2m > [22ma troca de email de outra conta entra na trilha, de/para [33m 558[2mms[22m[39m
+   [33m[2m✓[22m[39m Superfície e respostas de erro[2m > [22mdesativar usuário derruba as sessões dele na hora [33m 1199[2mms[22m[39m
+   [33m[2m✓[22m[39m Limite de tentativas por endereço[2m > [22mrecusa depois do teto configurado, com 429 [33m 1772[2mms[22m[39m
+   [33m[2m✓[22m[39m Posto entre papeis[2m > [22mo administrador cria administrador [33m 567[2mms[22m[39m
+   [33m[2m✓[22m[39m Trilha dos atos administrativos[2m > [22mpromover, rebaixar e desativar deixa os três registros [33m 624[2mms[22m[39m
+ [32m✓[39m test/codigos-de-erro.test.ts [2m([22m[2m229 tests[22m[2m)[22m[33m 33075[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22msessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde [33m 705[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mpapel diferente do token é nao_autenticado (renove e repita), e NÃO sessão encerrada nem conta desativada [33m 634[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mconta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve [33m 634[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mconta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada [33m 601[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22mleitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou [33m 628[2mms[22m[39m
+   [33m[2m✓[22m[39m Cada código do catálogo sai do servidor real[2m > [22macesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto [33m 1195[2mms[22m[39m
+   [33m[2m✓[22m[39m As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05)[2m > [22mcoordenador gerindo conta de administrador responde 403 posto_insuficiente, e não 404: é conta do próprio município [33m 613[2mms[22m[39m
+   [33m[2m✓[22m[39m As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05)[2m > [22mcoordenador exportando dados pessoais responde 403 posto_insuficiente_para_dado_pessoal, com a frase do catálogo [33m 599[2mms[22m[39m
+   [33m[2m✓[22m[39m As recusas de permissão por posto e a URL assinada saem do servidor real (correção 2 da E05)[2m > [22mcoordenador trocando o email de outra pessoa responde 403 email_so_por_administrador, com a frase do catálogo [33m 603[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar com a conta desativada[2m > [22mresponde 403 conta_desativada, e a renovação não emite par nenhum [33m 593[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar com a conta desativada[2m > [22mrenovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo [33m 580[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mdesativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete [33m 1155[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mum token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada [33m 1226[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mNEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada [33m 1777[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mNEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada [33m 1782[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mNEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar [33m 1709[2mms[22m[39m
+   [33m[2m✓[22m[39m Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)[2m > [22mdepois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token [33m 2270[2mms[22m[39m
+   [33m[2m✓[22m[39m /auth/entrar não conta nada sobre a conta (resistência a enumeração)[2m > [22mconta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente [33m 1637[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento: a conta desativada não confirma nada sobre outro município[2m > [22mescrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe [33m 553[2mms[22m[39m
+   [33m[2m✓[22m[39m Isolamento: a conta desativada não confirma nada sobre outro município[2m > [22mconta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também [33m 550[2mms[22m[39m
+   [33m[2m✓[22m[39m Nada de acesso sai fora do catálogo (varredura do código-fonte)[2m > [22ma varredura morde no fonte REAL, mutado em memória (nada é gravado)[2m > [22mM1b subclasse de RegraDeNegocio com super("x", .., 403) [33m 317[2mms[22m[39m
+ [32m✓[39m test/segundo-fator.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 34248[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22madministrador sem segundo fator não recebe sessão nenhuma, só o desafio [33m 633[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo desafio NÃO vale como token de acesso em rota nenhuma [33m 586[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mquem não é administrador continua entrando em uma etapa [33m 1786[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mcom a verificação ligada, a senha sozinha não abre sessão, e o código abre [33m 1273[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo mesmo código não vale duas vezes dentro da mesma janela [33m 1781[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22ma tolerância é de um passo para cada lado, e não mais [33m 1782[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo teto de tentativas do código é separado do teto da senha [33m 4127[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo código de recuperação entra uma vez, e só uma [33m 2369[2mms[22m[39m
+   [33m[2m✓[22m[39m A entrada em duas etapas[2m > [22mo desafio emitido antes de a senha mudar não abre sessão, nem com o código certo [33m 2829[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22ma ativação começada e não confirmada NÃO muda o login [33m 1090[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mcódigo errado não liga a verificação [33m 554[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mo administrador obrigado liga pelo desafio e sai daqui com sessão [33m 588[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22ma ativação pelo desafio não abre sessão se a senha mudou depois dele [33m 1428[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22ma senha que muda entre a conferência do desafio e a ativação não liga o segundo fator [33m 1184[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mo segredo vai CIFRADO para o banco, e não em texto [33m 681[2mms[22m[39m
+   [33m[2m✓[22m[39m Ligar a verificação[2m > [22mligar de novo, por cima de uma verificação ativa, é recusado [33m 677[2mms[22m[39m
+   [33m[2m✓[22m[39m Desligar a verificação[2m > [22mexige a senha atual [33m 2041[2mms[22m[39m
+   [33m[2m✓[22m[39m Desligar a verificação[2m > [22mdesligar apaga o segredo, derruba os códigos e deixa rastro [33m 2674[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m335 passed[39m[22m[90m (335)[39m
+[2m   Start at [22m 02:06:55
+[2m   Duration [22m 38.56s[2m (transform 1.40s, setup 3.49s, collect 11.50s, tests 104.49s, environment 1ms, prepare 922ms)[22m
+
+exit=0

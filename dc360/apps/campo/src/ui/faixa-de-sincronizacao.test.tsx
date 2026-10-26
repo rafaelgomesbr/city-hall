@@ -68,6 +68,12 @@ const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
     titulo: "Defina a sua senha",
     detalhe: "Suas coletas continuam guardadas neste aparelho",
   },
+  // O 426 da V2-F02-E06: a versão do aplicativo ficou abaixo da mínima.
+  versao_do_aplicativo_antiga: {
+    chave: "versao_do_aplicativo_antiga", fundo: "#FDEBEB", cor: "#C92A2A", sinalTexto: "!",
+    titulo: "Atualize o aplicativo",
+    detalhe: "Suas coletas continuam guardadas neste aparelho",
+  },
   /*
     A coleta que o servidor recusou e espera o dedo do agente. Existe pelo
     mesmo motivo do estado acima: em 15/09/2026 a vistoria 000009/2026 parou

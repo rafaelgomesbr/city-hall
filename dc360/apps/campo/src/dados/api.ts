@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import { categoriaDoErro, type CategoriaDeErro, type Papel, type Severidade, type TipoCobrade } from "@dc360/shared";
+import { cabecalhoDaVersao } from "./versao-do-aplicativo";
 
 /**
  * O que o aplicativo pede à API além de sincronizar.
@@ -185,6 +186,8 @@ async function chamar<T>(
         accept: "application/json",
         ...(opcoes.corpo === undefined ? {} : { "content-type": "application/json" }),
         ...(opcoes.token ? { authorization: `Bearer ${opcoes.token}` } : {}),
+        // V2-F02-E06: `campo/<versão>` em todo pedido à API, inclusive entrar e renovar.
+        ...cabecalhoDaVersao(),
       },
       body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
     });

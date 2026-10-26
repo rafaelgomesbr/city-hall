@@ -25,7 +25,7 @@ import { registrarEvento } from "../trilha.js";
  */
 export const TETO_DE_RECONCILIACAO = 200;
 
-const reconciliacaoSchema = z.object({
+export const reconciliacaoSchema = z.object({
   conhecidas: z.array(z.string().uuid()).max(TETO_DE_RECONCILIACAO),
 });
 

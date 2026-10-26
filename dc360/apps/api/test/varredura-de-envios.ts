@@ -13,7 +13,7 @@ import ts from "typescript";
  *     literal), nunca texto, lista ou expressão calculada;
  *   - `erro` com texto literal DO CATÁLOGO (o chamador confere o catálogo);
  *   - `mensagem` presente, e nenhuma chave fora de `erro`, `mensagem`, `campos`,
- *     `requisicao`, `categoria` (`message` no lugar de `mensagem` reprova);
+ *     `requisicao`, `categoria`, `versaoMinima` (`message` no lugar de `mensagem` reprova);
  *   - status N literal.
  *
  * O que sai do critério só entra por uma lista de exceções curta, justificada e
@@ -33,6 +33,8 @@ export const CHAVES_DO_CORPO_DE_ERRO = [
   "campos",
   "requisicao",
   "categoria",
+  // V2-F02-E06: o 426 informa o mínimo (campo aditivo, `erroDaApiSchema` é aberto).
+  "versaoMinima",
 ] as const;
 
 const ELOS_DA_CADEIA = new Set([

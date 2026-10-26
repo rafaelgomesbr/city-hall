@@ -112,12 +112,12 @@ export function frasePorTetoEstouradoNaFoto(): string {
   );
 }
 
-const pedidoSchema = z.object({
+export const pedidoSchema = z.object({
   tipoConteudo: z.enum(TIPOS_ACEITOS),
   tamanhoBytes: z.number().int().positive().max(TAMANHO_MAXIMO_DA_FOTO_DE_PERFIL),
 });
 
-const confirmacaoSchema = z.object({
+export const confirmacaoSchema = z.object({
   chave: z.string().min(1).max(500),
 });
 
