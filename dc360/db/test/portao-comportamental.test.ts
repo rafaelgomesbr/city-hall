@@ -472,7 +472,7 @@ describe("item 7: tipos fora de public e o ACL de extensão", () => {
         CREATE SCHEMA extensions;
         CREATE EXTENSION pg_trgm WITH SCHEMA extensions;
         GRANT USAGE ON SCHEMA extensions TO dc360_app;
-        CREATE TABLE extensions.sonda_ref (srid int);
+        CREATE TABLE extensions.sonda_ref (srid int PRIMARY KEY);
         ALTER EXTENSION pg_trgm ADD TABLE extensions.sonda_ref;
         CREATE TYPE extensions.sonda_composto AS (a int, b text);
         ALTER EXTENSION pg_trgm ADD TYPE extensions.sonda_composto;`);
