@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -14,7 +15,9 @@ import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
 import { AcessoSuspenso, exigirAcessoAtivo } from "./auth/suspensao.js";
 import { ContaDesativada } from "./auth/conta-desativada.js";
-import { exigirVigencia, lerVigencia } from "./auth/vigencia.js";
+import {
+  bancoQueReconfereAEscrita, exigirVigencia, lerVigencia, type EscritaEmCurso,
+} from "./auth/vigencia.js";
 import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
 import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
@@ -268,7 +271,7 @@ export const CAMINHOS_REDIGIDOS = [
 
 export async function construirServidor(
   {
-    banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
+    banco: bancoBruto, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
     push, modoDaGuarda,
   }: Dependencias,
 ): Promise<FastifyInstance> {
@@ -374,6 +377,32 @@ export async function construirServidor(
     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
     bodyLimit: 1_048_576,
+  });
+
+  /*
+    A ESCRITA RECONFERE A VIGÊNCIA DENTRO DA PRÓPRIA TRANSAÇÃO (H29, migração
+    052, `auth/vigencia.ts`).
+
+    Cada pedido ganha um contexto assíncrono próprio, aberto aqui no
+    `preHandler` (depois de o corpo ser lido, antes do handler), e o handler
+    inteiro roda dentro dele. `exigirAutenticacao` anota no contexto quem está
+    escrevendo; o `Banco` que as rotas recebem (`banco`, logo abaixo) lê a
+    anotação e abre toda transação daquele pedido reconferindo, sob a linha e
+    a trava da pessoa, que a conta segue ativa, o papel é o do token e a sessão
+    está de pé. A conferência de `exigirAutenticacao` continua existindo: é
+    ela que dá a resposta certa antes de a rota gastar trabalho (o scrypt, a
+    leitura do armazenamento). A de dentro é a que vale para o que se grava.
+
+    `bancoBruto` fica só para a primeira conferência, que roda antes de haver
+    escrita anotada. As rotas nunca o recebem; `semTenant` (o `/saude`, o
+    login, a renovação) passa direto pelo embrulho, sem reconferir.
+  */
+  const contextoDoPedido = new AsyncLocalStorage<{ escrita: EscritaEmCurso | null }>();
+  const banco = bancoQueReconfereAEscrita(
+    bancoBruto, () => contextoDoPedido.getStore()?.escrita ?? null,
+  );
+  app.addHook("preHandler", (_req, _resposta, seguir) => {
+    contextoDoPedido.run({ escrita: null }, seguir);
   });
 
   /*
@@ -538,8 +567,18 @@ export async function construirServidor(
       || req.routeOptions.config.comEfeito === true;
     let senhaProvisoria = conteudo.sp === true;
     if (escrita) {
-      const vigencia = await lerVigencia(banco, conteudo);
+      /*
+        O contexto do pedido tem de existir: sem ele a reconferência dentro da
+        transação (H29) não aconteceria, e a escrita voltaria a valer pela
+        conferência de fora, em silêncio. Falha alto (500) em vez disso.
+      */
+      const contexto = contextoDoPedido.getStore();
+      if (!contexto) {
+        throw new Error("pedido de escrita sem o contexto do pedido: a vigencia nao seria reconferida na transacao");
+      }
+      const vigencia = await lerVigencia(bancoBruto, conteudo);
       exigirVigencia(vigencia, conteudo, statusDaSuspensao);
+      contexto.escrita = { conteudo, statusDaSuspensao };
       // O banco manda: uma marca no token que o banco já não confirma não
       // tranca ninguém, e um prazo que o banco tem e o token não também vale.
       senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
@@ -877,7 +916,11 @@ export async function construirServidor(
     prefix: "/saida", banco, armazenamento,
     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
   });
-  await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
+  await app.register(rotasEvidencias, {
+    prefix: "/evidencias", banco, armazenamento,
+    // O teto de reservas de envio POR PESSOA (H04). Ver `RESERVA_DE_ENVIO_POR_PESSOA_MB`.
+    reservaPorPessoaBytes: config.RESERVA_DE_ENVIO_POR_PESSOA_MB * 1024 * 1024,
+  });
   /*
     Quanto o município ocupa de armazenamento. Prefixo separado e não `/evidencias`
     porque a pergunta e o público são outros: a evidência é do agente e da

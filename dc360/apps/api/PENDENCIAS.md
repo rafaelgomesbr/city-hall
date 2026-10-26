@@ -95,6 +95,20 @@ LEITURA PURA continua confiando só na assinatura do token, por até
 `ACESSO_MINUTOS` (15 por padrão, 60 no máximo): conta desativada ainda lê, nas
 rotas que só leem, até o token vencer.
 
+**A escrita em voo também está coberta** (H29, decidida em 26/10/2026, migração
+052): a conferência de `exigirAutenticacao` é refeita como primeiro comando de
+toda transação de um pedido de escrita, sob a linha da pessoa em `usuarios`
+(FOR NO KEY UPDATE) e a trava dela (049), por `bancoQueReconfereAEscrita`
+(`src/auth/vigencia.ts`). A desativação, o rebaixamento, o encerramento de
+sessões e a suspensão que confirmam no meio do pedido recusam a escrita; os que
+chegam depois esperam a escrita confirmar. Custo aceito: as escritas da MESMA
+pessoa se enfileiram; e dois casos raros podem fechar ciclo (uma das
+transações leva 500 por 40P01, sem gravar nada): duas pessoas que se desativam
+ou se editam uma à outra no mesmo instante, e quem administra mudando a
+retenção do município no instante em que o console o suspende ou em que ela
+mesma entra por outro aparelho. Provado por
+`test/escrita-contra-desativacao.test.ts`.
+
 **Decisão da correção 1, para não ser reaberta por engano:** o critério da marca
 é "o GET pratica um ato (emite documento, interdita, exporta) ou muda dado do
 município". `GET /ocorrencias/:id` (o dossiê) e `GET /busca` também escrevem,
