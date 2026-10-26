@@ -929,6 +929,7 @@
           "ocorrencias"
         ],
         "summary": "Abre uma ocorrência a partir de uma solicitação, com protocolo gerado pelo servidor.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo tipoDescricao: Descreva em poucas palavras o que foi relatado, para a triagem poder classificar.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1018,11 +1019,26 @@
                   "endereco",
                   "tipo",
                   "descricao"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "tipoDescricao",
+                    "regra": "Descreva em poucas palavras o que foi relatado, para a triagem poder classificar"
+                  }
                 ]
               }
             }
           }
         },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "tipoDescricao",
+            "regra": "Descreva em poucas palavras o que foi relatado, para a triagem poder classificar"
+          }
+        ],
         "responses": {
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
@@ -1686,6 +1702,7 @@
           "ocorrencias"
         ],
         "summary": "Registra a triagem: severidade, vulnerabilidade e, se mudar, o tipo COBRADE.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo vulnerabilidadeDescricao: Descreva a vulnerabilidade identificada.",
         "parameters": [
           {
             "name": "id",
@@ -1738,11 +1755,26 @@
                 "required": [
                   "severidade",
                   "vulnerabilidadePresente"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "vulnerabilidadeDescricao",
+                    "regra": "Descreva a vulnerabilidade identificada"
+                  }
                 ]
               }
             }
           }
         },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "vulnerabilidadeDescricao",
+            "regra": "Descreva a vulnerabilidade identificada"
+          }
+        ],
         "responses": {
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
@@ -2465,6 +2497,7 @@
           "campo"
         ],
         "summary": "A coordenação encerra uma saída a campo, registrando o desfecho.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo observacao: Diga o que foi acionado (quem, e a que horas).",
         "requestBody": {
           "required": true,
           "content": {
@@ -2494,11 +2527,26 @@
                 "required": [
                   "saidaId",
                   "desfecho"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "observacao",
+                    "regra": "Diga o que foi acionado (quem, e a que horas)"
+                  }
                 ]
               }
             }
           }
         },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "observacao",
+            "regra": "Diga o que foi acionado (quem, e a que horas)"
+          }
+        ],
         "responses": {
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
@@ -2835,6 +2883,7 @@
           "campo"
         ],
         "summary": "Recebe a devolução de uma tarefa pelo agente, de forma idempotente por chave.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo observacao: Com o motivo 'outro', escreva o que aconteceu.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2884,11 +2933,26 @@
                   "decididaEm",
                   "devolvidaPor",
                   "motivo"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "",
+                    "campo": "observacao",
+                    "regra": "Com o motivo 'outro', escreva o que aconteceu"
+                  }
                 ]
               }
             }
           }
         },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "",
+            "campo": "observacao",
+            "regra": "Com o motivo 'outro', escreva o que aconteceu"
+          }
+        ],
         "responses": {
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",
@@ -2982,6 +3046,7 @@
           "campo"
         ],
         "summary": "Recebe o envelope de uma vistoria feita em campo, de forma idempotente por chave.",
+        "description": "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as quebra é recusado mesmo com as propriedades corretas): corpo, campo vistoria: regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam; corpo, campo vistoria.checklist: A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão.; corpo, campo vistoria.checklist: O checklist tem item que não existe no catálogo da vistoria..",
         "requestBody": {
           "required": true,
           "content": {
@@ -3257,11 +3322,48 @@
                   "ocorrenciaId",
                   "coletadaEm",
                   "vistoria"
+                ],
+                "x-regras-adicionais": [
+                  {
+                    "caminho": "vistoria",
+                    "campo": "vistoria",
+                    "regra": "regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam"
+                  },
+                  {
+                    "caminho": "vistoria.checklist",
+                    "campo": "vistoria.checklist",
+                    "regra": "A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão."
+                  },
+                  {
+                    "caminho": "vistoria.checklist",
+                    "campo": "vistoria.checklist",
+                    "regra": "O checklist tem item que não existe no catálogo da vistoria."
+                  }
                 ]
               }
             }
           }
         },
+        "x-regras-adicionais": [
+          {
+            "em": "corpo",
+            "caminho": "vistoria",
+            "campo": "vistoria",
+            "regra": "regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido que as propriedades acima aceitam"
+          },
+          {
+            "em": "corpo",
+            "caminho": "vistoria.checklist",
+            "campo": "vistoria.checklist",
+            "regra": "A vistoria precisa responder todos os itens obrigatórios do checklist: Risco iminente identificado, Evacuação necessária, Interdição indicada, Necessário acionar outro órgão."
+          },
+          {
+            "em": "corpo",
+            "caminho": "vistoria.checklist",
+            "campo": "vistoria.checklist",
+            "regra": "O checklist tem item que não existe no catálogo da vistoria."
+          }
+        ],
         "responses": {
           "401": {
             "description": "nao_autenticado: Token ausente, inválido ou vencido",

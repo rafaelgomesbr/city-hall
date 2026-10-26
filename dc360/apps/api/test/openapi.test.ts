@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance } from "fastify";
 import { z } from "zod";
 import { aberturaOcorrenciaSchema } from "@dc360/shared";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
@@ -46,19 +46,171 @@ import { rotasRegistradas } from "./superficie-registrada.js";
  */
 
 /**
- * Quantas rotas registradas ainda não têm entrada. O lote 3 da F02 (partes
- * 3C1 a 3C3) leva isto a ZERO; o número só pode descer. Subir exige decisão
- * escrita, não um ajuste de teste.
+ * Quantas rotas registradas ainda não têm entrada, EXATO (não é um teto de
+ * "menor ou igual"): o lote 3 da F02 (partes 3C1 a 3C3) leva isto a ZERO, e a
+ * cada rota descrita baixa este número e tira a chave de `PENDENTES_CONGELADAS`
+ * no mesmo commit. Subir, ou trocar uma pendente por outra, mexe aqui e no
+ * diff.
  */
 const TETO_DE_PENDENTES = 40;
 
 const V1_JSON = fileURLToPath(new URL("../openapi/v1.json", import.meta.url));
 
+/**
+ * O que cada instância do Fastify anunciou no `onRoute`: método, endereço como
+ * foi declarado e o handler original. O `vi.mock` abaixo põe o gancho em TODA
+ * instância criada neste arquivo (a do servidor de verdade e as sintéticas) e
+ * não muda nenhum comportamento.
+ */
+type RotaAnunciada = { metodo: string; url: string; handler: unknown };
+const REGISTRO_DE_ROTAS = vi.hoisted(() => new WeakMap<object, RotaAnunciada[]>());
+
+vi.mock("fastify", async (importOriginal) => {
+  const original = await importOriginal<typeof import("fastify")>();
+  const criar = ((...args: Parameters<typeof original.default>) => {
+    const instancia = original.default(...args);
+    const anunciadas: RotaAnunciada[] = [];
+    REGISTRO_DE_ROTAS.set(instancia, anunciadas);
+    instancia.addHook("onRoute", (r) => {
+      for (const metodo of [r.method].flat()) {
+        anunciadas.push({ metodo: String(metodo), url: r.url, handler: r.handler });
+      }
+    });
+    return instancia;
+  }) as typeof original.default;
+  return { ...original, default: criar };
+});
+
 type Registrada = { chave: string };
 
-/** `/v1/avisos/` e `/v1/avisos` são a mesma rota (o Fastify registra as duas formas). */
 function semBarraFinal(caminho: string): string {
   return caminho.length > 1 && caminho.endsWith("/") ? caminho.slice(0, -1) : caminho;
+}
+
+/**
+ * As rotas sob `/v1` com as formas com e sem barra final fundidas numa só, MAS
+ * só quando as duas formas são de fato a mesma rota.
+ *
+ * O Fastify registra `/v1/avisos` e `/v1/avisos/` com o mesmo handler quando o
+ * plugin tem prefixo e a rota é `/` (`prefixTrailingSlash: "both"`). Mas um
+ * `GET /x/:id` e um `GET /x/:id/` declarados à mão são DUAS rotas, e fundi-las
+ * calado esconderia uma delas do contrato. Por isso a fusão é provada, pelo
+ * que o próprio Fastify anunciou no `onRoute` (ver `REGISTRO_DE_ROTAS`, o
+ * `findRoute` não serve: devolve o `routeHandler` genérico, igual para todas):
+ *
+ *   - as duas formas foram declaradas, e o handler delas é o MESMO: fundem;
+ *   - só uma forma foi declarada (a outra é o gêmeo `prefixTrailingSlash` que o
+ *     próprio Fastify cria, sem passar pelo `onRoute`): fundem;
+ *   - as duas foram declaradas com handlers DIFERENTES: são duas rotas, sai um
+ *     problema e as duas chaves ficam separadas, para a paridade reprovar a que
+ *     não tem entrada.
+ */
+function fundirFormas(instancia: FastifyInstance): { chaves: string[]; problemas: string[] } {
+  const porChave = new Map<string, { metodo: string; caminhos: string[] }>();
+  for (const r of rotasRegistradas(instancia)) {
+    if (r.caminho !== PREFIXO_V1 && !r.caminho.startsWith(`${PREFIXO_V1}/`)) continue;
+    const chave = chaveDaRota({ metodo: r.metodo, caminho: semBarraFinal(r.caminho) });
+    const achada = porChave.get(chave) ?? { metodo: r.metodo, caminhos: [] };
+    achada.caminhos.push(r.caminho);
+    porChave.set(chave, achada);
+  }
+
+  const chaves: string[] = [];
+  const problemas: string[] = [];
+  for (const [chave, { metodo, caminhos }] of porChave) {
+    if (caminhos.length === 1) {
+      chaves.push(chave);
+      continue;
+    }
+    const anunciadas = REGISTRO_DE_ROTAS.get(instancia) ?? [];
+    const declaradas = caminhos
+      .map((caminho) => anunciadas.find((a) => a.metodo === metodo && a.url === caminho))
+      .filter((a) => a !== undefined);
+    const mesmo =
+      declaradas.length > 0 && declaradas.every((a) => a.handler === declaradas[0]!.handler);
+    if (mesmo) {
+      chaves.push(chave);
+    } else {
+      problemas.push(
+        `${chave}: as formas ${caminhos.join(" e ")} têm handlers DIFERENTES e não podem ser fundidas`,
+      );
+      for (const caminho of caminhos) chaves.push(chaveDaRota({ metodo, caminho }));
+    }
+  }
+  return { chaves: chaves.sort(), problemas };
+}
+
+/**
+ * A lista congelada das rotas que, hoje, ficam em `pendentes`. Rota NOVA nunca
+ * entra em `pendentes`: nasce com entrada e `resposta`. O lote 3 tira chaves
+ * daqui e de `pendentes` no mesmo commit, e o diff mostra cada uma.
+ */
+const PENDENTES_CONGELADAS: readonly string[] = [
+  "PATCH /v1/usuarios/:id/situacao",
+  "PATCH /v1/organizacao/retencao",
+  "POST /v1/auth/entrar",
+  "POST /v1/auth/recuperar",
+  "POST /v1/auth/redefinir",
+  "POST /v1/auth/renovar",
+  "POST /v1/auth/sair",
+  "POST /v1/auth/segundo-fator",
+  "POST /v1/auth/trocar-senha",
+  "POST /v1/segundo-fator/confirmar",
+  "POST /v1/segundo-fator/desativar",
+  "POST /v1/segundo-fator/iniciar",
+  "POST /v1/sincronizacao/pendencias/reconciliar",
+  "POST /v1/evidencias/autorizar-envio",
+  "POST /v1/evidencias/confirmar-envio",
+  "POST /v1/usuarios/eu/foto/autorizar-envio",
+  "PUT /v1/usuarios/eu/foto",
+  "POST /v1/aparelhos",
+  "POST /v1/aparelhos/revogar",
+  "GET /v1/avisos",
+  "POST /v1/avisos/lidos",
+  "GET /v1/documentos/validar/:codigo",
+  "POST /v1/mapa/resolver-link",
+  "POST /v1/rota",
+  "GET /v1/busca",
+  "GET /v1/ocorrencias",
+  "GET /v1/ocorrencias/mapa",
+  "GET /v1/ocorrencias/duplicidades/consulta",
+  "POST /v1/ocorrencias/:id/providencia",
+  "GET /v1/oficios",
+  "POST /v1/oficios",
+  "POST /v1/oficios/:id/envio",
+  "GET /v1/orgaos",
+  "POST /v1/orgaos",
+  "PATCH /v1/orgaos/:id",
+  "POST /v1/orgaos/:id/desativacao",
+  "GET /v1/trilha",
+  "GET /v1/relatorios/ocorrencias.csv",
+  "GET /v1/relatorios/resumo",
+  "GET /v1/relatorios/consultas",
+];
+
+/**
+ * Confere `pendentes` contra a lista congelada e o teto, por IGUALDADE: voltar
+ * de 39 para 40, ou trocar uma pendente por outra, aparece no diff do teste.
+ */
+function conferirPendentes(
+  pendentes: readonly string[],
+  congeladas: readonly string[],
+  teto: number,
+): string[] {
+  const problemas: string[] = [];
+  const congelada = new Set(congeladas);
+  for (const chave of pendentes) {
+    if (!congelada.has(chave)) {
+      problemas.push(`rota nova em pendentes (nasce com entrada e resposta): ${chave}`);
+    }
+  }
+  if (congeladas.length !== teto) {
+    problemas.push(`a lista congelada tem ${congeladas.length} e o teto diz ${teto}`);
+  }
+  if (pendentes.length !== teto) {
+    problemas.push(`pendentes tem ${pendentes.length} e o teto exato é ${teto}`);
+  }
+  return problemas;
 }
 
 /**
@@ -95,6 +247,7 @@ function paridade(
 let mem: BancoEmMemoria;
 let app: FastifyInstance;
 let registradasSobV1: Registrada[];
+let problemasDeFusao: string[];
 
 beforeAll(async () => {
   mem = await bancoEmMemoria({ semear: true });
@@ -109,12 +262,9 @@ beforeAll(async () => {
   });
   await app.ready();
 
-  const chaves = new Set(
-    rotasRegistradas(app)
-      .filter((r) => r.caminho === PREFIXO_V1 || r.caminho.startsWith(`${PREFIXO_V1}/`))
-      .map((r) => chaveDaRota({ metodo: r.metodo, caminho: semBarraFinal(r.caminho) })),
-  );
-  registradasSobV1 = [...chaves].sort().map((chave) => ({ chave }));
+  const fundidas = fundirFormas(app);
+  problemasDeFusao = fundidas.problemas;
+  registradasSobV1 = fundidas.chaves.map((chave) => ({ chave }));
 }, 120_000);
 
 afterAll(async () => {
@@ -164,13 +314,64 @@ describe("paridade com as rotas que o servidor registrou", () => {
   it("o contrato só descreve o /v1: nenhuma entrada usa o caminho legado", () => {
     expect(problemasDoRegistro()).toEqual([]);
   });
+
+  it("as formas com e sem barra final fundidas são o mesmo handler (nas rotas reais)", () => {
+    expect(problemasDeFusao).toEqual([]);
+  });
+
+  it("duas rotas distintas (`/:id` e `/:id/` com handlers diferentes) NÃO se fundem em silêncio", async () => {
+    const sintetico = Fastify();
+    sintetico.get("/v1/coisas/:id", async () => "a");
+    sintetico.get("/v1/coisas/:id/", async () => "b");
+    await sintetico.ready();
+    const { chaves, problemas } = fundirFormas(sintetico);
+    expect(problemas).toHaveLength(1);
+    expect(problemas[0]).toContain("DIFERENTES");
+    expect(chaves).toEqual(["GET /v1/coisas/:id", "GET /v1/coisas/:id/"]);
+    await sintetico.close();
+  });
+
+  it("as duas formas do mesmo handler (plugin com prefixo e rota `/`) fundem sem problema", async () => {
+    const sintetico = Fastify();
+    await sintetico.register(
+      async (dentro) => {
+        dentro.get("/", async () => "lista");
+      },
+      { prefix: "/v1/lista" },
+    );
+    await sintetico.ready();
+    const { chaves, problemas } = fundirFormas(sintetico);
+    expect(problemas).toEqual([]);
+    expect(chaves).toEqual(["GET /v1/lista"]);
+    await sintetico.close();
+  });
 });
 
 describe("pendências declaradas, por grupo", () => {
-  it("o número de rotas pendentes não passa do teto e só desce", () => {
+  it("pendentes é IGUAL à lista congelada e ao teto exato (toda mudança aparece no diff)", () => {
     const porGrupo = GRUPOS.map((g) => `${g.nome}=${g.pendentes.length}`).join(" ");
     console.log(`rotas pendentes (sem entrada): ${ROTAS_PENDENTES.length}; por grupo: ${porGrupo}`);
-    expect(ROTAS_PENDENTES.length).toBeLessThanOrEqual(TETO_DE_PENDENTES);
+    const chaves = ROTAS_PENDENTES.map((p) => p.chave);
+    expect(conferirPendentes(chaves, PENDENTES_CONGELADAS, TETO_DE_PENDENTES)).toEqual([]);
+    expect([...chaves].sort()).toEqual([...PENDENTES_CONGELADAS].sort());
+  });
+
+  it("reprova rota NOVA colocada em pendentes, a troca de uma por outra e a volta do teto", () => {
+    const congeladas = ["GET /v1/a", "GET /v1/b"];
+    expect(conferirPendentes(congeladas, congeladas, 2)).toEqual([]);
+    expect(conferirPendentes(["GET /v1/a", "GET /v1/nova"], congeladas, 2)).toEqual([
+      "rota nova em pendentes (nasce com entrada e resposta): GET /v1/nova",
+    ]);
+    expect(conferirPendentes(["GET /v1/a"], congeladas, 2)).toEqual([
+      "pendentes tem 1 e o teto exato é 2",
+    ]);
+    expect(conferirPendentes([...congeladas, "GET /v1/a"], congeladas, 2)).toEqual([
+      "pendentes tem 3 e o teto exato é 2",
+    ]);
+    expect(conferirPendentes(congeladas, congeladas, 3)).toEqual([
+      "a lista congelada tem 2 e o teto diz 3",
+      "pendentes tem 2 e o teto exato é 3",
+    ]);
   });
 
   it("cada grupo tem nome único", () => {

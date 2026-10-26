@@ -550,3 +550,9 @@ aberto, com o número de cada coisa no relatório
 4. **A segurança por rota não está no documento.** Quais rotas aceitam token e
    quais são públicas fica para a V2-F03-E12, que estende este mesmo registro
    com ação, ator, plateia e escopo.
+5. **Regras `refine` só como texto.** O JSON Schema não expressa `refine` nem
+   `superRefine`; o documento as anota em `x-regras-adicionais` (campo e texto
+   da regra), não como `if/then`. Um cliente gerado do documento não as
+   valida sozinho. Traduzir as mais comuns (campo obrigatório quando outro tem
+   certo valor) para `if/then` é possível e fica para quando houver cliente
+   gerado (F08-E04).

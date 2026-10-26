@@ -116,6 +116,165 @@ function respostasDe(r: RotaComGrupo): Json {
   return respostas;
 }
 
+/* ---------------------------------------------------------------------------
+   Regras que o JSON Schema não expressa (`refine` e `superRefine`).
+
+   `z.toJSONSchema` descarta os refinamentos: o corpo `{ tipo: "outro" }` sem
+   `tipoDescricao` passa pelo JSON Schema e é recusado pelo Zod. O documento
+   não pode prometer mais do que a API aceita, então cada refinamento achado
+   nas entradas (corpo, query e parâmetros, em qualquer profundidade) sai como
+   `x-regras-adicionais` na operação e no esquema do corpo, com o campo e o
+   texto da regra, e a `description` da operação repete o texto para quem lê o
+   documento sem ferramenta. `operacoesSemAnotacaoDeRegras` é o guarda.
+   ------------------------------------------------------------------------ */
+
+export type RegraAdicional = {
+  /** Onde o refinamento mora, em caminho de propriedades (vazio: no próprio esquema). */
+  caminho: string;
+  /** O campo a que a recusa se refere (o `path` do refinamento) ou `(corpo inteiro)`. */
+  campo: string;
+  /** O texto da regra, o mesmo que a API devolve quando recusa. */
+  regra: string;
+};
+
+export type RegraAdicionalDaOperacao = RegraAdicional & { em: "corpo" | "consulta" | "parametros" };
+
+const REGRA_SEM_TEXTO =
+  "regra de validação própria do esquema, sem texto declarado: a API pode recusar um pedido " +
+  "que as propriedades acima aceitam";
+
+function ehEsquemaZod(valor: unknown): valor is ZodType {
+  /* Esquema tem `safeParse`; o `check` de um refinamento tem `def` mas não tem `safeParse`. */
+  return (
+    typeof valor === "object" &&
+    valor !== null &&
+    "def" in valor &&
+    typeof (valor as { safeParse?: unknown }).safeParse === "function"
+  );
+}
+
+type DefDeCheck = { check?: string; path?: PropertyKey[]; error?: unknown };
+
+/**
+ * A definição de um `check` do Zod. O `refine` expõe `.def`; o `superRefine`
+ * cria um check que guarda a definição numa propriedade própria NÃO enumerável
+ * (a do próprio Zod, que a varredura de código-fonte da API proíbe escrever por
+ * nome, e com razão: ela existe para as respostas do Node). Por isso se lê pelas
+ * chaves próprias do objeto, sem citar nome nenhum.
+ */
+function defDoCheck(check: unknown): DefDeCheck | undefined {
+  if (typeof check !== "object" || check === null) return undefined;
+  const direto = (check as { def?: DefDeCheck }).def;
+  if (direto && typeof direto === "object") return direto;
+  for (const chave of Object.getOwnPropertyNames(check)) {
+    const interno = (check as Record<string, unknown>)[chave];
+    const def = (interno as { def?: DefDeCheck } | null)?.def;
+    if (def && typeof def === "object") return def;
+  }
+  return undefined;
+}
+
+function textoDaRegra(erro: unknown): string {
+  if (typeof erro === "string" && erro.trim()) return erro;
+  if (typeof erro === "function") {
+    try {
+      const texto: unknown = (erro as (iss: unknown) => unknown)({});
+      if (typeof texto === "string" && texto.trim()) return texto;
+      const mensagem = (texto as { message?: unknown } | null)?.message;
+      if (typeof mensagem === "string" && mensagem.trim()) return mensagem;
+    } catch {
+      /* a função esperava a ocorrência da recusa: cai no texto padrão */
+    }
+  }
+  return REGRA_SEM_TEXTO;
+}
+
+/**
+ * Todo `refine` e `superRefine` de um esquema Zod, em qualquer profundidade
+ * (objeto dentro de lista, união, opcional, pipe...). Passeia pela definição
+ * interna do Zod, sem depender do tipo de nó: toda propriedade que for esquema,
+ * lista de esquemas ou mapa de esquemas (`shape`) é visitada.
+ */
+export function refinamentosDe(esquema: ZodType): RegraAdicional[] {
+  const achadas: RegraAdicional[] = [];
+  const vistos = new WeakSet<object>();
+
+  const visitar = (no: ZodType, caminho: string[]): void => {
+    if (vistos.has(no)) return;
+    vistos.add(no);
+    const def = no.def as unknown as Record<string, unknown>;
+
+    const checks = Array.isArray(def.checks) ? (def.checks as unknown[]) : [];
+    for (const check of checks) {
+      const d = defDoCheck(check);
+      if (d?.check !== "custom") continue;
+      const campo = [...caminho, ...(d.path ?? []).map(String)].join(".");
+      achadas.push({
+        caminho: caminho.join("."),
+        campo: campo || "(corpo inteiro)",
+        regra: textoDaRegra(d.error),
+      });
+    }
+
+    for (const [chave, valor] of Object.entries(def)) {
+      if (chave === "checks") continue;
+      if (ehEsquemaZod(valor)) {
+        visitar(valor, caminho);
+      } else if (Array.isArray(valor)) {
+        for (const item of valor) if (ehEsquemaZod(item)) visitar(item, caminho);
+      } else if (typeof valor === "object" && valor !== null) {
+        for (const [nome, filho] of Object.entries(valor)) {
+          if (ehEsquemaZod(filho)) visitar(filho, [...caminho, nome]);
+        }
+      }
+    }
+  };
+
+  visitar(esquema, []);
+  return achadas;
+}
+
+function regrasAdicionaisDe(r: RotaComGrupo): RegraAdicionalDaOperacao[] {
+  const entradas = [
+    ["corpo", r.corpo],
+    ["consulta", r.consulta],
+    ["parametros", r.parametros],
+  ] as const;
+  return entradas.flatMap(([em, esquema]) =>
+    esquema ? refinamentosDe(esquema).map((regra) => ({ em, ...regra })) : [],
+  );
+}
+
+function descricaoDasRegras(regras: readonly RegraAdicionalDaOperacao[]): string {
+  const linhas = regras.map((x) => `${x.em}, campo ${x.campo}: ${x.regra}`);
+  return (
+    "Regras adicionais que o esquema JSON não expressa e a API aplica (um pedido que as " +
+    `quebra é recusado mesmo com as propriedades corretas): ${linhas.join("; ")}.`
+  );
+}
+
+/**
+ * O guarda: as chaves `MÉTODO caminho` das entradas cujo esquema tem
+ * refinamento e cuja operação no documento NÃO traz `x-regras-adicionais` com
+ * uma anotação por refinamento. Vazia é verde.
+ */
+export function operacoesSemAnotacaoDeRegras(
+  rotas: readonly RotaComGrupo[],
+  documento: DocumentoOpenApi,
+): string[] {
+  const faltam: string[] = [];
+  for (const r of rotas) {
+    const esperadas = regrasAdicionaisDe(r).length;
+    if (esperadas === 0) continue;
+    const operacao = documento.paths[caminhoOpenApi(r.caminho)]?.[r.metodo.toLowerCase()];
+    const anotadas = operacao?.["x-regras-adicionais"];
+    if (!Array.isArray(anotadas) || anotadas.length !== esperadas) {
+      faltam.push(`${r.metodo} ${r.caminho}`);
+    }
+  }
+  return faltam;
+}
+
 function operacaoDe(r: RotaComGrupo): Json {
   const nomesDeCaminho = parametrosDoCaminho(r.caminho);
   const doCaminho = r.parametros ? parametrosDe(r.parametros, "path") : [];
@@ -128,14 +287,23 @@ function operacaoDe(r: RotaComGrupo): Json {
   }
 
   const parametros = [...doCaminho, ...(r.consulta ? parametrosDe(r.consulta, "query") : [])];
+  const regras = regrasAdicionaisDe(r);
   const operacao: Json = { tags: [r.grupo], summary: r.resumo };
+  if (regras.length > 0) operacao.description = descricaoDasRegras(regras);
   if (parametros.length > 0) operacao.parameters = parametros;
   if (r.corpo) {
+    const esquemaDoCorpo = esquemaJson(r.corpo, "input");
+    const doCorpo = regras.filter((x) => x.em === "corpo");
+    if (doCorpo.length > 0) {
+      esquemaDoCorpo["x-regras-adicionais"] = doCorpo.map(({ em: _em, ...resto }) => resto);
+    }
     operacao.requestBody = {
-      required: true,
-      content: { "application/json": { schema: esquemaJson(r.corpo, "input") } },
+      /* Corpo que aceita `undefined` (`.optional()`, `.default()`) não é obrigatório. */
+      required: !r.corpo.safeParse(undefined).success,
+      content: { "application/json": { schema: esquemaDoCorpo } },
     };
   }
+  if (regras.length > 0) operacao["x-regras-adicionais"] = regras;
   operacao.responses = respostasDe(r);
   if (!r.resposta) operacao["x-resposta-pendente"] = true;
   if (r.nova) operacao["x-nova"] = true;
