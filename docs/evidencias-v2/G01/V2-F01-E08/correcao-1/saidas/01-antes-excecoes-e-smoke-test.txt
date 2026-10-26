@@ -1,0 +1,728 @@
+TAP version 13
+# Subtest: exceção completa e vigente é aceita
+ok 1 - exceção completa e vigente é aceita
+  ---
+  duration_ms: 6.392
+  type: 'test'
+  ...
+# Subtest: o marcador na linha de comentário acima do código também vale
+ok 2 - o marcador na linha de comentário acima do código também vale
+  ---
+  duration_ms: 2.7451
+  type: 'test'
+  ...
+# Subtest: vários ids de regra na mesma exceção são aceitos
+ok 3 - vários ids de regra na mesma exceção são aceitos
+  ---
+  duration_ms: 0.4154
+  type: 'test'
+  ...
+# Subtest: sem motivo reprova
+ok 4 - sem motivo reprova
+  ---
+  duration_ms: 0.6947
+  type: 'test'
+  ...
+# Subtest: motivo de uma palavra reprova: não explica nada
+ok 5 - motivo de uma palavra reprova: não explica nada
+  ---
+  duration_ms: 0.4951
+  type: 'test'
+  ...
+# Subtest: sem dono reprova
+ok 6 - sem dono reprova
+  ---
+  duration_ms: 0.3827
+  type: 'test'
+  ...
+# Subtest: sem data reprova
+ok 7 - sem data reprova
+  ---
+  duration_ms: 1.4953
+  type: 'test'
+  ...
+# Subtest: data mal formada ou impossível reprova
+ok 8 - data mal formada ou impossível reprova
+  ---
+  duration_ms: 0.6746
+  type: 'test'
+  ...
+# Subtest: exceção vencida reprova, e a data vale até o fim do próprio dia
+ok 9 - exceção vencida reprova, e a data vale até o fim do próprio dia
+  ---
+  duration_ms: 1.2261
+  type: 'test'
+  ...
+# Subtest: prazo maior que um ano reprova: exceção não é decisão permanente
+ok 10 - prazo maior que um ano reprova: exceção não é decisão permanente
+  ---
+  duration_ms: 0.76
+  type: 'test'
+  ...
+# Subtest: supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data
+ok 11 - supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data
+  ---
+  duration_ms: 0.3902
+  type: 'test'
+  ...
+# Subtest: a linha do problema é a do marcador
+ok 12 - a linha do problema é a do marcador
+  ---
+  duration_ms: 0.1592
+  type: 'test'
+  ...
+# Subtest: a palavra solta em prosa, sem comentário, não é marcador
+ok 13 - a palavra solta em prosa, sem comentário, não é marcador
+  ---
+  duration_ms: 0.1135
+  type: 'test'
+  ...
+# Subtest: lerDataIso só aceita data de calendário
+ok 14 - lerDataIso só aceita data de calendário
+  ---
+  duration_ms: 0.2234
+  type: 'test'
+  ...
+# Subtest: problemasDaExcecao vale também para entrada fora de comentário (a baseline)
+ok 15 - problemasDaExcecao vale também para entrada fora de comentário (a baseline)
+  ---
+  duration_ms: 0.1414
+  type: 'test'
+  ...
+# Subtest: todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente
+ok 16 - todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente
+  ---
+  duration_ms: 322.4909
+  type: 'test'
+  ...
+# Subtest: a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada
+ok 17 - a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada
+  ---
+  duration_ms: 1.312
+  type: 'test'
+  ...
+# Subtest: a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho
+ok 18 - a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho
+  ---
+  duration_ms: 0.6197
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição)
+ok 19 - nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição)
+  ---
+  duration_ms: 2.0149
+  type: 'test'
+  ...
+# Subtest: toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/
+ok 20 - toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/
+  ---
+  duration_ms: 2.2887
+  type: 'test'
+  ...
+# Subtest: as regras próprias reprovam em ERROR (é o que o portão do PR lê)
+ok 21 - as regras próprias reprovam em ERROR (é o que o portão do PR lê)
+  ---
+  duration_ms: 1.0277
+  type: 'test'
+  ...
+# Subtest: o workflow de SAST fixa a versão e não deixa código sair do runner
+ok 22 - o workflow de SAST fixa a versão e não deixa código sair do runner
+  ---
+  duration_ms: 1.0394
+  type: 'test'
+  ...
+# Subtest: DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado
+ok 23 - DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado
+  ---
+  duration_ms: 1.1638
+  type: 'test'
+  ...
+# Subtest: DV-15: .semgrep/requirements.txt tem hash em todo pacote, é gerado do .in e a versão do Semgrep bate com a do workflow
+ok 24 - DV-15: .semgrep/requirements.txt tem hash em todo pacote, é gerado do .in e a versão do Semgrep bate com a do workflow
+  ---
+  duration_ms: 3.3546
+  type: 'test'
+  ...
+# Subtest: DV-15: o verificador de requirements com hash morde (sem hash, sem versão exata, URL, hash curto)
+ok 25 - DV-15: o verificador de requirements com hash morde (sem hash, sem versão exata, URL, hash curto)
+  ---
+  duration_ms: 0.4184
+  type: 'test'
+  ...
+# Subtest: o registro roda FIXADO num commit, sem mascarar falha, e ERROR novo dele reprova pela baseline
+not ok 26 - o registro roda FIXADO num commit, sem mascarar falha, e ERROR novo dele reprova pela baseline
+  ---
+  duration_ms: 8.0269
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-afc7c36b2f9640fe4\\dc360\\scripts\\excecoes-de-seguranca.test.mjs:348:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'pacote móvel `--config p/...` do registro: a versão flutua',
+    +   'falta SEMGREP_RULES_SHA com o commit completo (40 hexadecimais)',
+    +   'o download não confere o commit com `git rev-parse HEAD`',
+    +   'o download não busca o commit fixado',
+    +   'a pasta typescript/lang não está entre as regras do registro',
+    +   'a pasta typescript/react não está entre as regras do registro',
+    +   'a pasta javascript/node-crypto não está entre as regras do registro',
+    +   'a pasta javascript/express não está entre as regras do registro',
+    +   'a pasta javascript/jsonwebtoken não está entre as regras do registro',
+    +   'a pasta javascript/react não está entre as regras do registro',
+    +   'falta o passo que varre com as regras do registro fixadas',
+    +   'nenhum passo compara 04-registro.json com .semgrep/baseline-registro.json',
+    +   'Relatório dos pacotes do registro (não reprova): passo de SAST com continue-on-error',
+    +   'Relatório dos pacotes do registro (não reprova): passo de SAST com `|| true`'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'pacote móvel `--config p/...` do registro: a versão flutua'
+    1: 'falta SEMGREP_RULES_SHA com o commit completo (40 hexadecimais)'
+    2: 'o download não confere o commit com `git rev-parse HEAD`'
+    3: 'o download não busca o commit fixado'
+    4: 'a pasta typescript/lang não está entre as regras do registro'
+    5: 'a pasta typescript/react não está entre as regras do registro'
+    6: 'a pasta javascript/node-crypto não está entre as regras do registro'
+    7: 'a pasta javascript/express não está entre as regras do registro'
+    8: 'a pasta javascript/jsonwebtoken não está entre as regras do registro'
+    9: 'a pasta javascript/react não está entre as regras do registro'
+    10: 'falta o passo que varre com as regras do registro fixadas'
+    11: 'nenhum passo compara 04-registro.json com .semgrep/baseline-registro.json'
+    12: 'Relatório dos pacotes do registro (não reprova): passo de SAST com continue-on-error'
+    13: 'Relatório dos pacotes do registro (não reprova): passo de SAST com `|| true`'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-afc7c36b2f9640fe4/dc360/scripts/excecoes-de-seguranca.test.mjs:349:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: negativo: workflow com `p/...`, `|| true`, continue-on-error ou commit sem conferência é reprovado
+ok 27 - negativo: workflow com `p/...`, `|| true`, continue-on-error ou commit sem conferência é reprovado
+  ---
+  duration_ms: 2.1423
+  type: 'test'
+  ...
+# Subtest: a baseline do registro existe, obedece à política de exceção e diz de qual commit das regras ela vale
+not ok 28 - a baseline do registro existe, obedece à política de exceção e diz de qual commit das regras ela vale
+  ---
+  duration_ms: 17.0543
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-afc7c36b2f9640fe4\\dc360\\scripts\\excecoes-de-seguranca.test.mjs:383:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(sha)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-afc7c36b2f9640fe4/dc360/scripts/excecoes-de-seguranca.test.mjs:387:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: o workflow de SAST roda semgrep --test antes da varredura e a baseline decide
+ok 29 - o workflow de SAST roda semgrep --test antes da varredura e a baseline decide
+  ---
+  duration_ms: 0.4656
+  type: 'test'
+  ...
+# Subtest: o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA
+ok 30 - o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA
+  ---
+  duration_ms: 1.2086
+  type: 'test'
+  ...
+# Subtest: o ruleset exige o nome de exibição do job de SAST, então o nome é contrato
+ok 31 - o ruleset exige o nome de exibição do job de SAST, então o nome é contrato
+  ---
+  duration_ms: 0.4834
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: entrada completa e vigente, comentário e linha em branco são aceitos
+ok 32 - trivyignore.yaml: entrada completa e vigente, comentário e linha em branco são aceitos
+  ---
+  duration_ms: 2.1823
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: sem motivo, sem dono ou sem prazo reprova, e diz o quê
+ok 33 - trivyignore.yaml: sem motivo, sem dono ou sem prazo reprova, e diz o quê
+  ---
+  duration_ms: 2.1461
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: motivo curto, data impossível e prazo de mais de um ano reprovam
+ok 34 - trivyignore.yaml: motivo curto, data impossível e prazo de mais de um ano reprovam
+  ---
+  duration_ms: 0.5522
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: entrada vencida reprova, e o próprio dia do expired_at já conta como sem efeito (é exclusivo no Trivy)
+ok 35 - trivyignore.yaml: entrada vencida reprova, e o próprio dia do expired_at já conta como sem efeito (é exclusivo no Trivy)
+  ---
+  duration_ms: 7.1553
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: ID repetido, chave desconhecida e linha fora do formato reprovam (nada é ignorado em silêncio)
+ok 36 - trivyignore.yaml: ID repetido, chave desconhecida e linha fora do formato reprovam (nada é ignorado em silêncio)
+  ---
+  duration_ms: 0.8231
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml (DV-22): entrada sem caminho ou com caminho largo demais reprova
+ok 37 - trivyignore.yaml (DV-22): entrada sem caminho ou com caminho largo demais reprova
+  ---
+  duration_ms: 1.1086
+  type: 'test'
+  ...
+# Subtest: o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente
+ok 38 - o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente
+  ---
+  duration_ms: 3.1529
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh fixa a versão do Trivy com SHA-256 e usa a régua da etapa
+ok 39 - varrer-imagem.sh fixa a versão do Trivy com SHA-256 e usa a régua da etapa
+  ---
+  duration_ms: 9.1156
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: imagem limpa sai 0, e o Trivy recebe a régua inteira e o arquivo de exceções
+ok 40 - varrer-imagem.sh: imagem limpa sai 0, e o Trivy recebe a régua inteira e o arquivo de exceções # SKIP script em bash
+  ---
+  duration_ms: 0.1687
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: achado de CRITICAL ou HIGH com correção reprova com código 1
+ok 41 - varrer-imagem.sh: achado de CRITICAL ou HIGH com correção reprova com código 1 # SKIP script em bash
+  ---
+  duration_ms: 0.0904
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: Trivy que não consegue varrer sai 2, nunca verde
+ok 42 - varrer-imagem.sh: Trivy que não consegue varrer sai 2, nunca verde # SKIP script em bash
+  ---
+  duration_ms: 0.0599
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh (DV-22): arquivo de exceções que não é YAML (o .trivyignore por linha, sem caminho) não roda
+ok 43 - varrer-imagem.sh (DV-22): arquivo de exceções que não é YAML (o .trivyignore por linha, sem caminho) não roda # SKIP script em bash
+  ---
+  duration_ms: 1.6824
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: sem o arquivo de exceções a varredura não roda
+ok 44 - varrer-imagem.sh: sem o arquivo de exceções a varredura não roda # SKIP script em bash
+  ---
+  duration_ms: 0.1249
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: checksum que não bate interrompe a instalação antes de extrair
+ok 45 - varrer-imagem.sh: checksum que não bate interrompe a instalação antes de extrair # SKIP script em bash
+  ---
+  duration_ms: 0.0697
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh instalar: o stdout é UMA linha, só o caminho do binário (o workflow o grava em $GITHUB_ENV)
+ok 46 - varrer-imagem.sh instalar: o stdout é UMA linha, só o caminho do binário (o workflow o grava em $GITHUB_ENV) # SKIP script em bash
+  ---
+  duration_ms: 0.0517
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh instalar: a trava do stdout morde (sem o redirecionamento da conferência, o teste reprova)
+ok 47 - varrer-imagem.sh instalar: a trava do stdout morde (sem o redirecionamento da conferência, o teste reprova) # SKIP script em bash
+  ---
+  duration_ms: 0.0451
+  type: 'test'
+  ...
+# Subtest: verificar.yml e auditoria-semanal.yml: o job imagens instala o Trivy fixo e varre as duas imagens sem poder ignorar a falha
+ok 48 - verificar.yml e auditoria-semanal.yml: o job imagens instala o Trivy fixo e varre as duas imagens sem poder ignorar a falha
+  ---
+  duration_ms: 5.5051
+  type: 'test'
+  ...
+# Subtest: a imagem comunitária do banco (PostGIS, por digest) passa pelo Trivy no PR e na agenda, com a mesma régua e o mesmo digest dos serviços (correção 1 da F01, E21)
+not ok 49 - a imagem comunitária do banco (PostGIS, por digest) passa pelo Trivy no PR e na agenda, com a mesma régua e o mesmo digest dos serviços (correção 1 da F01, E21)
+  ---
+  duration_ms: 5.0989
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-afc7c36b2f9640fe4\\dc360\\scripts\\excecoes-de-seguranca.test.mjs:748:1'
+  failureType: 'testCodeFailure'
+  error: '.github/workflows/verificar.yml: varre postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6 (o digest dos serviços e do compose)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-afc7c36b2f9640fe4/dc360/scripts/excecoes-de-seguranca.test.mjs:758:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a varredura semanal das imagens mora em auditoria-semanal.yml (CVE nasce sem commit) e roda na agenda
+ok 50 - a varredura semanal das imagens mora em auditoria-semanal.yml (CVE nasce sem commit) e roda na agenda
+  ---
+  duration_ms: 3.274
+  type: 'test'
+  ...
+# Subtest: o job imagens do verificar.yml continua com o nome que o ruleset exige
+ok 51 - o job imagens do verificar.yml continua com o nome que o ruleset exige
+  ---
+  duration_ms: 1.4914
+  type: 'test'
+  ...
+# Subtest: a imagem boa passa nas três conferências de imagem, com o docker pelo ponto de entrada trocado
+ok 52 - a imagem boa passa nas três conferências de imagem, com o docker pelo ponto de entrada trocado
+  ---
+  duration_ms: 8.1968
+  type: 'test'
+  ...
+# Subtest: negativo: imagem sem USER node (root na configuração) reprova
+ok 53 - negativo: imagem sem USER node (root na configuração) reprova
+  ---
+  duration_ms: 1.257
+  type: 'test'
+  ...
+# Subtest: negativo: processo com uid 0 reprova, mesmo se a configuração disser node
+ok 54 - negativo: processo com uid 0 reprova, mesmo se a configuração disser node
+  ---
+  duration_ms: 0.4331
+  type: 'test'
+  ...
+# Subtest: negativo: usuário que não é o node (mesmo sem ser root) reprova
+ok 55 - negativo: usuário que não é o node (mesmo sem ser root) reprova
+  ---
+  duration_ms: 1.0607
+  type: 'test'
+  ...
+# Subtest: negativo: imagem sem Chromium reprova, e Chromium que responde outra coisa também
+ok 56 - negativo: imagem sem Chromium reprova, e Chromium que responde outra coisa também
+  ---
+  duration_ms: 1.1238
+  type: 'test'
+  ...
+# Subtest: a /saude da API e a do console passam quando versao e commit são os do build
+ok 57 - a /saude da API e a do console passam quando versao e commit são os do build
+  ---
+  duration_ms: 0.4221
+  type: 'test'
+  ...
+# Subtest: negativo: /saude com versao ou commit diferentes do build, banco fora, ok falso ou lixo reprova
+ok 58 - negativo: /saude com versao ou commit diferentes do build, banco fora, ok falso ou lixo reprova
+  ---
+  duration_ms: 2.1447
+  type: 'test'
+  ...
+# Subtest: o comando devolve 0, 1 e 2 como o CI espera, e escreve o motivo da reprovação
+ok 59 - o comando devolve 0, 1 e 2 como o CI espera, e escreve o motivo da reprovação
+  ---
+  duration_ms: 0.8194
+  type: 'test'
+  ...
+# Subtest: os dois Dockerfiles têm a base fixada por digest, o mesmo digest, e o carimbo do build antes do USER node
+ok 60 - os dois Dockerfiles têm a base fixada por digest, o mesmo digest, e o carimbo do build antes do USER node
+  ---
+  duration_ms: 4.0017
+  type: 'test'
+  ...
+# Subtest: o job `imagens` existe, sem segredo, sem permissão extra, com Postgres 17 e timeout
+ok 61 - o job `imagens` existe, sem segredo, sem permissão extra, com Postgres 17 e timeout
+  ---
+  duration_ms: 1.0491
+  type: 'test'
+  ...
+# Subtest: o job `imagens` constrói as duas imagens com os dois argumentos de build e roda as quatro conferências
+ok 62 - o job `imagens` constrói as duas imagens com os dois argumentos de build e roda as quatro conferências
+  ---
+  duration_ms: 0.8196
+  type: 'test'
+  ...
+# Subtest: a imagem leva o commit que o checkout REALMENTE construiu (merge sintético em PR), e o candidato fica à parte (correção 1 da F01, E08)
+not ok 63 - a imagem leva o commit que o checkout REALMENTE construiu (merge sintético em PR), e o candidato fica à parte (correção 1 da F01, E08)
+  ---
+  duration_ms: 1.6192
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-afc7c36b2f9640fe4\\dc360\\scripts\\smoke-das-imagens.test.mjs:220:1'
+  failureType: 'testCodeFailure'
+  error: 'DC360_COMMIT = o SHA realmente construído'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+        name: Imagens Docker (API e console)
+        runs-on: ubuntu-24.04
+        timeout-minutes: 40
+        defaults:
+          run:
+            shell: bash
+            working-directory: dc360
+    
+        services:
+          postgres:
+            image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+            env:
+              POSTGRES_PASSWORD: postgres
+            ports: ["5432:5432"]
+            options: >-
+              --health-cmd "pg_isready -U postgres"
+              --health-interval 5s --health-timeout 3s --health-retries 20
+    
+        steps:
+          - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+    
+          - name: Contexto do run
+            env:
+              PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+            run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+    
+          - name: Versão e commit do build
+            env:
+              PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+            run: |
+              node scripts/versao.mjs conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/01-versao.txt"
+              versao=$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')
+              commit="${PR_HEAD_SHA:-$GITHUB_SHA}"
+              if [ -z "$versao" ] || [ -z "$commit" ]; then
+                echo "versao ou commit vazios: versao='$versao' commit='$commit'"
+                exit 1
+              fi
+              echo "DC360_VERSAO=$versao" >> "$GITHUB_ENV"
+              echo "DC360_COMMIT=$commit" >> "$GITHUB_ENV"
+              echo "versao=$versao commit=$commit" | tee -a "$RUNNER_TEMP/artefatos/01-versao.txt"
+    
+          - name: Testes das conferências do smoke
+            run: node --test scripts/smoke-das-imagens.test.mjs 2>&1 | tee "$RUNNER_TEMP/artefatos/02-teste-do-smoke.txt"
+    
+          - name: Construir a imagem da API
+            run: |
+              docker build --progress=plain -f Dockerfile -t dc360-api:ci \
+                --build-arg DC360_VERSAO="$DC360_VERSAO" \
+                --build-arg DC360_COMMIT="$DC360_COMMIT" . 2>&1 | tee "$RUNNER_TEMP/artefatos/03-build-api.txt"
+    
+          - name: Construir a imagem do console
+            run: |
+              docker build --progress=plain -f Dockerfile.console -t dc360-console:ci \
+                --build-arg DC360_VERSAO="$DC360_VERSAO" \
+                --build-arg DC360_COMMIT="$DC360_COMMIT" . 2>&1 | tee "$RUNNER_TEMP/artefatos/04-build-console.txt"
+              docker image ls --filter 'reference=dc360-*:ci' --format '{{.Repository}}:{{.Tag}} {{.Size}}' 2>&1 | tee "$RUNNER_TEMP/artefatos/05-tamanho-das-imagens.txt"
+    
+          - name: Instalar o Trivy (versão fixa, SHA-256 conferido)
+            run: |
+              trivy=$(bash scripts/varrer-imagem.sh instalar "$RUNNER_TEMP/trivy")
+              echo "TRIVY_BIN=$trivy" >> "$GITHUB_ENV"
+    
+          - name: Varrer as duas imagens (CRITICAL e HIGH com correção, e segredo, reprovam)
+            run: |
+              mkdir -p "$RUNNER_TEMP/artefatos/trivy"
+              falhou=0
+              for par in "api:dc360-api:ci" "console:dc360-console:ci"; do
+                nome="${par%%:*}"
+                imagem="${par#*:}"
+                echo "=== $imagem"
+                bash scripts/varrer-imagem.sh varrer "$TRIVY_BIN" "$RUNNER_TEMP/artefatos/trivy" "$nome" "$imagem" || falhou=1
+              done
+              exit "$falhou"
+    
+          - name: Usuário não root nas duas imagens
+            run: |
+              {
+                node scripts/smoke-das-imagens.mjs usuario dc360-api:ci
+                node scripts/smoke-das-imagens.mjs usuario dc360-console:ci
+              } 2>&1 | tee "$RUNNER_TEMP/artefatos/06-usuario.txt"
+    
+          - name: Chromium dentro da imagem da API
+            run: |
+              docker run --rm --entrypoint chromium dc360-api:ci --version 2>&1 | tee "$RUNNER_TEMP/artefatos/07-chromium.txt"
+              node scripts/smoke-das-imagens.mjs chromium dc360-api:ci 2>&1 | tee -a "$RUNNER_TEMP/artefatos/07-chromium.txt"
+    
+          - name: Provisionar papéis e banco
+            env:
+              PGHOST: localhost
+              PGUSER: postgres
+              PGPASSWORD: postgres
+            run: |
+              {
+                psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE dc360;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_setup LOGIN PASSWORD 'setup' CREATEROLE BYPASSRLS NOSUPERUSER;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT CREATE ON DATABASE dc360 TO dc360_setup;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "CREATE ROLE dc360_console_login LOGIN PASSWORD 'console' NOSUPERUSER;"
+              } 2>&1 | tee "$RUNNER_TEMP/artefatos/08-provisionar.txt"
+    
+          - name: Migrar com a imagem da API
+            run: |
+              {
+                docker run --rm --network host \
+                  -e DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 \
+                  --entrypoint node dc360-api:ci db/dist/cli.js
+                echo "--- de novo, para provar a idempotencia ---"
+                docker run --rm --network host \
+                  -e DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 \
+                  --entrypoint node dc360-api:ci db/dist/cli.js --conferir
+              } 2>&1 | tee "$RUNNER_TEMP/artefatos/09-migrar.txt"
+    
+          - name: Conceder a associação aos logins de aplicação e do console
+            env:
+              PGHOST: localhost
+              PGUSER: postgres
+              PGPASSWORD: postgres
+            run: |
+              {
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+                psql -v ON_ERROR_STOP=1 -d dc360 -c "GRANT dc360_console TO dc360_console_login WITH SET TRUE;"
+              } 2>&1 | tee "$RUNNER_TEMP/artefatos/10-conceder.txt"
+    
+          - name: A imagem da API sobe e responde /saude com a versão e o commit do build
+            run: |
+              docker run -d --name dc360-api --network host \
+                -e NODE_ENV=development -e HOST=127.0.0.1 -e PORT=3333 \
+                -e DATABASE_URL=postgres://dc360_api:api@localhost:5432/dc360 \
+                -e JWT_SEGREDO=segredo-de-ci-com-pelo-menos-trinta-e-dois-bytes \
+                dc360-api:ci
+              subiu=0
+              for i in $(seq 1 60); do
+                if curl -sf http://127.0.0.1:3333/saude > "$RUNNER_TEMP/artefatos/11-saude-api.json"; then subiu=1; break; fi
+                if [ "$(docker inspect -f '{{.State.Running}}' dc360-api)" != "true" ]; then break; fi
+                sleep 1
+              done
+              if [ "$subiu" != "1" ]; then
+                echo "a imagem da API nao respondeu /saude 200"
+                docker logs dc360-api 2>&1 | tail -n 60
+                exit 1
+              fi
+              cat "$RUNNER_TEMP/artefatos/11-saude-api.json"; echo
+              node scripts/smoke-das-imagens.mjs saude-api "$RUNNER_TEMP/artefatos/11-saude-api.json" "$DC360_VERSAO" "$DC360_COMMIT" 2>&1 | tee "$RUNNER_TEMP/artefatos/12-saude-api-conferida.txt"
+              echo "usuario do processo em execucao: $(docker exec dc360-api id -un)" | tee -a "$RUNNER_TEMP/artefatos/12-saude-api-conferida.txt"
+              [ "$(docker exec dc360-api id -u)" != "0" ]
+    
+          - name: A imagem do console sobe e responde /saude com a versão e o commit do build
+            run: |
+              chave=$(openssl rand -base64 32)
+              semente=$(docker run --rm -e CONSOLE_SEGUNDO_FATOR_CHAVE="$chave" \
+                --entrypoint node dc360-console:ci \
+                apps/console/dist/console/src/provisionar-operador.js --email dono@ci.exemplo.com 2>&1 \
+                | sed -n "s/^  CONSOLE_OPERADORES='\(.*\)'\$/\1/p")
+              if [ -z "$semente" ]; then
+                echo "o comando de provisionamento da imagem do console nao devolveu a semente do dono"
+                exit 1
+              fi
+              docker run -d --name dc360-console --network host \
+                -e NODE_ENV=development -e CONSOLE_HOST=127.0.0.1 -e CONSOLE_PORT=3344 \
+                -e CONSOLE_DATABASE_URL=postgres://dc360_console_login:console@localhost:5432/dc360 \
+                -e CONSOLE_JWT_SEGREDO=segredo-de-ci-do-console-com-mais-de-trinta-e-dois-bytes \
+                -e CONSOLE_SEGUNDO_FATOR_CHAVE="$chave" \
+                -e CONSOLE_OPERADORES="$semente" \
+                dc360-console:ci
+              subiu=0
+              for i in $(seq 1 60); do
+                if curl -sf http://127.0.0.1:3344/saude > "$RUNNER_TEMP/artefatos/13-saude-console.json"; then subiu=1; break; fi
+                if [ "$(docker inspect -f '{{.State.Running}}' dc360-console)" != "true" ]; then break; fi
+                sleep 1
+              done
+              if [ "$subiu" != "1" ]; then
+                echo "a imagem do console nao respondeu /saude 200"
+                docker logs dc360-console 2>&1 | tail -n 60
+                exit 1
+              fi
+              cat "$RUNNER_TEMP/artefatos/13-saude-console.json"; echo
+              node scripts/smoke-das-imagens.mjs saude-console "$RUNNER_TEMP/artefatos/13-saude-console.json" "$DC360_VERSAO" "$DC360_COMMIT" 2>&1 | tee "$RUNNER_TEMP/artefatos/14-saude-console-conferida.txt"
+              [ "$(docker exec dc360-console id -u)" != "0" ]
+    
+          - name: Guardar o log dos contêineres
+            if: ${{ always() }}
+            run: |
+              docker logs dc360-api > "$RUNNER_TEMP/artefatos/15-log-api.txt" 2>&1 || true
+              docker logs dc360-console > "$RUNNER_TEMP/artefatos/16-log-console.txt" 2>&1 || true
+              docker rm -f dc360-api dc360-console >/dev/null 2>&1 || true
+    
+          - name: Redigir segredo dos artefatos
+            if: ${{ always() }}
+            run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+    
+          - name: Publicar os artefatos
+            if: ${{ always() }}
+            uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+            with:
+              name: imagens-${{ github.sha }}
+              path: ${{ runner.temp }}/artefatos
+              retention-days: 30
+              overwrite: true
+              if-no-files-found: error
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-afc7c36b2f9640fe4/dc360/scripts/smoke-das-imagens.test.mjs:224:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: o nome do job `imagens` é check obrigatório da master
+ok 64 - o nome do job `imagens` é check obrigatório da master
+  ---
+  duration_ms: 0.6278
+  type: 'test'
+  ...
+# Subtest: o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16
+ok 65 - o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16
+  ---
+  duration_ms: 2.1385
+  type: 'test'
+  ...
+# Subtest: PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta
+ok 66 - PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta
+  ---
+  duration_ms: 2.4235
+  type: 'test'
+  ...
+# Subtest: o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado
+ok 67 - o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado
+  ---
+  duration_ms: 1.2868
+  type: 'test'
+  ...
+# Subtest: test:espacial existe na raiz e no db, e o npm test comum não roda os espaciais
+ok 68 - test:espacial existe na raiz e no db, e o npm test comum não roda os espaciais
+  ---
+  duration_ms: 1.7768
+  type: 'test'
+  ...
+# Subtest: rollback.md existe e cobre as cinco frentes com o comando de cada uma
+ok 69 - rollback.md existe e cobre as cinco frentes com o comando de cada uma
+  ---
+  duration_ms: 1.2138
+  type: 'test'
+  ...
+1..69
+# tests 69
+# suites 0
+# pass 57
+# fail 4
+# cancelled 0
+# skipped 8
+# todo 0
+# duration_ms 761.9398
