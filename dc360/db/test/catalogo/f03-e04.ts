@@ -1,12 +1,14 @@
 /**
  * Contribuição da etapa V2-F03-E04 ao catálogo nominal do portão de isolamento.
  *
- * VAZIA DE PROPÓSITO, E CONFERIDA: a migração 053 (domínio de papel e o papel
+ * SEM FUNÇÃO, EXCEÇÃO NEM UPDATE, E CONFERIDA (declara só tipos e preparos, ver o
+ * fim do cabeçalho): a migração 053 (domínio de papel e o papel
  * `usuario_orgao`) não cria função privilegiada, não abre exceção ao isolamento
  * e não concede UPDATE por coluna. O que ela cria é:
  *
  *   - três domínios (`papel_de_conta`, `papel_de_autor_administrativo`,
- *     `tipo_de_ator`), que não são objeto do catálogo;
+ *     `tipo_de_ator`), que não são função, exceção nem coluna com UPDATE (entram
+ *     em `tiposProprios`, abaixo);
  *   - a troca do tipo de quatro colunas de papel para esses domínios, sem mexer
  *     em ACL de coluna, em RLS, em policy ou em grant de tabela;
  *   - a origem `portal` no CHECK de `trilha_eventos.origem`;

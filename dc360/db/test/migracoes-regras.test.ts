@@ -102,7 +102,7 @@ describe("negativos: o que a regra reprova", () => {
   it("migração nova sem desfazer e sem cabeçalho", () => {
     const p = conjunto([nova(`${FICT}_sem_volta.sql`)]);
     expect(p).toHaveLength(1);
-    expect(p[0]).toMatch(new RegExp(`${FICT}_sem_volta\.sql: migração nova sem desfazer`));
+    expect(p[0]).toMatch(new RegExp(`${FICT}_sem_volta\\.sql: migração nova sem desfazer`));
   });
 
   it("número repetido, mesmo com o nome diferente", () => {
@@ -112,7 +112,9 @@ describe("negativos: o que a regra reprova", () => {
     );
     expect(
       p.some((x) =>
-        new RegExp(`número ${FICT} repetido: ${FICT}_primeira\.sql, ${FICT}_segunda\.sql`).test(x),
+        new RegExp(`número ${FICT} repetido: ${FICT}_primeira\\.sql, ${FICT}_segunda\\.sql`).test(
+          x,
+        ),
       ),
     ).toBe(true);
   });
@@ -166,7 +168,9 @@ describe("negativos: o que a regra reprova", () => {
       [nova(`${FICT}_x.sql`)],
       [volta(`${FICT}_x.sql`, "-- depois eu escrevo\n")],
     );
-    expect(vazio.some((x) => new RegExp(`desfazer/${FICT}_x\.sql: está vazio`).test(x))).toBe(true);
+    expect(vazio.some((x) => new RegExp(`desfazer/${FICT}_x\\.sql: está vazio`).test(x))).toBe(
+      true,
+    );
   });
 
   it("apagar uma migração isenta reprova (registro não se apaga)", () => {
