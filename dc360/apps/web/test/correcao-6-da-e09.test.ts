@@ -84,7 +84,8 @@ describe("Achados 1 e 2: as folgas do topo e da barra do pé são medidas", () =
     const estrutura = fonte("componentes", "Estrutura.tsx");
     expect(estrutura).toMatch(/useBordasFixas\(topoRef, barraRef, Boolean\(sessao\)\);/);
     expect(estrutura).toMatch(/<header className="topo" ref=\{topoRef\}>/);
-    expect(estrutura).toMatch(/<nav className="lateral" aria-label="Navegação principal" ref=\{barraRef\}>/);
+    // O `className` ganhou a marca do menu "Mais" aberto (H05/H08, V2-F00-POS); o `aria-label` e o `ref` são os mesmos.
+    expect(estrutura).toMatch(/<nav className=\{`lateral\$\{menuAberto \? " lateral--com-menu" : ""\}`\}\s+aria-label="Navegação principal" ref=\{barraRef\}>/);
     const hook = fonte("componentes", "usar-bordas-fixas.ts");
     expect(hook).toMatch(/new ResizeObserver\(medir\)/);
     expect(hook).toMatch(/window\.addEventListener\("resize", medir\)/);

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
-import type { FocusEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL, podeExecutar, type Acao } from "@dc360/shared";
 import { useSessao, useTema } from "../estado/sessao";
@@ -10,9 +9,14 @@ import {
   IconeOcorrencias, IconePainel, IconePrancheta, IconePredio, IconeSair,
   IconeSol, IconeUsuarios,
 } from "./Icones";
+import { BarraDoCelular } from "./BarraDoCelular";
 import { Sino } from "./Sino";
 import { BuscaGlobal } from "./BuscaGlobal";
 import { useBordasFixas, useFocoForaDasBordas } from "./usar-bordas-fixas";
+import { registrarModalAberto } from "./modais-abertos";
+import {
+  decidirTeclaDoMenu, ehDaRota, repartirNavegacao, useQuantosNaBarra,
+} from "./navegacao-mais";
 
 /**
  * Estrutura fixa da aplicação: lateral de navegação, topo com busca e
@@ -35,6 +39,11 @@ type ItemNav = {
   exige?: Acao;
   /** Só aparece para quem NÃO pode executar esta ação. */
   escondeSePuder?: Acao;
+  /**
+   * Fica na barra do pé do celular, quando couber. Os que não são principais
+   * (ou não cabem) moram no menu "Mais". A ordem desta lista é a prioridade.
+   */
+  principal?: boolean;
 };
 
 /*
@@ -48,15 +57,16 @@ type ItemNav = {
 */
 const NAVEGACAO: ItemNav[] = [
   { para: "/meu-trabalho", rotulo: "Meu trabalho", icone: <IconePrancheta />,
-    grupo: "Operação", exige: "registrar_vistoria",
+    grupo: "Operação", exige: "registrar_vistoria", principal: true,
     sinonimos: ["tarefas", "minhas vistorias", "vistoria", "campo"] },
   { para: "/painel", rotulo: "Painel", icone: <IconePainel />, grupo: "Operação",
-    escondeSePuder: "registrar_vistoria",
+    escondeSePuder: "registrar_vistoria", principal: true,
     sinonimos: ["início", "indicadores", "resumo", "fila de hoje"] },
   { para: "/ocorrencias", rotulo: "Ocorrências", icone: <IconeOcorrencias />, grupo: "Operação",
-    escondeSePuder: "registrar_vistoria",
+    escondeSePuder: "registrar_vistoria", principal: true,
     sinonimos: ["chamado", "chamados", "protocolo", "fila", "lista de ocorrências"] },
   { para: "/mapa", rotulo: "Mapa da cidade", icone: <IconeMapa />, grupo: "Operação",
+    principal: true,
     sinonimos: ["mapa", "pinos", "localização", "geografia"] },
   /*
     Fica em Operação e não em Administração, e fica ACIMA das telas de cadastro
@@ -70,7 +80,7 @@ const NAVEGACAO: ItemNav[] = [
   */
   { para: "/quem-esta-em-campo", rotulo: "Quem está em campo", icone: <IconeAlerta />,
     grupo: "Operação", exige: "acompanhar_saida_a_campo",
-    escondeSePuder: "registrar_vistoria",
+    escondeSePuder: "registrar_vistoria", principal: true,
     sinonimos: ["saída a campo", "agentes em campo", "prazo de retorno", "quem saiu"] },
   { para: "/equipes", rotulo: "Equipes", icone: <IconeEquipes />, grupo: "Administração",
     exige: "gerenciar_equipes", sinonimos: ["time", "times", "equipe de campo"] },
@@ -101,29 +111,6 @@ const NAVEGACAO: ItemNav[] = [
     sinonimos: ["retenção", "lgpd", "saída de município", "extração", "dados pessoais"] },
 ];
 
-/**
- * O Tab precisa trazer o item INTEIRO para a tela.
- *
- * No celular a lateral vira barra no pé da tela e rola na horizontal (onze
- * destinos não cabem em 390px: cabem quatro ladrilhos inteiros, ver
- * `--barra-visiveis` na folha). O navegador só rola sozinho quando o item está
- * TOTALMENTE fora: parado pela metade, ele entende que já está visível e deixa
- * o rótulo cortado na borda, com o foco em cima de um texto que não dá para
- * ler. Foi medido com a barra antiga, de rótulo em uma linha: "Mapa da cidade"
- * ia de 255px a 416px numa barra de 390px, e o Tab não movia a barra um pixel.
- * O mesmo valia para "Equipes", "Usuários" e "Tema escuro". Com os ladrilhos
- * o primeiro Tab já não corta nada, mas o foco num ladrilho que está na parte
- * que rola continua precisando trazê-lo para a tela.
- *
- * `inline: "nearest"` rola o mínimo necessário na horizontal, respeitando o
- * `scroll-padding-inline` da barra; `block: "nearest"` impede que isto mexa na
- * rolagem vertical da página. Na largura de mesa a lateral não rola, e a
- * chamada não faz nada.
- */
-function trazerParaATela(evento: FocusEvent<HTMLElement>): void {
-  evento.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest" });
-}
-
 export function Estrutura() {
   const { sessao, sair } = useSessao();
   const [tema, alternarTema] = useTema();
@@ -136,31 +123,63 @@ export function Estrutura() {
   useFocoForaDasBordas(Boolean(sessao));
 
   /*
-    A barra do celular mostra poucos ladrilhos por vez e o resto rola. Quem
-    abre "Usuários" por um link (o sino, a busca, o endereço digitado) cairia
-    numa barra parada no começo, sem nenhum ladrilho marcado à vista, e a
-    pessoa perderia a noção de onde está. Trazer o ladrilho da tela atual para
-    dentro é o mínimo para a marca de "você está aqui" continuar visível.
-    Rola a barra pelo `scrollLeft`, e NÃO por `scrollIntoView`: o Chromium
-    toma o `scrollIntoView` como o ponto de partida do Tab, e o primeiro Tab da
-    página passava a cair no item seguinte ao da tela atual em vez de cair em
-    "Pular para o conteúdo" (o e2e do modo local pegou). Já à vista (o caso de
-    "Mapa da cidade", sempre entre os primeiros), ou na largura de mesa, em que
-    a lateral não rola, não faz nada.
+    O menu "Mais" da barra do celular (H08, decisão do Rafael em 2026-10-26).
+
+    Até 900 px a barra do pé mostra só os destinos principais que cabem
+    inteiros, e o resto vai para um menu que abre acima dela. É um botão de
+    exibir e esconder (`aria-expanded`), e não um `role="menu"`: o conteúdo são
+    links comuns, e `role="menu"` prometeria ao leitor de tela setas e teclas
+    de letra que um menu de navegação não tem. O comportamento que importa:
+
+    - ao abrir, o foco vai ao primeiro item (quem abre por teclado não precisa
+      adivinhar que o menu está logo depois do botão);
+    - Esc fecha, de onde estiver o foco, e devolve o foco ao botão "Mais";
+    - clicar ou tocar fora, ou o foco sair da barra (Tab para fora), fecha sem
+      puxar o foco de volta: a pessoa já foi para outro lugar;
+    - escolher um destino fecha, e quem leva o foco ao conteúdo da tela nova é
+      `TrocaDeTela`;
+    - o aviso passageiro espera enquanto o menu está aberto (o mesmo contador
+      das janelas modais): o menu é a decisão da pessoa, o aviso é só confirmação.
   */
+  const naBarra = useQuantosNaBarra();
+  const [maisAberto, setMaisAberto] = useState(false);
+  const menuAberto = maisAberto && naBarra > 0;
+  const botaoMaisRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  // Só o Esc devolve o foco ao botão; clicar fora ou sair da barra não.
+  const fecharMais = useCallback((devolverFoco: boolean) => {
+    setMaisAberto(false);
+    if (devolverFoco) botaoMaisRef.current?.focus();
+  }, []);
+
+  // Trocou de tela (inclusive por link de fora da barra, pelo sino ou pela busca): o menu fecha.
+  useEffect(() => { setMaisAberto(false); }, [pathname]);
+  // Passou para a tela de mesa (girar o aparelho, redimensionar): o menu some, e na volta começa fechado.
+  useEffect(() => { if (naBarra === 0) setMaisAberto(false); }, [naBarra]);
+
   useEffect(() => {
-    const barra = barraRef.current;
-    const atual = barra?.querySelector<HTMLElement>('.lateral__item[aria-current="page"]');
-    if (!barra || !atual || barra.scrollWidth <= barra.clientWidth) return;
-    const respiro = parseFloat(getComputedStyle(barra).paddingLeft) || 0;
-    const caixaDaBarra = barra.getBoundingClientRect();
-    const caixaDoItem = atual.getBoundingClientRect();
-    if (caixaDoItem.left < caixaDaBarra.left + respiro) {
-      barra.scrollLeft += caixaDoItem.left - caixaDaBarra.left - respiro;
-    } else if (caixaDoItem.right > caixaDaBarra.right - respiro) {
-      barra.scrollLeft += caixaDoItem.right - caixaDaBarra.right + respiro;
-    }
-  }, [pathname]);
+    if (!menuAberto) return;
+    const liberarAvisos = registrarModalAberto();
+    menuRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+    const aoTeclar = (evento: KeyboardEvent) => {
+      if (decidirTeclaDoMenu(evento.key) !== "fechar") return;
+      evento.preventDefault();
+      fecharMais(true);
+    };
+    const aoMexerFora = (evento: Event) => {
+      if (evento.target instanceof Node && !barraRef.current?.contains(evento.target)) fecharMais(false);
+    };
+    document.addEventListener("keydown", aoTeclar);
+    document.addEventListener("pointerdown", aoMexerFora);
+    document.addEventListener("focusin", aoMexerFora);
+    return () => {
+      document.removeEventListener("keydown", aoTeclar);
+      document.removeEventListener("pointerdown", aoMexerFora);
+      document.removeEventListener("focusin", aoMexerFora);
+      liberarAvisos();
+    };
+  }, [menuAberto, fecharMais]);
 
   // Revoga no servidor antes de esquecer localmente: sem isso, o token de
   // renovação continuaria valendo por dias. É o mesmo caminho para o botão da
@@ -181,6 +200,9 @@ export function Estrutura() {
     (!i.exige || podeExecutar(sessao.papel, i.exige)) &&
     (!i.escondeSePuder || !podeExecutar(sessao.papel, i.escondeSePuder)));
   const grupos = [...new Set(visiveis.map((i) => i.grupo))];
+  // No celular (naBarra > 0) a barra leva só os principais, e o resto vai para o menu "Mais".
+  const divisao = repartirNavegacao(visiveis, naBarra);
+  const maisTemATela = divisao.noMais.some((i) => ehDaRota(pathname, i.para));
 
   return (
     <div className="aplicacao">
@@ -191,7 +213,8 @@ export function Estrutura() {
       */}
       <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
-      <nav className="lateral" aria-label="Navegação principal" ref={barraRef}>
+      <nav className={`lateral${menuAberto ? " lateral--com-menu" : ""}`}
+           aria-label="Navegação principal" ref={barraRef}>
         <div className="lateral__marca">
           <img src="/icone.svg" alt="" width={40} height={40} />
           <span>
@@ -200,33 +223,41 @@ export function Estrutura() {
           </span>
         </div>
 
-        {grupos.map((grupo) => (
-          <div className="lateral__grupo" key={grupo}>
-            <span className="lateral__rotulo">{grupo}</span>
-            {visiveis.filter((i) => i.grupo === grupo).map((item) => (
-              <NavLink key={item.para} to={item.para} className="lateral__item"
-                       onFocus={trazerParaATela}>
-                {item.icone}
-                <span className="lateral__texto">{item.rotulo}</span>
-              </NavLink>
+        {naBarra === 0 ? (
+          <>
+            {grupos.map((grupo) => (
+              <div className="lateral__grupo" key={grupo}>
+                <span className="lateral__rotulo">{grupo}</span>
+                {visiveis.filter((i) => i.grupo === grupo).map((item) => (
+                  <NavLink key={item.para} to={item.para} className="lateral__item">
+                    {item.icone}
+                    <span className="lateral__texto">{item.rotulo}</span>
+                  </NavLink>
+                ))}
+              </div>
             ))}
-          </div>
-        ))}
 
-        <div className="lateral__rodape">
-          <button type="button" className="lateral__item" onClick={alternarTema}
-                  onFocus={trazerParaATela}
-                  style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
-            {tema === "claro" ? <IconeLua /> : <IconeSol />}
-            <span className="lateral__texto">{tema === "claro" ? "Tema escuro" : "Tema claro"}</span>
-          </button>
-          <button type="button" className="lateral__item" onClick={encerrarESair}
-                  onFocus={trazerParaATela}
-                  style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
-            <IconeSair />
-            <span className="lateral__texto">Sair</span>
-          </button>
-        </div>
+            <div className="lateral__rodape">
+              <button type="button" className="lateral__item lateral__item--botao" onClick={alternarTema}>
+                {tema === "claro" ? <IconeLua /> : <IconeSol />}
+                <span className="lateral__texto">{tema === "claro" ? "Tema escuro" : "Tema claro"}</span>
+              </button>
+              <button type="button" className="lateral__item lateral__item--botao" onClick={encerrarESair}>
+                <IconeSair />
+                <span className="lateral__texto">Sair</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <BarraDoCelular
+            naBarra={divisao.naBarra} noMais={divisao.noMais}
+            aberto={menuAberto} menuId={menuId} maisTemATela={maisTemATela} tema={tema}
+            aoAlternarMenu={() => setMaisAberto((aberto) => !aberto)}
+            aoEscolher={() => fecharMais(false)}
+            aoAlternarTema={alternarTema} aoSair={encerrarESair}
+            refBotao={botaoMaisRef} refMenu={menuRef}
+          />
+        )}
       </nav>
 
       <header className="topo" ref={topoRef}>
