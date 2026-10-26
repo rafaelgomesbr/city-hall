@@ -856,6 +856,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E01": { total: 49, falhas: 0, puladas: 0 },
   // V2-F02-E09: `apps/api/test/fuso-do-protocolo.test.ts` e novo, com 9 casos (o ano do protocolo na virada de 01/01/2027 em São Paulo e no Acre, o fuso vindo da organização do token, UF desconhecida, a sequência por ano, e as datas e o nome do CSV no fuso do município com o servidor em UTC).
   "V2-F02-E09": { total: 9, falhas: 0, puladas: 0 },
+  // V2-F02-E03, parte 1C (DV-01 e DV-03): `apps/api/test/guarda-de-codigos-de-erro.test.ts` ganhou 18 casos (9 do retrato dos cabeçalhos, 2 de tempo linear e 7 da contagem de chaves `erro`). O console ganhou 18 no mesmo arquivo de teste (número do próprio passo teste-console, 339 para 357).
+  "V2-F02-E03-parte-1C": { total: 18, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -1168,7 +1170,7 @@ export const PASSOS = [
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
   { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
-  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 359, falhas: 0 } }, // 338 + 1 da correção da revisão 1 da V2-F01-E09 + 20 da V2-F02-E02 (19 em v1-e-mensagens.test.ts e 1 de paridade em superficie.test.ts)
+  { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 377, falhas: 0 } }, // 338 + 1 da correção da revisão 1 da V2-F01-E09 + 18 da parte 1C da V2-F02-E03 + 20 da V2-F02-E02 (19 em v1-e-mensagens.test.ts e 1 de paridade em superficie.test.ts)
   { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
   { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
   { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)

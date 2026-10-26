@@ -1,0 +1,661 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-a412a14d1fbd22435/dc360
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts (66 tests | 9 failed) 12915ms
+   ✓ a guarda do console > em teste, m07 sai 500 e o desvio fica registrado com a rota 36ms
+   ✓ a guarda do console > em teste, m10 sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > em teste, m11 sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > em teste, m16 sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > em teste, eab/x sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > em teste, eag/x sai 500 e o desvio fica registrado com a rota 13ms
+   ✓ a guarda do console > em teste, eaf sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > em teste, frac sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > em teste, frac-401 sai 500 e o desvio fica registrado com a rota 5ms
+   ✓ a guarda do console > em teste, frac-texto sai 500 e o desvio fica registrado com a rota 3ms
+   ✓ a guarda do console > em teste, hijack-grande sai 500 e o desvio fica registrado com a rota 2ms
+   ✓ a guarda do console > fora de teste, m07 sai com o código genérico do console e vai para o log 3ms
+   ✓ a guarda do console > fora de teste, m10 sai com o código genérico do console e vai para o log 2ms
+   ✓ a guarda do console > fora de teste, m11 sai com o código genérico do console e vai para o log 2ms
+   ✓ a guarda do console > fora de teste, m16 sai com o código genérico do console e vai para o log 2ms
+   ✓ a guarda do console > fora de teste, eab/x sai com o código genérico do console e vai para o log 3ms
+   ✓ a guarda do console > fora de teste, eag/x sai com o código genérico do console e vai para o log 2ms
+   ✓ a guarda do console > fora de teste, eaf sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, frac sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, frac-401 sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, frac-texto sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > fora de teste, hijack-grande sai com o código genérico do console e vai para o log 1ms
+   ✓ a guarda do console > controle: o código do contrato passa intacto, com a frase da rota 2ms
+   ✓ correção 4: o status torto, por HTTP de verdade (porta efêmera) > 403.5 não sai 403 com o código fora do contrato, nos dois modos 48ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-store não sai 403 com o código inventado, nos dois modos 14ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-header não sai 401 com o código inventado, nos dois modos 11ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > por-baixo-writeraw não sai 403 com o código inventado, nos dois modos 7ms
+   ✓ correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > cl-stream: o cliente lê 200 {} e nenhuma segunda resposta 403 com o código inventado 11ms
+   ✓ correção 6: a moldura do corpo e o trailer, por socket cru em pipeline > trailer com código fora do contrato: a resposta do desvio sai, sem exceção não tratada 11ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > c-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 12ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-stream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 9ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-response: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 11ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > i-cl0-webstream: sai só o corpo declarado e nenhum 403 inventado chega ao cliente 9ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 403 do contrato com content-length menor que o corpo: sai a resposta do desvio (o socket é desarrolhado) 10ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > addTrailers com chunked (red-team) fora do contrato: sai a resposta do desvio, sem exceção não tratada 7ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 8ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > 1xx por baixo: o 101 por _writeRaw vira 500, e a resposta só com a provisória fecha a conexão 12ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: Early Hints com CR ou LF no valor sai 500 e o pedido seguinte recebe o dele, igual em Node 22 e 24 11ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: o 103 legítimo antes do 403 do contrato passa intacto 7ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node, antes de qualquer byte 2ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline > controle: 102 de verdade antes do 403 do contrato passa intacto, e o pedido seguinte recebe o dele 7ms
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > 403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido 10ms
+     → falhar: expected 2 to be 1 // Object.is equality
+   ✓ DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > cabeçalho posto por setHeader da resposta crua: o Node lê uma vez ao receber, a guarda uma ao entregar (duas no total) 5ms
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > lista de objetos e frase da linha de status: cada elemento é lido uma vez 3ms
+     → falhar lista: expected 4 to be 2 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > o desvio também lê o valor uma vez, e a resposta trocada leva o texto lido 3ms
+     → falhar: expected 2 to be 1 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda 3ms
+     → falhar: expected 2 to be 1 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta 7ms
+     → falhar: expected 'HTTP/1.1 403 Forbidden\r\nContent-Sec…' not to contain 'x-y: z'
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio 4ms
+     → falhar: expected 200 to be 500 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle) 6ms
+     → falhar controle: expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > Early Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto 5ms
+     → falhar early-contado: expected { lidas: 2 } to deeply equal { lidas: 1 }
+   × DV-03: a conferência do corpo é linear no tamanho do texto > 60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado 3639ms
+     → expected 1845.1654999999992 to be less than 100
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > muitas chaves curtas e uma cadeia sem chave também ficam em tempo curto 45ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"so_o_dono","mensagem":"texto com \"erro\": 1 dentro"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"a\"b":"x","erro":"so_o_dono"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: { "erro"
+	: "so_o_dono" } 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"so_o_dono","\u0065rro":"x"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"so_o_dono","\u0065\u0072\u0072\u006f"
+:"x"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"so_o_dono","a":{"b":[{"erro" :1}]}} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"so_o_dono","errou":1,"err":2,"erros":3} 0ms
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts (158 tests | 9 failed) 7801ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m01: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 47ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m02: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 3ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m03: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m04: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m05: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m06: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m07: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 5ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m10: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m11: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 5ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m12: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 3ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m13: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m14: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m15: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > m16: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > sem-corpo: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > texto: sai 500 desvio_do_catalogo_de_erro, e o desvio é registrado com a rota 2ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > M09: `JSON.stringify` trocado depois de o servidor subir também é pego 3ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > código do catálogo com o status trocado, e 401 com código fora, também 3ms
+   ✓ modo de teste: a resposta fora do catálogo falha alto > controles: o catálogo, a entrada, o 503 e o 200 passam intactos e não registram nada 6ms
+   ✓ HEAD não leva corpo > o HEAD de uma rota sai sem corpo e sem desvio; quem é conferido é o GET gêmeo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m01: sai 403 sem_permissao, com a frase do catálogo 2ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m02: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m03: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m04: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m05: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m06: sai 403 sem_permissao, com a frase do catálogo 2ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m07: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m10: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m11: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m12: sai 403 sem_permissao, com a frase do catálogo 2ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m13: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m14: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m15: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > m16: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > sem-corpo: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > texto: sai 403 sem_permissao, com a frase do catálogo 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > M09: com `JSON.stringify` trocado, o corpo genérico NÃO passa por ele 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > 401 fora do catálogo sai 401 nao_autenticado 1ms
+   ✓ modo de produção: a resposta fora do catálogo sai com o código genérico e vai para o log > controles: o que está no catálogo sai como a rota mandou, com a frase da rota 1ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 401 {"erro":"credenciais"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"acesso_suspenso"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"nao_autenticado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"inventado"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"mensagem":"x"} 0ms
+   ✓ a conferência do corpo, isolada > 403 ["sem_permissao"] 0ms
+   ✓ a conferência do corpo, isolada > 403 proibido 0ms
+   ✓ a conferência do corpo, isolada > 403  0ms
+   ✓ a conferência do corpo, isolada > 403 null 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"vazou","erro":"sem_permissao"} 0ms
+   ✓ a conferência do corpo, isolada > 403 {"erro":"sem_permissao","campos":[{"erro":"x"}]} 0ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e01/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 4ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e02/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e04/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e05/nada: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e06/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 15ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e07/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 3ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e09: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e10: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e11: em teste sai 500 com o desvio registrado; em produção, o código genérico 6ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e12: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e13: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e14: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e15: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e16: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e18/x: em teste sai 500 com o desvio registrado; em produção, o código genérico 2ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e08 (erro com statusCode 403 lançado) sai 500 erro_interno, que não é resposta de acesso 4ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > e17: o log de produção NÃO grava o código visto que não tem a forma de um código (e-mail, CPF, texto enorme) 1ms
+   ✓ os escapes da revisão da primeira guarda (onSend) não escapam da guarda na resposta do Node > globais trocados com o servidor de pé (includes, hasOwnProperty, JSON.parse, JSON.stringify) não enganam a guarda 4ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em teste sai 500 com o desvio registrado (status 403) 4ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em teste sai 500 com o desvio registrado (status 401) 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em teste sai 500 com o desvio registrado (status 403) 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em teste sai 500 com o desvio registrado (status 403) 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em teste sai 500 com o desvio registrado (status 403) 2ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em teste sai 500 com o desvio registrado (status 403) 2ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em teste sai 500 com o desvio registrado (status 403) 2ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em teste sai 500 com o desvio registrado (status 403) 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em teste sai 500 com o desvio registrado (status 401) 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em teste sai 500 com o desvio registrado (status 403) 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-401.9: em produção sai o código genérico do status 401 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > code-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > catalogo-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > regra-mutada: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > raw-statuscode-texto: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-grande: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-negativo: em produção sai o código genérico do status 403 e o desvio vai para o log 0ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > hijack-valueof: em produção sai o código genérico do status 401 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > implicito-403.5: em produção sai o código genérico do status 403 e o desvio vai para o log 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > a frase da linha de status da rota não sai na resposta trocada 1ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > RegraDeNegocio e AcessoSuspenso recusam status torto no construtor; a rota que tenta sai 500 erro_interno 5ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > controles: 200.5 sai 200 sem desvio; cabeçalhos no terceiro argumento de writeHead seguem; o valueOf roda uma vez 7ms
+   ✓ correção 4: a guarda decide pelo status que o Node ESCREVE, e não pelo que foi pedido > por HTTP de verdade (porta efêmera), nos dois modos: a forma do red-team e a do QA não saem 403 com o código fora 96ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > calc-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 14ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > destruct-store: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 7ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-trocado: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 8ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > header-401: nunca sai 401 com o código inventado; em teste 500 com desvio, em produção o genérico 6ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 7ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-base64: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 6ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > writeraw-buffer: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 5ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > continue-junto: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 6ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > linha-partida: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 5ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > fila: nunca sai 403 com o código inventado; em teste 500 com desvio, em produção o genérico 6ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > bytes depois do fim da resposta não saem (seriam lidos como a resposta seguinte da conexão) 11ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > a resposta trocada fecha a conexão, e o pedido seguinte do mesmo agente sai certo 11ms
+   ✓ correção 4b: a linha de status escrita por baixo de writeHead, por HTTP de verdade > controles: 100 Continue de verdade seguido do 403 do catálogo, e o 403 comum, passam intactos 10ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-stream: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 11ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-response: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 12ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-stream-pedacos: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 9ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-raw-end: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 7ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > cl-writeraw: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 7ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > chunked-depois-do-terminador: sai só o corpo declarado (200 {}), nenhum 403 inventado chega ao cliente, e é desvio em teste 7ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > content-length junto de transfer-encoding é cabeça ilegível: a resposta inteira é trocada 8ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > trailer com código fora do catálogo: o desvio não lança (nada de exceção não tratada) e a resposta sai 16ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > writeHead(403) mais flushHeaders: sai o 403 decidido pela guarda (não 200 sem corpo) 9ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > controles: ZIP em fluxo, PDF em Buffer, fluxo com content-length certo e chunked forjado saem inteiros 29ms
+   ✓ correção 6: a moldura do corpo, por socket cru em pipeline (HTTP de verdade) > toda resposta sai com strictContentLength ligado 1ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > c-webstream: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 9ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > i-cl0-stream: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 8ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > i-cl0-response: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 7ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > i-cl0-webstream: sai só o corpo declarado, nenhum 403 inventado chega ao cliente, e é desvio em teste 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 403 do catálogo com content-length menor ou maior que o corpo: sai a resposta do desvio (o socket é desarrolhado) 16ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > transfer-encoding identity forjado: o corpo vai até o fechamento e a conexão fecha (o pedido seguinte não sai nela) 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > addTrailers com chunked (red-team) fora do catálogo: sai a resposta do desvio, sem exceção não tratada 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-100: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 7ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-101: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-103: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-199: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-objeto: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-raw-writehead: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > g-102-raw-implicito: o status 1xx como resposta final sai 500, e o pedido seguinte do socket recebe a resposta dele 5ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > HEAD com code(102): sai a cabeça 500, sem nenhuma linha 1xx 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > 101 escrito por baixo de writeHead (_writeRaw): a porta troca a resposta por 500 e fecha a conexão 7ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > a resposta que termina só com a cabeça provisória (sem a final) fecha a conexão: o pedido seguinte não é lido como o dela 6ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > correção 7b: o 103 legítimo (writeEarlyHints) antes do 403 do catálogo passa intacto, e o pedido seguinte recebe o dele 7ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > correção 7b: a guarda recusa CR ou LF nas Early Hints em qualquer versão do Node (o Node 22 escreveria), antes de qualquer byte 3ms
+   ✓ correção 7: as formas da rodada 7 sobre fd17ff4, por socket cru em pipeline (HTTP de verdade) > controles: 102 de verdade antes do 403 do catálogo, Buffer com content-length errado (o Fastify corrige), 204, 304, Early Hints com CRLF e flushHeaders com 401 41ms
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > 403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido 11ms
+     → falhar: expected 2 to be 1 // Object.is equality
+   ✓ DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > cabeçalho posto por setHeader da resposta crua: o Node lê uma vez ao receber, a guarda uma ao entregar (duas no total) 6ms
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > lista de objetos e frase da linha de status: cada elemento é lido uma vez 4ms
+     → falhar lista: expected 4 to be 2 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > o desvio também lê o valor uma vez, e a resposta trocada leva o texto lido 4ms
+     → falhar: expected 2 to be 1 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda 3ms
+     → falhar: expected 2 to be 1 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta 9ms
+     → falhar: expected 'HTTP/1.1 403 Forbidden\r\nContent-Sec…' not to contain 'x-y: z'
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio 4ms
+     → falhar: expected 200 to be 500 // Object.is equality
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle) 7ms
+     → falhar controle: expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+   × DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > Early Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto 5ms
+     → falhar early-contado: expected { lidas: 2 } to deeply equal { lidas: 1 }
+   × DV-03: a conferência do corpo é linear no tamanho do texto > 60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado 3673ms
+     → expected 1773.4375999999993 to be less than 100
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > muitas chaves curtas e uma cadeia sem chave também ficam em tempo curto 52ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"sem_permissao","mensagem":"texto com \"erro\": 1 dentro"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"a\"b":"x","erro":"sem_permissao"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: { "erro"
+	: "sem_permissao" } 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"sem_permissao","\u0065rro":"x"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"sem_permissao","\u0065\u0072\u0072\u006f"
+:"x"} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"sem_permissao","a":{"b":[{"erro" :1}]}} 0ms
+   ✓ DV-03: a conferência do corpo é linear no tamanho do texto > contagem de chaves `erro`: {"erro":"sem_permissao","errou":1,"err":2,"erros":3} 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > 403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido
+AssertionError: falhar: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1263:32
+    1261|     for (const modo of ["falhar", "corrigir"] as const) {
+    1262|       const t = await bytesDe(modo, "contado-403");
+    1263|       expect(leituras.n, modo).toBe(1);
+       |                                ^
+    1264|       expect(t.startsWith("HTTP/1.1 403"), modo).toBe(true);
+    1265|       expect(ate(t), modo).toContain("x-contado: valor-comum");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > lista de objetos e frase da linha de status: cada elemento é lido uma vez
+AssertionError: falhar lista: expected 4 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 4
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1284:43
+    1282|     for (const modo of ["falhar", "corrigir"] as const) {
+    1283|       const lista = await bytesDe(modo, "contado-lista-403");
+    1284|       expect(leituras.n, `${modo} lista`).toBe(2);
+       |                                           ^
+    1285|       expect(ate(lista), modo).toMatch(/x-lista: a\r\nx-lista: b|x-lis…
+    1286|       const frase = await bytesDe(modo, "contado-frase-403");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > o desvio também lê o valor uma vez, e a resposta trocada leva o texto lido
+AssertionError: falhar: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1296:32
+    1294|     for (const modo of ["falhar", "corrigir"] as const) {
+    1295|       const t = await bytesDe(modo, "contado-desvio");
+    1296|       expect(leituras.n, modo).toBe(1);
+       |                                ^
+    1297|       expect(t.startsWith(`HTTP/1.1 ${modo === "falhar" ? 500 : 403}`)…
+    1298|       expect(ate(t), modo).toContain("x-contado: valor-comum");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda
+AssertionError: falhar: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1307:32
+    1305|     for (const modo of ["falhar", "corrigir"] as const) {
+    1306|       const t = await bytesDe(modo, "muda-403");
+    1307|       expect(leituras.n, modo).toBe(1);
+       |                                ^
+    1308|       expect(ate(t), modo).toContain("x-muda: um");
+    1309|       expect(t, modo).not.toContain("x-y: z");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta
+AssertionError: falhar: expected 'HTTP/1.1 403 Forbidden\r\nContent-Sec…' not to contain 'x-y: z'
+
+- Expected
++ Received
+
+- x-y: z
++ HTTP/1.1 403 Forbidden
++ Content-Security-Policy: default-src 'none';frame-ancestors 'none';base-uri 'self';font-src 'self' https: data:;form-action 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
++ Cross-Origin-Opener-Policy: same-origin
++ Cross-Origin-Resource-Policy: same-site
++ Origin-Agent-Cluster: ?1
++ Referrer-Policy: no-referrer
++ Strict-Transport-Security: max-age=15552000; includeSubDomains
++ X-Content-Type-Options: nosniff
++ X-DNS-Prefetch-Control: off
++ X-Download-Options: noopen
++ X-Frame-Options: SAMEORIGIN
++ X-Permitted-Cross-Domain-Policies: none
++ X-XSS-Protection: 0
++ x-muda: dois
++ 
++ x-y: z
++ vary: Origin
++ access-control-allow-credentials: true
++ access-control-expose-headers: x-request-id
++ x-ratelimit-limit: 300
++ x-ratelimit-remaining: 175
++ x-ratelimit-reset: 60
++ content-type: application/json; charset=utf-8
++ cache-control: no-store
++ x-request-id: f1a934b7-7264-4bf3-b22c-04ce9fe55242
++ content-length: 39
++ Date: Mon, 26 Oct 2026 00:26:00 GMT
++ Connection: keep-alive
++ Keep-Alive: timeout=72
++ 
++ {"erro":"sem_permissao","mensagem":"x"}
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1320:27
+    1318|       expect(leituras.antes, modo).toBe(1);
+    1319|       expect(leituras.n - leituras.antes, modo).toBe(1);
+    1320|       expect(t, modo).not.toContain("x-y: z");
+       |                           ^
+    1321|       const { respostas } = lerRespostas(Buffer.from(t, "latin1"));
+    1322|       expect(respostas.map((x) => x.status), modo).toEqual([modo === "…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio
+AssertionError: falhar: expected 200 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 200
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1331:42
+    1329|       const t = await bytesDe(modo, "muda-200");
+    1330|       const { respostas } = lerRespostas(Buffer.from(t, "latin1"));
+    1331|       expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 …
+       |                                          ^
+    1332|       expect(t, modo).not.toContain("x-y: z");
+    1333|       expect(respostas.filter((x) => x.status === 200), modo).toEqual(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle)
+AssertionError: falhar controle: expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "erroVisto": "[fora da forma de um código, não registrado]",
++     "metodo": "GET",
++     "motivo": "código fora do catálogo",
++     "rota": "/dv01/contado-desvio",
++     "status": 403,
++   },
++ ]
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1345:56
+    1343|       expect(inteira.map((x) => x.status), modo).toEqual([200, 404]);
+    1344|       expect(inteira[0]!.corpo, modo).toBe("0123456789");
+    1345|       expect(lerDesviosDaGuarda(), `${modo} controle`).toEqual([]);
+       |                                                        ^
+    1346|       const partida = lerRespostas(Buffer.from(await bytesDe(modo, "ca…
+    1347|       expect(partida.filter((x) => x.status === 200), modo).toEqual([]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > Early Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto
+AssertionError: falhar early-contado: expected { lidas: 2 } to deeply equal { lidas: 1 }
+
+- Expected
++ Received
+
+  {
+-   "lidas": 1,
++   "lidas": 2,
+  }
+
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1359:65
+    1357|         const { respostas } = lerRespostas(Buffer.from(t, "latin1"));
+    1358|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+    1359|         expect(JSON.parse(respostas[1]!.corpo), `${modo} ${n}`).toEqua…
+       |                                                                 ^
+    1360|         expect(ate(t), `${modo} ${n}`).toMatch(/x-[sg]: dica-comum/);
+    1361|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/18]⎯
+
+ FAIL  apps/api/test/guarda-de-codigos-de-erro.test.ts > DV-03: a conferência do corpo é linear no tamanho do texto > 60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado
+AssertionError: expected 1773.4375999999993 to be less than 100
+ ❯ apps/api/test/guarda-de-codigos-de-erro.test.ts:1375:87
+    1373|     expect(sessenta.length).toBeGreaterThan(60_000);
+    1374|     expect(conferirCorpoDeAcesso(403, sessenta, CONTRATO_DE_ACESSO_DA_…
+    1375|     expect(ms(() => conferirCorpoDeAcesso(403, sessenta, CONTRATO_DE_A…
+       |                                                                                       ^
+    1376|     const grande = aspas(500_000);
+    1377|     expect(ms(() => conferirCorpoDeAcesso(403, grande, CONTRATO_DE_ACE…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > 403 do catálogo com cabeçalho de objeto: a guarda lê uma vez, e sai o texto lido
+AssertionError: falhar: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:531:32
+    529|     for (const modo of ["falhar", "corrigir"] as const) {
+    530|       const t = await bytesDe(modo, "contado-403");
+    531|       expect(leituras.n, modo).toBe(1);
+       |                                ^
+    532|       expect(t.startsWith("HTTP/1.1 403"), modo).toBe(true);
+    533|       expect(ate(t), modo).toContain("x-contado: valor-comum");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > lista de objetos e frase da linha de status: cada elemento é lido uma vez
+AssertionError: falhar lista: expected 4 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 4
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:552:43
+    550|     for (const modo of ["falhar", "corrigir"] as const) {
+    551|       const lista = await bytesDe(modo, "contado-lista-403");
+    552|       expect(leituras.n, `${modo} lista`).toBe(2);
+       |                                           ^
+    553|       expect(ate(lista), modo).toMatch(/x-lista: a\r\nx-lista: b|x-lis…
+    554|       const frase = await bytesDe(modo, "contado-frase-403");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > o desvio também lê o valor uma vez, e a resposta trocada leva o texto lido
+AssertionError: falhar: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:564:32
+    562|     for (const modo of ["falhar", "corrigir"] as const) {
+    563|       const t = await bytesDe(modo, "contado-desvio");
+    564|       expect(leituras.n, modo).toBe(1);
+       |                                ^
+    565|       expect(t.startsWith(`HTTP/1.1 ${modo === "falhar" ? 500 : 403}`)…
+    566|       expect(ate(t), modo).toContain("x-contado: valor-comum");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda a cada leitura (403 do catálogo): sai a primeira leitura, numa resposta só, em uma leitura da guarda
+AssertionError: falhar: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:575:32
+    573|     for (const modo of ["falhar", "corrigir"] as const) {
+    574|       const t = await bytesDe(modo, "muda-403");
+    575|       expect(leituras.n, modo).toBe(1);
+       |                                ^
+    576|       expect(ate(t), modo).toContain("x-muda: um");
+    577|       expect(t, modo).not.toContain("x-y: z");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > valor que muda posto por setHeader: o Node leu a primeira, a guarda lê a segunda UMA vez, vê o fim de cabeçalho e troca a resposta
+AssertionError: falhar: expected 'HTTP/1.1 403 Forbidden\r\nContent-Sec…' not to contain 'x-y: z'
+
+- Expected
++ Received
+
+- x-y: z
++ HTTP/1.1 403 Forbidden
++ Content-Security-Policy: default-src 'none';script-src 'self';style-src 'self';connect-src 'self';img-src 'self' data:;base-uri 'none';form-action 'none';frame-ancestors 'none';font-src 'self' https: data:;object-src 'none';script-src-attr 'none';upgrade-insecure-requests
++ Cross-Origin-Opener-Policy: same-origin
++ Cross-Origin-Resource-Policy: same-origin
++ Origin-Agent-Cluster: ?1
++ Referrer-Policy: no-referrer
++ Strict-Transport-Security: max-age=15552000; includeSubDomains
++ X-Content-Type-Options: nosniff
++ X-DNS-Prefetch-Control: off
++ X-Download-Options: noopen
++ X-Frame-Options: SAMEORIGIN
++ X-Permitted-Cross-Domain-Policies: none
++ X-XSS-Protection: 0
++ x-muda: dois
++ 
++ x-y: z
++ content-type: application/json; charset=utf-8
++ x-request-id: 30452ab4-b0fb-46e2-acad-f301bbcb1b2c
++ content-length: 35
++ Date: Mon, 26 Oct 2026 00:26:00 GMT
++ Connection: keep-alive
++ Keep-Alive: timeout=72
++ 
++ {"erro":"so_o_dono","mensagem":"x"}
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:588:27
+    586|       expect(leituras.antes, modo).toBe(1);
+    587|       expect(leituras.n - leituras.antes, modo).toBe(1);
+    588|       expect(t, modo).not.toContain("x-y: z");
+       |                           ^
+    589|       const { respostas } = lerRespostas(t);
+    590|       expect(respostas.map((x) => x.status), modo).toEqual([modo === "…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede: a cabeça que o Node montou com o fim de cabeçalho no meio (200 que não é segurada) vira a resposta do desvio
+AssertionError: falhar: expected 200 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 200
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:599:42
+    597|       const t = await bytesDe(modo, "muda-200");
+    598|       const { respostas } = lerRespostas(t);
+    599|       expect(respostas[0]!.status, modo).toBe(modo === "falhar" ? 500 …
+       |                                          ^
+    600|       expect(t, modo).not.toContain("x-y: z");
+    601|       expect(respostas.filter((x) => x.status === 200), modo).toEqual(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > segunda rede, sem cabeçalho de objeto: `_header` com o fim de cabeçalho no meio é trocado, e o inteiro passa (controle)
+AssertionError: falhar controle: expected [ { metodo: 'GET', …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "erroVisto": "[fora da forma de um código, não registrado]",
++     "metodo": "GET",
++     "motivo": "código fora do catálogo",
++     "rota": "/dv01/contado-desvio",
++     "status": 403,
++   },
++ ]
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:613:56
+    611|       expect(inteira.map((x) => x.status), modo).toEqual([200, 404]);
+    612|       expect(inteira[0]!.corpo, modo).toBe("0123456789");
+    613|       expect(lerDesviosDaGuarda(), `${modo} controle`).toEqual([]);
+       |                                                        ^
+    614|       const partida = lerRespostas(await bytesDe(modo, "cabeca-partida…
+    615|       expect(partida.filter((x) => x.status === 200), modo).toEqual([]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-01: o valor de cabeçalho é lido uma vez, e o que a guarda confere é o que o Node escreve > Early Hints: cada valor é lido uma vez (propriedade comum e getter), e o 103 leva o texto
+AssertionError: falhar early-contado: expected { lidas: 2 } to deeply equal { lidas: 1 }
+
+- Expected
++ Received
+
+  {
+-   "lidas": 1,
++   "lidas": 2,
+  }
+
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:627:65
+    625|         const { respostas } = lerRespostas(t);
+    626|         expect(respostas.map((x) => x.status), `${modo} ${n}`).toEqual…
+    627|         expect(JSON.parse(respostas[1]!.corpo), `${modo} ${n}`).toEqua…
+       |                                                                 ^
+    628|         expect(ate(t), `${modo} ${n}`).toMatch(/x-[sg]: dica-comum/);
+    629|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/18]⎯
+
+ FAIL  apps/console/test/guarda-de-codigos-de-erro.test.ts > DV-03: a conferência do corpo é linear no tamanho do texto > 60 KB de aspas escapadas (levava cerca de 1 s) e 1 MB conferem em tempo curto, com o mesmo resultado
+AssertionError: expected 1845.1654999999992 to be less than 100
+ ❯ apps/console/test/guarda-de-codigos-de-erro.test.ts:643:91
+    641|     expect(sessenta.length).toBeGreaterThan(60_000);
+    642|     expect(conferirCorpoDeAcesso(403, sessenta, CONTRATO_DE_ACESSO_DO_…
+    643|     expect(ms(() => conferirCorpoDeAcesso(403, sessenta, CONTRATO_DE_A…
+       |                                                                                           ^
+    644|     const grande = aspas(500_000);
+    645|     expect(ms(() => conferirCorpoDeAcesso(403, grande, CONTRATO_DE_ACE…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/18]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  18 failed | 206 passed (224)
+   Start at  21:25:48
+   Duration  16.22s (transform 6.25s, setup 0ms, collect 10.33s, tests 20.72s, environment 0ms, prepare 319ms)
+
