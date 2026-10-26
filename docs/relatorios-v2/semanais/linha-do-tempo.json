@@ -113,6 +113,20 @@
       "titulo": "Rafael aprova a D-32 e a F02 começa",
       "texto": "Suficiente para tela, achado instável não reprova e fases correm em paralelo, cada uma no seu ramo. A F02 (API v1 e contratos) abre no ramo v2/f02.",
       "tipo": "marco"
+    },
+    {
+      "data": "25/10",
+      "iso": "2026-10-25",
+      "titulo": "Rodada 10: o gatekeeper recomenda o G00",
+      "texto": "No Windows, E16, E19 e E22 passaram e a E09 foi aceita por decisão sua. A rodada 11, só mecânica, não achou mudança de produto. Placar: 8 validadas, 16 com pendência humana e a E09 aceita.",
+      "tipo": "ok"
+    },
+    {
+      "data": "25/10",
+      "iso": "2026-10-25",
+      "titulo": "Lote 1 da F02 juntado, com o Codex em conjunto",
+      "texto": "E01 (rotas em /v1 com espelho legado) e E09 (fuso do município no protocolo e no CSV) implementadas; E02 e E03 em andamento. Seis dívidas pagas. O Codex revisou o lote (nada bloqueia) e passou a implementar partes do lote 2.",
+      "tipo": "marco"
     }
   ]
 }

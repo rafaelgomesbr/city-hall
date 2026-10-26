@@ -1,9 +1,9 @@
 {
   "titulo": "Onde estamos na V2",
-  "lead": "A F00 (estabilização) passou por nove rodadas de validação independente desde 13/10: na nona, 23 das 25 etapas estão validadas e as 2 restantes já foram corrigidas, esperando a décima rodada. A F01 (engenharia e ambientes) está com as 22 etapas implementadas e revisadas, mas nenhuma validada, e a F02 (API v1 e contratos) acaba de abrir no seu próprio ramo.",
+  "lead": "A F00 (estabilização) chegou ao fim da validação: na rodada 10 (25/10, no Windows) as etapas E16, E19 e E22 passaram, e a E09 foi aceita por decisão sua. O gatekeeper RECOMENDA o gate G00. A F01 (engenharia e ambientes) tem as 22 etapas implementadas e espera o G00 para ser validada. A F02 (API v1 e contratos) está andando: o lote 1 está pronto e o lote 2 está em implementação.",
   "aSeguir": {
-    "titulo": "Rodada 10, validação da F01 e decisões suas",
-    "texto": "A rodada 10 revalida só a E19 e a documentação das E16 e E22; a E09 foi aceita por você pelo modelo de ameaça. Em seguida, o gatekeeper valida a F01 em sessão nova, e o merge na master e a troca da Production Branch da Vercel acontecem juntos, depois da aprovação do G00. A F02 segue em paralelo, sem entrar na master antes dos gates."
+    "titulo": "G00 depende só de você; F02 segue em paralelo",
+    "texto": "Falta só a sua parte no G00: aprovar e fazer o merge na master (H09), ajustar o ruleset que hoje só aceita squash (H44) e confirmar o status da E09 aceita (H84). Depois do G00, o gatekeeper valida a F01 em sessão nova. A F02 continua no ramo v2/f02, com o lote 2 (painel e campo em /v1, catálogo de erros na API, contrato OpenAPI e idempotência) em implementação."
   },
   "imagens": [
     {
@@ -22,26 +22,26 @@
   "notaDasImagens": "Capturas reais do ambiente de teste, com dados fictícios.",
   "validacao": {
     "titulo": "O que a validação achou",
-    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para 2 na rodada 9. As correções dessas duas já foram feitas e esperam a rodada 10.",
+    "lead": "Um revisor que não escreveu o código tenta quebrar cada etapa. A qualidade subiu a cada rodada: de 8 etapas reprovadas na rodada 4 para nenhuma na rodada 10. O placar da F00 é 8 etapas validadas, 16 validadas com pendência humana e a E09 aceita por você.",
     "achados": [
       {
-        "titulo": "Pacotes com falha conhecida:",
-        "texto": "novos avisos de segurança saíram depois do CI verde e fizeram a auditoria falhar; o pacote zod foi atualizado para a versão 4 e a auditoria fecha em zero.",
+        "titulo": "Rodada 10:",
+        "texto": "E16, E19 e E22 passaram no Windows. A rodada 11, só mecânica, não encontrou mudança de produto. Resultado: o gatekeeper recomenda o G00.",
         "selo": "corrigido"
       },
       {
-        "titulo": "Telas de sessão e senha:",
-        "texto": "em celulares e janelas baixas, a frase de confirmação e o botão Cancelar ficavam fora da vista. Corrigido, e a decisão final sobre o que resta foi sua (aceito com o modelo de ameaça).",
+        "titulo": "E09 (telas de sessão e senha):",
+        "texto": "depois de várias rodadas, você aceitou a etapa pelo modelo de ameaça documentado (H36). Falta só confirmar o status dela (H84).",
         "selo": "corrigido"
       },
       {
-        "titulo": "Revisão da F01:",
-        "texto": "o revisor independente apontou 4 problemas, entre eles a promoção para produção sem prova de origem e a falta de regras de proteção nos ramos de implantação. Os 4 foram corrigidos e esperam validação.",
+        "titulo": "Revisão do lote 1 da F02:",
+        "texto": "o Codex (OpenAI), que passou a trabalhar junto, revisou o lote 1. Nada bloqueia, e os 2 achados viraram conserto.",
         "selo": "corrigido"
       },
       {
         "titulo": "Testes instáveis:",
-        "texto": "um caso do navegador WebKit no Linux falhou uma vez e passou na repetição. Virou dívida registrada e, pela D-32, achado instável não reprova a etapa.",
+        "texto": "um caso do navegador WebKit no Linux falhou uma vez e passou na repetição. Virou dívida registrada (DV-45) e, pela D-32, achado instável não reprova a etapa.",
         "selo": "em dívida"
       }
     ]
@@ -49,8 +49,28 @@
   "decisoes": [
     {
       "quem": "Rafael",
-      "titulo": "Gate G00 e merge na master",
-      "texto": "Aprovar o G00 e o merge da F01 depois da rodada 10, junto com a troca da Production Branch da Vercel para producao (sem a troca, o painel congela)."
+      "titulo": "Gate G00 e merge na master (H09)",
+      "texto": "Aprovar o G00, agora recomendado, e fazer o merge na master, junto com a troca da Production Branch da Vercel para producao (sem a troca, o painel congela)."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Ruleset da master (H44)",
+      "texto": "Hoje o ruleset só aceita squash. Trocar para commit de merge depois do merge da F00 e só então importar o ruleset."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Status da E09 aceita (H84)",
+      "texto": "Confirmar o status da E09, que você aceitou pelo modelo de ameaça."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Fim do espelho legado (H86)",
+      "texto": "Definir a data em que o endereço antigo, sem /v1, deixa de funcionar. Hoje a data é provisória."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Conferências da F02 (H87, H88, H89)",
+      "texto": "Ver duas chamadas autenticadas (com /v1 e pelo espelho), ler a tabela do catálogo de 92 códigos de erro e, na homologação, registrar uma ocorrência entre 21h e meia-noite para conferir a data no CSV e o ano do protocolo."
     },
     {
       "quem": "Rafael",
@@ -59,13 +79,8 @@
     },
     {
       "quem": "Rafael",
-      "titulo": "GitHub e Vercel",
-      "texto": "Aplicar os rulesets e as configurações listadas na seção F01 das pendências humanas."
-    },
-    {
-      "quem": "Rafael",
-      "titulo": "Chave do Firebase (H33)",
-      "texto": "Restringir a chave do aplicativo no console do Google, porque o repositório é público."
+      "titulo": "GitHub, Vercel e chave do Firebase (H33)",
+      "texto": "Aplicar as configurações listadas na seção F01 das pendências humanas e restringir a chave do aplicativo no console do Google, porque o repositório é público."
     },
     {
       "quem": "Rafael e Alyson",
