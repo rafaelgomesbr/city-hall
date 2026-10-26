@@ -147,6 +147,17 @@ function traduzir(issue: Problema): string {
     um campo ausente para apontar.
   */
   if (issue.input === undefined && issue.code !== "unrecognized_keys") {
+    /*
+      Item de lista ausente (DV-44). O último trecho do caminho é um NÚMERO só
+      quando o problema está numa posição de lista ou de tupla; em objeto é o
+      nome do campo, texto. Sem isto, uma lista com um item ausente dizia
+      "Campo obrigatório" sem apontar o item, e a lista de problemas de uma lista
+      com vários buracos ficava com a mesma frase repetida. O número é o da leitura
+      humana (primeiro item é o 1); o `campo` do 422 continua com a posição
+      do Zod, a partir de 0, como sempre foi.
+    */
+    const ultimo = issue.path?.[issue.path.length - 1];
+    if (typeof ultimo === "number") return `O item ${ultimo + 1} da lista é obrigatório`;
     return "Campo obrigatório";
   }
 

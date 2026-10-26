@@ -349,3 +349,48 @@ describe("tamanhoBytes separa ausente de não numérico", () => {
       .toBe("O tamanho do arquivo precisa ser um número de bytes.");
   });
 });
+
+/*
+  Item de lista ausente diz QUAL item (V2-F02-E03, DV-44). Antes, um `undefined`
+  dentro de uma lista saía "Campo obrigatório", igual ao de um campo de objeto,
+  e quem lia a lista de problemas não sabia onde olhar. JSON não carrega
+  `undefined` (vira null, que já diz "veio nulo"), mas o aparelho monta objeto
+  em memória, como no caso do enum ausente acima.
+*/
+describe("item de lista ausente diz qual item", () => {
+  it("o primeiro, o segundo e o quinto item (a leitura humana começa em 1)", () => {
+    const lista = z.array(z.string());
+    expect(mensagem(lista.safeParse([undefined]))).toBe("O item 1 da lista é obrigatório");
+    expect(mensagem(lista.safeParse(["a", undefined]))).toBe("O item 2 da lista é obrigatório");
+    expect(mensagem(lista.safeParse(["a", "b", "c", "d", undefined]))).toBe("O item 5 da lista é obrigatório");
+  });
+
+  it("dois buracos dão duas frases diferentes, e o caminho do 422 continua a partir de 0", () => {
+    const r = z.object({ fotos: z.array(z.string()) }).safeParse({ fotos: [undefined, "x", undefined] });
+    if (r.success) throw new Error("esperava reprovação");
+    expect(r.error.issues.map((i) => [i.path.join("."), i.message])).toEqual([
+      ["fotos.0", "O item 1 da lista é obrigatório"],
+      ["fotos.2", "O item 3 da lista é obrigatório"],
+    ]);
+  });
+
+  it("enum e objeto dentro da lista também (a regra da lista vale para qualquer item)", () => {
+    expect(mensagem(z.array(z.enum(["a", "b"])).safeParse(["a", undefined])))
+      .toBe("O item 2 da lista é obrigatório");
+    expect(mensagem(z.array(z.object({ a: z.string() })).safeParse([{ a: "x" }, undefined])))
+      .toBe("O item 2 da lista é obrigatório");
+  });
+
+  it("campo de objeto dentro de item de lista continua 'Campo obrigatório' (aponta o campo, não o item)", () => {
+    expect(mensagem(z.array(z.object({ a: z.string() })).safeParse([{}])))
+      .toBe("Campo obrigatório");
+  });
+
+  it("campo de objeto e valor presente de tipo errado não mudam", () => {
+    expect(mensagem(z.object({ a: z.string() }).safeParse({}))).toBe("Campo obrigatório");
+    expect(mensagem(z.array(z.string()).safeParse(["a", 1])))
+      .toBe("Era esperado um texto, veio um número");
+    expect(mensagem(z.array(z.string()).safeParse(["a", null])))
+      .toBe("Era esperado um texto, veio nulo");
+  });
+});
