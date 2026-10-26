@@ -168,6 +168,22 @@ describe("a lista reservada", () => {
     }
   });
 
+  it("a F03 reserva os códigos de identidade, sem repetir o que o catálogo já emite", () => {
+    for (const codigo of [
+      "papel_nao_se_converte",
+      "pessoa_em_varios_municipios",
+      "convite_invalido",
+      "escolha_de_municipio_obrigatoria",
+      "termo_nao_aceito",
+    ]) {
+      expect(ehCodigoReservado(codigo), codigo).toBe(true);
+      expect(ehCodigoDeErro(codigo), codigo).toBe(false);
+    }
+    /* Já emitidos: reservar de novo duplicaria. */
+    expect(ehCodigoReservado("segundo_fator_desligado")).toBe(false);
+    expect(ehCodigoReservado("usuario_repetido")).toBe(false);
+  });
+
   it("reservado tem categoria (o cliente já sabe o que fazer antes de o servidor emitir)", () => {
     expect(categoriaDoCodigo("versao_do_aplicativo_antiga")).toBe("permanente");
   });

@@ -924,6 +924,8 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F02-E09": { total: 115, falhas: 0 },
   // V2-F02-E07: `packages/shared/test/chave-de-criacao.test.ts` e novo, com 4 casos (a chave e opcional, aceita uuid, recusa o que nao e uuid com o caminho do campo, e o codigo saiu da reserva para o catalogo emitido), e `catalogo-de-erros.test.ts` ganha 1 (a saida da reserva), alem de duas assercoes trocadas no lugar.
   "V2-F02-E07": { total: 5, falhas: 0 },
+  // V2-F03-0C (andaime do shared): `catalogo-de-erros.test.ts` ganha 1 caso (a F03 reserva os códigos de identidade e não repete `segundo_fator_desligado` nem `usuario_repetido`).
+  "V2-F03-0C": { total: 1, falhas: 0 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);

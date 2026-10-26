@@ -19,4 +19,12 @@ export * from "./observabilidade.js";
 export * from "./erros.js";
 export * from "./fuso.js";
 export * from "./versao.js";
+/*
+  Andaime da F03 (V2-F03, parte 0C): três módulos vazios, preenchidos pelas etapas
+  donas (identidade E02/E15/E17, ator E06, sigilo E21). Daqui em diante este
+  arquivo fica CONGELADO durante a F03: nenhuma parte da fase o edita.
+*/
+export * from "./identidade.js";
+export * from "./ator.js";
+export * from "./sigilo.js";
 export { mensagensDoZodEmPortugues } from "./mensagens-do-zod.js";
