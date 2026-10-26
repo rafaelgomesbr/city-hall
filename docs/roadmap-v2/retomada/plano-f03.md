@@ -1,0 +1,115 @@
+# Plano da F03 em lotes (planejador Opus, 2026-10-26, base `v2/f02` 7d7434b)
+
+Fonte: `docs/roadmap-v2/05-api-identidade-autorizacao.md` (F03-E01 a E21 e G03). Decisões: D-08 (pessoa global, conta e vínculo por município, token vale para um município, escolha ao entrar; revoga D-02 e A-01); D-24 (só a coordenação classifica e despacha; entra no manifesto da E12); D-18 e D-23 são da F04 (só a E17 prepara `orgaos.tipo`); D-30 a D-32 (candidato, validação em sessão nova, ramo `v2/f03` a partir do `v2/f02`, nada na master).
+
+## Marcos da F02 que condicionam a F03
+- T0: junção do lote 2 da F02 (2E ocupa a migração 052). O `v2/f03` nasce daqui.
+- T1: junção do lote 3 da F02 (3A dona de `servidor.ts`, `config.ts`, `shared/versao.ts`; 3B clientes; 3C grupos do contrato).
+- T2: junção do lote 4 da F02 (E05, ajudante `apps/api/test/apoio/rotas.ts`).
+- Depois de cada junção da F02, o integrador da F03 traz o `v2/f02` para o `v2/f03` por merge, sempre entre lotes.
+
+## O que o código impõe
+- `exigirAutenticacao` está dentro de `servidor.ts` (521 a 602); monta `Identidade` do token; vigência só na escrita.
+- `comTenant(organizacaoId)` tem ~120 chamadas em 25 arquivos de `apps/api/src`, mais `apps/web/src/dados/banco.ts` e os `comoApp` de `db/test`.
+- Credencial em `usuarios`: lida em `servico.ts` e `auth/segundo-fator.ts`; gravada em `rotas/administracao.ts` (`/usuarios/:id/redefinir-senha`, F00-E09); ~50 testes, sementes, `provisionar_municipio` e o modo local fazem `INSERT INTO usuarios`.
+- `db/test/isolamento.test.ts` (5197 linhas) guarda o teto `<= 27` de SECURITY DEFINER e as isenções.
+- `db/test/desfazer-migracao.test.ts` usa migração de prova logo depois da última real (agora 053).
+- `auth/servico.ts` (1385 linhas) é citado por E02, E04, E06, E07, E08, E10, E16, E19, E20.
+- `PORTAL_ATIVO` não existe em `config.ts`.
+
+## 1. Checkpoints, decisões e premissas
+Nenhuma etapa para: os CPs travam só uso em produção. O G03 exige cada CP decidido ou adiado; o orquestrador abre as pendências no início.
+- E01: premissa, código segue a ADR 0009 proposta (D-08 já decidida). Pendência: aceite da ADR e da redação do CLAUDE.md; CP-49 antes do G03.
+- E15: CP-49 trava só a mesma pessoa em mais de um município em produção. Pendência nova: destino da linha de `pessoas` quando o município é eliminado (CP-29 com CP-49); na F03 a pessoa sem conta ativa fica inativa (E09), não é apagada.
+- E10: CP-05 (H47) e CP-19. Premissa: provar com notificador de arquivo e de log.
+- E11: CP-08 e CP-50. Premissa: alternativa A do CP-08 (segundo fator obrigatório para `usuario_orgao`, coordenador e administrador); 409 `pessoa_em_varios_municipios`.
+- E16: CP-50 pergunta 2. Premissa: troca herda `mfa_verificado_em` até `MFA_VIGENCIA_MINUTOS` (padrão provisório 15).
+- E17: CP-51. Premissa: coluna `termo_aceito_em` sem texto de termo (F05-E06).
+- E21: CP-52. Premissa: dois níveis `normal` e `restrito`.
+- E20: CP-10 não trava (expurgo é F05-E12).
+- E08: decisão nova H-a. Premissa recomendada: manter a redefinição com senha provisória para pessoa de um só município; 409 `pessoa_em_varios_municipios` para quem tem conta em outro. Decidir antes do lote 5.
+- E02: decisão nova H-b. Premissa: os dois formatos de token provados por teste com `ACEITA_SUB_DE_CONTA_ATE`; os dois deploys reais na primeira publicação depois do G03.
+- E03: paga DV-35 (conferir a frase de `Usuarios.tsx:650`). H29 fica fora da E03 (F24-E02 se o p95 reprovar).
+- E12: precisa do contrato com `pendentes` zerado (T1); se não, a 3B descreve antes.
+- E16: depende da F02-E06 (T1).
+
+Premissas: P-01 E03 antes da E02. P-02 E15 em paralelo com E04 (053 e 054 independentes). P-03 a lista nominal no lugar do teto de 27 (parte da E08) sobe para o lote 0. P-04 a credencial passa para `pessoas` em três passos: E15 gatilho espelha `usuarios` em `pessoas`, API não muda; E02 a API LÊ da pessoa; E08 grava só em `pessoas`, REVOKE de UPDATE nas colunas antigas. P-05 E05 entrega o vínculo e `auth/vinculos.ts`; a E06 liga na vigência. P-06 E03 e E13 enumeram rotas por `superficie-registrada.ts` até o ajudante da F02-E05. P-07 a E06 troca login e relógios para `comTenantDoSistema`. P-08 a E12 corre em paralelo com a E06, com gancho próprio. P-09 no lote 1 a E04 fecha o login da `usuario_orgao` sem chave; `PORTAL_ATIVO` declarado na 1C e ligado na 2A. P-10 E10 e E18 divididas em banco e API. P-11 a abertura (1C) deixa pontos de extensão vazios: `auth/manifesto.ts`, `limite-persistente.ts`, três módulos de rota e três grupos de contrato vazios, todas as chaves de configuração. P-12 migrações 053 a 065 se a F02 não usar nenhuma depois da 052.
+
+## 2. Lotes
+Ramos `trab/f03-<lote><parte>-<nome>`; commits `V2-F03-Enn: candidato, ...`. Ninguém toca: STATUS, ESTADO-ATUAL, pendencias-humanas, dividas, CLAUDE.md; `packages/shared/src/index.ts` depois do lote 0; `servidor.ts`, `config.ts`, `contrato/rotas.ts` e `contrato/tipos.ts` depois da 1C (salvo E12 em `rotas.ts` e `tipos.ts`); `isolamento.test.ts` e `desfazer-migracao.test.ts` depois da 0B; migração de outro número; `v1.json` à mão. Cada parte: só o próprio arquivo em `db/test/catalogo/`, a própria seção do DICIONARIO e o próprio parágrafo do README, a própria chave no `baseline.mjs`; migração com `desfazer/` ou cabeçalho IRREVERSIVEL. Codex implementa só as partes marcadas (sem código de execução), sempre com revisor Opus. Codex revisa os lotes 1, 2 e 3.
+
+### Lote 0 (em T0, junto do lote 3 da F02)
+- 0A, E01, ADR 0009 (`trab/f03-0a-e01-adr`): `docs/adr/0009-*.md` (itens 1 a 7, consequências com P-04 e a exceção nomeada), `apps/api/PENDENCIAS.md`, `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`, evidência com a proposta de redação do CLAUDE.md em arquivo próprio. Não toca código nem CLAUDE.md. Risco médio. Claude Opus; Codex faz a segunda leitura de segurança.
+- 0B, andaime do banco (P-03) (`trab/f03-0b-andaime-banco`): em `isolamento.test.ts`, o teto `<= 27` vira `FUNCOES_PRIVILEGIADAS` nominal (as 27 de hoje, com nome, motivo e como confere o tenant, nos dois sentidos contra o catálogo do banco); `SEM_TENANT` e `SEM_POLICY_DE_TENANT` viram `EXCECOES_AO_ISOLAMENTO`; se der, a lista de UPDATE por coluna (~3969) também. Arquivos novos `db/test/catalogo/index.ts`, `base.ts` e um vazio por etapa (e04, e05, e06, e08, e09, e10, e11, e15, e16, e17, e19, e20, e21). `desfazer-migracao.test.ts`: número da migração de prova calculado (última real mais um). Prova: suíte do banco com os mesmos números; sonda com SECURITY DEFINER fora da lista reprova. Risco alto (portão do CA-06). Sonnet com revisor Opus.
+- 0C, andaime do shared (integrador): `packages/shared/src/{identidade,ator,sigilo}.ts` vazios e exportados no `index.ts` (depois congelado). Em `erros.ts`, bloco NOVO no INÍCIO de `CODIGOS_RESERVADOS` com os códigos da F03 (`papel_nao_se_converte`, `pessoa_em_varios_municipios`, `convite_invalido`, `escolha_de_municipio_obrigatoria` e o que a leitura achar; conferir se `segundo_fator_desligado` já existe). Risco baixo.
+
+### Lote 1 (1A e 1B em T0 com o lote 0 juntado; 1C e 1D depois de T1)
+- 1A, E04, domínio de papel e `usuario_orgao` (`trab/f03-1a-e04-papel`): migração `053_dominio_de_papel_e_usuario_orgao.sql` com desfazer; shared `dominio.ts` (`PAPEIS` com `usuario_orgao` posto 1, `PAPEIS_DE_SERVIDOR`), `permissoes.ts` (`usuario_orgao` sem ação), `schemas.ts` (`usuarioSchema` com `PAPEIS_DE_SERVIDOR`), `erros.ts` (move uma linha); API `rotas/administracao.ts` só o PATCH (409 `papel_nao_se_converte`, com gatilho no banco) e `auth/servico.ts` uma mudança (conta `usuario_orgao` responde credenciais inválidas, P-09); painel `Usuarios.tsx` lista só os quatro papéis; testes `papeis-batem-com-o-banco.test.ts` e `db/test/catalogo/f03-e04.ts`. Não toca `servidor.ts`, `config.ts`, `contrato/**` (a linha `erros` do PATCH entra pela 1C), a 054. Depende de 0B e 0C. Risco alto. Sonnet com revisor Opus.
+- 1B, E15, pessoa e conta (`trab/f03-1b-e15-pessoas`): migração `054_pessoas_e_conta_no_municipio.sql` (desfazer ou IRREVERSIVEL pelo backfill): `pessoas` sem `organizacao_id`, RLS forçada, sem policy e sem grant ao `dc360_app`; `usuarios.pessoa_id` e `sessoes.pessoa_id` e os dois UNIQUE; backfill de uma pessoa por conta com contagens antes e depois; gatilho que cria ou liga a pessoa quando `usuarios.pessoa_id` chega nulo; gatilho espelho da credencial `usuarios` para `pessoas` (P-04 passo 1); `vigencia_da_sessao` e `credenciais_da_pessoa` criadas e provadas, sem quem as chame. Listar TODA função que lê ou grava `senha_hash`, falhas, bloqueio ou `senha_provisoria_ate`, inclusive as do console. Testes `db/test/pessoas.test.ts`, `catalogo/f03-e15.ts`, seção do DICIONARIO. Não toca `apps/**`, a 053, `isolamento.test.ts`. Depende de 0B; paralela à 1A. Junção aplica 053 e 054 e roda a suíte inteira. Risco crítico. Opus com revisor Opus.
+- 1C, abertura da API (depois de T1; não é etapa; integrador ou Sonnet com revisor Opus): o corpo de `exigirAutenticacao` sai para `apps/api/src/auth/autenticacao-da-requisicao.ts` com o tipo `Identidade` (reexportado por `servidor.ts`); a autenticação chama `conferirManifesto(req, identidade)` de `auth/manifesto.ts` (vazio); o `rateLimit` recebe a loja de `limite-persistente.ts` (devolve a de memória de hoje); três módulos de rota vazios só em `/v1` (`rotas/convites.ts`, `rotas/municipio-da-sessao.ts`, `rotas/sigilo.ts`); `contrato/rotas.ts` com os três grupos vazios e a linha `erros` do PATCH da 1A; `config.ts`, `COLOCAR-DE-PE.md` e o contrato de configuração com TODAS as chaves da F03, padrão fechado e sem efeito: `PORTAL_ATIVO` (padrão `nao`; `sim` sem segundo fator recusa a partida), `ACEITA_SUB_DE_CONTA_ATE`, `VERSAO_ESCOLHA_DE_MUNICIPIO`, `MFA_VIGENCIA_MINUTOS`, `COTAS_PERSISTENTES` e `COTAS_SEGREDO`. Prova: typecheck e suíte com os mesmos números; `v1.json` só muda nos grupos vazios. Risco alto. Depois disso `servidor.ts` e `config.ts` congelados na F03.
+- 1D, E03, vigência em toda requisição (P-01) (`trab/f03-1d-e03-vigencia`): `auth/autenticacao-da-requisicao.ts`, `auth/vigencia.ts`, `auth/suspensao.ts`, `auth/sessoes.ts` (comentários); `vigencia-na-escrita.test.ts` (o "continua LENDO" passa a ser negado); `vigencia-em-toda-requisicao.test.ts` novo (P-06); README e `apps/api/PENDENCIAS.md`. Paga DV-35. Não toca `tokens.ts` e `servico.ts`. Depende da 1C. Risco alto (seção 7 item 2). Sonnet com revisor Opus.
+
+### Lote 2 (depois do lote 1 juntado)
+- 2A, E02 e depois E07, um candidato por etapa (`trab/f03-2a-e02-e07-token`): dona de `auth/tokens.ts`, `auth/servico.ts`, `auth/vigencia.ts`, `auth/autenticacao-da-requisicao.ts`, `auth/segundo-fator.ts` (só leitura da credencial e desafio), `rede.ts`; testes `token-nao-e-autoridade.test.ts` e `plateia-do-portal.test.ts`. E02: token `{ sub, org, sid }`, os dois formatos até `ACEITA_SUB_DE_CONTA_ATE`; identidade com `pessoaId` e `usuarioId` pela `vigencia_da_sessao`; credencial lida da pessoa (P-04 passo 2); `PORTAL_ATIVO` vale no login da `usuario_orgao`. E07: plateias `dc360` e `dc360-portal`, `config: { plateia }` na rota; `chaveDoLimitador` e `organizacaoDoAcessoVencido` aceitam as duas. Não toca `rotas/administracao.ts`, `config.ts`, `servidor.ts`. Risco alto. Opus.
+- 2B, E05, `orgao_vinculos` (`trab/f03-2b-e05-vinculos`): migração `055_orgao_vinculos.sql` (redefine `ordem_de_apagamento_por_municipio()`); API `saida/pacote.ts` (`TABELAS_DA_SAIDA`) e `auth/vinculos.ts` novo; testes `db/test/orgao-vinculos.test.ts`, `catalogo/f03-e05.ts`, `SAIDA-DE-MUNICIPIO.md`, DICIONARIO. Não toca `vigencia.ts`. Risco alto. Sonnet com revisor Opus.
+- 2C, E09, e-mail único entre pessoas ativas (`trab/f03-2c-e09-email`): migração `056_email_unico_entre_pessoas_ativas.sql` (redefine `credenciais_da_pessoa`, cria o gatilho `pessoa_acompanha_as_contas`); `rotas/administracao.ts` (409 `usuario_repetido` com corpo igual nos dois casos, 409 ao reativar); testes `email-entre-ativos.test.ts`, `catalogo/f03-e09.ts`. Não toca `servico.ts`. Risco médio. Sonnet com revisor Opus.
+
+### Lote 3 (depois do lote 2)
+- 3A, E06, contexto do ator (`trab/f03-3a-e06-ator`): migração `057_contexto_do_ator.sql`; `banco/tipos.ts`, `postgres.ts`, `memoria.ts` com `comTenant(ator, ...)` e `comTenantDoSistema`; todo arquivo de `apps/api/src` que chama `comTenant` (inclui `servico.ts`, login e relógios para `comTenantDoSistema`; `vigencia.ts` liga os vínculos da 2B; `autenticacao-da-requisicao.ts` monta o ator); painel `apps/web/src/dados/banco.ts` e `local.ts`; testes `comoApp` de `db/test`, testes da API que chamam `comTenant`, `rotas-passam-o-ator.test.ts` e o concorrente. Não toca `contrato/**`, `auth/manifesto.ts`, `permissoes.ts`. Risco crítico. Opus com revisor Opus. Nenhuma outra parte do lote abre `apps/api/src` fora do que está listado para ela.
+- 3B, E12, manifesto e negação por padrão (P-08) (`trab/f03-3b-e12-manifesto`): `contrato/tipos.ts` e `rotas.ts` com o campo `acesso`; TODOS os `contrato/grupos/*.ts`; `auth/manifesto.ts` (rota sem entrada responde 403; ação do manifesto passa por `exigirPermissao`); `permissoes.ts` com as ações de leitura dos quatro papéis; `manifesto-de-rotas.test.ts` novo, `superficie.test.ts`, `superficie-registrada.ts`; `v1.json` regerado; `PAPEIS_E_RESPONSABILIDADES.md`. Não toca `rotas/*.ts` nem `autenticacao-da-requisicao.ts`. Depende de T1 com `pendentes` zerado; a plateia da E07 passa a vir do manifesto. Risco alto. Opus.
+- 3C, E10 banco (`trab/f03-3c-e10-convite-banco`): migração `058_convite_de_vinculo.sql` (`convites_de_vinculo` sob RLS por município; conta nasce inativa; `convidar_pessoa` e `aceitar_convite` recebem a pessoa da API, sem `app_pessoa_id()`; redefine `ordem_de_apagamento_por_municipio()` a partir da 055); testes `db/test/convite.test.ts`, `catalogo/f03-e10.ts`. Não toca `apps/**`. Risco alto. Sonnet com revisor Opus.
+- 3D, E18 banco: `db/test/pessoa-em-dois-municipios.test.ts`. Só teste, prova de isolamento, risco alto. Candidata ao Codex; revisor Opus tenta fazer o teste passar com defeito plantado.
+
+### Lote 4 (depois do lote 3; 4C depois de T2)
+- 4A, E11, segundo fator na pessoa (`trab/f03-4a-e11-mfa`): migração `059_segundo_fator_na_pessoa.sql`; `auth/segundo-fator.ts`, `rotas/segundo-fator.ts` (rota de redefinição e o 409); `contrato/grupos/conta.ts`; testes `segundo-fator*`, `catalogo/f03-e11.ts`, README. Não toca `config.ts`, `servico.ts`. Risco alto. Sonnet com revisor Opus.
+- 4B, E10 API e painel (`trab/f03-4b-e10-convite-api`): `rotas/administracao.ts` (`POST /v1/usuarios` sem senha 202 igual nos dois casos, com senha 422, reemissão do convite); `rotas/convites.ts`, `auth/convite.ts` novo, `auth/notificador.ts`, `saida/pacote.ts`; `schemas.ts`; `grupos/administracao.ts` e `grupos/convites.ts`; painel `Usuarios.tsx` e `http.ts` (deixa de mandar senha; matriz fixa da D-32); `convite.test.ts`, e2e, `LIGAR-O-EMAIL.md`. Não toca `servico.ts`. Risco alto. Sonnet com revisor Opus.
+- 4C, E13, matriz papel x rota x método: `matriz-papel-x-rota.test.ts` e `matriz.md` gerada pelo teste; ajudante da F02-E05 ou `superficie-registrada.ts`. Risco médio. Candidata ao Codex; revisor Opus muda a ação de uma rota e confere que reprova.
+- 4D, E14, recorte fail-closed (`trab/f03-4d-e14-recorte`): `recorte-do-agente.ts`, `evidencias.ts`, `busca.ts`, `avisos.ts`, `oficios.ts`, `orgaos.ts`, `mapa.ts`; `recorte-fail-closed.test.ts`; PAPEIS. Atenção à seção 7 item 5: o 404 novo em `autorizar-envio` e `confirmar-envio` não pode fazer a fila do campo descartar foto de ocorrência que trocou de equipe; provar ANTES o que `packages/campo` faz com esse 404; se descartar, parar e subir a decisão. Risco alto. Sonnet com revisor Opus.
+- 4E, E19, cotas persistentes (`trab/f03-4e-e19-cotas`): migração `060_cotas_de_uso.sql`; `apps/api/src/cotas.ts` novo, `limite-persistente.ts`, `auth/servico.ts` (o `Map` de falhas de e-mail inexistente), `rotas/autenticacao.ts`; `cotas-persistentes.test.ts`, `catalogo/f03-e19.ts`, `COLOCAR-DE-PE.md`. Risco médio. Sonnet com revisor Opus.
+
+### Lote 5 (depois do lote 4)
+- 5A, E08, funções que conferem o tenant (`trab/f03-5a-e08-tenant`): migração `061_funcoes_de_autenticacao_conferem_o_tenant.sql` (três funções conferem o município do contexto, `dono_do_token` devolve a organização; credencial gravada só em `pessoas`, espelho desligado, P-04 passo 3; conferir o reset do console); `rotas/administracao.ts` só o `redefinir-senha` conforme H-a; `funcoes-de-autenticacao-conferem-o-tenant.test.ts`, `catalogo/f03-e08.ts`, `db/PENDENCIAS.md`. Não toca `servico.ts`. Risco alto. Sonnet com revisor Opus.
+- 5B, E21, sigilo da ocorrência (`trab/f03-5b-e21-sigilo`): migração `062_sigilo_da_ocorrencia.sql` (policy RESTRICTIVE em `ocorrencias` e filhas; ator `sistema` vê tudo); `rotas/sigilo.ts`, `rotas/ocorrencias.ts`, `busca.ts`, `mapa.ts`, `avisos.ts`; `grupos/sigilo.ts`, `shared/sigilo.ts`; `db/test/sigilo.test.ts`, `catalogo/f03-e21.ts`; testar o modo local do painel. Risco alto. Sonnet com revisor Opus.
+- 5C, E16, login em dois passos (`trab/f03-5c-e16-escolha`): migração `063_escolha_de_municipio.sql`; `auth/servico.ts`, `rotas/autenticacao.ts`, `rotas/municipio-da-sessao.ts`; `grupos/autenticacao.ts`, `grupos/municipio-da-sessao.ts`; `escolha-de-municipio.test.ts`, README. Não redefine as funções da 061 (se precisar, espera a 5A). Risco alto. Opus.
+
+### Lote 6
+- 6A, E17, órgão externo: migração `064_orgao_externo.sql`; `rotas/orgaos.ts`, `auth/convite.ts`; `grupos/oficios-e-orgaos.ts`, `shared/identidade.ts`; `orgao-externo-multimunicipio.test.ts`, PAPEIS. Risco alto. Sonnet com revisor Opus.
+- 6B, E20, trilha de sessão: migração `065_trilha_de_sessao.sql` (redefine `registrar_tentativa_login` a partir da 061); `trilha.ts` (IP e agente opcionais), `auth/servico.ts`, `rotas/usuarios-eu.ts`; `grupos/conta.ts`; `trilha-de-sessao.test.ts`, `PRIVACIDADE.md`. Risco médio. Sonnet com revisor Opus.
+
+### Lote 7 (fechamento)
+- 7A, E18 API: `cruzamento-de-municipios.test.ts`. Candidata ao Codex com revisor Opus.
+- 7B, consolidação: README, ADR 0009 (registros da E07 e E18), PAPEIS, DICIONARIO; matriz da E13 reexecutada com `PORTAL_ATIVO=sim`; CPs adiados registrados em `docs/evidencias-v2/G03/`. Codex na documentação; orquestrador registra.
+
+## 3. Serialização
+- Migrações: 053 E04 e 054 E15 (lote 1); 055 E05 e 056 E09 (lote 2); 057 E06 e 058 E10 (lote 3); 059 E11 e 060 E19 (lote 4); 061 E08, 062 E21 e 063 E16 (lote 5); 064 E17 e 065 E20 (lote 6). Integrador junta em ordem numérica e roda a suíte depois de cada uma; duas partes do mesmo lote nunca redefinem a mesma função SQL.
+- Funções SQL: `credenciais_da_pessoa` 054, 056, 063; `trocar_senha`, `registrar_tentativa_login`, `revogar_sessoes_do_usuario`, `dono_do_token` 054 (espelho), 061, 065; `ordem_de_apagamento_por_municipio()` 055, 058.
+- `servidor.ts` e `config.ts`: F02 3A (T1), depois 1C, depois só correção de junção.
+- `auth/autenticacao-da-requisicao.ts`: 1C, 1D, 2A, 3A. `auth/manifesto.ts`: 1C, 3B. `auth/servico.ts`: 1A, 2A, 3A, 4E, 5C, 6B. `auth/tokens.ts` e `rede.ts`: 2A. `auth/vigencia.ts`: 1D, 2A, 3A. `auth/segundo-fator.ts`: 2A, 3A, 4A.
+- `rotas/administracao.ts`: 1A, 2C, 3A, 4B, 5A. `rotas/autenticacao.ts`: 3A, 4E, 5C. `busca.ts`, `avisos.ts`, `mapa.ts`, `evidencias.ts`, `oficios.ts`: 3A, 4D, 5B. `orgaos.ts`: 3A, 4D, 6A. `ocorrencias.ts`: 3A, 5B. `usuarios-eu.ts` e `trilha.ts`: 3A, 6B. `saida/pacote.ts`: 2B, 3A, 4B.
+- Shared: `index.ts` 0C e congelado; `dominio.ts` e `schemas.ts` 1A, 4B; `permissoes.ts` 1A, 3B; `erros.ts` 0C reserva, cada parte move a própria linha.
+- Contrato: `tipos.ts` e `rotas.ts` F02, 1C, 3B; grupos F02 3C (T1), 3B (todos), depois donos únicos (conta 4A, 6B; administracao 4B; convites 4B; autenticacao e municipio-da-sessao 5C; sigilo 5B; oficios-e-orgaos 6A). `v1.json` regerado pelo integrador em toda junção.
+- `isolamento.test.ts` e `desfazer-migracao.test.ts`: 0B e congelados.
+- Painel: `Usuarios.tsx` 1A, 4B; `http.ts` F02 3B (T1), 4B; `banco.ts` e `local.ts` 3A.
+- `PAPEIS_E_RESPONSABILIDADES.md`: 0A, 3B, 4D, 6A, 7B.
+
+## 4. Colisões com a F02
+- `servidor.ts` e `config.ts`: nenhuma parte da F03 toca antes de T1 trazido ao `v2/f03`; a 1C é a única dona depois.
+- `PORTAL_ATIVO` fora de `config.ts` no lote 1 (P-09).
+- `erros.ts`: a 3A da F02 move `versao_do_aplicativo_*`; a 0C acrescenta o bloco da F03 no outro extremo dos reservados.
+- `shared/versao.ts`, CORS e rota de versão mínima: a F03 nunca toca.
+- `contrato/grupos/*.ts` e `v1.json`: a F03 não abre antes de T1. A E12 começa depois de T1 com `pendentes` zerado.
+- `http.ts` e transporte do campo: a F03 só abre `http.ts` na 4B, depois de T1.
+- Lote 4 da F02 (E05): E13 depois de T2 (ou `superficie-registrada.ts` e migra depois).
+- Migrações: confirmar que o contador de uso do espelho (lote 3 da F02) não cria migração; se criar, ela fica com a 053 e a F03 desloca tudo.
+- Pode correr junto com o lote 3 da F02: lote 0 inteiro e 1A e 1B.
+
+## 5. Custo estimado (unidade do orcamento.py; Opus implementador ~1,7x)
+Lote 0: 35 a 60 mais 10 a 15 de revisão. Lote 1: 105 a 170 mais 40 a 80. Lote 2: 90 a 140 mais 30 a 60. Lote 3: 125 a 185 mais 40 a 75. Lote 4: 70 a 115 mais 50 a 100. Lote 5: 90 a 140 mais 30 a 60. Lote 6: 40 a 60 mais 20 a 40. Lote 7: 20 a 40 mais 10 a 20. Total 575 a 910 mais 230 a 450, fora a validação.
+
+## Pendências humanas novas (a numerar)
+- H-a: redefinição de senha por administrador (E08 contra o item 6 da E01 e o CP-50), antes do lote 5.
+- H-b: como cumprir os "dois deploys" da E02 (premissa: provados por teste no ramo).
+- H-c: CP-05, CP-08, CP-49, CP-50 (com o valor de `MFA_VIGENCIA_MINUTOS`), CP-51 e CP-52 decididos ou adiados antes do G03.
+- H-d: aceite da ADR 0009 e da redação proposta para o CLAUDE.md.
+- H-e: destino da linha de `pessoas` quando o município é eliminado (CP-29 com CP-49).
+- H29: responder (recomendação: fora da E03).
