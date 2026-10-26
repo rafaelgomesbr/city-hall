@@ -16,7 +16,7 @@ Antes: Correção 2 concluída em 2026-10-14: as 12 etapas reprovadas na rodada 
 
 ## Situação da F01 em uma linha
 
-As 22 etapas da F01 estão IMPLEMENTADAS no ramo `v2/f01` (2026-10-24), nenhuma validada, 4 parciais (CP-04, CP-05, CP-07, CP-44); nada entra na master antes do G00. Todas as pendências humanas delas estão na seção F01 abaixo (H45 a H78) e a H44 na seção A.
+As 22 etapas da F01 estão IMPLEMENTADAS no ramo `v2/f01` (2026-10-24), nenhuma validada, 4 parciais (CP-04, CP-05, CP-07, CP-44); nada entra na master antes do G00. Todas as pendências humanas delas estão na seção F01 abaixo (H45 a H78, e H99 a H105 da correção 1) e a H44 na seção A.
 
 ## A. Decisões que só uma pessoa toma (não travam a correção)
 
@@ -167,6 +167,17 @@ Fonte: a seção "Para o orquestrador" de cada `docs/evidencias-v2/G01/V2-F01-En
 | H77 | E08, E16, E18 | Ler `dc360/docs/runbooks/rollback.md` e os outros quatro runbooks (deploy, migração, rotação de segredo, acesso); ler `saidas/12-recusa-do-segundo-migrador.txt` da E18 e confirmar que a frase se entende; confirmar a decisão das 51 migrações isentas do desfazer (em vez das 46 do plano). | RESUMO.md de E08, E16 e E18 | Rafael |
 | H78 | E08 | Quando o Dependabot abrir o PR de atualização da base `node:22-bookworm-slim`, conferir que ele troca tag e digest dos dois Dockerfiles juntos e que ficam iguais (o `smoke-das-imagens.test.mjs` reprova se divergirem). Conferir também os primeiros PRs do Dependabot. | `docs/evidencias-v2/G01/V2-F01-E08/RESUMO.md` | Rafael |
 
+### F01.8. Correção 1 (2026-10-26, depois da revisão independente pelo Codex)
+
+| Código | Etapa | O que fazer | Onde ler | Quem decide |
+| --- | --- | --- | --- | --- |
+| H99 | E12, E10 (CP-05) | Criar o projeto da Vercel `dc360-painel-hml` (o nome de `PAINEL_HML_PROJETO_VERCEL` em `deploy-hml.yml`; ramo de produção `homologacao`; passo 3 da seção 10.2 de `dc360/docs/IMPLANTACAO.md`) e preencher `ambientes.hml.dominio` em `dc360/scripts/ambientes.json`. Até lá o job `painel` do deploy de HML falha DE PROPÓSITO e nenhum selo `hml-ok` nasce, então nenhuma promoção a PROD é possível. Depende da H63. | `docs/evidencias-v2/G01/V2-F01-E12/correcao-1/RESUMO.md`, `dc360/docs/runbooks/deploy.md` | Rafael |
+| H100 | E05, E21 | Ler a PRIMEIRA execução real do SAST com as regras do registro fixadas por SHA (agora um ERROR novo reprova, e o primeiro run pode trazer ERROR que antes passava; a triagem entra em `.semgrep/baseline-registro.json`) e a PRIMEIRA execução do Trivy sobre a imagem do PostGIS (pode reprovar por CVE corrigível; a saída é subir o digest, e perdoar exige decisão sua em `.trivyignore.yaml`, nunca sozinha). | `docs/evidencias-v2/G01/V2-F01-E05/correcao-1/RESUMO.md`, `docs/evidencias-v2/G01/V2-F01-E21/correcao-1/RESUMO.md` | Rafael |
+| H101 | E05 | As baselines de SAST (`.semgrep/baseline.json` e `.semgrep/baseline-registro.json`) seguem com `triagem_lida_por_humano: false`: ler as triagens e só então marcar `true`. Complementa a H76. | `.semgrep/baseline-registro.json` | Rafael |
+| H102 | E19 | A primeira tag real (`v0.1.0`, H57) é a primeira execução de `sbom.yml`: conferir que o job `sbom-imagem` acha o selo `hml-ok-<commit>`, passa o `gh attestation verify` e que o SBOM cita o digest. Depende do CP-05 (a imagem precisa ter passado por HML). | `docs/evidencias-v2/G01/V2-F01-E19/correcao-1/RESUMO.md` | Rafael |
+| H103 | E22 (CP-44) | A correção 1 faz o conferidor reprovar PROD quando o papel de setup não pode criar `postgis`: confirmar com o provedor que o papel de setup cria a extensão em HML E em PROD, no plano contratado (reforça a H51; a consulta de criação usa a coluna `trusted`, do Postgres 13 ou mais). | `docs/evidencias-v2/G01/V2-F01-E22/correcao-1/RESUMO.md` | Rafael |
+| H104 | E01 | O texto da E01 em `docs/roadmap-v2/04-fundacao-engenharia.md` ainda diz squash, e a decisão H09 (e agora o ruleset) é commit de merge: decidir se o roteiro é corrigido para dizer merge. Nenhum agente o editou. | `docs/roadmap-v2/04-fundacao-engenharia.md`, `.github/rulesets/master.json` | Rafael |
+| H105 | E01 | Aviso: a correção 1 trocou uma frase do `CLAUDE.md` (a linha da master: de "squash" para "commit de merge"), coerente com a H09. Confirmar que é isso que você quer no arquivo de instruções do repositório. | `CLAUDE.md` | Rafael |
 ## F. Resolvidos
 
 | Código | Data | O que foi | Resultado |
