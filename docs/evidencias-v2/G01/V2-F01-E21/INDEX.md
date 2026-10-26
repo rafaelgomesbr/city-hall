@@ -14,3 +14,6 @@
 | saidas/09-espacial-local-e-negativos.txt | aa731026003a526542f650df21030cd694ebf9a57280c11eecddbe94575113a9 |
 | saidas/10-prova-de-mordida.txt | 4a72c06ab4a6a955b8119ac50a9c66f485e678be6723ec22158fa27928a45a56 |
 | saidas/11-conferir-ambiente.txt | 71eac768e83bc254eb56a8685dab6ff20607f75206a8bc3d8d4f83d2c22da76c |
+| correcao-1/RESUMO.md | ca837095d793c57cf201361fb9a8e23da585ce4b069fb361e383601ec59b8c00 |
+| correcao-1/saidas/01-antes-excecoes-e-smoke-test.txt | ed061e778a970c65c2d619f8137c695b588f45111b84bf8eaf0634655b6d4fdf |
+| correcao-1/saidas/02-depois-excecoes-e-smoke-test.txt | 1d73d57eddaaaae0b47e82f105e4f7884af0976f189e59d5a4d1413a5be618df |

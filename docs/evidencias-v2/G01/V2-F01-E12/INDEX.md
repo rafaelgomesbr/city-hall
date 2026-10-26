@@ -19,3 +19,12 @@
 | correcao-revisao-1/saidas/03-lint-teto-formato-numeros.txt | 79b4ccc1cece6019330974e979844b84e77eaa73cacd1d3b4ba72d00316e88a3 |
 | correcao-revisao-1/saidas/04-sintaxe-bash-dos-run.txt | 0c6050336b4edb60a3a33e34eea066986608626177b9bc9142fb149c875ac463 |
 | correcao-revisao-1/saidas/05-ruleset-ramos.txt | 2883ad23865e5be197369944713e22591e6ff435857000f69d9295e7049e75a3 |
+| correcao-1/RESUMO.md | d85375f56809ced5d2d5dcc20c3cebc3319be772de906f9f5f15baa6def120a7 |
+| correcao-1/saidas/01-conferir-workflows-antes-do-conserto.txt | 813e73a529ee521af44b09013a641bc7918874ccdd2715e91c20942007599602 |
+| correcao-1/saidas/02-esperar-painel-antes-do-script.txt | b01d1c9248743a0fce11f0f33dbbc652566a1374981ab3181a09e3bda7273139 |
+| correcao-1/saidas/03-esperar-painel-depois.txt | e850cc2e59bf0bc4b42caabac7c6b6980875f1f0bc83d92bebd701e19e510aee |
+| correcao-1/saidas/04-conferir-workflows-depois.txt | 2f3ffbd3406e2d69c0881d02cfba993efbf3aca617ee80943d04f7fb6a27ebb9 |
+| correcao-1/saidas/05-sintaxe-bash-dos-run.txt | de39d18666098f73a63a91e86482bdaf71661431b84bc4bf01c7afe4d9c015b6 |
+| correcao-1/saidas/06-yaml-valido.txt | 8334c442b9b5f3d9bf032ca26e2892ec177427c81ded7dfff83e523fad0daf5c |
+| correcao-1/saidas/07-portoes-finais.txt | ed7491d8d05ab5dbfc743ccbfc6a0fc45fd3496201ea821400d88c5921aeb2a0 |
+| correcao-1/saidas/08-portoes-depois-dos-indices.txt | 6568c6fb66b0d18ce1136eb755de04c9d4301a3add5b19465cebc1347c890d3c |

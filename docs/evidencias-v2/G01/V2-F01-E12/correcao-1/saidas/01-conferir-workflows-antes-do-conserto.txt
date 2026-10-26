@@ -1,0 +1,1328 @@
+TAP version 13
+# Subtest: a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia)
+ok 1 - a pasta de workflows tem os arquivos esperados (o teste não passa por estar olhando uma pasta vazia)
+  ---
+  duration_ms: 2.397
+  type: 'test'
+  ...
+# Subtest: todo workflow: permissions mínimas, timeout, ações por SHA, runner com versão, sem pull_request_target
+ok 2 - todo workflow: permissions mínimas, timeout, ações por SHA, runner com versão, sem pull_request_target
+  ---
+  duration_ms: 8.6076
+  type: 'test'
+  ...
+# Subtest: nenhum workflow declara escrita em permissions, a não ser a lista nomeada de jobs da E12
+ok 3 - nenhum workflow declara escrita em permissions, a não ser a lista nomeada de jobs da E12
+  ---
+  duration_ms: 3.6675
+  type: 'test'
+  ...
+# Subtest: os nomes de exibição dos jobs do verificar.yml não mudaram (são contrato com o ruleset da master)
+ok 4 - os nomes de exibição dos jobs do verificar.yml não mudaram (são contrato com o ruleset da master)
+  ---
+  duration_ms: 1.1395
+  type: 'test'
+  ...
+# Subtest: o job da demonstração mora em demonstracao.yml, com filtro de caminho, e saiu do verificar.yml
+ok 5 - o job da demonstração mora em demonstracao.yml, com filtro de caminho, e saiu do verificar.yml
+  ---
+  duration_ms: 2.6489
+  type: 'test'
+  ...
+# Subtest: cancel-in-progress só em pull_request (a execução da master e a de um SHA candidato nunca são canceladas)
+ok 6 - cancel-in-progress só em pull_request (a execução da master e a de um SHA candidato nunca são canceladas)
+  ---
+  duration_ms: 0.7116
+  type: 'test'
+  ...
+# Subtest: os navegadores do Playwright vêm de cache nos workflows que os instalam
+ok 7 - os navegadores do Playwright vêm de cache nos workflows que os instalam
+  ---
+  duration_ms: 1.0129
+  type: 'test'
+  ...
+# Subtest: o job aplicativo guarda o cache de npm dos DOIS lockfiles
+ok 8 - o job aplicativo guarda o cache de npm dos DOIS lockfiles
+  ---
+  duration_ms: 1.0245
+  type: 'test'
+  ...
+# Subtest: todo comando do script `verificar` aparece em algum run: de algum workflow
+ok 9 - todo comando do script `verificar` aparece em algum run: de algum workflow
+  ---
+  duration_ms: 12.6672
+  type: 'test'
+  ...
+# Subtest: o script `verificar` ainda tem os nove comandos conhecidos (um comando novo exige este teste ciente)
+ok 10 - o script `verificar` ainda tem os nove comandos conhecidos (um comando novo exige este teste ciente)
+  ---
+  duration_ms: 0.9598
+  type: 'test'
+  ...
+# Subtest: o auditar roda pelo node no job dependencias, e o único `npm audit` cru é evidência que não decide
+ok 11 - o auditar roda pelo node no job dependencias, e o único `npm audit` cru é evidência que não decide
+  ---
+  duration_ms: 2.8311
+  type: 'test'
+  ...
+# Subtest: o test:scripts roda com as duas árvores instaladas (a do aplicativo antes) e o test:campo no job aplicativo
+ok 12 - o test:scripts roda com as duas árvores instaladas (a do aplicativo antes) e o test:campo no job aplicativo
+  ---
+  duration_ms: 1.5472
+  type: 'test'
+  ...
+# Subtest: o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39)
+ok 13 - o job aplicativo empacota com o Metro (expo export), com tempo limite no passo, conferidor e artefato (DV-39)
+  ---
+  duration_ms: 1.1751
+  type: 'test'
+  ...
+# Subtest: o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26)
+ok 14 - o job windows roda lint, lint:teto e formato:conferir, depois de instalar as duas árvores e compilar o shared (DV-26)
+  ---
+  duration_ms: 0.9459
+  type: 'test'
+  ...
+# Subtest: o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14)
+ok 15 - o job plataformas deixa o GIT escrever o CRLF e fixa a contagem do painel (DV-13, DV-14)
+  ---
+  duration_ms: 1.4356
+  type: 'test'
+  ...
+# Subtest: E12: o deploy de HML dispara só pelo Verificar verde de um push na master e implanta por digest
+ok 16 - E12: o deploy de HML dispara só pelo Verificar verde de um push na master e implanta por digest
+  ---
+  duration_ms: 3.7907
+  type: 'test'
+  ...
+# Subtest: E12: a promoção para PROD é só manual, valida o pedido, usa o ambiente producao e implanta por digest
+not ok 17 - E12: a promoção para PROD é só manual, valida o pedido, usa o ambiente producao e implanta por digest
+  ---
+  duration_ms: 4.0144
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:656:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'validar não confere a consulta aos runs do deploy-hml.yml por evento workflow_run, paginada',
+    +   'validar não confere título com o SHA implantado, evento workflow_run, conclusão success e o arquivo do run'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'validar não confere a consulta aos runs do deploy-hml.yml por evento workflow_run, paginada'
+    1: 'validar não confere título com o SHA implantado, evento workflow_run, conclusão success e o arquivo do run'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:657:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: E12: HML migra o banco ANTES de implantar a API, com a cópia do E15, e só depois move o painel e põe o selo
+ok 18 - E12: HML migra o banco ANTES de implantar a API, com a cópia do E15, e só depois move o painel e põe o selo
+  ---
+  duration_ms: 0.9061
+  type: 'test'
+  ...
+# Subtest: E12: carimbo de versão e commit no build das duas imagens, e o /saude confere o que foi carimbado
+ok 19 - E12: carimbo de versão e commit no build das duas imagens, e o /saude confere o que foi carimbado
+  ---
+  duration_ms: 0.2926
+  type: 'test'
+  ...
+# Subtest: E12: o app de HML de cada fly*.toml é o que o workflow usa, e a promoção usa os de PROD
+ok 20 - E12: o app de HML de cada fly*.toml é o que o workflow usa, e a promoção usa os de PROD
+  ---
+  duration_ms: 41.133
+  type: 'test'
+  ...
+# Subtest: E12: os segredos de cada workflow são só os esperados, cada um no seu ambiente, e HML e PROD não se misturam
+ok 21 - E12: os segredos de cada workflow são só os esperados, cada um no seu ambiente, e HML e PROD não se misturam
+  ---
+  duration_ms: 1.3057
+  type: 'test'
+  ...
+# Subtest: E12: o flyctl é o do release oficial, fixado por versão e SHA-256, igual nos dois workflows
+ok 22 - E12: o flyctl é o do release oficial, fixado por versão e SHA-256, igual nos dois workflows
+  ---
+  duration_ms: 1.0312
+  type: 'test'
+  ...
+# Subtest: E12: o vercel.json deixa de publicar a master, e o painel de PROD sai do ramo producao
+ok 23 - E12: o vercel.json deixa de publicar a master, e o painel de PROD sai do ramo producao
+  ---
+  duration_ms: 13.2126
+  type: 'test'
+  ...
+# Subtest: negativo: o workflow sintético correto passa (a base dos outros casos)
+ok 24 - negativo: o workflow sintético correto passa (a base dos outros casos)
+  ---
+  duration_ms: 0.4763
+  type: 'test'
+  ...
+# Subtest: negativo: uses por tag móvel reprova
+ok 25 - negativo: uses por tag móvel reprova
+  ---
+  duration_ms: 0.317
+  type: 'test'
+  ...
+# Subtest: negativo: SHA sem a versão em comentário reprova
+ok 26 - negativo: SHA sem a versão em comentário reprova
+  ---
+  duration_ms: 0.1566
+  type: 'test'
+  ...
+# Subtest: negativo: job sem timeout-minutes reprova
+ok 27 - negativo: job sem timeout-minutes reprova
+  ---
+  duration_ms: 0.197
+  type: 'test'
+  ...
+# Subtest: negativo: workflow sem permissions reprova, e com escrita no topo também
+ok 28 - negativo: workflow sem permissions reprova, e com escrita no topo também
+  ---
+  duration_ms: 0.1904
+  type: 'test'
+  ...
+# Subtest: negativo: pull_request_target reprova, mas citado só em comentário não
+ok 29 - negativo: pull_request_target reprova, mas citado só em comentário não
+  ---
+  duration_ms: 0.1759
+  type: 'test'
+  ...
+# Subtest: negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem runs-on também
+ok 30 - negativo: ubuntu-latest reprova, inclusive dentro de matriz, e job sem runs-on também
+  ---
+  duration_ms: 0.2339
+  type: 'test'
+  ...
+# Subtest: negativo: tirar `npm run auditar` do workflow reprova (mas `node scripts/auditar.mjs` basta)
+ok 31 - negativo: tirar `npm run auditar` do workflow reprova (mas `node scripts/auditar.mjs` basta)
+  ---
+  duration_ms: 1.0061
+  type: 'test'
+  ...
+# Subtest: negativo: tirar qualquer outro comando do verificar reprova, e `npm run test:scripts` não vale por `npm test`
+ok 32 - negativo: tirar qualquer outro comando do verificar reprova, e `npm run test:scripts` não vale por `npm test`
+  ---
+  duration_ms: 2.2733
+  type: 'test'
+  ...
+# Subtest: negativo: `npm audit` que decide reprova, o de evidência com `|| true` não
+ok 33 - negativo: `npm audit` que decide reprova, o de evidência com `|| true` não
+  ---
+  duration_ms: 0.3366
+  type: 'test'
+  ...
+# Subtest: negativo: comando que só aparece em comentário ou em name: não conta como run:
+ok 34 - negativo: comando que só aparece em comentário ou em name: não conta como run:
+  ---
+  duration_ms: 0.259
+  type: 'test'
+  ...
+# Subtest: o leitor de run: entende bloco, inline e para no recuo certo
+ok 35 - o leitor de run: entende bloco, inline e para no recuo certo
+  ---
+  duration_ms: 0.1352
+  type: 'test'
+  ...
+# Subtest: negativo E12: gatilho de HML que não espera o CI (push) ou aceita outro ramo reprova
+ok 36 - negativo E12: gatilho de HML que não espera o CI (push) ou aceita outro ramo reprova
+  ---
+  duration_ms: 11.3227
+  type: 'test'
+  ...
+# Subtest: negativo E12: tirar uma trava do if (CI verde, push, master, mesmo repositório) reprova
+ok 37 - negativo E12: tirar uma trava do if (CI verde, push, master, mesmo repositório) reprova
+  ---
+  duration_ms: 5.9944
+  type: 'test'
+  ...
+# Subtest: negativo E12: checkout da ponta do ramo, em vez do commit que o CI aprovou, reprova
+ok 38 - negativo E12: checkout da ponta do ramo, em vez do commit que o CI aprovou, reprova
+  ---
+  duration_ms: 1.4837
+  type: 'test'
+  ...
+# Subtest: negativo E12: deploy sem imagem por digest (reconstruiria no Fly), sem -a ou sem /saude reprova
+ok 39 - negativo E12: deploy sem imagem por digest (reconstruiria no Fly), sem -a ou sem /saude reprova
+  ---
+  duration_ms: 5.3574
+  type: 'test'
+  ...
+# Subtest: negativo E12: o deploy de HML com o fly.toml, o ambiente ou o banco de PROD reprova
+ok 40 - negativo E12: o deploy de HML com o fly.toml, o ambiente ou o banco de PROD reprova
+  ---
+  duration_ms: 5.1136
+  type: 'test'
+  ...
+# Subtest: autorização E12: token de deploy fora de ambiente protegido, token trocado ou vazado em log reprova
+ok 41 - autorização E12: token de deploy fora de ambiente protegido, token trocado ou vazado em log reprova
+  ---
+  duration_ms: 6.8301
+  type: 'test'
+  ...
+# Subtest: negativo E12: a promoção que aceita push, schedule ou perde uma entrada reprova (PROD só por workflow_dispatch)
+ok 42 - negativo E12: a promoção que aceita push, schedule ou perde uma entrada reprova (PROD só por workflow_dispatch)
+  ---
+  duration_ms: 4.4254
+  type: 'test'
+  ...
+# Subtest: autorização E12: a promoção sem ambiente producao, sem validar ou fora da master reprova
+ok 43 - autorização E12: a promoção sem ambiente producao, sem validar ou fora da master reprova
+  ---
+  duration_ms: 21.0162
+  type: 'test'
+  ...
+# Subtest: negativo E12: promoção que dispensa o selo de HML, a tag ou a confirmação digitada reprova
+ok 44 - negativo E12: promoção que dispensa o selo de HML, a tag ou a confirmação digitada reprova
+  ---
+  duration_ms: 5.1941
+  type: 'test'
+  ...
+# Subtest: negativo E12: a promoção que migra o banco de PROD em CI, usa HML ou cria tag reprova
+ok 45 - negativo E12: a promoção que migra o banco de PROD em CI, usa HML ou cria tag reprova
+  ---
+  duration_ms: 5.3859
+  type: 'test'
+  ...
+# Subtest: negativo E12: promover o painel antes de conferir o console, ou implantar o console antes da API, reprova
+ok 46 - negativo E12: promover o painel antes de conferir o console, ou implantar o console antes da API, reprova
+  ---
+  duration_ms: 3.3212
+  type: 'test'
+  ...
+# Subtest: negativo E12: escrita fora da lista (permissão a mais, ou a mesma em outro job) reprova
+ok 47 - negativo E12: escrita fora da lista (permissão a mais, ou a mesma em outro job) reprova
+  ---
+  duration_ms: 0.813
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): promover sem run bem-sucedido do deploy-hml.yml para o SHA, ou só pela tag, reprova
+not ok 48 - negativo E12 (revisão 1): promover sem run bem-sucedido do deploy-hml.yml para o SHA, ou só pela tag, reprova
+  ---
+  duration_ms: 1.6351
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:956:1'
+  failureType: 'testCodeFailure'
+  error: 'o trecho a estragar não existe mais: .display_title == $titulo and .event == "workflow_run" and .conclusion == "success"'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    estragar (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:849:10)
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:961:29)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: negativo E12 (revisão 1): selo hml-ok com digest diferente do construído reprova
+ok 49 - negativo E12 (revisão 1): selo hml-ok com digest diferente do construído reprova
+  ---
+  duration_ms: 2.9024
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): promoção sem verificar a atestação assinada pelo deploy-hml.yml reprova
+ok 50 - negativo E12 (revisão 1): promoção sem verificar a atestação assinada pelo deploy-hml.yml reprova
+  ---
+  duration_ms: 3.4947
+  type: 'test'
+  ...
+# Subtest: negativo E12 (revisão 1): o deploy de HML sem atestar o digest de cada imagem, ou sem id-token e attestations, reprova
+ok 51 - negativo E12 (revisão 1): o deploy de HML sem atestar o digest de cada imagem, ou sem id-token e attestations, reprova
+  ---
+  duration_ms: 7.6633
+  type: 'test'
+  ...
+# Subtest: correção 1 (achado 3): toda cópia de imagem preserva o digest e o confere no registro, no Fly e no selo hml-ok
+not ok 52 - correção 1 (achado 3): toda cópia de imagem preserva o digest e o confere no registro, no Fly e no selo hml-ok
+  ---
+  duration_ms: 1.4867
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:1077:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"',
+    +   'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"',
+    +   'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "${IMAGEM_API}:hml-ok-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"',
+    +   'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "${IMAGEM_CONSOLE}:hml-ok-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"',
+    +   'a cópia da imagem API no Fly não é lida de volta do registro',
+    +   'a cópia da imagem API no Fly não é comparada com o digest construído',
+    +   'a cópia da imagem CONSOLE no Fly não é lida de volta do registro',
+    +   'a cópia da imagem CONSOLE no Fly não é comparada com o digest construído',
+    +   'o selo hml-ok não é lido de volta do registro',
+    +   'o digest do selo hml-ok não é comparado com o digest construído'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"'
+    1: 'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"'
+    2: 'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "${IMAGEM_API}:hml-ok-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"'
+    3: 'imagetools create sem --prefer-index=false (embrulha num índice e muda o digest): imagetools create --tag "${IMAGEM_CONSOLE}:hml-ok-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"'
+    4: 'a cópia da imagem API no Fly não é lida de volta do registro'
+    5: 'a cópia da imagem API no Fly não é comparada com o digest construído'
+    6: 'a cópia da imagem CONSOLE no Fly não é lida de volta do registro'
+    7: 'a cópia da imagem CONSOLE no Fly não é comparada com o digest construído'
+    8: 'o selo hml-ok não é lido de volta do registro'
+    9: 'o digest do selo hml-ok não é comparado com o digest construído'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:1078:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: negativo (achado 3): imagetools create sem --prefer-index=false, ou sem ler o digest de volta, reprova
+not ok 53 - negativo (achado 3): imagetools create sem --prefer-index=false, ou sem ler o digest de volta, reprova
+  ---
+  duration_ms: 1.3932
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:1082:1'
+  failureType: 'testCodeFailure'
+  error: 'o trecho a estragar não existe mais: [ "$copiado" = "$DIGEST_CONSOLE" ] || {'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    estragar (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:849:10)
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:1085:37)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: correção 1 (achado 4): o deploy registra o SHA implantado no título do run, e a promoção procura por ele
+not ok 54 - correção 1 (achado 4): o deploy registra o SHA implantado no título do run, e a promoção procura por ele
+  ---
+  duration_ms: 0.9321
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:1089:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'o deploy de HML tem de registrar o SHA implantado em run-name: Implantar HML ${{ github.event.workflow_run.head_sha }} (achei nada)',
+    +   'a promoção não monta o título do run com o SHA pedido',
+    +   'a promoção filtra o run pelo head_sha, que num workflow_run é a ponta do ramo padrão'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'o deploy de HML tem de registrar o SHA implantado em run-name: Implantar HML ${{ github.event.workflow_run.head_sha }} (achei nada)'
+    1: 'a promoção não monta o título do run com o SHA pedido'
+    2: 'a promoção filtra o run pelo head_sha, que num workflow_run é a ponta do ramo padrão'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:1090:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: negativo (achado 4): procurar o run pelo head_sha, ou o deploy sem run-name com o SHA, reprova
+not ok 55 - negativo (achado 4): procurar o run pelo head_sha, ou o deploy sem run-name com o SHA, reprova
+  ---
+  duration_ms: 0.2977
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:1093:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    o trecho a estragar não existe mais: run-name: Implantar HML ${{ github.event.workflow_run.head_sha }}
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    estragar (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:849:10)
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:1094:31)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: correção 1 (achado 5): o painel só termina depois do deployment da Vercel Ready e do endereço de HML respondendo, e o selo espera o painel
+not ok 56 - correção 1 (achado 5): o painel só termina depois do deployment da Vercel Ready e do endereço de HML respondendo, e o selo espera o painel
+  ---
+  duration_ms: 1.1446
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:1100:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'o job painel não espera a Vercel publicar (esperar-painel.mjs --ambiente=hml)',
+    +   'a espera do painel tem de receber o projeto de HML e o commit implantado',
+    +   'o job painel sem deployments: read (não lê o estado do deployment da Vercel)',
+    +   'falta PAINEL_HML_PROJETO_VERCEL (o projeto da Vercel do painel de HML)'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'o job painel não espera a Vercel publicar (esperar-painel.mjs --ambiente=hml)'
+    1: 'a espera do painel tem de receber o projeto de HML e o commit implantado'
+    2: 'o job painel sem deployments: read (não lê o estado do deployment da Vercel)'
+    3: 'falta PAINEL_HML_PROJETO_VERCEL (o projeto da Vercel do painel de HML)'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:1101:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: negativo (achado 5): painel sem a espera, com a espera antes do ramo, sem deployments: read ou selo sem esperar o painel reprova
+not ok 57 - negativo (achado 5): painel sem a espera, com a espera antes do ramo, sem deployments: read ou selo sem esperar o painel reprova
+  ---
+  duration_ms: 2.0055
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-a3f388dfdd2dab34c\\dc360\\scripts\\conferir-workflows.test.mjs:1106:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected "actual" to be strictly unequal to:
+    
+    '# Deploy de HOMOLOGAÇÃO por merge na master (V2-F01-E12).\n' +
+      '#\n' +
+      '# O QUE FAZ\n' +
+      '#\n' +
+      '# Quando o `Verificar` de um push na `master` termina VERDE, constrói as duas\n' +
+      '# imagens (API e console) UMA vez, copia as imagens para o registro do Fly de HML\n' +
+      '# POR DIGEST, ensaia a migration no banco de HML, implanta API e console e confere\n' +
+      '# `/saude` com a `versao` e o `commit` esperados. Depois move o ramo `homologacao`\n' +
+      '# (de onde a Vercel publica o painel de HML) e, só então, marca a imagem como\n' +
+      '# aprovada em HML. Esse selo (`hml-ok-<sha>`) é a prova que a promoção para PROD\n' +
+      '# (`promover-producao.yml`) exige.\n' +
+      '#\n' +
+      '# POR QUE `workflow_run` E NÃO `push`\n' +
+      '#\n' +
+      '# `push` dispararia o deploy em paralelo com o CI, e a Vercel/Fly publicariam\n' +
+      '# código que o CI ainda ia reprovar. `workflow_run` espera o `Verificar` terminar\n' +
+      '# e deixa o deploy ler `conclusion`. Como `workflow_run` roda com os segredos do\n' +
+      '# ambiente, o `if:` do job é a trava: só vale para PUSH na `master` deste mesmo\n' +
+      '# repositório (nunca pull_request, nunca fork), com o CI verde. O código que roda\n' +
+      '# é o `head_sha` daquele push, não o da ponta do ramo no momento.\n' +
+      '#\n' +
+      '# O CAMINHO ÚNICO\n' +
+      '#\n' +
+      '# Este workflow e `promover-producao.yml` são os únicos caminhos de implantação\n' +
+      '# automatizados. `fly deploy` na máquina do dono continua possível em emergência\n' +
+      '# (docs/runbooks/deploy.md), mas deixa de ser o caminho normal.\n' +
+      '#\n' +
+      '# SEGREDOS (todos do AMBIENTE `homologacao`, nunca do repositório)\n' +
+      '#\n' +
+      '#   FLY_TOKEN_API              token de deploy do app de API de HML, SÓ dele\n' +
+      '#   FLY_TOKEN_CONSOLE          token de deploy do app de console de HML, SÓ dele\n' +
+      '#   DC360_SENHA_BANCO_HML      senha do papel de setup do banco de HML (dado sintético)\n' +
+      '#\n' +
+      '# Nenhum token de PROD entra aqui, e nenhum token de HML entra em\n' +
+      '# `promover-producao.yml`: o teste `scripts/conferir-workflows.test.mjs` confere os\n' +
+      '# dois lados. Token de deploy de um app não deploya em outro: é a segunda trava.\n' +
+      '#\n' +
+      '# PERMISSÕES: o topo só lê. Escrita é declarada no job que precisa e o teste a\n' +
+      '# trava por job: `construir` escreve pacotes (publica a imagem no GHCR) e\n' +
+      '# `painel` escreve conteúdo (move o ramo `homologacao`). `aprovar` escreve\n' +
+      '# pacotes para pôr o selo. `construir` também escreve `id-token` e `attestations`\n' +
+      '# para a atestação de proveniência das imagens (correção da revisão 1 da F01).\n' +
+      '#\n' +
+      '# O QUE DEPENDE DE UMA PESSOA (e por isso este arquivo ainda não foi executado)\n' +
+      '#\n' +
+      '# O ambiente de HML (apps no Fly, projeto de banco) depende do CP-05, e os\n' +
+    ...
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: |-
+    # Deploy de HOMOLOGAÇÃO por merge na master (V2-F01-E12).
+    #
+    # O QUE FAZ
+    #
+    # Quando o `Verificar` de um push na `master` termina VERDE, constrói as duas
+    # imagens (API e console) UMA vez, copia as imagens para o registro do Fly de HML
+    # POR DIGEST, ensaia a migration no banco de HML, implanta API e console e confere
+    # `/saude` com a `versao` e o `commit` esperados. Depois move o ramo `homologacao`
+    # (de onde a Vercel publica o painel de HML) e, só então, marca a imagem como
+    # aprovada em HML. Esse selo (`hml-ok-<sha>`) é a prova que a promoção para PROD
+    # (`promover-producao.yml`) exige.
+    #
+    # POR QUE `workflow_run` E NÃO `push`
+    #
+    # `push` dispararia o deploy em paralelo com o CI, e a Vercel/Fly publicariam
+    # código que o CI ainda ia reprovar. `workflow_run` espera o `Verificar` terminar
+    # e deixa o deploy ler `conclusion`. Como `workflow_run` roda com os segredos do
+    # ambiente, o `if:` do job é a trava: só vale para PUSH na `master` deste mesmo
+    # repositório (nunca pull_request, nunca fork), com o CI verde. O código que roda
+    # é o `head_sha` daquele push, não o da ponta do ramo no momento.
+    #
+    # O CAMINHO ÚNICO
+    #
+    # Este workflow e `promover-producao.yml` são os únicos caminhos de implantação
+    # automatizados. `fly deploy` na máquina do dono continua possível em emergência
+    # (docs/runbooks/deploy.md), mas deixa de ser o caminho normal.
+    #
+    # SEGREDOS (todos do AMBIENTE `homologacao`, nunca do repositório)
+    #
+    #   FLY_TOKEN_API              token de deploy do app de API de HML, SÓ dele
+    #   FLY_TOKEN_CONSOLE          token de deploy do app de console de HML, SÓ dele
+    #   DC360_SENHA_BANCO_HML      senha do papel de setup do banco de HML (dado sintético)
+    #
+    # Nenhum token de PROD entra aqui, e nenhum token de HML entra em
+    # `promover-producao.yml`: o teste `scripts/conferir-workflows.test.mjs` confere os
+    # dois lados. Token de deploy de um app não deploya em outro: é a segunda trava.
+    #
+    # PERMISSÕES: o topo só lê. Escrita é declarada no job que precisa e o teste a
+    # trava por job: `construir` escreve pacotes (publica a imagem no GHCR) e
+    # `painel` escreve conteúdo (move o ramo `homologacao`). `aprovar` escreve
+    # pacotes para pôr o selo. `construir` também escreve `id-token` e `attestations`
+    # para a atestação de proveniência das imagens (correção da revisão 1 da F01).
+    #
+    # O QUE DEPENDE DE UMA PESSOA (e por isso este arquivo ainda não foi executado)
+    #
+    # O ambiente de HML (apps no Fly, projeto de banco) depende do CP-05, e os
+    # ambientes `homologacao` e `producao` do GitHub, os tokens e o projeto de painel
+    # de HML na Vercel são criados pelo Rafael. Roteiro em docs/IMPLANTACAO.md.
+    # Enquanto os marcadores de `fly.hml.toml` não são trocados, a partida de HML
+    # recusa subir de propósito (E11) e o job `implantar` falha na conferência.
+    #
+    # VERSÃO FIXA DO flyctl: não há ação de terceiro. O binário vem do release
+    # oficial, com SHA-256 conferido. Subir a versão é trocar FLYCTL_VERSAO e
+    # FLYCTL_SHA256 juntos, aqui e em `promover-producao.yml` (o teste exige que os
+    # dois arquivos concordem), com o hash de `flyctl_<versão>_checksums.txt`.
+    
+    name: Implantar HML
+    
+    on:
+      workflow_run:
+        workflows: ["Verificar"]
+        types: [completed]
+        branches: [master]
+    
+    permissions:
+      contents: read
+    
+    # Um deploy de cada vez, e nenhum cancelado no meio: cancelar um `fly deploy`
+    # pela metade deixa o app numa troca incompleta. O que chega enquanto um roda
+    # espera; se chegarem vários, só o mais novo espera.
+    concurrency:
+      group: deploy-hml
+      cancel-in-progress: false
+    
+    env:
+      FLYCTL_VERSAO: "0.4.115"
+      # SHA-256 de flyctl_0.4.115_Linux_x86_64.tar.gz, igual ao de
+      # flyctl_0.4.115_checksums.txt do release oficial.
+      FLYCTL_SHA256: "8b99a37a546c6c5b3ecb10c0c1d962c62b1cda328934f17c55180281cbdeb72f"
+      # Os apps de HML. Têm de ser os de `fly.hml.toml` e `fly.console.hml.toml`
+      # (o teste confere) e NUNCA os de PROD.
+      APP_API: defesa-civil-hml
+      APP_CONSOLE: defesa-civil-console-hml
+    
+    jobs:
+      construir:
+        name: Construir as imagens (uma vez)
+        # Trava de segurança: só push na master deste repositório, com o CI verde.
+        if: >-
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'master' &&
+          github.event.workflow_run.head_repository.full_name == github.repository
+        runs-on: ubuntu-24.04
+        timeout-minutes: 45
+        # `id-token` e `attestations` são as duas escritas novas da correção da
+        # revisão 1 da F01: a ação de proveniência assina (OIDC) e registra a
+        # atestação de cada imagem, e a promoção para PROD verifica que o digest foi
+        # construído por ESTE workflow (`gh attestation verify --signer-workflow`).
+        permissions:
+          contents: read
+          packages: write
+          id-token: write
+          attestations: write
+        outputs:
+          versao: ${{ steps.carimbo.outputs.versao }}
+          commit: ${{ steps.carimbo.outputs.commit }}
+          imagem_api: ${{ steps.publicar.outputs.imagem_api }}
+          imagem_console: ${{ steps.publicar.outputs.imagem_console }}
+          digest_api: ${{ steps.publicar.outputs.digest_api }}
+          digest_console: ${{ steps.publicar.outputs.digest_console }}
+        steps:
+          - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+            with:
+              ref: ${{ github.event.workflow_run.head_sha }}
+              persist-credentials: false
+    
+          - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            with:
+              node-version: "22"
+    
+          # O carimbo é o do commit que o CI aprovou. `versao.mjs conferir` reprova se
+          # os arquivos de versão discordam entre si.
+          - name: Carimbo de versão e commit
+            id: carimbo
+            working-directory: dc360
+            env:
+              COMMIT: ${{ github.event.workflow_run.head_sha }}
+            run: |
+              set -euo pipefail
+              node scripts/versao.mjs conferir
+              versao="$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')"
+              [[ "$versao" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "versão inválida: $versao"; exit 1; }
+              [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "commit inválido"; exit 1; }
+              echo "versao=$versao" >> "$GITHUB_OUTPUT"
+              echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+    
+          - name: Entrar no GHCR
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+    
+          # As duas imagens saem do MESMO commit, com o carimbo como argumento de
+          # build. O digest é lido do registro depois do push: é ele, e não a tag,
+          # que o deploy e a promoção usam, e é ele que `/saude` prova depois.
+          - name: Construir e publicar API e console
+            id: publicar
+            env:
+              VERSAO: ${{ steps.carimbo.outputs.versao }}
+              COMMIT: ${{ steps.carimbo.outputs.commit }}
+            run: |
+              set -euo pipefail
+              base="ghcr.io/${GITHUB_REPOSITORY,,}"
+              for alvo in api console; do
+                if [ "$alvo" = api ]; then dockerfile=dc360/Dockerfile; else dockerfile=dc360/Dockerfile.console; fi
+                imagem="$base/dc360-$alvo"
+                docker build \
+                  -f "$dockerfile" \
+                  --build-arg "DC360_VERSAO=$VERSAO" \
+                  --build-arg "DC360_COMMIT=$COMMIT" \
+                  --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+                  --label "org.opencontainers.image.revision=$COMMIT" \
+                  --label "org.opencontainers.image.version=$VERSAO" \
+                  -t "$imagem:sha-$COMMIT" \
+                  dc360
+                docker push "$imagem:sha-$COMMIT"
+                digest="$(docker buildx imagetools inspect "$imagem:sha-$COMMIT" --format '{{.Manifest.Digest}}')"
+                [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "digest inválido para $alvo"; exit 1; }
+                echo "imagem_$alvo=$imagem" >> "$GITHUB_OUTPUT"
+                echo "digest_$alvo=$digest" >> "$GITHUB_OUTPUT"
+                echo "$alvo: $imagem@$digest"
+              done
+    
+          # Proveniência assinada do digest de cada imagem. É o que impede que uma
+          # tag `hml-ok-` posta à mão, ou um digest que não saiu deste workflow,
+          # passe pela promoção para PROD.
+          - name: Atestar a proveniência da imagem da API
+            uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+            with:
+              subject-name: ${{ steps.publicar.outputs.imagem_api }}
+              subject-digest: ${{ steps.publicar.outputs.digest_api }}
+              push-to-registry: true
+    
+          - name: Atestar a proveniência da imagem do console
+            uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+            with:
+              subject-name: ${{ steps.publicar.outputs.imagem_console }}
+              subject-digest: ${{ steps.publicar.outputs.digest_console }}
+              push-to-registry: true
+    
+      implantar:
+        name: Migrar e implantar API e console em HML
+        needs: construir
+        runs-on: ubuntu-24.04
+        timeout-minutes: 60
+        # O ambiente carrega os três segredos de HML e é a trava de quem pode
+        # implantar. Restringir o ambiente ao ramo `master` é ato do dono.
+        environment: homologacao
+        permissions:
+          contents: read
+          packages: read
+        env:
+          VERSAO: ${{ needs.construir.outputs.versao }}
+          COMMIT: ${{ needs.construir.outputs.commit }}
+          IMAGEM_API: ${{ needs.construir.outputs.imagem_api }}
+          IMAGEM_CONSOLE: ${{ needs.construir.outputs.imagem_console }}
+          DIGEST_API: ${{ needs.construir.outputs.digest_api }}
+          DIGEST_CONSOLE: ${{ needs.construir.outputs.digest_console }}
+        steps:
+          - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+            with:
+              ref: ${{ github.event.workflow_run.head_sha }}
+              persist-credentials: false
+    
+          - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            with:
+              node-version: "22"
+              cache: npm
+              cache-dependency-path: dc360/package-lock.json
+    
+          - name: Instalar o flyctl (versão fixa, SHA-256 conferido)
+            run: |
+              set -euo pipefail
+              arquivo="flyctl_${FLYCTL_VERSAO}_Linux_x86_64.tar.gz"
+              curl --fail --silent --show-error --location \
+                --output "${RUNNER_TEMP}/${arquivo}" \
+                "https://github.com/superfly/flyctl/releases/download/v${FLYCTL_VERSAO}/${arquivo}"
+              echo "${FLYCTL_SHA256}  ${RUNNER_TEMP}/${arquivo}" | sha256sum --check --strict
+              mkdir -p "${RUNNER_TEMP}/flyctl"
+              tar -xzf "${RUNNER_TEMP}/${arquivo}" -C "${RUNNER_TEMP}/flyctl" flyctl
+              echo "${RUNNER_TEMP}/flyctl" >> "$GITHUB_PATH"
+    
+          # O cliente do runner é o 16 e o servidor é 17: `pg_dump` mais velho que o
+          # servidor recusa (e recusa certo). Mesmo passo do job `restore`.
+          - name: Instalar o cliente PostgreSQL 17
+            run: |
+              export DEBIAN_FRONTEND=noninteractive
+              sudo apt-get update -qq
+              sudo apt-get install -y -qq postgresql-common
+              sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+              sudo apt-get install -y -qq postgresql-client-17
+              /usr/lib/postgresql/17/bin/pg_dump --version
+    
+          - name: Instalar as dependências do produto
+            working-directory: dc360
+            run: |
+              npm ci --ignore-scripts
+              npm run build:shared
+    
+          # Os apps têm de ser os de HML. Se alguém trocar o nome por um de PROD, o
+          # job para aqui, antes de qualquer segredo ser usado.
+          - name: Conferir que os alvos são de HML
+            working-directory: dc360
+            run: |
+              set -euo pipefail
+              grep -qx "app = \"${APP_API}\"" fly.hml.toml
+              grep -qx "app = \"${APP_CONSOLE}\"" fly.console.hml.toml
+              grep -Eq '^[[:space:]]*AMBIENTE_DC360 = "hml"' fly.hml.toml
+              case "$APP_API $APP_CONSOLE" in *hml*hml*) ;; *) echo "alvo que não é de HML"; exit 1 ;; esac
+    
+          # Migration ANTES do código, sempre. Cópia do banco de HML primeiro (o
+          # migrador recusa aplicar sem cópia recente do mesmo ambiente), depois
+          # `--aplicar`. Em HML o dono do banco é dado sintético: a credencial pode
+          # estar no ambiente. Em PROD ela NÃO entra em CI (ADR 0008).
+          - name: Copiar o banco de HML e aplicar as migrations
+            working-directory: dc360
+            env:
+              DC360_SENHA_BANCO_HML: ${{ secrets.DC360_SENHA_BANCO_HML }}
+              DC360_PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
+            run: |
+              set -euo pipefail
+              node scripts/copiar-producao.mjs --ambiente hml
+              node scripts/migrar-producao.mjs --ambiente hml --aplicar
+              node scripts/migrar-producao.mjs --ambiente hml
+    
+          - name: Entrar no GHCR
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+    
+          # A MESMA imagem, copiada por digest para o registro do app de HML. O
+          # `imagetools create` copia o manifesto sem reconstruir nada, então o digest
+          # no Fly é idêntico ao do GHCR. Depois do `fly deploy`, o `/saude` com o
+          # commit esperado prova que foi essa imagem que subiu.
+          - name: Implantar a API
+            working-directory: dc360
+            env:
+              FLY_API_TOKEN: ${{ secrets.FLY_TOKEN_API }}
+            run: |
+              set -euo pipefail
+              printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
+              docker buildx imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
+              flyctl deploy -c fly.hml.toml -a "$APP_API" --image "registry.fly.io/${APP_API}@${DIGEST_API}"
+              node scripts/conferir-saude-remota.mjs --tipo=api --url="https://${APP_API}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
+    
+          - name: Implantar o console
+            working-directory: dc360
+            env:
+              FLY_API_TOKEN: ${{ secrets.FLY_TOKEN_CONSOLE }}
+            run: |
+              set -euo pipefail
+              printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
+              docker buildx imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+              flyctl deploy -c fly.console.hml.toml -a "$APP_CONSOLE" --ha=false --image "registry.fly.io/${APP_CONSOLE}@${DIGEST_CONSOLE}"
+              node scripts/conferir-saude-remota.mjs --tipo=console --url="https://${APP_CONSOLE}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
+    
+          - name: Sair dos registros
+            if: always()
+            run: |
+              docker logout registry.fly.io || true
+              docker logout ghcr.io || true
+    
+      # O painel de HML é publicado pela Vercel a partir do ramo `homologacao`, e
+      # só DEPOIS da API e do console: o painel novo não pode chegar antes da API
+      # nova. O token deste job só escreve o ramo; a Vercel não tem token aqui.
+      painel:
+        name: Publicar o painel de HML (ramo homologacao)
+        needs: [construir, implantar]
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        permissions:
+          contents: write
+        steps:
+          - name: Mover o ramo homologacao para o commit implantado
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              COMMIT: ${{ needs.construir.outputs.commit }}
+            run: |
+              set -euo pipefail
+              # Atualiza o ramo (com force, porque promover uma versão mais antiga
+              # não é avanço rápido) ou o cria na primeira vez.
+              gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/homologacao" -f sha="$COMMIT" -F force=true \
+                || gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/heads/homologacao" -f sha="$COMMIT"
+    
+      # O selo de "passou por HML". A promoção para PROD só aceita um commit cujas
+      # duas imagens tenham este selo, e o selo só nasce depois do /saude verde da
+      # API e do console e do ramo do painel atualizado.
+      aprovar:
+        name: Marcar a versão como aprovada em HML
+        needs: [construir, implantar, painel]
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        permissions:
+          contents: read
+          packages: write
+        steps:
+          - name: Pôr o selo hml-ok nas duas imagens
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              COMMIT: ${{ needs.construir.outputs.commit }}
+              IMAGEM_API: ${{ needs.construir.outputs.imagem_api }}
+              IMAGEM_CONSOLE: ${{ needs.construir.outputs.imagem_console }}
+              DIGEST_API: ${{ needs.construir.outputs.digest_api }}
+              DIGEST_CONSOLE: ${{ needs.construir.outputs.digest_console }}
+            run: |
+              set -euo pipefail
+              printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+              docker buildx imagetools create --tag "${IMAGEM_API}:hml-ok-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
+              docker buildx imagetools create --tag "${IMAGEM_CONSOLE}:hml-ok-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+              echo "aprovado em HML: ${COMMIT}"
+              echo "  api     ${DIGEST_API}"
+              echo "  console ${DIGEST_CONSOLE}"
+    
+  actual: |-
+    # Deploy de HOMOLOGAÇÃO por merge na master (V2-F01-E12).
+    #
+    # O QUE FAZ
+    #
+    # Quando o `Verificar` de um push na `master` termina VERDE, constrói as duas
+    # imagens (API e console) UMA vez, copia as imagens para o registro do Fly de HML
+    # POR DIGEST, ensaia a migration no banco de HML, implanta API e console e confere
+    # `/saude` com a `versao` e o `commit` esperados. Depois move o ramo `homologacao`
+    # (de onde a Vercel publica o painel de HML) e, só então, marca a imagem como
+    # aprovada em HML. Esse selo (`hml-ok-<sha>`) é a prova que a promoção para PROD
+    # (`promover-producao.yml`) exige.
+    #
+    # POR QUE `workflow_run` E NÃO `push`
+    #
+    # `push` dispararia o deploy em paralelo com o CI, e a Vercel/Fly publicariam
+    # código que o CI ainda ia reprovar. `workflow_run` espera o `Verificar` terminar
+    # e deixa o deploy ler `conclusion`. Como `workflow_run` roda com os segredos do
+    # ambiente, o `if:` do job é a trava: só vale para PUSH na `master` deste mesmo
+    # repositório (nunca pull_request, nunca fork), com o CI verde. O código que roda
+    # é o `head_sha` daquele push, não o da ponta do ramo no momento.
+    #
+    # O CAMINHO ÚNICO
+    #
+    # Este workflow e `promover-producao.yml` são os únicos caminhos de implantação
+    # automatizados. `fly deploy` na máquina do dono continua possível em emergência
+    # (docs/runbooks/deploy.md), mas deixa de ser o caminho normal.
+    #
+    # SEGREDOS (todos do AMBIENTE `homologacao`, nunca do repositório)
+    #
+    #   FLY_TOKEN_API              token de deploy do app de API de HML, SÓ dele
+    #   FLY_TOKEN_CONSOLE          token de deploy do app de console de HML, SÓ dele
+    #   DC360_SENHA_BANCO_HML      senha do papel de setup do banco de HML (dado sintético)
+    #
+    # Nenhum token de PROD entra aqui, e nenhum token de HML entra em
+    # `promover-producao.yml`: o teste `scripts/conferir-workflows.test.mjs` confere os
+    # dois lados. Token de deploy de um app não deploya em outro: é a segunda trava.
+    #
+    # PERMISSÕES: o topo só lê. Escrita é declarada no job que precisa e o teste a
+    # trava por job: `construir` escreve pacotes (publica a imagem no GHCR) e
+    # `painel` escreve conteúdo (move o ramo `homologacao`). `aprovar` escreve
+    # pacotes para pôr o selo. `construir` também escreve `id-token` e `attestations`
+    # para a atestação de proveniência das imagens (correção da revisão 1 da F01).
+    #
+    # O QUE DEPENDE DE UMA PESSOA (e por isso este arquivo ainda não foi executado)
+    #
+    # O ambiente de HML (apps no Fly, projeto de banco) depende do CP-05, e os
+    # ambientes `homologacao` e `producao` do GitHub, os tokens e o projeto de painel
+    # de HML na Vercel são criados pelo Rafael. Roteiro em docs/IMPLANTACAO.md.
+    # Enquanto os marcadores de `fly.hml.toml` não são trocados, a partida de HML
+    # recusa subir de propósito (E11) e o job `implantar` falha na conferência.
+    #
+    # VERSÃO FIXA DO flyctl: não há ação de terceiro. O binário vem do release
+    # oficial, com SHA-256 conferido. Subir a versão é trocar FLYCTL_VERSAO e
+    # FLYCTL_SHA256 juntos, aqui e em `promover-producao.yml` (o teste exige que os
+    # dois arquivos concordem), com o hash de `flyctl_<versão>_checksums.txt`.
+    
+    name: Implantar HML
+    
+    on:
+      workflow_run:
+        workflows: ["Verificar"]
+        types: [completed]
+        branches: [master]
+    
+    permissions:
+      contents: read
+    
+    # Um deploy de cada vez, e nenhum cancelado no meio: cancelar um `fly deploy`
+    # pela metade deixa o app numa troca incompleta. O que chega enquanto um roda
+    # espera; se chegarem vários, só o mais novo espera.
+    concurrency:
+      group: deploy-hml
+      cancel-in-progress: false
+    
+    env:
+      FLYCTL_VERSAO: "0.4.115"
+      # SHA-256 de flyctl_0.4.115_Linux_x86_64.tar.gz, igual ao de
+      # flyctl_0.4.115_checksums.txt do release oficial.
+      FLYCTL_SHA256: "8b99a37a546c6c5b3ecb10c0c1d962c62b1cda328934f17c55180281cbdeb72f"
+      # Os apps de HML. Têm de ser os de `fly.hml.toml` e `fly.console.hml.toml`
+      # (o teste confere) e NUNCA os de PROD.
+      APP_API: defesa-civil-hml
+      APP_CONSOLE: defesa-civil-console-hml
+    
+    jobs:
+      construir:
+        name: Construir as imagens (uma vez)
+        # Trava de segurança: só push na master deste repositório, com o CI verde.
+        if: >-
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'master' &&
+          github.event.workflow_run.head_repository.full_name == github.repository
+        runs-on: ubuntu-24.04
+        timeout-minutes: 45
+        # `id-token` e `attestations` são as duas escritas novas da correção da
+        # revisão 1 da F01: a ação de proveniência assina (OIDC) e registra a
+        # atestação de cada imagem, e a promoção para PROD verifica que o digest foi
+        # construído por ESTE workflow (`gh attestation verify --signer-workflow`).
+        permissions:
+          contents: read
+          packages: write
+          id-token: write
+          attestations: write
+        outputs:
+          versao: ${{ steps.carimbo.outputs.versao }}
+          commit: ${{ steps.carimbo.outputs.commit }}
+          imagem_api: ${{ steps.publicar.outputs.imagem_api }}
+          imagem_console: ${{ steps.publicar.outputs.imagem_console }}
+          digest_api: ${{ steps.publicar.outputs.digest_api }}
+          digest_console: ${{ steps.publicar.outputs.digest_console }}
+        steps:
+          - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+            with:
+              ref: ${{ github.event.workflow_run.head_sha }}
+              persist-credentials: false
+    
+          - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            with:
+              node-version: "22"
+    
+          # O carimbo é o do commit que o CI aprovou. `versao.mjs conferir` reprova se
+          # os arquivos de versão discordam entre si.
+          - name: Carimbo de versão e commit
+            id: carimbo
+            working-directory: dc360
+            env:
+              COMMIT: ${{ github.event.workflow_run.head_sha }}
+            run: |
+              set -euo pipefail
+              node scripts/versao.mjs conferir
+              versao="$(node scripts/versao.mjs mostrar | awk '/^plataforma:/ {print $2}')"
+              [[ "$versao" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "versão inválida: $versao"; exit 1; }
+              [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "commit inválido"; exit 1; }
+              echo "versao=$versao" >> "$GITHUB_OUTPUT"
+              echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+    
+          - name: Entrar no GHCR
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+    
+          # As duas imagens saem do MESMO commit, com o carimbo como argumento de
+          # build. O digest é lido do registro depois do push: é ele, e não a tag,
+          # que o deploy e a promoção usam, e é ele que `/saude` prova depois.
+          - name: Construir e publicar API e console
+            id: publicar
+            env:
+              VERSAO: ${{ steps.carimbo.outputs.versao }}
+              COMMIT: ${{ steps.carimbo.outputs.commit }}
+            run: |
+              set -euo pipefail
+              base="ghcr.io/${GITHUB_REPOSITORY,,}"
+              for alvo in api console; do
+                if [ "$alvo" = api ]; then dockerfile=dc360/Dockerfile; else dockerfile=dc360/Dockerfile.console; fi
+                imagem="$base/dc360-$alvo"
+                docker build \
+                  -f "$dockerfile" \
+                  --build-arg "DC360_VERSAO=$VERSAO" \
+                  --build-arg "DC360_COMMIT=$COMMIT" \
+                  --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+                  --label "org.opencontainers.image.revision=$COMMIT" \
+                  --label "org.opencontainers.image.version=$VERSAO" \
+                  -t "$imagem:sha-$COMMIT" \
+                  dc360
+                docker push "$imagem:sha-$COMMIT"
+                digest="$(docker buildx imagetools inspect "$imagem:sha-$COMMIT" --format '{{.Manifest.Digest}}')"
+                [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "digest inválido para $alvo"; exit 1; }
+                echo "imagem_$alvo=$imagem" >> "$GITHUB_OUTPUT"
+                echo "digest_$alvo=$digest" >> "$GITHUB_OUTPUT"
+                echo "$alvo: $imagem@$digest"
+              done
+    
+          # Proveniência assinada do digest de cada imagem. É o que impede que uma
+          # tag `hml-ok-` posta à mão, ou um digest que não saiu deste workflow,
+          # passe pela promoção para PROD.
+          - name: Atestar a proveniência da imagem da API
+            uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+            with:
+              subject-name: ${{ steps.publicar.outputs.imagem_api }}
+              subject-digest: ${{ steps.publicar.outputs.digest_api }}
+              push-to-registry: true
+    
+          - name: Atestar a proveniência da imagem do console
+            uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+            with:
+              subject-name: ${{ steps.publicar.outputs.imagem_console }}
+              subject-digest: ${{ steps.publicar.outputs.digest_console }}
+              push-to-registry: true
+    
+      implantar:
+        name: Migrar e implantar API e console em HML
+        needs: construir
+        runs-on: ubuntu-24.04
+        timeout-minutes: 60
+        # O ambiente carrega os três segredos de HML e é a trava de quem pode
+        # implantar. Restringir o ambiente ao ramo `master` é ato do dono.
+        environment: homologacao
+        permissions:
+          contents: read
+          packages: read
+        env:
+          VERSAO: ${{ needs.construir.outputs.versao }}
+          COMMIT: ${{ needs.construir.outputs.commit }}
+          IMAGEM_API: ${{ needs.construir.outputs.imagem_api }}
+          IMAGEM_CONSOLE: ${{ needs.construir.outputs.imagem_console }}
+          DIGEST_API: ${{ needs.construir.outputs.digest_api }}
+          DIGEST_CONSOLE: ${{ needs.construir.outputs.digest_console }}
+        steps:
+          - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+            with:
+              ref: ${{ github.event.workflow_run.head_sha }}
+              persist-credentials: false
+    
+          - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            with:
+              node-version: "22"
+              cache: npm
+              cache-dependency-path: dc360/package-lock.json
+    
+          - name: Instalar o flyctl (versão fixa, SHA-256 conferido)
+            run: |
+              set -euo pipefail
+              arquivo="flyctl_${FLYCTL_VERSAO}_Linux_x86_64.tar.gz"
+              curl --fail --silent --show-error --location \
+                --output "${RUNNER_TEMP}/${arquivo}" \
+                "https://github.com/superfly/flyctl/releases/download/v${FLYCTL_VERSAO}/${arquivo}"
+              echo "${FLYCTL_SHA256}  ${RUNNER_TEMP}/${arquivo}" | sha256sum --check --strict
+              mkdir -p "${RUNNER_TEMP}/flyctl"
+              tar -xzf "${RUNNER_TEMP}/${arquivo}" -C "${RUNNER_TEMP}/flyctl" flyctl
+              echo "${RUNNER_TEMP}/flyctl" >> "$GITHUB_PATH"
+    
+          # O cliente do runner é o 16 e o servidor é 17: `pg_dump` mais velho que o
+          # servidor recusa (e recusa certo). Mesmo passo do job `restore`.
+          - name: Instalar o cliente PostgreSQL 17
+            run: |
+              export DEBIAN_FRONTEND=noninteractive
+              sudo apt-get update -qq
+              sudo apt-get install -y -qq postgresql-common
+              sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+              sudo apt-get install -y -qq postgresql-client-17
+              /usr/lib/postgresql/17/bin/pg_dump --version
+    
+          - name: Instalar as dependências do produto
+            working-directory: dc360
+            run: |
+              npm ci --ignore-scripts
+              npm run build:shared
+    
+          # Os apps têm de ser os de HML. Se alguém trocar o nome por um de PROD, o
+          # job para aqui, antes de qualquer segredo ser usado.
+          - name: Conferir que os alvos são de HML
+            working-directory: dc360
+            run: |
+              set -euo pipefail
+              grep -qx "app = \"${APP_API}\"" fly.hml.toml
+              grep -qx "app = \"${APP_CONSOLE}\"" fly.console.hml.toml
+              grep -Eq '^[[:space:]]*AMBIENTE_DC360 = "hml"' fly.hml.toml
+              case "$APP_API $APP_CONSOLE" in *hml*hml*) ;; *) echo "alvo que não é de HML"; exit 1 ;; esac
+    
+          # Migration ANTES do código, sempre. Cópia do banco de HML primeiro (o
+          # migrador recusa aplicar sem cópia recente do mesmo ambiente), depois
+          # `--aplicar`. Em HML o dono do banco é dado sintético: a credencial pode
+          # estar no ambiente. Em PROD ela NÃO entra em CI (ADR 0008).
+          - name: Copiar o banco de HML e aplicar as migrations
+            working-directory: dc360
+            env:
+              DC360_SENHA_BANCO_HML: ${{ secrets.DC360_SENHA_BANCO_HML }}
+              DC360_PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
+            run: |
+              set -euo pipefail
+              node scripts/copiar-producao.mjs --ambiente hml
+              node scripts/migrar-producao.mjs --ambiente hml --aplicar
+              node scripts/migrar-producao.mjs --ambiente hml
+    
+          - name: Entrar no GHCR
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+    
+          # A MESMA imagem, copiada por digest para o registro do app de HML. O
+          # `imagetools create` copia o manifesto sem reconstruir nada, então o digest
+          # no Fly é idêntico ao do GHCR. Depois do `fly deploy`, o `/saude` com o
+          # commit esperado prova que foi essa imagem que subiu.
+          - name: Implantar a API
+            working-directory: dc360
+            env:
+              FLY_API_TOKEN: ${{ secrets.FLY_TOKEN_API }}
+            run: |
+              set -euo pipefail
+              printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
+              docker buildx imagetools create --tag "registry.fly.io/${APP_API}:sha-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
+              flyctl deploy -c fly.hml.toml -a "$APP_API" --image "registry.fly.io/${APP_API}@${DIGEST_API}"
+              node scripts/conferir-saude-remota.mjs --tipo=api --url="https://${APP_API}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
+    
+          - name: Implantar o console
+            working-directory: dc360
+            env:
+              FLY_API_TOKEN: ${{ secrets.FLY_TOKEN_CONSOLE }}
+            run: |
+              set -euo pipefail
+              printf '%s' "$FLY_API_TOKEN" | docker login registry.fly.io -u x --password-stdin
+              docker buildx imagetools create --tag "registry.fly.io/${APP_CONSOLE}:sha-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+              flyctl deploy -c fly.console.hml.toml -a "$APP_CONSOLE" --ha=false --image "registry.fly.io/${APP_CONSOLE}@${DIGEST_CONSOLE}"
+              node scripts/conferir-saude-remota.mjs --tipo=console --url="https://${APP_CONSOLE}.fly.dev" --versao="$VERSAO" --commit="$COMMIT"
+    
+          - name: Sair dos registros
+            if: always()
+            run: |
+              docker logout registry.fly.io || true
+              docker logout ghcr.io || true
+    
+      # O painel de HML é publicado pela Vercel a partir do ramo `homologacao`, e
+      # só DEPOIS da API e do console: o painel novo não pode chegar antes da API
+      # nova. O token deste job só escreve o ramo; a Vercel não tem token aqui.
+      painel:
+        name: Publicar o painel de HML (ramo homologacao)
+        needs: [construir, implantar]
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        permissions:
+          contents: write
+        steps:
+          - name: Mover o ramo homologacao para o commit implantado
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              COMMIT: ${{ needs.construir.outputs.commit }}
+            run: |
+              set -euo pipefail
+              # Atualiza o ramo (com force, porque promover uma versão mais antiga
+              # não é avanço rápido) ou o cria na primeira vez.
+              gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/homologacao" -f sha="$COMMIT" -F force=true \
+                || gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/heads/homologacao" -f sha="$COMMIT"
+    
+      # O selo de "passou por HML". A promoção para PROD só aceita um commit cujas
+      # duas imagens tenham este selo, e o selo só nasce depois do /saude verde da
+      # API e do console e do ramo do painel atualizado.
+      aprovar:
+        name: Marcar a versão como aprovada em HML
+        needs: [construir, implantar, painel]
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        permissions:
+          contents: read
+          packages: write
+        steps:
+          - name: Pôr o selo hml-ok nas duas imagens
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              COMMIT: ${{ needs.construir.outputs.commit }}
+              IMAGEM_API: ${{ needs.construir.outputs.imagem_api }}
+              IMAGEM_CONSOLE: ${{ needs.construir.outputs.imagem_console }}
+              DIGEST_API: ${{ needs.construir.outputs.digest_api }}
+              DIGEST_CONSOLE: ${{ needs.construir.outputs.digest_console }}
+            run: |
+              set -euo pipefail
+              printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+              docker buildx imagetools create --tag "${IMAGEM_API}:hml-ok-${COMMIT}" "${IMAGEM_API}@${DIGEST_API}"
+              docker buildx imagetools create --tag "${IMAGEM_CONSOLE}:hml-ok-${COMMIT}" "${IMAGEM_CONSOLE}@${DIGEST_CONSOLE}"
+              echo "aprovado em HML: ${COMMIT}"
+              echo "  api     ${DIGEST_API}"
+              echo "  console ${DIGEST_CONSOLE}"
+    
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-a3f388dfdd2dab34c/dc360/scripts/conferir-workflows.test.mjs:1108:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..57
+# tests 57
+# suites 0
+# pass 49
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 502.4437
+codigo de saida: 1

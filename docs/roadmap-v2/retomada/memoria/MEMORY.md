@@ -1,0 +1,4 @@
+- [Fly deploy em primeiro plano](fly-deploy-em-primeiro-plano.md): o classificador bloqueia flyctl deploy em background; rodar em primeiro plano
+- [Trabalhar sem parar](trabalhar-sem-parar.md): V2 sem pausas; esperar CI no turno; rodada de validação é disparada e o turno termina (D-31)
+- [Orçamento por janela](orcamento-por-janela.md): Max 5x; medir com orcamento.py antes de disparar agentes; nunca estourar a janela de 5 h
+- [Laço vai para paralelo](laco-tratado-em-paralelo.md): mais de 3 voltas de corrige e valida: tratar em paralelo e seguir a fase seguinte; sempre atualizar o /progresso

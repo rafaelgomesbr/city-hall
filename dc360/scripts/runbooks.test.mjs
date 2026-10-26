@@ -327,6 +327,40 @@ test("morde: arquivo inexistente e etapa inventada reprovam", () => {
   assert.deepEqual(dependenciasInvalidas("depende de V2-F01-E99 e de V2-F01-E08", new Set(["V2-F01-E08"])), ["V2-F01-E99"]);
 });
 
+/*
+  Correção 1 da F01, parte B (achado 12 da revisão independente): o passo de
+  apagar a cópia mandava `rm ~/dc360-copias/<data>.dump`, mas o roteiro grava em
+  `~/dc360-copias/prod/<data>.dump`. Quem seguia o runbook trocando só a data
+  via a remoção falhar e o dump com dado de cidadão ficava no disco. O caminho
+  de cada comando de remoção do runbook é conferido contra `pastaDeCopias()`, a
+  mesma função que decide onde o roteiro grava.
+*/
+/** Os caminhos de `rm` e `Remove-Item` dos trechos de código, com `~` e `$HOME` trocados pela casa. */
+export function caminhosDeRemocao(texto, casa) {
+  const achados = [];
+  for (const trecho of trechosDeCodigo(texto)) {
+    for (const m of trecho.matchAll(/(?:^|\s)(?:rm(?: --)?|Remove-Item(?: -LiteralPath)?)\s+["']?((?:~|\$HOME)[^\s"']+)/gm)) {
+      const relativo = m[1].replace(/^(~|\$HOME)[\\/]/, "").split(/[\\/]/);
+      achados.push(join(casa, ...relativo));
+    }
+  }
+  return achados;
+}
+
+test("o passo de apagar a cópia aponta para a pasta de PROD em que o roteiro grava, no macOS, no Linux e no Windows", async () => {
+  const { pastaDeCopias, PASTA_DE_COPIAS } = await import("./copiar-producao.mjs");
+  const casa = dirname(PASTA_DE_COPIAS);
+  const caminhos = caminhosDeRemocao(lerRunbook("migracao.md"), casa);
+  assert.ok(caminhos.length >= 2, `o runbook precisa dizer como apagar nos dois sistemas; achei ${caminhos.length}`);
+  for (const caminho of caminhos) {
+    assert.equal(dirname(caminho), pastaDeCopias("prod"), `o runbook manda apagar ${caminho}, mas a cópia mora em ${pastaDeCopias("prod")}`);
+    assert.match(caminho, /<data>\.dump$/);
+  }
+  // E o caminho antigo, sem a pasta do ambiente, morde.
+  const antigo = caminhosDeRemocao("```bash\nrm ~/dc360-copias/<data>.dump\n```", casa);
+  assert.notEqual(dirname(antigo[0]), pastaDeCopias("prod"));
+});
+
 test("morde: valor de segredo no texto reprova", () => {
   assert.ok(segredosNoTexto("postgres://dc360_api:umaSenhaDeVerdade@host:5432/db").length > 0);
   assert.ok(segredosNoTexto("-----BEGIN PRIVATE KEY-----").length > 0);

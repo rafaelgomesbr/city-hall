@@ -1,0 +1,6 @@
+{
+  "problemas": [],
+  "avisos": [
+    "postgis ainda não está instalado em PROD: a extensão nasce na migration da F32"
+  ]
+}

@@ -11,7 +11,7 @@
 #
 # POSTGRES 17 (V2-F01-E09): a produção roda 17.6, e o compose rodava 16. Um
 # comportamento que muda entre as duas majors só aparecia depois do deploy. A
-# imagem é `postgis/postgis:17-3.5` (PostGIS 3.5 sobre Postgres 17). Trocar a
+# imagem é `postgis/postgis:17-3.6` (PostGIS 3.6 sobre Postgres 17). Trocar a
 # tag NÃO foi executado aqui: esta máquina não tem Docker, então a subida do
 # compose com a imagem nova continua sem registro de execução.
 # Construir e subir uma vez antes do primeiro deploy continua sendo
@@ -36,7 +36,7 @@
 # =====================================================================
 services:
   banco:
-    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+    image: postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64
     environment:
       POSTGRES_DB: dc360
       # O usuário inicial do POSTGRES_USER é superusuário: é o papel de SETUP
@@ -66,7 +66,7 @@ services:
   # depois do migrar (o papel dc360_app nasce lá) e antes da API. Idempotente:
   # subir de novo não falha se o papel já existir.
   papeis:
-    image: postgis/postgis:17-3.5@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6
+    image: postgis/postgis:17-3.6@sha256:5cf98659a260df8b9a5123ea9a9150e317c34d8669045f0f937941c6dadb1f64
     entrypoint: ["bash", "-c"]
     command:
       - |

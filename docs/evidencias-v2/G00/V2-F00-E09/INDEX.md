@@ -3,7 +3,6 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | d8129fad285383d9a11f59264f39528c06977792fd2b1735459d340979f79076 |
-| VEREDITO.md | ac8d863524f8bbd5362b3cf2f2c1eeb4f7540dad98287e70fa3f2b5b8469ca80 |
 | capturas/minha-conta-confirmar-outras-1280-claro.png | ff640a0b33294467626a08846a97fc080866a24579d058880349881e525a1aef |
 | capturas/minha-conta-confirmar-outras-1280-escuro.png | 46c3741b96e5455c120ae56f9f92a23026a38ce27645d12f069fb2e200242870 |
 | capturas/minha-conta-confirmar-outras-390-claro.png | 6ef11726d250aa14ffe64816cebf74f9c4ad14fba5cb25f002920623a3ede80b |

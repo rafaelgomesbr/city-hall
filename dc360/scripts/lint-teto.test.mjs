@@ -25,6 +25,7 @@ import {
   montarTeto,
   problemasContraBase,
   problemasDeConsistencia,
+  problemasPorArquivoERegra,
 } from "./lint-teto.mjs";
 
 const DC360 = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -149,6 +150,111 @@ describe("contra o ramo-base: a baseline só desce", () => {
       problemasContraBase({ formatoAtual: { arquivos: ["a.ts"] }, formatoBase: antes }),
       [],
     );
+  });
+});
+
+describe("contra o ramo-base: o teto vale por arquivo e regra, não só no total", () => {
+  const baseMono = {
+    "a.ts": { "no-eval": { count: 1 } },
+    "b.ts": { "no-eval": { count: 2 } },
+  };
+  const base = { monorepo: baseMono, campo };
+
+  it("corrigir uma supressão num arquivo e abrir outra do mesmo tipo noutro reprova, com o total igual", () => {
+    // a.ts perdeu a sua; um arquivo novo da API ganhou uma. Total 3 e 3.
+    const atualMono = {
+      "b.ts": { "no-eval": { count: 2 } },
+      "api.ts": { "no-eval": { count: 1 } },
+    };
+    const tetoBase = montarTeto(baseMono, campo);
+    const tetoAtual = montarTeto(atualMono, campo);
+    assert.equal(tetoAtual.total, tetoBase.total);
+    assert.deepEqual(tetoAtual.porRegra, tetoBase.porRegra);
+    // Só por total e por regra não se vê nada (o buraco achado na revisão):
+    assert.deepEqual(problemasContraBase({ tetoAtual, tetoBase }), []);
+    // Com as baselines por arquivo, reprova.
+    const p = problemasContraBase({
+      tetoAtual,
+      tetoBase,
+      supressoesAtual: { monorepo: atualMono, campo },
+      supressoesBase: base,
+    });
+    assert.equal(p.length, 1);
+    assert.match(
+      p[0],
+      /monorepo: api\.ts regra no-eval subiu: 0 na base, 1 aqui \(par arquivo\+regra novo/,
+    );
+  });
+
+  it("subir a contagem de um par que já existia reprova", () => {
+    const p = problemasPorArquivoERegra(
+      { monorepo: { ...baseMono, "b.ts": { "no-eval": { count: 3 } } }, campo },
+      base,
+    );
+    assert.match(p.join("\n"), /b\.ts regra no-eval subiu: 2 na base, 3 aqui\./);
+  });
+
+  it("o mesmo vale para o aplicativo de campo", () => {
+    const p = problemasPorArquivoERegra(
+      { monorepo: baseMono, campo: { "c.tsx": { "no-eval": { count: 1 } } } },
+      base,
+    );
+    assert.match(p.join("\n"), /campo: c\.tsx regra no-eval subiu: 0 na base/);
+  });
+
+  it("igual e descer passam; arquivo corrigido some sem problema", () => {
+    assert.deepEqual(problemasPorArquivoERegra(base, base), []);
+    assert.deepEqual(
+      problemasPorArquivoERegra(
+        { monorepo: { "b.ts": { "no-eval": { count: 1 } } }, campo: {} },
+        base,
+      ),
+      [],
+    );
+  });
+
+  it("sem baseline na base (introdução do mecanismo) não há contra o quê comparar", () => {
+    assert.deepEqual(problemasPorArquivoERegra(base, null), []);
+    assert.deepEqual(problemasPorArquivoERegra(base, { monorepo: null, campo: null }), []);
+  });
+
+  it("num repositório de verdade: baselines do ramo-base lidas por git, o par novo reprova", () => {
+    const dir = mkdtempSync(join(tmpdir(), "lint-teto-par-"));
+    const git = (...args) =>
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=t",
+          "-c",
+          "user.email=t@example.com",
+          "-c",
+          "commit.gpgsign=false",
+          ...args,
+        ],
+        { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+    try {
+      git("init", "-q", "-b", "master");
+      mkdirSync(join(dir, "dc360", "apps", "campo"), { recursive: true });
+      const raiz = join(dir, "dc360");
+      writeFileSync(join(raiz, ARQUIVOS.monorepo), JSON.stringify(baseMono));
+      writeFileSync(join(raiz, ARQUIVOS.campo), JSON.stringify(campo));
+      git("add", "-A");
+      git("commit", "-q", "-m", "base");
+      const lido = {
+        monorepo: lerDoRef("master", ARQUIVOS.monorepo, raiz),
+        campo: lerDoRef("master", ARQUIVOS.campo, raiz),
+      };
+      assert.deepEqual(lido.monorepo, baseMono);
+      const atual = {
+        monorepo: { "b.ts": { "no-eval": { count: 2 } }, "api.ts": { "no-eval": { count: 1 } } },
+        campo,
+      };
+      assert.equal(problemasPorArquivoERegra(atual, lido).length, 1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -413,7 +413,7 @@ test("Node e Postgres: divergência entre os arquivos reprova", () => {
     );
   });
   comRaiz((raiz) => {
-    trocar(raiz, "compose.yaml", "postgis/postgis:17-3.5", "postgis/postgis:16-3.4");
+    trocar(raiz, "compose.yaml", "postgis/postgis:17-3.6", "postgis/postgis:16-3.4");
     assert.match(conferirRepositorio({ raiz }).problemas.join("\n"), /deveria ser Postgres 17/);
   });
   comRaiz((raiz) => {

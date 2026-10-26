@@ -826,8 +826,8 @@ Cinco versões diferentes de Postgres e de Node aparecem neste projeto, e confun
 | --- | --- | --- |
 | Node | 22 (`dc360/.nvmrc` e `dc360/.node-version`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` pede `>=22 <23` (V2-F01-E09); o npm só avisa quando a versão não bate |
 | PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
-| Postgres do CI | 17 com PostGIS 3.5 (`postgis/postgis:17-3.5` fixado por digest, V2-F01-E21) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações, roda a API contra banco real e roda o `test:espacial` (PostGIS em Postgres real); o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
-| Postgres do `compose.yaml` | 17 (`postgis/postgis:17-3.5`, V2-F01-E09) | O ambiente local com PostGIS, igual em major ao de produção. A subida do compose com a imagem nova não tem registro de execução |
+| Postgres do CI | 17 com PostGIS 3.6 (`postgis/postgis:17-3.6` fixado por digest, V2-F01-E21) nos jobs `implantavel` e `imagens`; 17 (`postgres:17`, cliente 17) no job `restore` | O primeiro aplica as migrações, roda a API contra banco real e roda o `test:espacial` (PostGIS em Postgres real); o segundo faz o mesmo a partir das imagens Docker; o terceiro ensaia o restore (CA-08) em Linux |
+| Postgres do `compose.yaml` | 17 (`postgis/postgis:17-3.6`, V2-F01-E09) | O ambiente local com PostGIS, igual em major ao de produção. A subida do compose com a imagem nova não tem registro de execução |
 | Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
 
 Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.

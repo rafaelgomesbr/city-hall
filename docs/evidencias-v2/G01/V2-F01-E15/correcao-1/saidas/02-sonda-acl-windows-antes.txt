@@ -1,0 +1,8 @@
+== pasta com concessao explicita herdavel ao grupo Usuarios (S-1-5-32-545), antes do roteiro ==
+<TEMP>\dc360-sonda-acl-e2oGPH\prod BUILTIN\Usuarios:(OI)(CI)(R)
+== DACL do arquivo do dump recem-criado (antes do pg_dump escrever) ==
+<TEMP>\dc360-sonda-acl-e2oGPH\prod\sonda.dump <MAQUINA>\<OPERADOR>:(I)(F)
+    BUILTIN\Usuarios:(I)(R)
+
+Successfully processed 1 files; Failed processing 0 files
+

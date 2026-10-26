@@ -1,0 +1,147 @@
+TAP version 13
+# Subtest: o leitor de workflows acha os jobs que a regra precisa (senão os casos abaixo não provam nada)
+ok 1 - o leitor de workflows acha os jobs que a regra precisa (senão os casos abaixo não provam nada)
+  ---
+  duration_ms: 1.0098
+  type: 'test'
+  ...
+# Subtest: o ruleset real da master não tem problema nenhum
+not ok 2 - o ruleset real da master não tem problema nenhum
+  ---
+  duration_ms: 1.6837
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-afc7c36b2f9640fe4\\dc360\\scripts\\ruleset-master.test.mjs:117:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'exige histórico linear (impede o commit de merge)',
+    +   'o merge não é só commit de merge (nunca squash nem rebase)'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'exige histórico linear (impede o commit de merge)'
+    1: 'o merge não é só commit de merge (nunca squash nem rebase)'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-afc7c36b2f9640fe4/dc360/scripts/ruleset-master.test.mjs:118:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: cada check obrigatório é o nome de exibição de um job que roda em todo pull request
+ok 3 - cada check obrigatório é o nome de exibição de um job que roda em todo pull request
+  ---
+  duration_ms: 0.2423
+  type: 'test'
+  ...
+# Subtest: sem exceção para ninguém, nem para administrador
+ok 4 - sem exceção para ninguém, nem para administrador
+  ---
+  duration_ms: 0.2015
+  type: 'test'
+  ...
+# Subtest: o merge é só por commit de merge (nunca squash) e a master não aceita force-push nem exclusão
+not ok 5 - o merge é só por commit de merge (nunca squash) e a master não aceita force-push nem exclusão
+  ---
+  duration_ms: 0.5066
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\.claude\\worktrees\\agent-afc7c36b2f9640fe4\\dc360\\scripts\\ruleset-master.test.mjs:131:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'squash'
+    -   'merge'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'merge'
+  actual:
+    0: 'squash'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/.claude/worktrees/agent-afc7c36b2f9640fe4/dc360/scripts/ruleset-master.test.mjs:135:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: negativo: ruleset com exceção, check inventado, squash permitido, histórico linear e sem os checks novos é reprovado
+ok 6 - negativo: ruleset com exceção, check inventado, squash permitido, histórico linear e sem os checks novos é reprovado
+  ---
+  duration_ms: 0.378
+  type: 'test'
+  ...
+# Subtest: negativo: ruleset sem force-push bloqueado e sem alvo na master é reprovado
+ok 7 - negativo: ruleset sem force-push bloqueado e sem alvo na master é reprovado
+  ---
+  duration_ms: 0.2475
+  type: 'test'
+  ...
+# Subtest: o CODEOWNERS nomeia as migrações, a autenticação da API e o .github, e os caminhos existem
+ok 8 - o CODEOWNERS nomeia as migrações, a autenticação da API e o .github, e os caminhos existem
+  ---
+  duration_ms: 0.8748
+  type: 'test'
+  ...
+# Subtest: o modelo de PR traz o checklist de auto-aprovação (gates locais, migração aditiva, rollback, evidência)
+ok 9 - o modelo de PR traz o checklist de auto-aprovação (gates locais, migração aditiva, rollback, evidência)
+  ---
+  duration_ms: 0.8573
+  type: 'test'
+  ...
+# Subtest: o CLAUDE.md manda a master por PR e o texto novo não tem travessão
+ok 10 - o CLAUDE.md manda a master por PR e o texto novo não tem travessão
+  ---
+  duration_ms: 1.1509
+  type: 'test'
+  ...
+# Subtest: o ruleset dos ramos de implantação bloqueia criação, push direto, exclusão e force-push, com exceção só para o Actions
+ok 11 - o ruleset dos ramos de implantação bloqueia criação, push direto, exclusão e force-push, com exceção só para o Actions
+  ---
+  duration_ms: 0.5163
+  type: 'test'
+  ...
+# Subtest: os ramos do ruleset são os que os workflows de fato movem, e a master fica de fora
+ok 12 - os ramos do ruleset são os que os workflows de fato movem, e a master fica de fora
+  ---
+  duration_ms: 0.446
+  type: 'test'
+  ...
+# Subtest: o IMPLANTACAO.md diz que importar o ruleset dos ramos é condição da primeira promoção
+ok 13 - o IMPLANTACAO.md diz que importar o ruleset dos ramos é condição da primeira promoção
+  ---
+  duration_ms: 0.4039
+  type: 'test'
+  ...
+# Subtest: negativo: ruleset dos ramos sem uma das regras, com pessoa no bypass, ou mirando só um ramo, reprova
+ok 14 - negativo: ruleset dos ramos sem uma das regras, com pessoa no bypass, ou mirando só um ramo, reprova
+  ---
+  duration_ms: 0.542
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 12
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116.7734

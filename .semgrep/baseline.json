@@ -17,7 +17,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "55b2a3a0f5d5c3e2db7909c4#1",
+      "id": "c426ef232ed110eb95bb17ba#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/push/varredor.ts",
       "linha": 218,
@@ -29,7 +29,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "cf9e0fa076062ccca7f90c7b#1",
+      "id": "65d9f57a466ce945fcf85057#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/avisos.ts",
       "linha": 432,
@@ -41,7 +41,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "7ae47265fc1930df4c52a474#1",
+      "id": "b8e85b5e1a41e40420e330ff#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/avisos.ts",
       "linha": 498,
@@ -53,7 +53,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "c4b738bf7283b3276e5e45a1#1",
+      "id": "29cefe841237e390c96b880a#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/avisos.ts",
       "linha": 591,
@@ -65,7 +65,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "9d29fe4ad5e9d1ae348d3e89#1",
+      "id": "21fb05384cce4fd98b8d7676#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/busca.ts",
       "linha": 163,
@@ -77,7 +77,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "9c4e5c7f30da46399f77de56#1",
+      "id": "0835f90c4da2fd89345cebe6#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/evidencias.ts",
       "linha": 603,
@@ -89,7 +89,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "77018ffc4ebc585be7b174f5#1",
+      "id": "ee9e33c8bc17aeb00c2ab41c#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/evidencias.ts",
       "linha": 640,
@@ -101,7 +101,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "c94f8e5f8f08453f543fb279#1",
+      "id": "b0a05bcf6b53764dfa4b4760#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 180,
@@ -125,7 +125,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "571ddb753aac410195e165e1#1",
+      "id": "8a9c57726aa49ca2272e202f#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 391,
@@ -137,7 +137,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "5471cd9c49392a9a83944843#1",
+      "id": "69a4585827936b2a84d63cf9#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 459,
@@ -149,7 +149,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "02285606712b026a790dfa93#1",
+      "id": "6aaa5afa2e67154a69281020#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 470,
@@ -161,7 +161,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "571ddb753aac410195e165e1#2",
+      "id": "e28f8662c92d3859586596d2#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 507,
@@ -173,7 +173,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "bf32c98dd48a74ba021007ed#1",
+      "id": "9fd8770ff9d0ad452df974f0#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 711,
@@ -185,7 +185,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "92fb47a4faf3a81b5387a678#1",
+      "id": "96ac062c6eb3ba759d9abe99#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 1393,
@@ -197,7 +197,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "ccb3cda998bc1e24848ffa49#1",
+      "id": "2edbb56eead452b8d41f4fde#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 1422,
@@ -209,7 +209,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "5471cd9c49392a9a83944843#2",
+      "id": "7dcd20b60eb6f5ac3b18c540#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/ocorrencias.ts",
       "linha": 1453,
@@ -221,7 +221,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "c3c02e75b2f881172b226f8a#1",
+      "id": "f848dae8ab1fe2fe4c3e762b#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 213,
@@ -233,7 +233,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "4fa5a5af9fc9936c6a63d9c6#1",
+      "id": "0a49f0c2b70cd2f3c7f211a0#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 220,
@@ -245,7 +245,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "042094948edb482d6ffbc501#1",
+      "id": "d47c9d85a09eb2ce75b1a900#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 361,
@@ -257,7 +257,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "c3d4e2f7824c89545d373b30#1",
+      "id": "ebbcd640a9ba681273470c36#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 541,
@@ -269,7 +269,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "44315831a701cafead5044a8#1",
+      "id": "82409ba4aa57d990fb46dce9#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 553,
@@ -281,7 +281,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "3cafcf919185c321f62a5490#1",
+      "id": "e9e77e32ccc41ca8ba774f89#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 559,
@@ -305,7 +305,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "c36c9d2aec1ca926814641a6#1",
+      "id": "8c002627ac8d83198e9272df#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/prestacao-de-contas.ts",
       "linha": 638,
@@ -317,7 +317,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "fe7473c77eb8a0c9aa917fbc#1",
+      "id": "32493047ae38eedf461d5fbb#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/saida-a-campo.ts",
       "linha": 231,
@@ -329,7 +329,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "fe7473c77eb8a0c9aa917fbc#2",
+      "id": "9243e4cb75def86c413c9e8e#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/saida-a-campo.ts",
       "linha": 254,
@@ -341,7 +341,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "fe7473c77eb8a0c9aa917fbc#3",
+      "id": "32493047ae38eedf461d5fbb#2",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/saida-a-campo.ts",
       "linha": 352,
@@ -353,7 +353,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "fe7473c77eb8a0c9aa917fbc#4",
+      "id": "61b0257e0ce476ef9692e4d1#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/saida-a-campo.ts",
       "linha": 367,
@@ -365,7 +365,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "fe7473c77eb8a0c9aa917fbc#5",
+      "id": "ce04b207c83b8dea991fc653#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/saida-a-campo.ts",
       "linha": 701,
@@ -377,7 +377,7 @@
       "ate": "2027-01-31"
     },
     {
-      "id": "fe7473c77eb8a0c9aa917fbc#6",
+      "id": "10cafb6ce7f086fc2da6aa17#1",
       "regra": "dc360-sql-por-interpolacao",
       "arquivo": "dc360/apps/api/src/rotas/saida-a-campo.ts",
       "linha": 843,
@@ -400,5 +400,6 @@
       "dono": "Rafael",
       "ate": "2027-01-31"
     }
-  ]
+  ],
+  "impressao": "regra + arquivo + trecho inteiro do achado + ordem entre iguais (correção 1 da F01, E05; antes era só a primeira linha)"
 }

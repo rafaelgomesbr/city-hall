@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: o id da regra perde o prefixo do caminho da configuração
+ok 1 - o id da regra perde o prefixo do caminho da configuração
+  ---
+  duration_ms: 2.7716
+  type: 'test'
+  ...
+# Subtest: achados iguais em linhas diferentes têm impressão própria (a ordem entre eles), e a linha não entra nela
+ok 2 - achados iguais em linhas diferentes têm impressão própria (a ordem entre eles), e a linha não entra nela
+  ---
+  duration_ms: 16.3111
+  type: 'test'
+  ...
+# Subtest: a mesma regra vinda de dois pacotes entra uma vez só
+ok 3 - a mesma regra vinda de dois pacotes entra uma vez só
+  ---
+  duration_ms: 0.3215
+  type: 'test'
+  ...
+# Subtest: achado que já está na baseline não é novo; linha que andou também não
+ok 4 - achado que já está na baseline não é novo; linha que andou também não
+  ---
+  duration_ms: 0.6725
+  type: 'test'
+  ...
+# Subtest: achado NOVO (outro texto, outro arquivo ou segunda ocorrência) fica de fora da baseline
+ok 5 - achado NOVO (outro texto, outro arquivo ou segunda ocorrência) fica de fora da baseline
+  ---
+  duration_ms: 0.8284
+  type: 'test'
+  ...
+# Subtest: entrada da baseline que o Semgrep já não encontra é listada como obsoleta
+ok 6 - entrada da baseline que o Semgrep já não encontra é listada como obsoleta
+  ---
+  duration_ms: 0.2222
+  type: 'test'
+  ...
+# Subtest: CLI: varredura sem nenhum achado aprova (e avisa as entradas obsoletas)
+ok 7 - CLI: varredura sem nenhum achado aprova (e avisa as entradas obsoletas)
+  ---
+  duration_ms: 520.3473
+  type: 'test'
+  ...
+# Subtest: CLI: achado ERROR novo reprova com código 1 e diz onde
+ok 8 - CLI: achado ERROR novo reprova com código 1 e diz onde
+  ---
+  duration_ms: 292.0335
+  type: 'test'
+  ...
+# Subtest: CLI: achado novo de severidade WARNING avisa e não reprova
+ok 9 - CLI: achado novo de severidade WARNING avisa e não reprova
+  ---
+  duration_ms: 366.5397
+  type: 'test'
+  ...
+# Subtest: CLI: análise com erro do Semgrep reprova (sem leitura confiável não há aprovação)
+ok 10 - CLI: análise com erro do Semgrep reprova (sem leitura confiável não há aprovação)
+  ---
+  duration_ms: 848.1794
+  type: 'test'
+  ...
+# Subtest: DV-16: erro de sintaxe (warn) em dc360/apps/api/src reprova, e a mensagem não despeja o código
+ok 11 - DV-16: erro de sintaxe (warn) em dc360/apps/api/src reprova, e a mensagem não despeja o código
+  ---
+  duration_ms: 412.5472
+  type: 'test'
+  ...
+# Subtest: DV-16: parse parcial e tempo esgotado (type em lista, nível warn) em api/src também reprovam
+ok 12 - DV-16: parse parcial e tempo esgotado (type em lista, nível warn) em api/src também reprovam
+  ---
+  duration_ms: 283.8218
+  type: 'test'
+  ...
+# Subtest: DV-16: erro warn fora de api/src é listado como aviso e não reprova; sem caminho reprova
+ok 13 - DV-16: erro warn fora de api/src é listado como aviso e não reprova; sem caminho reprova
+  ---
+  duration_ms: 676.219
+  type: 'test'
+  ...
+# Subtest: DV-16: classificarErrosDeAnalise separa bloqueantes e avisos e aceita lista vazia ou ausente
+ok 14 - DV-16: classificarErrosDeAnalise separa bloqueantes e avisos e aceita lista vazia ou ausente
+  ---
+  duration_ms: 1.4703
+  type: 'test'
+  ...
+# Subtest: a impressão cobre o trecho INTEIRO do achado: mudança na segunda linha da consulta reabre o achado
+ok 15 - a impressão cobre o trecho INTEIRO do achado: mudança na segunda linha da consulta reabre o achado
+  ---
+  duration_ms: 0.7229
+  type: 'test'
+  ...
+# Subtest: sem a posição final do achado a impressão cai na linha inicial (nunca quebra)
+ok 16 - sem a posição final do achado a impressão cai na linha inicial (nunca quebra)
+  ---
+  duration_ms: 0.2688
+  type: 'test'
+  ...
+# Subtest: problemasDeCobertura: análise sem arquivo examinado, ausente ou abaixo do piso reprova
+ok 17 - problemasDeCobertura: análise sem arquivo examinado, ausente ou abaixo do piso reprova
+  ---
+  duration_ms: 0.886
+  type: 'test'
+  ...
+# Subtest: CLI: análise que não examinou arquivo nenhum NÃO aprova (era o falso verde da revisão)
+ok 18 - CLI: análise que não examinou arquivo nenhum NÃO aprova (era o falso verde da revisão)
+  ---
+  duration_ms: 1224.481
+  type: 'test'
+  ...
+# Subtest: CLI: --baseline aponta outro arquivo, e achado ERROR do registro que não está nele reprova
+ok 19 - CLI: --baseline aponta outro arquivo, e achado ERROR do registro que não está nele reprova
+  ---
+  duration_ms: 570.898
+  type: 'test'
+  ...
+# Subtest: CLI: --baseline sem o caminho, ou com arquivo que não existe, é erro de uso e nunca aprova
+ok 20 - CLI: --baseline sem o caminho, ou com arquivo que não existe, é erro de uso e nunca aprova
+  ---
+  duration_ms: 565.8582
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6180.6585

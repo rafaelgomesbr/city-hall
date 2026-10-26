@@ -1,0 +1,424 @@
+TAP version 13
+# Subtest: exceção completa e vigente é aceita
+ok 1 - exceção completa e vigente é aceita
+  ---
+  duration_ms: 5.1268
+  type: 'test'
+  ...
+# Subtest: o marcador na linha de comentário acima do código também vale
+ok 2 - o marcador na linha de comentário acima do código também vale
+  ---
+  duration_ms: 0.5635
+  type: 'test'
+  ...
+# Subtest: vários ids de regra na mesma exceção são aceitos
+ok 3 - vários ids de regra na mesma exceção são aceitos
+  ---
+  duration_ms: 0.2513
+  type: 'test'
+  ...
+# Subtest: sem motivo reprova
+ok 4 - sem motivo reprova
+  ---
+  duration_ms: 0.5472
+  type: 'test'
+  ...
+# Subtest: motivo de uma palavra reprova: não explica nada
+ok 5 - motivo de uma palavra reprova: não explica nada
+  ---
+  duration_ms: 0.2884
+  type: 'test'
+  ...
+# Subtest: sem dono reprova
+ok 6 - sem dono reprova
+  ---
+  duration_ms: 0.2181
+  type: 'test'
+  ...
+# Subtest: sem data reprova
+ok 7 - sem data reprova
+  ---
+  duration_ms: 0.3493
+  type: 'test'
+  ...
+# Subtest: data mal formada ou impossível reprova
+ok 8 - data mal formada ou impossível reprova
+  ---
+  duration_ms: 0.4962
+  type: 'test'
+  ...
+# Subtest: exceção vencida reprova, e a data vale até o fim do próprio dia
+ok 9 - exceção vencida reprova, e a data vale até o fim do próprio dia
+  ---
+  duration_ms: 0.7169
+  type: 'test'
+  ...
+# Subtest: prazo maior que um ano reprova: exceção não é decisão permanente
+ok 10 - prazo maior que um ano reprova: exceção não é decisão permanente
+  ---
+  duration_ms: 0.7165
+  type: 'test'
+  ...
+# Subtest: supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data
+ok 11 - supressão cega (sem id de regra) é proibida, mesmo com motivo, dono e data
+  ---
+  duration_ms: 0.4069
+  type: 'test'
+  ...
+# Subtest: a linha do problema é a do marcador
+ok 12 - a linha do problema é a do marcador
+  ---
+  duration_ms: 0.2012
+  type: 'test'
+  ...
+# Subtest: a palavra solta em prosa, sem comentário, não é marcador
+ok 13 - a palavra solta em prosa, sem comentário, não é marcador
+  ---
+  duration_ms: 0.1438
+  type: 'test'
+  ...
+# Subtest: lerDataIso só aceita data de calendário
+ok 14 - lerDataIso só aceita data de calendário
+  ---
+  duration_ms: 0.246
+  type: 'test'
+  ...
+# Subtest: problemasDaExcecao vale também para entrada fora de comentário (a baseline)
+ok 15 - problemasDaExcecao vale também para entrada fora de comentário (a baseline)
+  ---
+  duration_ms: 0.1684
+  type: 'test'
+  ...
+# Subtest: todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente
+ok 16 - todo nosemgrep do repositório tem regra, motivo, dono e prazo vigente
+  ---
+  duration_ms: 43893.8223
+  type: 'test'
+  ...
+# Subtest: a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada
+ok 17 - a baseline triada tem classe, motivo, dono e prazo vigente em toda entrada
+  ---
+  duration_ms: 24.1841
+  type: 'test'
+  ...
+# Subtest: a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho
+ok 18 - a baseline não aceita entrada sem triagem, classe inventada nem defeito sem trabalho
+  ---
+  duration_ms: 0.6166
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição)
+ok 19 - nenhuma cópia das regras do registro mora no repositório (público, licença sem redistribuição)
+  ---
+  duration_ms: 2.9907
+  type: 'test'
+  ...
+# Subtest: toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/
+ok 20 - toda regra própria tem casos positivos (ruleid) e negativos (ok) em .semgrep/test/
+  ---
+  duration_ms: 154.0938
+  type: 'test'
+  ...
+# Subtest: as regras próprias reprovam em ERROR (é o que o portão do PR lê)
+ok 21 - as regras próprias reprovam em ERROR (é o que o portão do PR lê)
+  ---
+  duration_ms: 1.0141
+  type: 'test'
+  ...
+# Subtest: o workflow de SAST fixa a versão e não deixa código sair do runner
+ok 22 - o workflow de SAST fixa a versão e não deixa código sair do runner
+  ---
+  duration_ms: 37.7226
+  type: 'test'
+  ...
+# Subtest: DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado
+ok 23 - DV-15: o Semgrep e todas as transitivas são instalados por hash (--require-hashes) a partir de um arquivo versionado
+  ---
+  duration_ms: 1.0392
+  type: 'test'
+  ...
+# Subtest: DV-15: .semgrep/requirements.txt tem hash em todo pacote, é gerado do .in e a versão do Semgrep bate com a do workflow
+ok 24 - DV-15: .semgrep/requirements.txt tem hash em todo pacote, é gerado do .in e a versão do Semgrep bate com a do workflow
+  ---
+  duration_ms: 21.6614
+  type: 'test'
+  ...
+# Subtest: DV-15: o verificador de requirements com hash morde (sem hash, sem versão exata, URL, hash curto)
+ok 25 - DV-15: o verificador de requirements com hash morde (sem hash, sem versão exata, URL, hash curto)
+  ---
+  duration_ms: 0.3511
+  type: 'test'
+  ...
+# Subtest: o registro roda FIXADO num commit, sem mascarar falha, e ERROR novo dele reprova pela baseline
+ok 26 - o registro roda FIXADO num commit, sem mascarar falha, e ERROR novo dele reprova pela baseline
+  ---
+  duration_ms: 2.582
+  type: 'test'
+  ...
+# Subtest: negativo: workflow com `p/...`, `|| true`, continue-on-error ou commit sem conferência é reprovado
+ok 27 - negativo: workflow com `p/...`, `|| true`, continue-on-error ou commit sem conferência é reprovado
+  ---
+  duration_ms: 1.1653
+  type: 'test'
+  ...
+# Subtest: a baseline do registro existe, obedece à política de exceção e diz de qual commit das regras ela vale
+ok 28 - a baseline do registro existe, obedece à política de exceção e diz de qual commit das regras ela vale
+  ---
+  duration_ms: 37.1427
+  type: 'test'
+  ...
+# Subtest: o workflow de SAST roda semgrep --test antes da varredura e a baseline decide
+ok 29 - o workflow de SAST roda semgrep --test antes da varredura e a baseline decide
+  ---
+  duration_ms: 0.4657
+  type: 'test'
+  ...
+# Subtest: o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA
+ok 30 - o workflow de SAST segue as regras de CI: permissions mínimas, timeout, runner fixo, ações por SHA
+  ---
+  duration_ms: 1.1633
+  type: 'test'
+  ...
+# Subtest: o ruleset exige o nome de exibição do job de SAST, então o nome é contrato
+ok 31 - o ruleset exige o nome de exibição do job de SAST, então o nome é contrato
+  ---
+  duration_ms: 0.4356
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: entrada completa e vigente, comentário e linha em branco são aceitos
+ok 32 - trivyignore.yaml: entrada completa e vigente, comentário e linha em branco são aceitos
+  ---
+  duration_ms: 1.7122
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: sem motivo, sem dono ou sem prazo reprova, e diz o quê
+ok 33 - trivyignore.yaml: sem motivo, sem dono ou sem prazo reprova, e diz o quê
+  ---
+  duration_ms: 0.4118
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: motivo curto, data impossível e prazo de mais de um ano reprovam
+ok 34 - trivyignore.yaml: motivo curto, data impossível e prazo de mais de um ano reprovam
+  ---
+  duration_ms: 0.4761
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: entrada vencida reprova, e o próprio dia do expired_at já conta como sem efeito (é exclusivo no Trivy)
+ok 35 - trivyignore.yaml: entrada vencida reprova, e o próprio dia do expired_at já conta como sem efeito (é exclusivo no Trivy)
+  ---
+  duration_ms: 0.3851
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml: ID repetido, chave desconhecida e linha fora do formato reprovam (nada é ignorado em silêncio)
+ok 36 - trivyignore.yaml: ID repetido, chave desconhecida e linha fora do formato reprovam (nada é ignorado em silêncio)
+  ---
+  duration_ms: 0.4613
+  type: 'test'
+  ...
+# Subtest: trivyignore.yaml (DV-22): entrada sem caminho ou com caminho largo demais reprova
+ok 37 - trivyignore.yaml (DV-22): entrada sem caminho ou com caminho largo demais reprova
+  ---
+  duration_ms: 0.6882
+  type: 'test'
+  ...
+# Subtest: o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente
+ok 38 - o .trivyignore.yaml da raiz existe, o .trivyignore antigo não, e toda entrada tem ID, caminho, motivo, dono e prazo vigente
+  ---
+  duration_ms: 68.7784
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh fixa a versão do Trivy com SHA-256 e usa a régua da etapa
+ok 39 - varrer-imagem.sh fixa a versão do Trivy com SHA-256 e usa a régua da etapa
+  ---
+  duration_ms: 66.407
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: imagem limpa sai 0, e o Trivy recebe a régua inteira e o arquivo de exceções
+ok 40 - varrer-imagem.sh: imagem limpa sai 0, e o Trivy recebe a régua inteira e o arquivo de exceções # SKIP script em bash
+  ---
+  duration_ms: 0.0998
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: achado de CRITICAL ou HIGH com correção reprova com código 1
+ok 41 - varrer-imagem.sh: achado de CRITICAL ou HIGH com correção reprova com código 1 # SKIP script em bash
+  ---
+  duration_ms: 0.0775
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: Trivy que não consegue varrer sai 2, nunca verde
+ok 42 - varrer-imagem.sh: Trivy que não consegue varrer sai 2, nunca verde # SKIP script em bash
+  ---
+  duration_ms: 0.0627
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh (DV-22): arquivo de exceções que não é YAML (o .trivyignore por linha, sem caminho) não roda
+ok 43 - varrer-imagem.sh (DV-22): arquivo de exceções que não é YAML (o .trivyignore por linha, sem caminho) não roda # SKIP script em bash
+  ---
+  duration_ms: 0.0616
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: sem o arquivo de exceções a varredura não roda
+ok 44 - varrer-imagem.sh: sem o arquivo de exceções a varredura não roda # SKIP script em bash
+  ---
+  duration_ms: 0.0606
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh: checksum que não bate interrompe a instalação antes de extrair
+ok 45 - varrer-imagem.sh: checksum que não bate interrompe a instalação antes de extrair # SKIP script em bash
+  ---
+  duration_ms: 0.0579
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh instalar: o stdout é UMA linha, só o caminho do binário (o workflow o grava em $GITHUB_ENV)
+ok 46 - varrer-imagem.sh instalar: o stdout é UMA linha, só o caminho do binário (o workflow o grava em $GITHUB_ENV) # SKIP script em bash
+  ---
+  duration_ms: 0.0869
+  type: 'test'
+  ...
+# Subtest: varrer-imagem.sh instalar: a trava do stdout morde (sem o redirecionamento da conferência, o teste reprova)
+ok 47 - varrer-imagem.sh instalar: a trava do stdout morde (sem o redirecionamento da conferência, o teste reprova) # SKIP script em bash
+  ---
+  duration_ms: 0.0996
+  type: 'test'
+  ...
+# Subtest: verificar.yml e auditoria-semanal.yml: o job imagens instala o Trivy fixo e varre as duas imagens sem poder ignorar a falha
+ok 48 - verificar.yml e auditoria-semanal.yml: o job imagens instala o Trivy fixo e varre as duas imagens sem poder ignorar a falha
+  ---
+  duration_ms: 57.2287
+  type: 'test'
+  ...
+# Subtest: a imagem comunitária do banco (PostGIS, por digest) passa pelo Trivy no PR e na agenda, com a mesma régua e o mesmo digest dos serviços (correção 1 da F01, E21)
+ok 49 - a imagem comunitária do banco (PostGIS, por digest) passa pelo Trivy no PR e na agenda, com a mesma régua e o mesmo digest dos serviços (correção 1 da F01, E21)
+  ---
+  duration_ms: 3.5106
+  type: 'test'
+  ...
+# Subtest: a varredura semanal das imagens mora em auditoria-semanal.yml (CVE nasce sem commit) e roda na agenda
+ok 50 - a varredura semanal das imagens mora em auditoria-semanal.yml (CVE nasce sem commit) e roda na agenda
+  ---
+  duration_ms: 0.4869
+  type: 'test'
+  ...
+# Subtest: o job imagens do verificar.yml continua com o nome que o ruleset exige
+ok 51 - o job imagens do verificar.yml continua com o nome que o ruleset exige
+  ---
+  duration_ms: 0.881
+  type: 'test'
+  ...
+# Subtest: a imagem boa passa nas três conferências de imagem, com o docker pelo ponto de entrada trocado
+ok 52 - a imagem boa passa nas três conferências de imagem, com o docker pelo ponto de entrada trocado
+  ---
+  duration_ms: 3.1264
+  type: 'test'
+  ...
+# Subtest: negativo: imagem sem USER node (root na configuração) reprova
+ok 53 - negativo: imagem sem USER node (root na configuração) reprova
+  ---
+  duration_ms: 0.3147
+  type: 'test'
+  ...
+# Subtest: negativo: processo com uid 0 reprova, mesmo se a configuração disser node
+ok 54 - negativo: processo com uid 0 reprova, mesmo se a configuração disser node
+  ---
+  duration_ms: 0.2669
+  type: 'test'
+  ...
+# Subtest: negativo: usuário que não é o node (mesmo sem ser root) reprova
+ok 55 - negativo: usuário que não é o node (mesmo sem ser root) reprova
+  ---
+  duration_ms: 0.3375
+  type: 'test'
+  ...
+# Subtest: negativo: imagem sem Chromium reprova, e Chromium que responde outra coisa também
+ok 56 - negativo: imagem sem Chromium reprova, e Chromium que responde outra coisa também
+  ---
+  duration_ms: 0.5493
+  type: 'test'
+  ...
+# Subtest: a /saude da API e a do console passam quando versao e commit são os do build
+ok 57 - a /saude da API e a do console passam quando versao e commit são os do build
+  ---
+  duration_ms: 0.3495
+  type: 'test'
+  ...
+# Subtest: negativo: /saude com versao ou commit diferentes do build, banco fora, ok falso ou lixo reprova
+ok 58 - negativo: /saude com versao ou commit diferentes do build, banco fora, ok falso ou lixo reprova
+  ---
+  duration_ms: 0.5449
+  type: 'test'
+  ...
+# Subtest: o comando devolve 0, 1 e 2 como o CI espera, e escreve o motivo da reprovação
+ok 59 - o comando devolve 0, 1 e 2 como o CI espera, e escreve o motivo da reprovação
+  ---
+  duration_ms: 0.6916
+  type: 'test'
+  ...
+# Subtest: os dois Dockerfiles têm a base fixada por digest, o mesmo digest, e o carimbo do build antes do USER node
+ok 60 - os dois Dockerfiles têm a base fixada por digest, o mesmo digest, e o carimbo do build antes do USER node
+  ---
+  duration_ms: 116.597
+  type: 'test'
+  ...
+# Subtest: o job `imagens` existe, sem segredo, sem permissão extra, com Postgres 17 e timeout
+ok 61 - o job `imagens` existe, sem segredo, sem permissão extra, com Postgres 17 e timeout
+  ---
+  duration_ms: 1.0403
+  type: 'test'
+  ...
+# Subtest: o job `imagens` constrói as duas imagens com os dois argumentos de build e roda as quatro conferências
+ok 62 - o job `imagens` constrói as duas imagens com os dois argumentos de build e roda as quatro conferências
+  ---
+  duration_ms: 0.5226
+  type: 'test'
+  ...
+# Subtest: a imagem leva o commit que o checkout REALMENTE construiu (merge sintético em PR), e o candidato fica à parte (correção 1 da F01, E08)
+ok 63 - a imagem leva o commit que o checkout REALMENTE construiu (merge sintético em PR), e o candidato fica à parte (correção 1 da F01, E08)
+  ---
+  duration_ms: 0.3929
+  type: 'test'
+  ...
+# Subtest: o nome do job `imagens` é check obrigatório da master
+ok 64 - o nome do job `imagens` é check obrigatório da master
+  ---
+  duration_ms: 0.6112
+  type: 'test'
+  ...
+# Subtest: o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16
+ok 65 - o implantavel prova a partida contra o Postgres 17 de produção, e nenhum job fica em 16
+  ---
+  duration_ms: 1.775
+  type: 'test'
+  ...
+# Subtest: PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta
+ok 66 - PostGIS 17 por digest (V2-F01-E21): implantavel, imagens e compose usam a mesma imagem, e nenhum usa tag solta
+  ---
+  duration_ms: 3.9508
+  type: 'test'
+  ...
+# Subtest: o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado
+ok 67 - o implantavel roda test:espacial exigindo PostGIS e reprova se o teste foi pulado
+  ---
+  duration_ms: 31.5857
+  type: 'test'
+  ...
+# Subtest: test:espacial existe na raiz e no db, e o npm test comum não roda os espaciais
+ok 68 - test:espacial existe na raiz e no db, e o npm test comum não roda os espaciais
+  ---
+  duration_ms: 6.8542
+  type: 'test'
+  ...
+# Subtest: rollback.md existe e cobre as cinco frentes com o comando de cada uma
+ok 69 - rollback.md existe e cobre as cinco frentes com o comando de cada uma
+  ---
+  duration_ms: 15.9596
+  type: 'test'
+  ...
+1..69
+# tests 69
+# suites 0
+# pass 61
+# fail 0
+# cancelled 0
+# skipped 8
+# todo 0
+# duration_ms 44988.4215

@@ -1,0 +1,2 @@
+OK: nada subiu em relação a origin/v2/f01.
+OK: lint-teto.json confere com as baselines (431 supressões).
