@@ -147,7 +147,7 @@ describe("A autorização perguntada ao servidor do município", () => {
     const chamada = responder({ mapaAutorizado: true, chaveDoMapa: "chave-do-painel" });
     await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
     expect(chamada).toHaveBeenCalledWith(
-      "https://api.exemplo.test/configuracao",
+      "https://api.exemplo.test/v1/configuracao",
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: "Bearer tok" }),
       }),

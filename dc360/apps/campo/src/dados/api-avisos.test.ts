@@ -59,7 +59,7 @@ describe("a pergunta ao sino", () => {
       com fuso, e uma cadeia vazia reprova a consulta inteira com 422. Primeira
       carga é a AUSÊNCIA do parâmetro.
     */
-    expect(pedido?.url).toBe("https://api.exemplo.test/avisos");
+    expect(pedido?.url).toBe("https://api.exemplo.test/v1/avisos");
   });
 
   it("leva o PAR (instante, id) quando a resposta anterior foi cortada", async () => {
@@ -69,7 +69,7 @@ describe("a pergunta ao sino", () => {
     });
 
     const url = new URL(pedido?.url ?? "");
-    expect(url.pathname).toBe("/avisos");
+    expect(url.pathname).toBe("/v1/avisos");
     expect(url.searchParams.get("desde")).toBe("2026-09-14T11:00:00.000Z");
     /* O id é a metade que desfaz o empate, e é a que some sem ninguém notar. */
     expect(url.searchParams.get("desdeId"))
@@ -115,7 +115,7 @@ describe("marcar como lidos", () => {
 
     const r = await marcarAvisosLidos("token", ["a", "b"]);
 
-    expect(pedido?.url).toBe("https://api.exemplo.test/avisos/lidos");
+    expect(pedido?.url).toBe("https://api.exemplo.test/v1/avisos/lidos");
     expect(pedido?.opcoes.method).toBe("POST");
     /*
       A lista, e nunca "tudo até tal hora": com um marco de tempo, o toque em

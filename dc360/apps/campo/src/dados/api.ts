@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import type { Papel, Severidade, TipoCobrade } from "@dc360/shared";
+import { categoriaDoErro, type CategoriaDeErro, type Papel, type Severidade, type TipoCobrade } from "@dc360/shared";
 
 /**
  * O que o aplicativo pede à API além de sincronizar.
@@ -14,19 +14,29 @@ import type { Papel, Severidade, TipoCobrade } from "@dc360/shared";
  * que falha ao baixar só precisa dizer "sem sinal, mostrando o que já tinha".
  */
 
-const BASE = String(
+const ORIGEM = String(
   (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ?? "",
-).replace(/\/$/, "");
+).replace(/\/+$/, "");
+const BASE = ORIGEM ? `${ORIGEM}/v1` : "";
 
-export function enderecoDaApi(): string {
-  return BASE;
+/** A fila e as chamadas recebem a base; as telas de identificação mostram a origem. */
+export function enderecoDaApi(parte: "base" | "origem" = "base"): string {
+  return parte === "origem" ? ORIGEM : BASE;
 }
 
 /** Erro que o aplicativo sabe explicar, separado de falha de rede. */
 export class ErroDaApi extends Error {
+  /**
+   * A categoria do catálogo (`erros.ts`) pelo código, com o status como padrão;
+   * 401 com código desconhecido fica sem categoria. É informação aditiva: nesta
+   * etapa nenhuma tela decide por ela, e a fila decide no transporte.
+   */
+  readonly categoria: CategoriaDeErro | null;
+
   constructor(readonly status: number, readonly codigo: string, mensagem: string) {
     super(mensagem);
     this.name = "ErroDaApi";
+    this.categoria = categoriaDoErro({ erro: codigo }, status);
   }
 
   /**
@@ -188,7 +198,8 @@ async function chamar<T>(
 
   if (resposta.status === 204) return undefined as T;
 
-  const corpo = (await resposta.json().catch(() => ({}))) as Record<string, unknown>;
+  const bruto: unknown = await resposta.json().catch(() => ({}));
+  const corpo = typeof bruto === "object" && bruto !== null ? bruto as Record<string, unknown> : {};
   if (!resposta.ok) {
     throw new ErroDaApi(
       resposta.status,

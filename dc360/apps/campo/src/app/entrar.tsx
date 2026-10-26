@@ -269,7 +269,7 @@ export default function Entrar() {
         {/* Qual servidor este binário está usando. Sem isto, descobrir que o
             aparelho ficou apontando para homologação exige abrir o código. */}
         <Txt variante="legenda" discreto alinhamento="center" mono>
-          {enderecoDaApi() || "endereço da API não configurado"}
+          {enderecoDaApi("origem") || "endereço da API não configurado"}
         </Txt>
       </ScrollView>
     </KeyboardAvoidingView>

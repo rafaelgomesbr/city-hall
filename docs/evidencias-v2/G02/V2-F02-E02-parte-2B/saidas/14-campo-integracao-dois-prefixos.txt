@@ -1,0 +1,26 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/codex-2b/dc360/apps/api
+
+ ✓ test/campo-integracao.test.ts (17 tests) 16555ms
+   ✓ Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só  391ms
+   ✓ Fila de campo contra a API > token recusado e sem renovação possível pausa a fila: o item NÃO é bloqueado nem descartado  463ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação  1609ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada  1482ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez  3974ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar  702ms
+   ✓ Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez  740ms
+ ✓ test/campo-integracao-v1.test.ts (17 tests) 16566ms
+   ✓ Fila de campo contra a API > a mesma coleta enviada dez vezes vira um laudo só  379ms
+   ✓ Fila de campo contra a API > token recusado e sem renovação possível pausa a fila: o item NÃO é bloqueado nem descartado  455ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação  1594ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada  1513ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > senha redefinida por quem administra: a sessão velha pausa, a senha provisória pausa por outro motivo, e depois da troca a coleta sobe UMA vez  3963ms
+   ✓ Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06) > token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar  706ms
+   ✓ Foto de campo do aparelho ao banco > a conta troca com a foto em voo: o servidor recusa o autor errado e a trilha não ganha uma foto que ninguém fez  718ms
+
+ Test Files  2 passed (2)
+      Tests  34 passed (34)
+   Start at  23:25:52
+   Duration  21.21s (transform 1.27s, setup 1.63s, collect 6.45s, tests 33.12s, environment 0ms, prepare 445ms)
+
+exit=0

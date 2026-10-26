@@ -1,5 +1,6 @@
 import {
-  CODIGOS_DE_ERRO_DE_ACESSO, acaoParaOCodigo,
+  CODIGOS_DE_ERRO_DE_ACESSO, categoriaDoErro,
+  type CategoriaDeErro,
   type DevolucaoDeTarefa, type EnvelopeSincronizacao,
 } from "@dc360/shared";
 import { pedidoDeEvidenciaDaFoto } from "./conferencia.js";
@@ -42,6 +43,19 @@ import {
  *   marcada como recusada.
  *   O 401 sem código reconhecido (corpo vazio, servidor antigo) segue o mesmo
  *   caminho do `nao_autenticado`: na dúvida entre perder coleta e pausar, pausa.
+ *
+ * Desde a V2-F02-E03 o código é lido pela CATEGORIA do catálogo
+ * (`@dc360/shared`, `erros.ts`), e não mais pela ação de `codigos-de-erro.ts`.
+ * A categoria decide DENTRO do status, e nunca por cima dele: os desfechos
+ * acima são os de antes (a única diferença é o 401 `credenciais`, também
+ * `reentrar`, que não chega às rotas da fila e deixa de gastar a renovação),
+ * porque o 409 `autor_divergente` (categoria
+ * `reentrar`) e o 409 `tarefa_no_prazo` (categoria `aguardar`) foram escolhidos
+ * pela API justamente para cair em `FalhaPermanente` e deixar o item
+ * `bloqueado` com saída pela tela (ver `rotas/sincronizacao.ts`). Pausar a fila
+ * inteira por um item de outra pessoa, ou repetir para sempre uma recusa que
+ * só a pessoa resolve, seria pior. Quem decide é só o `erro` do catálogo; a
+ * `categoria` que o servidor venha a mandar no corpo não governa a fila.
  */
 export type OpcoesTransporte = {
   baseUrl: string;
@@ -86,16 +100,23 @@ function falhaDaResposta(
   if (status === 401) return falhaDeSessao("sessao_encerrada", corpo);
   if (status === 403) {
     /*
-      O 403 é lido pela AÇÃO que o catálogo manda o cliente tomar, e não por
-      uma lista de códigos escrita aqui: foi uma lista que deixou
+      O 403 é lido pela CATEGORIA que o catálogo dá ao código, e não por uma
+      lista de códigos escrita aqui: foi uma lista que deixou
       `troca_de_senha_obrigatoria` cair em `FalhaPermanente` e bloquear a fila
-      inteira (correção 1 da E06). Toda ação do catálogo, menos `nenhuma`
-      (`sem_permissao`, que é do PAPEL e continua recusa do dado), é um estado da
-      CONTA ou do CONTRATO, e nunca da coleta.
+      inteira (correção 1 da E06). `conta_desativada` é `permanente` no
+      catálogo (repetir não resolve), mas é a CONTA que foi recusada, e não a
+      coleta: por isso é lida pelo código, antes da categoria. `sem_permissao`
+      e `assinatura` (que é do endereço assinado do armazenamento, e não do
+      token) continuam recusa do dado, como antes.
     */
-    const acao = acaoParaOCodigo(corpo["erro"]);
-    if (acao === "parar_e_avisar") return falhaDeSessao("conta_desativada", corpo);
-    if (acao === "trocar_a_senha") return falhaDeSessao("troca_de_senha_obrigatoria", corpo);
+    if (corpo["erro"] === "conta_desativada") return falhaDeSessao("conta_desativada", corpo);
+    const categoria = categoriaDoCodigoRecebido(corpo);
+    if (categoria === "reentrar") {
+      return falhaDeSessao(
+        corpo["erro"] === "troca_de_senha_obrigatoria" ? "troca_de_senha_obrigatoria" : "sessao_encerrada",
+        corpo,
+      );
+    }
     /*
       A suspensão do contrato: a API já responde 503 nas rotas da fila (que o
       cliente trata como temporário), e este ramo é a defesa em profundidade
@@ -103,7 +124,7 @@ function falhaDaResposta(
       o contrato voltar; bloqueá-la convidaria a apagar prova por um problema
       que não é dela.
     */
-    if (acao === "aguardar_o_contrato") {
+    if (categoria === "aguardar") {
       return new FalhaTemporaria(String(corpo["mensagem"] ?? "O acesso está suspenso."));
     }
   }
@@ -121,6 +142,14 @@ function falhaDaResposta(
     String(corpo["erro"] ?? `http_${status}`),
     campos,
   );
+}
+
+/**
+ * A categoria do `erro` recebido, só pelo catálogo, sem o padrão do status:
+ * código desconhecido dá `null`, e quem decide então é o status, como antes.
+ */
+function categoriaDoCodigoRecebido(corpo: Record<string, unknown>): CategoriaDeErro | null {
+  return categoriaDoErro({ erro: corpo["erro"] });
 }
 
 /** A frase do servidor quando veio, e a do catalogo quando nao veio. */
@@ -186,9 +215,9 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
     /*
       O servidor ja disse que a sessao acabou: renovar so gastaria o token de
       renovacao (rotativo) contra uma sessao que ele mesmo encerrou. Quem diz o
-      que e "entrar de novo" e o catalogo.
+      que e "entrar de novo" e o catalogo: a categoria `reentrar`.
     */
-    if (acaoParaOCodigo(corpo["erro"]) === "entrar_de_novo") {
+    if (categoriaDoCodigoRecebido(corpo) === "reentrar") {
       return { resposta: primeira, corpo };
     }
 
