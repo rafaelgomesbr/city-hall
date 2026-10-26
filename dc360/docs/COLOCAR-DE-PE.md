@@ -38,7 +38,7 @@ D-U-N-S e a revisão não forem gargalo.
   e Android**), API (Fastify), banco (PostgreSQL; o PostGIS é a escolha da
   stack, mas nenhuma migração cria a extensão ainda, porque nada faz consulta
   espacial), esquemas Zod compartilhados.
-- **6850 testes somando o aplicativo** (contagem estática de `npm run
+- **6877 testes somando o aplicativo** (contagem estática de `npm run
   conferir:numeros` em 2026-10-20; a execução imprime pulos por ambiente à
   parte). Na árvore validada da F00 (`4b96ea7`) a linha de base conferiu todos
   os passos (17 de 17 com `--sem-instalar`); medida num Mac em 2026-10-14, deu
@@ -264,6 +264,21 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
   | `ESPELHO_LEGADO_ATE` | `AAAA-MM-DD`, vai no cabeçalho `Sunset` do caminho sem prefixo. O padrão (`2027-12-31`) é **provisório**. Data inválida ou vazia impede a partida |
   | `ESPELHO_LEGADO_ENCERRADO` | `nao` (o padrão). `sim` só pela V2-F28-E11, depois da data decidida e do aviso: o caminho sem prefixo passa a responder `426` depois do fim do dia de `ESPELHO_LEGADO_ATE`. Com `sim`, `ESPELHO_LEGADO_ATE` precisa estar escrita no ambiente, ou a partida é recusada |
 
+- Variáveis **opcionais** da F03 (identidade, vigência e contexto de ator;
+  declaradas na abertura da API, parte 1C). Todas nascem com o padrão
+  **fechado** e **sem efeito**: nenhuma é lida por código de negócio até a etapa
+  dona ligá-la, e deixá-las de fora não muda nada. Nenhuma é necessária para
+  subir:
+
+  | Variável | O que é |
+  | --- | --- |
+  | `PORTAL_ATIVO` | `nao` (o padrão). `sim` liga o login da conta `usuario_orgao` (portal das secretarias e dos órgãos); quem liga é a V2-F03-E02, só em HML e só depois do G03. **`sim` sem `SEGUNDO_FATOR_ATIVO=sim` impede a partida**, em qualquer ambiente: conta de fora do município não entra só com senha |
+  | `ACEITA_SUB_DE_CONTA_ATE` | `AAAA-MM-DD`. Vazia (o padrão) é fechada. Até esse dia o token de acesso com o identificador da conta (`usuarios.id`) ainda é aceito, durante a troca do formato do token (V2-F03-E02, "dois deploys"). Data inexistente impede a partida |
+  | `VERSAO_ESCOLHA_DE_MUNICIPIO` | `maior.menor.correção` (`1.3.0`). Vazia (o padrão) não declara versão. É a versão mínima do aplicativo que sabe escolher o município no login (V2-F03-E16); abaixo dela, quem tem conta em mais de um município recebe `409`. Valor fora do formato impede a partida |
+  | `MFA_VIGENCIA_MINUTOS` | inteiro de `0` a `1440`. **Reservada e sem efeito**: o padrão `0` é "nada herdado". A troca de município pede prova nova do segundo fator (ADR 0009); esta chave só passaria a valer se o Rafael aceitar o risco por escrito (pergunta 2 do CP-50, H107). Deixe em `0` |
+  | `COTAS_PERSISTENTES` | `nao` (o padrão): o limite de taxa conta em memória, por processo. `sim` (V2-F03-E17) passa a contar no banco. Desligar é o rollback |
+  | `COTAS_SEGREDO` | **segredo** (`fly secrets`, nunca o `[env]`), pelo menos 32 caracteres (`openssl rand -base64 48`). É o segredo do HMAC da chave de contagem das cotas persistentes. **Em produção, `COTAS_PERSISTENTES=sim` sem ele impede a partida** |
+
 ### 4. Armazenamento de fotos e assinaturas
 
 Sem isto, a foto da vistoria não sobe.
@@ -362,7 +377,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, lint, formatação, 6850 testes com o aplicativo, auditar, números
+npm run verificar          # typecheck, lint, formatação, 6877 testes com o aplicativo, auditar, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

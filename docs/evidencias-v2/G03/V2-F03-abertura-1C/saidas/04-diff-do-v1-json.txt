@@ -1,0 +1,17 @@
+diff --git a/dc360/apps/api/openapi/v1.json b/dc360/apps/api/openapi/v1.json
+index 23ef39cd..1821d158 100644
+--- a/dc360/apps/api/openapi/v1.json
++++ b/dc360/apps/api/openapi/v1.json
+@@ -15539,9 +15539,10 @@
+             }
+           },
+           "409": {
+-            "description": "usuario_repetido: Já existe usuário com este email",
++            "description": "usuario_repetido: Já existe usuário com este email; papel_nao_se_converte: Papel de servidor e usuario_orgao não se convertem",
+             "x-codigos-de-erro": [
+-              "usuario_repetido"
++              "usuario_repetido",
++              "papel_nao_se_converte"
+             ],
+             "content": {
+               "application/json": {
