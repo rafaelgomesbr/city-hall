@@ -60,7 +60,9 @@ const DE_EXTENSAO = (classe: string, oid: string) =>
  * grava a dependência da extensão na linha de `pg_class` de um tipo composto
  * (`heap_create_with_catalog` a pula para `RELKIND_COMPOSITE_TYPE`): ela fica na
  * linha de `pg_type`. Foi o que o PostGIS real mostrou no CI (`geometry_dump` e
- * `valid_detail`), que o PGlite sem PostGIS não mostrava.
+ * `valid_detail`), que o PGlite sem PostGIS não mostrava. Índice não entra na conta
+ * (mesma lista de espécies da primeira consulta): ele depende da tabela, e a tabela
+ * é que é conferida; o índice da chave de `spatial_ref_sys` não é membro da extensão.
  */
 const RELACAO_DE_EXTENSAO = (c: string) =>
   `(${DE_EXTENSAO("pg_class", `${c}.oid`)} OR (${c}.relkind = 'c' AND EXISTS ` +
@@ -602,10 +604,12 @@ export async function conferirEsquemas(db: ConsultaSql): Promise<string[]> {
     SELECT n.nspname::text AS esquema, r.rolname::text AS papel,
            has_schema_privilege(r.oid, n.oid, 'USAGE') AS usage,
            has_schema_privilege(r.oid, n.oid, 'CREATE') AS criar,
-           (EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid)
+           (EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid
+                      AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S', 'c'))
               OR EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid)
               OR EXISTS (SELECT 1 FROM pg_type t WHERE t.typnamespace = n.oid))
            AND NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid
+                             AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S', 'c')
                              AND NOT ${RELACAO_DE_EXTENSAO("c")})
            AND NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.pronamespace = n.oid
                              AND NOT ${DE_EXTENSAO("pg_proc", "p.oid")})
