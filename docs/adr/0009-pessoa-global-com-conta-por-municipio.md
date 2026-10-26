@@ -1,8 +1,9 @@
 # ADR 0009: pessoa global com conta e vínculo por município, e token de um município por vez
 
 - **Data da decisão:** 01/10/2026 (decisão D-08 do Rafael; registro escrito em 26/10/2026, V2-F03-E01;
-  correção 1 em 26/10/2026, depois da segunda leitura de segurança; correção 2
-  em 26/10/2026, depois da segunda rodada dessa revisão)
+  correção 1 em 26/10/2026, depois da segunda leitura de segurança; correções
+  2, 3 e 4 em 26/10/2026, depois da segunda, da terceira e da quarta rodadas
+  dessa revisão)
 - **Situação:** PROPOSTA. Aceite pendente do Rafael (H97, junto com a redação
   proposta para o CLAUDE.md) e parecer do encarregado de dados (CP-49). Até o
   aceite, o código da F03 segue esta proposta como premissa
@@ -172,6 +173,27 @@ acrescenta:
   desativação e a reativação locais seguem dentro da ordem (decisão 7);
 - a observação de que o teste de tempo não é prova absoluta (decisão 3).
 
+### O que a quarta rodada da revisão mudou (correção 4)
+
+A redação da correção 3 voltou à mesma revisão, que deu como fechadas as regras
+3 e 6 da ordem das travas, manteve o teste de tempo como observação (obrigação
+da etapa que o traz) e deixou um ponto impedindo o aceite e uma dívida. O
+resumo está em `docs/evidencias-v2/G03/V2-F03-E01/correcao-4/RESUMO.md`. Esta
+redação acrescenta:
+
+- **o verificador adiado como único LEITOR da marca de origem**: o `dc360_app`
+  não lê `origens_de_conta`, então a função do gatilho adiado precisa ler com
+  privilégio, e a correção 3 só deixava os escritores citarem a tabela. A
+  exceção é estreita (só leitura, só a marca da própria conta ou da própria
+  transação, sem devolver nada), os escritores continuam os mesmos, e o teste
+  distingue leitor de escritor no corpo e no comportamento (decisão 1, "Quem
+  pode ler a marca");
+- **o destino da marca na eliminação do município**: a marca não tem
+  `organizacao_id`, é exceção protegida, e sai junto com a conta que ela
+  descreve, e só com ela; nunca fica órfã, nunca some com a conta viva, e a
+  eliminação de um município não toca marca de conta de outro (decisão 1, "A
+  marca quando a conta some").
+
 ## Decisão
 
 **Existe pessoa global. Não existe token, sessão nem consulta que valha para dois
@@ -251,20 +273,64 @@ isso a origem do valor é gravada por quem o produz, num lugar que o chamador
 não alcança:
 
 - **Onde a marca mora:** na tabela `origens_de_conta` (E15), uma linha por
-  conta: `usuario_id` (chave primária), `organizacao_id` da conta, `pessoa_id`,
-  `origem` (`backfill`, `criador` ou `aceite`), `convite_id` (só no `aceite`) e
-  `transacao` (`pg_current_xact_id()` de quem gravou). Segue a regra das
-  tabelas de negócio (RLS ativada e forçada), e o `dc360_app` não tem
-  privilégio nenhum nela, nem SELECT. Ninguém além das migrações faz UPDATE ou
-  DELETE: ela fica como registro permanente de como cada conta ganhou a sua
-  pessoa.
-- **Quem pode defini-la:** só a função do gatilho criador (`criador`, quando
-  cria a pessoa nova), `aceitar_convite` (`aceite`, com o convite e a pessoa
-  comprovada, gravada ANTES do INSERT da conta, cujo id a própria função gera)
-  e o backfill da E15 (`backfill`, uma linha por conta existente). Nunca o
-  `dc360_app`: ele não tem privilégio na tabela, e o catálogo da 0B confere
-  que nenhuma outra função de `FUNCOES_PRIVILEGIADAS` cita `origens_de_conta`
-  no corpo.
+  conta: `usuario_id` (chave primária), `pessoa_id`, `origem` (`backfill`,
+  `criador` ou `aceite`), `convite_id` (só no `aceite`) e `transacao`
+  (`pg_current_xact_id()` de quem gravou). **Sem `organizacao_id`** (correção
+  4; a correção 3 previa a coluna): o município da marca é o da conta, que já
+  está sob o RLS de `usuarios`, e com a coluna a 038 exigiria a tabela na ordem
+  de apagamento (DC366), que passaria a citá-la (abaixo, "A marca quando a
+  conta some"). Por isso ela é exceção nomeada em `EXCECOES_AO_ISOLAMENTO`
+  (decisão 3), da espécie PROTEGIDA: dispensa a coluna e a policy de contexto,
+  e mantém RLS ativada e forçada sem policy nenhuma, zero grant a papel do
+  produto (o `dc360_app` não tem nem SELECT), nenhuma chave estrangeira sem
+  município e nenhum DELETE de papel do produto. Ninguém faz UPDATE; DELETE só
+  junto com a conta, no único caminho que apaga conta (a eliminação do
+  município). Enquanto a conta existe, a marca é o registro permanente de como
+  ela ganhou a sua pessoa.
+- **Quem pode defini-la (os ESCRITORES):** só a função do gatilho criador
+  (`criador`, quando cria a pessoa nova), `aceitar_convite` (`aceite`, com o
+  convite e a pessoa comprovada, gravada ANTES do INSERT da conta, cujo id a
+  própria função gera) e o backfill da E15 (`backfill`, uma linha por conta
+  existente, gravada pela própria migração, fora de função). Nunca o
+  `dc360_app`: ele não tem privilégio na tabela. O catálogo da 0B confere que
+  nenhuma função do banco, privilegiada ou não, cita `origens_de_conta` no
+  corpo fora desses dois escritores e do verificador declarado como leitor
+  (abaixo).
+- **Quem pode LER a marca, e só ler: o verificador adiado (correção 4).** O
+  gatilho adiado dispara no fim da transação com o papel da sessão, que para o
+  cadastro de hoje é o `dc360_app`, e o `dc360_app` não tem SELECT na tabela.
+  Para conferir a marca, a função do adiado precisa ler com privilégio
+  (SECURITY DEFINER do dono, que ignora o RLS forçado sem policy). É a única
+  leitura fora dos escritores, numa exceção estreita, e as quatro condições
+  valem juntas:
+  1. **só leitura:** nenhum INSERT, UPDATE, DELETE, TRUNCATE, MERGE ou COPY
+     sobre `origens_de_conta`, nenhum `EXECUTE` de texto montado e nenhuma
+     chamada a outra função que cite a tabela;
+  2. **só a marca da própria conta:** `usuario_id = NEW.id`; e, na conferência
+     por comando de que nenhuma marca `criador` ficou sem conta (gatilho de
+     comando que a 1B acrescentou), só as marcas gravadas pela própria
+     transação (`transacao = pg_current_xact_id()`). Nunca por `pessoa_id`,
+     por e-mail ou por município;
+  3. **nada volta ao chamador:** é função de gatilho (`RETURNS trigger`), sem
+     EXECUTE de papel do produto nem de `PUBLIC`, disparada só pelos gatilhos
+     declarados de `public.usuarios` e conferindo `TG_RELID` (regras da 0G); o
+     retorno do gatilho `AFTER` é descartado; e a recusa sai com mensagem e
+     detalhe constantes, sem nenhum valor lido da marca (nem pessoa, nem
+     origem, nem transação), igual para marca ausente, de outra transação ou
+     incoerente;
+  4. **declarada no catálogo:** ou o verificador é a MESMA função do gatilho
+     criador (o desenho da 1B: um corpo só, com o ramo escolhido por
+     `TG_WHEN` e `TG_LEVEL`), e então a função é declarada uma vez, como
+     escritora `criador`, e a leitura vem com ela; ou é uma função separada,
+     declarada como LEITORA (no máximo uma), e então o corpo dela inteiro
+     cumpre a condição 1, conferida no texto.
+
+  Os escritores continuam sendo só a função do gatilho criador e
+  `aceitar_convite`. Nos dois desenhos o comportamento é conferido (testes da
+  E15 e da E10): disparado o adiado dentro da transação (`SET CONSTRAINTS ...
+  IMMEDIATE`) e na confirmação, o conteúdo de `origens_de_conta`, lido pelo
+  dono, é o mesmo antes e depois do verificador, no caminho que passa e no que
+  recusa.
 - **Por que não variável de sessão nem parâmetro:** `set_config` e `SET LOCAL`
   de variável própria (`dc360.*`) estão ao alcance de qualquer papel, inclusive
   o `dc360_app`, então a marca seria definida pelo chamador. Parâmetro de
@@ -284,13 +350,57 @@ não alcança:
   volta.
 - **Na E15** só existem `backfill` e `criador`: sem `aceitar_convite`, todo
   `pessoa_id` informado é recusado no `BEFORE INSERT`, e toda conta criada pelo
-  gatilho criador passa no adiado. A E10 (058) redefine as duas funções para
-  aceitar `aceite`, e deixa fora do privilégio do `dc360_app` as colunas do
-  convite que o adiado confere (estado, `usuario_id`, `pessoa_id`, data do
-  aceite), que só `aceitar_convite` grava.
+  gatilho criador passa no adiado. A E10 (058) redefine o gatilho criador e o
+  verificador (uma função só, no desenho da 1B) para aceitar `aceite`, sem
+  ampliar o que o verificador lê nem dar a ele escrita, e deixa fora do
+  privilégio do `dc360_app` as colunas do convite que o adiado confere
+  (estado, `usuario_id`, `pessoa_id`, data do aceite), que só
+  `aceitar_convite` grava.
 
-Os testes positivo e negativo estão na tabela de testes obrigatórios (E15, E10
-e 0B).
+#### A marca quando a conta some (correção 4)
+
+Conta não se apaga: se desativa, com motivo. O único caminho que apaga linha de
+`usuarios` é a eliminação do município (`executar_eliminacoes_vencidas`, 038,
+camada 6, como dono). A regra para a marca nesse caminho:
+
+- **a marca vai com a conta que ela descreve, e só com ela.** A marca de cada
+  conta apagada sai no mesmo comando que apaga a conta, escolhida pela própria
+  conta (`usuario_id` igual ao id da conta apagada) e por nenhum outro
+  critério: nunca por `pessoa_id` (a mesma pessoa pode ter conta viva em outro
+  município, e a marca daquela conta é a prova de lá), nunca por transação,
+  nunca sem filtro. Quem remove é o escritor `criador` (a função do gatilho
+  criador, num gatilho de `DELETE` de `public.usuarios`; no desenho da 1B, um
+  ramo próprio da mesma função, separado do ramo que verifica), nunca o
+  verificador, nunca função nova e nunca `ordem_de_apagamento_por_municipio()`:
+  a tabela não tem `organizacao_id`, então fica fora da ordem sem esbarrar no
+  DC366, e a função da ordem não a cita;
+- **a trava de permanência fica mais exata, não mais frouxa:** recusa UPDATE
+  sempre, TRUNCATE sempre e DELETE de marca cuja conta ainda existe, para todo
+  papel, inclusive o dono; a conferência de "a conta ainda existe" enxerga a
+  conta em qualquer município, sem depender do contexto nem do RLS de quem
+  apaga, e na dúvida recusa;
+- **o que isso garante:** nenhuma marca fica órfã apontando para conta
+  apagada; nenhuma marca de conta viva, de município nenhum, some ou muda; a
+  eliminação de A não toca marca de conta de B, nem da mesma pessoa; e, como a
+  chave da marca anda junto com `usuarios.id`, uma inserção futura com o id de
+  uma conta eliminada se comporta exatamente como a chave de `usuarios`, sem
+  sinal a mais;
+- **por que a marca não é oráculo:** nenhum papel do produto a lê; o
+  verificador lê só a marca da própria conta ou da própria transação e não
+  devolve nada; e depois da eliminação não sobra marca nenhuma do município
+  eliminado. A pessoa continua (consequências, "Eliminação de município não
+  apaga a pessoa", H98); o que some é a ligação dela com uma conta que não
+  existe mais;
+- **no catálogo da 0G:** `origens_de_conta` é exceção PROTEGIDA com destino
+  `some` na eliminação, provado pela eliminação de verdade, com as marcas do
+  outro município semeadas e conferidas valor por valor.
+
+A marca não é nível na ordem das travas (decisão 7): ela só é escrita por quem
+já segura a linha da conta (o INSERT e o DELETE da conta, pelos gatilhos) ou
+antes de a conta existir (`aceitar_convite`, regra 7), e o verificador só lê.
+
+Os testes positivo e negativo estão na tabela de testes obrigatórios (E15, E10,
+E18 e 0B).
 
 #### Uma conta por pessoa até a liberação da segunda conta
 
@@ -442,7 +552,7 @@ código deste SHA:
 | `revogar_sessoes_do_usuario`, `travar_sessoes_do_usuario` (049) | trava e revoga por conta | E08 mantém por conta (escopo local) e cria o escopo global por pessoa (decisão 7) |
 | trava da pessoa (`travar_pessoa`, `travar_pessoa_da_conta`) | não existe hoje | E15 cria as duas (SECURITY INVOKER, como a da 049; a segunda resolve a pessoa pela conta sob o tenant, sem devolver `pessoa_id` à API); todo caminho do nível N2 da decisão 7 as usa |
 | gatilho `pessoa_acompanha_as_contas` (nasce na E09) | não existe hoje | E09: dispara em `UPDATE OF ativo` e em `DELETE` de `usuarios`; confere que a transação já tem a trava da pessoa e recusa se não tiver (decisão 7) |
-| `executar_eliminacoes_vencidas` e `ordem_de_apagamento_por_municipio` (038) | apagam o município tabela a tabela | E09 a faz tomar as travas da decisão 7 antes de apagar contas (o gatilho da E09 dispara no `DELETE`) |
+| `executar_eliminacoes_vencidas` e `ordem_de_apagamento_por_municipio` (038) | apagam o município tabela a tabela | E15: a marca de origem de cada conta apagada sai com ela, pelo gatilho de `DELETE` de `usuarios`, e a tabela da marca fica fora da ordem (decisão 1, "A marca quando a conta some"); E09 a faz tomar as travas da decisão 7 antes de apagar contas (o gatilho da E09 dispara no `DELETE`) |
 | `abrir_sessao` (002, 047, 049) e `emitirPar` (`auth/servico.ts`) | emitem a sessão e o par de tokens | E08 confere conta, pessoa e município juntos; E16 os chama na escolha e na troca |
 | desafio do segundo fator (`cr`, `auth/servico.ts`) | prova intermediária ligada à credencial | E11 e E16 mantêm a ligação à credencial e a estendem à pessoa (decisão 8) |
 | `auth/segundo-fator.ts` (`desativar` lê `senha_hash` de `usuarios`) | confere a senha na conta | E02 lê da pessoa; E11 move o fator para a pessoa (decisão 8) |
@@ -947,7 +1057,7 @@ uma só, por NÍVEIS:
 | --- | --- |
 | login, escolha e troca de município | N1 (`FOR SHARE` no município de destino), N8 da conta, releitura da pessoa e da conta (credencial, versão, `ativo`), N9. Sem N2: a mudança global que chega depois espera em N8 e revoga a sessão nova, como na 050 |
 | suspensão do município (console) | N1 (UPDATE), N8 de cada conta com sessão de pé (id crescente), N9. Como hoje (049) |
-| eliminação do município (`executar_eliminacoes_vencidas`) | N1, N2 de cada pessoa com conta no município (ordem crescente), N8 de cada conta (ordem crescente), e só então o apagamento na ordem das chaves estrangeiras (`ordem_de_apagamento_por_municipio()`), que apaga `sessoes` antes de `usuarios`. É a ÚNICA exceção declarada à regra 1: com N1, todo N2 e todo N8 do município presos, quem ainda pode segurar uma linha de N3 a N9 dele espera por uma dessas travas antes de tocá-la, menos "mudar papel ou equipe", que segura só N3 e não espera por nada; não há ciclo. A E09 escreve esse argumento no cabeçalho da migração que toca o apagamento |
+| eliminação do município (`executar_eliminacoes_vencidas`) | N1, N2 de cada pessoa com conta no município (ordem crescente), N8 de cada conta (ordem crescente), e só então o apagamento na ordem das chaves estrangeiras (`ordem_de_apagamento_por_municipio()`), que apaga `sessoes` antes de `usuarios`; o `DELETE` de cada conta (N3) leva junto a marca de origem dela, pelo gatilho (decisão 1). É a ÚNICA exceção declarada à regra 1: com N1, todo N2 e todo N8 do município presos, quem ainda pode segurar uma linha de N3 a N9 dele espera por uma dessas travas antes de tocá-la, menos "mudar papel ou equipe", que segura só N3 e não espera por nada; não há ciclo. A E09 escreve esse argumento no cabeçalho da migração que toca o apagamento |
 | desativar e reativar a conta (local) | N2 (`travar_pessoa_da_conta`), N3 (UPDATE de `ativo`; gatilhos: N4 pela E09, N7 pela 051), N8, N9 |
 | mudar papel ou equipe | N3 só (não dispara gatilho de pessoa) |
 | trocar a senha, recuperar, redefinição no período um para um (passo 3 em diante) | N2, N4 (gatilho para N7), N8 de cada conta da pessoa (id crescente), N9 |
@@ -1058,7 +1168,15 @@ comando no próprio cabeçalho.
   privilégio `TRIGGER` em tabela nenhuma (decisão 1, alcance do gatilho);
 - as funções do caminho antigo da liberação (decisão 1) ficam marcadas na lista
   como "recusada depois da liberação", e o teste confere, com a marca presente,
-  que nenhuma delas tem EXECUTE do `dc360_app` e que todas recusam pela marca.
+  que nenhuma delas tem EXECUTE do `dc360_app` e que todas recusam pela marca;
+- quem cita `origens_de_conta` é conferido em toda função do banco, não só nas
+  privilegiadas: os ESCRITORES são a função do gatilho criador (`criador`) e
+  `aceitar_convite` (`aceite`), cada marca numa função só; o LEITOR é o
+  verificador adiado, ou dentro da função do criador (desenho da 1B) ou numa
+  função separada declarada leitora, no máximo uma, cujo corpo não tem
+  INSERT, UPDATE, DELETE, TRUNCATE, MERGE nem COPY sobre a tabela, nem
+  `EXECUTE` de texto montado; qualquer outra função que cite a tabela reprova
+  (decisão 1, "Quem pode ler a marca").
 
 ### Premissas do plano da F03 que esta ADR fixa como norma
 
@@ -1101,11 +1219,11 @@ concorrentes de várias partes; a mudança exata está no RESUMO da correção 2
 | E07 | plateia pela conta escolhida; `dc360-portal` não vale no painel e vice-versa; registra nesta ADR o que provou (lote 7B) |
 | E08 | passo 3 inteiro (privilégio de tabela retirado, lista positiva por coluna, escritores privilegiados redefinidos, gatilhos movidos, colunas antigas esvaziadas e sem SELECT); funções de autenticação conferem tenant e solicitante (decisão 3); `abrir_recuperacao` e os links na pessoa; escopos local e global e a ordem das travas por nível, escrita na 061 para os caminhos dela (decisão 7); `redefinir-senha` gravando em `pessoas` sob a trava; o pedido público de recuperação com consulta e envio só no trabalhador (decisão 3); `ultimo_acesso` fica na conta |
 | E09 | e-mail único só entre PESSOAS ativas (o índice parcial substitui o total de `pessoas` da E15 e os dois de `usuarios`); o `PATCH /usuarios/:id` deixa de aceitar e-mail; reativação com resposta igual (decisão 6); conta desativada nunca se reativa para outra pessoa; o gatilho `pessoa_acompanha_as_contas` com trabalho igual em todos os casos e recusando sem N2; a desativação, a reativação e a eliminação de município tomando as travas da decisão 7; NÃO se apresenta como fechamento da enumeração no cadastro |
-| E10 | o convite NÃO cria conta: `convites_de_vinculo` guarda o que o município digitou, e a conta nasce em `aceitar_convite` já com a pessoa comprovada (decisão 1); `aceitar_convite` grava a marca `aceite` em `origens_de_conta` antes do INSERT da conta, a 058 redefine o gatilho criador e o adiado para aceitá-la, e as colunas de estado e de ligação do convite ficam fora do privilégio do `dc360_app`; `convidar_pessoa` sem consulta a `pessoas`; 202 igual nos quatro casos, no tempo e nos efeitos da decisão 3, com o envio por fila; aceite por pessoa existente com prova nova, e-mail igual ao do convite e sem senha provisória vigente; até o passo 4 o aceite por pessoa que já tem conta é recusado à própria pessoa, com mensagem neutra, e o município não vê diferença; convidar não muda a credencial de quem já existe; evento global da pessoa não muda o estado de convite nenhum |
+| E10 | o convite NÃO cria conta: `convites_de_vinculo` guarda o que o município digitou, e a conta nasce em `aceitar_convite` já com a pessoa comprovada (decisão 1); `aceitar_convite` grava a marca `aceite` em `origens_de_conta` antes do INSERT da conta, a 058 redefine o gatilho criador e o adiado para aceitá-la (o verificador continua só leitor, decisão 1), e as colunas de estado e de ligação do convite ficam fora do privilégio do `dc360_app`; `convidar_pessoa` sem consulta a `pessoas`; 202 igual nos quatro casos, no tempo e nos efeitos da decisão 3, com o envio por fila; aceite por pessoa existente com prova nova, e-mail igual ao do convite e sem senha provisória vigente; até o passo 4 o aceite por pessoa que já tem conta é recusado à própria pessoa, com mensagem neutra, e o município não vê diferença; convidar não muda a credencial de quem já existe; evento global da pessoa não muda o estado de convite nenhum |
 | E11 | segundo fator na pessoa; obrigatório para `usuario_orgao`, coordenador e administrador; os requisitos da decisão 8; reset pelo superior só no período um para um, sem 409 `pessoa_em_varios_municipios` |
 | E12 e E13 | rota sem ação declarada é negada; a matriz inclui o `usuario_orgao` |
 | E14 | recorte em lista positiva |
-| E15 | `pessoas` com as quatro travas da decisão 3; `UNIQUE (pessoa_id)` total em `usuarios`; `pessoa_id` `NOT NULL` depois do backfill, imutável (`IS DISTINCT FROM`) e fora do privilégio da aplicação; gatilho que só cria pessoa nova, para conta que chega sem pessoa, e recusa no `BEFORE INSERT` o `pessoa_id` informado sem a marca `aceite`; `origens_de_conta` com as marcas `backfill` e `criador`, sem privilégio do `dc360_app`; gatilho adiado que confere a marca de origem contra o estado final da linha (decisão 1, "De onde veio o `pessoa_id`"); `pessoas_email_idx` total; `travar_pessoa` e `travar_pessoa_da_conta`; a tabela de níveis da decisão 7 no cabeçalho da 054; backfill sem perda; espelho da credencial e do e-mail (passo 1); inventário completo da decisão 1 |
+| E15 | `pessoas` com as quatro travas da decisão 3; `UNIQUE (pessoa_id)` total em `usuarios`; `pessoa_id` `NOT NULL` depois do backfill, imutável (`IS DISTINCT FROM`) e fora do privilégio da aplicação; gatilho que só cria pessoa nova, para conta que chega sem pessoa, e recusa no `BEFORE INSERT` o `pessoa_id` informado sem a marca `aceite`; `origens_de_conta` com as marcas `backfill` e `criador`, sem `organizacao_id` e sem privilégio do `dc360_app`, exceção protegida com destino `some` na eliminação (a marca sai com a conta apagada, pelo gatilho de `DELETE` de `usuarios`, e só com ela; DELETE de marca de conta viva recusado para todo papel); gatilho adiado que confere a marca de origem contra o estado final da linha, como único leitor da marca e sem escrever nela (decisão 1, "De onde veio o `pessoa_id`", "Quem pode ler a marca" e "A marca quando a conta some"); `pessoas_email_idx` total; `travar_pessoa` e `travar_pessoa_da_conta`; a tabela de níveis da decisão 7 no cabeçalho da 054; backfill sem perda; espelho da credencial e do e-mail (passo 1); inventário completo da decisão 1 |
 | E16 | login em dois passos; escolha e troca como operações restritas, a troca com prova nova e nenhuma das duas mais fraca que o login (decisão 2); requisitos da decisão 8; 063 aditiva, implantação conferida em todas as instâncias e só então a 064 (liberação com marca, revogação do caminho antigo e rollback, decisão 1); forma final das intervenções da decisão 6 na API da E16 |
 | E17 | órgão externo como linha em cada município; a mesma pessoa convidada por cada um; roda depois do passo 4 |
 | E18 | prova de cruzamento com a mesma pessoa em A e B, banco e API, depois do passo 4; registra nesta ADR o resultado (lote 7B) |
@@ -1117,14 +1235,14 @@ concorrentes de várias partes; a mudança exata está no RESUMO da correção 2
 
 | Etapa | Teste |
 | --- | --- |
-| 0B | sobrecarga de função privilegiada com o mesmo nome e outra assinatura reprova; EXECUTE a mais que a ACL declarada reprova; tabela da lista de exceções que deixa de cumprir um invariante declarado como mantido (por exemplo, `pessoas` sem RLS forçada ou com grant ao `dc360_app`) reprova; função da lista com DDL ou `session_replication_role` no corpo reprova; `dc360_app` com privilégio `TRIGGER` reprova; função da lista, fora do gatilho criador e de `aceitar_convite`, que cita `origens_de_conta` no corpo reprova |
-| E15 | segunda conta (ativa ou desativada) com o mesmo `pessoa_id` recusada pelo banco; UPDATE de `pessoa_id` recusado, como `dc360_app` e como dono; positivo da origem: conta criada sem `pessoa_id` (cadastro de hoje, `provisionar_municipio` e INSERT do dono) passa no fim da transação, com pessoa nova e marca `criador` da mesma transação e da mesma pessoa, e toda conta do backfill tem a marca `backfill` (contagem igual à de contas); negativo da origem: INSERT com `pessoa_id` informado por função de teste do dono que não é `aceitar_convite` recusado no `BEFORE INSERT`, também com variável `dc360.*` definida por `set_config`; `BEFORE INSERT` de teste que roda depois do criador e troca o `pessoa_id` recusado no fim da transação pelo adiado; SELECT, INSERT, UPDATE e DELETE em `origens_de_conta` pelo `dc360_app` com "permissão negada"; INSERT e UPDATE de `pessoa_id` pelo `dc360_app` com "permissão negada"; e-mail de pessoa existente não liga a conta nova a ela; segunda pessoa com o mesmo e-mail recusada por `pessoas_email_idx`; o gatilho de imutabilidade está habilitado depois de toda a cadeia de migrações; toque em `pessoas` pelo `dc360_app` com "permissão negada" |
+| 0B | sobrecarga de função privilegiada com o mesmo nome e outra assinatura reprova; EXECUTE a mais que a ACL declarada reprova; tabela da lista de exceções que deixa de cumprir um invariante declarado como mantido (por exemplo, `pessoas` sem RLS forçada ou com grant ao `dc360_app`) reprova; função da lista com DDL ou `session_replication_role` no corpo reprova; `dc360_app` com privilégio `TRIGGER` reprova; função do banco (privilegiada ou não) que cita `origens_de_conta` no corpo e não é escritora declarada (função do gatilho criador, `aceitar_convite`) nem a leitora declarada (o verificador adiado) reprova; leitora declarada com INSERT, UPDATE, DELETE, TRUNCATE, MERGE ou COPY sobre a tabela, ou `EXECUTE` de texto montado, no corpo reprova; segunda leitora reprova; leitora que não é função de gatilho, que tem EXECUTE de papel do produto ou que dispara fora dos gatilhos declarados de `usuarios` reprova; marca `aceite` fora de `aceitar_convite` reprova |
+| E15 | segunda conta (ativa ou desativada) com o mesmo `pessoa_id` recusada pelo banco; UPDATE de `pessoa_id` recusado, como `dc360_app` e como dono; positivo da origem: conta criada sem `pessoa_id` (cadastro de hoje, `provisionar_municipio` e INSERT do dono) passa no fim da transação, com pessoa nova e marca `criador` da mesma transação e da mesma pessoa, e toda conta do backfill tem a marca `backfill` (contagem igual à de contas); negativo da origem: INSERT com `pessoa_id` informado por função de teste do dono que não é `aceitar_convite` recusado no `BEFORE INSERT`, também com variável `dc360.*` definida por `set_config`; `BEFORE INSERT` de teste que roda depois do criador e troca o `pessoa_id` recusado no fim da transação pelo adiado; o verificador não escreve: com o adiado disparado dentro da transação (`SET CONSTRAINTS ... IMMEDIATE`) e na confirmação, no caminho que passa e no que recusa, o conteúdo de `origens_de_conta` lido pelo dono é o mesmo antes e depois dele, e a recusa traz mensagem e detalhe constantes, sem valor da marca; SELECT, INSERT, UPDATE e DELETE em `origens_de_conta` pelo `dc360_app` com "permissão negada"; UPDATE e TRUNCATE da marca recusados também como dono, e DELETE da marca de conta viva recusado também como dono; eliminação de município: as marcas das contas do município eliminado somem junto com elas, nenhuma fica sem conta, e as marcas das contas de outro município ficam iguais valor por valor (a prova do destino `some` da 0G); INSERT e UPDATE de `pessoa_id` pelo `dc360_app` com "permissão negada"; e-mail de pessoa existente não liga a conta nova a ela; segunda pessoa com o mesmo e-mail recusada por `pessoas_email_idx`; o gatilho de imutabilidade está habilitado depois de toda a cadeia de migrações; toque em `pessoas` pelo `dc360_app` com "permissão negada" |
 | E08 | para CADA coluna antiga (`senha_hash`, `falhas_login`, `bloqueado_ate`, `senha_provisoria_ate`, `email`, `pessoa_id`), UPDATE pelo `dc360_app` recebe "permissão negada"; SELECT das colunas de credencial também; cada função do inventário, chamada, não muda as colunas antigas; função chamada com alvo e sem solicitante conferido é recusada; troca de senha de outra pessoa com a própria sessão é recusada; os testes concorrentes da E08 na decisão 7; o pedido público de recuperação com o teste estrutural da decisão 3 (mesma sequência de comandos com e sem a pessoa) |
 | E09 | o `PATCH` com e-mail diferente é recusado; reativação com resposta byte a byte igual com e sem outra pessoa ativa usando o e-mail; desativação e reativação no teste de tempo da decisão 3, com e sem conta da pessoa em outro município; os testes concorrentes da E09 na decisão 7 |
-| E10 | o convite não cria linha em `usuarios`; o teste estrutural e o de tempo da decisão 3 nos quatro casos (e-mail livre, pessoa com conta ativa em outro município, pessoa só com conta desativada em outro município, pessoa com convite aberto em outro município), cobrindo status, corpo, cabeçalhos, a sequência de comandos e, depois do trabalhador, lista de contas, lista de convites, contagens, trilha e reemissão; troca de senha, recuperação e mudança de fator da pessoa não mudam o estado de convite nenhum; aceite com a sessão de outra pessoa recusado; aceite por pessoa existente sem a senha conferida na hora, com e-mail diferente do convite ou com senha provisória vigente recusado; dois aceites concorrentes do mesmo convite: um vence, o outro volta sem deixar conta; aceite por pessoa que já tem conta recusado até o passo 4; positivo da origem: aceite por pessoa nova e por pessoa existente passa no adiado, com a marca `aceite` ligada ao convite consumido, à conta e à pessoa; negativo da origem: função de teste do dono que grava a marca `aceite` e insere a conta sem consumir o convite recusada no fim da transação; marca `aceite` com pessoa diferente da do convite consumido recusada; marca `aceite` gravada e confirmada numa transação anterior não serve na seguinte; UPDATE das colunas de estado e de ligação de `convites_de_vinculo` pelo `dc360_app` com "permissão negada" |
+| E10 | o convite não cria linha em `usuarios`; o teste estrutural e o de tempo da decisão 3 nos quatro casos (e-mail livre, pessoa com conta ativa em outro município, pessoa só com conta desativada em outro município, pessoa com convite aberto em outro município), cobrindo status, corpo, cabeçalhos, a sequência de comandos e, depois do trabalhador, lista de contas, lista de convites, contagens, trilha e reemissão; troca de senha, recuperação e mudança de fator da pessoa não mudam o estado de convite nenhum; aceite com a sessão de outra pessoa recusado; aceite por pessoa existente sem a senha conferida na hora, com e-mail diferente do convite ou com senha provisória vigente recusado; dois aceites concorrentes do mesmo convite: um vence, o outro volta sem deixar conta; aceite por pessoa que já tem conta recusado até o passo 4; positivo da origem: aceite por pessoa nova e por pessoa existente passa no adiado, com a marca `aceite` ligada ao convite consumido, à conta e à pessoa; negativo da origem: função de teste do dono que grava a marca `aceite` e insere a conta sem consumir o convite recusada no fim da transação; marca `aceite` com pessoa diferente da do convite consumido recusada; marca `aceite` gravada e confirmada numa transação anterior não serve na seguinte; o verificador redefinido pela 058 continua sem escrever (o mesmo teste da E15, com a marca `aceite`); UPDATE das colunas de estado e de ligação de `convites_de_vinculo` pelo `dc360_app` com "permissão negada" |
 | E11 | o mesmo código TOTP em duas entradas concorrentes vale uma vez; desligar com só a senha é recusado; desligar com conta ativa de fator obrigatório é recusado; falhas do fator não mexem nas falhas de senha |
 | E16 | desafio de escolha emitido antes de uma recuperação não cria sessão depois dela; desafio de escolha não vale como desafio do segundo fator, nem o contrário; troca com só o token de origem é recusada; troca não estende `mfa_verificado_em`; `organizacaoId` fora da lista responde 404 sem nenhuma consulta de negócio do destino; troca e escolha pedem o código com o fator ligado por vontade da pessoa em papel sem obrigação; `redefinir-senha` e o reset do superior na forma final com o teste estrutural e o de tempo da decisão 3, com e sem outra conta; os testes da liberação da decisão 1 (API anterior contra o banco liberado falha fechada, funções do caminho antigo recusam pela marca, `desfazer/` da 064 nos dois sentidos); os testes concorrentes da E16 na decisão 7 |
-| E18 | mesma pessoa em A e B: desativação em A não toca B; recuperação em A revoga B; nenhuma rota de A responde diferente por causa de B |
+| E18 | mesma pessoa em A e B: desativação em A não toca B; recuperação em A revoga B; nenhuma rota de A responde diferente por causa de B; eliminação de A tira a marca de origem da conta de A e deixa igual a da conta de B da mesma pessoa |
 
 ### O que fica proibido
 
@@ -1146,7 +1264,11 @@ São as mesmas condições que reabrem o G03:
   depois de atribuído; conta ligada a pessoa existente fora de `aceitar_convite`;
   conta pendente em `usuarios` criada pelo convite; marca de origem do
   `pessoa_id` que o `dc360_app` consiga definir (variável de sessão, tabela ou
-  coluna com privilégio dele);
+  coluna com privilégio dele); função que cite `origens_de_conta` fora dos
+  dois escritores e do verificador declarado; verificador que escreva na
+  tabela, leia marca de outra conta ou de outra transação, ou devolva o que
+  leu; marca que sobreviva à conta apagada, que suma ou mude com a conta viva,
+  ou que a eliminação apague por pessoa ou sem filtro;
 - retirar o `UNIQUE (pessoa_id)` na mesma migração que cria as proteções, ou
   antes de a API nova estar em todas as instâncias; função do caminho antigo
   que continue aceitando chamada depois da marca de liberação;
@@ -1194,7 +1316,9 @@ São as mesmas condições que reabrem o G03:
   construção e teste com dado sintético seguem.
 - **Eliminação de município não apaga a pessoa.** Na F03 a pessoa sem conta
   ativa fica inativa (E09) e não é apagada; o destino definitivo da linha é a
-  pendência H98 (CP-29 com o CP-49).
+  pendência H98 (CP-29 com o CP-49). A marca de origem de cada conta eliminada
+  sai com a conta (decisão 1), então o que fica da pessoa não aponta para
+  conta que não existe.
 - **O administrador perde a redefinição de senha na liberação da segunda conta.**
   No piloto, com a recuperação por e-mail desligada (`RECUPERACAO_ATIVA=nao`), a
   redefinição com senha provisória (F00-E09) é o único caminho de "esqueci a
@@ -1249,6 +1373,9 @@ São as mesmas condições que reabrem o G03:
 | Convite aberto invalidado por troca de senha ou recuperação da pessoa (correção 1) | O município veria o convite "vencer" antes do prazo e saberia que a pessoa existe e teve um evento. A proteção vem do aceite com prova nova e da recusa com senha provisória vigente (decisões 1 e 3). |
 | Ordem de travas com a pessoa antes da conta, e operação local sem a trava da pessoa (correção 1) | Fecha ciclo com o gatilho `pessoa_acompanha_as_contas` da E09, que anda da conta para a pessoa, e não posicionava a linha do município que o login toma (050). A ordem por níveis da decisão 7 põe a conta antes da pessoa, que é o sentido dos gatilhos, e faz a desativação tomar a trava da pessoa. |
 | Gatilho adiado que decide só por `NEW.pessoa_id` (correção 2, lida ao pé da letra), ou marca da origem em variável de sessão | O adiado vê o estado final, em que o valor criado pelo gatilho criador e o informado pelo chamador são iguais; e variável própria (`dc360.*`) qualquer papel define, inclusive o `dc360_app`. A origem fica em `origens_de_conta`, gravada só por quem produz o valor (decisão 1). |
+| Só os escritores citam `origens_de_conta`, sem leitor declarado (correção 3, lida ao pé da letra) | O verificador adiado precisa ler a marca com privilégio, porque o `dc360_app` não tem SELECT nela; a regra reprovaria o próprio verificador separado, ou obrigaria a juntá-lo ao criador sem dizer que a leitura não pode escrever. A exceção do leitor é estreita e conferida no corpo e no comportamento (decisão 1). |
+| Marca que fica na eliminação do município, como registro da pessoa | Ficaria órfã, apontando para conta apagada; guardaria, depois da eliminação, a ligação da pessoa com uma conta do município eliminado; e a chave dela continuaria ocupando o id da conta, um sinal a mais que a chave de `usuarios` já não dá. A marca sai com a conta (decisão 1). |
+| Marca com `organizacao_id` na ordem de apagamento (correção 3) | A 038 exige toda tabela com a coluna na ordem (DC366), e a função da ordem passaria a citar a tabela, fora dos escritores e do leitor; apagar por município também dispensaria o laço com a conta. Sem a coluna, a marca sai pela própria conta (decisão 1). |
 | Troca e escolha pedindo o código só quando o papel no destino exige o fator | Quem ligou o fator por vontade própria teria, na troca, uma entrada mais fraca que o login normal no mesmo destino. A régua é a do login (decisão 2). |
 
 ## Estado e aceite
@@ -1279,10 +1406,16 @@ São as mesmas condições que reabrem o G03:
   dela; terceira rodada sobre a correção 2 (dois pontos impedindo o aceite: a
   origem do `pessoa_id` no gatilho adiado e o escopo das regras 3 e 6 da ordem
   das travas; mais a observação sobre o teste de tempo), respondida pela
-  correção 3. "Fechado" aqui quer dizer fechado como requisito desta ADR: nada
-  disso está implementado, e os requisitos que dependem de código futuro
-  (decisões 1, 3, 7 e 8) são cobrados pelos testes da etapa dona. Se a revisão
-  fizer uma quarta rodada, ela é sobre esta redação.
+  correção 3; quarta rodada sobre a correção 3 (regras 3 e 6 fechadas, o teste
+  de tempo mantido como obrigação da etapa que o traz, um ponto impedindo o
+  aceite: o verificador adiado precisa ler a marca e o catálogo só deixava os
+  escritores citarem a tabela; uma dívida: o destino da marca na eliminação do
+  município), respondida pela correção 4. "Fechado" aqui quer dizer fechado
+  como requisito desta ADR: as decisões 1, 3, 7 e 8 que dependem de código
+  futuro são cobradas pelos testes da etapa dona, e o que a parte 1B já
+  implementou é conferido contra esta redação na junção dela (RESUMO da
+  correção 4, "Para o orquestrador"). Se a revisão fizer uma quinta rodada,
+  ela é sobre esta redação.
 - **Registros previstos nesta ADR:** o que a E07 (plateia) e a E18 (cruzamento)
   provarem entra como nota no fim, na consolidação da F03 (lote 7B), sem
   reescrever o texto acima.
@@ -1303,8 +1436,9 @@ São as mesmas condições que reabrem o G03:
   `db/test/pessoa-em-dois-municipios.test.ts` e
   `apps/api/test/cruzamento-de-municipios.test.ts` (E18).
 - Revisão de segurança e correções: `docs/evidencias-v2/G03/V2-F03-E01/correcao-1/`,
-  `docs/evidencias-v2/G03/V2-F03-E01/correcao-2/` e
-  `docs/evidencias-v2/G03/V2-F03-E01/correcao-3/`.
+  `docs/evidencias-v2/G03/V2-F03-E01/correcao-2/`,
+  `docs/evidencias-v2/G03/V2-F03-E01/correcao-3/` e
+  `docs/evidencias-v2/G03/V2-F03-E01/correcao-4/`.
 - Pessoas e papéis em linguagem de gente: `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`,
   seção "Pessoa, conta e vínculo".
 - Backlog que esta decisão substitui: `dc360/apps/api/PENDENCIAS.md`, seção
