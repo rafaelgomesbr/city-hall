@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 418 testes do pacote compartilhado passando |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 585 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 649 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API em `/v1`. `VITE_API_URL` continua sendo só a origem, com ou sem barra final; publicar a API antes do painel | Pronto, 820 testes de fonte do painel mais 70 verificações no navegador no modo local e 258 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta). |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 2041 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 261 testes de unidade do motor de campo e 17 de integração contra a API |
@@ -177,6 +177,24 @@ porque a rota nem o lê.
 
 Consultar ocorrência de outro município devolve **404, não 403**. Um 403
 confirmaria que o registro existe, e confirmar existência já é vazamento.
+
+### A pessoa e a conta no município (V2-F03-E15)
+
+Desde a migração 054, cada linha de `usuarios` é a CONTA de uma PESSOA num
+município (ADR 0009). A pessoa (`pessoas`) é global e é a exceção nomeada ao
+isolamento: sem `organizacao_id`, RLS forçada sem policy, e nenhum privilégio
+do papel de aplicação, nem leitura; só funções privilegiadas da lista nominal a
+alcançam. Hoje é uma conta por pessoa, garantida no banco (`UNIQUE (pessoa_id)`
+total, conta desativada inclusive), e nada mudou para a API: a conta nova
+continua nascendo pelo mesmo `INSERT`, e o gatilho criador lhe dá uma pessoa
+NOVA (nunca procura pessoa pelo e-mail), com a origem gravada numa tabela que a
+aplicação não alcança (`origens_de_conta`) e conferida no fim da transação. A
+credencial continua gravada na conta e é espelhada na pessoa (passo 1 da P-04);
+`pessoa_id` nunca muda, e o papel de aplicação não o grava (o UPDATE de
+`usuarios` passou a ser por coluna). `vigencia_da_sessao` e
+`credenciais_da_pessoa` já existem e estão provadas em `db/test/pessoas.test.ts`,
+à espera da E02 e da E03. Ver "A pessoa global e a conta no município" em
+`docs/DICIONARIO-DE-DADOS.md`.
 
 ### Autenticação
 
@@ -1786,8 +1804,8 @@ Parte 3 (item 3, "Servidor da API") de `docs/COLOCAR-DE-PE.md`.
 ## Como testar
 
 ```bash
-npm test                    # 4504 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 585 testes do banco
+npm test                    # 4568 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 649 testes do banco
 npm run test:api            # 2041 testes da API
 npm run test --workspace @dc360/campo   # 261 testes do motor de campo
 npm run test:campo          # tipos e os 2010 testes do aplicativo de campo

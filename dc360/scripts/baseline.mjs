@@ -1111,6 +1111,19 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     demais `*.espacial.test.ts`. Total 75, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0D": { total: 75, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E15 (parte 1B, pessoa global e conta no municipio, migracao 054):
+    `db/test/pessoas.test.ts` e novo, com 70 casos (o backfill sobre dado de
+    antes, a origem do pessoa_id nos positivos e negativos da correcao 3 da
+    ADR 0009, pessoa_id imutavel e uma conta por pessoa, as travas de
+    `pessoas` e de `origens_de_conta`, o espelho, `vigencia_da_sessao`,
+    `credenciais_da_pessoa`, a trava N2, o inventario contra o banco e a
+    volta). Os 6 do bloco de Postgres real pulam sem `DC360_POSTGRES_DE_PROVA`.
+    `chave-de-criacao-migracao.test.ts` (a prova da 052 para na 052, a mesma
+    troca da parte 1A) e `portao-comportamental.test.ts` (a sonda da marca
+    criador ja encontra a do gatilho criador) mudaram sem caso novo.
+  */
+  "V2-F03-E15": { total: 70, falhas: 0, puladas: 6 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);

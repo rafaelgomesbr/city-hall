@@ -1,0 +1,20 @@
+$ (em dc360) npm run test:isolamento
+   × o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha 17ms
+   × o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1 4ms
+   × o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento) 4ms
+ ✓ test/pessoas.test.ts (70 tests | 6 skipped) 14621ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar 566ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar 495ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar 509ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2 526ms
+   × o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0 509ms
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com AMBIENTE_DC360=prod: código 1, sem conectar
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco hospedado sem declarar HML (PROD restaurado num projeto novo): código 1, sem conectar
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > com a porta 6543 (pooler): código 2, sem conectar
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > --desfazer com --semear: código 2
+ FAIL  test/desfazer-migracao.test.ts > o comando de verdade (`npm run migrar -- --desfazer`) > banco efêmero vazio: nada a desfazer, código 0
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a identidade de PRODUÇÃO e sem NODE_ENV: código 1, sem migrar, sem repetir a senha
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > com a URL de um banco hospedado de HML: código 1
+ FAIL  test/guarda-da-semente.test.ts > o comando de verdade: `--semear` recusa ANTES de conectar > sem DATABASE_URL, o banco efêmero ainda semeia (a guarda não atrapalha o desenvolvimento)
+ Test Files  2 failed | 23 passed (25)
+      Tests  8 failed | 641 passed | 12 skipped (661)

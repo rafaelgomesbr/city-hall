@@ -1,0 +1,7 @@
+$ (em dc360) node scripts/lint.mjs (npm run lint)   # codigo 0
+
+== ESLint: monorepo ==
+OK: monorepo
+
+== ESLint: aplicativo de campo ==
+OK: aplicativo de campo

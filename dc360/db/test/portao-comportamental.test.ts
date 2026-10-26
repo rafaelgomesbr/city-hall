@@ -683,6 +683,13 @@ describe("correção 3 da ADR 0009: quem cita origens_de_conta", () => {
         conferirQuemCitaOrigensDeConta(db, FUNCOES_PRIVILEGIADAS),
       ),
     ).toEqual([expect.stringMatching(/sonda_grava_origem\(uuid\) cita origens_de_conta/)]);
+    /*
+      Com a marca, a sonda passa como quem grava a origem. Desde a E15 (054) a
+      marca `criador` já é de `conta_ganha_pessoa`: a sonda vira a SEGUNDA
+      função com a marca, e o único problema que sobra é esse (a marca é de
+      uma função só). Antes da 054, nenhum.
+    */
+    const jaTemCriador = FUNCOES_PRIVILEGIADAS.some((f) => f.gravaOrigemDeConta === "criador");
     expect(
       await comBuraco(abrir, fechar, () =>
         conferirQuemCitaOrigensDeConta(db, [
@@ -690,7 +697,11 @@ describe("correção 3 da ADR 0009: quem cita origens_de_conta", () => {
           entrada("sonda_grava_origem", "criador"),
         ]),
       ),
-    ).toEqual([]);
+    ).toEqual(
+      jaTemCriador
+        ? [expect.stringMatching(/a marca criador de origens_de_conta está em mais de uma função/)]
+        : [],
+    );
   });
 
   it("função COMUM (não privilegiada) que cita a tabela também reprova: seria o atalho chamado de dentro de uma privilegiada", async () => {

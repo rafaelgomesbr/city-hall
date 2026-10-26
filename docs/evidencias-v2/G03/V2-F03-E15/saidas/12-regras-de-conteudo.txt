@@ -1,0 +1,35 @@
+$ (em dc360) npx vitest run packages/shared/test/regras-de-conteudo.test.ts   # 1 falha de ambiente aceita (EPERM em symlink, DV-46)
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-ab20d5de01fbe642d/dc360
+
+ ❯ packages/shared/test/regras-de-conteudo.test.ts (10 tests | 1 failed) 9620ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  433ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum  8050ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  698ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 2ms
+   ✓ Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real  331ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 43ms
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 18ms
+   × Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura 20ms
+     → EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Sua9Fl\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Sua9Fl\docs\sumiu-depois-da-listagem.md'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > só tolera ENOENT: outro erro de leitura continua derrubando a varredura 21ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > recorte das isenções num repositório sintético > tolera o arquivo que some entre a listagem e a leitura (ENOENT), sem derrubar a varredura
+Error: EPERM: operation not permitted, symlink 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Sua9Fl\alvo-que-nao-existe.md' -> 'C:\Users\Rfasg\AppData\Local\Temp\dc360-conteudo-Sua9Fl\docs\sumiu-depois-da-listagem.md'
+ ❯ packages/shared/test/regras-de-conteudo.test.ts:403:9
+    401|       const raiz = montar();
+    402|       try {
+    403|         symlinkSync(
+       |         ^
+    404|           join(raiz, "alvo-que-nao-existe.md"),
+    405|           join(raiz, "docs", "sumiu-depois-da-listagem.md"),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  08:25:44
+   Duration  10.19s (transform 73ms, setup 0ms, collect 109ms, tests 9.62s, environment 0ms, prepare 164ms)
