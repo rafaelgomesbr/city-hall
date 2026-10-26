@@ -62,6 +62,7 @@ import {
   conferirPoliciesDoFornecedor,
   conferirPrivilegiosDeColuna,
   conferirQuemCitaOrigensDeConta,
+  conferirLeitoraDeOrigem,
   conferirSequenciasETipos,
   conferirVisoes,
   fontesDoRepositorio,
@@ -5425,6 +5426,10 @@ describe("Prova comportamental entre municípios, tabela por tabela (parte 0D)",
 
   it("correção 3 da ADR 0009: só o gatilho criador e aceitar_convite citam origens_de_conta no corpo (hoje, ninguém)", async () => {
     expect(await conferirQuemCitaOrigensDeConta(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
+  });
+
+  it("correção 6 da ADR 0009: a leitora de origens_de_conta (o verificador adiado) só lê, por lista permitida, com search_path fixo, e nenhuma escritora verifica", async () => {
+    expect(await conferirLeitoraDeOrigem(db, FUNCOES_PRIVILEGIADAS)).toEqual([]);
   });
 
   it("correção 2 da ADR 0009: a forma da marca \"recusada depois da liberação\" (antes da liberação, a marcada é do papel de aplicação)", () => {

@@ -52,6 +52,9 @@ import {
   conferirColunasProibidas,
   conferirCriacaoDeObjetos,
   conferirDeclaracoesCompletas,
+  conferirCorpoDaLeitora,
+  conferirLeitoraDeOrigem,
+  simbolosDoCorpo,
   conferirDisparoDosGatilhos,
   conferirEliminacaoSemMunicipio,
   conferirEsquemas,
@@ -2759,5 +2762,299 @@ describe("sonda 24 (correção 2 da 0G, dívida do item 6): a prova da recusa fo
       conferirDeclaracoesCompletas([], [], [{ ...ENTRADA, semearParaProva: "SELECT 1" }]),
     ).toHaveLength(1);
     expect(conferirDeclaracoesCompletas([], [], [ENTRADA])).toEqual([]);
+  });
+});
+
+describe("sonda 25 (correção 6 da ADR 0009, junção do lote 1): a leitora de origens_de_conta por lista permitida", () => {
+  /** O corpo da leitora da E15 (o mesmo da 054), sem comentários com crase. */
+  const LEITORA = `
+DECLARE
+  v_orfa      uuid;
+  v_pessoa    uuid;
+  v_origem    text;
+  v_transacao xid8;
+  v_existe    uuid;
+BEGIN
+  IF TG_RELID IS DISTINCT FROM 'public.usuarios'::regclass OR TG_OP <> 'INSERT'
+     OR NOT ((TG_NAME = 'usuarios_origem_da_pessoa' AND TG_WHEN = 'AFTER' AND TG_LEVEL = 'ROW')
+          OR (TG_NAME = 'usuarios_nenhuma_pessoa_sem_conta' AND TG_WHEN = 'AFTER'
+              AND TG_LEVEL = 'STATEMENT')) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'insufficient_privilege',
+      MESSAGE = 'conferir_origem_da_conta so serve aos dois gatilhos de conferencia de public.usuarios';
+  END IF;
+  -- O de COMANDO: toda marca criador desta transacao tem a sua conta.
+  IF TG_LEVEL = 'STATEMENT' THEN
+    SELECT o.usuario_id INTO v_orfa
+      FROM public.origens_de_conta o
+     WHERE o.transacao = pg_current_xact_id()
+       AND o.origem = 'criador'
+       AND NOT EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = o.usuario_id)
+     LIMIT 1;
+    IF FOUND THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'check_violation',
+        MESSAGE = 'a conta nao foi inserida',
+        DETAIL  = 'A linha foi descartada depois do gatilho criador -- e isto e texto, '
+                  'nao comentario: /* idem */ ; PERFORM pg_notify(''x'', ''y'')',
+        CONSTRAINT = 'usuarios_origem_da_pessoa',
+        TABLE = 'usuarios';
+    END IF;
+    RETURN NULL;
+  END IF;
+  SELECT o.pessoa_id, o.origem, o.transacao INTO v_pessoa, v_origem, v_transacao
+    FROM public.origens_de_conta o
+   WHERE o.usuario_id = NEW.id;
+  SELECT p.id INTO v_existe
+    FROM public.pessoas p
+   WHERE p.id = NEW.pessoa_id;
+  IF v_pessoa IS NULL
+     OR v_transacao IS DISTINCT FROM pg_current_xact_id()
+     OR v_pessoa IS DISTINCT FROM NEW.pessoa_id
+     OR v_origem IS DISTINCT FROM 'criador'
+     OR v_existe IS NULL THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'check_violation',
+      MESSAGE = 'a conta nao tem a origem do pessoa_id gravada nesta transacao',
+      CONSTRAINT = 'usuarios_origem_da_pessoa',
+      TABLE = 'usuarios';
+  END IF;
+  RETURN NULL;
+END;
+`;
+  /** Põe um trecho logo antes do último RETURN NULL (o ramo de linha). */
+  const comTrecho = (trecho: string) => {
+    const i = LEITORA.lastIndexOf("RETURN NULL;");
+    return `${LEITORA.slice(0, i)}${trecho}\n  ${LEITORA.slice(i)}`;
+  };
+  const reprova = (corpo: string, motivo: RegExp) => {
+    const problemas = conferirCorpoDaLeitora(corpo);
+    expect(problemas.join("\n")).toMatch(motivo);
+  };
+
+  it("a leitora da E15 passa; os literais são preservados (um -- ou um ; dentro do literal é texto)", () => {
+    expect(conferirCorpoDaLeitora(LEITORA)).toEqual([]);
+    const { simbolos } = simbolosDoCorpo(LEITORA);
+    expect(simbolos.some((s) => s.t === "lit" && s.v.includes("-- e isto e texto"))).toBe(true);
+    // Os literais adjacentes viram um só.
+    expect(
+      simbolos.some(
+        (s) =>
+          s.t === "lit" &&
+          s.v.includes("texto, nao comentario: /* idem */ ; PERFORM pg_notify('x', 'y')"),
+      ),
+    ).toBe(true);
+  });
+
+  it("as sete sabotagens da correção 6 reprovam, uma por vez", () => {
+    reprova(
+      comTrecho("PERFORM pg_notify('x', NEW.id::text);"),
+      /comando não permitido na leitora: perform/,
+    );
+    reprova(comTrecho("PERFORM pg_advisory_lock(1);"), /comando não permitido na leitora: perform/);
+    reprova(
+      comTrecho("PERFORM set_config('dc360.x', 'y', false);"),
+      /comando não permitido na leitora: perform/,
+    );
+    reprova(
+      comTrecho("PERFORM nextval('public.sonda_contador');"),
+      /comando não permitido na leitora: perform/,
+    );
+    reprova(
+      comTrecho("PERFORM public.sonda_auxiliar_que_escreve();"),
+      /comando não permitido na leitora: perform/,
+    );
+    reprova(
+      comTrecho(
+        "INSERT INTO public.origens_de_conta (usuario_id, pessoa_id, origem, transacao) " +
+          "VALUES (gen_random_uuid(), gen_random_uuid(), 'criador', pg_current_xact_id()); " +
+          "DELETE FROM public.origens_de_conta WHERE transacao = pg_current_xact_id() AND origem = 'criador';",
+      ),
+      /comando não permitido na leitora: insert/,
+    );
+    reprova(
+      comTrecho(
+        "BEGIN INSERT INTO public.origens_de_conta (usuario_id, pessoa_id, origem, transacao) " +
+          "VALUES (gen_random_uuid(), gen_random_uuid(), 'criador', pg_current_xact_id()); " +
+          "RAISE EXCEPTION 'x'; EXCEPTION WHEN OTHERS THEN NULL; END;",
+      ),
+      /comando não permitido na leitora: begin/,
+    );
+  });
+
+  it("a escrita disfarçada de leitura e o que o conferidor não reconhece reprovam (falha fechada)", () => {
+    // SELECT que chama função, ou lê outra tabela, ou sem o filtro da própria conta.
+    reprova(
+      comTrecho(
+        "SELECT o.pessoa_id INTO v_pessoa FROM public.origens_de_conta o WHERE o.usuario_id = public.sonda_f();",
+      ),
+      /palavra não permitida na condição: public|sem o filtro/,
+    );
+    reprova(
+      comTrecho("SELECT u.email INTO v_origem FROM public.usuarios u WHERE u.id = NEW.id;"),
+      /lê só origens_de_conta e pessoas/,
+    );
+    reprova(
+      comTrecho(
+        "SELECT o.pessoa_id INTO v_pessoa FROM public.origens_de_conta o WHERE o.origem = 'criador';",
+      ),
+      /sem o filtro pela chave da própria conta/,
+    );
+    // INTO para quem não é variável declarada, e tipo fora da lista nominal.
+    reprova(
+      comTrecho(
+        "SELECT o.pessoa_id INTO NEW.pessoa_id FROM public.origens_de_conta o WHERE o.usuario_id = NEW.id;",
+      ),
+      /destino do INTO/,
+    );
+    reprova(
+      LEITORA.replace("v_origem    text;", "v_origem    public.sonda_tipo;"),
+      /declaração fora da forma|tipo não permitido/,
+    );
+    reprova(
+      LEITORA.replace("v_origem    text;", "v_origem    jsonb;"),
+      /tipo não permitido: jsonb/,
+    );
+    reprova(
+      LEITORA.replace("v_orfa      uuid;", "v_orfa      uuid := public.sonda_f();"),
+      /declaração fora da forma/,
+    );
+    // RAISE com valor lido, concatenação ou format.
+    reprova(
+      comTrecho("RAISE EXCEPTION USING MESSAGE = 'x' || v_origem;"),
+      /opção do RAISE fora da forma/,
+    );
+    reprova(
+      comTrecho("RAISE EXCEPTION USING MESSAGE = format('%s', v_origem);"),
+      /opção do RAISE fora da forma/,
+    );
+    reprova(comTrecho("RAISE NOTICE 'x';"), /RAISE fora da forma/);
+    // Conversão, operador e função fora da lista.
+    reprova(
+      comTrecho("IF v_origem::sonda_tipo = 'x' THEN RETURN NULL; END IF;"),
+      /operador não permitido: ::/,
+    );
+    reprova(
+      comTrecho("IF lower(v_origem) = 'x' THEN RETURN NULL; END IF;"),
+      /palavra não permitida na condição: lower/,
+    );
+    reprova(comTrecho("IF v_origem ~~ 'x' THEN RETURN NULL; END IF;"), /operador não permitido/);
+    // Construções que não estão na lista: atribuição, laço, ELSE, EXECUTE, texto entre cifrões, aspas.
+    reprova(comTrecho("v_origem := 'x';"), /comando não permitido na leitora: v_origem/);
+    reprova(
+      comTrecho("IF FOUND THEN RETURN NULL; ELSE RETURN NULL; END IF;"),
+      /IF sem END IF|comando não permitido|RETURN fora/,
+    );
+    reprova(comTrecho("EXECUTE 'SELECT 1';"), /comando não permitido na leitora: execute/);
+    reprova(comTrecho("RAISE EXCEPTION USING MESSAGE = $x$oi$x$;"), /cifrões/);
+    reprova(
+      comTrecho(
+        'SELECT o."pessoa_id" INTO v_pessoa FROM public.origens_de_conta o WHERE o.usuario_id = NEW.id;',
+      ),
+      /entre aspas/,
+    );
+    reprova(comTrecho("RAISE EXCEPTION USING MESSAGE = E'oi';"), /prefixo/);
+    reprova(comTrecho("RETURN OLD;"), /RETURN fora da forma/);
+  });
+
+  // No banco: a declaração, o proconfig, o EXECUTE e o disparo.
+  const criarLeitora = (opcoes: { config?: string; definidora?: boolean; corpo?: string } = {}) => `
+    CREATE FUNCTION sonda_leitora() RETURNS trigger LANGUAGE plpgsql
+      ${opcoes.definidora === false ? "" : "SECURITY DEFINER"}
+      ${opcoes.config ?? "SET search_path = pg_catalog, public, pg_temp"}
+      AS $corpo$${opcoes.corpo ?? LEITORA}$corpo$;
+    REVOKE ALL ON FUNCTION sonda_leitora() FROM PUBLIC;
+    CREATE CONSTRAINT TRIGGER sonda_leitora_adiada AFTER INSERT ON usuarios
+      DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION sonda_leitora();`;
+  const FECHAR = "DROP TRIGGER sonda_leitora_adiada ON usuarios; DROP FUNCTION sonda_leitora();";
+  const ENTRADA: FuncaoPrivilegiada = {
+    nome: "sonda_leitora",
+    assinatura: "public.sonda_leitora()",
+    migracao: "999",
+    etapa: "sonda",
+    executavelPor: [],
+    gatilhoEm: ["usuarios"],
+    leOrigemDeConta: "verificador",
+    motivo: "Sonda: o verificador adiado, que só lê a marca da própria conta.",
+    tenant: "contexto",
+    confere: "Sonda: lê só a marca da própria conta (NEW.id) e a pessoa dela.",
+    semProva: "Sonda: a prova é esta sonda.",
+  };
+  const conferir = (funcoes: readonly FuncaoPrivilegiada[]) => conferirLeitoraDeOrigem(db, funcoes);
+
+  it("a leitora na forma certa passa no banco; sem leitora declarada, também", async () => {
+    expect(await conferir([])).toEqual([]);
+    expect(await comBuraco(criarLeitora(), FECHAR, () => conferir([ENTRADA]))).toEqual([]);
+  });
+
+  it("proconfig diferente, sem SECURITY DEFINER, com EXECUTE, ou corpo sabotado reprovam", async () => {
+    expect(
+      (
+        await comBuraco(criarLeitora({ config: "SET search_path = public, pg_temp" }), FECHAR, () =>
+          conferir([ENTRADA]),
+        )
+      ).join("\n"),
+    ).toMatch(/proconfig da leitora/);
+    expect(
+      (await comBuraco(criarLeitora({ config: "" }), FECHAR, () => conferir([ENTRADA]))).join("\n"),
+    ).toMatch(/proconfig da leitora é \[\]/);
+    expect(
+      (
+        await comBuraco(criarLeitora({ definidora: false }), FECHAR, () => conferir([ENTRADA]))
+      ).join("\n"),
+    ).toMatch(/não é SECURITY DEFINER/);
+    expect(
+      (
+        await comBuraco(
+          `${criarLeitora()} GRANT EXECUTE ON FUNCTION sonda_leitora() TO dc360_app;`,
+          FECHAR,
+          () => conferir([ENTRADA]),
+        )
+      ).join("\n"),
+    ).toMatch(/a leitora tem EXECUTE de dc360_app/);
+    expect(
+      (
+        await comBuraco(
+          criarLeitora({ corpo: comTrecho("PERFORM pg_notify('x', 'y');") }),
+          FECHAR,
+          () => conferir([ENTRADA]),
+        )
+      ).join("\n"),
+    ).toMatch(
+      /corpo fora da lista permitida da leitora: comando não permitido na leitora: perform/,
+    );
+  });
+
+  it("duas leitoras, leitora escritora, leitora fora de usuarios ou de AFTER INSERT, e escritora com ramo verificador reprovam", async () => {
+    const t = (await conferir([ENTRADA, { ...ENTRADA, assinatura: "public.outra()" }])).join("\n");
+    expect(t).toMatch(/mais de uma leitora/);
+    const comMarca = (
+      await comBuraco(criarLeitora(), FECHAR, () =>
+        conferir([{ ...ENTRADA, gravaOrigemDeConta: "criador" }]),
+      )
+    ).join("\n");
+    expect(comMarca).toMatch(/a leitora não é escritora/);
+    expect(comMarca).toMatch(/ramo verificador em função escritora/);
+    const noUpdate = `${criarLeitora()}
+      CREATE TRIGGER sonda_leitora_no_update AFTER UPDATE ON usuarios FOR EACH ROW EXECUTE FUNCTION sonda_leitora();`;
+    expect(
+      (
+        await comBuraco(
+          noUpdate,
+          `DROP TRIGGER sonda_leitora_no_update ON usuarios; ${FECHAR}`,
+          () => conferir([ENTRADA]),
+        )
+      ).join("\n"),
+    ).toMatch(/gatilho sonda_leitora_no_update de usuarios, que não é AFTER INSERT/);
+    expect(
+      (
+        await comBuraco(criarLeitora(), FECHAR, () =>
+          conferir([{ ...ENTRADA, gatilhoEm: ["sessoes"] }]),
+        )
+      ).join("\n"),
+    ).toMatch(/dispara só de usuarios/);
+    expect(await conferir([{ ...ENTRADA, assinatura: "public.nao_existe()" }])).toEqual([
+      "public.nao_existe(): a leitora declarada não existe no banco",
+    ]);
   });
 });

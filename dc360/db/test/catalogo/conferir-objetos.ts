@@ -11,6 +11,7 @@
  */
 import { MINIMO_DO_MOTIVO, nomeQualificado, type ConsultaSql } from "./conferir.js";
 import type { PolicyDoFornecedor } from "./fornecedor.js";
+import { SEARCH_PATH_DA_LEITORA, conferirCorpoDaLeitora } from "./leitora.js";
 import type {
   FuncaoPrivilegiada,
   LeituraDeExtensao,
@@ -505,11 +506,23 @@ export async function conferirQuemCitaOrigensDeConta(
   );
   const marcadas = funcoes.filter((f) => f.gravaOrigemDeConta);
   const porChave = new Map(marcadas.map((f) => [f.assinatura, f]));
+  // A leitora declarada (correção 6 da ADR 0009) também cita a tabela; o que
+  // ela pode fazer com isso é conferido por `conferirLeitoraDeOrigem`.
+  const leitoras = funcoes.filter((f) => f.leOrigemDeConta);
+  const lidas = new Set(leitoras.map((f) => f.assinatura));
   for (const assinatura of citam) {
-    if (!porChave.has(assinatura)) {
+    if (!porChave.has(assinatura) && !lidas.has(assinatura)) {
       problemas.push(
         `${assinatura} cita origens_de_conta no corpo e não é o gatilho criador nem aceitar_convite ` +
-          "(gravaOrigemDeConta em FUNCOES_PRIVILEGIADAS): a origem do pessoa_id só é gravada por quem o produz",
+          "(gravaOrigemDeConta em FUNCOES_PRIVILEGIADAS), nem a leitora declarada (leOrigemDeConta): " +
+          "a origem do pessoa_id só é gravada por quem o produz",
+      );
+    }
+  }
+  for (const f of leitoras) {
+    if (!citam.has(f.assinatura)) {
+      problemas.push(
+        `${f.assinatura}: declara leOrigemDeConta e o corpo não cita origens_de_conta (marca que sobrou)`,
       );
     }
   }
@@ -529,6 +542,119 @@ export async function conferirQuemCitaOrigensDeConta(
       problemas.push(
         `${f.assinatura}: declara gravaOrigemDeConta e o corpo não cita origens_de_conta (marca que sobrou)`,
       );
+    }
+  }
+  return problemas;
+}
+
+/**
+ * A LEITORA de `origens_de_conta` (ADR 0009, decisão 1, correção 6; junção do
+ * lote 1 da F03). O verificador adiado é uma função separada, a única que lê a
+ * marca sem ser escritora. Reprova:
+ *
+ *   - mais de uma leitora declarada, ou a leitora que também é escritora;
+ *   - a leitora que não existe no banco, que não é `SECURITY DEFINER`, que não
+ *     é função de gatilho em PL/pgSQL, cujo `proconfig` não é exatamente
+ *     `search_path=pg_catalog, public, pg_temp`, ou que tem EXECUTE de
+ *     `dc360_app`, `dc360_console` ou PUBLIC;
+ *   - a leitora declarada com papel que a executa, ou fora de `gatilhoEm:
+ *     ["usuarios"]`, e a leitora disparada por gatilho que não é `AFTER
+ *     INSERT` de `public.usuarios`;
+ *   - o corpo fora da LISTA PERMITIDA (`conferirCorpoDaLeitora`, falha fechada);
+ *   - RAMO VERIFICADOR em função escritora: função com `gravaOrigemDeConta`
+ *     disparada por gatilho `AFTER INSERT` (o momento do verificador).
+ */
+export async function conferirLeitoraDeOrigem(
+  db: ConsultaSql,
+  funcoes: readonly FuncaoPrivilegiada[],
+): Promise<string[]> {
+  const problemas: string[] = [];
+  const leitoras = funcoes.filter((f) => f.leOrigemDeConta);
+  if (leitoras.length > 1) {
+    problemas.push(
+      `mais de uma leitora de origens_de_conta declarada: ${leitoras.map((f) => f.assinatura).join(", ")}`,
+    );
+  }
+  const gatilhosDe = async (assinatura: string) =>
+    (
+      await db.query<{ tabela: string; tipo: number; nome: string }>(
+        `SELECT t.tgrelid::regclass::text AS tabela, t.tgtype::int AS tipo, t.tgname::text AS nome
+           FROM pg_trigger t
+          WHERE NOT t.tgisinternal AND t.tgfoid = to_regprocedure($1)
+          ORDER BY 3`,
+        [assinatura],
+      )
+    ).rows;
+  const AFTER_INSERT = (tipo: number) => (tipo & 2) === 0 && (tipo & 64) === 0 && (tipo & 4) !== 0;
+  for (const f of leitoras) {
+    if (f.gravaOrigemDeConta) {
+      problemas.push(
+        `${f.assinatura}: a leitora não é escritora (leOrigemDeConta com gravaOrigemDeConta)`,
+      );
+    }
+    if (f.executavelPor.length) {
+      problemas.push(
+        `${f.assinatura}: a leitora não tem EXECUTE de papel nenhum (executavelPor não vazio)`,
+      );
+    }
+    if (!(f.gatilhoEm?.length === 1 && f.gatilhoEm[0] === "usuarios")) {
+      problemas.push(`${f.assinatura}: a leitora dispara só de usuarios (gatilhoEm: ["usuarios"])`);
+    }
+    const r = await db.query<{
+      definidora: boolean;
+      gatilho: boolean;
+      linguagem: string;
+      config: string[] | null;
+      corpo: string;
+      quem: string[];
+    }>(
+      `SELECT p.prosecdef AS definidora, p.prorettype = 'trigger'::regtype AS gatilho,
+              l.lanname::text AS linguagem, p.proconfig AS config, coalesce(p.prosrc, '') AS corpo,
+              ARRAY(SELECT x FROM unnest(ARRAY['dc360_app', 'dc360_console', 'public']) x
+                     WHERE has_function_privilege(x, p.oid, 'EXECUTE')) AS quem
+         FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang
+        WHERE p.oid = to_regprocedure($1)`,
+      [f.assinatura],
+    );
+    const p = r.rows[0];
+    if (!p) {
+      problemas.push(`${f.assinatura}: a leitora declarada não existe no banco`);
+      continue;
+    }
+    if (!p.definidora) problemas.push(`${f.assinatura}: a leitora não é SECURITY DEFINER`);
+    if (!p.gatilho) problemas.push(`${f.assinatura}: a leitora não é função de gatilho`);
+    if (p.linguagem !== "plpgsql") problemas.push(`${f.assinatura}: a leitora não é PL/pgSQL`);
+    const config = p.config ?? [];
+    if (!(config.length === 1 && config[0] === SEARCH_PATH_DA_LEITORA)) {
+      problemas.push(
+        `${f.assinatura}: o proconfig da leitora é ${JSON.stringify(config)}, e precisa ser ` +
+          `exatamente ["${SEARCH_PATH_DA_LEITORA}"]`,
+      );
+    }
+    if (p.quem.length) {
+      problemas.push(`${f.assinatura}: a leitora tem EXECUTE de ${p.quem.join(", ")}`);
+    }
+    for (const e of conferirCorpoDaLeitora(p.corpo)) {
+      problemas.push(`${f.assinatura}: corpo fora da lista permitida da leitora: ${e}`);
+    }
+    for (const g of await gatilhosDe(f.assinatura)) {
+      if (g.tabela !== "usuarios" || !AFTER_INSERT(g.tipo)) {
+        problemas.push(
+          `${f.assinatura}: a leitora é disparada pelo gatilho ${g.nome} de ${g.tabela}, que não é ` +
+            "AFTER INSERT de public.usuarios",
+        );
+      }
+    }
+  }
+  for (const f of funcoes.filter((x) => x.gravaOrigemDeConta)) {
+    for (const g of await gatilhosDe(f.assinatura)) {
+      if (AFTER_INSERT(g.tipo)) {
+        problemas.push(
+          `${f.assinatura}: função escritora de origens_de_conta disparada pelo gatilho ${g.nome} ` +
+            `(AFTER INSERT de ${g.tabela}): ramo verificador em função escritora; o verificador é a ` +
+            "leitora separada (correção 6 da ADR 0009)",
+        );
+      }
     }
   }
   return problemas;

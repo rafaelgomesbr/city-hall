@@ -82,11 +82,18 @@ export {
   conferirModoDasPolicies,
   conferirPoliciesDoFornecedor,
   conferirQuemCitaOrigensDeConta,
+  conferirLeitoraDeOrigem,
   conferirSequenciasETipos,
   conferirVisoes,
   definicoesInstaladas,
   foraDoModelo,
 } from "./conferir-objetos.js";
+export {
+  SEARCH_PATH_DA_LEITORA,
+  TIPOS_DA_LEITORA,
+  conferirCorpoDaLeitora,
+  simbolosDoCorpo,
+} from "./leitora.js";
 export {
   comoAtor,
   ident,

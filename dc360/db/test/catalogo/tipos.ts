@@ -141,6 +141,18 @@ export interface FuncaoPrivilegiada {
    */
   readonly gravaOrigemDeConta?: "criador" | "aceite";
   /**
+   * A LEITORA de `origens_de_conta` (decisão 1 da ADR 0009, correção 6): o
+   * verificador adiado, função separada que só LÊ a marca da própria conta (ou
+   * da própria transação, no gatilho de comando). No máximo uma, e nunca junto
+   * de `gravaOrigemDeConta`. CONFERIDO (`conferirLeitoraDeOrigem`): corpo por
+   * LISTA PERMITIDA (`leitora.ts`, falha fechada), `proconfig` exatamente
+   * `search_path=pg_catalog, public, pg_temp`, SECURITY DEFINER, função de
+   * gatilho sem EXECUTE de papel do produto nem PUBLIC, disparada só por
+   * gatilho AFTER INSERT de `public.usuarios`; e nenhuma função escritora é
+   * disparada por AFTER INSERT (o ramo verificador sai dela).
+   */
+  readonly leOrigemDeConta?: "verificador";
+  /**
    * FUNÇÃO DE GATILHO privilegiada (retorna `trigger`), parte 0G. Obrigatório
    * (e só aceito) quando a função retorna `trigger`: as tabelas cujos gatilhos
    * a chamam, como o catálogo nominal escreve o nome (nu em `public`).

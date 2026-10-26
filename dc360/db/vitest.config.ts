@@ -22,13 +22,20 @@ import { configDefaults, defineConfig } from "vitest/config";
  * não esconde travamento: um teste que trava reprova do mesmo jeito, só que
  * depois. `maxThreads: 4` pelo mesmo motivo da API: quatro PGlite em voo
  * cabem na memória; oito, com a suíte da API ao lado, não.
+ *
+ * Junção do lote 1 da F03 (DV-67): o `testTimeout` sobe para 120 s. As
+ * sondas 12 e 19 de `catalogo-nominal.test.ts` e a varredura de privilégio
+ * por coluna de `isolamento.test.ts` (parte 0G) levam de 5 a 12 s cada no
+ * PGlite ocioso e passaram de 30 s com o `npm test` inteiro carregando a
+ * máquina. A mesma razão do `hookTimeout`: teto largo não esconde
+ * travamento.
  */
 export default defineConfig({
   test: {
     // Os `*.espacial.test.ts` (V2-F01-E21) pedem Postgres real com PostGIS e
     // têm a própria suíte: `vitest.espacial.config.ts`, `npm run test:espacial`.
     exclude: [...configDefaults.exclude, "**/*.espacial.test.ts"],
-    testTimeout: 30_000,
+    testTimeout: 120_000,
     hookTimeout: 120_000,
     poolOptions: {
       threads: { maxThreads: 4 },

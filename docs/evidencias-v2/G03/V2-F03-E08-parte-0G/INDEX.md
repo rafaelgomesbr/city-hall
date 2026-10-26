@@ -235,3 +235,5 @@
 | correcao-2/sabotagens/antes-42c009a3.txt | 256f970f3961f30d8bb7a0da7fa8de7fa804a89b5e0415b84451c860f85ceae1 |
 | correcao-2/sabotagens/depois.txt | 561ad6afd38ded6ebd4759ae0cef7de4c20777c87188d82e93c5ceb3ae729e40 |
 | correcao-2/saidas/01-isolamento-e-catalogo-nominal.txt | 8aac35b8968b09aa24fa5fbf7ccd0d31b4b869deaa087fb50215e402598ee62d |
+| leitora/RESUMO.md | 52666e4f4c9fb18628b3235fecaa99cf36cc25bc48ba15d4b41f85d5b49bfbea |
+| leitora/saidas/01-portao.txt | e1ef6b0dc006b111013efb35005f00db12e82ba382d69c97ad71a64482a6cc3a |

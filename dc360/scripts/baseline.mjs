@@ -1227,6 +1227,18 @@ export const MUDANCAS_DO_TESTE_DB_POR_ETAPA = {
     por dentro. Total 8, nenhuma falha nem pulo novos.
   */
   "V2-F03-E08-parte-0G-correcao-2": { total: 8, falhas: 0, puladas: 0 },
+  /*
+    V2-F03-E08, portao da leitora de origens_de_conta (ADR 0009, correcao 6;
+    feito na juncao do lote 1 da F03, autorizado pelo orquestrador).
+    `isolamento.test.ts` ganha 1 caso (a leitora declarada so le, por lista
+    permitida, com search_path fixo, e nenhuma escritora e disparada por AFTER
+    INSERT); `catalogo-nominal.test.ts` ganha 6 (a sonda 25: a leitora da E15
+    passa, as sete sabotagens da correcao 6 reprovam, a escrita disfarcada e o
+    nao reconhecido reprovam, e no banco o proconfig, o SECURITY DEFINER, o
+    EXECUTE, a segunda leitora, a leitora escritora e o disparo fora de AFTER
+    INSERT de usuarios). Total 7, nenhuma falha nem pulo novos.
+  */
+  "V2-F03-E08-leitora-de-origem": { total: 7, falhas: 0, puladas: 0 },
 };
 export function esperadoDoTesteDb() {
   return somarMudancas(BASE_DO_TESTE_DB, MUDANCAS_DO_TESTE_DB_POR_ETAPA);
