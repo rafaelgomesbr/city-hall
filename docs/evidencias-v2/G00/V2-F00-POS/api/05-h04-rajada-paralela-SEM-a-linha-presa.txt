@@ -1,0 +1,42 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/.claude/worktrees/agent-abb3f4926822b5640/dc360/apps/api
+
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > A conta do teto por pessoa > é o menor entre o configurado e um décimo da margem, e nunca menos que uma foto no máximo
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > A conta do teto por pessoa > o padrão é 90 MB (seis fotos no teto por arquivo), configurável, e não aceita menos que uma foto
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 1. a rajada do achado: num município de 1 GiB, o Diego reserva seis fotos de 15 MB e a sétima leva 429; a Carla continua enviando
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 2. no teto, repetir o pedido da MESMA foto (mesma chave) continua respondendo a mesma reserva
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 3. reserva abandonada pela varredura de órfão deixa de contar
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (PGlite) > 4. município sem teto contratado (o estado de hoje): vale o configurado, 90 MB
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Foto concluída libera a reserva da pessoa (PGlite, teto configurado no mínimo) > 5. com 15 MB configurados, a foto pequena aberta impede a de 15 MB; subida e confirmada, a de 15 MB passa
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Configurado acima de um décimo da margem, vale o décimo (PGlite, 1024 MB configurados) > 6. com 1 GiB de teto e 1024 MB configurados, ninguém segura mais que um décimo da margem (153,6 MB)
+ × test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 7. vinte pedidos de 15 MB do mesmo agente AO MESMO TEMPO: exatamente seis passam, e a colega continua enviando 198ms
+   → a rajada em paralelo passou por uma folga que só cabia seis: expected 7 to be 6 // Object.is equality
+ ↓ test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 8. o índice parcial da migração 053 existe e cobre só as reservas abertas
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/reserva-de-envio-por-pessoa.test.ts > Um agente não esgota o teto de envio dos colegas (Postgres real, rajada em paralelo) > 7. vinte pedidos de 15 MB do mesmo agente AO MESMO TEMPO: exatamente seis passam, e a colega continua enviando
+AssertionError: a rajada em paralelo passou por uma folga que só cabia seis: expected 7 to be 6 // Object.is equality
+
+- Expected
++ Received
+
+- 6
++ 7
+
+ ❯ test/reserva-de-envio-por-pessoa.test.ts:401:84
+    399|     const outras = respostas.filter((r) => r.statusCode !== 201 && r.s…
+    400|     expect(outras.map((r) => `${r.statusCode} ${r.body}`)).toEqual([]);
+    401|     expect(aceitas, "a rajada em paralelo passou por uma folga que só …
+       |                                                                                    ^
+    402|     expect(recusadas.length).toBe(14);
+    403|     expect(recusadas.every((r) => r.json().erro === "reservas_de_envio…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 skipped (10)
+   Start at  13:52:10
+   Duration  8.31s (transform 1.61s, setup 656ms, collect 3.20s, tests 3.70s, environment 0ms, prepare 211ms)
+
