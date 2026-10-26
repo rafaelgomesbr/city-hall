@@ -139,6 +139,7 @@ export const grupo: GrupoDoContrato = {
         "email_so_por_administrador",
         "ultimo_administrador",
         "usuario_repetido",
+        "papel_nao_se_converte",
       ],
     }),
     rota({

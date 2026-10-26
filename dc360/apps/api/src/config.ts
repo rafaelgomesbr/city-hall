@@ -432,6 +432,88 @@ const esquema = z.object({
   SEGUNDO_FATOR_MAX_FALHAS: z.coerce.number().int().min(3).max(20).default(5),
   SEGUNDO_FATOR_BLOQUEIO_MINUTOS: z.coerce.number().int().min(1).max(1440).default(15),
 
+  /*
+    AS CHAVES DA F03 (identidade, vigência e contexto de ator), declaradas de
+    uma vez na abertura da API (parte 1C) com o PADRÃO FECHADO e SEM EFEITO:
+    nenhuma é lida por código de negócio ainda. Cada etapa dona liga a sua sem
+    mexer neste arquivo, que fica congelado na F03 depois da 1C. Ver
+    `docs/COLOCAR-DE-PE.md` e `scripts/ambientes.json`.
+  */
+
+  /**
+   * Liga o login da conta `usuario_orgao` (o portal das secretarias e dos
+   * órgãos externos). Padrão `nao`: a conta existe, e a tentativa de entrar
+   * responde credenciais inválidas (P-09). Quem liga é a E02 (parte 2A), só em
+   * HML e só depois do G03.
+   *
+   * Ligar `sim` EXIGE `SEGUNDO_FATOR_ATIVO=sim`: o portal sem segundo fator é
+   * conta de fora do município entrando só com senha. A partida recusa, em
+   * qualquer ambiente (ver `carregarConfig`). Desligar é o rollback, sem deploy.
+   */
+  PORTAL_ATIVO: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
+   * Até que dia (inclusive, `AAAA-MM-DD`) o token de acesso com `sub` de CONTA
+   * (`usuarios.id`) ainda vale, durante a troca do formato do token (E02, "dois
+   * deploys": o primeiro aceita os dois formatos, o segundo emite o enxuto).
+   * Vazia, que é o padrão, FECHADA: nenhuma data, nenhum `sub` de conta aceito.
+   * Data que não existe no calendário derruba a partida.
+   */
+  ACEITA_SUB_DE_CONTA_ATE: vazioEhAusente(
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "use AAAA-MM-DD")
+      .refine(
+        (v) => {
+          const d = new Date(`${v}T00:00:00Z`);
+          return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v);
+        },
+        "data inexistente no calendário",
+      )
+      .optional(),
+  ),
+
+  /**
+   * A versão do LOGIN EM DOIS PASSOS: a versão mínima do aplicativo que sabe
+   * ESCOLHER o município no login
+   * (E16), em `maior.menor.correção`. Abaixo dela, quem tem conta em mais de
+   * um município recebe 409 `escolha_de_municipio_obrigatoria`. Vazia, que é
+   * o padrão, não declara versão nenhuma: o que a ausência significa é da E16.
+   * Valor fora do formato derruba a partida, como `VERSAO_MINIMA_CAMPO`.
+   *
+   * O nome NÃO é o do plano e da ADR 0009 (`VERSAO_ESCOLHA_DE_MUNICIPIO`): o
+   * guarda de isolamento reprova variável de configuração com MUNICIPIO,
+   * ORGANIZACAO ou TENANT no nome, e não se abre exceção nele.
+   */
+  VERSAO_DO_LOGIN_EM_DOIS_PASSOS: vazioEhAusente(
+    z.string().regex(/^\d{1,9}\.\d{1,9}\.\d{1,9}$/, "use maior.menor.correção, como 1.3.0").optional(),
+  ),
+
+  /**
+   * RESERVADA, SEM EFEITO, e a ausência de efeito é decisão: por quantos
+   * minutos a verificação do segundo fator feita no município de origem valeria
+   * no de destino, na troca de município. A ADR 0009 (corrigida) diz que a troca
+   * pede PROVA NOVA e que nada é herdado, então esta chave só passaria a ter
+   * efeito se o Rafael aceitasse esse risco por escrito (pergunta 2 do CP-50,
+   * H107). `0`, o padrão, é "nada herdado". Nenhum código lê o valor.
+   */
+  MFA_VIGENCIA_MINUTOS: z.coerce.number().int().min(0).max(1440).default(0),
+
+  /**
+   * Liga a contagem de cotas no BANCO (E17), em vez do balde em memória por
+   * processo. Padrão `nao`: o limitador continua sendo o de memória de
+   * `limite-por-rota.ts`. Desligar é o rollback. Ligado em produção EXIGE
+   * `COTAS_SEGREDO` (ver `carregarConfig`).
+   */
+  COTAS_PERSISTENTES: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
+   * O segredo da chave das cotas persistentes (E17): a chave de contagem é o
+   * HMAC dele sobre endereço, e-mail normalizado ou pessoa, para o banco nunca
+   * guardar nenhum dos três. Mínimo de 32 caracteres, como cada item do
+   * `JWT_SEGREDO`. Vazio é ausente. Em produção é exigido quando
+   * `COTAS_PERSISTENTES=sim`. É segredo: nunca no `[env]` do `fly.toml`.
+   */
+  COTAS_SEGREDO: vazioEhAusente(z.string().min(32, "use pelo menos 32 caracteres").optional()),
+
   /**
    * De quem este processo aceita cabeçalho de endereço de origem.
    *
@@ -780,6 +862,26 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
   }
 
   /*
+    Portal ligado exige o segundo fator ligado, em TODO ambiente.
+
+    A conta `usuario_orgao` é de quem trabalha FORA do município e entra pelo
+    portal; com `SEGUNDO_FATOR_ATIVO=nao` o login dela seria só senha, e a
+    segunda etapa responderia 503 `segundo_fator_desligado` para quem a
+    exigisse. Ligar o portal assim sobe o servidor, mostra a tela e entrega
+    conta de fora do município protegida por uma senha só, que é justamente o
+    que o segundo fator existe para impedir. Recusar na partida é o que não
+    deixa isso acontecer por esquecimento.
+  */
+  if (c.PORTAL_ATIVO === "sim" && c.SEGUNDO_FATOR_ATIVO !== "sim") {
+    throw new Error(
+      "O portal está ligado e o segundo fator não: PORTAL_ATIVO=sim exige "
+      + "SEGUNDO_FATOR_ATIVO=sim (e a SEGUNDO_FATOR_CHAVE). Ligue o segundo fator, "
+      + "ou desligue o portal com PORTAL_ATIVO=nao. Sem isso a conta de um "
+      + "órgão externo entraria só com a senha.",
+    );
+  }
+
+  /*
     Encerrar o espelho com a data PROVISÓRIA seria encerrar sem decisão: a
     política de versões diz que o padrão de `ESPELHO_LEGADO_ATE` não vale como
     aprovação. Com a chave ligada, a data precisa estar escrita no ambiente. (Data
@@ -839,6 +941,19 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
       );
     }
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
+    /*
+      Cota persistente ligada exige o segredo que faz a chave de contagem. Sem
+      ele a E17 não teria como gerar a chave sem guardar endereço ou e-mail em
+      claro, e é melhor a partida recusar do que a contagem cair em silêncio no
+      balde de memória.
+    */
+    if (c.COTAS_PERSISTENTES === "sim" && !c.COTAS_SEGREDO) {
+      throw new Error(
+        "As cotas persistentes estão ligadas e não têm segredo para a chave de "
+        + "contagem: defina COTAS_SEGREDO (pelo menos 32 caracteres, nos "
+        + "segredos do app, nunca no [env]), ou desligue com COTAS_PERSISTENTES=nao.",
+      );
+    }
     if (c.NOTIFICADOR_ARQUIVO) {
       throw new Error(
         "NOTIFICADOR_ARQUIVO é canal de teste e não pode existir em produção: "

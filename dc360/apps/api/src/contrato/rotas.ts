@@ -3,12 +3,15 @@ import { grupo as aplicativos } from "./grupos/aplicativos.js";
 import { grupo as autenticacao } from "./grupos/autenticacao.js";
 import { grupo as campo } from "./grupos/campo.js";
 import { grupo as conta } from "./grupos/conta.js";
+import { grupo as convites } from "./grupos/convites.js";
 import { grupo as documentos } from "./grupos/documentos.js";
 import { grupo as mapaEBusca } from "./grupos/mapa-e-busca.js";
+import { grupo as municipioDaSessao } from "./grupos/municipio-da-sessao.js";
 import { grupo as ocorrencias } from "./grupos/ocorrencias.js";
 import { grupo as oficiosEOrgaos } from "./grupos/oficios-e-orgaos.js";
 import { grupo as prestacaoDeContas } from "./grupos/prestacao-de-contas.js";
 import { grupo as publico } from "./grupos/publico.js";
+import { grupo as sigilo } from "./grupos/sigilo.js";
 import { chaveDaRota, type GrupoDoContrato, type RotaDoContrato } from "./tipos.js";
 
 /**
@@ -35,12 +38,15 @@ export const GRUPOS: readonly GrupoDoContrato[] = [
   autenticacao,
   campo,
   conta,
+  convites,
   documentos,
   mapaEBusca,
+  municipioDaSessao,
   ocorrencias,
   oficiosEOrgaos,
   prestacaoDeContas,
   publico,
+  sigilo,
 ];
 
 /** Uma entrada com o grupo a que pertence. */

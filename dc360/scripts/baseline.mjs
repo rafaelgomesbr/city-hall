@@ -929,6 +929,8 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   "V2-F02-E05-correcao-1": { total: 8, falhas: 0, puladas: 0 },
   // V2-F03-E04: `apps/api/test/papeis-batem-com-o-banco.test.ts` e novo, com 26 casos (o shared e o banco falam a mesma lista de papeis e de origens; `usuario_orgao` tem posto 1 e nenhuma acao; PATCH recusa converter nos dois sentidos com 409; POST nao cria a conta; o login dela responde igual a email inexistente, sem contar falha; a conta de A nao aparece para B).
   "V2-F03-E04": { total: 26, falhas: 0, puladas: 0 },
+  // V2-F03, abertura da API (parte 1C): `apps/api/test/chaves-da-f03.test.ts` (18 casos: o padrao fechado das seis chaves novas, `PORTAL_ATIVO=sim` sem segundo fator recusa a partida, `COTAS_SEGREDO` exigido em producao com as cotas ligadas, os formatos e o que nao tem efeito) e `manifesto-em-toda-requisicao.test.ts` (9 casos: `conferirManifesto` e chamada em toda requisicao autenticada, em `/v1` e no espelho, na leitura e na escrita, e so nelas; quem a chama respeita a recusa). Nenhum caso existente muda de resultado.
+  "V2-F03-abertura-1C": { total: 27, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */

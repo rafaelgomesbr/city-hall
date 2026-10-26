@@ -531,8 +531,9 @@ export const CODIGOS_RESERVADOS = {
   },
   /**
    * V2-F03-E16: pessoa com várias contas entrando por um aplicativo abaixo de
-   * `VERSAO_ESCOLHA_DE_MUNICIPIO`, que não sabe escolher o município. Resolve
-   * atualizando o aplicativo.
+   * `VERSAO_DO_LOGIN_EM_DOIS_PASSOS` (chave da configuração da API; o plano e a
+   * ADR 0009 a chamavam `VERSAO_ESCOLHA_DE_MUNICIPIO`, ver DV-63), que não sabe
+   * escolher o município. Resolve atualizando o aplicativo.
    */
   escolha_de_municipio_obrigatoria: {
     status: 409,
