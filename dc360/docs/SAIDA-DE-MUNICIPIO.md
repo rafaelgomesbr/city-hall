@@ -210,10 +210,11 @@ disse que está completo**. O console não sabe se o passo 5 aconteceu; quem sab
   município. Mas abrir o dossiê de uma ocorrência (e a busca) grava uma linha
   em `ocorrencia_consultas` (o registro de quem leu dado de cidadão, sem o
   dado), e essa linha entra mesmo sob suspensão: dizer que a leitura "não
-  cria registro nenhum" seria falso. Se o contrato exigir que nada novo
-  apareça no banco do município enquanto ele estiver suspenso, essa leitura
-  precisa passar a ser recusada, e isso é decisão de produto pendente
-  (a vigência da leitura é da F03-E03).
+  cria registro nenhum" seria falso. E é o comportamento decidido: em
+  26/10/2026 o Rafael escolheu manter o registro da leitura sob suspensão
+  (H43), porque saber quem leu dado de cidadão vale também, e principalmente,
+  durante uma disputa de contrato. A vigência da leitura com token vivo
+  continua sendo da F03-E03.
 - **O aparelho de campo** recebe uma recusa própria, inclusive com o token
   vencido, e a tela diz a frase certa sem oferecer "entrar de novo". **A coleta
   que estava no aparelho não se perde**: a API responde à fila de sincronização
